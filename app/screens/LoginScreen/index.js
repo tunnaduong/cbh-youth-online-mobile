@@ -1,14 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useRef } from "react";
 import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
 import axiosInstance from "../../utils/axiosInstance";
 import saveToken from "../../utils/saveToken";
+import saveUserInfo from "../../utils/saveUserInfo";
+import { AuthContext } from "../../contexts/AuthContext";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const { setIsLoggedIn } = useContext(AuthContext);
+  const passwordInputRef = useRef(null);
 
   const handleLogin = () => {
-    // Perform login
     axiosInstance
       .post("/login", {
         username: email,
@@ -16,13 +19,9 @@ const LoginScreen = ({ navigation }) => {
       })
       .then((response) => {
         console.log("Login successful:", response.data);
-
-        // Save the token to AsyncStorage
-        // AsyncStorage.setItem("auth_token", response.data.token);
         saveToken(response.data.token);
-
-        // Navigate to the next screen if login is successful
-        navigation.navigate("Home");
+        saveUserInfo(response.data.user);
+        setIsLoggedIn(true);
       })
       .catch((error) => {
         Alert.alert("Đăng nhập thất bại", error.response.data.message);
@@ -39,6 +38,11 @@ const LoginScreen = ({ navigation }) => {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        returnKeyType="next"
+        onSubmitEditing={() => {
+          // Focus the password input when "Enter" is pressed on the email input
+          passwordInputRef.current.focus();
+        }}
       />
       <TextInput
         style={styles.input}
@@ -46,8 +50,17 @@ const LoginScreen = ({ navigation }) => {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        returnKeyType="done"
+        onSubmitEditing={handleLogin}
+        ref={passwordInputRef}
       />
       <Button title="Đăng nhập" onPress={handleLogin} />
+      <Button
+        title="Đăng ký"
+        onPress={() => {
+          navigation.navigate("Signup");
+        }}
+      />
     </View>
   );
 };

@@ -1,18 +1,25 @@
-import React from "react";
+import React, { useContext } from "react";
 import { View, Text, StyleSheet, Button } from "react-native";
-import logout from "../../utils/logout";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AuthContext } from "../../contexts/AuthContext";
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = () => {
+  const { setIsLoggedIn } = useContext(AuthContext);
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.clear();
+      setIsLoggedIn(false);
+      console.log("User logged out successfully");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to the Home Screen</Text>
-      <Button
-        title="Đăng xuất"
-        onPress={() => {
-          logout();
-          navigation.navigate("Login");
-        }}
-      />
+      <Button title="Đăng xuất" onPress={handleLogout} />
     </View>
   );
 };
