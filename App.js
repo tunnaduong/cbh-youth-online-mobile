@@ -4,8 +4,9 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, ActivityIndicator } from "react-native";
 import { AuthProvider, AuthContext } from "./app/contexts/AuthContext";
 import LoginScreen from "./app/screens/LoginScreen";
-import HomeScreen from "./app/screens/HomeScreen";
+import HomeScreen from "./app/screens/MainScreens/HomeScreen";
 import SignupScreen from "./app/screens/SignupScreen";
+import MainScreens from "./app/screens/MainScreens";
 
 const Stack = createStackNavigator();
 
@@ -26,7 +27,16 @@ const App = () => {
       <Stack.Navigator>
         {isLoggedIn ? (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen
+              options={{
+                title: "Trang chính",
+                headerShown: false,
+                gestureEnabled: false,
+                animation: "none",
+              }}
+              name="MainScreens"
+              component={MainScreens}
+            />
           </>
         ) : (
           <>
