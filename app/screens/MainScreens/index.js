@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, Pressable } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
+import CustomTabBarButton from "../../components/CustomTabBarButton";
+import SameHeader from "../../components/SameHeader";
 
 // Screen components
 function SettingsScreen() {
@@ -23,40 +25,9 @@ function ProfileScreen() {
 
 const Tab = createBottomTabNavigator();
 
-export default function MainScreens() {
-  const CustomTabBarButton = ({ children, onPress }) => (
-    <Pressable
-      style={{
-        top: -27,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-      onPress={onPress}
-    >
-      <View
-        style={{
-          width: 60,
-          height: 60,
-          borderRadius: 35,
-          backgroundColor: "#fff",
-        }}
-      >
-        <Ionicons
-          name="add-circle"
-          size={60}
-          color={"#319527"}
-          style={{
-            shadowColor: "#319527",
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: 0.3,
-            shadowRadius: 20,
-          }}
-        />
-        {children}
-      </View>
-    </Pressable>
-  );
+const DummyComponent = () => null;
 
+export default function MainScreens({ navigation }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -90,6 +61,17 @@ export default function MainScreens() {
         component={HomeScreen}
         options={{
           title: "Trang chủ",
+          headerShown: true,
+          headerBackButtonMenuEnabled: false,
+          headerTitle: () => {
+            return (
+              <SameHeader
+                icon="search"
+                action={() => navigation.navigate("SearchScreen")}
+                havingIcon
+              />
+            );
+          },
         }}
       />
       <Tab.Screen
@@ -101,7 +83,7 @@ export default function MainScreens() {
       />
       <Tab.Screen
         name="Create"
-        component={ProfileScreen}
+        component={DummyComponent} // Use the dummy component
         options={{
           tabBarIconStyle: {
             display: "none",
@@ -110,7 +92,15 @@ export default function MainScreens() {
             top: 2,
             fontWeight: "bold",
           },
-          tabBarButton: (props) => <CustomTabBarButton {...props} />,
+          tabBarButton: (props) => (
+            <CustomTabBarButton
+              {...props}
+              onPress={() => {
+                // Perform any action you want here
+                // console.log("Custom button pressed");
+              }}
+            />
+          ),
           title: "Tạo",
         }}
       />
