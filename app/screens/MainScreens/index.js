@@ -1,27 +1,10 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Pressable } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
-
-// Screen components
-function SettingsScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>Settings Screen</Text>
-    </View>
-  );
-}
-
-function ProfileScreen() {
-  return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>Profile Screen</Text>
-    </View>
-  );
-}
+import MenuScreen from "./MenuScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -76,7 +59,7 @@ export default function MainScreens({ navigation }) {
       />
       <Tab.Screen
         name="Chat"
-        component={ProfileScreen}
+        component={DummyComponent}
         options={{
           title: "Chat",
         }}
@@ -106,12 +89,12 @@ export default function MainScreens({ navigation }) {
       />
       <Tab.Screen
         name="Notifications"
-        component={ProfileScreen}
+        component={DummyComponent}
         options={{
           title: "Thông báo",
         }}
       />
-      <Tab.Screen name="Menu" component={SettingsScreen} />
+      <Tab.Screen name="Menu" component={MenuScreen} />
     </Tab.Navigator>
   );
 }
