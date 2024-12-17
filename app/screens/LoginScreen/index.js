@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  Pressable,
   Image,
   Keyboard,
   TouchableWithoutFeedback,
-  ScrollView,
+  Alert,
 } from "react-native";
 import axiosInstance from "../../utils/axiosInstance";
 import saveToken from "../../utils/saveToken";
@@ -26,7 +25,7 @@ const LoginScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setLoading(true);
     axiosInstance
       .post("/login", {
@@ -53,7 +52,7 @@ const LoginScreen = ({ navigation }) => {
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
         <SafeAreaView style={styles.container}>
           <TouchableOpacity
-            className="mx-4 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
+            className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
             onPress={() => {
               navigation.goBack();
             }}
@@ -86,7 +85,7 @@ const LoginScreen = ({ navigation }) => {
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
-                    placeholder="Nhập mật khẩu của bạn"
+                    placeholder="••••••••••••"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -131,12 +130,14 @@ const LoginScreen = ({ navigation }) => {
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
-                <Text style={styles.googleButtonText}>
-                  Đăng nhập bằng Google
-                </Text>
+                <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.navigate("Signup");
+                }}
+              >
                 <Text className="mt-1 text-center text-base text-[#319527] font-semibold">
                   Tạo tài khoản mới
                 </Text>
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#E2E8F0",
     borderWidth: 0.5,
-    borderColor: "#94A3B8",
+    borderColor: "#E2E8F0",
   },
 });
 

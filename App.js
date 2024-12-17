@@ -67,7 +67,11 @@ const App = () => {
                 options={{ title: "Đăng nhập", headerShown: false }}
                 component={LoginScreen}
               />
-              <Stack.Screen name="Signup" component={SignupScreen} />
+              <Stack.Screen
+                name="Signup"
+                options={{ title: "Đăng ký", headerShown: false }}
+                component={SignupScreen}
+              />
             </>
           )}
         </Stack.Navigator>
