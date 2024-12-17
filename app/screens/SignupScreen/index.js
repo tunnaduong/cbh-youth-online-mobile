@@ -224,7 +224,7 @@ const SignupScreen = ({ navigation }) => {
 
               <View style={styles.loginPrompt}>
                 <Text style={styles.loginPromptText}>Đã có tài khoản?</Text>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                   <Text style={styles.loginLink}>Đăng nhập</Text>
                 </TouchableOpacity>
               </View>
