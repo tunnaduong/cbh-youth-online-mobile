@@ -1,17 +1,30 @@
 import React, { useState, useContext, useRef } from "react";
-import { View, Text, TextInput, Button, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  Pressable,
+  Image,
+  Keyboard,
+  TouchableWithoutFeedback,
+  ScrollView,
+} from "react-native";
 import axiosInstance from "../../utils/axiosInstance";
 import saveToken from "../../utils/saveToken";
 import saveUserInfo from "../../utils/saveUserInfo";
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
+import Icon from "react-native-vector-icons/Ionicons";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { setIsLoggedIn } = useContext(AuthContext);
-  const passwordInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = () => {
     setLoading(true);
@@ -37,39 +50,101 @@ const LoginScreen = ({ navigation }) => {
   return (
     <>
       <ProgressHUD loadText="Đang đăng nhập..." visible={loading} />
-      <View style={styles.container}>
-        <Text style={styles.title}>Thanh niên Chuyên Biên Hòa Online</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Tên người dùng hoặc email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          returnKeyType="next"
-          onSubmitEditing={() => {
-            // Focus the password input when "Enter" is pressed on the email input
-            passwordInputRef.current.focus();
-          }}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Mật khẩu"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          returnKeyType="done"
-          onSubmitEditing={handleLogin}
-          ref={passwordInputRef}
-        />
-        <Button title="Đăng nhập" onPress={handleLogin} />
-        <Button
-          title="Đăng ký"
-          onPress={() => {
-            navigation.navigate("Signup");
-          }}
-        />
-      </View>
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
+        <SafeAreaView style={styles.container}>
+          <TouchableOpacity
+            className="mx-4 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
+            onPress={() => {
+              navigation.goBack();
+            }}
+          >
+            <Icon name="chevron-back-outline" color="white" size={30} />
+          </TouchableOpacity>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Text style={styles.title}>Đăng nhập</Text>
+              <Text style={styles.subtitle}>
+                Chào mừng bạn trở lại ứng dụng
+              </Text>
+            </View>
+
+            <View style={styles.form}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Tên người dùng hoặc email</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="hello@example.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Mật khẩu</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="Nhập mật khẩu của bạn"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                  />
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    style={styles.eyeIcon}
+                  >
+                    <Icon
+                      name={showPassword ? "eye-off-outline" : "eye-outline"}
+                      size={24}
+                      color="#666"
+                    />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={styles.forgotPassword}>
+                  <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={handleLogin}
+              >
+                <Text style={styles.loginButtonText}>Đăng nhập</Text>
+              </TouchableOpacity>
+
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 16,
+                }}
+              >
+                <View style={styles.line} />
+                <Text style={styles.orText}>hoặc đăng nhập bằng</Text>
+                <View style={styles.line} />
+              </View>
+
+              <TouchableOpacity style={styles.googleButton}>
+                <Image
+                  source={require("../../assets/google.png")}
+                  style={{ width: 24, height: 24 }}
+                />
+                <Text style={styles.googleButtonText}>
+                  Đăng nhập bằng Google
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity>
+                <Text className="mt-1 text-center text-base text-[#319527] font-semibold">
+                  Tạo tài khoản mới
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </TouchableWithoutFeedback>
     </>
   );
 };
@@ -77,20 +152,100 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 16,
+    backgroundColor: "#fff",
+  },
+  content: {
+    padding: 24,
+  },
+  header: {
+    marginBottom: 32,
   },
   title: {
-    fontSize: 24,
-    marginBottom: 16,
-    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#666",
+    marginTop: 8,
+  },
+  form: {
+    gap: 20,
+  },
+  inputContainer: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 16,
+    color: "#000",
   },
   input: {
-    height: 40,
-    borderColor: "gray",
+    height: 48,
     borderWidth: 1,
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    borderColor: "#E2E8F0",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    backgroundColor: "#FBFFFB",
+  },
+  passwordContainer: {
+    position: "relative",
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeIcon: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+  },
+  forgotPassword: {
+    alignSelf: "flex-end",
+  },
+  forgotPasswordText: {
+    color: "#319527",
+    fontSize: 14,
+  },
+  loginButton: {
+    backgroundColor: "#319527",
+    height: 50,
+    borderRadius: 38,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loginButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  orText: {
+    textAlign: "center",
+    color: "#666",
+    fontSize: 14,
+    paddingHorizontal: 16,
+  },
+  googleButton: {
+    height: 48,
+    borderRadius: 38,
+    backgroundColor: "#f5f5f5",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E2E8F0",
+    borderWidth: 0.5,
+    borderColor: "#94A3B8",
   },
 });
 

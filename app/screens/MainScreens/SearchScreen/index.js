@@ -13,12 +13,6 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function SearchScreen({ navigation }) {
-  const inputRef = React.useRef();
-
-  React.useEffect(() => {
-    inputRef.current.focus();
-  }, []);
-
   return (
     <SafeAreaView>
       <View style={styles.topBar}>
@@ -45,11 +39,11 @@ export default function SearchScreen({ navigation }) {
             style={{
               fontSize: 17,
             }}
-            placeholder={"Tìm kiếm trên C4K60"}
+            placeholder={"Tìm kiếm trên CYO"}
             // onChangeText={onChangeText}
             // value={value}
             // onKeyPress={onKeyPress}
-            ref={inputRef}
+            autoFocus
           ></TextInput>
         </View>
       </View>
@@ -60,8 +54,7 @@ export default function SearchScreen({ navigation }) {
             style={styles.image}
           />
           <Text style={{ textAlign: "center", fontSize: 16, color: "gray" }}>
-            Thử bắt đầu bằng cách tìm kiếm thông báo lớp, bạn bè, số điện
-            thoại...
+            Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, loa lớn...
           </Text>
         </View>
       </ScrollView>
@@ -84,10 +77,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingRight: 20,
-    paddingBottom: 10,
+    paddingBottom: 7,
     borderBottomWidth: 1,
     borderBottomColor: "#DFDEDD",
     paddingTop: 10,
+    marginTop: -5,
   },
   searchImage: {
     height: Dimensions.get("window").height * 0.5,

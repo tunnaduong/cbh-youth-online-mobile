@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonContainer: {
-    top: -27,
+    top: -30,
     // justifyContent: "center",
     alignItems: "center",
   },
@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#858585",
     fontSize: 10,
+    marginTop: 3,
   },
   additionalButton: {
     position: "absolute",

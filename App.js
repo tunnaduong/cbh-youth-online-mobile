@@ -8,6 +8,7 @@ import SignupScreen from "./app/screens/SignupScreen";
 import MainScreens from "./app/screens/MainScreens";
 import { TailwindProvider } from "tailwindcss-react-native";
 import SearchScreen from "./app/screens/MainScreens/SearchScreen";
+import WelcomeScreen from "./app/screens/WelcomeScreen";
 
 const Stack = createStackNavigator();
 
@@ -34,7 +35,7 @@ const App = () => {
                   title: "Trang chính",
                   headerShown: false,
                   gestureEnabled: false,
-                  animation: "none",
+                  animation: "fade",
                 }}
                 name="MainScreens"
                 component={MainScreens}
@@ -52,7 +53,20 @@ const App = () => {
             </>
           ) : (
             <>
-              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen
+                name="Welcome"
+                options={{
+                  title: "Chào mừng đến với CYO",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={WelcomeScreen}
+              />
+              <Stack.Screen
+                name="Login"
+                options={{ title: "Đăng nhập", headerShown: false }}
+                component={LoginScreen}
+              />
               <Stack.Screen name="Signup" component={SignupScreen} />
             </>
           )}
