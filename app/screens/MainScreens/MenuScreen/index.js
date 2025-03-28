@@ -13,7 +13,6 @@ import {
 import { List } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { CommonActions } from "@react-navigation/native";
 
 export default function MenuScreen({ navigation }) {
   const [profileName, setProfileName] = useState("");
