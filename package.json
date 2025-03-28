@@ -10,6 +10,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
+    "@chakrahq/react-native-side-menu": "^1.3.4",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-navigation/bottom-tabs": "^7.1.3",
     "@react-navigation/drawer": "^7.0.19",

@@ -10,6 +10,8 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Alert,
+  Platform,
+  StatusBar,
 } from "react-native";
 import axiosInstance from "../../utils/axiosInstance";
 import saveToken from "../../utils/saveToken";
@@ -55,6 +57,10 @@ const LoginScreen = ({ navigation }) => {
             className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
             onPress={() => {
               navigation.goBack();
+            }}
+            style={{
+              marginTop:
+                Platform.OS === "android" ? StatusBar.currentHeight + 10 : 0,
             }}
           >
             <Icon name="chevron-back-outline" color="white" size={30} />

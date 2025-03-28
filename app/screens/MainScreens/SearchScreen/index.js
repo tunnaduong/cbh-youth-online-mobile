@@ -9,12 +9,18 @@ import {
   TextInput,
   TouchableHighlight,
   ScrollView,
+  Platform,
+  StatusBar,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function SearchScreen({ navigation }) {
   return (
-    <SafeAreaView>
+    <SafeAreaView
+      style={{
+        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 5 : 0,
+      }}
+    >
       <View style={styles.topBar}>
         <TouchableHighlight
           style={styles.backButton}
@@ -32,7 +38,7 @@ export default function SearchScreen({ navigation }) {
             backgroundColor: "#DFDEDD",
             borderRadius: 50,
             paddingLeft: 13,
-            paddingVertical: 8,
+            paddingVertical: Platform.OS === "android" ? 0 : 8,
           }}
         >
           <TextInput

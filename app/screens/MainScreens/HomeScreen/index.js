@@ -1,10 +1,12 @@
 import React, { useContext } from "react";
-import { View, Text, StyleSheet, Button } from "react-native";
+import { View, Text, StyleSheet, Button, Animated } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { AnimationContext } from "../../../contexts/AnimationContext";
 
 const HomeScreen = () => {
   const { setIsLoggedIn } = useContext(AuthContext);
+  const { animatedValue, overlayValue } = useContext(AnimationContext);
 
   const handleLogout = async () => {
     try {
@@ -17,10 +19,10 @@ const HomeScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, { opacity: animatedValue }]}>
       <Text style={styles.title}>Welcome to the Home Screen</Text>
       <Button title="Đăng xuất" onPress={handleLogout} />
-    </View>
+    </Animated.View>
   );
 };
 

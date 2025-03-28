@@ -7,32 +7,24 @@ import {
   TouchableOpacity,
 } from "react-native";
 import React from "react";
-import UserAvatar from "./UserAvatar";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const window = Dimensions.get("window");
 
 const Sidebar = () => {
-  const [uid, setUid] = React.useState("");
-
-  React.useEffect(() => {
-    AsyncStorage.getItem("user-more").then((data) => {
-      if (data != null && data != "null") {
-        setUid(JSON.parse(data).uid);
-      }
-    });
-  });
+  React.useEffect(() => {}, []);
 
   return (
     <>
       <View
-        className={`flex-1 bg-white w-[${window.width}] border-l-[0.4px] border-[#B3B3B3]`}
+        className={`flex-1 bg-white w-full`}
+        style={{ borderRightWidth: 0.8, borderColor: "#B3B3B3" }}
       >
         <SafeAreaView className="flex-1 ml-6 mr-4 mt-[-1px]">
           <View className="mt-5">
             <TouchableOpacity activeOpacity={0.5}>
               <View>
-                <UserAvatar userId={uid} size={50} />
+                {/* <UserAvatar userId={uid} size={50} /> */}
                 <Text className="text-xl mt-1 font-bold">Duong Tung Anh</Text>
                 <Text className="text-gray-500 text-[14px]">
                   Bea ID: 13081239071

@@ -9,6 +9,7 @@ import MainScreens from "./app/screens/MainScreens";
 import { TailwindProvider } from "tailwindcss-react-native";
 import SearchScreen from "./app/screens/MainScreens/SearchScreen";
 import WelcomeScreen from "./app/screens/WelcomeScreen";
+import { AnimationProvider } from "./app/contexts/AnimationContext";
 
 const Stack = createStackNavigator();
 
@@ -82,6 +83,8 @@ const App = () => {
 
 export default () => (
   <AuthProvider>
-    <App />
+    <AnimationProvider>
+      <App />
+    </AnimationProvider>
   </AuthProvider>
 );
