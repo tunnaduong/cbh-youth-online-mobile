@@ -12,7 +12,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import axiosInstance from "../../utils/axiosInstance";
+import axiosInstance from "../../services/api/axiosInstance";
 import { AuthContext } from "../../contexts/AuthContext";
 import saveToken from "../../utils/saveToken";
 import saveUserInfo from "../../utils/saveUserInfo";

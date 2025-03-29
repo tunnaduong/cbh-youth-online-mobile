@@ -42,6 +42,9 @@ const App = () => {
                   headerShown: false,
                   gestureEnabled: false,
                   animation: "fade",
+                  headerStyle: {
+                    height: 300,
+                  },
                 }}
                 name="MainScreens"
                 component={MainScreens}

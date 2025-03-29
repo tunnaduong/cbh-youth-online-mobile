@@ -13,12 +13,13 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import axiosInstance from "../../utils/axiosInstance";
+import axiosInstance from "../../services/api/axiosInstance";
 import saveToken from "../../utils/saveToken";
 import saveUserInfo from "../../utils/saveUserInfo";
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
+import { loginRequest } from "../../services/api/Api";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -28,24 +29,34 @@ const LoginScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Vui lòng điền đầy đủ thông tin");
+      return;
+    }
+
     setLoading(true);
-    axiosInstance
-      .post("/login", {
-        username: email,
-        password,
-      })
-      .then((response) => {
-        console.log("Login successful:", response.data);
-        saveToken(response.data.token);
-        saveUserInfo(response.data.user);
-        setIsLoggedIn(true);
-      })
-      .catch((error) => {
-        Alert.alert("Đăng nhập thất bại", error.response.data.message);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+
+    try {
+      const response = await loginRequest({ username: email, password });
+      console.log("Login successful:", response.data);
+
+      // Save token and user info
+      await saveToken(response.data.token);
+      await saveUserInfo(response.data.user);
+
+      // Update login state
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.error("Login failed:", error);
+
+      // Show an error message to the user
+      Alert.alert(
+        "Đăng nhập thất bại",
+        error.response?.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+      );
+    } finally {
+      setLoading(false); // Ensure loading stops even if there's an error
+    }
   };
 
   return (

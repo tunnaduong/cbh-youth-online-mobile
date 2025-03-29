@@ -5,7 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // You can define the base URL here or make it dynamic
 const axiosInstance = axios.create({
-  baseURL: "https://api.chuyenbienhoa.com/v1.0/", // Replace with your API's base URL
+  baseURL: "https://api.chuyenbienhoa.com/", // Replace with your API's base URL
   timeout: 10000, // Optional: Timeout in milliseconds
   headers: {
     "Content-Type": "application/json",

@@ -31,7 +31,7 @@ const FeatureHeader = ({
         <Ionicons name={"menu"} size={27} color="black" />
       </TouchableOpacity>
       {havingIcon ? (
-        <SafeAreaView>
+        <SafeAreaView className="-mt-1">
           <TouchableOpacity>
             <View style={styles.logoContainer}>
               <Image
@@ -52,7 +52,7 @@ const FeatureHeader = ({
         <Text style={styles.title}>{title}</Text>
       )}
 
-      <SafeAreaView>
+      <SafeAreaView className="-mt-1">
         <TouchableOpacity onPress={action}>
           <View style={styles.iconContainer}>
             <Ionicons name={icon} size={23} color="black" />
