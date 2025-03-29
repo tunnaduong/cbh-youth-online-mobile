@@ -1,4 +1,6 @@
-import React, { useRef, useState } from "react";
+"use client";
+
+import { useRef, useState, useEffect } from "react";
 import {
   Pressable,
   Animated,
@@ -7,14 +9,27 @@ import {
   StyleSheet,
   View,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
+const { width, height } = Dimensions.get("window");
 
 const CustomTabBarButton = ({ onPress }) => {
   const rotation = useRef(new Animated.Value(0)).current;
   const button1Anim = useRef(new Animated.Value(0)).current;
   const button2Anim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
+
+  // Close buttons when app goes to background
+  useEffect(() => {
+    return () => {
+      if (showButtons) {
+        animateButtonsOut();
+      }
+    };
+  }, [showButtons]);
 
   const handlePress = () => {
     if (showButtons) {
@@ -23,6 +38,12 @@ const CustomTabBarButton = ({ onPress }) => {
       onPress();
       setShowButtons(true);
       animateButtonsIn();
+    }
+  };
+
+  const handleDismiss = () => {
+    if (showButtons) {
+      animateButtonsOut();
     }
   };
 
@@ -103,6 +124,13 @@ const CustomTabBarButton = ({ onPress }) => {
 
   return (
     <View style={styles.container}>
+      {/* Full-screen transparent overlay to capture taps outside */}
+      {showButtons && (
+        <TouchableWithoutFeedback onPress={handleDismiss}>
+          <View style={styles.dismissOverlay} />
+        </TouchableWithoutFeedback>
+      )}
+
       {showButtons && (
         <View style={styles.overlay}>
           <Animated.View style={[styles.additionalButton, button1Style]}>
@@ -148,14 +176,24 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
   },
+  dismissOverlay: {
+    position: "absolute",
+    top: -height, // Position it to cover the entire screen
+    left: -width / 2,
+    width: width * 2, // Make it extra wide to ensure coverage
+    height: height * 2, // Make it extra tall to ensure coverage
+    backgroundColor: "transparent", // Transparent but will capture touches
+    zIndex: 1, // Above regular content but below the buttons
+  },
   overlay: {
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 2, // Above the dismissOverlay
   },
   buttonContainer: {
     top: -30,
-    // justifyContent: "center",
     alignItems: "center",
+    zIndex: 3, // Above everything else
   },
   iconContainer: {
     justifyContent: "center",
@@ -184,6 +222,11 @@ const styles = StyleSheet.create({
     padding: 10,
     marginHorizontal: 10,
     width: 155,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
     marginLeft: 5,

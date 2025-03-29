@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator, Animated } from "react-native";
 import { AuthProvider, AuthContext } from "./app/contexts/AuthContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
@@ -9,12 +9,17 @@ import MainScreens from "./app/screens/MainScreens";
 import { TailwindProvider } from "tailwindcss-react-native";
 import SearchScreen from "./app/screens/MainScreens/SearchScreen";
 import WelcomeScreen from "./app/screens/WelcomeScreen";
-import { AnimationProvider } from "./app/contexts/AnimationContext";
+import {
+  AnimationContext,
+  AnimationProvider,
+} from "./app/contexts/AnimationContext";
+import { StyleSheet } from "react-native";
 
 const Stack = createStackNavigator();
 
 const App = () => {
   const { isLoggedIn, isLoading } = useContext(AuthContext);
+  const { overlayValue } = useContext(AnimationContext);
 
   if (isLoading) {
     return (

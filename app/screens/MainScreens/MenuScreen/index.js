@@ -96,7 +96,6 @@ export default function MenuScreen({ navigation }) {
               uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
             }}
             style={{ width: 60, height: 60, borderRadius: 30 }}
-            className="border-2 border-gray-200"
           />
           <View>
             <Text className="text-lg font-bold">{profileName}</Text>

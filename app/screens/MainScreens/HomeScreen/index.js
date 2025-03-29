@@ -1,8 +1,9 @@
 import React, { useContext } from "react";
-import { View, Text, StyleSheet, Button, Animated } from "react-native";
+import { View, Text, StyleSheet, Button, Animated, Modal } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { AnimationContext } from "../../../contexts/AnimationContext";
+import ProgressHUD from "../../../components/ProgressHUD";
 
 const HomeScreen = () => {
   const { setIsLoggedIn } = useContext(AuthContext);
@@ -19,10 +20,12 @@ const HomeScreen = () => {
   };
 
   return (
-    <Animated.View style={[styles.container, { opacity: animatedValue }]}>
-      <Text style={styles.title}>Welcome to the Home Screen</Text>
-      <Button title="Đăng xuất" onPress={handleLogout} />
-    </Animated.View>
+    <>
+      <Animated.View style={[styles.container]}>
+        <Text style={styles.title}>Welcome to the Home Screen!</Text>
+        <Button title="Đăng xuất" onPress={handleLogout} />
+      </Animated.View>
+    </>
   );
 };
 
@@ -37,6 +40,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 20,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+    zIndex: 1,
   },
 });
 
