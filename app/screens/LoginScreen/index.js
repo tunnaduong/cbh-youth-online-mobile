@@ -24,7 +24,7 @@ import { loginRequest } from "../../services/api/Api";
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { setIsLoggedIn } = useContext(AuthContext);
+  const { setIsLoggedIn, setUsername } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,16 +43,16 @@ const LoginScreen = ({ navigation }) => {
       // Save token and user info
       await saveToken(response.data.token);
       await saveUserInfo(response.data.user);
-
+      setUsername(response.data.user.username); // Update username in context
       // Update login state
       setIsLoggedIn(true);
     } catch (error) {
-      console.error("Login failed:", error);
+      console.log("Login failed:", error);
 
       // Show an error message to the user
       Alert.alert(
         "Đăng nhập thất bại",
-        error.response?.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+        error.message || "Đã xảy ra lỗi. Vui lòng thử lại."
       );
     } finally {
       setLoading(false); // Ensure loading stops even if there's an error

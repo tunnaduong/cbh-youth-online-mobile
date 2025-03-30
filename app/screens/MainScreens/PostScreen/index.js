@@ -1,10 +1,22 @@
 import React, { useContext, useState } from "react";
-import { View, Pressable, StyleSheet, Text, Image } from "react-native";
+import {
+  View,
+  Pressable,
+  StyleSheet,
+  Text,
+  Image,
+  ActivityIndicator,
+} from "react-native";
 import Markdown from "react-native-markdown-display";
-import Verified from "../assets/Verified";
+import Verified from "../../../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { AuthContext } from "../contexts/AuthContext";
-import { savePost, unsavePost, votePost } from "../services/api/Api";
+import { AuthContext } from "../../../contexts/AuthContext";
+import {
+  getPostDetail,
+  savePost,
+  unsavePost,
+  votePost,
+} from "../../../services/api/Api";
 
 const styles = StyleSheet.create({
   body: {
@@ -43,17 +55,28 @@ const styles = StyleSheet.create({
   },
 });
 
-const PostItem = ({
-  navigation,
-  item,
-  onExpand,
-  onVoteUpdate,
-  onSaveUpdate,
-}) => {
+const PostScreen = ({ route, onExpand, onVoteUpdate, onSaveUpdate }) => {
+  const { item, postId } = route.params; // Destructure item from route.params
   const [isExpanded, setIsExpanded] = useState(false);
   const { username } = useContext(AuthContext);
-  const [votes, setVotes] = useState(item.votes); // Local vote state
-  const [isSaved, setIsSaved] = useState(item.saved);
+  const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
+  const [isSaved, setIsSaved] = useState(item?.saved ?? false);
+  const [post, setPost] = useState(item ?? null);
+
+  React.useEffect(() => {
+    if (!item) fetchPost();
+  }, []);
+
+  const fetchPost = async () => {
+    try {
+      const response = await getPostDetail(postId); // Fetch post data from API
+      setPost(response.data.topic); // Set the post data in state
+      setVotes(response.data.topic.votes); // Set the votes in state
+      setIsSaved(response.data.topic.saved); // Set the saved status in state
+    } catch (error) {
+      console.error("Error fetching post:", error);
+    }
+  };
 
   const handleVote = async (voteValue) => {
     const existingVote = votes.find((vote) => vote.username === username);
@@ -76,30 +99,30 @@ const PostItem = ({
 
     // Update UI instantly
     setVotes(newVotes);
-    onVoteUpdate(item.id, newVotes);
+    onVoteUpdate(post.id, newVotes);
 
     try {
-      await votePost(item.id, {
+      await votePost(post.id, {
         vote_value: voteValue,
       });
     } catch (error) {
       console.error("Voting failed:", error);
-      setVotes(item.votes); // Revert UI if API fails
+      setVotes(post.votes); // Revert UI if API fails
     }
   };
 
   const handleSavePost = async () => {
     const newSavedStatus = !isSaved; // Toggle save status
     setIsSaved(newSavedStatus); // Update UI instantly
-    onSaveUpdate(item.id, newSavedStatus);
+    onSaveUpdate(post.id, newSavedStatus);
 
     try {
       if (isSaved) {
         // Call the API to unsave the post
-        await unsavePost(item.id); // Make sure you have this function to call the DELETE API
+        await unsavePost(post.id); // Make sure you have this function to call the DELETE API
       } else {
         // Call the API to save the post
-        await savePost(item.id);
+        await savePost(post.id);
       }
     } catch (error) {
       console.error("Saving failed:", error);
@@ -109,17 +132,30 @@ const PostItem = ({
 
   const handleExpandPost = () => {
     setIsExpanded(!isExpanded);
-    if (isExpanded && onExpand && item.content.length > 300) {
+    if (isExpanded && onExpand && post.content.length > 300) {
       onExpand(); // Notify the FlatList to adjust the scroll position
     }
   };
 
   const truncatedContent =
-    item.content.length > 300
-      ? `${item.content.substring(0, 300)}...`
-      : item.content;
+    post != null &&
+    (post.content.length > 300
+      ? `${post.content.substring(0, 300)}...`
+      : post.content);
 
-  return (
+  return post == null ? (
+    <View
+      style={{
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "white",
+        flex: 1,
+      }}
+    >
+      {/* <ActivityIndicator size={"large"} color="#636568" />
+      <Text style={{ marginTop: 15 }}>Đang tải bảng tin...</Text> */}
+    </View>
+  ) : (
     <View
       style={{
         borderBottomWidth: 15,
@@ -127,19 +163,19 @@ const PostItem = ({
       }}
     >
       <Text className="font-bold text-[21px] px-[15px] mt-[15px]">
-        {item.title}
+        {post.title}
       </Text>
       <Pressable onPress={handleExpandPost}>
         <Markdown style={styles}>
           {isExpanded
-            ? item.content.replace(/(https?:\/\/[^\s]+)/g, "[$1]($1)")
+            ? post.content.replace(/(https?:\/\/[^\s]+)/g, "[$1]($1)")
             : truncatedContent.replace(/(https?:\/\/[^\s]+)/g, "[$1]($1)")}
         </Markdown>
       </Pressable>
-      {item.image_url != null && (
+      {post.image_url != null && (
         <View className="bg-[#E4EEE3] mt-2">
           <Image
-            source={{ uri: "https://api.chuyenbienhoa.com" + item.image_url }}
+            source={{ uri: "https://api.chuyenbienhoa.com" + post.image_url }}
             height={300}
             style={{ resizeMode: "contain" }}
           />
@@ -163,14 +199,14 @@ const PostItem = ({
         >
           <Image
             source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${item.author.username}/avatar`,
+              uri: `https://api.chuyenbienhoa.com/v1.0/users/${post.author.username}/avatar`,
             }}
             style={{ width: 40, height: 40, borderRadius: 30 }}
           />
         </View>
         <Text className="font-bold text-[#319527] ml-2 shrink">
-          {item.author.profile_name}
-          {item.author.verified && (
+          {post.author.profile_name}
+          {post.author.verified && (
             <View>
               <Verified
                 width={15}
@@ -181,7 +217,7 @@ const PostItem = ({
             </View>
           )}
         </Text>
-        <Text> · {item.time}</Text>
+        <Text> · {post.time}</Text>
       </View>
       <View className="flex-row items-center px-[15px] my-4">
         <View className="gap-3 flex-row items-center">
@@ -190,7 +226,7 @@ const PostItem = ({
               name="arrow-up-outline"
               size={28}
               color={
-                item.votes.some(
+                post.votes.some(
                   (vote) => vote.username === username && vote.vote_value === 1
                 )
                   ? "#22c55e"
@@ -200,11 +236,11 @@ const PostItem = ({
           </Pressable>
           <Text
             style={[
-              item.votes.some(
+              post.votes.some(
                 (vote) => vote.username === username && vote.vote_value === 1
               )
                 ? { color: "#22c55e" } // Apply green color for upvotes
-                : item.votes.some(
+                : post.votes.some(
                     (vote) =>
                       vote.username === username && vote.vote_value === -1
                   )
@@ -220,7 +256,7 @@ const PostItem = ({
               name="arrow-down-outline"
               size={28}
               color={
-                item.votes.some(
+                post.votes.some(
                   (vote) => vote.username === username && vote.vote_value === -1
                 )
                   ? "#ef4444"
@@ -250,20 +286,12 @@ const PostItem = ({
             />
           </Pressable>
           <View className="flex-1 flex-row-reverse items-center">
-            <Text className="text-gray-500">{item.views}</Text>
+            <Text className="text-gray-500">{post.views}</Text>
             <View className="mr-1 ml-2">
               <Ionicons name="eye-outline" size={20} color={"#6b7280"} />
             </View>
-            <Pressable
-              onPress={() =>
-                navigation.navigate("PostScreen", {
-                  postId: item.id,
-                  item,
-                })
-              }
-              className="flex-row-reverse"
-            >
-              <Text className="text-gray-500 ml-1">{item.comments}</Text>
+            <Text className="text-gray-500">{post.comments}</Text>
+            <Pressable className="mr-1">
               <Ionicons name="chatbox-outline" size={20} color={"#6b7280"} />
             </Pressable>
           </View>
@@ -273,4 +301,4 @@ const PostItem = ({
   );
 };
 
-export default PostItem;
+export default PostScreen;

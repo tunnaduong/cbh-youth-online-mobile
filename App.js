@@ -9,17 +9,14 @@ import MainScreens from "./app/screens/MainScreens";
 import { TailwindProvider } from "tailwindcss-react-native";
 import SearchScreen from "./app/screens/MainScreens/SearchScreen";
 import WelcomeScreen from "./app/screens/WelcomeScreen";
-import {
-  AnimationContext,
-  AnimationProvider,
-} from "./app/contexts/AnimationContext";
+import { AnimationProvider } from "./app/contexts/AnimationContext";
 import { StyleSheet } from "react-native";
+import PostScreen from "./app/screens/MainScreens/PostScreen";
 
 const Stack = createStackNavigator();
 
 const App = () => {
   const { isLoggedIn, isLoading } = useContext(AuthContext);
-  const { overlayValue } = useContext(AnimationContext);
 
   if (isLoading) {
     return (
@@ -58,6 +55,14 @@ const App = () => {
                 }}
                 name="SearchScreen"
                 component={SearchScreen}
+              />
+              <Stack.Screen
+                name="PostScreen"
+                options={{
+                  title: "Chi tiết bài viết",
+                  headerShown: false,
+                }}
+                component={PostScreen}
               />
             </>
           ) : (

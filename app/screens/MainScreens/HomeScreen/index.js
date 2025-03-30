@@ -12,14 +12,15 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getHomePosts } from "../../../services/api/Api";
+import { getHomePosts, incrementPostView } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   const [feed, setFeed] = React.useState(null);
   const [refreshing, setRefreshing] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
+  const viewedPosts = React.useRef(new Set());
   const flatListRef = React.useRef(null);
 
   const handleFetchFeed = async (page = 1) => {
@@ -69,6 +70,41 @@ const HomeScreen = () => {
     }
   };
 
+  const handleVoteUpdate = (postId, newVotes) => {
+    setFeed((prevFeed) =>
+      prevFeed.map((post) =>
+        post.id === postId ? { ...post, votes: newVotes } : post
+      )
+    );
+  };
+
+  const handleSaveUpdate = (postId, savedStatus) => {
+    setFeed((prevFeed) =>
+      prevFeed.map((post) =>
+        post.id === postId ? { ...post, saved: savedStatus } : post
+      )
+    );
+  };
+
+  const handleViewableItemsChanged = ({ viewableItems }) => {
+    viewableItems.forEach((viewableItem) => {
+      const postId = viewableItem.item.id;
+
+      if (!viewedPosts.current.has(postId)) {
+        viewedPosts.current.add(postId); // Mark as viewed
+        increasePostView(postId); // Call API
+      }
+    });
+  };
+
+  const increasePostView = async (postId) => {
+    try {
+      await incrementPostView(postId);
+    } catch (error) {
+      console.error("Failed to increase view:", error);
+    }
+  };
+
   return feed == null ? (
     <View
       style={{
@@ -91,19 +127,28 @@ const HomeScreen = () => {
           keyExtractor={(item, index) => `key-${item.id}`}
           contentContainerStyle={{ paddingBottom: 30 }}
           renderItem={({ item, index }) => (
-            <PostItem item={item} onExpand={() => handleExpandPost(index)} />
+            <PostItem
+              item={item}
+              onExpand={() => handleExpandPost(index)}
+              onVoteUpdate={handleVoteUpdate}
+              onSaveUpdate={handleSaveUpdate}
+              navigation={navigation}
+            />
           )}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           refreshControl={
             <RefreshControl
               colors={["#9Bd35A", "#689F38"]}
               refreshing={refreshing}
-              onRefresh={async () => {
+              onRefresh={() => {
                 setRefreshing(true);
                 handleFetchFeed();
                 setHasMore(true);
                 setCurrentPage(2);
+                viewedPosts.current = new Set(); // Reset viewed posts
                 setTimeout(() => {
                   setRefreshing(false);
                 }, 1000);

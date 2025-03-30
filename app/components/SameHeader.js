@@ -23,7 +23,6 @@ const FeatureHeader = ({
   havingBorder = false,
   havingIcon = false,
   setSetting,
-  animatedValue,
 }) => (
   <View>
     <View style={havingBorder ? styles.containerWithBorder : styles.container}>

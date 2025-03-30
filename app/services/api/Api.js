@@ -35,10 +35,6 @@ export const getHomePosts = (page = 1) => {
 };
 
 export const incrementPostView = (id) => {
-  return Api.postRequest("/v1.0/topics/" + id + "/views");
-};
-
-export const incrementPostViewAuthenticated = (id) => {
   return Api.postRequest("/v1.0/topics/" + id + "/views/authenticated");
 };
 

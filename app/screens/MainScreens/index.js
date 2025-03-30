@@ -18,9 +18,6 @@ const DummyComponent = () => null;
 
 export default function MainScreens({ navigation }) {
   const [setting, setSetting] = React.useState(false);
-  // const animatedValue = new Animated.Value(1);
-  const { animatedValue, overlayValue } = React.useContext(AnimationContext);
-  const insets = useSafeAreaInsets();
 
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
@@ -34,10 +31,6 @@ export default function MainScreens({ navigation }) {
       menuPosition="left"
       isOpen={setting}
       onChange={(isOpen) => setSetting(isOpen)}
-      onSliding={(value) => {
-        animatedValue.setValue(1 - value + 0.3);
-        overlayValue.setValue(0.3 * value);
-      }}
       edgeHitWidth={100}
       bounceBackOnOverdraw={false}
     >
@@ -81,8 +74,6 @@ export default function MainScreens({ navigation }) {
                     action={() => navigation.navigate("SearchScreen")}
                     havingIcon
                     setSetting={setSetting}
-                    animatedValue={animatedValue}
-                    overlayValue={overlayValue}
                   />
                 );
               },
@@ -130,30 +121,7 @@ export default function MainScreens({ navigation }) {
           />
           <Tab.Screen name="Menu" component={MenuScreen} />
         </Tab.Navigator>
-        {/* Overlay that doesn't cover the tab bar */}
-        <Animated.View
-          style={[
-            styles.overlay,
-            {
-              opacity: overlayValue,
-              height: height - 49 - insets.bottom,
-              // Only capture touch events when the sidebar is open
-              pointerEvents: "none",
-            },
-          ]}
-        />
       </View>
     </SideMenu>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#415743",
-    zIndex: 1, // Above content but below tab bar and sidebar
-  },
-});
