@@ -119,6 +119,26 @@ const PostItem = ({
       ? `${item.content.substring(0, 300)}...`
       : item.content;
 
+  const convertToMarkdownLink = (text) => {
+    // Preserve existing markdown links and images
+    const markdownPatterns = [];
+    text = text.replace(/(!?\[.*?]\(https?:\/\/[^\s)]+\))/g, (match) => {
+      markdownPatterns.push(match);
+      return `__MARKDOWN_PLACEHOLDER_${markdownPatterns.length - 1}__`;
+    });
+
+    // Convert plain URLs into markdown links
+    text = text.replace(/\b(https?:\/\/[^\s)]+)\b/g, "[$1]($1)");
+
+    // Restore original markdown links and images
+    text = text.replace(
+      /__MARKDOWN_PLACEHOLDER_(\d+)__/g,
+      (_, index) => markdownPatterns[index]
+    );
+
+    return text;
+  };
+
   return (
     <View
       style={{
@@ -126,14 +146,23 @@ const PostItem = ({
         borderBottomColor: "#E6E6E6",
       }}
     >
-      <Text className="font-bold text-[21px] px-[15px] mt-[15px]">
-        {item.title}
-      </Text>
+      <Pressable
+        onPress={() =>
+          navigation.navigate("PostScreen", {
+            postId: item.id,
+            item,
+          })
+        }
+      >
+        <Text className="font-bold text-[21px] px-[15px] mt-[15px]">
+          {item.title}
+        </Text>
+      </Pressable>
       <Pressable onPress={handleExpandPost}>
         <Markdown style={styles}>
           {isExpanded
-            ? item.content.replace(/(https?:\/\/[^\s]+)/g, "[$1]($1)")
-            : truncatedContent.replace(/(https?:\/\/[^\s]+)/g, "[$1]($1)")}
+            ? convertToMarkdownLink(item.content)
+            : convertToMarkdownLink(truncatedContent)}
         </Markdown>
       </Pressable>
       {item.image_url != null && (
@@ -261,7 +290,7 @@ const PostItem = ({
                   item,
                 })
               }
-              className="flex-row-reverse"
+              className="flex-row-reverse items-center"
             >
               <Text className="text-gray-500 ml-1">{item.comments}</Text>
               <Ionicons name="chatbox-outline" size={20} color={"#6b7280"} />

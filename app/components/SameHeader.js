@@ -31,21 +31,19 @@ const FeatureHeader = ({
       </TouchableOpacity>
       {havingIcon ? (
         <SafeAreaView className="-mt-1">
-          <TouchableOpacity>
-            <View style={styles.logoContainer}>
-              <Image
-                style={styles.logo}
-                source={require("../assets/logo.png")}
-                resizeMode="contain"
-              />
-              <View className="ml-1">
-                <Text className="text-[#319527]">Thanh niên</Text>
-                <Text className="font-bold -mt-1 text-[#319527]">
-                  Chuyên Biên Hòa Online
-                </Text>
-              </View>
+          <View style={styles.logoContainer}>
+            <Image
+              style={styles.logo}
+              source={require("../assets/logo.png")}
+              resizeMode="contain"
+            />
+            <View className="ml-1">
+              <Text className="text-[#319527]">Thanh niên</Text>
+              <Text className="font-bold -mt-1 text-[#319527]">
+                Chuyên Biên Hòa Online
+              </Text>
             </View>
-          </TouchableOpacity>
+          </View>
         </SafeAreaView>
       ) : (
         <Text style={styles.title}>{title}</Text>

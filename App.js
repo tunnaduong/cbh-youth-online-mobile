@@ -12,6 +12,7 @@ import WelcomeScreen from "./app/screens/WelcomeScreen";
 import { AnimationProvider } from "./app/contexts/AnimationContext";
 import { StyleSheet } from "react-native";
 import PostScreen from "./app/screens/MainScreens/PostScreen";
+import SameHeader from "./app/components/SameHeader";
 
 const Stack = createStackNavigator();
 
@@ -39,9 +40,6 @@ const App = () => {
                   headerShown: false,
                   gestureEnabled: false,
                   animation: "fade",
-                  headerStyle: {
-                    height: 300,
-                  },
                 }}
                 name="MainScreens"
                 component={MainScreens}
@@ -60,7 +58,7 @@ const App = () => {
                 name="PostScreen"
                 options={{
                   title: "Chi tiết bài viết",
-                  headerShown: false,
+                  headerBackButtonDisplayMode: "minimal",
                 }}
                 component={PostScreen}
               />

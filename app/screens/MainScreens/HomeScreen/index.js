@@ -124,7 +124,7 @@ const HomeScreen = ({ navigation }) => {
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={feed}
-          keyExtractor={(item, index) => `key-${item.id}`}
+          keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           contentContainerStyle={{ paddingBottom: 30 }}
           renderItem={({ item, index }) => (
             <PostItem
