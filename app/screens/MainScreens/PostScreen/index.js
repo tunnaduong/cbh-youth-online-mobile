@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useRef } from "react";
 import {
   View,
   Pressable,
@@ -23,6 +23,7 @@ import {
 } from "../../../services/api/Api";
 import { useHeaderHeight } from "@react-navigation/elements";
 import CommentBar from "../../../components/CommentBar";
+import { TouchableOpacity } from "react-native";
 
 const styles = StyleSheet.create({
   body: {
@@ -69,12 +70,24 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
   const height = useHeaderHeight();
-  const commentInputRef = React.useRef(null);
+  const commentInputRef = useRef(null);
+  const scrollViewRef = useRef(null);
+  const [layout, setLayout] = useState(null);
 
   React.useEffect(() => {
     if (!item) fetchPost();
     fetchComment();
   }, []);
+
+  const focusCommentInput = () => {
+    if (commentInputRef.current) {
+      commentInputRef.current.focus();
+    }
+    // scrollViewRef.scrollTo({
+    //   y: layout.y,
+    //   animated: true,
+    // });
+  };
 
   const fetchPost = async () => {
     try {
@@ -168,24 +181,29 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
     return text;
   };
 
-  const Comment = ({ comment, level = 0 }) => {
+  const Comment = ({ comment, level = 0, border = false, index }) => {
     return (
       <View
         style={{
           marginLeft: level * 20, // Indent based on the nesting level
-          marginBottom: 10,
         }}
+        onLayout={(event) => setLayout(event.nativeEvent.layout)}
       >
         {/* Render the main comment */}
 
         <View
-          style={{
-            // backgroundColor: "#E4EEE3",
-            borderRadius: 8,
-            padding: 10,
-            flexDirection: "row",
-            gap: 10,
-          }}
+          style={[
+            {
+              paddingVertical: 10,
+              flexDirection: "row",
+              gap: 10,
+            },
+            border && {
+              borderLeftWidth: 3,
+              borderLeftColor: "#e4eee3",
+              paddingLeft: 10,
+            },
+          ]}
         >
           <View
             className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
@@ -210,7 +228,7 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
                     width={15}
                     height={15}
                     color={"#319527"}
-                    style={{ marginBottom: -4 }}
+                    style={{ marginBottom: -3 }}
                   />
                 </View>
               )}
@@ -222,9 +240,40 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
             >
               {comment.content}
             </Text>
-            <Text style={{ fontSize: 12, color: "gray", marginTop: 5 }}>
-              {comment.created_at}
-            </Text>
+            <View className="flex-row items-center mt-1">
+              <Text style={{ fontSize: 12, color: "gray" }}>
+                {comment.created_at} ·
+              </Text>
+              <TouchableOpacity>
+                <Text className="text-gray-500 font-bold text-[12px]">
+                  {" "}
+                  Trả lời
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View className="flex-1 items-end shrink-0">
+            <View>
+              {/* Voting section */}
+              <Pressable onPress={() => handleVote(1)}>
+                <Ionicons name="arrow-up-outline" size={20} color={"#9ca3af"} />
+              </Pressable>
+              <Text
+                style={[
+                  { fontSize: 16, fontWeight: "600" },
+                  { color: "#9ca3af", textAlign: "center" },
+                ]}
+              >
+                {comment.votes.reduce((acc, vote) => acc + vote.vote_value, 0)}
+              </Text>
+              <Pressable onPress={() => handleVote(-1)}>
+                <Ionicons
+                  name="arrow-down-outline"
+                  size={20}
+                  color={"#9ca3af"}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -232,7 +281,12 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
         {comment.replies?.length > 0 && (
           <View style={{ marginTop: 10 }}>
             {comment.replies.map((reply) => (
-              <Comment key={reply.id} comment={reply} level={level + 1} />
+              <Comment
+                key={reply.id}
+                comment={reply}
+                level={level + 1}
+                border={true}
+              />
             ))}
           </View>
         )}
@@ -259,6 +313,7 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
           contentContainerStyle={{
             backgroundColor: "white",
           }}
+          ref={scrollViewRef}
         >
           <View
             style={{
@@ -413,8 +468,8 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
             {comments.length === 0 ? (
               <Text className="text-gray-500">Chưa có bình luận nào</Text>
             ) : (
-              comments.map((comment) => (
-                <Comment key={comment.id} comment={comment} />
+              comments.map((comment, index) => (
+                <Comment key={comment.id} comment={comment} index={index} />
               ))
             )}
           </View>

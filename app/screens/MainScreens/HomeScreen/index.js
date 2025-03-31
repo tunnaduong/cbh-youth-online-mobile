@@ -26,8 +26,10 @@ const HomeScreen = ({ navigation }) => {
   const handleFetchFeed = async (page = 1) => {
     try {
       const response = await getHomePosts(page);
+      setRefreshing(false);
       setFeed(response.data.data);
     } catch (error) {
+      setRefreshing(false);
       console.error("Error fetching newsfeed:", error);
     }
   };
@@ -149,9 +151,6 @@ const HomeScreen = ({ navigation }) => {
                 setHasMore(true);
                 setCurrentPage(2);
                 viewedPosts.current = new Set(); // Reset viewed posts
-                setTimeout(() => {
-                  setRefreshing(false);
-                }, 1000);
               }}
             />
           }

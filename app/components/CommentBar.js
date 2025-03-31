@@ -26,6 +26,8 @@ const CommentBar = React.forwardRef(
       <View
         style={{
           backgroundColor: "white",
+          borderTopWidth: 1,
+          borderTopColor: "#DFDEDD",
         }}
       >
         <View
