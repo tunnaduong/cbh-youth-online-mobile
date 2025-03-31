@@ -14,7 +14,7 @@ import { List } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../../../contexts/AuthContext";
 
-export default function MenuScreen({ navigation }) {
+export default function ForumScreen({ navigation }) {
   const [profileName, setProfileName] = useState("");
   const [username, setUsername] = useState("");
   const { setIsLoggedIn } = useContext(AuthContext);

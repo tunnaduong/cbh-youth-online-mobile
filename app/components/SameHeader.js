@@ -27,7 +27,7 @@ const FeatureHeader = ({
   <View>
     <View style={havingBorder ? styles.containerWithBorder : styles.container}>
       <TouchableOpacity onPress={() => setSetting((setting) => !setting)}>
-        <Ionicons name={"menu"} size={27} color="black" />
+        <Ionicons name={"menu-outline"} size={27} color="black" />
       </TouchableOpacity>
       {havingIcon ? (
         <SafeAreaView className="-mt-1">

@@ -5,7 +5,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
-import MenuScreen from "./MenuScreen";
+import MenuScreen from "./ForumScreen";
 import SideMenu from "@chakrahq/react-native-side-menu";
 import Sidebar from "../../components/Sidebar";
 import { AnimationContext } from "../../contexts/AnimationContext";
@@ -42,8 +42,8 @@ export default function MainScreens({ navigation }) {
 
               if (route.name === "Home") {
                 iconName = focused ? "home" : "home-outline";
-              } else if (route.name === "Menu") {
-                iconName = focused ? "menu" : "menu-outline";
+              } else if (route.name === "Forum") {
+                iconName = focused ? "people" : "people-outline";
               } else if (route.name === "Notifications") {
                 iconName = focused ? "notifications" : "notifications-outline";
               } else if (route.name === "Chat") {
@@ -83,11 +83,9 @@ export default function MainScreens({ navigation }) {
             )}
           />
           <Tab.Screen
-            name="Chat"
-            component={DummyComponent}
-            options={{
-              title: "Chat",
-            }}
+            name="Forum"
+            component={MenuScreen}
+            options={{ title: "Diễn đàn" }}
           />
           <Tab.Screen
             name="Create"
@@ -113,13 +111,19 @@ export default function MainScreens({ navigation }) {
             }}
           />
           <Tab.Screen
+            name="Chat"
+            component={DummyComponent}
+            options={{
+              title: "Chat",
+            }}
+          />
+          <Tab.Screen
             name="Notifications"
             component={DummyComponent}
             options={{
               title: "Thông báo",
             }}
           />
-          <Tab.Screen name="Menu" component={MenuScreen} />
         </Tab.Navigator>
       </View>
     </SideMenu>

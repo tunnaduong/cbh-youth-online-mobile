@@ -59,6 +59,7 @@ const App = () => {
                 options={{
                   title: "Chi tiết bài viết",
                   headerBackButtonDisplayMode: "minimal",
+                  headerTintColor: "#319527",
                 }}
                 component={PostScreen}
               />

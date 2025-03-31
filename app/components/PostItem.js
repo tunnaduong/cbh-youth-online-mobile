@@ -1,5 +1,12 @@
 import React, { useContext, useState } from "react";
-import { View, Pressable, StyleSheet, Text, Image } from "react-native";
+import {
+  View,
+  Pressable,
+  StyleSheet,
+  Text,
+  Image,
+  TouchableOpacity,
+} from "react-native";
 import Markdown from "react-native-markdown-display";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -146,18 +153,24 @@ const PostItem = ({
         borderBottomColor: "#E6E6E6",
       }}
     >
-      <Pressable
-        onPress={() =>
-          navigation.navigate("PostScreen", {
-            postId: item.id,
-            item,
-          })
-        }
-      >
-        <Text className="font-bold text-[21px] px-[15px] mt-[15px]">
-          {item.title}
-        </Text>
-      </Pressable>
+      <View className="flex-row justify-between shrink">
+        <Pressable
+          onPress={() =>
+            navigation.navigate("PostScreen", {
+              postId: item.id,
+              item,
+            })
+          }
+          className="shrink flex-1"
+        >
+          <Text className="font-bold text-[21px] px-[15px] mt-[15px] shrink flex-1">
+            {item.title}
+          </Text>
+        </Pressable>
+        <TouchableOpacity className="mr-3 mt-3 shrink-0">
+          <Ionicons name="ellipsis-horizontal" size={20} />
+        </TouchableOpacity>
+      </View>
       <Pressable onPress={handleExpandPost}>
         <Markdown style={styles}>
           {isExpanded

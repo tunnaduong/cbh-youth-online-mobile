@@ -98,7 +98,11 @@ const CommentBar = React.forwardRef(
               onPress={onSubmit}
               disabled={disabled}
             >
-              <Ionicons name={"send"} size={25} color={"#007AFF"} />
+              <Ionicons
+                name={"send"}
+                size={25}
+                color={disabled ? "#81BDFF" : "#0079FF"}
+              />
             </TouchableOpacity>
           </View>
         </View>

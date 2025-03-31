@@ -3,8 +3,6 @@ import * as Api from "./ApiByAxios";
 // Authentication
 export const loginRequest = async (params) => {
   try {
-    console.log("called");
-
     const response = await Api.postRequest("/v1.0/login", params);
     return response;
   } catch (error) {

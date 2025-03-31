@@ -10,7 +10,6 @@ import {
   RefreshControl,
   FlatList,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getHomePosts, incrementPostView } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
@@ -22,6 +21,18 @@ const HomeScreen = ({ navigation }) => {
   const [currentPage, setCurrentPage] = React.useState(2);
   const viewedPosts = React.useRef(new Set());
   const flatListRef = React.useRef(null);
+  const { isLoggedIn } = useContext(AuthContext);
+
+  React.useEffect(() => {
+    if (!isLoggedIn) {
+      // Reset feed state when the user signs out
+      setFeed(null);
+      setRefreshing(false);
+      setHasMore(true);
+      setCurrentPage(2);
+      viewedPosts.current = new Set();
+    }
+  }, [isLoggedIn]);
 
   const handleFetchFeed = async (page = 1) => {
     try {

@@ -19,6 +19,7 @@ import saveUserInfo from "../../utils/saveUserInfo";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
 import CheckBox from "react-native-check-box";
+import { signupRequest } from "../../services/api/Api";
 
 const SignupScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -61,15 +62,18 @@ const SignupScreen = ({ navigation }) => {
 
     setLoading(true);
 
-    axiosInstance
-      .post("/register", {
-        username,
-        name,
-        email,
-        password,
-      })
+    signupRequest({
+      username,
+      name,
+      email,
+      password,
+    })
       .then((response) => {
         console.log("Register successful:", response.data);
+        Alert.alert(
+          "Đăng ký thành công!",
+          "Chúc mừng bạn đã đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản."
+        );
         saveToken(response.data.token);
         saveUserInfo(response.data.user);
         setIsLoggedIn(true);

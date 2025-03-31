@@ -16,6 +16,7 @@ import Verified from "../../../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
+  commentPost,
   getPostDetail,
   savePost,
   unsavePost,
@@ -64,48 +65,59 @@ const styles = StyleSheet.create({
 
 const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
   const { item, postId } = route.params; // Destructure item from route.params
-  const { username } = useContext(AuthContext);
+  const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
   const [isSaved, setIsSaved] = useState(item?.saved ?? false);
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
+  const [commentText, setCommentText] = useState("");
+  const [parentId, setParentId] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
   const height = useHeaderHeight();
   const commentInputRef = useRef(null);
   const scrollViewRef = useRef(null);
-  const [layout, setLayout] = useState(null);
+  const commentRefs = useRef({});
 
   React.useEffect(() => {
-    if (!item) fetchPost();
-    fetchComment();
+    fetchData();
   }, []);
 
-  const focusCommentInput = () => {
+  const fetchData = async () => {
+    try {
+      const response = await getPostDetail(postId); // Fetch post data from API
+      const { topic, comments } = response.data;
+
+      if (!item && !post) {
+        setPost(topic); // Set the post data in state
+        setVotes(topic.votes); // Set the votes in state
+        setIsSaved(topic.saved); // Set the saved status in state
+      }
+      setComments(comments); // Set the comments in state
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  };
+
+  const focusCommentInput = (id, name) => {
+    setParentId(id);
+    setReplyingTo(name);
     if (commentInputRef.current) {
       commentInputRef.current.focus();
     }
-    // scrollViewRef.scrollTo({
-    //   y: layout.y,
-    //   animated: true,
-    // });
+    setTimeout(() => {
+      scrollToComment(id);
+    }, 100);
   };
 
-  const fetchPost = async () => {
-    try {
-      const response = await getPostDetail(postId); // Fetch post data from API
-      setPost(response.data.topic); // Set the post data in state
-      setVotes(response.data.topic.votes); // Set the votes in state
-      setIsSaved(response.data.topic.saved); // Set the saved status in state
-    } catch (error) {
-      console.error("Error fetching post:", error);
-    }
-  };
-
-  const fetchComment = async () => {
-    try {
-      const response = await getPostDetail(postId); // Fetch post data from API
-      setComments(response.data.comments); // Set the post data in state
-    } catch (error) {
-      console.error("Error fetching comment:", error);
+  const scrollToComment = (id) => {
+    if (commentRefs.current[id]) {
+      commentRefs.current[id].measureLayout(
+        scrollViewRef.current,
+        (x, y) => {
+          scrollViewRef.current.scrollTo({ y, animated: true });
+        },
+        () => console.log("Error measuring layout")
+      );
     }
   };
 
@@ -181,118 +193,182 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
     return text;
   };
 
-  const Comment = ({ comment, level = 0, border = false, index }) => {
-    return (
-      <View
-        style={{
-          marginLeft: level * 20, // Indent based on the nesting level
-        }}
-        onLayout={(event) => setLayout(event.nativeEvent.layout)}
-      >
-        {/* Render the main comment */}
+  const findParentIdForReply = (comments, targetId, currentParentId = null) => {
+    for (const comment of comments) {
+      if (comment.id === targetId) {
+        // Return the parent ID if the target comment is found
+        return currentParentId;
+      }
+      if (comment.replies.length > 0) {
+        // Recursively search in the replies
+        const parentId = findParentIdForReply(
+          comment.replies,
+          targetId,
+          comment.id
+        );
+        if (parentId !== null) {
+          return parentId;
+        }
+      }
+    }
+    return null; // Return null if the target comment is not found
+  };
 
+  const onSubmit = async () => {
+    if (!commentText.trim()) {
+      return;
+    }
+
+    // Determine the correct parent ID for replying
+    let replyingToId = parentId;
+    if (parentId) {
+      const parentCommentId = findParentIdForReply(comments, parentId);
+      if (parentCommentId) {
+        replyingToId = parentCommentId; // Redirect to the 2nd-level comment
+      }
+    }
+
+    // Call the API to submit the comment or reply
+    await commentPost(post.id, {
+      comment: commentText.trim(),
+      replying_to: replyingToId, // Use the redirected parent ID
+    });
+
+    // Fetch the updated comments
+    fetchData();
+
+    setParentId(null); // Reset parentId
+    setReplyingTo(null); // Reset replyingTo
+
+    // Clear the input field
+    setCommentText("");
+  };
+
+  const Comment = React.forwardRef(
+    ({ comment, level = 0, border = false }, ref) => {
+      return (
         <View
-          style={[
-            {
-              paddingVertical: 10,
-              flexDirection: "row",
-              gap: 10,
-            },
-            border && {
-              borderLeftWidth: 3,
-              borderLeftColor: "#e4eee3",
-              paddingLeft: 10,
-            },
-          ]}
+          ref={ref} // Attach ref here
+          style={{
+            marginLeft: level * 20, // Indent based on the nesting level
+          }}
         >
+          {/* Render the main comment */}
+
           <View
-            className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
-            style={{
-              borderWidth: 1,
-              borderColor: "#dee2e6",
-            }}
+            style={[
+              {
+                paddingVertical: 10,
+                flexDirection: "row",
+                gap: 10,
+              },
+              border && {
+                borderLeftWidth: 3,
+                borderLeftColor: "#e4eee3",
+                paddingLeft: 10,
+              },
+            ]}
           >
-            <Image
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${comment.author.username}/avatar`,
-              }}
-              style={{ width: 40, height: 40, borderRadius: 30 }}
-            />
-          </View>
-          <View style={{ flexShrink: 1 }}>
-            <Text style={{ fontWeight: "bold", color: "#319527" }}>
-              {comment.author.profile_name}
-              {comment.author.verified && (
-                <View>
-                  <Verified
-                    width={15}
-                    height={15}
-                    color={"#319527"}
-                    style={{ marginBottom: -3 }}
-                  />
-                </View>
-              )}
-            </Text>
-            <Text
+            <View
+              className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
               style={{
-                flexShrink: 1,
+                borderWidth: 1,
+                borderColor: "#dee2e6",
               }}
             >
-              {comment.content}
-            </Text>
-            <View className="flex-row items-center mt-1">
-              <Text style={{ fontSize: 12, color: "gray" }}>
-                {comment.created_at} ·
-              </Text>
-              <TouchableOpacity>
-                <Text className="text-gray-500 font-bold text-[12px]">
-                  {" "}
-                  Trả lời
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View className="flex-1 items-end shrink-0">
-            <View>
-              {/* Voting section */}
-              <Pressable onPress={() => handleVote(1)}>
-                <Ionicons name="arrow-up-outline" size={20} color={"#9ca3af"} />
-              </Pressable>
-              <Text
-                style={[
-                  { fontSize: 16, fontWeight: "600" },
-                  { color: "#9ca3af", textAlign: "center" },
-                ]}
-              >
-                {comment.votes.reduce((acc, vote) => acc + vote.vote_value, 0)}
-              </Text>
-              <Pressable onPress={() => handleVote(-1)}>
-                <Ionicons
-                  name="arrow-down-outline"
-                  size={20}
-                  color={"#9ca3af"}
-                />
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        {/* Render replies recursively */}
-        {comment.replies?.length > 0 && (
-          <View style={{ marginTop: 10 }}>
-            {comment.replies.map((reply) => (
-              <Comment
-                key={reply.id}
-                comment={reply}
-                level={level + 1}
-                border={true}
+              <Image
+                source={{
+                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${comment.author.username}/avatar`,
+                }}
+                style={{ width: 40, height: 40, borderRadius: 30 }}
               />
-            ))}
+            </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={{ fontWeight: "bold", color: "#319527" }}>
+                {comment.author.profile_name}
+                {comment.author.verified && (
+                  <View>
+                    <Verified
+                      width={15}
+                      height={15}
+                      color={"#319527"}
+                      style={{ marginBottom: -3 }}
+                    />
+                  </View>
+                )}
+              </Text>
+              <Text
+                style={{
+                  flexShrink: 1,
+                }}
+              >
+                {comment.content}
+              </Text>
+              <View className="flex-row items-center mt-1">
+                <Text style={{ fontSize: 12, color: "gray" }}>
+                  {comment.created_at} ·
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    focusCommentInput(comment.id, comment.author.profile_name)
+                  }
+                >
+                  <Text className="text-gray-500 font-bold text-[12px]">
+                    {" "}
+                    Trả lời
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View className="flex-1 items-end shrink-0">
+              <View>
+                <Pressable>
+                  <Ionicons
+                    name="arrow-up-outline"
+                    size={18}
+                    color={"#9ca3af"}
+                  />
+                </Pressable>
+                <Text
+                  style={[
+                    { fontSize: 14, fontWeight: "600" },
+                    { color: "#9ca3af", textAlign: "center" },
+                  ]}
+                >
+                  {comment.votes.reduce(
+                    (acc, vote) => acc + vote.vote_value,
+                    0
+                  )}
+                </Text>
+                <Pressable>
+                  <Ionicons
+                    name="arrow-down-outline"
+                    size={18}
+                    color={"#9ca3af"}
+                  />
+                </Pressable>
+              </View>
+            </View>
           </View>
-        )}
-      </View>
-    );
-  };
+
+          {/* Render replies recursively */}
+          {comment.replies?.length > 0 && (
+            <View style={{ marginTop: 10 }}>
+              {comment.replies.map((reply) => (
+                <Comment
+                  key={reply.id}
+                  comment={reply}
+                  level={level + 1}
+                  border={true}
+                  ref={(ref) => (commentRefs.current[reply.id] = ref)}
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      );
+    }
+  );
 
   return post == null ? (
     <View
@@ -302,10 +378,7 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
         backgroundColor: "white",
         flex: 1,
       }}
-    >
-      {/* <ActivityIndicator size={"large"} color="#636568" />
-      <Text style={{ marginTop: 15 }}>Đang tải bảng tin...</Text> */}
-    </View>
+    ></View>
   ) : (
     <>
       <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
@@ -468,15 +541,57 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
             {comments.length === 0 ? (
               <Text className="text-gray-500">Chưa có bình luận nào</Text>
             ) : (
-              comments.map((comment, index) => (
-                <Comment key={comment.id} comment={comment} index={index} />
+              comments.map((comment) => (
+                <Comment
+                  key={comment.id}
+                  comment={comment}
+                  ref={(ref) => (commentRefs.current[comment.id] = ref)}
+                />
               ))
             )}
           </View>
         </ScrollView>
+        {parentId && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+              backgroundColor: "#f3f4f6",
+              borderTopWidth: 1,
+              borderTopColor: "#e5e7eb",
+            }}
+          >
+            <Text style={{ color: "#6b7280", fontSize: 14, flex: 1 }}>
+              Đang trả lời bình luận của{" "}
+              <Text style={{ fontWeight: "bold" }}>{replyingTo}</Text>...
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setParentId(null); // Reset parentId
+                setReplyingTo(null); // Reset replyingTo
+              }}
+              style={{
+                marginLeft: 10,
+                padding: 5,
+                backgroundColor: "#e5e7eb",
+                borderRadius: 50,
+              }}
+            >
+              <Ionicons name="close" size={16} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+        )}
         <CommentBar
           ref={commentInputRef}
-          placeholderText={"Nhập bình luận..."}
+          placeholderText={
+            parentId ? "Nhập trả lời..." : "Nhập bình luận..." // Change placeholder dynamically
+          }
+          onSubmit={onSubmit}
+          value={commentText}
+          onChangeText={setCommentText}
+          disabled={!commentText.trim()}
         />
         <KeyboardAvoidingView
           keyboardVerticalOffset={height}
