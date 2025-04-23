@@ -99,14 +99,36 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
   };
 
   const focusCommentInput = (id, name) => {
-    setParentId(id);
+    const level = getCommentLevel(comments, id);
+
+    if (level >= 3) {
+      // Trả lời cấp 4+ thì gán lại parentId là cấp 2
+      const parentCommentId = findParentIdForReply(comments, id);
+      setParentId(parentCommentId ?? id); // fallback nếu không tìm được
+    } else {
+      setParentId(id);
+    }
+
     setReplyingTo(name);
+
     if (commentInputRef.current) {
       commentInputRef.current.focus();
     }
+
     setTimeout(() => {
       scrollToComment(id);
     }, 100);
+  };
+
+  const getCommentLevel = (comments, id, currentLevel = 1) => {
+    for (const comment of comments) {
+      if (comment.id === id) return currentLevel;
+      if (comment.replies?.length > 0) {
+        const level = getCommentLevel(comment.replies, id, currentLevel + 1);
+        if (level !== null) return level;
+      }
+    }
+    return null;
   };
 
   const scrollToComment = (id) => {
@@ -199,7 +221,7 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
         // Return the parent ID if the target comment is found
         return currentParentId;
       }
-      if (comment.replies.length > 0) {
+      if (comment.replies?.length > 0) {
         // Recursively search in the replies
         const parentId = findParentIdForReply(
           comment.replies,
@@ -215,32 +237,28 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
   };
 
   const onSubmit = async () => {
-    if (!commentText.trim()) {
-      return;
-    }
+    if (!commentText.trim()) return;
 
-    // Determine the correct parent ID for replying
     let replyingToId = parentId;
+
     if (parentId) {
-      const parentCommentId = findParentIdForReply(comments, parentId);
-      if (parentCommentId) {
-        replyingToId = parentCommentId; // Redirect to the 2nd-level comment
+      const level = getCommentLevel(comments, parentId);
+      if (level > 3) {
+        // Nếu cấp vượt quá 3, tìm lại cha của cấp 2
+        const parentCommentId = findParentIdForReply(comments, parentId);
+        replyingToId = parentCommentId ?? parentId;
       }
     }
 
-    // Call the API to submit the comment or reply
+    // Gửi bình luận
     await commentPost(post.id, {
       comment: commentText.trim(),
-      replying_to: replyingToId, // Use the redirected parent ID
+      replying_to: replyingToId,
     });
 
-    // Fetch the updated comments
     fetchData();
-
-    setParentId(null); // Reset parentId
-    setReplyingTo(null); // Reset replyingTo
-
-    // Clear the input field
+    setParentId(null);
+    setReplyingTo(null);
     setCommentText("");
   };
 
@@ -310,7 +328,11 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
                 </Text>
                 <TouchableOpacity
                   onPress={() =>
-                    focusCommentInput(comment.id, comment.author.profile_name)
+                    focusCommentInput(
+                      comment.id,
+                      comment.author.profile_name,
+                      level
+                    )
                   }
                 >
                   <Text className="text-gray-500 font-bold text-[12px]">
