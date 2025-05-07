@@ -22,12 +22,15 @@
     "expo-linear-gradient": "~14.1.4",
     "expo-status-bar": "~2.2.3",
     "expo-updates": "~0.28.12",
+    "lottie-react-native": "7.2.2",
     "patch-package": "^8.0.0",
     "postcss": "^8.4.49",
     "react": "19.0.0",
     "react-native": "0.79.2",
     "react-native-check-box": "^2.1.7",
+    "react-native-collapsible": "^1.6.2",
     "react-native-gesture-handler": "~2.24.0",
+    "react-native-image-viewing": "^0.2.2",
     "react-native-markdown-display": "^7.0.2",
     "react-native-paper": "^5.12.5",
     "react-native-reanimated": "~3.17.4",
@@ -37,8 +40,7 @@
     "react-native-svg": "^15.11.2",
     "react-native-vector-icons": "^10.2.0",
     "tailwindcss": "3.3.2",
-    "tailwindcss-react-native": "^1.7.10",
-    "lottie-react-native": "7.2.2"
+    "tailwindcss-react-native": "^1.7.10"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

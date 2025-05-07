@@ -7,17 +7,56 @@ import {
   SafeAreaView,
   Platform,
   ActionSheetIOS,
+  Animated,
 } from "react-native";
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState, useContext, useRef } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { List } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
+import Collapsible from "react-native-collapsible";
 
 const Sidebar = () => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
   const { setIsLoggedIn } = useContext(AuthContext);
+  const [collapsedSections, setCollapsedSections] = useState({
+    community: true,
+    reports: true,
+    search: true,
+    explore: true,
+  });
+
+  // Animated values for each section
+  const rotationValues = useRef({
+    community: new Animated.Value(0),
+    reports: new Animated.Value(0),
+    search: new Animated.Value(0),
+    explore: new Animated.Value(0),
+  }).current;
+
+  const toggleSection = (section) => {
+    const isCollapsed = collapsedSections[section];
+
+    // Animate the chevron rotation
+    Animated.timing(rotationValues[section], {
+      toValue: isCollapsed ? 1 : 0, // 1 for 180 degrees, 0 for 0 degrees
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    setCollapsedSections((prevState) => ({
+      ...prevState,
+      [section]: !prevState[section],
+    }));
+  };
+
+  const getChevronRotation = (section) => {
+    return rotationValues[section].interpolate({
+      inputRange: [0, 1],
+      outputRange: ["0deg", "180deg"], // Rotate from 0 to 180 degrees
+    });
+  };
 
   const getData = async (key) => {
     const result = await AsyncStorage.getItem(key);
@@ -89,7 +128,11 @@ const Sidebar = () => {
 
   return (
     <>
-      <ScrollView style={{ borderRightWidth: 0.8, borderColor: "#B3B3B3" }}>
+      <ScrollView
+        style={{ borderRightWidth: 0.8, borderColor: "#B3B3B3" }}
+        contentContainerStyle={{ paddingTop: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
         <SafeAreaView className="mx-4 mt-4">
           <TouchableOpacity className="gap-y-2">
             <Image
@@ -105,35 +148,149 @@ const Sidebar = () => {
           </TouchableOpacity>
         </SafeAreaView>
         <List.Section>
-          <List.Subheader>Tài khoản</List.Subheader>
+          <List.Subheader>Tiện ích</List.Subheader>
           <List.Item
-            title="Trang cá nhân"
-            onPress={() => null}
+            title="Cộng đồng"
             right={() => (
-              <Ionicons
-                name="chevron-forward-outline"
-                size={20}
-                style={{ marginRight: -10, marginTop: 3 }}
-              />
+              <Animated.View
+                style={{
+                  transform: [
+                    { translateX: 5 }, // Move the origin point left by 10px
+                    { rotate: getChevronRotation("community") }, // Apply rotation
+                    { translateX: -5 },
+                  ],
+                }}
+              >
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  style={{ marginRight: -10, marginTop: 3 }}
+                />
+              </Animated.View>
             )}
             left={() => (
               <Ionicons
-                name="person-circle-outline"
+                name="people-outline"
+                size={24}
+                style={{ marginLeft: 14, marginRight: -5 }}
+              />
+            )}
+            onPress={() => toggleSection("community")}
+          />
+          <Collapsible collapsed={collapsedSections.community}>
+            <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </View>
+          </Collapsible>
+          <List.Item
+            title="Báo cáo"
+            onPress={() => toggleSection("reports")}
+            right={() => (
+              <Animated.View
+                style={{
+                  transform: [
+                    { translateX: 5 }, // Move the origin point left by 10px
+                    { rotate: getChevronRotation("reports") }, // Apply rotation
+                    { translateX: -5 },
+                  ],
+                }}
+              >
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  style={{ marginRight: -10, marginTop: 3 }}
+                />
+              </Animated.View>
+            )}
+            left={() => (
+              <Ionicons
+                name="alert-circle-outline"
                 size={24}
                 style={{ marginLeft: 14, marginRight: -5 }}
               />
             )}
           />
+          <Collapsible collapsed={collapsedSections.reports}>
+            <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </View>
+          </Collapsible>
+          <List.Item
+            title="Tra cứu"
+            onPress={() => toggleSection("search")}
+            right={() => (
+              <Animated.View
+                style={{
+                  transform: [
+                    { translateX: 5 }, // Move the origin point left by 10px
+                    { rotate: getChevronRotation("search") }, // Apply rotation
+                    { translateX: -5 },
+                  ],
+                }}
+              >
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  style={{ marginRight: -10, marginTop: 3 }}
+                />
+              </Animated.View>
+            )}
+            left={() => (
+              <Ionicons
+                name="search-outline"
+                size={24}
+                style={{ marginLeft: 14, marginRight: -5 }}
+              />
+            )}
+          />
+          <Collapsible collapsed={collapsedSections.search}>
+            <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </View>
+          </Collapsible>
+          <List.Item
+            title="Khám phá"
+            onPress={() => toggleSection("explore")}
+            right={() => (
+              <Animated.View
+                style={{
+                  transform: [
+                    { translateX: 5 }, // Move the origin point left by 10px
+                    { rotate: getChevronRotation("explore") }, // Apply rotation
+                    { translateX: -5 },
+                  ],
+                }}
+              >
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  style={{ marginRight: -10, marginTop: 3 }}
+                />
+              </Animated.View>
+            )}
+            left={() => (
+              <Ionicons
+                name="telescope-outline"
+                size={24}
+                style={{ marginLeft: 14, marginRight: -5 }}
+              />
+            )}
+          />
+          <Collapsible collapsed={collapsedSections.explore}>
+            <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </View>
+          </Collapsible>
+        </List.Section>
+        <List.Section>
+          <List.Subheader>Thiết lập</List.Subheader>
           <List.Item
             title="Cài đặt"
             onPress={() => null}
-            right={() => (
-              <Ionicons
-                name="chevron-forward-outline"
-                size={20}
-                style={{ marginRight: -10, marginTop: 3 }}
-              />
-            )}
             left={() => (
               <Ionicons
                 name="settings-outline"
@@ -163,13 +320,6 @@ const Sidebar = () => {
           <List.Item
             title="Giới thiệu"
             onPress={() => null}
-            right={() => (
-              <Ionicons
-                name="chevron-forward-outline"
-                size={20}
-                style={{ marginRight: -10, marginTop: 3 }}
-              />
-            )}
             left={() => (
               <Ionicons
                 name="information-circle-outline"
@@ -181,13 +331,6 @@ const Sidebar = () => {
           <List.Item
             title="Trợ giúp"
             onPress={() => null}
-            right={() => (
-              <Ionicons
-                name="chevron-forward-outline"
-                size={20}
-                style={{ marginRight: -10, marginTop: 3 }}
-              />
-            )}
             left={() => (
               <Ionicons
                 name="help-circle-outline"
@@ -199,13 +342,6 @@ const Sidebar = () => {
           <List.Item
             title="Quyền riêng tư"
             onPress={() => null}
-            right={() => (
-              <Ionicons
-                name="chevron-forward-outline"
-                size={20}
-                style={{ marginRight: -10, marginTop: 3 }}
-              />
-            )}
             left={() => (
               <Ionicons
                 name="document-text-outline"
@@ -217,13 +353,6 @@ const Sidebar = () => {
           <List.Item
             title="Điều khoản sử dụng"
             onPress={() => null}
-            right={() => (
-              <Ionicons
-                name="chevron-forward-outline"
-                size={20}
-                style={{ marginRight: -10, marginTop: 3 }}
-              />
-            )}
             left={() => (
               <Ionicons
                 name="document-text-outline"

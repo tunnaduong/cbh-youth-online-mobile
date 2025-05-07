@@ -2,14 +2,12 @@ import React, { useCallback, useContext, useRef, useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
-  Button,
-  Animated,
   ScrollView,
   ActivityIndicator,
-  RefreshControl,
   FlatList,
   Image,
+  RefreshControl,
+  Animated,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getHomePosts, incrementPostView } from "../../../services/api/Api";
@@ -17,9 +15,8 @@ import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useFocusEffect } from "@react-navigation/native";
 import { FeedContext } from "../../../contexts/FeedContext";
-import CustomRefreshControl from "../../../components/CustomRefreshControl";
+import LottieView from "lottie-react-native";
 
 const HomeScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = React.useState(false);
@@ -30,7 +27,8 @@ const HomeScreen = ({ navigation, route }) => {
   const { isLoggedIn } = useContext(AuthContext);
   const [username, setUsername] = React.useState("");
   const { feed, setFeed } = useContext(FeedContext);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const lottieProgress = React.useRef(new Animated.Value(0)).current; // Use useRef for Animated.Value
+  const lottieRef = useRef(null);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -56,12 +54,9 @@ const HomeScreen = ({ navigation, route }) => {
   const handleFetchFeed = async (page = 1) => {
     try {
       const response = await getHomePosts(page);
-      setFeed(response.data.data);
+      setFeed(response.data.data); // Ensure this updates the feed with the latest votes
     } catch (error) {
       console.error("Error fetching newsfeed:", error);
-    } finally {
-      setLoading(false); // ❗ End initial loading
-      setRefreshing(false); // ❗ End pull-to-refresh
     }
   };
 
@@ -87,8 +82,23 @@ const HomeScreen = ({ navigation, route }) => {
   const ListEndLoader = () => {
     if (hasMore) {
       return (
-        <View style={{ marginTop: 40 }}>
-          <ActivityIndicator />
+        <View
+          style={{
+            marginTop: 20,
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <LottieView
+            source={require("../../../assets/refresh.json")}
+            style={{
+              width: 40,
+              height: 40,
+            }}
+            loop
+            autoPlay
+          />
         </View>
       );
     }
@@ -162,12 +172,12 @@ const HomeScreen = ({ navigation, route }) => {
   const ListHeader = () => {
     return (
       <>
-        <CustomRefreshControl refreshing={refreshing} />
         <ScrollView
           style={{
             borderBottomWidth: 10,
             borderBottomColor: "#E6E6E6",
             padding: 15,
+            backgroundColor: "white",
           }}
           contentContainerStyle={{ gap: 10, paddingRight: 15 }}
           horizontal
@@ -252,6 +262,30 @@ const HomeScreen = ({ navigation, route }) => {
     );
   };
 
+  const handleScroll = (event) => {
+    if (!refreshing) {
+      lottieRef.current?.play(); // Play up to the calculated frame
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setHasMore(true);
+    setCurrentPage(2);
+    viewedPosts.current = new Set(); // Reset viewed posts
+
+    // Play the Lottie animation in a loop
+    lottieRef.current?.play();
+
+    handleFetchFeed().finally(() => {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 1000);
+    });
+  };
+
+  const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+
   return feed == null ? (
     <View
       style={{
@@ -261,18 +295,45 @@ const HomeScreen = ({ navigation, route }) => {
         flex: 1,
       }}
     >
-      <ActivityIndicator size={"large"} color="#636568" />
+      <LottieView
+        source={require("../../../assets/refresh.json")}
+        style={{
+          width: 70,
+          height: 70,
+        }}
+        loop
+        autoPlay
+      />
       <Text style={{ marginTop: 15 }}>Đang tải bảng tin...</Text>
     </View>
   ) : (
     <>
       <View style={{ backgroundColor: "white", flex: 1 }}>
-        <Animated.FlatList
+        <AnimatedLottieView
+          source={require("../../../assets/refresh.json")}
+          style={{
+            width: 40,
+            height: 40,
+            position: "absolute",
+            top: 5,
+            width: "100%",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          ref={lottieRef}
+          // progress={refreshing ? undefined : lottieProgress} // Use progress only when not refreshing
+          loop={refreshing}
+        />
+        <FlatList
+          onScroll={handleScroll}
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={feed}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{
+            paddingBottom: 30,
+            backgroundColor: "white",
+          }}
           renderItem={({ item, index }) => (
             <PostItem
               item={item}
@@ -287,16 +348,12 @@ const HomeScreen = ({ navigation, route }) => {
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           refreshControl={
-            <CustomRefreshControl
-              scrollY={scrollY}
+            <RefreshControl
+              tintColor="transparent"
+              colors={["transparent"]}
+              style={{ backgroundColor: "transparent" }}
               refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                handleFetchFeed();
-                setHasMore(true);
-                setCurrentPage(2);
-                viewedPosts.current = new Set(); // Reset viewed posts
-              }}
+              onRefresh={handleRefresh}
             />
           }
           ListFooterComponent={ListEndLoader}

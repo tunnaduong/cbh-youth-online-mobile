@@ -6,7 +6,7 @@ export const loginRequest = async (params) => {
     const response = await Api.postRequest("/v1.0/login", params);
     return response;
   } catch (error) {
-    console.error("Full error object:", error); // Log the full error object
+    // console.error("Full error object:", error); // Log the full error object
     if (error.response && error.response.data && error.response.data.error) {
       throw new Error(error.response.data.error);
     } else if (

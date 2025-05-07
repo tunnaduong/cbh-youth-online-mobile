@@ -12,6 +12,7 @@ import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
 import { savePost, unsavePost, votePost } from "../services/api/Api";
+import ImageView from "react-native-image-viewing";
 
 const styles = StyleSheet.create({
   body: {
@@ -59,7 +60,7 @@ const PostItem = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { username } = useContext(AuthContext);
-  const [isSaved, setIsSaved] = useState(item.saved);
+  const [visible, setIsVisible] = useState(false);
 
   const handleVote = async (voteValue) => {
     const existingVote = item.votes.find((vote) => vote.username === username);
@@ -186,13 +187,27 @@ const PostItem = ({
         </Markdown>
       </Pressable>
       {item.image_url != null && (
-        <View className="bg-[#E4EEE3] mt-2">
-          <Image
-            source={{ uri: "https://api.chuyenbienhoa.com" + item.image_url }}
-            height={300}
-            style={{ resizeMode: "contain" }}
-          />
-        </View>
+        <Pressable
+          onPress={() => {
+            setIsVisible(true);
+          }}
+        >
+          <View className="bg-[#E4EEE3] mt-2">
+            <Image
+              source={{ uri: "https://api.chuyenbienhoa.com" + item.image_url }}
+              height={300}
+              style={{ resizeMode: "contain" }}
+            />
+            <ImageView
+              images={[
+                { uri: "https://api.chuyenbienhoa.com" + item.image_url },
+              ]}
+              imageIndex={0}
+              visible={visible}
+              onRequestClose={() => setIsVisible(false)}
+            />
+          </View>
+        </Pressable>
       )}
       <View
         style={{

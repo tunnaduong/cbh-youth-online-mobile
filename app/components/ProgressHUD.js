@@ -1,3 +1,4 @@
+import LottieView from "lottie-react-native";
 import React from "react";
 import { View, Text, Modal, ActivityIndicator, StyleSheet } from "react-native";
 
@@ -11,7 +12,16 @@ const ProgressHUD = ({ visible, loadText, noBackground = false }) => {
     >
       <View style={[styles.container, !noBackground && styles.background]}>
         <View style={styles.hud}>
-          <ActivityIndicator size="large" color="rgba(255,255,255,0.8)" />
+          {/* <ActivityIndicator size="large" color="rgba(255,255,255,0.8)" /> */}
+          <LottieView
+            source={require("../assets/refresh.json")}
+            style={{
+              width: 50,
+              height: 50,
+            }}
+            loop
+            autoPlay
+          />
           <Text style={styles.text}>{loadText}</Text>
         </View>
       </View>
