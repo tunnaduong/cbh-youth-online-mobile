@@ -12,7 +12,7 @@ const WelcomeScreen = ({ navigation }) => {
       <View className="items-center flex-1 gap-y-8 justify-end">
         <LoginCarousel />
       </View>
-      <View className="w-full gap-y-8 justify-end flex-1">
+      <View className="w-full gap-y-8 justify-end flex-1 pb-10">
         <TouchableOpacity
           className="w-full bg-[#319527] p-3.5 rounded-full"
           onPress={handleGetStarted}

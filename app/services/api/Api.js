@@ -6,6 +6,7 @@ export const loginRequest = async (params) => {
     const response = await Api.postRequest("/v1.0/login", params);
     return response;
   } catch (error) {
+    console.error("Full error object:", error); // Log the full error object
     if (error.response && error.response.data && error.response.data.error) {
       throw new Error(error.response.data.error);
     } else if (
@@ -15,7 +16,9 @@ export const loginRequest = async (params) => {
     ) {
       throw new Error(error.response.data.message);
     } else {
-      throw new Error("Đã có lỗi không mong muốn xảy ra.");
+      throw new Error(
+        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+      );
     }
   }
 };

@@ -1,4 +1,4 @@
-import React, { useCallback, useContext } from "react";
+import React, { useCallback, useContext, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
 import { FeedContext } from "../../../contexts/FeedContext";
+import CustomRefreshControl from "../../../components/CustomRefreshControl";
 
 const HomeScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = React.useState(false);
@@ -29,6 +30,7 @@ const HomeScreen = ({ navigation, route }) => {
   const { isLoggedIn } = useContext(AuthContext);
   const [username, setUsername] = React.useState("");
   const { feed, setFeed } = useContext(FeedContext);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -54,11 +56,12 @@ const HomeScreen = ({ navigation, route }) => {
   const handleFetchFeed = async (page = 1) => {
     try {
       const response = await getHomePosts(page);
-      setRefreshing(false);
-      setFeed(response.data.data); // Ensure this updates the feed with the latest votes
+      setFeed(response.data.data);
     } catch (error) {
-      setRefreshing(false);
       console.error("Error fetching newsfeed:", error);
+    } finally {
+      setLoading(false); // ❗ End initial loading
+      setRefreshing(false); // ❗ End pull-to-refresh
     }
   };
 
@@ -158,86 +161,94 @@ const HomeScreen = ({ navigation, route }) => {
 
   const ListHeader = () => {
     return (
-      <ScrollView
-        style={{
-          borderBottomWidth: 10,
-          borderBottomColor: "#E6E6E6",
-          padding: 15,
-        }}
-        contentContainerStyle={{ gap: 10, paddingRight: 15 }}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-      >
-        {/* Story like Facebook component */}
-        <View className="relative overflow-hidden rounded-2xl bg-gray-200 w-[100px] h-[160px] border border-[#c4c4c4]">
-          <Image
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={{ width: 100, height: 115 }}
-          />
-          <View className="absolute bottom-0 left-0 right-0 bg-[#fafafa] pt-6 pb-2 text-center">
-            <Text className="text-[13px] font-medium text-center">Tạo tin</Text>
-          </View>
-          <View className="absolute bottom-[28px] left-[31px] bg-[#fafafa] rounded-full">
-            <Ionicons name="add-circle" size={40} color={"#319527"} />
-          </View>
-        </View>
-        {stories.map((story) => (
-          <View
-            key={story.id}
-            className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]"
-          >
-            {/* Story Image */}
-            {typeof story.image === "string" ? (
-              <Image
-                source={{ uri: story.image }}
-                style={{ width: 100, height: 160 }}
-              />
-            ) : (
-              <Image source={story.image} style={{ width: 100, height: 160 }} />
-            )}
-
-            {/* Avatar */}
-            <View className="absolute top-2 left-2">
-              <View className="rounded-full p-0.5 border-2 border-[#319528]">
-                <View className="w-6 h-6 rounded-full overflow-hidden">
-                  <Image
-                    source={{ uri: story.avatar }}
-                    style={{ width: 24, height: 24 }}
-                  />
-                </View>
-              </View>
-            </View>
-
-            {/* Gradient + Title */}
-            <View className="absolute bottom-0 left-0 right-0 h-14 justify-end">
-              <LinearGradient
-                colors={["black", "transparent"]}
-                start={{ x: 0.5, y: 1 }}
-                end={{ x: 0.5, y: 0 }}
-                style={{
-                  position: "absolute",
-                  width: "100%",
-                  height: 130,
-                  bottom: -90,
-                }}
-              />
-              <Text
-                numberOfLines={2}
-                className="text-[13px] font-semibold text-white p-1.5"
-                style={{
-                  textShadowColor: "rgba(0, 0, 0, 0.8)",
-                  textShadowOffset: { width: 0, height: 0 },
-                  textShadowRadius: 2,
-                }}
-              >
-                {story.title}
+      <>
+        <CustomRefreshControl refreshing={refreshing} />
+        <ScrollView
+          style={{
+            borderBottomWidth: 10,
+            borderBottomColor: "#E6E6E6",
+            padding: 15,
+          }}
+          contentContainerStyle={{ gap: 10, paddingRight: 15 }}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        >
+          {/* Story like Facebook component */}
+          <View className="relative overflow-hidden rounded-2xl bg-gray-200 w-[100px] h-[160px] border border-[#c4c4c4]">
+            <Image
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={{ width: 100, height: 115 }}
+            />
+            <View className="absolute bottom-0 left-0 right-0 bg-[#fafafa] pt-6 pb-2 text-center">
+              <Text className="text-[13px] font-medium text-center">
+                Tạo tin
               </Text>
             </View>
+            <View className="absolute bottom-[28px] left-[31px] bg-[#fafafa] rounded-full">
+              <Ionicons name="add-circle" size={40} color={"#319527"} />
+            </View>
           </View>
-        ))}
-      </ScrollView>
+          {stories.map((story) => (
+            <View
+              key={story.id}
+              className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]"
+            >
+              {/* Story Image */}
+              {typeof story.image === "string" ? (
+                <Image
+                  source={{ uri: story.image }}
+                  style={{ width: 100, height: 160 }}
+                />
+              ) : (
+                <Image
+                  source={story.image}
+                  style={{ width: 100, height: 160 }}
+                />
+              )}
+
+              {/* Avatar */}
+              <View className="absolute top-2 left-2">
+                <View className="rounded-full p-0.5 border-2 border-[#319528]">
+                  <View className="w-6 h-6 rounded-full overflow-hidden">
+                    <Image
+                      source={{ uri: story.avatar }}
+                      style={{ width: 24, height: 24 }}
+                    />
+                  </View>
+                </View>
+              </View>
+
+              {/* Gradient + Title */}
+              <View className="absolute bottom-0 left-0 right-0 h-14 justify-end">
+                <LinearGradient
+                  colors={["black", "transparent"]}
+                  start={{ x: 0.5, y: 1 }}
+                  end={{ x: 0.5, y: 0 }}
+                  style={{
+                    position: "absolute",
+                    width: "100%",
+                    height: 130,
+                    bottom: -90,
+                  }}
+                />
+                <Text
+                  numberOfLines={2}
+                  className="text-[13px] font-semibold text-white p-1.5"
+                  style={{
+                    textShadowColor: "rgba(0, 0, 0, 0.8)",
+                    textShadowOffset: { width: 0, height: 0 },
+                    textShadowRadius: 2,
+                  }}
+                >
+                  {story.title}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+      </>
     );
   };
 
@@ -256,7 +267,7 @@ const HomeScreen = ({ navigation, route }) => {
   ) : (
     <>
       <View style={{ backgroundColor: "white", flex: 1 }}>
-        <FlatList
+        <Animated.FlatList
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={feed}
@@ -276,8 +287,8 @@ const HomeScreen = ({ navigation, route }) => {
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
           refreshControl={
-            <RefreshControl
-              colors={["#9Bd35A", "#689F38"]}
+            <CustomRefreshControl
+              scrollY={scrollY}
               refreshing={refreshing}
               onRefresh={() => {
                 setRefreshing(true);
