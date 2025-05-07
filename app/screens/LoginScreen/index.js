@@ -12,6 +12,7 @@ import {
   Alert,
   Platform,
   StatusBar,
+  ScrollView,
 } from "react-native";
 import axiosInstance from "../../services/api/axiosInstance";
 import saveToken from "../../utils/saveToken";
@@ -76,7 +77,7 @@ const LoginScreen = ({ navigation }) => {
           >
             <Icon name="chevron-back-outline" color="white" size={30} />
           </TouchableOpacity>
-          <View style={styles.content}>
+          <ScrollView style={styles.content}>
             <View style={styles.header}>
               <Text style={styles.title}>Đăng nhập</Text>
               <Text style={styles.subtitle}>
@@ -160,7 +161,7 @@ const LoginScreen = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </SafeAreaView>
       </TouchableWithoutFeedback>
     </>

@@ -15,12 +15,19 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = await AsyncStorage.getItem("auth_token");
         const storedUsername = await AsyncStorage.getItem("user_info"); // Retrieve username from storage
+
         setIsLoggedIn(!!token);
-        setUsername(JSON.parse(storedUsername).username); // Set the username if it exists
-        // Set the profile name if it exists
-        setProfileName(JSON.parse(storedUsername).profile_name);
-        // Set the user info if it exists
-        setUserInfo(JSON.parse(storedUsername));
+
+        if (storedUsername) {
+          const parsedUserInfo = JSON.parse(storedUsername);
+          setUsername(parsedUserInfo.username || null); // Set the username if it exists
+          setProfileName(parsedUserInfo.profile_name || null); // Set the profile name if it exists
+          setUserInfo(parsedUserInfo); // Set the user info if it exists
+        } else {
+          setUsername(null);
+          setProfileName(null);
+          setUserInfo(null);
+        }
       } catch (error) {
         console.error("Error checking login status", error);
       } finally {

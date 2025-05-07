@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Text,
   Image,
-  ActivityIndicator,
   ScrollView,
   SafeAreaView,
   KeyboardAvoidingView,
@@ -25,6 +24,7 @@ import {
 import { useHeaderHeight } from "@react-navigation/elements";
 import CommentBar from "../../../components/CommentBar";
 import { TouchableOpacity } from "react-native";
+import { FeedContext } from "../../../contexts/FeedContext";
 
 const styles = StyleSheet.create({
   body: {
@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
+const PostScreen = ({ route }) => {
   const { item, postId } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
@@ -77,6 +77,10 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
   const commentInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
+  const { setFeed } = useContext(FeedContext);
+  // setFeed(prev =>
+  //   prev.map(p => (p.id === post.id ? { ...p, ...post } : p))
+  // );
 
   React.useEffect(() => {
     fetchData();
@@ -164,10 +168,16 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
 
     // Update UI instantly
     setVotes(newVotes);
-    onVoteUpdate(post.id, newVotes);
+
+    // Update the FeedContext
+    setFeed((prevFeed) =>
+      prevFeed.map((post) =>
+        post.id === postId ? { ...post, votes: newVotes } : post
+      )
+    );
 
     try {
-      await votePost(post.id, {
+      await votePost(postId, {
         vote_value: voteValue,
       });
     } catch (error) {
@@ -179,19 +189,32 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
   const handleSavePost = async () => {
     const newSavedStatus = !isSaved; // Toggle save status
     setIsSaved(newSavedStatus); // Update UI instantly
-    onSaveUpdate(post.id, newSavedStatus);
+
+    // Update the FeedContext
+    setFeed((prevFeed) =>
+      prevFeed.map((post) =>
+        post.id === postId ? { ...post, saved: newSavedStatus } : post
+      )
+    );
 
     try {
-      if (isSaved) {
-        // Call the API to unsave the post
-        await unsavePost(post.id); // Make sure you have this function to call the DELETE API
-      } else {
+      if (newSavedStatus) {
         // Call the API to save the post
         await savePost(post.id);
+      } else {
+        // Call the API to unsave the post
+        await unsavePost(post.id);
       }
     } catch (error) {
       console.error("Saving failed:", error);
       setIsSaved(!newSavedStatus); // Revert UI if API call fails
+
+      // Revert the FeedContext update
+      setFeed((prevFeed) =>
+        prevFeed.map((post) =>
+          post.id === postId ? { ...post, saved: !newSavedStatus } : post
+        )
+      );
     }
   };
 
@@ -478,28 +501,28 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
                     name="arrow-up-outline"
                     size={28}
                     color={
-                      post.votes.some(
+                      votes.some(
                         (vote) =>
                           vote.username === username && vote.vote_value === 1
                       )
-                        ? "#22c55e"
-                        : "#9ca3af"
+                        ? "#22c55e" // Green for upvote
+                        : "#9ca3af" // Gray for default
                     }
                   />
                 </Pressable>
                 <Text
                   style={[
-                    post.votes.some(
+                    votes.some(
                       (vote) =>
                         vote.username === username && vote.vote_value === 1
                     )
-                      ? { color: "#22c55e" } // Apply green color for upvotes
-                      : post.votes.some(
+                      ? { color: "#22c55e" } // Green for upvote
+                      : votes.some(
                           (vote) =>
                             vote.username === username && vote.vote_value === -1
                         )
-                      ? { color: "#ef4444" } // Apply red color for downvotes
-                      : { color: "#9ca3af" }, // Default gray color
+                      ? { color: "#ef4444" } // Red for downvote
+                      : { color: "#9ca3af" }, // Gray for default
                     { fontSize: 20, fontWeight: "600" }, // Additional styles
                   ]}
                 >
@@ -510,12 +533,12 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
                     name="arrow-down-outline"
                     size={28}
                     color={
-                      post.votes.some(
+                      votes.some(
                         (vote) =>
                           vote.username === username && vote.vote_value === -1
                       )
-                        ? "#ef4444"
-                        : "#9ca3af"
+                        ? "#ef4444" // Red for downvote
+                        : "#9ca3af" // Gray for default
                     }
                   />
                 </Pressable>
@@ -530,14 +553,14 @@ const PostScreen = ({ route, onVoteUpdate, onSaveUpdate }) => {
                       justifyContent: "center", // Center the content vertically
                     },
                     isSaved
-                      ? { backgroundColor: "#CDEBCA" }
-                      : { backgroundColor: "#EAEAEA" }, // Inline style for background color
+                      ? { backgroundColor: "#CDEBCA" } // Green background when saved
+                      : { backgroundColor: "#EAEAEA" }, // Gray background when not saved
                   ]}
                 >
                   <Ionicons
                     name="bookmark"
                     size={20}
-                    color={isSaved ? "#319527" : "#9ca3af"}
+                    color={isSaved ? "#319527" : "#9ca3af"} // Green icon when saved, gray when not saved
                   />
                 </Pressable>
                 <View className="flex-1 flex-row-reverse items-center">

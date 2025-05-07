@@ -2,7 +2,7 @@ import React, { useContext } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, ActivityIndicator, Animated } from "react-native";
-import { AuthProvider, AuthContext } from "./app/contexts/AuthContext";
+import { AuthContext } from "./app/contexts/AuthContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
 import MainScreens from "./app/screens/MainScreens";
@@ -13,6 +13,7 @@ import { AnimationProvider } from "./app/contexts/AnimationContext";
 import { StyleSheet } from "react-native";
 import PostScreen from "./app/screens/MainScreens/PostScreen";
 import SameHeader from "./app/components/SameHeader";
+import MultiContextProvider from "./app/contexts";
 
 const Stack = createStackNavigator();
 
@@ -94,9 +95,7 @@ const App = () => {
 };
 
 export default () => (
-  <AuthProvider>
-    <AnimationProvider>
-      <App />
-    </AnimationProvider>
-  </AuthProvider>
+  <MultiContextProvider>
+    <App />
+  </MultiContextProvider>
 );

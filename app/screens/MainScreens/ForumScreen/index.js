@@ -16,25 +16,12 @@ import { AuthContext } from "../../../contexts/AuthContext";
 
 export default function ForumScreen({ navigation }) {
   const [profileName, setProfileName] = useState("");
-  const [username, setUsername] = useState("");
   const { setIsLoggedIn } = useContext(AuthContext);
+  const [username, setUsername] = useState("");
 
   const getData = async (key) => {
     const result = await AsyncStorage.getItem(key);
     return result;
-  };
-
-  const goToScreen = () => {
-    clearAll();
-    setIsLoggedIn(false);
-  };
-
-  const clearAll = async () => {
-    try {
-      await AsyncStorage.clear();
-    } catch (e) {
-      // clear error
-    }
   };
 
   useEffect(() => {
@@ -49,6 +36,19 @@ export default function ForumScreen({ navigation }) {
 
     fetchData();
   }, []);
+
+  const goToScreen = () => {
+    clearAll();
+    setIsLoggedIn(false);
+  };
+
+  const clearAll = async () => {
+    try {
+      await AsyncStorage.clear();
+    } catch (e) {
+      // clear error
+    }
+  };
 
   const onPressIOS = () => {
     ActionSheetIOS.showActionSheetWithOptions(

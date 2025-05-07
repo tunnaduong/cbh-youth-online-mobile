@@ -59,58 +59,65 @@ const PostItem = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { username } = useContext(AuthContext);
-  const [votes, setVotes] = useState(item.votes); // Local vote state
   const [isSaved, setIsSaved] = useState(item.saved);
 
   const handleVote = async (voteValue) => {
-    const existingVote = votes.find((vote) => vote.username === username);
+    const existingVote = item.votes.find((vote) => vote.username === username);
     let newVotes;
 
     if (existingVote) {
       if (existingVote.vote_value === voteValue) {
-        // User clicked the same vote, remove it (undo vote)
-        newVotes = votes.filter((vote) => vote.username !== username);
+        // User clicked the same vote, remove it (unvote)
+        newVotes = item.votes.filter((vote) => vote.username !== username);
+
+        // Update UI instantly
+        onVoteUpdate(item.id, newVotes);
+
+        try {
+          // Send a request to remove the vote
+          await votePost(item.id, { vote_value: 0 }); // Assuming `vote_value: 0` removes the vote
+        } catch (error) {
+          console.error("Unvoting failed:", error);
+          onVoteUpdate(item.id, item.votes); // Revert UI if API fails
+        }
+        return;
       } else {
         // Change vote direction (upvote → downvote or vice versa)
-        newVotes = votes.map((vote) =>
+        newVotes = item.votes.map((vote) =>
           vote.username === username ? { ...vote, vote_value: voteValue } : vote
         );
       }
     } else {
       // User hasn't voted yet, add a new vote
-      newVotes = [...votes, { username, vote_value: voteValue }];
+      newVotes = [...item.votes, { username, vote_value: voteValue }];
     }
 
     // Update UI instantly
-    setVotes(newVotes);
     onVoteUpdate(item.id, newVotes);
 
     try {
-      await votePost(item.id, {
-        vote_value: voteValue,
-      });
+      await votePost(item.id, { vote_value: voteValue });
     } catch (error) {
       console.error("Voting failed:", error);
-      setVotes(item.votes); // Revert UI if API fails
+      onVoteUpdate(item.id, item.votes); // Revert UI if API fails
     }
   };
 
   const handleSavePost = async () => {
-    const newSavedStatus = !isSaved; // Toggle save status
-    setIsSaved(newSavedStatus); // Update UI instantly
-    onSaveUpdate(item.id, newSavedStatus);
+    const newSavedStatus = !item.saved; // Toggle save status
+    onSaveUpdate(item.id, newSavedStatus); // Update FeedContext
 
     try {
-      if (isSaved) {
+      if (item.saved) {
         // Call the API to unsave the post
-        await unsavePost(item.id); // Make sure you have this function to call the DELETE API
+        await unsavePost(item.id);
       } else {
         // Call the API to save the post
         await savePost(item.id);
       }
     } catch (error) {
       console.error("Saving failed:", error);
-      setIsSaved(!newSavedStatus); // Revert UI if API call fails
+      onSaveUpdate(item.id, !newSavedStatus); // Revert FeedContext update if API call fails
     }
   };
 
@@ -149,7 +156,7 @@ const PostItem = ({
   return (
     <View
       style={{
-        borderBottomWidth: 15,
+        borderBottomWidth: 10,
         borderBottomColor: "#E6E6E6",
       }}
     >
@@ -255,7 +262,7 @@ const PostItem = ({
               { fontSize: 20, fontWeight: "600" }, // Additional styles
             ]}
           >
-            {votes.reduce((acc, vote) => acc + vote.vote_value, 0)}
+            {item.votes.reduce((acc, vote) => acc + vote.vote_value, 0)}
           </Text>
           <Pressable onPress={() => handleVote(-1)}>
             <Ionicons
@@ -280,15 +287,15 @@ const PostItem = ({
                 alignItems: "center", // Center the content horizontally
                 justifyContent: "center", // Center the content vertically
               },
-              isSaved
-                ? { backgroundColor: "#CDEBCA" }
-                : { backgroundColor: "#EAEAEA" }, // Inline style for background color
+              item.saved
+                ? { backgroundColor: "#CDEBCA" } // Green background when saved
+                : { backgroundColor: "#EAEAEA" }, // Gray background when not saved
             ]}
           >
             <Ionicons
               name="bookmark"
               size={20}
-              color={isSaved ? "#319527" : "#9ca3af"}
+              color={item.saved ? "#319527" : "#9ca3af"} // Green icon when saved, gray when not saved
             />
           </Pressable>
           <View className="flex-1 flex-row-reverse items-center">
