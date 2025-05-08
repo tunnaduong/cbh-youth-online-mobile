@@ -14,6 +14,8 @@ import { StyleSheet } from "react-native";
 import PostScreen from "./app/screens/MainScreens/PostScreen";
 import SameHeader from "./app/components/SameHeader";
 import MultiContextProvider from "./app/contexts";
+import ProfileScreen from "./app/screens/MainScreens/ProfileScreen";
+import LottieView from "lottie-react-native";
 
 const Stack = createStackNavigator();
 
@@ -23,7 +25,15 @@ const App = () => {
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#319527" />
+        <LottieView
+          source={require("./app/assets/refresh.json")}
+          style={{
+            width: 70,
+            height: 70,
+          }}
+          loop
+          autoPlay
+        />
         <Text>Đang tải...</Text>
       </View>
     );
@@ -63,6 +73,15 @@ const App = () => {
                   headerTintColor: "#319527",
                 }}
                 component={PostScreen}
+              />
+              <Stack.Screen
+                name="ProfileScreen"
+                options={{
+                  title: "Trang cá nhân",
+                  headerBackButtonDisplayMode: "minimal",
+                  headerShown: false,
+                }}
+                component={ProfileScreen}
               />
             </>
           ) : (

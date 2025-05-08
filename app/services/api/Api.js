@@ -86,3 +86,7 @@ export const voteComment = (id, params) => {
 export const getForumCategories = () => {
   return Api.getRequest("/v1.0/forum/categories");
 };
+
+export const getProfile = (username) => {
+  return Api.getRequest("/v1.0/users/" + username + "/profile");
+};

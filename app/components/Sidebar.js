@@ -15,6 +15,7 @@ import { List } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
 import Collapsible from "react-native-collapsible";
+import { useNavigation } from "@react-navigation/native";
 
 const Sidebar = () => {
   const [username, setUsername] = useState("");
@@ -26,6 +27,7 @@ const Sidebar = () => {
     search: true,
     explore: true,
   });
+  const navigation = useNavigation();
 
   // Animated values for each section
   const rotationValues = useRef({
@@ -134,7 +136,10 @@ const Sidebar = () => {
         showsVerticalScrollIndicator={false}
       >
         <SafeAreaView className="mx-4 mt-4">
-          <TouchableOpacity className="gap-y-2">
+          <TouchableOpacity
+            className="gap-y-2"
+            onPress={() => navigation.navigate("ProfileScreen")}
+          >
             <Image
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
