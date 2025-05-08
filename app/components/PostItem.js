@@ -57,6 +57,7 @@ const PostItem = ({
   onExpand,
   onVoteUpdate,
   onSaveUpdate,
+  screenName,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { username } = useContext(AuthContext);
@@ -167,6 +168,7 @@ const PostItem = ({
             navigation.navigate("PostScreen", {
               postId: item.id,
               item,
+              screenName,
             })
           }
           className="shrink flex-1"
@@ -217,7 +219,14 @@ const PostItem = ({
           marginVertical: 20,
         }}
       ></View>
-      <View className="px-[15px] flex-row items-center">
+      <Pressable
+        onPress={() => {
+          navigation.navigate("ProfileScreen", {
+            username: item.author.username,
+          });
+        }}
+        className="px-[15px] flex-row items-center"
+      >
         <View
           className="bg-white w-[42px] rounded-full overflow-hidden"
           style={{
@@ -246,7 +255,7 @@ const PostItem = ({
           )}
         </Text>
         <Text> · {item.time}</Text>
-      </View>
+      </Pressable>
       <View className="flex-row items-center px-[15px] my-4">
         <View className="gap-3 flex-row items-center">
           <Pressable onPress={() => handleVote(1)}>
@@ -323,6 +332,7 @@ const PostItem = ({
                 navigation.navigate("PostScreen", {
                   postId: item.id,
                   item,
+                  screenName,
                 })
               }
               className="flex-row-reverse items-center"

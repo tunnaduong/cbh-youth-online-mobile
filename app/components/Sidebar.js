@@ -132,10 +132,10 @@ const Sidebar = () => {
     <>
       <ScrollView
         style={{ borderRightWidth: 0.8, borderColor: "#B3B3B3" }}
-        contentContainerStyle={{ paddingTop: 40 }}
+        contentContainerStyle={{ paddingBottom: 40, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
       >
-        <SafeAreaView className="mx-4 mt-4">
+        <SafeAreaView className="mx-4 mt-11">
           <TouchableOpacity
             className="gap-y-2"
             onPress={() => navigation.navigate("ProfileScreen")}

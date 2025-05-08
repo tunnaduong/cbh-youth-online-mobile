@@ -21,10 +21,11 @@ import {
   unsavePost,
   votePost,
 } from "../../../services/api/Api";
-import { useHeaderHeight } from "@react-navigation/elements";
+import { HeaderBackButton, useHeaderHeight } from "@react-navigation/elements";
 import CommentBar from "../../../components/CommentBar";
 import { TouchableOpacity } from "react-native";
 import { FeedContext } from "../../../contexts/FeedContext";
+import { useNavigation } from "@react-navigation/native";
 
 const styles = StyleSheet.create({
   body: {
@@ -64,7 +65,8 @@ const styles = StyleSheet.create({
 });
 
 const PostScreen = ({ route }) => {
-  const { item, postId } = route.params; // Destructure item from route.params
+  const navigation = useNavigation();
+  const { item, postId, screenName } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
   const [isSaved, setIsSaved] = useState(item?.saved ?? false);
@@ -78,9 +80,26 @@ const PostScreen = ({ route }) => {
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
   const { setFeed } = useContext(FeedContext);
-  // setFeed(prev =>
-  //   prev.map(p => (p.id === post.id ? { ...p, ...post } : p))
-  // );
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <HeaderBackButton
+          tintColor="#319527"
+          onPress={() => {
+            if (screenName) {
+              navigation.popTo(screenName, {
+                post,
+                postId,
+              });
+            } else {
+              navigation.goBack();
+            }
+          }}
+        />
+      ),
+    });
+  }, [navigation, post, postId, screenName]);
 
   React.useEffect(() => {
     fetchData();
@@ -96,7 +115,8 @@ const PostScreen = ({ route }) => {
         setVotes(topic.votes); // Set the votes in state
         setIsSaved(topic.saved); // Set the saved status in state
       }
-      setComments(comments); // Set the comments in state
+      setPost(topic); // Update post state
+      setComments(comments);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -176,6 +196,11 @@ const PostScreen = ({ route }) => {
       )
     );
 
+    setPost((prevPost) => ({
+      ...prevPost,
+      votes: newVotes,
+    }));
+
     try {
       await votePost(postId, {
         vote_value: voteValue,
@@ -196,6 +221,11 @@ const PostScreen = ({ route }) => {
         post.id === postId ? { ...post, saved: newSavedStatus } : post
       )
     );
+
+    setPost((prevPost) => ({
+      ...prevPost,
+      saved: newSavedStatus,
+    }));
 
     try {
       if (newSavedStatus) {
@@ -264,25 +294,60 @@ const PostScreen = ({ route }) => {
 
     let replyingToId = parentId;
 
-    if (parentId) {
-      const level = getCommentLevel(comments, parentId);
-      if (level > 3) {
-        // Nếu cấp vượt quá 3, tìm lại cha của cấp 2
-        const parentCommentId = findParentIdForReply(comments, parentId);
-        replyingToId = parentCommentId ?? parentId;
+    try {
+      // Send comment to API
+      await commentPost(post.id, {
+        comment: commentText.trim(),
+        replying_to: replyingToId,
+      });
+
+      // Reset input state
+      setCommentText("");
+      setParentId(null);
+      setReplyingTo(null);
+
+      const response = await getPostDetail(postId);
+      if (response.data) {
+        const updatedPostData = response.data.topic;
+        setPost(updatedPostData);
+        setComments(response.data.comments);
+
+        // IMPORTANT: Update FeedContext
+        setFeed((prevFeed) =>
+          prevFeed.map((feedItem) =>
+            feedItem.id === postId
+              ? {
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                            updatedPostData.comments?.replace(/\D/g, ""),
+                            10
+                          ) || 0
+                    ) + "+",
+                }
+              : feedItem
+          )
+        );
       }
+    } catch (error) {
+      console.error("Error submitting comment:", error);
     }
+  };
 
-    // Gửi bình luận
-    await commentPost(post.id, {
-      comment: commentText.trim(),
-      replying_to: replyingToId,
-    });
-
-    fetchData();
-    setParentId(null);
-    setReplyingTo(null);
-    setCommentText("");
+  // Define this outside the onSubmit function
+  const roundToNearestFive = (count) => {
+    if (count <= 5) {
+      // If count is 5 or less, return exact count with leading zero
+      return count.toString().padStart(2, "0");
+    } else {
+      // Round DOWN to the nearest multiple of 5 for counts above 5
+      // For example: 6-10 → "05+", 11-15 → "10+", 16-20 → "15+"
+      const rounded = Math.floor(count / 5) * 5;
+      return rounded.toString().padStart(2, "0");
+    }
   };
 
   const Comment = React.forwardRef(
