@@ -12,16 +12,21 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 export default function SearchScreen({ navigation }) {
+  const inset = useSafeAreaInsets();
+
   return (
-    <SafeAreaView
+    <View
       style={{
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight + 5 : 0,
       }}
     >
-      <View style={styles.topBar}>
+      <View
+        style={[styles.topBar, { paddingTop: inset.top + 5, marginTop: -2 }]}
+      >
         <TouchableHighlight
           style={styles.backButton}
           underlayColor="rgba(0, 0, 0, .15)"
@@ -64,7 +69,7 @@ export default function SearchScreen({ navigation }) {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -87,7 +92,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#DFDEDD",
     paddingTop: 10,
-    marginTop: -5,
   },
   searchImage: {
     height: Dimensions.get("window").height * 0.5,

@@ -18,6 +18,7 @@ const DummyComponent = () => null;
 
 export default function MainScreens({ navigation }) {
   const [setting, setSetting] = React.useState(false);
+  const insets = useSafeAreaInsets();
 
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
@@ -57,6 +58,13 @@ export default function MainScreens({ navigation }) {
             tabBarLabelStyle: {
               fontSize: 10,
               fontWeight: "bold",
+            },
+            // Set a consistent header height for all tabs
+            headerStyle: {
+              height: 50 + insets.top, // Base height + top safe area inset
+            },
+            headerTitleContainerStyle: {
+              paddingVertical: 5, // Adjust as needed
             },
           })}
         >

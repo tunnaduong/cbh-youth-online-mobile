@@ -1,7 +1,7 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, ActivityIndicator, Animated } from "react-native";
+import { View, Text } from "react-native";
 import { AuthContext } from "./app/contexts/AuthContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
@@ -9,18 +9,27 @@ import MainScreens from "./app/screens/MainScreens";
 import { TailwindProvider } from "tailwindcss-react-native";
 import SearchScreen from "./app/screens/MainScreens/SearchScreen";
 import WelcomeScreen from "./app/screens/WelcomeScreen";
-import { AnimationProvider } from "./app/contexts/AnimationContext";
-import { StyleSheet } from "react-native";
 import PostScreen from "./app/screens/MainScreens/PostScreen";
-import SameHeader from "./app/components/SameHeader";
 import MultiContextProvider from "./app/contexts";
 import ProfileScreen from "./app/screens/MainScreens/ProfileScreen";
 import LottieView from "lottie-react-native";
+import SplashScreen from "./app/components/SplashScreen";
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 const Stack = createStackNavigator();
 
-const App = () => {
+// Create a separate navigator component that uses the insets
+function AppNavigator() {
   const { isLoggedIn, isLoading } = useContext(AuthContext);
+  const [showSplash, setShowSplash] = useState(true);
+  const insets = useSafeAreaInsets(); // Now this will work properly
+
+  const handleSplashFinish = () => {
+    setShowSplash(false);
+  };
 
   if (isLoading) {
     return (
@@ -39,10 +48,24 @@ const App = () => {
     );
   }
 
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
   return (
     <NavigationContainer>
       <TailwindProvider>
-        <Stack.Navigator>
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: {
+              height: 50 + insets.top, // Now this will work properly
+              backgroundColor: "#fff",
+            },
+            headerTitleContainerStyle: {
+              paddingVertical: 10,
+            },
+          }}
+        >
           {isLoggedIn ? (
             <>
               <Stack.Screen
@@ -110,6 +133,15 @@ const App = () => {
         </Stack.Navigator>
       </TailwindProvider>
     </NavigationContainer>
+  );
+}
+
+// Main App component with SafeAreaProvider
+const App = () => {
+  return (
+    <SafeAreaProvider>
+      <AppNavigator />
+    </SafeAreaProvider>
   );
 };
 

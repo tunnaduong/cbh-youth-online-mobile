@@ -28,6 +28,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const [recentPosts, setRecentPosts] = useState([]);
   const isCurrentUser = userId === username;
+  const [activeTab, setActiveTab] = useState("posts");
 
   useFocusEffect(
     useCallback(() => {
@@ -97,11 +98,120 @@ const ProfileScreen = ({ route, navigation }) => {
     );
   };
 
+  // Render user connection item
+  const renderUserItem = (user) => (
+    <TouchableOpacity
+      key={user.id}
+      style={styles.userItem}
+      onPress={() =>
+        navigation.navigate("ProfileScreen", { username: user.username })
+      }
+    >
+      <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
+      <View style={styles.userInfo}>
+        <Text style={styles.userName}>{user.name}</Text>
+        <Text style={styles.userUsername}>@{user.username}</Text>
+      </View>
+      <TouchableOpacity style={styles.followButton}>
+        <Text style={styles.followButtonText}>Follow</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  // Render content based on active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "posts":
+        return (
+          <>
+            {recentPosts.length === 0 ? (
+              <View>
+                <Image
+                  source={require("../../../assets/sad_frog.png")}
+                  style={{
+                    height: 90,
+                    width: 90,
+                    alignSelf: "center",
+                    marginTop: 20,
+                  }}
+                />
+                <Text className="text-center font-light text-gray-500 mt-2">
+                  Chưa có bài viết nào...
+                </Text>
+              </View>
+            ) : (
+              recentPosts.map((post) => (
+                <PostItem
+                  key={`post-${post.id}`}
+                  item={post}
+                  navigation={navigation}
+                  onVoteUpdate={handleVoteUpdate}
+                  onSaveUpdate={handleSaveUpdate}
+                  screenName={"ProfileScreen"}
+                />
+              ))
+            )}
+          </>
+        );
+
+      case "following":
+        return (
+          <View style={styles.connectionsList}>
+            {userData.following.length === 0 ? (
+              <View>
+                <Image
+                  source={require("../../../assets/sad_frog.png")}
+                  style={{
+                    height: 90,
+                    width: 90,
+                    alignSelf: "center",
+                    marginTop: 20,
+                  }}
+                />
+                <Text className="text-center font-light text-gray-500 mt-2">
+                  Chưa theo dõi ai cả...
+                </Text>
+              </View>
+            ) : (
+              userData.following.map((user) => renderUserItem(user))
+            )}
+          </View>
+        );
+
+      case "followers":
+        return (
+          <View style={styles.connectionsList}>
+            {userData.followers.length === 0 ? (
+              <View>
+                <Image
+                  source={require("../../../assets/sad_frog.png")}
+                  style={{
+                    height: 90,
+                    width: 90,
+                    alignSelf: "center",
+                    marginTop: 20,
+                  }}
+                />
+                <Text className="text-center font-light text-gray-500 mt-2">
+                  Chưa có người theo dõi nào...
+                </Text>
+              </View>
+            ) : (
+              userData.followers.map((user) => renderUserItem(user))
+            )}
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <>
       <SafeAreaView style={styles.container}>
         <View
-          style={styles.header}
+          style={[styles.header, { height: 50 }]}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout;
             setHeaderHeight(height);
@@ -118,7 +228,7 @@ const ProfileScreen = ({ route, navigation }) => {
               <Ionicons name="settings-outline" size={24} color="#319527" />
             </TouchableOpacity>
           ) : (
-            <View></View>
+            <View className="w-[24px]"></View>
           )}
         </View>
         <CustomLoading
@@ -263,31 +373,57 @@ const ProfileScreen = ({ route, navigation }) => {
             }}
           />
 
+          {/* User stats and tabs */}
           <View className="mx-4 flex-row items-center justify-between">
-            <TouchableOpacity className="gap-1 justify-center items-center bg-[#C7F0C2] px-[8px] py-[4px] rounded-xl border-[1.2px] border-[#2D8824]">
+            <TouchableOpacity
+              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
+                activeTab === "posts"
+                  ? "bg-[#C7F0C2] border-[#2D8824]"
+                  : "bg-white border-transparent"
+              }`}
+              onPress={() => setActiveTab("posts")}
+            >
               <Text className="font-semibold text-xs">Bài viết</Text>
               <Text className="font-extrabold text-lg">
                 {userData?.stats?.posts}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity className="gap-1 justify-center items-center bg-white px-[8px] py-[4px]">
+
+            <TouchableOpacity
+              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
+                activeTab === "following"
+                  ? "bg-[#C7F0C2] border-[#2D8824]"
+                  : "bg-white border-transparent"
+              }`}
+              onPress={() => setActiveTab("following")}
+            >
               <Text className="font-semibold text-xs">Đang t.dõi</Text>
               <Text className="font-extrabold text-lg">
                 {userData?.stats?.following}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity className="gap-1 justify-center items-center bg-white px-[8px] py-[4px]">
+
+            <TouchableOpacity
+              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
+                activeTab === "followers"
+                  ? "bg-[#C7F0C2] border-[#2D8824]"
+                  : "bg-white border-transparent"
+              }`}
+              onPress={() => setActiveTab("followers")}
+            >
               <Text className="font-semibold text-xs">Người t.dõi</Text>
               <Text className="font-extrabold text-lg">
                 {userData?.stats?.followers}
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity className="gap-1 justify-center items-center bg-white px-[8px] py-[4px]">
               <Text className="font-semibold text-xs">Thích</Text>
               <Text className="font-extrabold text-lg">
                 {userData?.stats?.total_likes_count}
               </Text>
             </TouchableOpacity>
+
             <TouchableOpacity className="gap-1 justify-center items-center bg-white px-[8px] py-[4px]">
               <Text className="font-semibold text-xs">Điểm</Text>
               <Text className="font-extrabold text-lg">
@@ -323,16 +459,8 @@ const ProfileScreen = ({ route, navigation }) => {
             }}
           />
 
-          {recentPosts.map((post) => (
-            <PostItem
-              key={`post-${post.id}`}
-              item={post}
-              navigation={navigation}
-              onVoteUpdate={handleVoteUpdate}
-              onSaveUpdate={handleSaveUpdate}
-              screenName={"ProfileScreen"}
-            />
-          ))}
+          {/* Tab content */}
+          {renderTabContent()}
 
           {isCurrentUser && (
             <View style={styles.section}>
@@ -498,6 +626,52 @@ const styles = StyleSheet.create({
   logoutText: {
     fontWeight: "600",
     color: "#fff",
+  },
+  userItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  userAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  userInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  userName: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  userUsername: {
+    fontSize: 14,
+    color: "#666",
+  },
+  followButton: {
+    backgroundColor: "#319527",
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+  },
+  followButtonText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 12,
+  },
+  connectionsList: {
+    marginTop: 10,
+  },
+  emptyMessage: {
+    textAlign: "center",
+    marginTop: 40,
+    marginBottom: 40,
+    color: "#888",
+    fontSize: 16,
   },
 });
 
