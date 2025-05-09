@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -57,7 +57,7 @@ const ProfileScreen = ({ route, navigation }) => {
 
   // Fetch user data from API
   const fetchUserData = async (userId) => {
-    console.log("Fetching user data for userId:", userId); // Add this line
+    setLoading(true);
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
@@ -103,17 +103,18 @@ const ProfileScreen = ({ route, navigation }) => {
     <TouchableOpacity
       key={user.id}
       style={styles.userItem}
-      onPress={() =>
-        navigation.navigate("ProfileScreen", { username: user.username })
-      }
+      onPress={() => {
+        fetchUserData(user.username);
+        setActiveTab("posts");
+      }}
     >
-      <Image source={{ uri: user.avatar }} style={styles.userAvatar} />
+      <Image source={{ uri: user.profile_picture }} style={styles.userAvatar} />
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{user.name}</Text>
+        <Text style={styles.userName}>{user.profile_name}</Text>
         <Text style={styles.userUsername}>@{user.username}</Text>
       </View>
       <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followButtonText}>Follow</Text>
+        <Text style={styles.followButtonText}>Theo dõi</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -431,25 +432,6 @@ const ProfileScreen = ({ route, navigation }) => {
               </Text>
             </TouchableOpacity>
           </View>
-
-          {/* Recent posts */}
-          {/* Loop from state using map */}
-          {recentPosts.length === 0 && (
-            <View>
-              <Image
-                source={require("../../../assets/sad_frog.png")}
-                style={{
-                  height: 90,
-                  width: 90,
-                  alignSelf: "center",
-                  marginTop: 20,
-                }}
-              />
-              <Text className="text-center font-light text-gray-500 mt-2">
-                Chưa có bài viết nào...
-              </Text>
-            </View>
-          )}
 
           <View
             style={{

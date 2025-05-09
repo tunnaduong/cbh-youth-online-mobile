@@ -8,12 +8,16 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./app/assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": {
+        "dark": "./app/assets/ios-dark.png",
+        "light": "./app/assets/ios-light.png",
+        "tinted": "./app/assets/ios-tinted.png"
+      }
     },
     "android": {
       "adaptiveIcon": {

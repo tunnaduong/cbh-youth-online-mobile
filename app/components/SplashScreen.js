@@ -39,7 +39,7 @@ const SplashScreen = ({ onFinish }) => {
         </View>
         <Image
           source={require("../assets/fatties.png")}
-          style={{ height: 60, width: 107, marginBottom: 20 }}
+          style={{ height: 60, width: 107, marginBottom: 60 }}
         />
       </View>
     </SafeAreaView>
