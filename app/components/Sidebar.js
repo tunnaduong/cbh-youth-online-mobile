@@ -138,7 +138,7 @@ const Sidebar = () => {
         <SafeAreaView className="mx-4 mt-11">
           <TouchableOpacity
             className="gap-y-2"
-            onPress={() => navigation.navigate("ProfileScreen")}
+            onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
             <Image
               source={{

@@ -89,6 +89,7 @@ const PostScreen = ({ route }) => {
           onPress={() => {
             if (screenName) {
               navigation.popTo(screenName, {
+                username,
                 post,
                 postId,
               });

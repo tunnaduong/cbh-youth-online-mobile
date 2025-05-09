@@ -22,7 +22,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const { username } = React.useContext(AuthContext);
-  const userId = route?.params?.username || username; // Default to current user if no ID passed
+  const userId = route?.params?.username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -56,6 +56,7 @@ const ProfileScreen = ({ route, navigation }) => {
 
   // Fetch user data from API
   const fetchUserData = async (userId) => {
+    console.log("Fetching user data for userId:", userId); // Add this line
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
@@ -109,10 +110,16 @@ const ProfileScreen = ({ route, navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#319527" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Trang cá nhân</Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-            <Ionicons name="settings-outline" size={24} color="#319527" />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {isCurrentUser ? "Trang cá nhân" : userData.profile.profile_name}
+          </Text>
+          {isCurrentUser ? (
+            <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
+              <Ionicons name="settings-outline" size={24} color="#319527" />
+            </TouchableOpacity>
+          ) : (
+            <View></View>
+          )}
         </View>
         <CustomLoading
           size={50}
