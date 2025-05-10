@@ -53,16 +53,26 @@ const CreatePostScreen = ({ navigation, route }) => {
           Tạo bài viết
         </Text>
         <TouchableOpacity
-          style={{
-            marginLeft: "auto",
-            paddingHorizontal: 25,
-            paddingVertical: 10,
-            backgroundColor: "#309627",
-            borderRadius: 20,
-          }}
+          style={[
+            {
+              marginLeft: "auto",
+              paddingHorizontal: 25,
+              paddingVertical: 10,
+              backgroundColor: "#309627",
+              borderRadius: 20,
+            },
+            Platform.OS === "android" && { paddingVertical: 8 },
+          ]}
           onPress={handlePost}
         >
-          <Text style={{ color: "white", fontSize: 16, fontWeight: "600" }}>
+          <Text
+            style={{
+              color: "white",
+              lineHeight: 20,
+              fontSize: 16,
+              fontWeight: "600",
+            }}
+          >
             Đăng
           </Text>
         </TouchableOpacity>
