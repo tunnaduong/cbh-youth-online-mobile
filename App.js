@@ -18,6 +18,7 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen/CreatePostScreen";
 
 const Stack = createStackNavigator();
 
@@ -105,6 +106,17 @@ function AppNavigator() {
                   headerShown: false,
                 }}
                 component={ProfileScreen}
+              />
+              <Stack.Screen
+                name="CreatePostScreen"
+                options={{
+                  title: "Tạo bài viết",
+                  headerBackButtonDisplayMode: "minimal",
+                  headerShown: false,
+                  presentation: "modal",
+                  gestureEnabled: true,
+                }}
+                component={CreatePostScreen}
               />
             </>
           ) : (

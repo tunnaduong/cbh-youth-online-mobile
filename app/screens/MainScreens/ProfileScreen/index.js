@@ -73,8 +73,13 @@ const ProfileScreen = ({ route, navigation }) => {
           ),
           stats: {
             ...prevData.stats,
-            followers: prevData.stats.following - 1, // Decrement count
+            following: prevData.stats.following - 1, // Decrement count
           },
+          followers: prevData.followers.map((follower) =>
+            follower.username === user.username
+              ? { ...follower, isFollowed: false }
+              : follower
+          ),
         }));
       } else {
         // Follow the user
@@ -347,7 +352,7 @@ const ProfileScreen = ({ route, navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#319527" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
             {isCurrentUser ? "Trang cá nhân" : userData?.profile.profile_name}
           </Text>
           {isCurrentUser ? (
@@ -650,6 +655,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#319527",
+    maxWidth: "85%",
   },
   profileHeader: {
     alignItems: "center",

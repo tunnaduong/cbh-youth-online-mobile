@@ -13,6 +13,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 const { width, height } = Dimensions.get("window");
 
@@ -21,6 +22,7 @@ const CustomTabBarButton = ({ onPress }) => {
   const button1Anim = useRef(new Animated.Value(0)).current;
   const button2Anim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
+  const navigation = useNavigation();
 
   // Close buttons when app goes to background
   useEffect(() => {
@@ -103,7 +105,7 @@ const CustomTabBarButton = ({ onPress }) => {
       {
         translateY: button1Anim.interpolate({
           inputRange: [0, 1],
-          outputRange: [0, -80],
+          outputRange: [0, -160], // Move "Tạo bài viết" further up
         }),
       },
     ],
@@ -115,7 +117,7 @@ const CustomTabBarButton = ({ onPress }) => {
       {
         translateY: button2Anim.interpolate({
           inputRange: [0, 1],
-          outputRange: [0, -160],
+          outputRange: [0, -80], // Move "Tạo báo cáo" less far up
         }),
       },
     ],
@@ -135,19 +137,28 @@ const CustomTabBarButton = ({ onPress }) => {
         <View style={styles.overlay}>
           <Animated.View style={[styles.additionalButton, button1Style]}>
             <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center" }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              onPress={() => navigation.navigate("CreatePostScreen")}
             >
-              <Ionicons name="create-outline" size={40} color={"#319527"} />
+              <Ionicons name="create-outline" size={35} color={"#319527"} />
               <Text style={styles.buttonText}>Tạo bài viết</Text>
             </TouchableOpacity>
           </Animated.View>
           <Animated.View style={[styles.additionalButton, button2Style]}>
             <TouchableOpacity
-              style={{ flexDirection: "row", alignItems: "center" }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
               <Ionicons
                 name="document-text-outline"
-                size={40}
+                size={35}
                 color={"#319527"}
               />
               <Text style={styles.buttonText}>Tạo báo cáo</Text>
@@ -218,7 +229,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: 40,
     padding: 10,
     marginHorizontal: 10,
     width: 155,
@@ -232,6 +243,8 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     fontSize: 16,
     color: "#319527",
+    textAlign: "center",
+    width: 90,
   },
 });
 
