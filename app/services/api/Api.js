@@ -90,3 +90,11 @@ export const getForumCategories = () => {
 export const getProfile = (username) => {
   return Api.getRequest("/v1.0/users/" + username + "/profile");
 };
+
+export const followUser = (username) => {
+  return Api.postRequest("/v1.0/users/" + username + "/follow");
+};
+
+export const unfollowUser = (username) => {
+  return Api.deleteRequest("/v1.0/users/" + username + "/unfollow");
+};

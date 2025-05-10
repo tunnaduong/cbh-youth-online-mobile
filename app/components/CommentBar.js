@@ -19,16 +19,20 @@ const CommentBar = React.forwardRef(
       value,
       onKeyPress,
       disabled,
+      style,
     },
     ref
   ) => {
     return (
       <View
-        style={{
-          backgroundColor: "white",
-          borderTopWidth: 1,
-          borderTopColor: "#DFDEDD",
-        }}
+        style={[
+          {
+            backgroundColor: "white",
+            borderTopWidth: 1,
+            borderTopColor: "#DFDEDD",
+          },
+          style,
+        ]}
       >
         <View
           style={{

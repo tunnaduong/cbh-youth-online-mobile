@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
 
 const PostItem = ({
   navigation,
-  item,
+  item = {},
   onExpand,
   onVoteUpdate,
   onSaveUpdate,
@@ -64,13 +64,13 @@ const PostItem = ({
   const [visible, setIsVisible] = useState(false);
 
   const handleVote = async (voteValue) => {
-    const existingVote = item.votes.find((vote) => vote.username === username);
+    const existingVote = item.votes.find((vote) => vote?.username === username);
     let newVotes;
 
     if (existingVote) {
       if (existingVote.vote_value === voteValue) {
         // User clicked the same vote, remove it (unvote)
-        newVotes = item.votes.filter((vote) => vote.username !== username);
+        newVotes = item.votes.filter((vote) => vote?.username !== username);
 
         // Update UI instantly
         onVoteUpdate(item.id, newVotes);
@@ -86,7 +86,9 @@ const PostItem = ({
       } else {
         // Change vote direction (upvote → downvote or vice versa)
         newVotes = item.votes.map((vote) =>
-          vote.username === username ? { ...vote, vote_value: voteValue } : vote
+          vote?.username === username
+            ? { ...vote, vote_value: voteValue }
+            : vote
         );
       }
     } else {
@@ -222,7 +224,7 @@ const PostItem = ({
       <Pressable
         onPress={() => {
           navigation.navigate("ProfileScreen", {
-            username: item.author.username,
+            username: item?.author?.username,
           });
         }}
         className="px-[15px] flex-row items-center"
@@ -236,7 +238,7 @@ const PostItem = ({
         >
           <Image
             source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${item.author.username}/avatar`,
+              uri: `https://api.chuyenbienhoa.com/v1.0/users/${item?.author?.username}/avatar`,
             }}
             style={{ width: 40, height: 40, borderRadius: 30 }}
           />
@@ -264,7 +266,7 @@ const PostItem = ({
               size={28}
               color={
                 item.votes.some(
-                  (vote) => vote.username === username && vote.vote_value === 1
+                  (vote) => vote?.username === username && vote.vote_value === 1
                 )
                   ? "#22c55e"
                   : "#9ca3af"
@@ -274,19 +276,19 @@ const PostItem = ({
           <Text
             style={[
               item.votes.some(
-                (vote) => vote.username === username && vote.vote_value === 1
+                (vote) => vote?.username === username && vote.vote_value === 1
               )
                 ? { color: "#22c55e" } // Apply green color for upvotes
                 : item.votes.some(
                     (vote) =>
-                      vote.username === username && vote.vote_value === -1
+                      vote?.username === username && vote.vote_value === -1
                   )
                 ? { color: "#ef4444" } // Apply red color for downvotes
                 : { color: "#9ca3af" }, // Default gray color
               { fontSize: 20, fontWeight: "600" }, // Additional styles
             ]}
           >
-            {item.votes.reduce((acc, vote) => acc + vote.vote_value, 0)}
+            {item?.votes?.reduce((acc, vote) => acc + vote.vote_value, 0)}
           </Text>
           <Pressable onPress={() => handleVote(-1)}>
             <Ionicons

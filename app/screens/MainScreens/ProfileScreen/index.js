@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useContext,
+} from "react";
 import {
   View,
   Text,
@@ -14,26 +20,126 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import CustomLoading from "../../../components/CustomLoading";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getProfile } from "../../../services/api/Api";
+import {
+  followUser,
+  getProfile,
+  unfollowUser,
+} from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { FeedContext } from "../../../contexts/FeedContext";
 
 const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
-  const { username } = React.useContext(AuthContext);
+  const { username, profileName } = React.useContext(AuthContext);
   const userId = route?.params?.username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const [recentPosts, setRecentPosts] = useState([]);
+  const { recentPostsProfile, setRecentPostsProfile } = useContext(FeedContext);
   const isCurrentUser = userId === username;
   const [activeTab, setActiveTab] = useState("posts");
+  const [followed, setFollowed] = useState(false);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Fetch updated data for the profile when the screen comes into focus
+      fetchUserData(userId);
+    }, [userId])
+  );
+
+  useEffect(() => {
+    if (userData?.followers) {
+      const isFollowed = userData.followers.some(
+        (follower) => follower.username === username
+      );
+      setFollowed(!isFollowed);
+    }
+  }, [userData?.followers, username]);
+
+  const handleFollowUserOnTab = async (user) => {
+    try {
+      if (user.isFollowed) {
+        // Unfollow the user
+        await unfollowUser(user.username); // Call the API to unfollow
+        // not fetch here, cause we want to show the unfollowed state. the followers field should have isFollowed = false
+        setUserData((prevData) => ({
+          ...prevData,
+          following: prevData.following.map((following) =>
+            following.username === user.username
+              ? { ...following, isFollowed: false }
+              : following
+          ),
+          stats: {
+            ...prevData.stats,
+            followers: prevData.stats.following - 1, // Decrement count
+          },
+        }));
+      } else {
+        // Follow the user
+        await followUser(user.username); // Call the API to follow
+        fetchUserData(userId); // Refresh user data
+      }
+    } catch (error) {
+      console.error(
+        "Error toggling follow state:",
+        error.response?.data || error.message
+      );
+    }
+  };
+
+  const handleFollow = async (userId) => {
+    try {
+      if (!followed) {
+        // Unfollow the user
+        await unfollowUser(userId); // Call the API to unfollow
+        setFollowed(false);
+
+        // Remove the current user from the followers list and decrement followers count
+        setUserData((prevData) => ({
+          ...prevData,
+          followers: prevData.followers.filter(
+            (follower) => follower.username !== username
+          ),
+          stats: {
+            ...prevData.stats,
+            followers: prevData.stats.followers - 1, // Decrement followers count
+          },
+        }));
+      } else {
+        // Follow the user
+        await followUser(userId); // Call the API to follow
+        setFollowed(true);
+
+        // Add the current user to the followers list and increment followers count
+        setUserData((prevData) => ({
+          ...prevData,
+          followers: [
+            ...prevData.followers,
+            {
+              username: username,
+              profile_name: profileName, // Replace with the current user's profile name
+              profile_picture: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`, // Replace with the current user's profile picture
+            },
+          ],
+          stats: {
+            ...prevData.stats,
+            followers: prevData.stats.followers + 1, // Increment followers count
+          },
+        }));
+      }
+    } catch (error) {
+      // console.error("Error toggling follow state:", error);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       if (route.params?.post) {
-        setRecentPosts((prevPosts) =>
+        console.log("Post updated:", route.params.post);
+
+        setRecentPostsProfile((prevPosts) =>
           prevPosts.map((post) =>
             post.id === route.params.postId ? route.params.post : post
           )
@@ -57,11 +163,15 @@ const ProfileScreen = ({ route, navigation }) => {
 
   // Fetch user data from API
   const fetchUserData = async (userId) => {
-    setLoading(true);
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
-      setRecentPosts(response.data.recent_posts);
+      setRecentPostsProfile(response.data.recent_posts);
+      // Check if the current user is in the followers list
+      const isFollowed = response.data.followers.some(
+        (follower) => follower.username === username
+      );
+      setFollowed(!isFollowed);
     } catch (error) {
       console.error("Error fetching user data:", error);
     } finally {
@@ -82,8 +192,8 @@ const ProfileScreen = ({ route, navigation }) => {
   }
 
   const handleVoteUpdate = (postId, newVotes) => {
-    // Update votes in both recentPosts state and userData state
-    setRecentPosts((prevPosts) =>
+    // Update votes in both recentPostsProfile state and userData state
+    setRecentPostsProfile((prevPosts) =>
       prevPosts.map((post) =>
         post.id === postId ? { ...post, votes: newVotes } : post
       )
@@ -91,7 +201,7 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   const handleSaveUpdate = (postId, savedStatus) => {
-    setRecentPosts((prevPosts) =>
+    setRecentPostsProfile((prevPosts) =>
       prevPosts.map((post) =>
         post.id === postId ? { ...post, saved: savedStatus } : post
       )
@@ -104,8 +214,9 @@ const ProfileScreen = ({ route, navigation }) => {
       key={user.id}
       style={styles.userItem}
       onPress={() => {
-        fetchUserData(user.username);
-        setActiveTab("posts");
+        navigation.push("ProfileScreen", {
+          username: user.username,
+        });
       }}
     >
       <Image source={{ uri: user.profile_picture }} style={styles.userAvatar} />
@@ -113,8 +224,23 @@ const ProfileScreen = ({ route, navigation }) => {
         <Text style={styles.userName}>{user.profile_name}</Text>
         <Text style={styles.userUsername}>@{user.username}</Text>
       </View>
-      <TouchableOpacity style={styles.followButton}>
-        <Text style={styles.followButtonText}>Theo dõi</Text>
+      <TouchableOpacity
+        style={[
+          styles.followButton,
+          user.isFollowed
+            ? { backgroundColor: "#E5E7EB" }
+            : { backgroundColor: "#319527" },
+        ]}
+        onPress={() => handleFollowUserOnTab(user)}
+      >
+        <Text
+          style={[
+            styles.followButtonText,
+            user.isFollowed ? { color: "#000" } : { color: "#FFF" },
+          ]}
+        >
+          {user.isFollowed ? "Đang theo dõi" : "Theo dõi"}
+        </Text>
       </TouchableOpacity>
     </TouchableOpacity>
   );
@@ -125,7 +251,7 @@ const ProfileScreen = ({ route, navigation }) => {
       case "posts":
         return (
           <>
-            {recentPosts.length === 0 ? (
+            {recentPostsProfile.length === 0 ? (
               <View>
                 <Image
                   source={require("../../../assets/sad_frog.png")}
@@ -141,7 +267,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             ) : (
-              recentPosts.map((post) => (
+              recentPostsProfile.map((post) => (
                 <PostItem
                   key={`post-${post.id}`}
                   item={post}
@@ -222,7 +348,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <Ionicons name="arrow-back" size={24} color="#319527" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>
-            {isCurrentUser ? "Trang cá nhân" : userData.profile.profile_name}
+            {isCurrentUser ? "Trang cá nhân" : userData?.profile.profile_name}
           </Text>
           {isCurrentUser ? (
             <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
@@ -236,6 +362,7 @@ const ProfileScreen = ({ route, navigation }) => {
           size={50}
           style={{
             position: "absolute",
+            zIndex: -1,
             alignSelf: "center",
             top: headerHeight + insets.top + 10,
           }}
@@ -297,11 +424,23 @@ const ProfileScreen = ({ route, navigation }) => {
                 Chỉnh sửa trang cá nhân
               </Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity className="-mt-5 bg-[#319528] p-3 rounded-full mx-4 justify-center items-center flex-row">
+          ) : followed ? (
+            <TouchableOpacity
+              onPress={() => handleFollow(userId)}
+              className="-mt-5 bg-[#319528] h-11 rounded-full mx-4 justify-center items-center flex-row"
+            >
               <Ionicons name="add-circle-outline" size={20} color={"white"} />
               <Text className="text-center font-semibold ml-1 text-white">
                 Theo dõi
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => handleFollow(userId)}
+              className="-mt-5 bg-white h-11 border-[1.5px] border-green-600 rounded-full mx-4 justify-center items-center"
+            >
+              <Text className="text-center font-semibold text-[#319528]">
+                Đã theo dõi
               </Text>
             </TouchableOpacity>
           )}
@@ -357,7 +496,7 @@ const ProfileScreen = ({ route, navigation }) => {
               <View
                 style={{
                   height: 0,
-                  width: 78,
+                  width: 76,
                   borderTopColor: "black",
                   borderTopWidth: 1,
                 }}
@@ -498,6 +637,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   header: {
+    backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

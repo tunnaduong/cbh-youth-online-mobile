@@ -26,6 +26,7 @@ import CommentBar from "../../../components/CommentBar";
 import { TouchableOpacity } from "react-native";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useNavigation } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const styles = StyleSheet.create({
   body: {
@@ -79,7 +80,8 @@ const PostScreen = ({ route }) => {
   const commentInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
-  const { setFeed } = useContext(FeedContext);
+  const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const insets = useSafeAreaInsets();
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -90,8 +92,6 @@ const PostScreen = ({ route }) => {
             if (screenName) {
               navigation.popTo(screenName, {
                 username,
-                post,
-                postId,
               });
             } else {
               navigation.goBack();
@@ -197,6 +197,12 @@ const PostScreen = ({ route }) => {
       )
     );
 
+    setRecentPostsProfile((prevFeed) =>
+      prevFeed.map((post) =>
+        post.id === postId ? { ...post, votes: newVotes } : post
+      )
+    );
+
     setPost((prevPost) => ({
       ...prevPost,
       votes: newVotes,
@@ -223,6 +229,12 @@ const PostScreen = ({ route }) => {
       )
     );
 
+    setRecentPostsProfile((prevPosts) =>
+      prevPosts.map((post) =>
+        post.id === postId ? { ...post, saved: newSavedStatus } : post
+      )
+    );
+
     setPost((prevPost) => ({
       ...prevPost,
       saved: newSavedStatus,
@@ -242,6 +254,12 @@ const PostScreen = ({ route }) => {
 
       // Revert the FeedContext update
       setFeed((prevFeed) =>
+        prevFeed.map((post) =>
+          post.id === postId ? { ...post, saved: !newSavedStatus } : post
+        )
+      );
+
+      setRecentPostsProfile((prevFeed) =>
         prevFeed.map((post) =>
           post.id === postId ? { ...post, saved: !newSavedStatus } : post
         )
@@ -332,6 +350,25 @@ const PostScreen = ({ route }) => {
               : feedItem
           )
         );
+
+        setRecentPostsProfile((prevFeed) =>
+          prevFeed.map((feedItem) =>
+            feedItem.id === postId
+              ? {
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                            updatedPostData.comments?.replace(/\D/g, ""),
+                            10
+                          ) || 0
+                    ) + "+",
+                }
+              : feedItem
+          )
+        );
       }
     } catch (error) {
       console.error("Error submitting comment:", error);
@@ -376,34 +413,50 @@ const PostScreen = ({ route }) => {
               },
             ]}
           >
-            <View
-              className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
-              style={{
-                borderWidth: 1,
-                borderColor: "#dee2e6",
-              }}
+            <Pressable
+              onPress={() =>
+                navigation.navigate("ProfileScreen", {
+                  username: comment.author.username,
+                })
+              }
             >
-              <Image
-                source={{
-                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${comment.author.username}/avatar`,
+              <View
+                className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
+                style={{
+                  borderWidth: 1,
+                  borderColor: "#dee2e6",
                 }}
-                style={{ width: 40, height: 40, borderRadius: 30 }}
-              />
-            </View>
+              >
+                <Image
+                  source={{
+                    uri: `https://api.chuyenbienhoa.com/v1.0/users/${comment.author.username}/avatar`,
+                  }}
+                  style={{ width: 40, height: 40, borderRadius: 30 }}
+                />
+              </View>
+            </Pressable>
             <View style={{ flexShrink: 1 }}>
-              <Text style={{ fontWeight: "bold", color: "#319527" }}>
-                {comment.author.profile_name}
-                {comment.author.verified && (
-                  <View>
-                    <Verified
-                      width={15}
-                      height={15}
-                      color={"#319527"}
-                      style={{ marginBottom: -3 }}
-                    />
-                  </View>
-                )}
-              </Text>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("ProfileScreen", {
+                    username: comment.author.username,
+                  })
+                }
+              >
+                <Text style={{ fontWeight: "bold", color: "#319527" }}>
+                  {comment.author.profile_name}
+                  {comment.author.verified && (
+                    <View>
+                      <Verified
+                        width={15}
+                        height={15}
+                        color={"#319527"}
+                        style={{ marginBottom: -3 }}
+                      />
+                    </View>
+                  )}
+                </Text>
+              </Pressable>
               <Text
                 style={{
                   flexShrink: 1,
@@ -530,7 +583,14 @@ const PostScreen = ({ route }) => {
                 marginVertical: 20,
               }}
             ></View>
-            <View className="px-[15px] flex-row items-center">
+            <Pressable
+              onPress={() =>
+                navigation.navigate("ProfileScreen", {
+                  username: post.author.username,
+                })
+              }
+              className="px-[15px] flex-row items-center"
+            >
               <View
                 className="bg-white w-[42px] rounded-full overflow-hidden"
                 style={{
@@ -559,7 +619,7 @@ const PostScreen = ({ route }) => {
                 )}
               </Text>
               <Text> · {post.time}</Text>
-            </View>
+            </Pressable>
             <View className="flex-row items-center px-[15px] my-4">
               <View className="gap-3 flex-row items-center">
                 <Pressable onPress={() => handleVote(1)}>
@@ -703,6 +763,10 @@ const PostScreen = ({ route }) => {
           value={commentText}
           onChangeText={setCommentText}
           disabled={!commentText.trim()}
+          style={{
+            backgroundColor: "white", // Ensure background is white
+            paddingBottom: Platform.OS === "android" ? insets.bottom : 0, // Add padding for Android nav menu
+          }}
         />
         <KeyboardAvoidingView
           keyboardVerticalOffset={height}

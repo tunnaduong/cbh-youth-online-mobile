@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "cbh-youth-online-mobile",
+    "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "1.0.0",
+    "version": "0.7.1",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -17,6 +17,10 @@
         "dark": "./app/assets/ios-dark.png",
         "light": "./app/assets/ios-light.png",
         "tinted": "./app/assets/ios-tinted.png"
+      },
+      "bundleIdentifier": "com.fatties.youth",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
