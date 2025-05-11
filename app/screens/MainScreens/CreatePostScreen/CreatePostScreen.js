@@ -77,10 +77,7 @@ const CreatePostScreen = ({ navigation, route }) => {
           </Text>
         </TouchableOpacity>
       </View>
-      <ScrollView
-        style={styles.container}
-        contentInsetAdjustmentBehavior="automatic"
-      >
+      <ScrollView style={styles.container}>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Title</Text>
           <TextInput
