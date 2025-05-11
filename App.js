@@ -111,10 +111,8 @@ function AppNavigator() {
                 name="CreatePostScreen"
                 options={{
                   title: "Tạo bài viết",
-                  headerBackButtonDisplayMode: "minimal",
                   headerShown: false,
                   presentation: "modal",
-                  gestureEnabled: true,
                 }}
                 component={CreatePostScreen}
               />
