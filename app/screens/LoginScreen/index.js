@@ -25,7 +25,7 @@ import { loginRequest } from "../../services/api/Api";
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { setIsLoggedIn, setUsername } = useContext(AuthContext);
+  const { signIn } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -42,11 +42,7 @@ const LoginScreen = ({ navigation }) => {
       console.log("Login successful:", response.data);
 
       // Save token and user info
-      await saveToken(response.data.token);
-      await saveUserInfo(response.data.user);
-      setUsername(response.data.user.username); // Update username in context
-      // Update login state
-      setIsLoggedIn(true);
+      signIn(response.data.token, response.data.user);
     } catch (error) {
       console.log("Login failed:", error);
 

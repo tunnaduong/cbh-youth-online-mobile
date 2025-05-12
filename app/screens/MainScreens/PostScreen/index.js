@@ -19,9 +19,10 @@ import {
   getPostDetail,
   savePost,
   unsavePost,
+  voteComment,
   votePost,
 } from "../../../services/api/Api";
-import { HeaderBackButton, useHeaderHeight } from "@react-navigation/elements";
+import { useHeaderHeight } from "@react-navigation/elements";
 import CommentBar from "../../../components/CommentBar";
 import { TouchableOpacity } from "react-native";
 import { FeedContext } from "../../../contexts/FeedContext";
@@ -82,25 +83,6 @@ const PostScreen = ({ route }) => {
   const commentRefs = useRef({});
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const insets = useSafeAreaInsets();
-
-  React.useLayoutEffect(() => {
-    navigation.setOptions({
-      headerLeft: () => (
-        <HeaderBackButton
-          tintColor="#319527"
-          onPress={() => {
-            if (screenName) {
-              navigation.popTo(screenName, {
-                username,
-              });
-            } else {
-              navigation.goBack();
-            }
-          }}
-        />
-      ),
-    });
-  }, [navigation, post, postId, screenName]);
 
   React.useEffect(() => {
     fetchData();
@@ -388,6 +370,61 @@ const PostScreen = ({ route }) => {
     }
   };
 
+  const handleCommentVote = async (commentId, voteValue) => {
+    try {
+      // Optimistically update the UI
+      setComments((prevComments) =>
+        prevComments.map((comment) => {
+          if (comment.id === commentId) {
+            // Check if the user has already voted on this comment
+            const existingVote = comment.votes.find(
+              (vote) => vote.username === username
+            );
+
+            let newVotes = [...comment.votes];
+
+            if (existingVote) {
+              if (existingVote.vote_value === voteValue) {
+                // User is undoing their vote
+                newVotes = comment.votes.filter(
+                  (vote) => vote.username !== username
+                );
+              } else {
+                // User is changing their vote
+                newVotes = comment.votes.map((vote) =>
+                  vote.username === username
+                    ? { ...vote, vote_value: voteValue }
+                    : vote
+                );
+              }
+            } else {
+              // User is voting for the first time
+              newVotes = [
+                ...comment.votes,
+                { username, vote_value: voteValue },
+              ];
+            }
+
+            return { ...comment, votes: newVotes };
+          }
+          return comment;
+        })
+      );
+
+      // Call the API to update the vote
+      await voteComment(commentId, {
+        vote_value: voteValue,
+      });
+
+      // If the API call is successful, the optimistic update is correct
+    } catch (error) {
+      console.error("Error voting on comment:", error);
+      // If the API call fails, revert the optimistic update
+      // You might want to show an error message to the user as well
+      fetchData(); // Re-fetch the data to revert the changes
+    }
+  };
+
   const Comment = React.forwardRef(
     ({ comment, level = 0, border = false }, ref) => {
       return (
@@ -486,17 +523,37 @@ const PostScreen = ({ route }) => {
             </View>
             <View className="flex-1 items-end shrink-0">
               <View>
-                <Pressable>
+                <TouchableOpacity
+                  onPress={() => handleCommentVote(comment.id, 1)}
+                >
                   <Ionicons
                     name="arrow-up-outline"
                     size={18}
-                    color={"#9ca3af"}
+                    color={
+                      comment.votes.some(
+                        (vote) =>
+                          vote.username === username && vote.vote_value === 1
+                      )
+                        ? "#22c55e"
+                        : "#9ca3af"
+                    }
                   />
-                </Pressable>
+                </TouchableOpacity>
                 <Text
                   style={[
                     { fontSize: 14, fontWeight: "600" },
                     { color: "#9ca3af", textAlign: "center" },
+                    comment.votes.some(
+                      (vote) =>
+                        vote.username === username && vote.vote_value === 1
+                    )
+                      ? { color: "#22c55e" }
+                      : comment.votes.some(
+                          (vote) =>
+                            vote.username === username && vote.vote_value === -1
+                        )
+                      ? { color: "#ef4444" }
+                      : { color: "#9ca3af" },
                   ]}
                 >
                   {comment.votes.reduce(
@@ -504,13 +561,22 @@ const PostScreen = ({ route }) => {
                     0
                   )}
                 </Text>
-                <Pressable>
+                <TouchableOpacity
+                  onPress={() => handleCommentVote(comment.id, -1)}
+                >
                   <Ionicons
                     name="arrow-down-outline"
                     size={18}
-                    color={"#9ca3af"}
+                    color={
+                      comment.votes.some(
+                        (vote) =>
+                          vote.username === username && vote.vote_value === -1
+                      )
+                        ? "#ef4444"
+                        : "#9ca3af"
+                    }
                   />
-                </Pressable>
+                </TouchableOpacity>
               </View>
             </View>
           </View>

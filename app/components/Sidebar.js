@@ -20,7 +20,7 @@ import { useNavigation } from "@react-navigation/native";
 const Sidebar = () => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
-  const { setIsLoggedIn } = useContext(AuthContext);
+  const { signOut } = useContext(AuthContext);
   const [collapsedSections, setCollapsedSections] = useState({
     community: true,
     reports: true,
@@ -66,8 +66,7 @@ const Sidebar = () => {
   };
 
   const goToScreen = () => {
-    clearAll();
-    setIsLoggedIn(false);
+    signOut();
   };
 
   const clearAll = async () => {

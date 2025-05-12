@@ -98,3 +98,7 @@ export const followUser = (username) => {
 export const unfollowUser = (username) => {
   return Api.deleteRequest("/v1.0/users/" + username + "/unfollow");
 };
+
+export const getSubforums = () => {
+  return Api.getRequest("/v1.0/forum/subforums");
+};

@@ -17,6 +17,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
 import LottieView from "lottie-react-native";
+import Toast from "react-native-toast-message";
 
 const HomeScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = React.useState(false);
@@ -56,7 +57,15 @@ const HomeScreen = ({ navigation, route }) => {
       const response = await getHomePosts(page);
       setFeed(response.data.data); // Ensure this updates the feed with the latest votes
     } catch (error) {
-      console.error("Error fetching newsfeed:", error);
+      console.log("Error fetching newsfeed:", error);
+      Toast.show({
+        type: "error",
+        text1: "Đã có lỗi xảy ra",
+        text2: "Không thể tải bảng tin. Vui lòng thử lại sau.",
+        autoHide: true,
+        visibilityTime: 5000,
+        topOffset: 60,
+      });
     }
   };
 

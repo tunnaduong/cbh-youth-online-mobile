@@ -18,7 +18,8 @@ import {
   SafeAreaProvider,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen/CreatePostScreen";
+import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
+import Toast from "react-native-toast-message";
 
 const Stack = createStackNavigator();
 
@@ -158,5 +159,6 @@ const App = () => {
 export default () => (
   <MultiContextProvider>
     <App />
+    <Toast />
   </MultiContextProvider>
 );

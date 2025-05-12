@@ -64,23 +64,31 @@ const ProfileScreen = ({ route, navigation }) => {
         // Unfollow the user
         await unfollowUser(user.username); // Call the API to unfollow
         // not fetch here, cause we want to show the unfollowed state. the followers field should have isFollowed = false
-        setUserData((prevData) => ({
-          ...prevData,
-          following: prevData.following.map((following) =>
-            following.username === user.username
-              ? { ...following, isFollowed: false }
-              : following
-          ),
-          stats: {
-            ...prevData.stats,
-            following: prevData.stats.following - 1, // Decrement count
-          },
-          followers: prevData.followers.map((follower) =>
-            follower.username === user.username
-              ? { ...follower, isFollowed: false }
-              : follower
-          ),
-        }));
+        setUserData((prevData) => {
+          const updatedData = {
+            ...prevData,
+            following: prevData.following.map((following) =>
+              following.username === user.username
+                ? { ...following, isFollowed: false }
+                : following
+            ),
+            followers: prevData.followers.map((follower) =>
+              follower.username === user.username
+                ? { ...follower, isFollowed: false }
+                : follower
+            ),
+          };
+
+          // Update stats only if this is the current user's profile
+          if (isCurrentUser) {
+            updatedData.stats = {
+              ...prevData.stats,
+              following: prevData.stats.following - 1, // Decrement count
+            };
+          }
+
+          return updatedData;
+        });
       } else {
         // Follow the user
         await followUser(user.username); // Call the API to follow
@@ -229,24 +237,27 @@ const ProfileScreen = ({ route, navigation }) => {
         <Text style={styles.userName}>{user.profile_name}</Text>
         <Text style={styles.userUsername}>@{user.username}</Text>
       </View>
-      <TouchableOpacity
-        style={[
-          styles.followButton,
-          user.isFollowed
-            ? { backgroundColor: "#E5E7EB" }
-            : { backgroundColor: "#319527" },
-        ]}
-        onPress={() => handleFollowUserOnTab(user)}
-      >
-        <Text
+      {/* if is current user then hide the follow btn */}
+      {user.username !== username && (
+        <TouchableOpacity
           style={[
-            styles.followButtonText,
-            user.isFollowed ? { color: "#000" } : { color: "#FFF" },
+            styles.followButton,
+            user.isFollowed
+              ? { backgroundColor: "#E5E7EB" }
+              : { backgroundColor: "#319527" },
           ]}
+          onPress={() => handleFollowUserOnTab(user)}
         >
-          {user.isFollowed ? "Đang theo dõi" : "Theo dõi"}
-        </Text>
-      </TouchableOpacity>
+          <Text
+            style={[
+              styles.followButtonText,
+              user.isFollowed ? { color: "#000" } : { color: "#FFF" },
+            ]}
+          >
+            {user.isFollowed ? "Đang theo dõi" : "Theo dõi"}
+          </Text>
+        </TouchableOpacity>
+      )}
     </TouchableOpacity>
   );
 
@@ -790,9 +801,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "600",
     fontSize: 12,
-  },
-  connectionsList: {
-    marginTop: 10,
   },
   emptyMessage: {
     textAlign: "center",
