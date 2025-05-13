@@ -8,18 +8,29 @@ import {
   ScrollView,
   Image,
   Platform,
+  StatusBar,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
-import { getSubforums } from "../../../services/api/Api";
+import {
+  createPost,
+  getSubforums,
+  uploadFile,
+} from "../../../services/api/Api";
+import Verified from "../../../assets/Verified";
+import Toast from "react-native-toast-message";
+import { FeedContext } from "../../../contexts/FeedContext";
+import ProgressHUD from "../../../components/ProgressHUD";
+import * as ImagePicker from "expo-image-picker";
 
 const CreatePostScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
   const [title, setTitle] = useState("");
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
+  const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const view = [
@@ -27,8 +38,8 @@ const CreatePostScreen = ({ navigation, route }) => {
     { label: "Riêng tư", value: 1 },
   ];
   const [viewSelected, setViewSelected] = useState(view[0]);
-
-  const subforum = {};
+  const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     getSubforums().then((res) => {
@@ -36,13 +47,96 @@ const CreatePostScreen = ({ navigation, route }) => {
     });
   }, []);
 
-  const handlePost = () => {
-    // TODO: Implement post creation logic
-    console.log("Creating post:", { title, postContent });
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Use ImagePicker.MediaTypeOptions.Images
+      allowsEditing: true,
+      quality: 0.7,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const handlePost = async () => {
+    if (title.trim() === "" || postContent.trim() === "") {
+      Toast.show({
+        type: "error",
+        text1: "Chưa thể đăng bài viết",
+        text2: "Vui lòng nhập tiêu đề và nội dung bài viết.",
+        autoHide: true,
+        visibilityTime: 5000,
+        topOffset: 60,
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      var cdnId = null;
+
+      if (selectedImage) {
+        // Upload the image using FormData
+        const formData = new FormData();
+
+        // Get the file extension from the URI
+        const fileExtension = selectedImage.split(".").pop();
+
+        // Determine the MIME type based on the file extension
+        let mimeType = "image/jpeg"; // Default to JPEG
+        if (fileExtension === "png") {
+          mimeType = "image/png";
+        } else if (fileExtension === "gif") {
+          mimeType = "image/gif";
+        }
+        formData.append("uid", userInfo.id);
+        formData.append("file", {
+          uri: selectedImage,
+          name: `image.${fileExtension}`, // You can customize the filename
+          type: mimeType, // Adjust the MIME type based on the image type
+        });
+
+        const uploadResponse = await uploadFile(formData);
+        cdnId = uploadResponse.data.id; // Assuming your API returns an object with an 'id' property
+      }
+
+      const response = await createPost({
+        title,
+        description: postContent,
+        cdn_image_id: cdnId,
+      });
+
+      setFeed((prevPosts) => [
+        response.data, // Add the new post at the beginning of the list
+        ...prevPosts,
+      ]);
+
+      navigation.goBack();
+
+      return response;
+    } catch (error) {
+      console.log("Error creating post:", error);
+      Toast.show({
+        type: "error",
+        text1: "Chưa thể đăng bài viết",
+        text2: error?.response?.data?.message || "Vui lòng thử lại sau.",
+        autoHide: true,
+        visibilityTime: 5000,
+        topOffset: 60,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
+      <StatusBar barStyle={"default"} />
+      <ProgressHUD loadText="Đang đăng..." visible={loading} />
       <View
         style={[
           {
@@ -96,15 +190,18 @@ const CreatePostScreen = ({ navigation, route }) => {
           </Text>
         </TouchableOpacity>
       </View>
+
       <ScrollView style={styles.container}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             gap: 10,
-            marginTop: 16,
-            marginLeft: 16,
+            paddingTop: 16,
+            paddingLeft: 16,
+            backgroundColor: "#fff",
           }}
+          pointerEvents="box-none"
         >
           <Image
             source={{
@@ -119,8 +216,20 @@ const CreatePostScreen = ({ navigation, route }) => {
               borderWidth: 1,
             }}
           />
-          <View>
-            <Text className="font-medium text-lg">{profileName}</Text>
+          <View style={{ flex: 1 }}>
+            <Text className="font-medium text-lg" numberOfLines={1}>
+              {profileName}
+              {userInfo.verified && (
+                <View>
+                  <Verified
+                    width={20}
+                    height={20}
+                    color={"#319527"}
+                    style={{ marginBottom: -5 }}
+                  />
+                </View>
+              )}
+            </Text>
             <Dropdown
               options={view}
               placeholder={"Công khai"}
@@ -132,8 +241,15 @@ const CreatePostScreen = ({ navigation, route }) => {
                 padding: 6,
                 borderRadius: 8,
                 gap: 3,
+                alignSelf: "flex-start",
               }}
-              leftIcon={<Ionicons name="earth" size={15} color={"#777"} />}
+              leftIcon={
+                viewSelected.value === 0 ? (
+                  <Ionicons name="earth" size={15} color={"#777"} />
+                ) : (
+                  <Ionicons name="lock-closed" size={15} color={"#777"} />
+                )
+              }
               textStyle={{
                 fontSize: 12,
                 color: "#777",
@@ -199,6 +315,44 @@ const CreatePostScreen = ({ navigation, route }) => {
               <Text>Quy tắc</Text>
             </TouchableOpacity>
           </View>
+
+          {selectedImage ? (
+            <View className="relative self-start mt-5">
+              <Image
+                source={{ uri: selectedImage }}
+                style={{
+                  width: 146,
+                  height: 146,
+                  borderRadius: 13,
+                  borderColor: "#ccc",
+                  borderWidth: 1,
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => setSelectedImage(null)}
+                className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 border-[4px] border-white"
+                style={{
+                  marginTop: -7,
+                  marginRight: -7,
+                }}
+              >
+                <Ionicons name="trash" size={20} color={"#fff"} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={pickImage}
+              className="items-center justify-center mt-5 self-start border-[1.3px] border-[#ECECEC] rounded-xl p-10"
+            >
+              <Ionicons
+                name="add-outline"
+                size={40}
+                color={"#519527"}
+                style={{ marginTop: -5 }}
+              />
+              <Text className="text-[#319527]">Thêm ảnh</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </>

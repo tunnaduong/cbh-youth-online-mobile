@@ -14,9 +14,6 @@ import {
   StatusBar,
   ScrollView,
 } from "react-native";
-import axiosInstance from "../../services/api/axiosInstance";
-import saveToken from "../../utils/saveToken";
-import saveUserInfo from "../../utils/saveUserInfo";
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";

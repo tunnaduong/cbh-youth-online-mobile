@@ -512,7 +512,7 @@ const ProfileScreen = ({ route, navigation }) => {
               <View
                 style={{
                   height: 0,
-                  width: 76,
+                  width: "100%",
                   borderTopColor: "black",
                   borderTopWidth: 1,
                 }}
@@ -535,7 +535,7 @@ const ProfileScreen = ({ route, navigation }) => {
               className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
                 activeTab === "posts"
                   ? "bg-[#C7F0C2] border-[#2D8824]"
-                  : "bg-white border-transparent"
+                  : "border-transparent"
               }`}
               onPress={() => setActiveTab("posts")}
             >
@@ -549,7 +549,7 @@ const ProfileScreen = ({ route, navigation }) => {
               className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
                 activeTab === "following"
                   ? "bg-[#C7F0C2] border-[#2D8824]"
-                  : "bg-white border-transparent"
+                  : "border-transparent"
               }`}
               onPress={() => setActiveTab("following")}
             >
@@ -563,7 +563,7 @@ const ProfileScreen = ({ route, navigation }) => {
               className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
                 activeTab === "followers"
                   ? "bg-[#C7F0C2] border-[#2D8824]"
-                  : "bg-white border-transparent"
+                  : "border-transparent"
               }`}
               onPress={() => setActiveTab("followers")}
             >
@@ -573,14 +573,14 @@ const ProfileScreen = ({ route, navigation }) => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="gap-1 justify-center items-center bg-white px-[8px] py-[4px]">
+            <TouchableOpacity className="gap-1 justify-center items-center px-[8px] py-[4px]">
               <Text className="font-semibold text-xs">Thích</Text>
               <Text className="font-extrabold text-lg">
                 {userData?.stats?.total_likes_count}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="gap-1 justify-center items-center bg-white px-[8px] py-[4px]">
+            <TouchableOpacity className="gap-1 justify-center items-center px-[8px] py-[4px]">
               <Text className="font-semibold text-xs">Điểm</Text>
               <Text className="font-extrabold text-lg">
                 {userData?.stats?.activity_points}
