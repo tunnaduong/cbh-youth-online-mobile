@@ -1,4 +1,11 @@
-import React, { useCallback, useContext, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   Text,
@@ -8,6 +15,7 @@ import {
   Image,
   RefreshControl,
   Animated,
+  TouchableOpacity,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getHomePosts, incrementPostView } from "../../../services/api/Api";
@@ -18,6 +26,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 
 const HomeScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = React.useState(false);
@@ -28,8 +37,10 @@ const HomeScreen = ({ navigation, route }) => {
   const { isLoggedIn } = useContext(AuthContext);
   const [username, setUsername] = React.useState("");
   const { feed, setFeed } = useContext(FeedContext);
-  const lottieProgress = React.useRef(new Animated.Value(0)).current; // Use useRef for Animated.Value
   const lottieRef = useRef(null);
+  const bottomSheetRef = useRef(null);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const snapPoints = useMemo(() => ["25%"], []);
 
   React.useEffect(() => {
     if (!isLoggedIn) {

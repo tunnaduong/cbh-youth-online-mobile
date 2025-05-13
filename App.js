@@ -20,6 +20,7 @@ import {
 } from "react-native-safe-area-context";
 import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import Toast from "react-native-toast-message";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const Stack = createStackNavigator();
 
@@ -56,93 +57,91 @@ function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <TailwindProvider>
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: {
-              height: 50 + insets.top, // Now this will work properly
-              backgroundColor: "#fff",
-            },
-            headerTitleContainerStyle: {
-              paddingVertical: 10,
-            },
-          }}
-        >
-          {isLoggedIn ? (
-            <>
-              <Stack.Screen
-                options={{
-                  title: "Trang chính",
-                  headerShown: false,
-                  gestureEnabled: false,
-                  animation: "fade",
-                }}
-                name="MainScreens"
-                component={MainScreens}
-              />
-              <Stack.Screen
-                options={{
-                  title: "Tìm kiếm",
-                  headerShown: false,
-                  gestureEnabled: false,
-                  animation: "fade",
-                }}
-                name="SearchScreen"
-                component={SearchScreen}
-              />
-              <Stack.Screen
-                name="PostScreen"
-                options={{
-                  title: "Chi tiết bài viết",
-                  headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: "#319527",
-                }}
-                component={PostScreen}
-              />
-              <Stack.Screen
-                name="ProfileScreen"
-                options={{
-                  title: "Trang cá nhân",
-                  headerBackButtonDisplayMode: "minimal",
-                  headerShown: false,
-                }}
-                component={ProfileScreen}
-              />
-              <Stack.Screen
-                name="CreatePostScreen"
-                options={{
-                  title: "Tạo bài viết",
-                  headerShown: false,
-                  presentation: "modal",
-                }}
-                component={CreatePostScreen}
-              />
-            </>
-          ) : (
-            <>
-              <Stack.Screen
-                name="Welcome"
-                options={{
-                  title: "Chào mừng đến với CYO",
-                  headerShown: false,
-                  animation: "fade",
-                }}
-                component={WelcomeScreen}
-              />
-              <Stack.Screen
-                name="Login"
-                options={{ title: "Đăng nhập", headerShown: false }}
-                component={LoginScreen}
-              />
-              <Stack.Screen
-                name="Signup"
-                options={{ title: "Đăng ký", headerShown: false }}
-                component={SignupScreen}
-              />
-            </>
-          )}
-        </Stack.Navigator>
-      </TailwindProvider>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: {
+            height: 50 + insets.top, // Now this will work properly
+            backgroundColor: "#fff",
+          },
+          headerTitleContainerStyle: {
+            paddingVertical: 10,
+          },
+        }}
+      >
+        {isLoggedIn ? (
+          <>
+            <Stack.Screen
+              options={{
+                title: "Trang chính",
+                headerShown: false,
+                gestureEnabled: false,
+                animation: "fade",
+              }}
+              name="MainScreens"
+              component={MainScreens}
+            />
+            <Stack.Screen
+              options={{
+                title: "Tìm kiếm",
+                headerShown: false,
+                gestureEnabled: false,
+                animation: "fade",
+              }}
+              name="SearchScreen"
+              component={SearchScreen}
+            />
+            <Stack.Screen
+              name="PostScreen"
+              options={{
+                title: "Chi tiết bài viết",
+                headerBackButtonDisplayMode: "minimal",
+                headerTintColor: "#319527",
+              }}
+              component={PostScreen}
+            />
+            <Stack.Screen
+              name="ProfileScreen"
+              options={{
+                title: "Trang cá nhân",
+                headerBackButtonDisplayMode: "minimal",
+                headerShown: false,
+              }}
+              component={ProfileScreen}
+            />
+            <Stack.Screen
+              name="CreatePostScreen"
+              options={{
+                title: "Tạo bài viết",
+                headerShown: false,
+                presentation: "modal",
+              }}
+              component={CreatePostScreen}
+            />
+          </>
+        ) : (
+          <>
+            <Stack.Screen
+              name="Welcome"
+              options={{
+                title: "Chào mừng đến với CYO",
+                headerShown: false,
+                animation: "fade",
+              }}
+              component={WelcomeScreen}
+            />
+            <Stack.Screen
+              name="Login"
+              options={{ title: "Đăng nhập", headerShown: false }}
+              component={LoginScreen}
+            />
+            <Stack.Screen
+              name="Signup"
+              options={{ title: "Đăng ký", headerShown: false }}
+              component={SignupScreen}
+            />
+          </>
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
@@ -157,8 +156,12 @@ const App = () => {
 };
 
 export default () => (
-  <MultiContextProvider>
-    <App />
-    <Toast />
-  </MultiContextProvider>
+  <TailwindProvider>
+    <GestureHandlerRootView>
+      <MultiContextProvider>
+        <App />
+        <Toast />
+      </MultiContextProvider>
+    </GestureHandlerRootView>
+  </TailwindProvider>
 );

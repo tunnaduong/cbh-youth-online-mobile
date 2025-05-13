@@ -102,3 +102,7 @@ export const unfollowUser = (username) => {
 export const getSubforums = () => {
   return Api.getRequest("/v1.0/forum/subforums");
 };
+
+export const deletePost = (id) => {
+  return Api.deleteRequest("/v1.0/topics/" + id);
+};

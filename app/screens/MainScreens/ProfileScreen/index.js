@@ -234,8 +234,12 @@ const ProfileScreen = ({ route, navigation }) => {
     >
       <Image source={{ uri: user.profile_picture }} style={styles.userAvatar} />
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{user.profile_name}</Text>
-        <Text style={styles.userUsername}>@{user.username}</Text>
+        <Text style={styles.userName} numberOfLines={1}>
+          {user.profile_name}
+        </Text>
+        <Text style={styles.userUsername} numberOfLines={1}>
+          @{user.username}
+        </Text>
       </View>
       {/* if is current user then hide the follow btn */}
       {user.username !== username && (

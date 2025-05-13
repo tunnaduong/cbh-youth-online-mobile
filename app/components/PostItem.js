@@ -6,13 +6,22 @@ import {
   Text,
   Image,
   TouchableOpacity,
+  Share,
+  Alert,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
-import { savePost, unsavePost, votePost } from "../services/api/Api";
+import {
+  deletePost,
+  savePost,
+  unsavePost,
+  votePost,
+} from "../services/api/Api";
 import ImageView from "react-native-image-viewing";
+import { useBottomSheet } from "../contexts/BottomSheetContext";
+import { FeedContext } from "../contexts/FeedContext";
 
 const styles = StyleSheet.create({
   body: {
@@ -61,7 +70,131 @@ const PostItem = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { username } = useContext(AuthContext);
+  const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
+  const { showBottomSheet, hideBottomSheet } = useBottomSheet();
+  const isCurrentUser = item.author.username === username;
+
+  const shareLink = async (link) => {
+    try {
+      await Share.share({
+        message: link,
+      });
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    Alert.alert(
+      "Xóa bài viết này?",
+      "Bạn có thể chỉnh sửa bài viết này thay vì xóa nó",
+      [
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            await deletePost(item.id);
+            // refresh the post list
+            setFeed((prevPosts) =>
+              prevPosts.filter((post) => post.id !== item.id)
+            );
+            if (screenName)
+              setRecentPostsProfile((prevPosts) =>
+                prevPosts.filter((post) => post.id !== item.id)
+              );
+            hideBottomSheet();
+          },
+        },
+        {
+          text: "Chỉnh sửa",
+          style: "default",
+          onPress: () => {
+            navigation.navigate("EditPostScreen", { postId: item.id });
+            hideBottomSheet();
+          },
+        },
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const handleMoreOptions = () => {
+    showBottomSheet(
+      <>
+        <TouchableOpacity
+          onPress={() => {
+            handleSavePost();
+            hideBottomSheet();
+          }}
+        >
+          <View className="flex-row items-center">
+            <Ionicons name="bookmark-outline" size={23} />
+            <Text style={{ padding: 12, fontSize: 17 }}>Lưu bài viết</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            shareLink(
+              `https://chuyenbienhoa.com/${item.author.username}/posts/${item.id}?source=share`
+            );
+          }}
+        >
+          <View className="flex-row items-center">
+            <Ionicons name="share-outline" size={23} />
+            <Text style={{ padding: 12, fontSize: 17 }}>Chia sẻ</Text>
+          </View>
+        </TouchableOpacity>
+        {isCurrentUser && (
+          <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
+            <View className="flex-row items-center">
+              <Ionicons name="lock-closed-outline" size={23} />
+              <Text style={{ padding: 12, fontSize: 17 }}>
+                Cài đặt quyền riêng tư
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        {isCurrentUser && (
+          <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
+            <View className="flex-row items-center">
+              <Ionicons name="create-outline" size={23} />
+              <Text style={{ padding: 12, fontSize: 17 }}>
+                Chỉnh sửa bài đăng
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
+          <View className="flex-row items-center">
+            <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
+            <Text
+              style={{ padding: 12, fontSize: 17 }}
+              className="text-red-500"
+            >
+              Báo cáo
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {isCurrentUser && (
+          <TouchableOpacity onPress={handleDeletePost}>
+            <View className="flex-row items-center">
+              <Ionicons name="trash-outline" size={23} color={"#ef4444"} />
+              <Text
+                style={{ padding: 12, fontSize: 17 }}
+                className="text-red-500"
+              >
+                Xóa bài viết
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      </>
+    );
+  };
 
   const handleVote = async (voteValue) => {
     const existingVote = item.votes.find((vote) => vote?.username === username);
@@ -179,7 +312,10 @@ const PostItem = ({
             {item.title}
           </Text>
         </Pressable>
-        <TouchableOpacity className="mr-3 mt-3 shrink-0">
+        <TouchableOpacity
+          className="mr-3 mt-3 shrink-0"
+          onPress={handleMoreOptions}
+        >
           <Ionicons name="ellipsis-horizontal" size={20} />
         </TouchableOpacity>
       </View>

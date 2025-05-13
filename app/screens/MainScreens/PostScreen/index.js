@@ -28,6 +28,7 @@ import { TouchableOpacity } from "react-native";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ImageView from "react-native-image-viewing";
 
 const styles = StyleSheet.create({
   body: {
@@ -83,6 +84,7 @@ const PostScreen = ({ route }) => {
   const commentRefs = useRef({});
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const insets = useSafeAreaInsets();
+  const [visible, setIsVisible] = useState(false);
 
   React.useEffect(() => {
     fetchData();
@@ -631,15 +633,29 @@ const PostScreen = ({ route }) => {
               {convertToMarkdownLink(post.content)}
             </Markdown>
             {post.image_url != null && (
-              <View className="bg-[#E4EEE3] mt-2">
-                <Image
-                  source={{
-                    uri: "https://api.chuyenbienhoa.com" + post.image_url,
-                  }}
-                  height={300}
-                  style={{ resizeMode: "contain" }}
-                />
-              </View>
+              <Pressable
+                onPress={() => {
+                  setIsVisible(true);
+                }}
+              >
+                <View className="bg-[#E4EEE3] mt-2">
+                  <Image
+                    source={{
+                      uri: "https://api.chuyenbienhoa.com" + post.image_url,
+                    }}
+                    height={300}
+                    style={{ resizeMode: "contain" }}
+                  />
+                  <ImageView
+                    images={[
+                      { uri: "https://api.chuyenbienhoa.com" + post.image_url },
+                    ]}
+                    imageIndex={0}
+                    visible={visible}
+                    onRequestClose={() => setIsVisible(false)}
+                  />
+                </View>
+              </Pressable>
             )}
             <View
               style={{
