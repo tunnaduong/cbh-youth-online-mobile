@@ -1,0 +1,20 @@
+diff --git a/node_modules/react-native-keyboard-spacer/KeyboardSpacer.js b/node_modules/react-native-keyboard-spacer/KeyboardSpacer.js
+index 14560d8..842214e 100644
+--- a/node_modules/react-native-keyboard-spacer/KeyboardSpacer.js
++++ b/node_modules/react-native-keyboard-spacer/KeyboardSpacer.js
+@@ -39,7 +39,6 @@ export default class KeyboardSpacer extends Component {
+   static propTypes = {
+     topSpacing: PropTypes.number,
+     onToggle: PropTypes.func,
+-    style: ViewPropTypes.style,
+   };
+ 
+   static defaultProps = {
+@@ -117,6 +116,6 @@ export default class KeyboardSpacer extends Component {
+ 
+   render() {
+     return (
+-      <View style={[styles.container, { height: this.state.keyboardSpace }, this.props.style]} />);
++      <View style={[styles.container, { height: this.state.keyboardSpace }]} />);
+   }
+ }

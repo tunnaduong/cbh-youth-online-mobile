@@ -29,6 +29,12 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ImageView from "react-native-image-viewing";
+import { useAnimatedKeyboard } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  interpolate,
+} from "react-native-reanimated";
 
 const styles = StyleSheet.create({
   body: {
@@ -85,6 +91,11 @@ const PostScreen = ({ route }) => {
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const insets = useSafeAreaInsets();
   const [visible, setIsVisible] = useState(false);
+  const keyboard = useAnimatedKeyboard();
+
+  const animatedStyles = useAnimatedStyle(() => ({
+    transform: [{ translateY: -keyboard.height.value }],
+  }));
 
   React.useEffect(() => {
     fetchData();
@@ -910,24 +921,22 @@ const PostScreen = ({ route }) => {
             </TouchableOpacity>
           </View>
         )}
-        <CommentBar
-          ref={commentInputRef}
-          placeholderText={
-            parentId ? "Nhập trả lời..." : "Nhập bình luận..." // Change placeholder dynamically
-          }
-          onSubmit={onSubmit}
-          value={commentText}
-          onChangeText={setCommentText}
-          disabled={!commentText.trim()}
-          style={{
-            backgroundColor: "white", // Ensure background is white
-            paddingBottom: Platform.OS === "android" ? insets.bottom : 0, // Add padding for Android nav menu
-          }}
-        />
-        <KeyboardAvoidingView
-          keyboardVerticalOffset={height}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-        />
+        <Animated.View style={[styles.bottomContainer, animatedStyles]}>
+          <CommentBar
+            ref={commentInputRef}
+            placeholderText={
+              parentId ? "Nhập trả lời..." : "Nhập bình luận..." // Change placeholder dynamically
+            }
+            onSubmit={onSubmit}
+            value={commentText}
+            onChangeText={setCommentText}
+            disabled={!commentText.trim()}
+            style={{
+              backgroundColor: "white", // Ensure background is white
+              paddingBottom: Platform.OS === "android" ? insets.bottom : 0, // Add padding for Android nav menu
+            }}
+          />
+        </Animated.View>
       </SafeAreaView>
     </>
   );
