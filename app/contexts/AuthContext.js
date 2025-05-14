@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { logoutRequest } from "../services/api/Api";
 
 export const AuthContext = createContext();
 
@@ -56,6 +57,8 @@ export const AuthProvider = ({ children }) => {
     setUsername(null);
     setProfileName(null);
     setUserInfo(null);
+
+    await logoutRequest();
   };
 
   return (

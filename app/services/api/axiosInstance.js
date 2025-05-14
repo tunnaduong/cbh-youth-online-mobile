@@ -37,7 +37,11 @@ axiosInstance.interceptors.response.use(
   async (response) => {
     try {
       // Don't call updateOnlineStatus if the current request is already updating online status
-      if (!response.config.url.includes("/v1.0/online-status")) {
+      if (
+        !response.config.url.includes("/v1.0/online-status") &&
+        !response.config.url.includes("/v1.0/login") &&
+        !response.config.url.includes("/v1.0/register")
+      ) {
         await axiosInstance.post("/v1.0/online-status");
       }
     } catch (error) {
