@@ -335,24 +335,26 @@ const PostScreen = ({ route }) => {
           )
         );
 
-        setRecentPostsProfile((prevFeed) =>
-          prevFeed.map((feedItem) =>
-            feedItem.id === postId
-              ? {
-                  ...feedItem,
-                  comments:
-                    roundToNearestFive(
-                      response.data.comments
-                        ? response.data.comments.length
-                        : parseInt(
-                            updatedPostData.comments?.replace(/\D/g, ""),
-                            10
-                          ) || 0
-                    ) + "+",
-                }
-              : feedItem
-          )
-        );
+        if (screenName) {
+          setRecentPostsProfile((prevFeed) =>
+            prevFeed.map((feedItem) =>
+              feedItem.id === postId
+                ? {
+                    ...feedItem,
+                    comments:
+                      roundToNearestFive(
+                        response.data.comments
+                          ? response.data.comments.length
+                          : parseInt(
+                              updatedPostData.comments?.replace(/\D/g, ""),
+                              10
+                            ) || 0
+                      ) + "+",
+                  }
+                : feedItem
+            )
+          );
+        }
       }
     } catch (error) {
       console.error("Error submitting comment:", error);
@@ -375,43 +377,59 @@ const PostScreen = ({ route }) => {
   const handleCommentVote = async (commentId, voteValue) => {
     try {
       // Optimistically update the UI
-      setComments((prevComments) =>
-        prevComments.map((comment) => {
-          if (comment.id === commentId) {
-            // Check if the user has already voted on this comment
-            const existingVote = comment.votes.find(
-              (vote) => vote.username === username
-            );
+      setComments((prevComments) => {
+        // Helper function to update votes recursively
+        const updateVotesRecursively = (comments) => {
+          return comments.map((comment) => {
+            // If this is the target comment, update its votes
+            if (comment.id === commentId) {
+              const existingVote = comment.votes.find(
+                (vote) => vote.username === username
+              );
 
-            let newVotes = [...comment.votes];
+              let newVotes = [...comment.votes];
 
-            if (existingVote) {
-              if (existingVote.vote_value === voteValue) {
-                // User is undoing their vote
-                newVotes = comment.votes.filter(
-                  (vote) => vote.username !== username
-                );
+              if (existingVote) {
+                if (existingVote.vote_value === voteValue) {
+                  // User is undoing their vote
+                  newVotes = comment.votes.filter(
+                    (vote) => vote.username !== username
+                  );
+                } else {
+                  // User is changing their vote
+                  newVotes = comment.votes.map((vote) =>
+                    vote.username === username
+                      ? { ...vote, vote_value: voteValue }
+                      : vote
+                  );
+                }
               } else {
-                // User is changing their vote
-                newVotes = comment.votes.map((vote) =>
-                  vote.username === username
-                    ? { ...vote, vote_value: voteValue }
-                    : vote
-                );
+                // User is voting for the first time
+                newVotes = [
+                  ...comment.votes,
+                  { username, vote_value: voteValue },
+                ];
               }
-            } else {
-              // User is voting for the first time
-              newVotes = [
-                ...comment.votes,
-                { username, vote_value: voteValue },
-              ];
+
+              return { ...comment, votes: newVotes };
             }
 
-            return { ...comment, votes: newVotes };
-          }
-          return comment;
-        })
-      );
+            // If this comment has replies, recursively check them
+            if (comment.replies && comment.replies.length > 0) {
+              return {
+                ...comment,
+                replies: updateVotesRecursively(comment.replies),
+              };
+            }
+
+            // If neither condition matches, return the comment unchanged
+            return comment;
+          });
+        };
+
+        // Start the recursive update from the top level
+        return updateVotesRecursively(prevComments);
+      });
 
       // Call the API to update the vote
       await voteComment(commentId, {
@@ -425,6 +443,55 @@ const PostScreen = ({ route }) => {
       // You might want to show an error message to the user as well
       fetchData(); // Re-fetch the data to revert the changes
     }
+  };
+
+  const handleVoteReply = (commentId, replyId, voteValue) => {
+    setComments((prevComments) =>
+      prevComments.map((comment) => {
+        if (comment.id === commentId) {
+          // Found the parent comment, now update the specific reply
+          return {
+            ...comment,
+            replies: comment.replies.map((reply) => {
+              if (reply.id === replyId) {
+                // Apply the same voting logic to the reply
+                const existingVote = reply.votes.find(
+                  (vote) => vote.username === username
+                );
+
+                let newVotes = [...reply.votes];
+
+                if (existingVote) {
+                  if (existingVote.vote_value === voteValue) {
+                    // User is undoing their vote
+                    newVotes = reply.votes.filter(
+                      (vote) => vote.username !== username
+                    );
+                  } else {
+                    // User is changing their vote
+                    newVotes = reply.votes.map((vote) =>
+                      vote.username === username
+                        ? { ...vote, vote_value: voteValue }
+                        : vote
+                    );
+                  }
+                } else {
+                  // User is voting for the first time
+                  newVotes = [
+                    ...reply.votes,
+                    { username, vote_value: voteValue },
+                  ];
+                }
+
+                return { ...reply, votes: newVotes };
+              }
+              return reply;
+            }),
+          };
+        }
+        return comment;
+      })
+    );
   };
 
   const Comment = React.forwardRef(

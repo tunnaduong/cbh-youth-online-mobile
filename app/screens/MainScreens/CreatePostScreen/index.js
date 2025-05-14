@@ -108,6 +108,7 @@ const CreatePostScreen = ({ navigation, route }) => {
         title,
         description: postContent,
         cdn_image_id: cdnId,
+        subforum_id: selected?.value ?? null,
       });
 
       setFeed((prevPosts) => [

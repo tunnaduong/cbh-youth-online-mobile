@@ -130,7 +130,6 @@ const Sidebar = () => {
   return (
     <>
       <ScrollView
-        style={{ borderRightWidth: 0.8, borderColor: "#B3B3B3" }}
         contentContainerStyle={{ paddingBottom: 40, paddingTop: 20 }}
         showsVerticalScrollIndicator={false}
       >

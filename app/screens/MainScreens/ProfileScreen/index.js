@@ -489,7 +489,7 @@ const ProfileScreen = ({ route, navigation }) => {
               {userData?.profile?.location ? (
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="location-outline" size={16} />
-                  <Text className="text-sm">Hà Nam, Việt Nam</Text>
+                  <Text className="text-sm">{userData?.profile?.location}</Text>
                 </View>
               ) : (
                 <></>
@@ -497,7 +497,9 @@ const ProfileScreen = ({ route, navigation }) => {
               {userData?.profile?.birthday ? (
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="gift-outline" size={16} />
-                  <Text className="text-sm">Sinh vào 21 Tháng 11 2003</Text>
+                  <Text className="text-sm">
+                    Sinh vào {userData?.profile?.birthday}
+                  </Text>
                 </View>
               ) : (
                 <></>
@@ -505,7 +507,9 @@ const ProfileScreen = ({ route, navigation }) => {
               {userData?.profile?.joined_at ? (
                 <View className="flex-row items-center gap-2">
                   <Ionicons name="calendar-outline" size={16} />
-                  <Text className="text-sm">Đã tham gia Tháng 11 2024</Text>
+                  <Text className="text-sm">
+                    Đã tham gia {userData?.profile?.joined_at}
+                  </Text>
                 </View>
               ) : (
                 <></>

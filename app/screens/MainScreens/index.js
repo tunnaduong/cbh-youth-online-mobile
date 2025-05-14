@@ -1,5 +1,5 @@
 import React from "react";
-import { Animated, Dimensions, StyleSheet, View } from "react-native";
+import { Dimensions, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -8,17 +8,15 @@ import SameHeader from "../../components/SameHeader";
 import MenuScreen from "./ForumScreen";
 import SideMenu from "@chakrahq/react-native-side-menu";
 import Sidebar from "../../components/Sidebar";
-import { AnimationContext } from "../../contexts/AnimationContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Tab = createBottomTabNavigator();
-const { height } = Dimensions.get("window");
-
 const DummyComponent = () => null;
 
 export default function MainScreens({ navigation }) {
   const [setting, setSetting] = React.useState(false);
   const insets = useSafeAreaInsets();
+  const [slideProgress, setSlideProgress] = React.useState(0);
 
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
@@ -32,10 +30,23 @@ export default function MainScreens({ navigation }) {
       menuPosition="left"
       isOpen={setting}
       onChange={(isOpen) => setSetting(isOpen)}
+      onSliding={setSlideProgress}
       edgeHitWidth={100}
       bounceBackOnOverdraw={false}
     >
       <View style={{ flex: 1 }}>
+        <View
+          style={{
+            position: "absolute",
+            opacity: slideProgress,
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 0.8,
+            backgroundColor: "#B3B3B3",
+            zIndex: 999,
+          }}
+        />
         <Tab.Navigator
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {
