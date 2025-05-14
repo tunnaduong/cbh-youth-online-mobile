@@ -21,6 +21,7 @@ import {
 import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
 
 const Stack = createStackNavigator();
 
@@ -116,6 +117,11 @@ function AppNavigator() {
                 presentation: "modal",
               }}
               component={CreatePostScreen}
+            />
+            <Stack.Screen
+              name="EditProfileScreen"
+              options={{ title: "Chỉnh sửa trang cá nhân", headerShown: false }}
+              component={EditProfileScreen}
             />
           </>
         ) : (

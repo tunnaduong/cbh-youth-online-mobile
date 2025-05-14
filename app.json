@@ -27,7 +27,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./app/assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.fatties.youth"
     },
     "web": {
       "favicon": "./app/assets/favicon.png"

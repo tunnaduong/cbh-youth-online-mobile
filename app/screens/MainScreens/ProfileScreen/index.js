@@ -446,7 +446,10 @@ const ProfileScreen = ({ route, navigation }) => {
           </View>
 
           {isCurrentUser ? (
-            <TouchableOpacity className="-mt-5 bg-white border-[1.5px] p-3 border-green-600 rounded-full mx-4">
+            <TouchableOpacity
+              onPress={() => navigation.navigate("EditProfileScreen")}
+              className="-mt-5 bg-white border-[1.5px] p-3 border-green-600 rounded-full mx-4"
+            >
               <Text className="text-center font-semibold">
                 Chỉnh sửa trang cá nhân
               </Text>
