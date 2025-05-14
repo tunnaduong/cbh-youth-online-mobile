@@ -21,6 +21,7 @@ const CustomTabBarButton = ({ onPress }) => {
   const rotation = useRef(new Animated.Value(0)).current;
   const button1Anim = useRef(new Animated.Value(0)).current;
   const button2Anim = useRef(new Animated.Value(0)).current;
+  const button3Anim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
   const navigation = useNavigation();
 
@@ -63,6 +64,13 @@ const CustomTabBarButton = ({ onPress }) => {
         easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }),
+      Animated.timing(button3Anim, {
+        // Add this animation
+        toValue: 1,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
       Animated.timing(rotation, {
         toValue: 1,
         duration: 200,
@@ -81,6 +89,12 @@ const CustomTabBarButton = ({ onPress }) => {
         useNativeDriver: true,
       }),
       Animated.timing(button2Anim, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(button3Anim, {
         toValue: 0,
         duration: 300,
         easing: Easing.in(Easing.ease),
@@ -124,6 +138,18 @@ const CustomTabBarButton = ({ onPress }) => {
     opacity: button2Anim,
   };
 
+  const button3Style = {
+    transform: [
+      {
+        translateY: button3Anim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -240], // Move third button even further up
+        }),
+      },
+    ],
+    opacity: button3Anim,
+  };
+
   return (
     <View style={styles.container}>
       {/* Full-screen transparent overlay to capture taps outside */}
@@ -135,7 +161,7 @@ const CustomTabBarButton = ({ onPress }) => {
 
       {showButtons && (
         <View style={styles.overlay}>
-          <Animated.View style={[styles.additionalButton, button1Style]}>
+          <Animated.View style={[styles.additionalButton, button3Style]}>
             <TouchableOpacity
               style={{
                 flexDirection: "row",
@@ -146,6 +172,25 @@ const CustomTabBarButton = ({ onPress }) => {
             >
               <Ionicons name="create-outline" size={35} color={"#319527"} />
               <Text style={styles.buttonText}>Tạo bài viết</Text>
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View style={[styles.additionalButton, button1Style]}>
+            <TouchableOpacity
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="mic-outline" size={35} color={"#319527"} />
+              <Text
+                style={[
+                  styles.buttonText,
+                  { textAlign: "left", marginLeft: 10 },
+                ]}
+              >
+                Tạo ghi âm
+              </Text>
             </TouchableOpacity>
           </Animated.View>
           <Animated.View style={[styles.additionalButton, button2Style]}>

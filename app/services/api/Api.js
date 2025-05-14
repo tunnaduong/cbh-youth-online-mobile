@@ -106,3 +106,7 @@ export const getSubforums = () => {
 export const deletePost = (id) => {
   return Api.deleteRequest("/v1.0/topics/" + id);
 };
+
+export const getOnlineStatus = (username) => {
+  return Api.getRequest("/v1.0/users/" + username + "/online-status");
+};

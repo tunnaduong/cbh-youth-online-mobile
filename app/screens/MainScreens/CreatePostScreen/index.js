@@ -109,13 +109,15 @@ const CreatePostScreen = ({ navigation, route }) => {
         description: postContent,
         cdn_image_id: cdnId,
         subforum_id: selected?.value ?? null,
+        visibility: viewSelected.value,
       });
 
-      setFeed((prevPosts) => [
-        response.data, // Add the new post at the beginning of the list
-        ...prevPosts,
-      ]);
-
+      if (viewSelected.value === 0) {
+        setFeed((prevPosts) => [
+          response.data, // Add the new post at the beginning of the list
+          ...prevPosts,
+        ]);
+      }
       navigation.goBack();
 
       return response;

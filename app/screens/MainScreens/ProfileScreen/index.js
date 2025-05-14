@@ -426,7 +426,14 @@ const ProfileScreen = ({ route, navigation }) => {
                 source={{ uri: userData?.profile?.profile_picture }}
                 style={styles.avatar}
               />
-              <View className="absolute bottom-0 right-0 mr-3 mb-3 w-5 h-5 bg-green-600 rounded-full border-[3px] border-white"></View>
+              {/* Online status */}
+              {userData?.stats?.is_online ? (
+                <View className="bg-white rounded-full w-5 h-5 absolute bottom-0 right-0 mr-3 mb-3 justify-center items-center">
+                  <View className="w-[14px] h-[14px] bg-green-600 rounded-full"></View>
+                </View>
+              ) : (
+                <></>
+              )}
             </View>
             <View>
               <Text style={styles.name} numberOfLines={2}>

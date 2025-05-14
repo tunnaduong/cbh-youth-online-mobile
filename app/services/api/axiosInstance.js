@@ -32,4 +32,22 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Add response interceptor
+axiosInstance.interceptors.response.use(
+  async (response) => {
+    try {
+      // Don't call updateOnlineStatus if the current request is already updating online status
+      if (!response.config.url.includes("/v1.0/online-status")) {
+        await axiosInstance.post("/v1.0/online-status");
+      }
+    } catch (error) {
+      console.error("Error updating online status:", error);
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export default axiosInstance;

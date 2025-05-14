@@ -102,6 +102,7 @@ const PostScreen = ({ route }) => {
       }
       setPost(topic); // Update post state
       setComments(comments);
+      console.log(JSON.stringify(comments, null, 2));
     } catch (error) {
       console.error("Error fetching data:", error);
     }
@@ -181,11 +182,12 @@ const PostScreen = ({ route }) => {
       )
     );
 
-    setRecentPostsProfile((prevFeed) =>
-      prevFeed.map((post) =>
-        post.id === postId ? { ...post, votes: newVotes } : post
-      )
-    );
+    if (screenName)
+      setRecentPostsProfile((prevFeed) =>
+        prevFeed.map((post) =>
+          post.id === postId ? { ...post, votes: newVotes } : post
+        )
+      );
 
     setPost((prevPost) => ({
       ...prevPost,
@@ -213,11 +215,12 @@ const PostScreen = ({ route }) => {
       )
     );
 
-    setRecentPostsProfile((prevPosts) =>
-      prevPosts.map((post) =>
-        post.id === postId ? { ...post, saved: newSavedStatus } : post
-      )
-    );
+    if (screenName)
+      setRecentPostsProfile((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === postId ? { ...post, saved: newSavedStatus } : post
+        )
+      );
 
     setPost((prevPost) => ({
       ...prevPost,
@@ -243,11 +246,12 @@ const PostScreen = ({ route }) => {
         )
       );
 
-      setRecentPostsProfile((prevFeed) =>
-        prevFeed.map((post) =>
-          post.id === postId ? { ...post, saved: !newSavedStatus } : post
-        )
-      );
+      if (screenName)
+        setRecentPostsProfile((prevFeed) =>
+          prevFeed.map((post) =>
+            post.id === postId ? { ...post, saved: !newSavedStatus } : post
+          )
+        );
     }
   };
 
@@ -299,7 +303,7 @@ const PostScreen = ({ route }) => {
 
     try {
       // Send comment to API
-      await commentPost(post.id, {
+      const resp = await commentPost(post.id, {
         comment: commentText.trim(),
         replying_to: replyingToId,
       });
@@ -311,6 +315,9 @@ const PostScreen = ({ route }) => {
 
       const response = await getPostDetail(postId);
       if (response.data) {
+        setTimeout(() => {
+          scrollToComment(resp.data.id);
+        }, 100);
         const updatedPostData = response.data.topic;
         setPost(updatedPostData);
         setComments(response.data.comments);
