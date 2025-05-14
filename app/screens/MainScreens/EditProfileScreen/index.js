@@ -85,16 +85,6 @@ const EditProfileScreen = ({ navigation }) => {
   };
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Toast.show({
-        type: "error",
-        text1: "Lỗi",
-        text2: "Cần cấp quyền truy cập thư viện ảnh",
-      });
-      return;
-    }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
