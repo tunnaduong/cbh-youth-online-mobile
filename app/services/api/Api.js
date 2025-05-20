@@ -110,3 +110,7 @@ export const deletePost = (id) => {
 export const getOnlineStatus = (username) => {
   return Api.getRequest("/v1.0/users/" + username + "/online-status");
 };
+
+export const updateProfile = (username, params) => {
+  return Api.putRequest("/v1.0/users/" + username + "/profile", params);
+};

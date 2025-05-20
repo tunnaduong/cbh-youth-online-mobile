@@ -24,6 +24,7 @@ import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
+import FastImage from "react-native-fast-image";
 
 const CreatePostScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
@@ -206,7 +207,7 @@ const CreatePostScreen = ({ navigation, route }) => {
           }}
           pointerEvents="box-none"
         >
-          <Image
+          <FastImage
             source={{
               uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
             }}
@@ -214,7 +215,6 @@ const CreatePostScreen = ({ navigation, route }) => {
               width: 70,
               height: 70,
               borderRadius: 35,
-
               borderColor: "#ccc",
               borderWidth: 1,
             }}

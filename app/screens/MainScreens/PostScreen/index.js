@@ -7,7 +7,6 @@ import {
   Image,
   ScrollView,
   SafeAreaView,
-  KeyboardAvoidingView,
   Platform,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
@@ -29,12 +28,7 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ImageView from "react-native-image-viewing";
-import { useAnimatedKeyboard } from "react-native-reanimated";
-import Animated, {
-  useAnimatedStyle,
-  withSpring,
-  interpolate,
-} from "react-native-reanimated";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 const styles = StyleSheet.create({
   body: {
@@ -91,11 +85,6 @@ const PostScreen = ({ route }) => {
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const insets = useSafeAreaInsets();
   const [visible, setIsVisible] = useState(false);
-  const keyboard = useAnimatedKeyboard();
-
-  const animatedStyles = useAnimatedStyle(() => ({
-    transform: [{ translateY: -keyboard.height.value }],
-  }));
 
   React.useEffect(() => {
     fetchData();
@@ -698,246 +687,255 @@ const PostScreen = ({ route }) => {
     ></View>
   ) : (
     <>
-      <SafeAreaView style={{ backgroundColor: "white", flex: 1 }}>
-        <ScrollView
-          contentContainerStyle={{
-            backgroundColor: "white",
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: "white" }}
+        behavior={"padding"}
+        keyboardVerticalOffset={110}
+      >
+        <SafeAreaView
+          style={{
+            flex: 1,
           }}
-          ref={scrollViewRef}
         >
-          <View
-            style={{
-              borderBottomWidth: 15,
-              borderBottomColor: "#E6E6E6",
+          <ScrollView
+            contentContainerStyle={{
+              backgroundColor: "white",
             }}
+            ref={scrollViewRef}
           >
-            <Text className="font-bold text-[21px] px-[15px] mt-[15px]">
-              {post.title}
-            </Text>
-            <Markdown style={styles}>
-              {convertToMarkdownLink(post.content)}
-            </Markdown>
-            {post.image_url != null && (
-              <Pressable
-                onPress={() => {
-                  setIsVisible(true);
-                }}
-              >
-                <View className="bg-[#E4EEE3] mt-2">
-                  <Image
-                    source={{
-                      uri: "https://api.chuyenbienhoa.com" + post.image_url,
-                    }}
-                    height={300}
-                    style={{ resizeMode: "contain" }}
-                  />
-                  <ImageView
-                    images={[
-                      { uri: "https://api.chuyenbienhoa.com" + post.image_url },
-                    ]}
-                    imageIndex={0}
-                    visible={visible}
-                    onRequestClose={() => setIsVisible(false)}
-                  />
-                </View>
-              </Pressable>
-            )}
             <View
               style={{
-                height: 1,
-                backgroundColor: "#E6E6E6",
-                marginHorizontal: 15,
-                marginVertical: 20,
+                borderBottomWidth: 15,
+                borderBottomColor: "#E6E6E6",
               }}
-            ></View>
-            <Pressable
-              onPress={() =>
-                navigation.navigate("ProfileScreen", {
-                  username: post.author.username,
-                })
-              }
-              className="px-[15px] flex-row items-center"
             >
-              <View
-                className="bg-white w-[42px] rounded-full overflow-hidden"
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#dee2e6",
-                }}
-              >
-                <Image
-                  source={{
-                    uri: `https://api.chuyenbienhoa.com/v1.0/users/${post.author.username}/avatar`,
+              <Text className="font-bold text-[21px] px-[15px] mt-[15px]">
+                {post.title}
+              </Text>
+              <Markdown style={styles}>
+                {convertToMarkdownLink(post.content)}
+              </Markdown>
+              {post.image_url != null && (
+                <Pressable
+                  onPress={() => {
+                    setIsVisible(true);
                   }}
-                  style={{ width: 40, height: 40, borderRadius: 30 }}
-                />
-              </View>
-              <Text className="font-bold text-[#319527] ml-2 shrink">
-                {post.author.profile_name}
-                {post.author.verified && (
-                  <View>
-                    <Verified
-                      width={15}
-                      height={15}
-                      color={"#319527"}
-                      style={{ marginBottom: -3 }}
+                >
+                  <View className="bg-[#E4EEE3] mt-2">
+                    <Image
+                      source={{
+                        uri: "https://api.chuyenbienhoa.com" + post.image_url,
+                      }}
+                      height={300}
+                      style={{ resizeMode: "contain" }}
+                    />
+                    <ImageView
+                      images={[
+                        {
+                          uri: "https://api.chuyenbienhoa.com" + post.image_url,
+                        },
+                      ]}
+                      imageIndex={0}
+                      visible={visible}
+                      onRequestClose={() => setIsVisible(false)}
                     />
                   </View>
-                )}
-              </Text>
-              <Text> · {post.time}</Text>
-            </Pressable>
-            <View className="flex-row items-center px-[15px] my-4">
-              <View className="gap-3 flex-row items-center">
-                <Pressable onPress={() => handleVote(1)}>
-                  <Ionicons
-                    name="arrow-up-outline"
-                    size={28}
-                    color={
+                </Pressable>
+              )}
+              <View
+                style={{
+                  height: 1,
+                  backgroundColor: "#E6E6E6",
+                  marginHorizontal: 15,
+                  marginVertical: 20,
+                }}
+              ></View>
+              <Pressable
+                onPress={() =>
+                  navigation.navigate("ProfileScreen", {
+                    username: post.author.username,
+                  })
+                }
+                className="px-[15px] flex-row items-center"
+              >
+                <View
+                  className="bg-white w-[42px] rounded-full overflow-hidden"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#dee2e6",
+                  }}
+                >
+                  <Image
+                    source={{
+                      uri: `https://api.chuyenbienhoa.com/v1.0/users/${post.author.username}/avatar`,
+                    }}
+                    style={{ width: 40, height: 40, borderRadius: 30 }}
+                  />
+                </View>
+                <Text className="font-bold text-[#319527] ml-2 shrink">
+                  {post.author.profile_name}
+                  {post.author.verified && (
+                    <View>
+                      <Verified
+                        width={15}
+                        height={15}
+                        color={"#319527"}
+                        style={{ marginBottom: -3 }}
+                      />
+                    </View>
+                  )}
+                </Text>
+                <Text> · {post.time}</Text>
+              </Pressable>
+              <View className="flex-row items-center px-[15px] my-4">
+                <View className="gap-3 flex-row items-center">
+                  <Pressable onPress={() => handleVote(1)}>
+                    <Ionicons
+                      name="arrow-up-outline"
+                      size={28}
+                      color={
+                        votes.some(
+                          (vote) =>
+                            vote.username === username && vote.vote_value === 1
+                        )
+                          ? "#22c55e" // Green for upvote
+                          : "#9ca3af" // Gray for default
+                      }
+                    />
+                  </Pressable>
+                  <Text
+                    style={[
                       votes.some(
                         (vote) =>
                           vote.username === username && vote.vote_value === 1
                       )
-                        ? "#22c55e" // Green for upvote
-                        : "#9ca3af" // Gray for default
-                    }
-                  />
-                </Pressable>
-                <Text
-                  style={[
-                    votes.some(
-                      (vote) =>
-                        vote.username === username && vote.vote_value === 1
-                    )
-                      ? { color: "#22c55e" } // Green for upvote
-                      : votes.some(
+                        ? { color: "#22c55e" } // Green for upvote
+                        : votes.some(
+                            (vote) =>
+                              vote.username === username &&
+                              vote.vote_value === -1
+                          )
+                        ? { color: "#ef4444" } // Red for downvote
+                        : { color: "#9ca3af" }, // Gray for default
+                      { fontSize: 20, fontWeight: "600" }, // Additional styles
+                    ]}
+                  >
+                    {votes.reduce((acc, vote) => acc + vote.vote_value, 0)}
+                  </Text>
+                  <Pressable onPress={() => handleVote(-1)}>
+                    <Ionicons
+                      name="arrow-down-outline"
+                      size={28}
+                      color={
+                        votes.some(
                           (vote) =>
                             vote.username === username && vote.vote_value === -1
                         )
-                      ? { color: "#ef4444" } // Red for downvote
-                      : { color: "#9ca3af" }, // Gray for default
-                    { fontSize: 20, fontWeight: "600" }, // Additional styles
-                  ]}
-                >
-                  {votes.reduce((acc, vote) => acc + vote.vote_value, 0)}
-                </Text>
-                <Pressable onPress={() => handleVote(-1)}>
-                  <Ionicons
-                    name="arrow-down-outline"
-                    size={28}
-                    color={
-                      votes.some(
-                        (vote) =>
-                          vote.username === username && vote.vote_value === -1
-                      )
-                        ? "#ef4444" // Red for downvote
-                        : "#9ca3af" // Gray for default
-                    }
-                  />
-                </Pressable>
-                <Pressable
-                  onPress={handleSavePost}
-                  style={[
-                    {
-                      borderRadius: 8, // Rounded corners
-                      width: 33.6, // Width of the button
-                      height: 33.6, // Height of the button
-                      alignItems: "center", // Center the content horizontally
-                      justifyContent: "center", // Center the content vertically
-                    },
-                    isSaved
-                      ? { backgroundColor: "#CDEBCA" } // Green background when saved
-                      : { backgroundColor: "#EAEAEA" }, // Gray background when not saved
-                  ]}
-                >
-                  <Ionicons
-                    name="bookmark"
-                    size={20}
-                    color={isSaved ? "#319527" : "#9ca3af"} // Green icon when saved, gray when not saved
-                  />
-                </Pressable>
-                <View className="flex-1 flex-row-reverse items-center">
-                  <Text className="text-gray-500">{post.views}</Text>
-                  <View className="mr-1 ml-2">
-                    <Ionicons name="eye-outline" size={20} color={"#6b7280"} />
-                  </View>
-                  <Text className="text-gray-500">{post.comments}</Text>
-                  <View className="mr-1">
-                    <Ionicons
-                      name="chatbox-outline"
-                      size={20}
-                      color={"#6b7280"}
+                          ? "#ef4444" // Red for downvote
+                          : "#9ca3af" // Gray for default
+                      }
                     />
+                  </Pressable>
+                  <Pressable
+                    onPress={handleSavePost}
+                    style={[
+                      {
+                        borderRadius: 8, // Rounded corners
+                        width: 33.6, // Width of the button
+                        height: 33.6, // Height of the button
+                        alignItems: "center", // Center the content horizontally
+                        justifyContent: "center", // Center the content vertically
+                      },
+                      isSaved
+                        ? { backgroundColor: "#CDEBCA" } // Green background when saved
+                        : { backgroundColor: "#EAEAEA" }, // Gray background when not saved
+                    ]}
+                  >
+                    <Ionicons
+                      name="bookmark"
+                      size={20}
+                      color={isSaved ? "#319527" : "#9ca3af"} // Green icon when saved, gray when not saved
+                    />
+                  </Pressable>
+                  <View className="flex-1 flex-row-reverse items-center">
+                    <Text className="text-gray-500">{post.views}</Text>
+                    <View className="mr-1 ml-2">
+                      <Ionicons
+                        name="eye-outline"
+                        size={20}
+                        color={"#6b7280"}
+                      />
+                    </View>
+                    <Text className="text-gray-500">{post.comments}</Text>
+                    <View className="mr-1">
+                      <Ionicons
+                        name="chatbox-outline"
+                        size={20}
+                        color={"#6b7280"}
+                      />
+                    </View>
                   </View>
                 </View>
               </View>
             </View>
-          </View>
-          {/* comment section */}
-          <View className="px-[15px] mb-4">
-            <Text className="font-bold text-[20px] my-4">Bình luận</Text>
-            {comments.length === 0 ? (
-              <Text className="text-gray-500">Chưa có bình luận nào</Text>
-            ) : (
-              comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  comment={comment}
-                  ref={(ref) => (commentRefs.current[comment.id] = ref)}
-                />
-              ))
-            )}
-          </View>
-        </ScrollView>
-        {parentId && (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              paddingHorizontal: 15,
-              paddingVertical: 10,
-              backgroundColor: "#f3f4f6",
-              borderTopWidth: 1,
-              borderTopColor: "#e5e7eb",
-            }}
-          >
-            <Text style={{ color: "#6b7280", fontSize: 14, flex: 1 }}>
-              Đang trả lời bình luận của{" "}
-              <Text style={{ fontWeight: "bold" }}>{replyingTo}</Text>...
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setParentId(null); // Reset parentId
-                setReplyingTo(null); // Reset replyingTo
-              }}
+            {/* comment section */}
+            <View className="px-[15px] mb-4">
+              <Text className="font-bold text-[20px] my-4">Bình luận</Text>
+              {comments.length === 0 ? (
+                <Text className="text-gray-500">Chưa có bình luận nào</Text>
+              ) : (
+                comments.map((comment) => (
+                  <Comment
+                    key={comment.id}
+                    comment={comment}
+                    ref={(ref) => (commentRefs.current[comment.id] = ref)}
+                  />
+                ))
+              )}
+            </View>
+          </ScrollView>
+          {parentId && (
+            <View
               style={{
-                marginLeft: 10,
-                padding: 5,
-                backgroundColor: "#e5e7eb",
-                borderRadius: 50,
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 15,
+                paddingVertical: 10,
+                backgroundColor: "#f3f4f6",
+                borderTopWidth: 1,
+                borderTopColor: "#e5e7eb",
               }}
             >
-              <Ionicons name="close" size={16} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
-        )}
-        <Animated.View style={[styles.bottomContainer, animatedStyles]}>
+              <Text style={{ color: "#6b7280", fontSize: 14, flex: 1 }}>
+                Đang trả lời bình luận của{" "}
+                <Text style={{ fontWeight: "bold" }}>{replyingTo}</Text>...
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setParentId(null); // Reset parentId
+                  setReplyingTo(null); // Reset replyingTo
+                }}
+                style={{
+                  marginLeft: 10,
+                  padding: 5,
+                  backgroundColor: "#e5e7eb",
+                  borderRadius: 50,
+                }}
+              >
+                <Ionicons name="close" size={16} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+          )}
           <CommentBar
             ref={commentInputRef}
-            placeholderText={
-              parentId ? "Nhập trả lời..." : "Nhập bình luận..." // Change placeholder dynamically
-            }
+            placeholderText={parentId ? "Nhập trả lời..." : "Nhập bình luận..."}
             onSubmit={onSubmit}
             value={commentText}
             onChangeText={setCommentText}
             disabled={!commentText.trim()}
-            style={{
-              backgroundColor: "white", // Ensure background is white
-              paddingBottom: Platform.OS === "android" ? insets.bottom : 0, // Add padding for Android nav menu
-            }}
           />
-        </Animated.View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
     </>
   );
 };

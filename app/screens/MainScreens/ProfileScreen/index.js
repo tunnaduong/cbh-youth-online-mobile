@@ -28,6 +28,7 @@ import {
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedContext } from "../../../contexts/FeedContext";
+import FastImage from "react-native-fast-image";
 
 const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -271,7 +272,7 @@ const ProfileScreen = ({ route, navigation }) => {
       case "posts":
         return (
           <>
-            {recentPostsProfile.length === 0 ? (
+            {recentPostsProfile?.length === 0 ? (
               <View>
                 <Image
                   source={require("../../../assets/sad_frog.png")}
@@ -287,7 +288,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             ) : (
-              recentPostsProfile.map((post) => (
+              recentPostsProfile?.map((post) => (
                 <PostItem
                   key={`post-${post.id}`}
                   item={post}
@@ -304,7 +305,7 @@ const ProfileScreen = ({ route, navigation }) => {
       case "following":
         return (
           <View style={styles.connectionsList}>
-            {userData.following.length === 0 ? (
+            {userData?.following?.length === 0 ? (
               <View>
                 <Image
                   source={require("../../../assets/sad_frog.png")}
@@ -328,7 +329,7 @@ const ProfileScreen = ({ route, navigation }) => {
       case "followers":
         return (
           <View style={styles.connectionsList}>
-            {userData.followers.length === 0 ? (
+            {userData?.followers?.length === 0 ? (
               <View>
                 <Image
                   source={require("../../../assets/sad_frog.png")}
@@ -422,8 +423,10 @@ const ProfileScreen = ({ route, navigation }) => {
             }}
           >
             <View className="relative bg-white rounded-full">
-              <Image
-                source={{ uri: userData?.profile?.profile_picture }}
+              <FastImage
+                source={{
+                  uri: userData?.profile?.profile_picture,
+                }}
                 style={styles.avatar}
               />
               {/* Online status */}
@@ -525,7 +528,14 @@ const ProfileScreen = ({ route, navigation }) => {
                 <></>
               )}
             </View>
-            <TouchableOpacity className="absolute bottom-[20px] right-[16px]">
+            <TouchableOpacity
+              className="absolute bottom-[20px] right-[16px]"
+              onPress={() =>
+                navigation.navigate("ProfileDetailScreen", {
+                  username: userData?.username,
+                })
+              }
+            >
               <Text>Xem chi tiết</Text>
               <View
                 style={{

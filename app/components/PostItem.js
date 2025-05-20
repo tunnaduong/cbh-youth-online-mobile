@@ -132,8 +132,14 @@ const PostItem = ({
           }}
         >
           <View className="flex-row items-center">
-            <Ionicons name="bookmark-outline" size={23} />
-            <Text style={{ padding: 12, fontSize: 17 }}>Lưu bài viết</Text>
+            <Ionicons
+              name={item.saved ? "bookmark" : "bookmark-outline"}
+              size={23}
+              color={item.saved ? "#000" : undefined}
+            />
+            <Text style={{ padding: 12, fontSize: 17 }}>
+              {item.saved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
+            </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity

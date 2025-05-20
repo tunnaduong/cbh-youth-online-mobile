@@ -27,6 +27,7 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import FastImage from "react-native-fast-image";
 
 const HomeScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = React.useState(false);
@@ -205,7 +206,7 @@ const HomeScreen = ({ navigation, route }) => {
         >
           {/* Story like Facebook component */}
           <View className="relative overflow-hidden rounded-2xl bg-gray-200 w-[100px] h-[160px] border border-[#c4c4c4]">
-            <Image
+            <FastImage
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}

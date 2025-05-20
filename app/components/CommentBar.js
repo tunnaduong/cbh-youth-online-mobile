@@ -1,20 +1,12 @@
 import React from "react";
-import {
-  TouchableOpacity,
-  View,
-  TextInput,
-  Dimensions,
-  Platform,
-} from "react-native";
+import { TouchableOpacity, View, TextInput } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const CommentBar = React.forwardRef(
   (
     {
-      username,
       placeholderText,
       onSubmit,
-      onUpload,
       onChangeText,
       value,
       onKeyPress,
@@ -30,20 +22,13 @@ const CommentBar = React.forwardRef(
             backgroundColor: "white",
             borderTopWidth: 1,
             borderTopColor: "#DFDEDD",
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
           },
           style,
         ]}
       >
         <View
           style={{
-            paddingTop: 10,
-            paddingLeft: 10,
-            paddingRight: 10,
-            paddingBottom: 10,
+            padding: 10,
             width: "100%",
           }}
         >

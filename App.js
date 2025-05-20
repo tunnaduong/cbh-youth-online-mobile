@@ -22,6 +22,8 @@ import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 
 const Stack = createStackNavigator();
 
@@ -120,8 +122,19 @@ function AppNavigator() {
             />
             <Stack.Screen
               name="EditProfileScreen"
-              options={{ title: "Chỉnh sửa trang cá nhân", headerShown: false }}
+              options={{
+                title: "Chỉnh sửa trang cá nhân",
+                headerShown: false,
+                presentation: "transparentModal",
+                animation: "slide_from_bottom",
+                gestureEnabled: false,
+              }}
               component={EditProfileScreen}
+            />
+            <Stack.Screen
+              name="ProfileDetailScreen"
+              component={ProfileDetailScreen}
+              options={{ headerShown: false }}
             />
           </>
         ) : (
@@ -156,7 +169,9 @@ function AppNavigator() {
 const App = () => {
   return (
     <SafeAreaProvider>
-      <AppNavigator />
+      <KeyboardProvider>
+        <AppNavigator />
+      </KeyboardProvider>
     </SafeAreaProvider>
   );
 };

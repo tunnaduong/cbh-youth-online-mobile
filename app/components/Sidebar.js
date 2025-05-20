@@ -16,6 +16,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
 import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
+import FastImage from "react-native-fast-image";
 
 const Sidebar = () => {
   const [username, setUsername] = useState("");
@@ -138,7 +139,7 @@ const Sidebar = () => {
             className="gap-y-2"
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
-            <Image
+            <FastImage
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}
