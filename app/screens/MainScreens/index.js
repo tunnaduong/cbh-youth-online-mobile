@@ -9,6 +9,8 @@ import MenuScreen from "./ForumScreen";
 import SideMenu from "@chakrahq/react-native-side-menu";
 import Sidebar from "../../components/Sidebar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ChatScreen from "./ChatScreen";
+import NotificationScreen from "./NotificationScreen";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
@@ -104,7 +106,7 @@ export default function MainScreens({ navigation }) {
           <Tab.Screen
             name="Forum"
             component={MenuScreen}
-            options={{ title: "Diễn đàn" }}
+            options={{ title: "Diễn đàn", headerShown: false }}
           />
           <Tab.Screen
             name="Create"
@@ -131,16 +133,18 @@ export default function MainScreens({ navigation }) {
           />
           <Tab.Screen
             name="Chat"
-            component={DummyComponent}
+            component={ChatScreen}
             options={{
               title: "Chat",
+              headerShown: false,
             }}
           />
           <Tab.Screen
             name="Notifications"
-            component={DummyComponent}
+            component={NotificationScreen}
             options={{
               title: "Thông báo",
+              headerShown: false,
             }}
           />
         </Tab.Navigator>

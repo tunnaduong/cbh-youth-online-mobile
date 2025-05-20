@@ -200,6 +200,7 @@ const CustomTabBarButton = ({ onPress }) => {
                 alignItems: "center",
                 justifyContent: "center",
               }}
+              onPress={() => navigation.navigate("ReportScreen")}
             >
               <Ionicons
                 name="document-text-outline"

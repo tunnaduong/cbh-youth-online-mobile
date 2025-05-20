@@ -39,9 +39,6 @@ const HomeScreen = ({ navigation, route }) => {
   const [username, setUsername] = React.useState("");
   const { feed, setFeed } = useContext(FeedContext);
   const lottieRef = useRef(null);
-  const bottomSheetRef = useRef(null);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const snapPoints = useMemo(() => ["25%"], []);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -343,7 +340,7 @@ const HomeScreen = ({ navigation, route }) => {
           }}
           ref={lottieRef}
           // progress={refreshing ? undefined : lottieProgress} // Use progress only when not refreshing
-          loop={refreshing}
+          // loop={refreshing}
         />
         <FlatList
           onScroll={handleScroll}

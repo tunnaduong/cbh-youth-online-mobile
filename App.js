@@ -24,6 +24,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
+import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
 
 const Stack = createStackNavigator();
 
@@ -135,6 +136,14 @@ function AppNavigator() {
               name="ProfileDetailScreen"
               component={ProfileDetailScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ReportScreen"
+              component={ReportNavigator}
+              options={{
+                headerShown: false,
+                presentation: "modal",
+              }}
             />
           </>
         ) : (
