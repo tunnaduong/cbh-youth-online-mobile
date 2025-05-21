@@ -212,7 +212,7 @@ const HomeScreen = ({ navigation, route }) => {
       containerStyle={{
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
-        paddingBottom: 50,
+        paddingBottom: 30,
       }}
       indicatorStyle={{
         width: 30,
@@ -528,41 +528,109 @@ const HomeScreen = ({ navigation, route }) => {
 
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
-  const emojis = ["👍", "❤️", "😆", "😮", "😢", "😡", "add"];
+  const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
 
-  const ReplyBar = () => (
-    <View>
-      <SafeAreaView>
-        <View className="flex-row items-center gap-2 justify-center">
-          {emojis.map((emoji) => (
-            <TouchableOpacity key={emoji}>
-              {emoji === "add" ? (
-                <View
-                  className="w-10 h-10 rounded-full justify-center items-center"
-                  style={{ backgroundColor: "rgba(65, 177, 54, 0.35)" }}
-                >
-                  <Ionicons name="add" size={30} color="#fff" />
-                </View>
-              ) : (
-                <Text className="text-[40px]">{emoji}</Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-        <View style={styles.replyBar}>
-          <TextInput
-            placeholder="Chia sẻ cảm nghĩ của bạn..."
-            placeholderTextColor="#aaa"
-            style={styles.input}
+  const FloatingEmoji = ({ emoji, onComplete }) => {
+    const translateY = useRef(new Animated.Value(0)).current;
+    const translateX = useRef(new Animated.Value(0)).current;
+    const scale = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const randomX = (Math.random() - 0.5) * 150; // Increased random range for wider spread
+
+      Animated.parallel([
+        Animated.timing(translateY, {
+          toValue: -300, // Increased travel distance
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateX, {
+          toValue: randomX,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scale, {
+            toValue: 0,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(() => {
+        onComplete();
+      });
+    }, []);
+
+    return (
+      <Animated.Text
+        style={{
+          position: "absolute",
+          fontSize: 80, // Increased font size
+          left: "50%",
+          bottom: 200,
+          marginLeft: -40, // Half of the emoji's approximate width
+          transform: [{ translateY }, { translateX }, { scale }],
+        }}
+      >
+        {emoji}
+      </Animated.Text>
+    );
+  };
+
+  const ReplyBar = () => {
+    const [floatingEmojis, setFloatingEmojis] = useState([]);
+
+    const handleEmojiPress = (emoji) => {
+      if (emoji === "add") return;
+
+      const id = Date.now();
+      setFloatingEmojis((prev) => [...prev, { id, emoji }]);
+    };
+
+    const handleAnimationComplete = (id) => {
+      setFloatingEmojis((prev) => prev.filter((emoji) => emoji.id !== id));
+    };
+
+    return (
+      <View style={{ flex: 1 }}>
+        {floatingEmojis.map(({ id, emoji }) => (
+          <FloatingEmoji
+            key={id}
+            emoji={emoji}
+            onComplete={() => handleAnimationComplete(id)}
           />
-          <TouchableOpacity style={{ position: "absolute", right: 20 }}>
-            <Ionicons name="send" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-      <KeyboardSpacer />
-    </View>
-  );
+        ))}
+        <SafeAreaView>
+          <View className="flex-row items-center gap-2 justify-center">
+            {emojis.map((emoji) => (
+              <TouchableOpacity
+                key={emoji}
+                onPress={() => handleEmojiPress(emoji)}
+              >
+                <Text className="text-[40px]">{emoji}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.replyBar}>
+            <TextInput
+              placeholder="Chia sẻ cảm nghĩ của bạn..."
+              placeholderTextColor="#aaa"
+              style={styles.input}
+            />
+            <TouchableOpacity style={{ position: "absolute", right: 20 }}>
+              <Ionicons name="send" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+        <KeyboardSpacer />
+      </View>
+    );
+  };
 
   return feed == null ? (
     <View
