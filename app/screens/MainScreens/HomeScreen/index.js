@@ -16,6 +16,14 @@ import {
   RefreshControl,
   Animated,
   TouchableOpacity,
+  Pressable,
+  TextInput,
+  StyleSheet,
+  SafeAreaView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Modal,
+  Switch,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getHomePosts, incrementPostView } from "../../../services/api/Api";
@@ -28,6 +36,9 @@ import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import FastImage from "react-native-fast-image";
+import InstagramStories from "@birdwingo/react-native-instagram-stories";
+import KeyboardSpacer from "react-native-keyboard-spacer";
+import ActionSheet from "react-native-actions-sheet";
 
 const HomeScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = React.useState(false);
@@ -39,6 +50,8 @@ const HomeScreen = ({ navigation, route }) => {
   const [username, setUsername] = React.useState("");
   const { feed, setFeed } = useContext(FeedContext);
   const lottieRef = useRef(null);
+  const storyRef = useRef(null);
+  const actionSheetRef = useRef(null);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -187,6 +200,218 @@ const HomeScreen = ({ navigation, route }) => {
     },
   ];
 
+  const handleStoryOptions = () => {
+    storyRef?.current.pause(); // Pause the story timer
+    actionSheetRef.current?.show();
+  };
+
+  const StoryOptionsModal = () => (
+    <ActionSheet
+      zIndex={999999}
+      ref={actionSheetRef}
+      containerStyle={{
+        borderTopLeftRadius: 15,
+        borderTopRightRadius: 15,
+        paddingBottom: 50,
+      }}
+      indicatorStyle={{
+        width: 30,
+        height: 4,
+        backgroundColor: "#404040",
+        marginTop: 10,
+      }}
+      onClose={() => {
+        storyRef?.current.resume(); // Resume story timer when sheet closes
+      }}
+      gestureEnabled={true}
+    >
+      <View className="py-2">
+        <View className="flex-row items-center justify-between py-4 mx-5 border-b border-gray-100">
+          <View className="flex-row items-center">
+            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+              <Ionicons
+                name="notifications-outline"
+                size={23}
+                color="#7F7F7F"
+              />
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={{ fontSize: 17 }}>Nhận tin của người này</Text>
+              <Text className="text-gray-500 text-sm">
+                Bật hoặc tắt tin mới của người này
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={false}
+            onValueChange={(value) => {
+              actionSheetRef.current?.hide();
+              Toast.show({
+                type: "info",
+                text1: value ? "Đã bật thông báo" : "Đã tắt thông báo",
+                text2: value
+                  ? "Bạn sẽ nhận được thông báo từ người này"
+                  : "Bạn sẽ không nhận được thông báo từ người này",
+              });
+            }}
+            trackColor={{ false: "#767577", true: "#319527" }}
+          />
+        </View>
+
+        <TouchableOpacity
+          onPress={() => {
+            actionSheetRef.current?.hide();
+            Toast.show({
+              type: "info",
+              text1: "Chia sẻ",
+              text2: "Đã sao chép liên kết.",
+            });
+          }}
+        >
+          <View className="flex-row items-center py-4 mx-5 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+              <Ionicons name="link-outline" size={23} color="#7F7F7F" />
+            </View>
+            <Text style={{ marginLeft: 12, fontSize: 17 }}>
+              Sao chép liên kết để chia sẻ
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            actionSheetRef.current?.hide();
+            Toast.show({
+              type: "info",
+              text1: "Đã gửi báo cáo!",
+              text2: "Cảm ơn bạn đã báo cáo nội dung này.",
+            });
+          }}
+        >
+          <View className="flex-row items-center py-4 mx-5 border-b border-gray-100">
+            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+              <Ionicons name="warning-outline" size={23} color="#7F7F7F" />
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={{ fontSize: 17 }}>Báo cáo tin</Text>
+              <Text className="text-gray-500 text-sm">
+                Tin này chứa nội dung không phù hợp
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            actionSheetRef.current?.hide();
+            Toast.show({
+              type: "info",
+              text1: "Bỏ theo dõi",
+              text2: "Bạn đã bỏ theo dõi người này.",
+            });
+          }}
+        >
+          <View className="flex-row items-center py-4 mx-5">
+            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+              <Ionicons name="close-outline" size={23} />
+            </View>
+            <Text style={{ marginLeft: 12, fontSize: 17 }}>
+              Bỏ theo dõi người này
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </ActionSheet>
+  );
+
+  const StoryHeader = () => {
+    return (
+      <View className="flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <FastImage
+            source={{
+              uri: "https://api.chuyenbienhoa.com/v1.0/users/Admin/avatar",
+            }}
+            style={{
+              width: 35,
+              height: 35,
+              borderRadius: 40,
+              borderWidth: 1.5,
+              borderColor: "#fff",
+            }}
+          />
+          <Text
+            className="text-white text-sm font-semibold"
+            style={{
+              textShadowColor: "rgba(0, 0, 0, 0.8)",
+              textShadowOffset: { width: 0, height: 0 },
+              textShadowRadius: 1.5,
+            }}
+          >
+            CBH Youth Online
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-2">
+          <TouchableOpacity onPress={handleStoryOptions}>
+            <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => storyRef?.current.hide()}>
+            <Ionicons name="close" size={24} color="#c4c4c4" />
+          </TouchableOpacity>
+        </View>
+        <StoryOptionsModal />
+        <Toast topOffset={-30} />
+      </View>
+    );
+  };
+
+  const storiesData = [
+    {
+      id: "Admin",
+      name: "CBH Youth Online",
+      avatarSource: {
+        uri: "https://api.chuyenbienhoa.com/v1.0/users/Admin/avatar",
+      }, // not shown, optional
+      renderStoryHeader: () => <StoryHeader />,
+      stories: [
+        {
+          id: "story1",
+          source: {
+            uri: "https://api.chuyenbienhoa.com/storage/images/1747810245_story.jpg",
+          },
+          renderFooter: () => <ReplyBar />,
+        },
+        {
+          id: "story2",
+          source: {
+            uri: "https://api.chuyenbienhoa.com/storage/images/1747817059_Facebook post identity (1).jpg",
+          },
+          renderFooter: () => <ReplyBar />,
+        },
+      ],
+    },
+    {
+      id: "customUser2",
+      name: "Custom Name 2",
+      avatarSource: { uri: "https://picsum.photos/200/200" }, // not shown, optional
+      stories: [
+        {
+          id: "story1",
+          source: { uri: "https://picsum.photos/600/800" },
+        },
+        {
+          id: "story2",
+          source: { uri: "https://picsum.photos/500/700" },
+        },
+      ],
+    },
+  ];
+
+  const handleOpenStory = () => {
+    storyRef.current?.show("Admin");
+    // actionSheetRef.current?.show();
+  };
+
   const ListHeader = () => {
     return (
       <>
@@ -219,61 +444,60 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
           </View>
           {stories.map((story) => (
-            <View
-              key={story.id}
-              className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]"
-            >
-              {/* Story Image */}
-              {typeof story.image === "string" ? (
-                <Image
-                  source={{ uri: story.image }}
-                  style={{ width: 100, height: 160 }}
-                />
-              ) : (
-                <Image
-                  source={story.image}
-                  style={{ width: 100, height: 160 }}
-                />
-              )}
+            <TouchableOpacity key={story.id} onPress={handleOpenStory}>
+              <View className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]">
+                {/* Story Image */}
+                {typeof story.image === "string" ? (
+                  <Image
+                    source={{ uri: story.image }}
+                    style={{ width: 100, height: 160 }}
+                  />
+                ) : (
+                  <Image
+                    source={story.image}
+                    style={{ width: 100, height: 160 }}
+                  />
+                )}
 
-              {/* Avatar */}
-              <View className="absolute top-2 left-2">
-                <View className="rounded-full p-0.5 border-2 border-[#319528]">
-                  <View className="w-6 h-6 rounded-full overflow-hidden">
-                    <Image
-                      source={{ uri: story.avatar }}
-                      style={{ width: 24, height: 24 }}
-                    />
+                {/* Avatar */}
+                <View className="absolute top-2 left-2">
+                  <View className="rounded-full p-0.5 border-2 border-[#319528]">
+                    <View className="w-6 h-6 rounded-full overflow-hidden">
+                      <Image
+                        source={{ uri: story.avatar }}
+                        style={{ width: 24, height: 24 }}
+                      />
+                    </View>
                   </View>
                 </View>
-              </View>
 
-              {/* Gradient + Title */}
-              <View className="absolute bottom-0 left-0 right-0 h-14 justify-end">
-                <LinearGradient
-                  colors={["black", "transparent"]}
-                  start={{ x: 0.5, y: 1 }}
-                  end={{ x: 0.5, y: 0 }}
-                  style={{
-                    position: "absolute",
-                    width: "100%",
-                    height: 130,
-                    bottom: -90,
-                  }}
-                />
-                <Text
-                  numberOfLines={2}
-                  className="text-[13px] font-semibold text-white p-1.5"
-                  style={{
-                    textShadowColor: "rgba(0, 0, 0, 0.8)",
-                    textShadowOffset: { width: 0, height: 0 },
-                    textShadowRadius: 2,
-                  }}
-                >
-                  {story.title}
-                </Text>
+                {/* Gradient + Title */}
+                <View className="absolute bottom-0 left-0 right-0 h-14 justify-end">
+                  <LinearGradient
+                    colors={["black", "transparent"]}
+                    start={{ x: 0.5, y: 1 }}
+                    end={{ x: 0.5, y: 0 }}
+                    style={{
+                      position: "absolute",
+                      width: "100%",
+                      height: 130,
+                      bottom: -90,
+                    }}
+                  />
+                  <Text
+                    numberOfLines={2}
+                    className="text-[13px] font-semibold text-white p-1.5"
+                    style={{
+                      textShadowColor: "rgba(0, 0, 0, 0.8)",
+                      textShadowOffset: { width: 0, height: 0 },
+                      textShadowRadius: 2,
+                    }}
+                  >
+                    {story.title}
+                  </Text>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </>
@@ -303,6 +527,42 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+
+  const emojis = ["👍", "❤️", "😆", "😮", "😢", "😡", "add"];
+
+  const ReplyBar = () => (
+    <View>
+      <SafeAreaView>
+        <View className="flex-row items-center gap-2 justify-center">
+          {emojis.map((emoji) => (
+            <TouchableOpacity key={emoji}>
+              {emoji === "add" ? (
+                <View
+                  className="w-10 h-10 rounded-full justify-center items-center"
+                  style={{ backgroundColor: "rgba(65, 177, 54, 0.35)" }}
+                >
+                  <Ionicons name="add" size={30} color="#fff" />
+                </View>
+              ) : (
+                <Text className="text-[40px]">{emoji}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.replyBar}>
+          <TextInput
+            placeholder="Chia sẻ cảm nghĩ của bạn..."
+            placeholderTextColor="#aaa"
+            style={styles.input}
+          />
+          <TouchableOpacity style={{ position: "absolute", right: 20 }}>
+            <Ionicons name="send" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+      <KeyboardSpacer />
+    </View>
+  );
 
   return feed == null ? (
     <View
@@ -377,9 +637,58 @@ const HomeScreen = ({ navigation, route }) => {
           ListFooterComponent={ListEndLoader}
           ListHeaderComponent={ListHeader}
         />
+
+        <InstagramStories
+          ref={storyRef}
+          stories={storiesData}
+          hideAvatarList={true}
+          showName={false}
+          textStyle={{
+            color: "#fff",
+            textShadowColor: "rgba(0, 0, 0, 0.8)",
+            textShadowOffset: { width: 0, height: 0 },
+            textShadowRadius: 1.5,
+            fontWeight: "600",
+          }}
+          imageStyles={{
+            marginTop: -20, // 👈 move image up by 20px
+          }}
+          progressColor="#c4c4c4"
+          progressActiveColor="#319527"
+          closeIconColor="#c4c4c4"
+          modalAnimationDuration={300}
+          storyAnimationDuration={300}
+        />
       </View>
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  replyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  input: {
+    flex: 1,
+    height: 45,
+    backgroundColor: "#666666",
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    color: "#A7A7A7",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    paddingVertical: 10,
+  },
+});
 
 export default HomeScreen;

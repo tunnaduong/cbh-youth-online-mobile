@@ -16,7 +16,7 @@ export const BottomSheetProvider = ({ children }) => {
 
   const showBottomSheet = (sheetContent) => {
     setContent(sheetContent);
-    bottomSheetRef.current?.snapToIndex(0); // or 1
+    bottomSheetRef.current?.snapToIndex(0);
   };
 
   const hideBottomSheet = () => {
@@ -39,7 +39,7 @@ export const BottomSheetProvider = ({ children }) => {
             {...props}
             appearsOnIndex={0}
             disappearsOnIndex={-1}
-            pressBehavior="close" // ← This allows tap outside to dismiss
+            pressBehavior="close"
           />
         )}
       >
