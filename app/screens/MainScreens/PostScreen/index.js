@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef } from "react";
+import React, { useContext, useState, useRef, useLayoutEffect } from "react";
 import {
   View,
   Pressable,
@@ -8,6 +8,9 @@ import {
   ScrollView,
   SafeAreaView,
   Platform,
+  TouchableOpacity,
+  Share,
+  Alert,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import Verified from "../../../assets/Verified";
@@ -15,6 +18,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
+  deletePost,
   getPostDetail,
   savePost,
   unsavePost,
@@ -23,12 +27,12 @@ import {
 } from "../../../services/api/Api";
 import { useHeaderHeight } from "@react-navigation/elements";
 import CommentBar from "../../../components/CommentBar";
-import { TouchableOpacity } from "react-native";
 import { FeedContext } from "../../../contexts/FeedContext";
-import { useNavigation } from "@react-navigation/native";
+// import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ImageView from "react-native-image-viewing";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 
 const styles = StyleSheet.create({
   body: {
@@ -67,8 +71,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const PostScreen = ({ route }) => {
-  const navigation = useNavigation();
+const PostScreen = ({ route, navigation }) => {
   const { item, postId, screenName } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
@@ -85,10 +88,154 @@ const PostScreen = ({ route }) => {
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const insets = useSafeAreaInsets();
   const [visible, setIsVisible] = useState(false);
+  const { showBottomSheet, hideBottomSheet } = useBottomSheet();
+  const isCurrentUser = post?.author?.username === username;
 
   React.useEffect(() => {
     fetchData();
   }, []);
+
+  const handleOpenBottomSheet = () => {
+    showBottomSheet(
+      <>
+        <TouchableOpacity
+          onPress={() => {
+            handleSavePost();
+            hideBottomSheet();
+          }}
+        >
+          <View className="flex-row items-center">
+            <Ionicons
+              name={isSaved ? "bookmark" : "bookmark-outline"}
+              size={23}
+              color={isSaved ? "#000" : undefined}
+            />
+            <Text style={{ padding: 12, fontSize: 17 }}>
+              {isSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => {
+            shareLink(
+              `https://chuyenbienhoa.com/${post.author.username}/posts/${post.id}?source=share`
+            );
+            hideBottomSheet();
+          }}
+        >
+          <View className="flex-row items-center">
+            <Ionicons name="share-outline" size={23} />
+            <Text style={{ padding: 12, fontSize: 17 }}>Chia sẻ</Text>
+          </View>
+        </TouchableOpacity>
+        {isCurrentUser && (
+          <TouchableOpacity onPress={() => console.log("Privacy", post.id)}>
+            <View className="flex-row items-center">
+              <Ionicons name="lock-closed-outline" size={23} />
+              <Text style={{ padding: 12, fontSize: 17 }}>
+                Cài đặt quyền riêng tư
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        {isCurrentUser && (
+          <TouchableOpacity onPress={() => console.log("Privacy", post.id)}>
+            <View className="flex-row items-center">
+              <Ionicons name="create-outline" size={23} />
+              <Text style={{ padding: 12, fontSize: 17 }}>
+                Chỉnh sửa bài đăng
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity onPress={() => console.log("Privacy", post.id)}>
+          <View className="flex-row items-center">
+            <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
+            <Text
+              style={{ padding: 12, fontSize: 17 }}
+              className="text-red-500"
+            >
+              Báo cáo
+            </Text>
+          </View>
+        </TouchableOpacity>
+        {isCurrentUser && (
+          <TouchableOpacity onPress={handleDeletePost}>
+            <View className="flex-row items-center">
+              <Ionicons name="trash-outline" size={23} color={"#ef4444"} />
+              <Text
+                style={{ padding: 12, fontSize: 17 }}
+                className="text-red-500"
+              >
+                Xóa bài viết
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      </>
+    );
+  };
+
+  const shareLink = async (link) => {
+    try {
+      await Share.share({
+        message: link,
+      });
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    Alert.alert(
+      "Xóa bài viết này?",
+      "Bạn có thể chỉnh sửa bài viết này thay vì xóa nó",
+      [
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            await deletePost(post.id);
+            // refresh the post list
+            setFeed((prevPosts) =>
+              prevPosts.filter((post) => post.id !== post.id)
+            );
+            if (screenName)
+              setRecentPostsProfile((prevPosts) =>
+                prevPosts.filter((post) => post.id !== post.id)
+              );
+            hideBottomSheet();
+            navigation.goBack();
+          },
+        },
+        {
+          text: "Chỉnh sửa",
+          style: "default",
+          onPress: () => {
+            navigation.navigate("EditPostScreen", { postId: post.id });
+            hideBottomSheet();
+          },
+        },
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={handleOpenBottomSheet}
+          style={{ marginRight: 16 }}
+        >
+          <Ionicons name="ellipsis-horizontal" size={24} color="#319527" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, isSaved, post]);
 
   const fetchData = async () => {
     try {

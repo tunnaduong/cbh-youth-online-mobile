@@ -130,7 +130,11 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           {renderInfoItem(
             "person-outline",
             "Giới tính",
-            profileData?.gender === "Male" ? "Nam" : "Nữ"
+            profileData?.gender
+              ? profileData.gender === "Male"
+                ? "Nam"
+                : "Nữ"
+              : "Chưa cập nhật"
           )}
           {renderInfoItem("mail-outline", "Email", profileData?.email)}
           {renderInfoItem("time-outline", "Tham gia", profileData?.joined_at)}

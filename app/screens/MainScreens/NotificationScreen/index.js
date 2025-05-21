@@ -222,7 +222,11 @@ export default function NotificationScreen({ navigation }) {
         data={notifications}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 80, backgroundColor: "#fff" }}
+        contentContainerStyle={{
+          paddingBottom: 80,
+          backgroundColor: "#fff",
+          flex: 1,
+        }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         refreshControl={
           <RefreshControl

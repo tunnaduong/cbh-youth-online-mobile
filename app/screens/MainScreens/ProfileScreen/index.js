@@ -29,6 +29,7 @@ import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedContext } from "../../../contexts/FeedContext";
 import FastImage from "react-native-fast-image";
+import Verified from "../../../assets/Verified";
 
 const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -441,6 +442,16 @@ const ProfileScreen = ({ route, navigation }) => {
             <View>
               <Text style={styles.name} numberOfLines={2}>
                 {userData?.profile?.profile_name}
+                {userData?.profile?.verified && (
+                  <View>
+                    <Verified
+                      width={23}
+                      height={23}
+                      color={"#319527"}
+                      style={{ marginBottom: -5 }}
+                    />
+                  </View>
+                )}
               </Text>
               <Text style={styles.username} numberOfLines={1}>
                 @{userData?.username}

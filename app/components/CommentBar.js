@@ -29,6 +29,7 @@ const CommentBar = React.forwardRef(
         <View
           style={{
             padding: 10,
+            paddingBottom: 5,
             width: "100%",
           }}
         >
@@ -50,7 +51,6 @@ const CommentBar = React.forwardRef(
             <View
               style={{
                 backgroundColor: "#DFDEDD",
-                height: 40,
                 borderRadius: 50,
                 padding: 7,
                 paddingLeft: 13,

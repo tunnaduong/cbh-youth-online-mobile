@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AuthContext } from "../../../contexts/AuthContext";
 
 const STEPS = [
   {
@@ -42,6 +43,7 @@ export default function Step3({ navigation, route }) {
   } = route.params;
   const insets = useSafeAreaInsets();
   const isClassViolation = Boolean(cleanliness || uniform);
+  const { userInfo } = useContext(AuthContext);
 
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
@@ -83,6 +85,7 @@ export default function Step3({ navigation, route }) {
     <>
       <InfoItem label="Họ tên học sinh" value={studentName} />
       <InfoItem label="Thời gian báo cáo" value={reportDate} />
+      <InfoItem label="Xung kích báo cáo" value={userInfo.profile_name} />
       <InfoItem label="Lỗi vi phạm" value={violationType || "Chưa chọn"} />
     </>
   );
@@ -91,9 +94,10 @@ export default function Step3({ navigation, route }) {
     <>
       <InfoItem label="Tên lớp" value={studentName} />
       <InfoItem label="Thời gian báo cáo" value={reportDate} />
-      {absences && <InfoItem label="Vắng" value={absences} />}
-      {cleanliness && <InfoItem label="Vệ sinh" value={cleanliness} />}
-      {uniform && <InfoItem label="Đồng phục" value={uniform} />}
+      <InfoItem label="Xung kích báo cáo" value={userInfo.profile_name} />
+      <InfoItem label="Vắng" value={absences || "0"} />
+      <InfoItem label="Vệ sinh" value={cleanliness} />
+      <InfoItem label="Đồng phục" value={uniform} />
       <InfoItem label="Lỗi vi phạm" value={violationType || "Chưa chọn"} />
     </>
   );
@@ -157,7 +161,10 @@ export default function Step3({ navigation, route }) {
         style={styles.submitButton}
         onPress={() => {
           // TODO: Implement submit logic
-          navigation.navigate("MainScreens");
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Success" }],
+          });
         }}
       >
         <Text style={styles.submitButtonText}>Gửi báo cáo</Text>

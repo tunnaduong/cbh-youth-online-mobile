@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,64 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
+  RefreshControl,
+  Animated,
+  FlatList,
+  Dimensions,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getForumCategories } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
+import LottieView from "lottie-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const { width } = Dimensions.get("window");
+
+const ForumSection = ({ section, navigation }) => (
+  <View style={styles.sectionBox}>
+    <TouchableOpacity>
+      <Text style={styles.sectionTitle}>{section.name}</Text>
+      <View style={styles.sectionStats}>
+        <Text style={styles.statText}>
+          Bài viết: <Text style={styles.statBold}>{section.post_count}</Text>
+        </Text>
+        <Text style={styles.statText}>
+          Bình luận:{" "}
+          <Text style={styles.statBold}>{section.comment_count}</Text>
+        </Text>
+      </View>
+    </TouchableOpacity>
+    <View style={styles.latestBox}>
+      {section.latest_post ? (
+        <>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("PostScreen", {
+                postId: section.latest_post.id,
+              })
+            }
+          >
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <Text style={styles.latestLabel}>Mới nhất</Text>
+              <Text style={styles.latestTime}>
+                {section.latest_post.created_at}
+              </Text>
+            </View>
+            <Text style={styles.latestContent}>
+              <Text style={styles.latestAuthor}>
+                {section.latest_post.user.name}:
+              </Text>{" "}
+              {section.latest_post.title}
+            </Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <Text style={styles.latestLabel}>Chưa có bài viết mới</Text>
+      )}
+    </View>
+  </View>
+);
 
 export default function ForumScreen({ navigation }) {
   const [activeCategory, setActiveCategory] = useState(1);
@@ -19,22 +72,72 @@ export default function ForumScreen({ navigation }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [forumSections, setForumSections] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const lottieRef = useRef(null);
+  const flatListRef = useRef(null);
+  const tabScrollViewRef = useRef(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+  const insets = useSafeAreaInsets();
+
+  const handleTabScroll = (index) => {
+    const tabWidth = 180; // Approximate width of each tab
+    const scrollPosition = Math.max(0, (index + 1) * tabWidth - width);
+    tabScrollViewRef.current?.scrollTo({ x: scrollPosition, animated: true });
+  };
+
+  const handleScroll = (event) => {
+    if (!refreshing) {
+      lottieRef.current?.play();
+    }
+  };
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      const selectedCategory = categories.find(
+        (cat) => cat.id === activeCategory
+      );
+      setForumSections(
+        selectedCategory ? selectedCategory.subforums : categories[0].subforums
+      );
+    }
+  }, [categories, activeCategory]);
 
   const fetchForumData = async () => {
     try {
       const response = await getForumCategories();
       setCategories(response.data);
-      setForumSections(response.data[0].subforums);
       setLoading(false);
     } catch (error) {
       console.log(error);
     }
   };
 
-  const handleActiveCategory = (categoryId) => {
+  const handleActiveCategory = (categoryId, index) => {
     setActiveCategory(categoryId);
-    setForumSections(categories.find((cat) => cat.id === categoryId).subforums);
+    const selectedCategory = categories.find((cat) => cat.id === categoryId);
+    setForumSections(selectedCategory.subforums);
+    flatListRef.current?.scrollToIndex({ index, animated: true });
+    handleTabScroll(index);
   };
+
+  const handlePageChange = (event) => {
+    const newIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    const category = categories[newIndex];
+    if (category) {
+      setActiveCategory(category.id);
+      setForumSections(category.subforums);
+      handleTabScroll(newIndex);
+    }
+  };
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchForumData();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  }, []);
 
   useEffect(() => {
     fetchForumData();
@@ -43,25 +146,8 @@ export default function ForumScreen({ navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginHorizontal: 16,
-            height: 50,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: "bold",
-              color: "#319527",
-              flex: 1,
-            }}
-          >
-            Diễn đàn
-          </Text>
-          {/* Avatar (replace with your user's avatar) */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Diễn đàn</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
@@ -69,13 +155,7 @@ export default function ForumScreen({ navigation }) {
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                borderWidth: 2,
-                borderColor: "#fff",
-              }}
+              style={styles.avatar}
             />
           </TouchableOpacity>
         </View>
@@ -91,26 +171,8 @@ export default function ForumScreen({ navigation }) {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginHorizontal: 16,
-          height: 50,
-        }}
-      >
-        <Text
-          style={{
-            fontSize: 28,
-            fontWeight: "bold",
-            color: "#319527",
-            flex: 1,
-          }}
-        >
-          Diễn đàn
-        </Text>
-        {/* Avatar (replace with your user's avatar) */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Diễn đàn</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate("ProfileScreen", { username })}
         >
@@ -118,27 +180,22 @@ export default function ForumScreen({ navigation }) {
             source={{
               uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
             }}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              borderWidth: 2,
-              borderColor: "#fff",
-            }}
+            style={styles.avatar}
           />
         </TouchableOpacity>
       </View>
-      <View>
-        {/* Category Tabs */}
+
+      <View style={styles.tabContainer}>
         <ScrollView
+          ref={tabScrollViewRef}
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 10, marginBottom: 10, marginHorizontal: 16 }}
+          contentContainerStyle={styles.tabScrollContent}
         >
-          {categories.map((cat) => (
+          {categories.map((cat, index) => (
             <TouchableOpacity
               key={`cat-${cat.id}`}
-              onPress={() => handleActiveCategory(cat.id)}
+              onPress={() => handleActiveCategory(cat.id, index)}
               style={[
                 styles.tab,
                 activeCategory === cat.id && styles.tabActive,
@@ -156,60 +213,113 @@ export default function ForumScreen({ navigation }) {
           ))}
         </ScrollView>
       </View>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 20 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Forum Sections */}
-        <View style={{ marginHorizontal: 16 }}>
-          {forumSections.map((section) => (
-            <View key={section.id} style={styles.sectionBox}>
-              <Text style={styles.sectionTitle}>{section.name}</Text>
-              <View style={styles.sectionStats}>
-                <Text style={styles.statText}>
-                  Bài viết:{" "}
-                  <Text style={styles.statBold}>{section.post_count}</Text>
-                </Text>
-                <Text style={styles.statText}>
-                  Bình luận:{" "}
-                  <Text style={styles.statBold}>{section.comment_count}</Text>
-                </Text>
-              </View>
-              <View style={styles.latestBox}>
-                {section.latest_post ? (
-                  <>
-                    <View style={{ flexDirection: "row", gap: 10 }}>
-                      <Text style={styles.latestLabel}>Mới nhất</Text>
-                      <Text style={styles.latestTime}>
-                        {section.latest_post.created_at}
-                      </Text>
-                    </View>
-                    <Text style={styles.latestContent}>
-                      <Text style={styles.latestAuthor}>
-                        {section.latest_post.user.name}:
-                      </Text>{" "}
-                      {section.latest_post.title}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.latestLabel}>Chưa có bài viết mới</Text>
-                )}
-              </View>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
+
+      <AnimatedLottieView
+        source={require("../../../assets/refresh.json")}
+        style={{
+          width: 40,
+          height: 40,
+          position: "absolute",
+          zIndex: -3,
+          alignSelf: "center",
+          top: 50 + insets.top + 10 + 45,
+        }}
+        ref={lottieRef}
+      />
+
+      <FlatList
+        ref={flatListRef}
+        data={categories}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          {
+            useNativeDriver: false,
+            listener: (event) => {
+              // Sync tab scroll while dragging
+              const offsetX = event.nativeEvent.contentOffset.x;
+              const index = offsetX / width;
+              handleTabScroll(index);
+            },
+          }
+        )}
+        onMomentumScrollEnd={handlePageChange}
+        keyExtractor={(item) => `category-${item.id}`}
+        renderItem={({ item }) => (
+          <View style={{ width }}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{
+                backgroundColor: "white",
+                paddingHorizontal: 16,
+                paddingBottom: 20,
+                paddingTop: 5,
+              }}
+              showsVerticalScrollIndicator={false}
+              onScroll={handleScroll}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  tintColor="transparent"
+                  colors={["transparent"]}
+                  style={{ backgroundColor: "transparent" }}
+                />
+              }
+            >
+              {item.subforums.map((section) => (
+                <ForumSection
+                  key={section.id}
+                  section={section}
+                  navigation={navigation}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    height: 50,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#319527",
+    flex: 1,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  tabContainer: {
+    height: 45,
+    marginTop: 10,
+    // marginBottom: 10,
+  },
+  tabScrollContent: {
+    paddingHorizontal: 16,
+  },
   tab: {
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 8,
     backgroundColor: "#F3FDF1",
     marginRight: 7,
+    height: 35,
+    justifyContent: "center",
   },
   tabActive: {
     backgroundColor: "#C7F0C2",

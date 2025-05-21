@@ -35,6 +35,7 @@ export default function MainScreens({ navigation }) {
       onSliding={setSlideProgress}
       edgeHitWidth={100}
       bounceBackOnOverdraw={false}
+      disableGestures={true}
     >
       <View style={{ flex: 1 }}>
         <View

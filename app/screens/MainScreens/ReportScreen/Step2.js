@@ -1,4 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  memo,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -15,7 +22,13 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DatePicker from "react-native-date-picker";
+import BottomSheet, {
+  BottomSheetBackdrop,
+  BottomSheetTextInput,
+  BottomSheetView,
+} from "@gorhom/bottom-sheet";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 
 const STEPS = [
   {
@@ -58,38 +71,102 @@ const CLEANLINESS_STATUS = ["Sạch sẽ", "Tương đối sạch sẽ", "Bẩn"
 
 const UNIFORM_STATUS = ["Đủ", "Tương đối đủ", "Thiếu"];
 
-const MemoizedSuggestionItem = memo(({ item, onPress }) => (
+const SuggestionItem = ({ item, onPress }) => (
   <TouchableOpacity style={styles.suggestionItem} onPress={() => onPress(item)}>
     <Text style={styles.suggestionText}>{item}</Text>
   </TouchableOpacity>
-));
+);
 
-const MemoizedSelectedTag = memo(({ tag, onRemove }) => (
+const SelectedTag = ({ tag, onRemove }) => (
   <View style={styles.selectedTag}>
     <Text style={styles.selectedTagText}>{tag}</Text>
     <TouchableOpacity onPress={() => onRemove(tag)}>
       <Ionicons name="close-circle" size={18} color="#666" />
     </TouchableOpacity>
   </View>
-));
+);
+
+const TagInput = ({
+  tagInput,
+  onChangeText,
+  selectedTags,
+  onRemoveTag,
+  suggestions,
+  loading,
+  onAddTag,
+}) => (
+  <KeyboardAvoidingView behavior={"padding"} keyboardVerticalOffset={110}>
+    <View style={styles.modalContent}>
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>Thêm vi phạm khác</Text>
+      </View>
+
+      <View style={styles.selectedTagsContainer}>
+        {selectedTags.map((tag) => (
+          <SelectedTag key={tag} tag={tag} onRemove={onRemoveTag} />
+        ))}
+      </View>
+
+      <View style={styles.searchContainer}>
+        <BottomSheetTextInput
+          style={styles.searchInput}
+          placeholder="Nhập để tìm kiếm vi phạm..."
+          value={tagInput}
+          onChangeText={onChangeText}
+          maxLength={100}
+        />
+        {loading && (
+          <ActivityIndicator style={styles.loadingIndicator} color="#319527" />
+        )}
+      </View>
+
+      {suggestions.length > 0 && (
+        <FlatList
+          data={suggestions}
+          keyExtractor={(item) => item}
+          renderItem={({ item }) => (
+            <SuggestionItem item={item} onPress={onAddTag} />
+          )}
+          style={styles.suggestionsList}
+          keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          initialNumToRender={10}
+        />
+      )}
+
+      <TouchableOpacity
+        style={[
+          styles.addCustomButton,
+          { opacity: tagInput.length > 0 ? 1 : 0.5 },
+        ]}
+        disabled={tagInput.length === 0}
+        onPress={() => onAddTag(tagInput)}
+      >
+        <Text style={styles.addCustomButtonText}>Thêm vi phạm mới</Text>
+      </TouchableOpacity>
+    </View>
+  </KeyboardAvoidingView>
+);
 
 export default function Step2({ navigation, route }) {
   const { violationType: selectedViolationType } = route.params;
   const [className, setClassName] = useState("");
   const [studentName, setStudentName] = useState("");
   const [reportDate, setReportDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [openDatePicker, setOpenDatePicker] = useState(false);
   const [violationType, setViolationType] = useState("");
   const [notes, setNotes] = useState("");
   const [absences, setAbsences] = useState("");
   const [cleanliness, setCleanliness] = useState("");
   const [uniform, setUniform] = useState("");
-  const [showTagInput, setShowTagInput] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [selectedTags, setSelectedTags] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
+  const bottomSheetRef = useRef(null);
 
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
@@ -135,90 +212,51 @@ export default function Step2({ navigation, route }) {
     </View>
   );
 
-  const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      setReportDate(selectedDate);
-    }
+  const handleDateChange = (selectedDate) => {
+    setReportDate(selectedDate);
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString("vi-VN", {
+    return date.toLocaleString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
-  const debouncedSearch = useCallback((callback, delay) => {
-    let timeoutId;
-    return (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => callback(...args), delay);
-    };
-  }, []);
+  const handleTextChange = (text) => {
+    setTagInput(text);
 
-  const fetchSuggestions = useCallback(async (query) => {
-    if (!query.trim()) {
+    if (!text.trim()) {
       setSuggestions([]);
       return;
     }
 
-    try {
-      setLoading(true);
-      // TODO: Replace with actual API call
-      // Simulating API delay
-      // await new Promise((resolve) => setTimeout(resolve, 300));
+    // Mock suggestions based on query
+    const mockSuggestions = [
+      "Vi phạm quy định sử dụng điện thoại",
+      "Vi phạm giờ giấc học tập",
+      "Vi phạm nội quy phòng học",
+      "Vi phạm quy định an toàn",
+    ].filter((item) => item.toLowerCase().includes(text.toLowerCase()));
 
-      // Mock suggestions based on query
-      const mockSuggestions = [
-        "Vi phạm quy định sử dụng điện thoại",
-        "Vi phạm giờ giấc học tập",
-        "Vi phạm nội quy phòng học",
-        "Vi phạm quy định an toàn",
-      ].filter((item) => item.toLowerCase().includes(query.toLowerCase()));
+    setSuggestions(mockSuggestions);
+  };
 
-      setSuggestions(mockSuggestions);
-    } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setSuggestions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const handleAddTag = (tag) => {
+    setSelectedTags([tag]); // Only keep one tag
+    setTagInput("");
+    setViolationType(tag);
+    setSuggestions([]);
+    bottomSheetRef.current?.close();
+  };
 
-  const debouncedFetchSuggestions = useMemo(
-    () => debouncedSearch(fetchSuggestions, 300),
-    [debouncedSearch, fetchSuggestions]
-  );
-
-  useEffect(() => {
-    debouncedFetchSuggestions(tagInput);
-  }, [tagInput, debouncedFetchSuggestions]);
-
-  const handleAddTag = useCallback(
-    (tag) => {
-      if (!selectedTags.includes(tag)) {
-        const newTags = [...selectedTags, tag];
-        setSelectedTags(newTags);
-        setTagInput("");
-        setViolationType(newTags.join(", "));
-      }
-    },
-    [selectedTags]
-  );
-
-  const handleRemoveTag = useCallback(
-    (tagToRemove) => {
-      const newTags = selectedTags.filter((tag) => tag !== tagToRemove);
-      setSelectedTags(newTags);
-      setViolationType(newTags.join(", "));
-      if (newTags.length === 0) {
-        setViolationType("");
-      }
-    },
-    [selectedTags]
-  );
+  const handleRemoveTag = (tagToRemove) => {
+    setSelectedTags([]);
+    setViolationType("");
+  };
 
   const renderViolationTypes = () => (
     <View style={styles.inputContainer}>
@@ -239,7 +277,7 @@ export default function Step2({ navigation, route }) {
             ]}
             onPress={() => {
               if (type === "Khác") {
-                setShowTagInput(true);
+                handleShowTagInput();
               } else {
                 setViolationType(type);
                 setSelectedTags([]);
@@ -255,22 +293,33 @@ export default function Step2({ navigation, route }) {
                   : null,
               ]}
             >
-              {type === "Khác" && selectedTags.length > 0
-                ? `Khác (${selectedTags.length})`
-                : type}
+              {type === "Khác" && selectedTags.length > 0 ? `Khác` : type}
             </Text>
           </TouchableOpacity>
         ))}
       </View>
       {selectedTags.length > 0 && (
         <View style={styles.selectedTagsPreview}>
-          {selectedTags.map((tag) => (
-            <View key={tag} style={styles.selectedTagPreviewItem}>
-              <Text style={styles.selectedTagPreviewText}>{tag}</Text>
-            </View>
-          ))}
+          <View style={styles.selectedTagPreviewItem}>
+            <Text style={styles.selectedTagPreviewText}>{selectedTags[0]}</Text>
+          </View>
         </View>
       )}
+    </View>
+  );
+
+  const renderDateInput = () => (
+    <View style={styles.inputContainer}>
+      <Text style={styles.label}>Thời gian báo cáo</Text>
+      <View style={styles.dateInput}>
+        <Ionicons
+          name="calendar-outline"
+          size={20}
+          color="#c4c4c4"
+          style={styles.dateIcon}
+        />
+        <Text style={styles.dateText}>{formatDate(reportDate)}</Text>
+      </View>
     </View>
   );
 
@@ -287,86 +336,52 @@ export default function Step2({ navigation, route }) {
         />
       </View>
 
-      {/* Report Date Input */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Thời gian báo cáo</Text>
-        <TouchableOpacity
-          style={styles.dateInput}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={20}
-            color="#666"
-            style={styles.dateIcon}
-          />
-          <Text style={styles.dateText}>{formatDate(reportDate)}</Text>
-        </TouchableOpacity>
-      </View>
+      {renderDateInput()}
 
       {renderViolationTypes()}
     </>
   );
 
   const renderClassForm = () => (
-    <>
-      {/* Class Name Input */}
+    <View style={styles.formSection}>
+      <Text style={styles.sectionTitle}>Thông tin lớp học</Text>
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Tên lớp</Text>
         <TextInput
           style={styles.input}
-          placeholder="Nhập tên lớp"
           value={className}
           onChangeText={setClassName}
+          placeholder="Nhập tên lớp"
         />
       </View>
 
-      {/* Report Date Input */}
       <View style={styles.inputContainer}>
-        <Text style={styles.label}>Thời gian báo cáo</Text>
-        <TouchableOpacity
-          style={styles.dateInput}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={20}
-            color="#666"
-            style={styles.dateIcon}
-          />
-          <Text style={styles.dateText}>{formatDate(reportDate)}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Absences Input */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>Vắng</Text>
+        <Text style={styles.label}>Số học sinh vắng</Text>
         <TextInput
           style={styles.input}
-          placeholder="Điền số lượng (bỏ trống nếu đầy đủ)"
           value={absences}
           onChangeText={setAbsences}
+          placeholder="0"
           keyboardType="numeric"
         />
       </View>
 
-      {/* Cleanliness Status */}
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Vệ sinh</Text>
-        <View style={styles.violationTypesContainer}>
+        <View style={styles.optionsContainer}>
           {CLEANLINESS_STATUS.map((status) => (
             <TouchableOpacity
               key={status}
               style={[
-                styles.violationTypeChip,
-                cleanliness === status && styles.selectedViolationType,
+                styles.optionButton,
+                cleanliness === status && styles.selectedOption,
               ]}
               onPress={() => setCleanliness(status)}
             >
               <Text
                 style={[
-                  styles.violationTypeText,
-                  cleanliness === status && styles.selectedViolationTypeText,
+                  styles.optionText,
+                  cleanliness === status && styles.selectedOptionText,
                 ]}
               >
                 {status}
@@ -376,23 +391,22 @@ export default function Step2({ navigation, route }) {
         </View>
       </View>
 
-      {/* Uniform Status */}
       <View style={styles.inputContainer}>
         <Text style={styles.label}>Đồng phục</Text>
-        <View style={styles.violationTypesContainer}>
+        <View style={styles.optionsContainer}>
           {UNIFORM_STATUS.map((status) => (
             <TouchableOpacity
               key={status}
               style={[
-                styles.violationTypeChip,
-                uniform === status && styles.selectedViolationType,
+                styles.optionButton,
+                uniform === status && styles.selectedOption,
               ]}
               onPress={() => setUniform(status)}
             >
               <Text
                 style={[
-                  styles.violationTypeText,
-                  uniform === status && styles.selectedViolationTypeText,
+                  styles.optionText,
+                  uniform === status && styles.selectedOptionText,
                 ]}
               >
                 {status}
@@ -403,92 +417,31 @@ export default function Step2({ navigation, route }) {
       </View>
 
       {renderViolationTypes()}
-    </>
+    </View>
   );
 
-  const TagInput = useCallback(
-    () => (
-      <Modal
-        visible={showTagInput}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowTagInput(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Thêm vi phạm khác</Text>
-              <TouchableOpacity onPress={() => setShowTagInput(false)}>
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
+  const handleShowTagInput = () => {
+    bottomSheetRef.current?.snapToIndex(0);
+  };
 
-            <View style={styles.selectedTagsContainer}>
-              {selectedTags.map((tag) => (
-                <MemoizedSelectedTag
-                  key={tag}
-                  tag={tag}
-                  onRemove={handleRemoveTag}
-                />
-              ))}
-            </View>
+  const handleSubmit = () => {
+    navigation.navigate("Step3", {
+      studentName: selectedViolationType === "class" ? className : studentName,
+      reportDate: formatDate(reportDate),
+      violationType: selectedTags[0] || violationType,
+      notes,
+      absences: absences || "0",
+      cleanliness,
+      uniform,
+    });
+  };
 
-            <View style={styles.searchContainer}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Nhập để tìm kiếm vi phạm..."
-                value={tagInput}
-                onChangeText={setTagInput}
-                maxLength={100}
-              />
-              {loading && (
-                <ActivityIndicator
-                  style={styles.loadingIndicator}
-                  color="#319527"
-                />
-              )}
-            </View>
-
-            {suggestions.length > 0 && (
-              <FlatList
-                data={suggestions}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => (
-                  <MemoizedSuggestionItem item={item} onPress={handleAddTag} />
-                )}
-                style={styles.suggestionsList}
-                keyboardShouldPersistTaps="handled"
-                removeClippedSubviews={true}
-                maxToRenderPerBatch={10}
-                windowSize={10}
-                initialNumToRender={10}
-              />
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.addCustomButton,
-                { opacity: tagInput.length > 0 ? 1 : 0.5 },
-              ]}
-              disabled={tagInput.length === 0}
-              onPress={() => handleAddTag(tagInput)}
-            >
-              <Text style={styles.addCustomButtonText}>Thêm vi phạm mới</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    ),
-    [
-      showTagInput,
-      selectedTags,
-      tagInput,
-      loading,
-      suggestions,
-      handleAddTag,
-      handleRemoveTag,
-    ]
-  );
+  const isFormValid = () => {
+    if (selectedViolationType === "class") {
+      return Boolean(className && violationType && cleanliness && uniform);
+    }
+    return Boolean(studentName && violationType);
+  };
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
@@ -553,53 +506,49 @@ export default function Step2({ navigation, route }) {
         </View>
       </ScrollView>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={reportDate}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
-
-      <TagInput />
-
       {/* Continue Button */}
       <TouchableOpacity
         style={[
           styles.continueButton,
           {
-            opacity:
-              selectedViolationType === "class"
-                ? className && violationType
-                : studentName && violationType
-                ? 1
-                : 0.5,
+            opacity: isFormValid() ? 1 : 0.5,
           },
         ]}
-        disabled={
-          selectedViolationType === "class"
-            ? !className || !violationType
-            : !studentName || !violationType
-        }
-        onPress={() => {
-          navigation.navigate("Step3", {
-            studentName:
-              selectedViolationType === "class" ? className : studentName,
-            reportDate: formatDate(reportDate),
-            violationType,
-            notes,
-            ...(selectedViolationType === "class" && {
-              absences,
-              cleanliness,
-              uniform,
-            }),
-          });
-        }}
+        disabled={!isFormValid()}
+        onPress={handleSubmit}
       >
         <Text style={styles.continueButtonText}>Tiếp tục</Text>
         <Ionicons name="arrow-forward" size={24} color="#fff" />
       </TouchableOpacity>
+      <BottomSheet
+        ref={bottomSheetRef}
+        snapPoints={["90%"]}
+        index={-1}
+        enablePanDownToClose
+        keyboardBehavior="interactive"
+        android_keyboardInputMode="adjustResize"
+        backgroundStyle={{ backgroundColor: "#fff" }}
+        backdropComponent={(props) => (
+          <BottomSheetBackdrop
+            {...props}
+            appearsOnIndex={0}
+            disappearsOnIndex={-1}
+            pressBehavior="close"
+          />
+        )}
+      >
+        <BottomSheetView style={{ padding: 16, paddingBottom: 50 }}>
+          <TagInput
+            tagInput={tagInput}
+            onChangeText={handleTextChange}
+            selectedTags={selectedTags}
+            onRemoveTag={handleRemoveTag}
+            suggestions={suggestions}
+            loading={loading}
+            onAddTag={handleAddTag}
+          />
+        </BottomSheetView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -730,7 +679,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 16,
-    color: "#000",
+    color: "#c4c4c4",
   },
   violationTypesContainer: {
     flexDirection: "row",
@@ -785,17 +734,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginRight: 8,
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-end",
-  },
   modalContent: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 16,
-    maxHeight: "80%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -887,5 +830,40 @@ const styles = StyleSheet.create({
   selectedTagPreviewText: {
     fontSize: 14,
     color: "#319527",
+  },
+  formSection: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#319527",
+    marginBottom: 8,
+  },
+  optionsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    gap: 8,
+  },
+  optionButton: {
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  selectedOption: {
+    backgroundColor: "#F3FDF1",
+    borderColor: "#319527",
+  },
+  optionText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  selectedOptionText: {
+    color: "#319527",
+    fontWeight: "500",
   },
 });

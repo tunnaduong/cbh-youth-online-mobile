@@ -25,6 +25,7 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
 import FastImage from "react-native-fast-image";
+import { CommonActions } from "@react-navigation/native";
 
 const CreatePostScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
@@ -119,7 +120,13 @@ const CreatePostScreen = ({ navigation, route }) => {
           ...prevPosts,
         ]);
       }
-      navigation.goBack();
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "MainScreens" }],
+        })
+      );
 
       return response;
     } catch (error) {

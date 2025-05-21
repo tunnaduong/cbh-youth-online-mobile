@@ -294,7 +294,7 @@ const Sidebar = () => {
           <List.Subheader>Thiết lập</List.Subheader>
           <List.Item
             title="Cài đặt"
-            onPress={() => null}
+            onPress={() => navigation.navigate("Settings")}
             left={() => (
               <Ionicons
                 name="settings-outline"
@@ -323,7 +323,7 @@ const Sidebar = () => {
           <List.Subheader>Hỗ trợ</List.Subheader>
           <List.Item
             title="Giới thiệu"
-            onPress={() => null}
+            onPress={() => navigation.navigate("AboutScreen")}
             left={() => (
               <Ionicons
                 name="information-circle-outline"

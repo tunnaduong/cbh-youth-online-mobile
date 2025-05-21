@@ -1,7 +1,13 @@
 import React, { useContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, KeyboardAvoidingView, Platform } from "react-native";
+import {
+  View,
+  Text,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+} from "react-native";
 import { AuthContext } from "./app/contexts/AuthContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
@@ -25,6 +31,9 @@ import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
+import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
+import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
+import { Ionicons } from "@expo/vector-icons";
 
 const Stack = createStackNavigator();
 
@@ -143,6 +152,20 @@ function AppNavigator() {
               options={{
                 headerShown: false,
                 presentation: "modal",
+              }}
+            />
+            <Stack.Screen
+              name="Settings"
+              component={SettingsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="AboutScreen"
+              component={AboutScreen}
+              options={{
+                headerShown: false,
               }}
             />
           </>
