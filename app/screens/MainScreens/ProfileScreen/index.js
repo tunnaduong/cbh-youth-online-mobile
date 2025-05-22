@@ -641,7 +641,10 @@ const ProfileScreen = ({ route, navigation }) => {
           {isCurrentUser && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Hoạt động của bạn</Text>
-              <TouchableOpacity style={styles.option}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("SavedPostsScreen")}
+                style={styles.option}
+              >
                 <Ionicons name="bookmark-outline" size={22} color="#333" />
                 <Text style={styles.optionText}>Bài viết đã lưu</Text>
                 <Ionicons
@@ -651,7 +654,10 @@ const ProfileScreen = ({ route, navigation }) => {
                   style={styles.optionArrow}
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.option}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("LikedPostsScreen")}
+                style={styles.option}
+              >
                 <Ionicons name="heart-outline" size={22} color="#333" />
                 <Text style={styles.optionText}>Bài viết đã thích</Text>
                 <Ionicons
@@ -661,7 +667,10 @@ const ProfileScreen = ({ route, navigation }) => {
                   style={styles.optionArrow}
                 />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.option}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("ActivityScreen")}
+                style={styles.option}
+              >
                 <Ionicons name="time-outline" size={22} color="#333" />
                 <Text style={styles.optionText}>Lịch sử hoạt động</Text>
                 <Ionicons

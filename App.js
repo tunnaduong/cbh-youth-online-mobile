@@ -34,6 +34,9 @@ import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNaviga
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
 import { Ionicons } from "@expo/vector-icons";
+import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
+import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
+import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
 
 const Stack = createStackNavigator();
 
@@ -164,6 +167,27 @@ function AppNavigator() {
             <Stack.Screen
               name="AboutScreen"
               component={AboutScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="SavedPostsScreen"
+              component={SavedPostsScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="ActivityScreen"
+              component={ActivityScreen}
+              options={{
+                headerShown: false,
+              }}
+            />
+            <Stack.Screen
+              name="LikedPostsScreen"
+              component={LikedPostsScreen}
               options={{
                 headerShown: false,
               }}

@@ -114,3 +114,15 @@ export const getOnlineStatus = (username) => {
 export const updateProfile = (username, params) => {
   return Api.putRequest("/v1.0/users/" + username + "/profile", params);
 };
+
+export const getSavedPosts = () => {
+  return Api.getRequest("/v1.0/user/saved-topics");
+};
+
+export const getActivities = () => {
+  return Api.getRequest("/v1.0/activities");
+};
+
+export const getLikedPosts = () => {
+  return Api.getRequest("/v1.0/activities/liked");
+};
