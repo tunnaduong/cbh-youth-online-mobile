@@ -53,7 +53,6 @@ const CreatePostScreen = ({ navigation, route }) => {
     // No permissions request is necessary for launching the image library
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images, // Use ImagePicker.MediaTypeOptions.Images
-      allowsEditing: true,
       quality: 0.7,
     });
 

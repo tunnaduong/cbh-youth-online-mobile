@@ -37,6 +37,7 @@ import { Ionicons } from "@expo/vector-icons";
 import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
+import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
 
 const Stack = createStackNavigator();
 
@@ -192,6 +193,16 @@ function AppNavigator() {
                 headerShown: false,
               }}
             />
+            <Stack.Screen
+              name="CreateStory"
+              component={CreateStoryScreen}
+              options={{
+                headerShown: false,
+                presentation: "transparentModal",
+                animation: "slide_from_bottom",
+                gestureEnabled: false,
+              }}
+            />
           </>
         ) : (
           <>
@@ -237,8 +248,8 @@ export default () => (
     <GestureHandlerRootView>
       <MultiContextProvider>
         <App />
-        <Toast />
       </MultiContextProvider>
+      <Toast topOffset={60} />
     </GestureHandlerRootView>
   </TailwindProvider>
 );

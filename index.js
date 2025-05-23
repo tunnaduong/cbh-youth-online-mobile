@@ -4,6 +4,17 @@ import App from "./App";
 
 import { LogBox } from "react-native";
 
+import {
+  configureReanimatedLogger,
+  ReanimatedLogLevel,
+} from "react-native-reanimated";
+
+// This is the default configuration
+configureReanimatedLogger({
+  level: ReanimatedLogLevel.error,
+  strict: false, // Reanimated runs in strict mode by default
+});
+
 LogBox.ignoreLogs([
   "Warning: Invalid prop `style` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.",
 ]);

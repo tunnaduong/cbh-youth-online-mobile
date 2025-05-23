@@ -126,3 +126,15 @@ export const getActivities = () => {
 export const getLikedPosts = () => {
   return Api.getRequest("/v1.0/activities/liked");
 };
+
+export const getStories = () => {
+  return Api.getRequest("/v1.0/stories");
+};
+
+export const createStory = (formData) => {
+  return Api.postFormDataRequest("/v1.0/stories", formData);
+};
+
+export const deleteStory = (id) => {
+  return Api.deleteRequest("/v1.0/stories/" + id);
+};

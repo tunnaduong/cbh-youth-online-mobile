@@ -186,9 +186,9 @@ export default function NotificationScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
+      <View style={[styles.header, { marginTop: insets.top }]}>
         <Text style={styles.headerTitle}>Thông báo</Text>
         <TouchableOpacity
           style={styles.readAllButton}
@@ -249,7 +249,7 @@ export default function NotificationScreen({ navigation }) {
       />
 
       <ActionMenu />
-    </SafeAreaView>
+    </View>
   );
 }
 

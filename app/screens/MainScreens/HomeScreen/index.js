@@ -24,9 +24,14 @@ import {
   Keyboard,
   Modal,
   Switch,
+  TouchableHighlight,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getHomePosts, incrementPostView } from "../../../services/api/Api";
+import {
+  getHomePosts,
+  getStories,
+  incrementPostView,
+} from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -34,7 +39,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
-import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import FastImage from "react-native-fast-image";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import KeyboardSpacer from "react-native-keyboard-spacer";
@@ -46,12 +50,12 @@ const HomeScreen = ({ navigation, route }) => {
   const [currentPage, setCurrentPage] = React.useState(2);
   const viewedPosts = React.useRef(new Set());
   const flatListRef = React.useRef(null);
-  const { isLoggedIn } = useContext(AuthContext);
-  const [username, setUsername] = React.useState("");
   const { feed, setFeed } = useContext(FeedContext);
   const lottieRef = useRef(null);
   const storyRef = useRef(null);
   const actionSheetRef = useRef(null);
+  const [userStories, setUserStories] = useState([]);
+  const { username, isLoggedIn } = useContext(AuthContext);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -62,16 +66,6 @@ const HomeScreen = ({ navigation, route }) => {
       setCurrentPage(2);
       viewedPosts.current = new Set();
     }
-
-    async function fetchUserInfo() {
-      const userInfo = await AsyncStorage.getItem("user_info");
-      if (userInfo) {
-        const parsedUserInfo = JSON.parse(userInfo);
-        setUsername(parsedUserInfo.username);
-      }
-    }
-
-    fetchUserInfo();
   }, [isLoggedIn]);
 
   const handleFetchFeed = async (page = 1) => {
@@ -179,27 +173,6 @@ const HomeScreen = ({ navigation, route }) => {
     }
   };
 
-  const stories = [
-    {
-      id: 1,
-      title: "CBH Youth Online",
-      image: require("../../../assets/story.jpg"), // local image
-      avatar: "https://api.chuyenbienhoa.com/v1.0/users/Admin/avatar",
-    },
-    {
-      id: 2,
-      title: "Hoàng Phát",
-      image: "https://picsum.photos/100/160", // remote image
-      avatar: "https://api.chuyenbienhoa.com/v1.0/users/hoangphat/avatar",
-    },
-    {
-      id: 3,
-      title: "Dương Tùng Anh",
-      image: "https://picsum.photos/id/10/100/160", // remote image
-      avatar: "https://api.chuyenbienhoa.com/v1.0/users/tunna/avatar",
-    },
-  ];
-
   const handleStoryOptions = () => {
     storyRef?.current.pause(); // Pause the story timer
     actionSheetRef.current?.show();
@@ -207,12 +180,10 @@ const HomeScreen = ({ navigation, route }) => {
 
   const StoryOptionsModal = () => (
     <ActionSheet
-      zIndex={999999}
       ref={actionSheetRef}
       containerStyle={{
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
-        paddingBottom: 30,
       }}
       indicatorStyle={{
         width: 30,
@@ -226,7 +197,7 @@ const HomeScreen = ({ navigation, route }) => {
       gestureEnabled={true}
     >
       <View className="py-2">
-        <View className="flex-row items-center justify-between py-4 mx-5 border-b border-gray-100">
+        <View className="flex-row items-center justify-between py-4 mx-5 border-b border-gray-300">
           <View className="flex-row items-center">
             <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
               <Ionicons
@@ -268,7 +239,7 @@ const HomeScreen = ({ navigation, route }) => {
             });
           }}
         >
-          <View className="flex-row items-center py-4 mx-5 border-b border-gray-100">
+          <View className="flex-row items-center py-4 mx-5 border-b border-gray-300">
             <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
               <Ionicons name="link-outline" size={23} color="#7F7F7F" />
             </View>
@@ -288,7 +259,7 @@ const HomeScreen = ({ navigation, route }) => {
             });
           }}
         >
-          <View className="flex-row items-center py-4 mx-5 border-b border-gray-100">
+          <View className="flex-row items-center py-4 mx-5 border-b border-gray-300">
             <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
               <Ionicons name="warning-outline" size={23} color="#7F7F7F" />
             </View>
@@ -297,6 +268,13 @@ const HomeScreen = ({ navigation, route }) => {
               <Text className="text-gray-500 text-sm">
                 Tin này chứa nội dung không phù hợp
               </Text>
+            </View>
+            <View style={{ marginLeft: "auto" }}>
+              <Ionicons
+                name="chevron-forward-outline"
+                size={23}
+                color="#D1D1D1"
+              />
             </View>
           </View>
         </TouchableOpacity>
@@ -324,92 +302,41 @@ const HomeScreen = ({ navigation, route }) => {
     </ActionSheet>
   );
 
-  const StoryHeader = () => {
-    return (
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
-          <FastImage
-            source={{
-              uri: "https://api.chuyenbienhoa.com/v1.0/users/Admin/avatar",
-            }}
-            style={{
-              width: 35,
-              height: 35,
-              borderRadius: 40,
-              borderWidth: 1.5,
-              borderColor: "#fff",
-            }}
-          />
-          <Text
-            className="text-white text-sm font-semibold"
-            style={{
-              textShadowColor: "rgba(0, 0, 0, 0.8)",
-              textShadowOffset: { width: 0, height: 0 },
-              textShadowRadius: 1.5,
-            }}
-          >
-            CBH Youth Online
-          </Text>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <TouchableOpacity onPress={handleStoryOptions}>
-            <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => storyRef?.current.hide()}>
-            <Ionicons name="close" size={24} color="#c4c4c4" />
-          </TouchableOpacity>
-        </View>
-        <StoryOptionsModal />
-        <Toast topOffset={-30} />
-      </View>
-    );
+  const fetchStories = async () => {
+    try {
+      const response = await getStories();
+      if (response?.data) {
+        const formattedStories = transformStoriesData(response);
+        setUserStories(formattedStories);
+      }
+    } catch (error) {
+      console.error("Error fetching stories:", error);
+    }
   };
 
-  const storiesData = [
-    {
-      id: "Admin",
-      name: "CBH Youth Online",
-      avatarSource: {
-        uri: "https://api.chuyenbienhoa.com/v1.0/users/Admin/avatar",
-      }, // not shown, optional
-      renderStoryHeader: () => <StoryHeader />,
-      stories: [
-        {
-          id: "story1",
-          source: {
-            uri: "https://api.chuyenbienhoa.com/storage/images/1747810245_story.jpg",
-          },
-          renderFooter: () => <ReplyBar />,
-        },
-        {
-          id: "story2",
-          source: {
-            uri: "https://api.chuyenbienhoa.com/storage/images/1747817059_Facebook post identity (1).jpg",
-          },
-          renderFooter: () => <ReplyBar />,
-        },
-      ],
-    },
-    {
-      id: "customUser2",
-      name: "Custom Name 2",
-      avatarSource: { uri: "https://picsum.photos/200/200" }, // not shown, optional
-      stories: [
-        {
-          id: "story1",
-          source: { uri: "https://picsum.photos/600/800" },
-        },
-        {
-          id: "story2",
-          source: { uri: "https://picsum.photos/500/700" },
-        },
-      ],
-    },
-  ];
+  useEffect(() => {
+    fetchStories();
+  }, []);
 
-  const handleOpenStory = () => {
-    storyRef.current?.show("Admin");
-    // actionSheetRef.current?.show();
+  const transformStoriesData = (apiResponse) => {
+    if (!apiResponse?.data) return [];
+
+    return apiResponse.data.data.map((user) => ({
+      uid: user.id,
+      id: user.username,
+      name: user.name,
+      avatarSource: {
+        uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
+      },
+      stories: user.stories.map((story) => ({
+        id: story.id,
+        source: {
+          uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+        },
+        duration: story.duration,
+        renderFooter: () => <ReplyBar />,
+      })),
+    }));
   };
 
   const ListHeader = () => {
@@ -427,44 +354,46 @@ const HomeScreen = ({ navigation, route }) => {
           showsHorizontalScrollIndicator={false}
         >
           {/* Story like Facebook component */}
-          <View className="relative overflow-hidden rounded-2xl bg-gray-200 w-[100px] h-[160px] border border-[#c4c4c4]">
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={{ width: 100, height: 115 }}
-            />
-            <View className="absolute bottom-0 left-0 right-0 bg-[#fafafa] pt-6 pb-2 text-center">
-              <Text className="text-[13px] font-medium text-center">
-                Tạo tin
-              </Text>
+          <TouchableHighlight
+            onPress={() => navigation.navigate("CreateStory")}
+            className="relative overflow-hidden rounded-2xl bg-gray-200 w-[100px] h-[160px] border border-[#c4c4c4]"
+          >
+            <View className="flex-1">
+              <FastImage
+                source={{
+                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+                }}
+                style={{ width: 100, height: 115 }}
+              />
+              <View className="absolute bottom-0 left-0 right-0 bg-[#fafafa] pt-6 pb-2 text-center">
+                <Text className="text-[13px] font-medium text-center">
+                  Tạo tin
+                </Text>
+              </View>
+              <View className="absolute bottom-[28px] left-[31px] bg-[#fafafa] rounded-full">
+                <Ionicons name="add-circle" size={40} color={"#319527"} />
+              </View>
             </View>
-            <View className="absolute bottom-[28px] left-[31px] bg-[#fafafa] rounded-full">
-              <Ionicons name="add-circle" size={40} color={"#319527"} />
-            </View>
-          </View>
-          {stories.map((story) => (
-            <TouchableOpacity key={story.id} onPress={handleOpenStory}>
-              <View className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]">
+          </TouchableHighlight>
+          {userStories.map((user) => (
+            <TouchableHighlight
+              key={user.id}
+              onPress={() => storyRef.current?.show(user.id)}
+              className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]"
+            >
+              <View>
                 {/* Story Image */}
-                {typeof story.image === "string" ? (
-                  <Image
-                    source={{ uri: story.image }}
-                    style={{ width: 100, height: 160 }}
-                  />
-                ) : (
-                  <Image
-                    source={story.image}
-                    style={{ width: 100, height: 160 }}
-                  />
-                )}
+                <Image
+                  source={{ uri: user.stories[0].source.uri }}
+                  style={{ width: 100, height: 160 }}
+                />
 
                 {/* Avatar */}
                 <View className="absolute top-2 left-2">
                   <View className="rounded-full p-0.5 border-2 border-[#319528]">
                     <View className="w-6 h-6 rounded-full overflow-hidden">
                       <Image
-                        source={{ uri: story.avatar }}
+                        source={{ uri: user.avatarSource.uri }}
                         style={{ width: 24, height: 24 }}
                       />
                     </View>
@@ -493,11 +422,11 @@ const HomeScreen = ({ navigation, route }) => {
                       textShadowRadius: 2,
                     }}
                   >
-                    {story.title}
+                    {user.name}
                   </Text>
                 </View>
               </View>
-            </TouchableOpacity>
+            </TouchableHighlight>
           ))}
         </ScrollView>
       </>
@@ -518,6 +447,8 @@ const HomeScreen = ({ navigation, route }) => {
 
     // Play the Lottie animation in a loop
     lottieRef.current?.play();
+
+    fetchStories();
 
     handleFetchFeed().finally(() => {
       setTimeout(() => {
@@ -627,6 +558,7 @@ const HomeScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+        <StoryOptionsModal />
         <KeyboardSpacer />
       </View>
     );
@@ -708,7 +640,7 @@ const HomeScreen = ({ navigation, route }) => {
 
         <InstagramStories
           ref={storyRef}
-          stories={storiesData}
+          stories={userStories}
           hideAvatarList={true}
           showName={false}
           textStyle={{
@@ -719,13 +651,16 @@ const HomeScreen = ({ navigation, route }) => {
             fontWeight: "600",
           }}
           imageStyles={{
-            marginTop: -20, // 👈 move image up by 20px
+            marginTop: -20,
           }}
           progressColor="#c4c4c4"
           progressActiveColor="#319527"
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
+          storyAvatarSize={30}
+          onMore={handleStoryOptions}
+          toast={<Toast topOffset={60} />}
         />
       </View>
     </>

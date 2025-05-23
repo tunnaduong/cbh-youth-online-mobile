@@ -170,8 +170,8 @@ export default function ForumScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
-      <View style={styles.header}>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+      <View style={[styles.header, { marginTop: insets.top }]}>
         <Text style={styles.headerTitle}>Diễn đàn</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate("ProfileScreen", { username })}
@@ -280,7 +280,7 @@ export default function ForumScreen({ navigation }) {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

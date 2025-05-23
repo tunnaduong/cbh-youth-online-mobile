@@ -41,6 +41,16 @@
     "runtimeVersion": "0.7.1",
     "updates": {
       "url": "https://u.expo.dev/172eec8c-8c58-453c-a375-258412496e09"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Cho phép CBH Youth Online truy cập camera của bạn",
+          "microphonePermission": "Cho phép CBH Youth Online truy cập microphone của bạn",
+          "recordAudioAndroid": true
+        }
+      ]
+    ]
   }
 }

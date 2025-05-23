@@ -10,6 +10,7 @@ import {
   TextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Dummy data for conversations
 const DUMMY_CONVERSATIONS = [
@@ -42,6 +43,7 @@ const DUMMY_CONVERSATIONS = [
 export default function ChatScreen({ navigation }) {
   const [conversations, setConversations] = useState(DUMMY_CONVERSATIONS);
   const [search, setSearch] = useState("");
+  const insets = useSafeAreaInsets();
 
   // Filter conversations by name or last message
   const filteredConversations = conversations.filter(
@@ -78,9 +80,9 @@ export default function ChatScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { marginTop: insets.top }]}>
         <Text style={styles.headerTitle}>Tin nhắn</Text>
         <TouchableOpacity
           onPress={() => {
@@ -154,7 +156,7 @@ export default function ChatScreen({ navigation }) {
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
