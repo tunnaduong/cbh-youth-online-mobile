@@ -24,8 +24,8 @@ const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
     <FastImage
       source={{
         uri:
-          item.topic.image_url !== null
-            ? "https://api.chuyenbienhoa.com" + item.topic.image_url
+          item.topic.image_urls.length > 0
+            ? item.topic.image_urls[0]
             : `https://api.chuyenbienhoa.com/users/${item.topic.author.username}/avatar`,
       }}
       className="w-[70px] h-[70px] rounded-lg"
@@ -36,10 +36,14 @@ const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
         {item.topic.title}
       </Text>
       <View className="flex-row items-center mt-1">
-        <Text className="text-gray-500 text-[13px]">
-          Đăng {item.topic.images?.length || 1} ảnh
-        </Text>
-        <Text className="text-gray-500 text-[13px] mx-1">•</Text>
+        {item.topic.image_urls.length > 0 && (
+          <>
+            <Text className="text-gray-500 text-[13px]">
+              Đăng {item.topic.image_urls?.length || 1} ảnh
+            </Text>
+            <Text className="text-gray-500 text-[13px] mx-1">•</Text>
+          </>
+        )}
         <Text className="text-gray-500 text-[13px]">
           {item.topic.author.profile_name}
         </Text>
@@ -169,6 +173,7 @@ const SavedPostsScreen = ({ navigation }) => {
           paddingVertical: 10,
           borderBottomWidth: 1,
           borderBottomColor: "#f0f0f0",
+          height: 50,
         }}
       >
         <TouchableOpacity

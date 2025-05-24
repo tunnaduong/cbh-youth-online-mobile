@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Share,
   Alert,
+  Dimensions,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import Verified from "../../../assets/Verified";
@@ -33,6 +34,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ImageView from "react-native-image-viewing";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
+import FBCollage from "react-native-fb-collage";
 
 const styles = StyleSheet.create({
   body: {
@@ -862,32 +864,25 @@ const PostScreen = ({ route, navigation }) => {
               <Markdown style={styles}>
                 {convertToMarkdownLink(post.content)}
               </Markdown>
-              {post.image_url != null && (
-                <Pressable
-                  onPress={() => {
-                    setIsVisible(true);
-                  }}
-                >
-                  <View className="bg-[#E4EEE3] mt-2">
-                    <Image
-                      source={{
-                        uri: "https://api.chuyenbienhoa.com" + post.image_url,
-                      }}
-                      height={300}
-                      style={{ resizeMode: "contain" }}
-                    />
-                    <ImageView
-                      images={[
-                        {
-                          uri: "https://api.chuyenbienhoa.com" + post.image_url,
-                        },
-                      ]}
-                      imageIndex={0}
-                      visible={visible}
-                      onRequestClose={() => setIsVisible(false)}
-                    />
-                  </View>
-                </Pressable>
+              {post.image_urls.length > 0 && (
+                <View className="bg-[#E4EEE3] mt-2">
+                  <FBCollage
+                    images={post.image_urls}
+                    imageOnPress={(index) => {
+                      setIsVisible(index);
+                    }}
+                    height={350}
+                    width={Dimensions.get("window").width}
+                  />
+                  <ImageView
+                    images={post.image_urls.map((url) => ({
+                      uri: url,
+                    }))}
+                    imageIndex={visible}
+                    visible={visible !== false}
+                    onRequestClose={() => setIsVisible(false)}
+                  />
+                </View>
               )}
               <View
                 style={{

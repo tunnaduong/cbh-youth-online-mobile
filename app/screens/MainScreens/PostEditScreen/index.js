@@ -15,9 +15,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
 import {
-  createPost,
+  updatePost,
   getSubforums,
   uploadFile,
+  getPost,
 } from "../../../services/api/Api";
 import Verified from "../../../assets/Verified";
 import Toast from "react-native-toast-message";
@@ -27,7 +28,7 @@ import * as ImagePicker from "expo-image-picker";
 import FastImage from "react-native-fast-image";
 import { CommonActions } from "@react-navigation/native";
 
-const CreatePostScreen = ({ navigation }) => {
+const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
   const [title, setTitle] = useState("");
   const insets = useSafeAreaInsets();
@@ -42,39 +43,61 @@ const CreatePostScreen = ({ navigation }) => {
   const [viewSelected, setViewSelected] = useState(view[0]);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
-
-  const navigateToPost = (postId) => {
-    if (navigation) {
-      navigation.goBack();
-      setTimeout(() => {
-        navigation.navigate("PostScreen", { postId });
-      }, 0);
-    }
-  };
-
-  const navigateToHelp = (postId) => {
-    if (!navigation) return;
-
-    try {
-      navigation.goBack();
-      // Use a timeout to ensure goBack completes
-      setTimeout(() => {
-        try {
-          navigation.navigate("PostScreen", { postId });
-        } catch (error) {
-          console.log("Navigation error:", error);
-        }
-      }, 100);
-    } catch (error) {
-      console.log("Navigation error:", error);
-    }
-  };
+  const [initialPost, setInitialPost] = useState(null);
 
   useEffect(() => {
-    getSubforums().then((res) => {
-      setSubforums(res.data);
-    });
-  }, []);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [subforumsRes, postRes] = await Promise.all([
+          getSubforums(),
+          getPost(route.params.postId),
+        ]);
+
+        setSubforums(subforumsRes.data);
+        const post = postRes.data;
+        setInitialPost(post);
+
+        // Set initial values
+        setTitle(post.title);
+        setPostContent(post.description);
+        setViewSelected(
+          view.find((v) => v.value === post.visibility) || view[0]
+        );
+        if (post.subforum_id) {
+          setSelected(
+            subforumsRes.data.find((s) => s.value === post.subforum_id)
+          );
+        }
+        if (post.cdn_image_id) {
+          // Convert comma-separated CDN IDs to image URLs
+          const imageUrls = post.cdn_image_id
+            .split(",")
+            .map((id) => `https://api.chuyenbienhoa.com/v1.0/cdn/${id}`);
+          setSelectedImages(imageUrls);
+        }
+      } catch (error) {
+        console.log("Error fetching post:", error);
+        Toast.show({
+          type: "error",
+          text1: "Không thể tải bài viết",
+          text2: "Vui lòng thử lại sau.",
+          autoHide: true,
+          visibilityTime: 3000,
+          topOffset: 60,
+        });
+        navigation.goBack();
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (route.params?.postId) {
+      fetchData();
+    } else {
+      navigation.goBack();
+    }
+  }, [route.params?.postId]);
 
   const pickImage = async () => {
     try {
@@ -109,11 +132,11 @@ const CreatePostScreen = ({ navigation }) => {
     );
   };
 
-  const handlePost = async () => {
+  const handleUpdate = async () => {
     if (title.trim() === "" || postContent.trim() === "") {
       Toast.show({
         type: "error",
-        text1: "Chưa thể đăng bài viết",
+        text1: "Chưa thể cập nhật bài viết",
         text2: "Vui lòng nhập tiêu đề và nội dung bài viết.",
         autoHide: true,
         visibilityTime: 5000,
@@ -126,73 +149,68 @@ const CreatePostScreen = ({ navigation }) => {
       setLoading(true);
       let cdnIds = [];
 
-      if (selectedImages.length > 0) {
-        // Upload all images
-        for (const imageUri of selectedImages) {
-          const formData = new FormData();
-          const fileExtension = imageUri.split(".").pop();
-          let mimeType = "image/jpeg";
-          if (fileExtension === "png") {
-            mimeType = "image/png";
-          } else if (fileExtension === "gif") {
-            mimeType = "image/gif";
-          }
-
-          formData.append("uid", userInfo.id);
-          formData.append("file", {
-            uri: imageUri,
-            name: `image.${fileExtension}`,
-            type: mimeType,
-          });
-
-          const uploadResponse = await uploadFile(formData);
-          cdnIds.push(uploadResponse.data.id);
+      // Handle new images that need to be uploaded
+      const newImages = selectedImages.filter(
+        (uri) => !uri.includes("api.chuyenbienhoa.com")
+      );
+      for (const imageUri of newImages) {
+        const formData = new FormData();
+        const fileExtension = imageUri.split(".").pop();
+        let mimeType = "image/jpeg";
+        if (fileExtension === "png") {
+          mimeType = "image/png";
+        } else if (fileExtension === "gif") {
+          mimeType = "image/gif";
         }
+
+        formData.append("uid", userInfo.id);
+        formData.append("file", {
+          uri: imageUri,
+          name: `image.${fileExtension}`,
+          type: mimeType,
+        });
+
+        const uploadResponse = await uploadFile(formData);
+        cdnIds.push(uploadResponse.data.id);
       }
 
-      const response = await createPost({
+      // Get existing CDN IDs from URLs
+      const existingCdnIds = selectedImages
+        .filter((uri) => uri.includes("api.chuyenbienhoa.com"))
+        .map((uri) => uri.split("/").pop());
+
+      // Combine existing and new CDN IDs
+      const allCdnIds = [...existingCdnIds, ...cdnIds];
+
+      const response = await updatePost(route.params.postId, {
         title,
         description: postContent,
-        cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
+        cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         subforum_id: selected?.value ?? null,
         visibility: viewSelected.value,
       });
 
       if (viewSelected.value === 0) {
-        setFeed((prevPosts) => [response.data, ...prevPosts]);
+        setFeed((prevPosts) =>
+          prevPosts.map((post) =>
+            post.id === route.params.postId ? response.data : post
+          )
+        );
       }
 
-      // Use a more defensive approach to navigation
-      if (navigation) {
-        try {
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: "MainScreens" }],
-            })
-          );
-        } catch (navError) {
-          // If reset fails, try simple navigation
-          navigation.navigate("MainScreens");
-        }
-      } else {
-        // If navigation is not available, at least update the feed
-        Toast.show({
-          type: "success",
-          text1: "Đăng bài viết thành công",
-          text2: "Đang tải lại trang...",
-          autoHide: true,
-          visibilityTime: 2000,
-          topOffset: 60,
-        });
-      }
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "MainScreens" }],
+        })
+      );
 
       return response;
     } catch (error) {
-      console.log("Error creating post:", error);
+      console.log("Error updating post:", error);
       Toast.show({
         type: "error",
-        text1: "Chưa thể đăng bài viết",
+        text1: "Chưa thể cập nhật bài viết",
         text2: error?.response?.data?.message || "Vui lòng thử lại sau.",
         autoHide: true,
         visibilityTime: 5000,
@@ -203,10 +221,35 @@ const CreatePostScreen = ({ navigation }) => {
     }
   };
 
+  const navigateToHelp = (postId) => {
+    if (!navigation) return;
+
+    try {
+      navigation.goBack();
+      setTimeout(() => {
+        try {
+          navigation.navigate("PostScreen", { postId });
+        } catch (error) {
+          console.log("Navigation error:", error);
+        }
+      }, 100);
+    } catch (error) {
+      console.log("Navigation error:", error);
+    }
+  };
+
+  if (!initialPost) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ProgressHUD visible={true} />
+      </View>
+    );
+  }
+
   return (
     <>
       <StatusBar barStyle={"default"} />
-      <ProgressHUD loadText="Đang đăng..." visible={loading} />
+      <ProgressHUD loadText="Đang cập nhật..." visible={loading} />
       <View
         style={[
           {
@@ -233,7 +276,7 @@ const CreatePostScreen = ({ navigation }) => {
             color: "#309627",
           }}
         >
-          Tạo bài viết
+          Chỉnh sửa bài viết
         </Text>
         <TouchableOpacity
           style={[
@@ -246,7 +289,7 @@ const CreatePostScreen = ({ navigation }) => {
             },
             Platform.OS === "android" && { paddingVertical: 8 },
           ]}
-          onPress={handlePost}
+          onPress={handleUpdate}
         >
           <Text
             style={{
@@ -256,7 +299,7 @@ const CreatePostScreen = ({ navigation }) => {
               fontWeight: "600",
             }}
           >
-            Đăng
+            Lưu
           </Text>
         </TouchableOpacity>
       </View>
@@ -469,6 +512,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   inputContainer: {
     padding: 5,
     backgroundColor: "#fafafa",
@@ -507,4 +556,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CreatePostScreen;
+export default PostEditScreen;

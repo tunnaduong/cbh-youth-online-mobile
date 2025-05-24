@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Dimensions, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -19,12 +19,28 @@ export default function MainScreens({ navigation }) {
   const [setting, setSetting] = React.useState(false);
   const insets = useSafeAreaInsets();
   const [slideProgress, setSlideProgress] = React.useState(0);
+  const [currentRoute, setCurrentRoute] = useState("Home");
 
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
     const { height } = event.nativeEvent.layout;
     tabBarHeightRef.current = height;
   };
+
+  // Add navigation state listener to track current route
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("state", (e) => {
+      // Get the state of the bottom tab navigator
+      const bottomTabState = e.data.state?.routes?.[0]?.state;
+      if (bottomTabState) {
+        const currentRouteName =
+          bottomTabState.routes[bottomTabState.index].name;
+        setCurrentRoute(currentRouteName);
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
   return (
     <SideMenu
@@ -35,7 +51,7 @@ export default function MainScreens({ navigation }) {
       onSliding={setSlideProgress}
       edgeHitWidth={100}
       bounceBackOnOverdraw={false}
-      disableGestures={true}
+      disableGestures={currentRoute !== "Home"}
     >
       <View style={{ flex: 1 }}>
         <View

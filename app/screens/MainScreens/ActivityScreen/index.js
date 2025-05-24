@@ -6,6 +6,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   SafeAreaView,
+  Image,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getActivities } from "../../../services/api/Api";
@@ -38,6 +39,19 @@ const ActivityItem = ({ item, navigation }) => {
         return <Ionicons name="create" size={20} color="#319527" />;
       case "saved":
         return <Ionicons name="bookmark" size={20} color="#319527" />;
+      case "follow":
+        return <Ionicons name="person" size={20} color="#319527" />;
+      case "story_create":
+        return (
+          <Image
+            source={require("../../../assets/story.png")}
+            style={{ width: 20, height: 20 }}
+          />
+        );
+      case "story_reaction":
+        return <Ionicons name="heart" size={20} color="#319527" />;
+      case "story_view":
+        return <Ionicons name="eye" size={20} color="#319527" />;
       default:
         return <Ionicons name="notifications" size={20} color="#319527" />;
     }
@@ -71,9 +85,15 @@ const ActivityItem = ({ item, navigation }) => {
       case "share":
         return "đã chia sẻ bài viết";
       case "follow":
-        return "đã theo dõi bạn";
+        return `đã theo dõi ${item.following?.profile_name}`;
       case "saved":
         return "đã lưu bài viết";
+      case "story_create":
+        return "đã đăng tin mới";
+      case "story_reaction":
+        return `đã thích tin của ${item.story?.author?.profile_name}`;
+      case "story_view":
+        return `đã xem tin của ${item.story?.author?.profile_name}`;
       default:
         console.warn("Unknown activity type:", item.type);
         return `đã ${item.type}`;
@@ -82,9 +102,18 @@ const ActivityItem = ({ item, navigation }) => {
 
   return (
     <TouchableOpacity
-      onPress={() =>
-        navigation.navigate("PostScreen", { postId: item.topic.id })
-      }
+      onPress={() => {
+        if (item.type === "follow") {
+          navigation.navigate("ProfileScreen", {
+            username: item.following.username,
+          });
+        } else if (item.type === "story_create") {
+        } else if (item.type === "story_reaction") {
+        } else if (item.type === "story_view") {
+        } else {
+          navigation.navigate("PostScreen", { postId: item.topic.id });
+        }
+      }}
       className="flex-row p-4 border-b border-gray-100"
     >
       <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
@@ -94,19 +123,32 @@ const ActivityItem = ({ item, navigation }) => {
         <Text className="text-[15px] leading-5">
           <Text className="font-medium">Bạn</Text> {getActivityText(item)}
         </Text>
-        <Text className="text-[15px] font-medium mt-1 text-gray-900">
-          {item.topic?.title}
-        </Text>
+        {item.topic && (
+          <Text className="text-[15px] font-medium mt-1 text-gray-900">
+            {item.topic?.title}
+          </Text>
+        )}
         <Text className="text-gray-500 text-[13px] mt-0.5">
           {item.updated_at}
         </Text>
       </View>
-      {item.topic?.image_url && (
+      {/* Show post image */}
+      {item.topic?.image_urls.length > 0 && (
         <FastImage
           source={{
-            uri: item.topic.image_url.startsWith("http")
-              ? item.topic.image_url
-              : `https://api.chuyenbienhoa.com${item.topic.image_url}`,
+            uri: item.topic.image_urls[0],
+          }}
+          className="w-[60px] h-[60px] rounded-lg ml-2"
+          resizeMode={FastImage.resizeMode.cover}
+        />
+      )}
+      {/* Show story image */}
+      {item.story?.media_url && (
+        <FastImage
+          source={{
+            uri: item.story.media_url.startsWith("http")
+              ? item.story.media_url
+              : `https://api.chuyenbienhoa.com${item.story.media_url}`,
           }}
           className="w-[60px] h-[60px] rounded-lg ml-2"
           resizeMode={FastImage.resizeMode.cover}
@@ -234,6 +276,7 @@ const ActivityScreen = ({ navigation }) => {
           paddingVertical: 10,
           borderBottomWidth: 1,
           borderBottomColor: "#f0f0f0",
+          height: 50,
         }}
       >
         <TouchableOpacity

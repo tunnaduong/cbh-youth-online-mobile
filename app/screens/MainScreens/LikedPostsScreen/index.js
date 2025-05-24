@@ -25,8 +25,8 @@ const PostItem = ({ item, navigation }) => {
       <FastImage
         source={{
           uri:
-            item.topic.image_url !== null
-              ? "https://api.chuyenbienhoa.com" + item.topic.image_url
+            item.topic.image_urls.length > 0
+              ? item.topic.image_urls[0]
               : `https://api.chuyenbienhoa.com/users/${item.topic.author.username}/avatar`,
         }}
         className="w-[80px] h-[80px] rounded-lg mr-3"
@@ -159,6 +159,7 @@ const LikedPostsScreen = ({ navigation }) => {
           paddingVertical: 10,
           borderBottomWidth: 1,
           borderBottomColor: "#f0f0f0",
+          height: 50,
         }}
       >
         <TouchableOpacity

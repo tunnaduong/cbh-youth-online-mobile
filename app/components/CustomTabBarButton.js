@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import Toast from "react-native-toast-message";
 
 const { width, height } = Dimensions.get("window");
 
@@ -181,6 +182,12 @@ const CustomTabBarButton = ({ onPress }) => {
                 alignItems: "center",
                 justifyContent: "center",
               }}
+              onPress={() =>
+                Toast.show({
+                  type: "info",
+                  text1: "Tính năng đang được phát triển",
+                })
+              }
             >
               <Ionicons name="mic-outline" size={35} color={"#319527"} />
               <Text

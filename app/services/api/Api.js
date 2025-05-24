@@ -138,3 +138,7 @@ export const createStory = (formData) => {
 export const deleteStory = (id) => {
   return Api.deleteRequest("/v1.0/stories/" + id);
 };
+
+export const searchQuery = (query, type = "") => {
+  return Api.getRequest("/v1.0/search?query=" + query + "&type=" + type);
+};

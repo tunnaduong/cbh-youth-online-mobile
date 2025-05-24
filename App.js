@@ -25,6 +25,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
+import PostEditScreen from "./app/screens/MainScreens/PostEditScreen";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
@@ -133,6 +134,15 @@ function AppNavigator() {
                 presentation: "modal",
               }}
               component={CreatePostScreen}
+            />
+            <Stack.Screen
+              name="PostEditScreen"
+              options={{
+                title: "Chỉnh sửa bài viết",
+                headerShown: false,
+                presentation: "modal",
+              }}
+              component={PostEditScreen}
             />
             <Stack.Screen
               name="EditProfileScreen"

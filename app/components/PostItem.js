@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Share,
   Alert,
+  Dimensions,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import Verified from "../assets/Verified";
@@ -22,6 +23,7 @@ import {
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
+import FBCollage from "react-native-fb-collage";
 
 const styles = StyleSheet.create({
   body: {
@@ -332,28 +334,25 @@ const PostItem = ({
             : convertToMarkdownLink(truncatedContent)}
         </Markdown>
       </Pressable>
-      {item.image_url != null && (
-        <Pressable
-          onPress={() => {
-            setIsVisible(true);
-          }}
-        >
-          <View className="bg-[#E4EEE3] mt-2">
-            <Image
-              source={{ uri: "https://api.chuyenbienhoa.com" + item.image_url }}
-              height={300}
-              style={{ resizeMode: "contain" }}
-            />
-            <ImageView
-              images={[
-                { uri: "https://api.chuyenbienhoa.com" + item.image_url },
-              ]}
-              imageIndex={0}
-              visible={visible}
-              onRequestClose={() => setIsVisible(false)}
-            />
-          </View>
-        </Pressable>
+      {item.image_urls.length > 0 && (
+        <View className="bg-[#E4EEE3] mt-2">
+          <FBCollage
+            images={item.image_urls}
+            imageOnPress={(index) => {
+              setIsVisible(index);
+            }}
+            height={350}
+            width={Dimensions.get("window").width}
+          />
+          <ImageView
+            images={item.image_urls.map((url) => ({
+              uri: url,
+            }))}
+            imageIndex={visible}
+            visible={visible !== false}
+            onRequestClose={() => setIsVisible(false)}
+          />
+        </View>
       )}
       <View
         style={{

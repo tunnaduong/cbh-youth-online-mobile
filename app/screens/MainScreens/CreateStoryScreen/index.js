@@ -22,6 +22,8 @@ import {
   Keyboard,
   Platform,
   Linking,
+  ActionSheetIOS,
+  Alert,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -41,9 +43,9 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Slider from "@react-native-community/slider";
 import { captureRef } from "react-native-view-shot";
-import KeyboardSpacer from "react-native-keyboard-spacer";
 import { createStory } from "../../../services/api/Api";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import KeyboardSpacer from "react-native-keyboard-spacer";
 
 const { width, height } = Dimensions.get("window");
 
@@ -210,50 +212,28 @@ const DrawingCanvas = React.forwardRef(
 // Move TextInputArea outside the main component
 const TextInputArea = React.memo(
   ({ text, setText, isTextOnly, placeholder }) => {
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-    useEffect(() => {
-      const keyboardWillShow = Keyboard.addListener("keyboardWillShow", (e) => {
-        if (isTextOnly) {
-          setKeyboardHeight(e.endCoordinates.height);
-        }
-      });
-
-      const keyboardWillHide = Keyboard.addListener("keyboardWillHide", () => {
-        if (isTextOnly) {
-          setKeyboardHeight(0);
-        }
-      });
-
-      return () => {
-        keyboardWillShow.remove();
-        keyboardWillHide.remove();
-      };
-    }, [isTextOnly]);
-
     return (
-      <View
+      <Pressable
+        onPress={() => Keyboard.dismiss()}
         style={[
-          styles.textInputContainer,
           isTextOnly
-            ? [
-                styles.textOnlyCenterContainer,
-                { transform: [{ translateY: -keyboardHeight / 3 }] },
-              ]
-            : null,
+            ? [styles.textOnlyCenterContainer, styles.textInputContainer2]
+            : styles.textInputContainer,
         ]}
       >
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.7)"
-          multiline
-          style={[styles.textInput, isTextOnly ? styles.textOnlyInput : null]}
-          autoFocus
-        />
+        <View>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder={placeholder}
+            placeholderTextColor="rgba(255,255,255,0.7)"
+            multiline
+            style={[styles.textInput, isTextOnly ? styles.textOnlyInput : null]}
+            autoFocus
+          />
+        </View>
         {!isTextOnly && <KeyboardSpacer />}
-      </View>
+      </Pressable>
     );
   }
 );
@@ -362,60 +342,6 @@ const CreateStoryScreen = ({ navigation }) => {
     setViewReady(true);
   }, []);
 
-  const cropToAspectRatio = async (uri) => {
-    try {
-      // Calculate dimensions for 9:16 ratio
-      const screenRatio = height / width;
-      const targetRatio = 16 / 9; // We want 9:16 but we'll work with landscape numbers
-
-      let cropWidth = width;
-      let cropHeight = height;
-
-      // If current ratio is different from target, adjust dimensions
-      if (screenRatio > targetRatio) {
-        // Screen is too tall, adjust height
-        cropHeight = width * targetRatio;
-      } else if (screenRatio < targetRatio) {
-        // Screen is too wide, adjust width
-        cropWidth = height / targetRatio;
-      }
-
-      // Calculate crop region to center the image
-      const originX = (width - cropWidth) / 2;
-      const originY = (height - cropHeight) / 2;
-
-      console.log("Cropping with dimensions:", {
-        originX,
-        originY,
-        width: cropWidth,
-        height: cropHeight,
-      });
-
-      const manipResult = await manipulateAsync(
-        uri,
-        [
-          {
-            crop: {
-              originX,
-              originY,
-              width: cropWidth,
-              height: cropHeight,
-            },
-          },
-        ],
-        {
-          format: SaveFormat.JPEG,
-          compress: 0.8,
-        }
-      );
-
-      return manipResult.uri;
-    } catch (error) {
-      console.error("Error cropping image:", error);
-      throw error;
-    }
-  };
-
   const captureImageWithOverlays = useCallback(async () => {
     try {
       if (!imageWithOverlaysRef.current || !viewReady) {
@@ -492,12 +418,6 @@ const CreateStoryScreen = ({ navigation }) => {
 
         formData.append("privacy", "public");
 
-        console.log("--- FormData Entries ---");
-        for (const [key, value] of formData.entries()) {
-          console.log(`${key}: ${JSON.stringify(value)}`);
-        }
-        console.log("--- FormData Entries ---");
-
         await createStory(formData);
 
         Toast.show({
@@ -530,6 +450,63 @@ const CreateStoryScreen = ({ navigation }) => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleExitIOS = (type) => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [
+          type == "drawing" ? "Bỏ bản vẽ" : "Bỏ tin",
+          "Tiếp tục chỉnh sửa",
+        ],
+        destructiveButtonIndex: 0,
+        userInterfaceStyle: "dark",
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 1) {
+          // cancel action
+        } else if (buttonIndex === 0) {
+          if (type === "drawing") {
+            setIsDrawing(false);
+          } else if (type === "text") {
+            setIsTextOnly(false);
+            setIsEditing(false);
+            setText("");
+          } else if (type === "image") {
+            setSelectedImage(null);
+            setText("");
+            setIsEditing(false);
+          }
+          // navigation.goBack();
+        }
+      }
+    );
+  };
+
+  const handleExitAndroid = (type) => {
+    Alert.alert(
+      "Bạn có chắc chắn muốn thoát không?",
+      "Bạn sẽ mất nội dung đã nhập",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Thoát",
+          onPress: () => {
+            if (type === "drawing") {
+              setIsDrawing(false);
+            } else if (type === "text") {
+              setIsTextOnly(false);
+              setIsEditing(false);
+              setText("");
+            } else if (type === "image") {
+              setSelectedImage(null);
+              setText("");
+              setIsEditing(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleHeaderRightPress = () => {
@@ -786,15 +763,23 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const handleBackPress = useCallback(() => {
     if (isDrawing) {
-      setIsDrawing(false);
+      if (Platform.OS === "ios") {
+        handleExitIOS("drawing");
+      } else {
+        handleExitAndroid("drawing");
+      }
     } else if (isTextOnly) {
-      setIsTextOnly(false);
-      setIsEditing(false);
-      setText("");
+      if (Platform.OS === "ios") {
+        handleExitIOS("text");
+      } else {
+        handleExitAndroid("text");
+      }
     } else if (selectedImage) {
-      setSelectedImage(null);
-      setText("");
-      setIsEditing(false);
+      if (Platform.OS === "ios") {
+        handleExitIOS("image");
+      } else {
+        handleExitAndroid("image");
+      }
     } else {
       navigation.goBack();
     }
@@ -925,8 +910,9 @@ const CreateStoryScreen = ({ navigation }) => {
                       style={[
                         StyleSheet.absoluteFill,
                         styles.gradientContainer,
-                        { justifyContent: "center", alignItems: "center" },
                       ]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
                     >
                       {text && <TextOnlyContent text={text} />}
                     </LinearGradient>
@@ -983,7 +969,7 @@ const CreateStoryScreen = ({ navigation }) => {
                   <BrushSizePicker />
                   <DrawingTools drawingRef={drawingRef} />
                 </View>
-              ) : (
+              ) : !isTextOnly ? (
                 <>
                   <ToolsBar />
                   {isEditing && (
@@ -995,6 +981,15 @@ const CreateStoryScreen = ({ navigation }) => {
                     />
                   )}
                 </>
+              ) : (
+                isEditing && (
+                  <TextInputArea
+                    text={text}
+                    setText={handleTextChange}
+                    isTextOnly={isTextOnly}
+                    placeholder={textInputPlaceholder}
+                  />
+                )
               )}
             </View>
           ) : (
@@ -1089,6 +1084,13 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  textInputContainer2: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
   },
   textInput: {
     color: "#fff",
@@ -1297,7 +1299,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000",
   },
   captureContainer: {
     width: "100%",
@@ -1305,15 +1306,17 @@ const styles = StyleSheet.create({
   },
   captureContentContainer: {
     flex: 1,
-    backgroundColor: "#000",
   },
   gradientContainer: {
     flex: 1,
+    width: "100%",
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
   },
   textOnlyWrapper: {
     width: "100%",
+    height: "100%",
     paddingHorizontal: 20,
     justifyContent: "center",
     alignItems: "center",
