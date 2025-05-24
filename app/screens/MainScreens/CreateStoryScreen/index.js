@@ -430,7 +430,21 @@ const CreateStoryScreen = ({ navigation }) => {
             : "Tin của bạn đã được đăng.",
         });
 
-        navigation.goBack();
+        // Reset navigation stack and go to MainScreens
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: "MainScreens",
+              params: {
+                screen: "Home",
+                params: {
+                  refresh: Date.now(), // Pass a timestamp to ensure the refresh trigger is unique
+                },
+              },
+            },
+          ],
+        });
       } catch (imageError) {
         console.error("Error processing story content:", imageError);
         Toast.show({

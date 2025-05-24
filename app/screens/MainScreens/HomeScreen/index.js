@@ -68,6 +68,13 @@ const HomeScreen = ({ navigation, route }) => {
     }
   }, [isLoggedIn]);
 
+  // Add effect to handle refresh trigger from story creation
+  useEffect(() => {
+    if (route.params?.refresh) {
+      fetchStories();
+    }
+  }, [route.params?.refresh]);
+
   const handleFetchFeed = async (page = 1) => {
     try {
       const response = await getHomePosts(page);
@@ -335,6 +342,7 @@ const HomeScreen = ({ navigation, route }) => {
         },
         duration: story.duration,
         renderFooter: () => <ReplyBar />,
+        date: story.created_at_human,
       })),
     }));
   };
