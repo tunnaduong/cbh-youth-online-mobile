@@ -142,3 +142,7 @@ export const deleteStory = (id) => {
 export const searchQuery = (query, type = "") => {
   return Api.getRequest("/v1.0/search?query=" + query + "&type=" + type);
 };
+
+export const getSubforumPosts = (id) => {
+  return Api.getRequest("/v1.0/forum/subforums/" + id + "/topics");
+};

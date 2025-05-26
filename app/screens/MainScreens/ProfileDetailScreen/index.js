@@ -188,10 +188,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#000",
     marginBottom: 4,
+    textAlign: "center",
   },
   username: {
     fontSize: 16,
     color: "#666",
+    textAlign: "center",
   },
   bioSection: {
     paddingHorizontal: 16,

@@ -210,7 +210,7 @@ export default function NotificationScreen({ navigation }) {
           width: 40,
           height: 40,
           position: "absolute",
-          zIndex: -1,
+          zIndex: 0,
           alignSelf: "center",
           top: 50 + insets.top + 10,
         }}

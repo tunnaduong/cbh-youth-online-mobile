@@ -1,4 +1,10 @@
-import React, { useContext, useState, useRef, useLayoutEffect } from "react";
+import React, {
+  useContext,
+  useState,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+} from "react";
 import {
   View,
   Pressable,
@@ -21,6 +27,7 @@ import {
   commentPost,
   deletePost,
   getPostDetail,
+  incrementPostView,
   savePost,
   unsavePost,
   voteComment,
@@ -96,6 +103,12 @@ const PostScreen = ({ route, navigation }) => {
   React.useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (post) {
+      incrementPostView(post.id);
+    }
+  }, [post]);
 
   const handleOpenBottomSheet = () => {
     showBottomSheet(

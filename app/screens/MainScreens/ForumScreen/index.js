@@ -23,7 +23,11 @@ const { width } = Dimensions.get("window");
 
 const ForumSection = ({ section, navigation }) => (
   <View style={styles.sectionBox}>
-    <TouchableOpacity>
+    <TouchableOpacity
+      onPress={() =>
+        navigation.navigate("CategoryScreen", { categoryId: section.id })
+      }
+    >
       <Text style={styles.sectionTitle}>{section.name}</Text>
       <View style={styles.sectionStats}>
         <Text style={styles.statText}>
@@ -220,7 +224,7 @@ export default function ForumScreen({ navigation }) {
           width: 40,
           height: 40,
           position: "absolute",
-          zIndex: -3,
+          zIndex: 0,
           alignSelf: "center",
           top: 50 + insets.top + 10 + 45,
         }}

@@ -39,6 +39,7 @@ import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
 import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
+import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen";
 
 const Stack = createStackNavigator();
 
@@ -212,6 +213,11 @@ function AppNavigator() {
                 animation: "slide_from_bottom",
                 gestureEnabled: false,
               }}
+            />
+            <Stack.Screen
+              name="CategoryScreen"
+              component={CategoryScreen}
+              options={{ headerShown: false }}
             />
           </>
         ) : (
