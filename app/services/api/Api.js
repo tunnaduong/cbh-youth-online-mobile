@@ -146,3 +146,11 @@ export const searchQuery = (query, type = "") => {
 export const getSubforumPosts = (id) => {
   return Api.getRequest("/v1.0/forum/subforums/" + id + "/topics");
 };
+
+export const getConversations = () => {
+  return Api.getRequest("/v1.0/chat/conversations");
+};
+
+export const getConversationMessages = (id) => {
+  return Api.getRequest("/v1.0/chat/conversations/" + id + "/messages");
+};

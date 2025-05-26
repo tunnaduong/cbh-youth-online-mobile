@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,68 +11,102 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Dummy data for conversations
-const DUMMY_CONVERSATIONS = [
-  {
-    id: "1",
-    name: "Nguyễn Văn A",
-    avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    lastMessage: "Bạn khỏe không?",
-    time: "09:30",
-    unread: 2,
-  },
-  {
-    id: "2",
-    name: "Trần Thị B",
-    avatar: "https://randomuser.me/api/portraits/women/2.jpg",
-    lastMessage: "Cảm ơn bạn nhé!",
-    time: "08:15",
-    unread: 0,
-  },
-  {
-    id: "3",
-    name: "Nhóm học tập",
-    avatar: "https://randomuser.me/api/portraits/men/3.jpg",
-    lastMessage: "Hẹn gặp lại mọi người.",
-    time: "Hôm qua",
-    unread: 1,
-  },
-];
+import { getConversations } from "../../../services/api/Api";
+import Toast from "react-native-toast-message";
+import { storage } from "../../../global/storage";
 
 export default function ChatScreen({ navigation }) {
-  const [conversations, setConversations] = useState(DUMMY_CONVERSATIONS);
+  const [conversations, setConversations] = useState([]);
   const [search, setSearch] = useState("");
   const insets = useSafeAreaInsets();
 
-  // Filter conversations by name or last message
-  const filteredConversations = conversations.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.lastMessage.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    const cached = storage.getString("conversations");
+    if (cached) {
+      setConversations(JSON.parse(cached));
+    }
+
+    // Always fetch in background to sync with server
+    fetchConversations();
+  }, []);
+
+  const fetchConversations = async () => {
+    try {
+      const response = await getConversations();
+      setConversations(response.data);
+      storage.set("conversations", JSON.stringify(response.data));
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không thể tải danh sách tin nhắn. Vui lòng thử lại sau.",
+      });
+    }
+  };
+
+  // Filter conversations by participant name or last message
+  const filteredConversations = conversations.filter((item) => {
+    const participantName =
+      item.type === "private" ? item.participants[0]?.profile_name : item.name;
+    const messageContent = item.latest_message?.content || "";
+
+    const searchLower = search.toLowerCase();
+    return (
+      participantName?.toLowerCase().includes(searchLower) ||
+      messageContent.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const getChatName = (conversation) => {
+    if (conversation.type === "private") {
+      return conversation.participants[0]?.profile_name || "Unknown User";
+    }
+    return conversation.name || "Unnamed Group";
+  };
+
+  const getAvatar = (conversation) => {
+    if (conversation.type === "private") {
+      return conversation.participants[0]?.avatar_url;
+    }
+    // You might want to add a default group avatar here
+    return null;
+  };
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.conversation}
       onPress={() => {
-        // navigation.navigate("ChatDetail", { conversationId: item.id });
+        navigation.navigate("ConversationScreen", {
+          conversationId: item.id,
+          conversation: item,
+        });
       }}
     >
-      <Image source={{ uri: item.avatar }} style={styles.avatar} />
+      <Image
+        source={{
+          uri:
+            getAvatar(item) ||
+            "https://api.chuyenbienhoa.com/v1.0/defaults/avatar",
+        }}
+        style={styles.avatar}
+      />
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>
-          {item.name}
+          {getChatName(item)}
         </Text>
         <Text style={styles.lastMessage} numberOfLines={1}>
-          {item.lastMessage}
+          {item.latest_message?.is_myself ? "Bạn: " : ""}
+          {item.latest_message?.content || "Chưa có tin nhắn nào"}
         </Text>
       </View>
       <View style={styles.meta}>
-        <Text style={styles.time}>{item.time}</Text>
-        {item.unread > 0 && (
+        <Text style={styles.time}>
+          {item.latest_message?.created_at_human || ""}
+        </Text>
+        {item.unread_count > 0 && (
           <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{item.unread}</Text>
+            <Text style={styles.unreadText}>{item.unread_count}</Text>
           </View>
         )}
       </View>
@@ -131,7 +165,7 @@ export default function ChatScreen({ navigation }) {
       {/* Conversation List */}
       <FlatList
         data={filteredConversations}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={{ paddingBottom: 80, flex: 1 }}
         ItemSeparatorComponent={() => (
@@ -151,7 +185,9 @@ export default function ChatScreen({ navigation }) {
               }}
             />
             <Text className="text-center font-light text-gray-500 mt-2">
-              Không tìm thấy cuộc trò chuyện nào...
+              {search
+                ? "Không tìm thấy cuộc trò chuyện nào..."
+                : "Bạn chưa có cuộc trò chuyện nào."}
             </Text>
           </View>
         }
