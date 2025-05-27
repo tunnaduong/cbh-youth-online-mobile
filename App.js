@@ -41,6 +41,7 @@ import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
 import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
 import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen";
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
+import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
 
 const Stack = createStackNavigator();
 
@@ -224,6 +225,16 @@ function AppNavigator() {
               name="ConversationScreen"
               component={ConversationScreen}
               options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="NewConversationScreen"
+              component={NewConversationScreen}
+              options={{
+                headerShown: false,
+                presentation: "transparentModal",
+                animation: "slide_from_bottom",
+                gestureEnabled: false,
+              }}
             />
           </>
         ) : (

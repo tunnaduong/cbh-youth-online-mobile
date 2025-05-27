@@ -165,3 +165,9 @@ export const sendMessage = (id, params) => {
 export const searchChatUsername = (query) => {
   return Api.getRequest("/v1.0/chat/search/users?username=" + query);
 };
+
+export const createConversation = (id) => {
+  return Api.postRequest("/v1.0/chat/conversations", {
+    participant_id: id,
+  });
+};

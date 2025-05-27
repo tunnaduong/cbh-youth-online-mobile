@@ -16,6 +16,15 @@ import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import FastImage from "react-native-fast-image";
 import { useFocusEffect } from "@react-navigation/native";
+import dayjs from "dayjs";
+
+const formatMessageTime = (timestamp) => {
+  if (!timestamp) return "";
+  const messageTime = dayjs(timestamp);
+  const hours = parseInt(messageTime.format("H"));
+  const period = hours < 12 ? "SA" : "CH";
+  return `${messageTime.format("hh:mm")} ${period}`;
+};
 
 export default function ChatScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
@@ -111,7 +120,9 @@ export default function ChatScreen({ navigation }) {
       </View>
       <View style={styles.meta}>
         <Text style={styles.time}>
-          {item.latest_message?.created_at_human || ""}
+          {item.latest_message?.created_at
+            ? formatMessageTime(item.latest_message.created_at)
+            : ""}
         </Text>
         {item.unread_count > 0 && (
           <View style={styles.unreadBadge}>
@@ -129,7 +140,7 @@ export default function ChatScreen({ navigation }) {
         <Text style={styles.headerTitle}>Tin nhắn</Text>
         <TouchableOpacity
           onPress={() => {
-            // navigation.navigate("NewChat");
+            navigation.navigate("NewConversationScreen");
           }}
         >
           <View
