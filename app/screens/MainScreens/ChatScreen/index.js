@@ -14,11 +14,20 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getConversations } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
+import FastImage from "react-native-fast-image";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function ChatScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [search, setSearch] = useState("");
   const insets = useSafeAreaInsets();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Fetch updated data for the profile when the screen comes into focus
+      fetchConversations();
+    }, [])
+  );
 
   useEffect(() => {
     const cached = storage.getString("conversations");
@@ -83,11 +92,11 @@ export default function ChatScreen({ navigation }) {
         });
       }}
     >
-      <Image
+      <FastImage
         source={{
           uri:
             getAvatar(item) ||
-            "https://api.chuyenbienhoa.com/v1.0/defaults/avatar",
+            "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
         }}
         style={styles.avatar}
       />

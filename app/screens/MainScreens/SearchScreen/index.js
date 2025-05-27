@@ -104,12 +104,10 @@ export default function SearchScreen({ navigation }) {
       style={styles.postItem}
       onPress={() => navigation.navigate("PostScreen", { postId: post.id })}
     >
-      {post.image_url && (
+      {post.image_urls && post.image_urls.length > 0 && (
         <FastImage
           source={{
-            uri: post.image_url.startsWith("http")
-              ? post.image_url
-              : `https://api.chuyenbienhoa.com${post.image_url}`,
+            uri: post.image_urls[0],
           }}
           style={styles.postImage}
         />

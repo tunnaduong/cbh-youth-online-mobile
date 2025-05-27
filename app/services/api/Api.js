@@ -154,3 +154,14 @@ export const getConversations = () => {
 export const getConversationMessages = (id) => {
   return Api.getRequest("/v1.0/chat/conversations/" + id + "/messages");
 };
+
+export const sendMessage = (id, params) => {
+  return Api.postRequest(
+    "/v1.0/chat/conversations/" + id + "/messages",
+    params
+  );
+};
+
+export const searchChatUsername = (query) => {
+  return Api.getRequest("/v1.0/chat/search/users?username=" + query);
+};

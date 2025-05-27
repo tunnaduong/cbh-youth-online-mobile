@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -13,20 +13,54 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "react-native-fast-image";
-import { getConversationMessages } from "../../../services/api/Api";
+import {
+  getConversationMessages,
+  sendMessage,
+} from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
+import { storage } from "../../../global/storage";
+import { AuthContext } from "../../../contexts/AuthContext";
+
+const CONVERSATION_CACHE_KEY = "conversation_";
+const CONVERSATION_TIMESTAMP_KEY = "conversation_timestamp_";
+const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 const injectTimeHeaders = (messages) => {
   const result = [];
+  let currentDate = null;
 
   messages.forEach((msg, index) => {
     const prev = messages[index - 1];
     const currTime = dayjs(msg.created_at);
+    const currDate = currTime.startOf("day");
 
+    // Check if we need to add a date header
+    if (!currentDate || !currDate.isSame(currentDate)) {
+      currentDate = currDate;
+      const today = dayjs().startOf("day");
+      const isToday = currDate.isSame(today);
+      const isYesterday = currDate.isSame(today.subtract(1, "day"));
+
+      let dateText;
+      if (isToday) {
+        dateText = "Hôm nay";
+      } else if (isYesterday) {
+        dateText = "Hôm qua";
+      } else {
+        dateText = currDate.format("DD/MM/YYYY");
+      }
+
+      result.push({
+        id: `date-${msg.id}`,
+        type: "date",
+        date: dateText,
+      });
+    }
+
+    // Check if we need to add a time header (for messages more than 5 minutes apart)
     let showTimeHeader = false;
-
     if (!prev) {
       showTimeHeader = true;
     } else {
@@ -59,14 +93,45 @@ const ConversationScreen = ({ navigation, route }) => {
   const [hasMore, setHasMore] = useState(true);
   const inputRef = useRef(null);
   const { conversation, conversationId } = route.params;
+  const [sending, setSending] = useState(false);
+  const { username, profileName } = useContext(AuthContext);
 
   useEffect(() => {
-    fetchMessages();
+    loadInitialMessages();
+    fetchMessages(true);
   }, []);
 
-  const fetchMessages = async (isRefresh = false) => {
+  const getCacheKey = (id) => `${CONVERSATION_CACHE_KEY}_${username}_${id}`;
+  const getTimestampKey = (id) =>
+    `${CONVERSATION_TIMESTAMP_KEY}_${username}_${id}`;
+
+  const loadInitialMessages = async () => {
+    // Try to load from cache first
+    const cachedData = storage.getString(getCacheKey(conversationId));
+    const cachedTimestamp = storage.getNumber(getTimestampKey(conversationId));
+
+    if (cachedData && cachedTimestamp) {
+      const now = Date.now();
+      if (now - cachedTimestamp < CACHE_EXPIRY) {
+        // Cache is still valid
+        const parsedData = JSON.parse(cachedData);
+        const transformed = injectTimeHeaders(parsedData);
+        setMessages(transformed);
+        setPage(2); // Set page to 2 since we loaded the first page from cache
+
+        // Fetch fresh data in background
+        fetchMessages(true, true);
+        return;
+      }
+    }
+
+    // No valid cache, fetch from API
+    fetchMessages(true);
+  };
+
+  const fetchMessages = async (isRefresh = false, isBackground = false) => {
     try {
-      if (isRefresh) {
+      if (isRefresh && !isBackground) {
         setPage(1);
         setHasMore(true);
       }
@@ -77,29 +142,111 @@ const ConversationScreen = ({ navigation, route }) => {
         conversationId,
         isRefresh ? 1 : page
       );
+
       const newMessages = response.data.data;
+
+      if (isRefresh) {
+        // Store in MMKV
+        storage.set(getCacheKey(conversationId), JSON.stringify(newMessages));
+        storage.set(getTimestampKey(conversationId), Date.now());
+      }
+
       const transformed = injectTimeHeaders(newMessages);
-      setMessages(transformed);
-      setHasMore(response.current_page < response.last_page);
-      setPage((prev) => (isRefresh ? 2 : prev + 1));
+
+      if (!isBackground) {
+        setMessages(transformed);
+        setHasMore(response.current_page < response.last_page);
+        setPage((prev) => (isRefresh ? 2 : prev + 1));
+      } else if (
+        JSON.stringify(newMessages) !==
+        storage.getString(getCacheKey(conversationId))
+      ) {
+        // Update UI only if new data is different from cached data
+        setMessages(transformed);
+        setPage(2);
+      }
     } catch (error) {
       console.error("Error fetching messages:", error);
-      Toast.show({
-        type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải tin nhắn. Vui lòng thử lại sau.",
-      });
+      if (!isBackground) {
+        Toast.show({
+          type: "error",
+          text1: "Lỗi",
+          text2: "Không thể tải tin nhắn. Vui lòng thử lại sau.",
+        });
+      }
     } finally {
-      setRefreshing(false);
+      if (!isBackground) {
+        setRefreshing(false);
+      }
     }
   };
 
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchMessages(true);
+  const handleSendMessage = async () => {
+    try {
+      if (!message.trim() || sending) return;
+
+      const trimmedMessage = message.trim();
+      const tempId = Date.now().toString();
+      const optimisticMessage = {
+        id: tempId,
+        content: trimmedMessage,
+        created_at: new Date().toISOString(),
+        created_at_human: "1 giây trước",
+        is_myself: true,
+        type: "message",
+        read_at: null,
+        sender: {
+          username: username,
+          avatar_url: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+          profile_name: profileName || username,
+        },
+      };
+
+      // Clear input immediately
+      setMessage("");
+      // Add optimistic message
+      setMessages((prev) => [...prev, optimisticMessage]);
+
+      setSending(true);
+      const response = await sendMessage(conversationId, {
+        content: trimmedMessage,
+        type: "text",
+      });
+
+      // Replace optimistic message with real one
+      setMessages((prev) => {
+        const newMessages = prev.filter((msg) =>
+          msg.type === "message" ? msg.id !== tempId : true
+        );
+        return [...newMessages, response.data];
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      // Remove optimistic message on error
+      setMessages((prev) =>
+        prev.filter((msg) =>
+          msg.type === "message" ? msg.id !== tempId : true
+        )
+      );
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
+      });
+    } finally {
+      setSending(false);
+    }
   };
 
   const renderMessage = ({ item, index }) => {
+    if (item.type === "date") {
+      return (
+        <View style={styles.dateHeaderContainer}>
+          <Text style={styles.dateHeaderText}>{item.date}</Text>
+        </View>
+      );
+    }
+
     if (item.type === "time") {
       return (
         <View style={styles.timeHeaderContainer}>
@@ -127,7 +274,7 @@ const ConversationScreen = ({ navigation, route }) => {
         >
           {!item.is_myself && isLastInGroup && (
             <FastImage
-              source={{ uri: item.sender.avatar_url }}
+              source={{ uri: item.sender?.avatar_url }}
               style={styles.messageAvatar}
             />
           )}
@@ -144,15 +291,34 @@ const ConversationScreen = ({ navigation, route }) => {
           </View>
         </View>
         {isLastInGroup && (
-          <Text
+          <View
             style={[
-              styles.messageTime,
-              item.is_myself ? styles.myMessageTime : styles.theirMessageTime,
+              styles.messageFooter,
+              item.is_myself
+                ? styles.myMessageFooter
+                : styles.theirMessageFooter,
               !item.is_myself && { marginLeft: 40 },
             ]}
           >
-            {item.created_at_human}
-          </Text>
+            <Text style={styles.messageTime}>{item.created_at_human}</Text>
+            {item.is_myself && (
+              <View style={styles.readStatus}>
+                {item.read_at ? (
+                  <View style={styles.doubleCheck}>
+                    <Ionicons
+                      name="checkmark"
+                      size={12}
+                      color="#319527"
+                      style={styles.checkOverlap}
+                    />
+                    <Ionicons name="checkmark" size={12} color="#319527" />
+                  </View>
+                ) : (
+                  <Ionicons name="checkmark" size={12} color="#888" />
+                )}
+              </View>
+            )}
+          </View>
         )}
       </View>
     );
@@ -195,11 +361,9 @@ const ConversationScreen = ({ navigation, route }) => {
           item.is_myself ? "my" + item.id : "their" + item.id
         }
         contentContainerStyle={styles.messagesList}
-        inverted={false}
+        inverted={true}
         onEndReached={() => !refreshing && fetchMessages()}
         onEndReachedThreshold={0.3}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
       />
 
       {/* Input Bar */}
@@ -222,7 +386,8 @@ const ConversationScreen = ({ navigation, route }) => {
                 styles.sendButton,
                 { backgroundColor: message.trim() ? "#319527" : "#ccc" },
               ]}
-              disabled={!message.trim()}
+              disabled={!message.trim() || sending}
+              onPress={handleSendMessage}
             >
               <Ionicons name="send" size={20} color="#fff" />
             </TouchableOpacity>
@@ -264,6 +429,7 @@ const styles = StyleSheet.create({
   },
   messagesList: {
     padding: 16,
+    flexDirection: "column-reverse",
   },
   messageContainer: {
     flexDirection: "row",
@@ -302,7 +468,6 @@ const styles = StyleSheet.create({
   messageTime: {
     fontSize: 12,
     color: "#888",
-    marginTop: 4,
   },
   myMessageTime: {
     textAlign: "right",
@@ -356,6 +521,46 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
     overflow: "hidden",
+  },
+  dateHeaderContainer: {
+    alignItems: "center",
+    marginVertical: 24,
+    paddingHorizontal: 8,
+  },
+  dateHeaderText: {
+    fontSize: 14,
+    color: "#666",
+    backgroundColor: "#f0f0f0",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    overflow: "hidden",
+    fontWeight: "600",
+  },
+  messageFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  myMessageFooter: {
+    justifyContent: "flex-end",
+    marginRight: 4,
+  },
+  theirMessageFooter: {
+    justifyContent: "flex-start",
+    marginLeft: 4,
+  },
+  readStatus: {
+    marginLeft: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  doubleCheck: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  checkOverlap: {
+    marginRight: -6,
   },
 });
 
