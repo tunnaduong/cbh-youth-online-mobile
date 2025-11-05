@@ -10,7 +10,7 @@ const GOOGLE_CLIENT_ID =
 const FACEBOOK_CLIENT_ID = "585636393835324";
 
 // Redirect URI - sử dụng backend callback URL
-const REDIRECT_URI = "https://api.chuyenbienhoa.com/oauth/callback";
+const REDIRECT_URI = "https://api.chuyenbienhoa.com/v1.0/oauth/callback";
 
 // Google OAuth using Authorization Code flow with PKCE
 export const loginWithGoogle = async () => {
