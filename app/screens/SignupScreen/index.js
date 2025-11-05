@@ -87,9 +87,25 @@ const SignupScreen = ({ navigation }) => {
   };
 
   const handleGoogleSignup = async () => {
+    // Prevent multiple clicks
+    if (loading) {
+      console.log("Google OAuth: Already processing, ignoring duplicate click");
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log("Starting Google OAuth signup...");
       const oauthResult = await loginWithGoogle();
+
+      console.log("Google OAuth result received:", {
+        provider: oauthResult.provider,
+        hasAccessToken: !!oauthResult.accessToken,
+        hasIdToken: !!oauthResult.idToken,
+        hasProfile: !!oauthResult.profile,
+      });
+
+      console.log("Calling backend API with OAuth data...");
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
@@ -97,26 +113,70 @@ const SignupScreen = ({ navigation }) => {
         profile: oauthResult.profile,
       });
 
-      console.log("OAuth signup successful:", response.data);
-      saveToken(response.data.token);
-      saveUserInfo(response.data.user);
-      setIsLoggedIn(true);
+      console.log("Backend API response:", {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        headers: response.headers,
+      });
+
+      if (response.data && response.data.token) {
+        console.log("OAuth signup successful, saving user data...");
+        saveToken(response.data.token);
+        saveUserInfo(response.data.user);
+        setIsLoggedIn(true);
+      } else {
+        console.error(
+          "Backend response missing token or user data:",
+          response.data
+        );
+        throw new Error("Phản hồi từ server không hợp lệ");
+      }
     } catch (error) {
-      console.log("Google OAuth signup failed:", error);
-      Alert.alert(
-        "Đăng ký thất bại",
+      console.error("Google OAuth signup failed - Full error:", {
+        message: error.message,
+        response: error.response,
+        responseData: error.response?.data,
+        responseStatus: error.response?.status,
+        responseHeaders: error.response?.headers,
+        stack: error.stack,
+        error: error,
+      });
+
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
         error.message ||
-          "Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại."
-      );
+        "Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại.";
+
+      Alert.alert("Đăng ký thất bại", errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleFacebookSignup = async () => {
+    // Prevent multiple clicks
+    if (loading) {
+      console.log(
+        "Facebook OAuth: Already processing, ignoring duplicate click"
+      );
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log("Starting Facebook OAuth signup...");
       const oauthResult = await loginWithFacebook();
+
+      console.log("Facebook OAuth result received:", {
+        provider: oauthResult.provider,
+        hasAccessToken: !!oauthResult.accessToken,
+        hasIdToken: !!oauthResult.idToken,
+        hasProfile: !!oauthResult.profile,
+      });
+
+      console.log("Calling backend API with OAuth data...");
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
@@ -124,17 +184,43 @@ const SignupScreen = ({ navigation }) => {
         profile: oauthResult.profile,
       });
 
-      console.log("OAuth signup successful:", response.data);
-      saveToken(response.data.token);
-      saveUserInfo(response.data.user);
-      setIsLoggedIn(true);
+      console.log("Backend API response:", {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        headers: response.headers,
+      });
+
+      if (response.data && response.data.token) {
+        console.log("OAuth signup successful, saving user data...");
+        saveToken(response.data.token);
+        saveUserInfo(response.data.user);
+        setIsLoggedIn(true);
+      } else {
+        console.error(
+          "Backend response missing token or user data:",
+          response.data
+        );
+        throw new Error("Phản hồi từ server không hợp lệ");
+      }
     } catch (error) {
-      console.log("Facebook OAuth signup failed:", error);
-      Alert.alert(
-        "Đăng ký thất bại",
+      console.error("Facebook OAuth signup failed - Full error:", {
+        message: error.message,
+        response: error.response,
+        responseData: error.response?.data,
+        responseStatus: error.response?.status,
+        responseHeaders: error.response?.headers,
+        stack: error.stack,
+        error: error,
+      });
+
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
         error.message ||
-          "Đã xảy ra lỗi khi đăng ký với Facebook. Vui lòng thử lại."
-      );
+        "Đã xảy ra lỗi khi đăng ký với Facebook. Vui lòng thử lại.";
+
+      Alert.alert("Đăng ký thất bại", errorMessage);
     } finally {
       setLoading(false);
     }

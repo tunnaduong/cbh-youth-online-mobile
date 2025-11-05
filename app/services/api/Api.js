@@ -33,9 +33,38 @@ export const signupRequest = (params) => {
 
 export const loginWithOAuth = async (params) => {
   try {
+    console.log("loginWithOAuth: Sending request to backend:", {
+      endpoint: "/v1.0/login/oauth",
+      provider: params.provider,
+      hasAccessToken: !!params.accessToken,
+      hasIdToken: !!params.idToken,
+      hasProfile: !!params.profile,
+      profileId: params.profile?.id,
+      profileEmail: params.profile?.email,
+      profileName: params.profile?.name,
+    });
+
     const response = await Api.postRequest("/v1.0/login/oauth", params);
+
+    console.log("loginWithOAuth: Backend response received:", {
+      status: response.status,
+      statusText: response.statusText,
+      hasData: !!response.data,
+      hasToken: !!response.data?.token,
+      hasUser: !!response.data?.user,
+    });
+
     return response;
   } catch (error) {
+    console.error("loginWithOAuth: Request failed:", {
+      message: error.message,
+      response: error.response,
+      responseData: error.response?.data,
+      responseStatus: error.response?.status,
+      responseHeaders: error.response?.headers,
+      requestConfig: error.config,
+    });
+
     if (error.response && error.response.data && error.response.data.error) {
       throw new Error(error.response.data.error);
     } else if (

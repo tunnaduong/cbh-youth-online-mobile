@@ -7,6 +7,7 @@
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "com.fatties.youth",
     "splash": {
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
