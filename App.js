@@ -1,14 +1,9 @@
 import React, { useContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import {
-  View,
-  Text,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, Platform, StatusBar } from "react-native";
 import { AuthContext } from "./app/contexts/AuthContext";
+import { useStatusBar } from "./app/contexts/StatusBarContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
 import MainScreens from "./app/screens/MainScreens";
@@ -34,7 +29,6 @@ import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
-import { Ionicons } from "@expo/vector-icons";
 import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
@@ -77,199 +71,210 @@ function AppNavigator() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: {
-            height: 50 + insets.top, // Now this will work properly
-            backgroundColor: "#fff",
-          },
-          headerTitleContainerStyle: {
-            paddingVertical: 10,
-          },
-        }}
-      >
-        {isLoggedIn ? (
-          <>
-            <Stack.Screen
-              options={{
-                title: "Trang chính",
-                headerShown: false,
-                gestureEnabled: false,
-                animation: "fade",
-              }}
-              name="MainScreens"
-              component={MainScreens}
-            />
-            <Stack.Screen
-              options={{
-                title: "Tìm kiếm",
-                headerShown: false,
-                gestureEnabled: false,
-                animation: "fade",
-              }}
-              name="SearchScreen"
-              component={SearchScreen}
-            />
-            <Stack.Screen
-              name="PostScreen"
-              options={{
-                title: "Chi tiết bài viết",
-                headerBackButtonDisplayMode: "minimal",
-                headerTintColor: "#319527",
-              }}
-              component={PostScreen}
-            />
-            <Stack.Screen
-              name="ProfileScreen"
-              options={{
-                title: "Trang cá nhân",
-                headerBackButtonDisplayMode: "minimal",
-                headerShown: false,
-              }}
-              component={ProfileScreen}
-            />
-            <Stack.Screen
-              name="CreatePostScreen"
-              options={{
-                title: "Tạo bài viết",
-                headerShown: false,
-                presentation: "modal",
-              }}
-              component={CreatePostScreen}
-            />
-            <Stack.Screen
-              name="PostEditScreen"
-              options={{
-                title: "Chỉnh sửa bài viết",
-                headerShown: false,
-                presentation: "modal",
-              }}
-              component={PostEditScreen}
-            />
-            <Stack.Screen
-              name="EditProfileScreen"
-              options={{
-                title: "Chỉnh sửa trang cá nhân",
-                headerShown: false,
-                presentation: "transparentModal",
-                animation: "slide_from_bottom",
-                gestureEnabled: false,
-              }}
-              component={EditProfileScreen}
-            />
-            <Stack.Screen
-              name="ProfileDetailScreen"
-              component={ProfileDetailScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ReportScreen"
-              component={ReportNavigator}
-              options={{
-                headerShown: false,
-                presentation: "modal",
-              }}
-            />
-            <Stack.Screen
-              name="Settings"
-              component={SettingsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="AboutScreen"
-              component={AboutScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="SavedPostsScreen"
-              component={SavedPostsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="ActivityScreen"
-              component={ActivityScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="LikedPostsScreen"
-              component={LikedPostsScreen}
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="CreateStory"
-              component={CreateStoryScreen}
-              options={{
-                headerShown: false,
-                presentation: "transparentModal",
-                animation: "slide_from_bottom",
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen
-              name="CategoryScreen"
-              component={CategoryScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ConversationScreen"
-              component={ConversationScreen}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="NewConversationScreen"
-              component={NewConversationScreen}
-              options={{
-                headerShown: false,
-                presentation: "transparentModal",
-                animation: "slide_from_bottom",
-                gestureEnabled: false,
-              }}
-            />
-          </>
-        ) : (
-          <>
-            <Stack.Screen
-              name="Welcome"
-              options={{
-                title: "Chào mừng đến với CYO",
-                headerShown: false,
-                animation: "fade",
-              }}
-              component={WelcomeScreen}
-            />
-            <Stack.Screen
-              name="Login"
-              options={{ title: "Đăng nhập", headerShown: false }}
-              component={LoginScreen}
-            />
-            <Stack.Screen
-              name="Signup"
-              options={{ title: "Đăng ký", headerShown: false }}
-              component={SignupScreen}
-            />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <>
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerStyle: {
+              height: 50 + insets.top, // Now this will work properly
+              backgroundColor: "#fff",
+            },
+            headerTitleContainerStyle: {
+              paddingVertical: 10,
+            },
+          }}
+        >
+          {isLoggedIn ? (
+            <>
+              <Stack.Screen
+                options={{
+                  title: "Trang chính",
+                  headerShown: false,
+                  gestureEnabled: false,
+                  animation: "fade",
+                }}
+                name="MainScreens"
+                component={MainScreens}
+              />
+              <Stack.Screen
+                options={{
+                  title: "Tìm kiếm",
+                  headerShown: false,
+                  gestureEnabled: false,
+                  animation: "fade",
+                }}
+                name="SearchScreen"
+                component={SearchScreen}
+              />
+              <Stack.Screen
+                name="PostScreen"
+                options={{
+                  title: "Chi tiết bài viết",
+                  headerBackButtonDisplayMode: "minimal",
+                  headerTintColor: "#319527",
+                }}
+                component={PostScreen}
+              />
+              <Stack.Screen
+                name="ProfileScreen"
+                options={{
+                  title: "Trang cá nhân",
+                  headerBackButtonDisplayMode: "minimal",
+                  headerShown: false,
+                }}
+                component={ProfileScreen}
+              />
+              <Stack.Screen
+                name="CreatePostScreen"
+                options={{
+                  title: "Tạo bài viết",
+                  headerShown: false,
+                  presentation: "modal",
+                }}
+                component={CreatePostScreen}
+              />
+              <Stack.Screen
+                name="PostEditScreen"
+                options={{
+                  title: "Chỉnh sửa bài viết",
+                  headerShown: false,
+                  presentation: "modal",
+                }}
+                component={PostEditScreen}
+              />
+              <Stack.Screen
+                name="EditProfileScreen"
+                options={{
+                  title: "Chỉnh sửa trang cá nhân",
+                  headerShown: false,
+                  presentation: "transparentModal",
+                  animation: "slide_from_bottom",
+                  gestureEnabled: false,
+                }}
+                component={EditProfileScreen}
+              />
+              <Stack.Screen
+                name="ProfileDetailScreen"
+                component={ProfileDetailScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ReportScreen"
+                component={ReportNavigator}
+                options={{
+                  headerShown: false,
+                  presentation: "modal",
+                }}
+              />
+              <Stack.Screen
+                name="Settings"
+                component={SettingsScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="AboutScreen"
+                component={AboutScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="SavedPostsScreen"
+                component={SavedPostsScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="ActivityScreen"
+                component={ActivityScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="LikedPostsScreen"
+                component={LikedPostsScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="CreateStory"
+                component={CreateStoryScreen}
+                options={{
+                  headerShown: false,
+                  presentation: "transparentModal",
+                  animation: "slide_from_bottom",
+                  gestureEnabled: false,
+                }}
+              />
+              <Stack.Screen
+                name="CategoryScreen"
+                component={CategoryScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ConversationScreen"
+                component={ConversationScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="NewConversationScreen"
+                component={NewConversationScreen}
+                options={{
+                  headerShown: false,
+                  presentation: "transparentModal",
+                  animation: "slide_from_bottom",
+                  gestureEnabled: false,
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <Stack.Screen
+                name="Welcome"
+                options={{
+                  title: "Chào mừng đến với CYO",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={WelcomeScreen}
+              />
+              <Stack.Screen
+                name="Login"
+                options={{ title: "Đăng nhập", headerShown: false }}
+                component={LoginScreen}
+              />
+              <Stack.Screen
+                name="Signup"
+                options={{ title: "Đăng ký", headerShown: false }}
+                component={SignupScreen}
+              />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </>
   );
 }
 
 // Main App component with SafeAreaProvider
 const App = () => {
+  const { barStyle, backgroundColor } = useStatusBar();
+
   return (
     <SafeAreaProvider>
       <KeyboardProvider>
+        <StatusBar
+          barStyle={barStyle}
+          backgroundColor={
+            Platform.OS === "android" ? backgroundColor : undefined
+          }
+          translucent={Platform.OS === "android"}
+        />
         <AppNavigator />
       </KeyboardProvider>
     </SafeAreaProvider>

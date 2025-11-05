@@ -17,7 +17,8 @@ import {
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
-import { loginRequest } from "../../services/api/Api";
+import { loginRequest, loginWithOAuth } from "../../services/api/Api";
+import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -50,6 +51,56 @@ const LoginScreen = ({ navigation }) => {
       );
     } finally {
       setLoading(false); // Ensure loading stops even if there's an error
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      const oauthResult = await loginWithGoogle();
+      const response = await loginWithOAuth({
+        provider: oauthResult.provider,
+        accessToken: oauthResult.accessToken,
+        idToken: oauthResult.idToken,
+        profile: oauthResult.profile,
+      });
+
+      console.log("OAuth login successful:", response.data);
+      signIn(response.data.token, response.data.user);
+    } catch (error) {
+      console.log("Google OAuth login failed:", error);
+      Alert.alert(
+        "Đăng nhập thất bại",
+        error.message ||
+          "Đã xảy ra lỗi khi đăng nhập với Google. Vui lòng thử lại."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookLogin = async () => {
+    setLoading(true);
+    try {
+      const oauthResult = await loginWithFacebook();
+      const response = await loginWithOAuth({
+        provider: oauthResult.provider,
+        accessToken: oauthResult.accessToken,
+        idToken: oauthResult.idToken,
+        profile: oauthResult.profile,
+      });
+
+      console.log("OAuth login successful:", response.data);
+      signIn(response.data.token, response.data.user);
+    } catch (error) {
+      console.log("Facebook OAuth login failed:", error);
+      Alert.alert(
+        "Đăng nhập thất bại",
+        error.message ||
+          "Đã xảy ra lỗi khi đăng nhập với Facebook. Vui lòng thử lại."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -136,12 +187,25 @@ const LoginScreen = ({ navigation }) => {
                 <View style={styles.line} />
               </View>
 
-              <TouchableOpacity style={styles.googleButton}>
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={handleGoogleLogin}
+              >
                 <Image
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
                 <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.facebookButton}
+                onPress={handleFacebookLogin}
+              >
+                <Icon name="logo-facebook" size={24} color="#1877F2" />
+                <Text style={styles.facebookButtonText}>
+                  Tiếp tục với Facebook
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -249,6 +313,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   googleButtonText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  facebookButton: {
+    marginTop: -5,
+    height: 48,
+    borderRadius: 38,
+    backgroundColor: "#f5f5f5",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  facebookButtonText: {
     fontSize: 16,
     color: "#666",
   },

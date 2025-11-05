@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "0.7.1",
+    "version": "0.8.2",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,9 +14,9 @@
     "ios": {
       "supportsTablet": true,
       "icon": {
-        "dark": "./app/assets/ios-dark.png",
-        "light": "./app/assets/ios-light.png",
-        "tinted": "./app/assets/ios-tinted.png"
+        "dark": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
+        "light": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
+        "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
       "infoPlist": {

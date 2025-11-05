@@ -18,7 +18,8 @@ import saveUserInfo from "../../utils/saveUserInfo";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
 import CheckBox from "react-native-check-box";
-import { signupRequest } from "../../services/api/Api";
+import { signupRequest, loginWithOAuth } from "../../services/api/Api";
+import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 
 const SignupScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -83,6 +84,60 @@ const SignupScreen = ({ navigation }) => {
       .finally(() => {
         setLoading(false);
       });
+  };
+
+  const handleGoogleSignup = async () => {
+    setLoading(true);
+    try {
+      const oauthResult = await loginWithGoogle();
+      const response = await loginWithOAuth({
+        provider: oauthResult.provider,
+        accessToken: oauthResult.accessToken,
+        idToken: oauthResult.idToken,
+        profile: oauthResult.profile,
+      });
+
+      console.log("OAuth signup successful:", response.data);
+      saveToken(response.data.token);
+      saveUserInfo(response.data.user);
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.log("Google OAuth signup failed:", error);
+      Alert.alert(
+        "Đăng ký thất bại",
+        error.message ||
+          "Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookSignup = async () => {
+    setLoading(true);
+    try {
+      const oauthResult = await loginWithFacebook();
+      const response = await loginWithOAuth({
+        provider: oauthResult.provider,
+        accessToken: oauthResult.accessToken,
+        idToken: oauthResult.idToken,
+        profile: oauthResult.profile,
+      });
+
+      console.log("OAuth signup successful:", response.data);
+      saveToken(response.data.token);
+      saveUserInfo(response.data.user);
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.log("Facebook OAuth signup failed:", error);
+      Alert.alert(
+        "Đăng ký thất bại",
+        error.message ||
+          "Đã xảy ra lỗi khi đăng ký với Facebook. Vui lòng thử lại."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -221,12 +276,25 @@ const SignupScreen = ({ navigation }) => {
                 <View style={styles.orLine} />
               </View>
 
-              <TouchableOpacity style={styles.googleButton}>
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={handleGoogleSignup}
+              >
                 <Image
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
                 <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.facebookButton}
+                onPress={handleFacebookSignup}
+              >
+                <Icon name="logo-facebook" size={24} color="#1877F2" />
+                <Text style={styles.facebookButtonText}>
+                  Tiếp tục với Facebook
+                </Text>
               </TouchableOpacity>
 
               <View style={styles.loginPrompt}>
@@ -349,6 +417,22 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   googleButtonText: {
+    fontSize: 16,
+    color: "#666",
+  },
+  facebookButton: {
+    marginTop: -5,
+    height: 48,
+    borderRadius: 38,
+    backgroundColor: "#f5f5f5",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  facebookButtonText: {
     fontSize: 16,
     color: "#666",
   },

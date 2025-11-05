@@ -35,7 +35,8 @@ const SplashScreen = ({ onFinish }) => {
             autoPlay={false}
             loop={false}
           />
-          <Text style={styles.appName}>CBH Youth Online</Text>
+          <Text style={styles.appName.subheading}>Diễn đàn học sinh</Text>
+          <Text style={styles.appName.heading}>Chuyên Biên Hòa</Text>
         </View>
         <Image
           source={require("../assets/fatties.png")}
@@ -63,10 +64,13 @@ const styles = StyleSheet.create({
     height: 200,
   },
   appName: {
-    marginTop: 20,
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#319527",
+    heading: { fontSize: 24.5, fontWeight: "bold", color: "#319527" },
+    subheading: {
+      marginTop: 20,
+      fontSize: 24,
+      fontWeight: "300",
+      color: "#319527",
+    },
   },
 });
 

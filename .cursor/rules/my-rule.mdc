@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+# NEVER RUN `npx expo prebuild --clean` and `npx expo run:android` or `npx expo run:ios` without my permission!!!
