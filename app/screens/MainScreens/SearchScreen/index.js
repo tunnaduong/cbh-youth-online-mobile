@@ -181,30 +181,32 @@ export default function SearchScreen({ navigation }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={{ flex: 1 }}>
-        <View style={styles.topBar}>
-          <TouchableHighlight
-            style={styles.backButton}
-            underlayColor="rgba(0, 0, 0, .15)"
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back-outline" color="black" size={30} />
-          </TouchableHighlight>
-          <View style={styles.searchInputContainer}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Tìm kiếm trên CYO"
-              onChangeText={setQuery}
-              value={query}
-              autoFocus
-            />
-            {query.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setQuery("")}
-              >
-                <Ionicons name="close-circle" size={20} color="#666" />
-              </TouchableOpacity>
-            )}
+        <View style={{ paddingTop: inset.top }}>
+          <View style={styles.topBar}>
+            <TouchableHighlight
+              style={styles.backButton}
+              underlayColor="rgba(0, 0, 0, .15)"
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="chevron-back-outline" color="black" size={30} />
+            </TouchableHighlight>
+            <View style={styles.searchInputContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Tìm kiếm trên CYO"
+                onChangeText={setQuery}
+                value={query}
+                autoFocus
+              />
+              {query.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => setQuery("")}
+                >
+                  <Ionicons name="close-circle" size={20} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         </View>
 
@@ -325,11 +327,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingRight: 20,
     paddingBottom: 7,
+    paddingTop: 10,
     borderBottomWidth: 1,
     borderBottomColor: "#DFDEDD",
-    paddingTop: 10,
-    height: 55,
-    marginTop: -5,
+    minHeight: 55,
   },
   searchInputContainer: {
     flex: 1,
@@ -337,13 +338,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#DFDEDD",
     borderRadius: 50,
-    paddingLeft: 13,
-    paddingVertical: Platform.OS === "android" ? 8 : 8,
+    paddingHorizontal: 13,
+    paddingVertical: Platform.OS === "android" ? 0 : 4,
+    minHeight: 40,
   },
   searchInput: {
     flex: 1,
     fontSize: 17,
+    paddingLeft: 8,
     paddingRight: 35,
+    paddingVertical: 0,
+    minHeight: 40,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   clearButton: {
     padding: 5,

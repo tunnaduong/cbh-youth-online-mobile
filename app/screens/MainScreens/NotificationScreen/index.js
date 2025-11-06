@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,73 +16,202 @@ import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native";
+import {
+  getNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification,
+} from "../../../services/api/Api";
+import dayjs from "dayjs";
+import "dayjs/locale/vi";
+import relativeTime from "dayjs/plugin/relativeTime";
 
-// Dummy data for notifications
-const DUMMY_NOTIFICATIONS = [
-  {
-    id: "1",
-    user: {
-      name: "Dương Tùng Anh",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    },
-    content: 'thích bài đăng "Cách thi lớp 10 bao đậu" của bạn',
-    time: "3 phút trước",
-    read: false,
-  },
-  {
-    id: "2",
-    user: {
-      name: "Dương Tùng Em",
-      avatar: "https://randomuser.me/api/portraits/men/2.jpg",
-    },
-    content: "đã theo dõi bạn",
-    time: "3 phút trước",
-    read: false,
-  },
-  {
-    id: "3",
-    user: {
-      name: "Dương Tùng Anh",
-      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
-    },
-    content: "nhắc đến bạn trong một bình luận",
-    time: "3 phút trước",
-    read: false,
-  },
-];
+dayjs.extend(relativeTime);
+dayjs.locale("vi");
+
+// Helper function to format notification message based on type and data
+const formatNotificationMessage = (notification) => {
+  const { type, data, actor } = notification;
+  
+  if (!actor) {
+    return "Thông báo mới";
+  }
+
+  const actorName = actor.profile_name || actor.username;
+
+  switch (type) {
+    case "App\\Notifications\\PostLiked":
+      return `thích bài đăng "${data?.post_title || ""}" của bạn`;
+    case "App\\Notifications\\PostCommented":
+      return `đã bình luận trong bài đăng "${data?.post_title || ""}" của bạn`;
+    case "App\\Notifications\\UserFollowed":
+      return "đã theo dõi bạn";
+    case "App\\Notifications\\UserMentioned":
+      return `nhắc đến bạn trong một bình luận`;
+    case "App\\Notifications\\CommentReplied":
+      return `đã trả lời bình luận của bạn`;
+    default:
+      return "đã tương tác với bạn";
+  }
+};
+
+// Helper function to format time
+const formatTime = (dateString) => {
+  if (!dateString) return "Vừa xong";
+  
+  const date = dayjs(dateString);
+  const now = dayjs();
+  const diffInSeconds = now.diff(date, "second");
+  
+  if (diffInSeconds < 60) {
+    return "Vừa xong";
+  }
+  
+  const diffInMinutes = now.diff(date, "minute");
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} phút trước`;
+  }
+  
+  const diffInHours = now.diff(date, "hour");
+  if (diffInHours < 24) {
+    return `${diffInHours} giờ trước`;
+  }
+  
+  const diffInDays = now.diff(date, "day");
+  if (diffInDays < 7) {
+    return `${diffInDays} ngày trước`;
+  }
+  
+  const diffInWeeks = now.diff(date, "week");
+  if (diffInWeeks < 4) {
+    return `${diffInWeeks} tuần trước`;
+  }
+  
+  const diffInMonths = now.diff(date, "month");
+  if (diffInMonths < 12) {
+    return `${diffInMonths} tháng trước`;
+  }
+  
+  const diffInYears = now.diff(date, "year");
+  return `${diffInYears} năm trước`;
+};
 
 export default function NotificationScreen({ navigation }) {
-  const [notifications, setNotifications] = useState(DUMMY_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState([]);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const insets = useSafeAreaInsets();
   const lottieRef = useRef(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+
+  const fetchNotifications = useCallback(async (pageNum = 1, append = false) => {
+    try {
+      const response = await getNotifications(pageNum, 20);
+      const fetchedNotifications = response.notifications || [];
+      
+      // Transform API response to match UI format
+      const formattedNotifications = fetchedNotifications.map((notif) => ({
+        id: notif.id,
+        type: notif.type,
+        data: notif.data,
+        is_read: notif.is_read,
+        read_at: notif.read_at,
+        created_at: notif.created_at,
+        created_at_human: notif.created_at_human,
+        actor: notif.actor,
+        user: {
+          name: notif.actor?.profile_name || notif.actor?.username || "Người dùng",
+          avatar: notif.actor?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
+        },
+        content: formatNotificationMessage(notif),
+        time: formatTime(notif.created_at),
+        read: notif.is_read,
+      }));
+
+      if (append) {
+        setNotifications((prev) => [...prev, ...formattedNotifications]);
+      } else {
+        setNotifications(formattedNotifications);
+      }
+
+      // Check if there are more pages
+      if (response.pagination) {
+        setHasMore(response.pagination.current_page < response.pagination.last_page);
+      } else {
+        setHasMore(fetchedNotifications.length === 20);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications(1, false);
+  }, []);
 
   const handleScroll = (event) => {
     if (!refreshing) {
-      lottieRef.current?.play(); // Play up to the calculated frame
+      lottieRef.current?.play();
     }
   };
 
-  const onRefresh = React.useCallback(() => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // Simulate fetching new notifications
-    setTimeout(() => {
-      // Here you would typically fetch new notifications from your API
-      // For now, we'll just reset the notifications to their initial state
-      setNotifications(
-        DUMMY_NOTIFICATIONS.map((notification) => ({
-          ...notification,
-          read: false,
-        }))
+    setPage(1);
+    fetchNotifications(1, false);
+  }, [fetchNotifications]);
+
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore && !refreshing) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchNotifications(nextPage, true);
+    }
+  }, [loading, hasMore, refreshing, page, fetchNotifications]);
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await markNotificationAsRead(notificationId);
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === notificationId
+            ? { ...notif, is_read: true, read: true }
+            : notif
+        )
       );
-      setRefreshing(false);
-    }, 1500);
-  }, []);
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllNotificationsAsRead();
+      setNotifications((prev) =>
+        prev.map((notif) => ({ ...notif, is_read: true, read: true }))
+      );
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      await deleteNotification(notificationId);
+      setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
+    } catch (error) {
+      console.error("Error deleting notification:", error);
+    }
+  };
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
@@ -91,12 +220,15 @@ export default function NotificationScreen({ navigation }) {
         !item.read && { backgroundColor: "#F3FDF1" },
       ]}
       onPress={() => {
-        const updatedNotifications = notifications.map((notification) =>
-          notification.id === item.id
-            ? { ...notification, read: true }
-            : notification
-        );
-        setNotifications(updatedNotifications);
+        if (!item.read) {
+          handleMarkAsRead(item.id);
+        }
+        // Navigate to relevant screen based on notification type
+        if (item.data?.post_id) {
+          navigation.navigate("PostScreen", { postId: item.data.post_id });
+        } else if (item.type === "App\\Notifications\\UserFollowed" && item.actor?.username) {
+          navigation.navigate("ProfileScreen", { username: item.actor.username });
+        }
       }}
     >
       <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
@@ -137,13 +269,8 @@ export default function NotificationScreen({ navigation }) {
               { borderTopLeftRadius: 12, borderTopRightRadius: 12 },
             ]}
             onPress={() => {
-              if (selectedNotification) {
-                const updatedNotifications = notifications.map((notification) =>
-                  notification.id === selectedNotification.id
-                    ? { ...notification, read: true }
-                    : notification
-                );
-                setNotifications(updatedNotifications);
+              if (selectedNotification && !selectedNotification.read) {
+                handleMarkAsRead(selectedNotification.id);
               }
               setShowActionMenu(false);
             }}
@@ -174,10 +301,16 @@ export default function NotificationScreen({ navigation }) {
                 borderBottomWidth: 0,
               },
             ]}
+            onPress={() => {
+              if (selectedNotification) {
+                handleDeleteNotification(selectedNotification.id);
+              }
+              setShowActionMenu(false);
+            }}
           >
-            <Ionicons name="close-outline" size={22} color="#FF3B30" />
-            <Text style={[styles.actionText, { color: "#000" }]}>
-              Tắt thông báo bài viết này
+            <Ionicons name="trash-outline" size={22} color="#FF3B30" />
+            <Text style={[styles.actionText, { color: "#FF3B30" }]}>
+              Xóa thông báo
             </Text>
           </TouchableOpacity>
         </View>
@@ -192,13 +325,8 @@ export default function NotificationScreen({ navigation }) {
         <Text style={styles.headerTitle}>Thông báo</Text>
         <TouchableOpacity
           style={styles.readAllButton}
-          onPress={() => {
-            const updatedNotifications = notifications.map((notification) => ({
-              ...notification,
-              read: true,
-            }));
-            setNotifications(updatedNotifications);
-          }}
+          onPress={handleMarkAllAsRead}
+          disabled={unreadCount === 0}
         >
           <Text style={styles.readAllText}>Đọc tất cả ({unreadCount})</Text>
         </TouchableOpacity>
@@ -217,36 +345,42 @@ export default function NotificationScreen({ navigation }) {
         ref={lottieRef}
       />
 
-      <FlatList
-        onScroll={handleScroll}
-        data={notifications}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{
-          paddingBottom: 80,
-          backgroundColor: "#fff",
-          flex: 1,
-        }}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="transparent"
-            colors={["transparent"]}
-            style={{ backgroundColor: "transparent" }}
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Image
-              source={require("../../../assets/sad_frog.png")}
-              style={styles.emptyImage}
+      {loading && notifications.length === 0 ? (
+        <CustomLoading />
+      ) : (
+        <FlatList
+          onScroll={handleScroll}
+          data={notifications}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={{
+            paddingBottom: 80,
+            backgroundColor: "#fff",
+            flex: notifications.length === 0 ? 1 : undefined,
+          }}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="transparent"
+              colors={["transparent"]}
+              style={{ backgroundColor: "transparent" }}
             />
-            <Text style={styles.emptyText}>Chưa có thông báo nào...</Text>
-          </View>
-        }
-      />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Image
+                source={require("../../../assets/sad_frog.png")}
+                style={styles.emptyImage}
+              />
+              <Text style={styles.emptyText}>Chưa có thông báo nào...</Text>
+            </View>
+          }
+        />
+      )}
 
       <ActionMenu />
     </View>

@@ -102,8 +102,10 @@ function AppNavigator() {
                 options={{
                   title: "Tìm kiếm",
                   headerShown: false,
-                  gestureEnabled: false,
-                  animation: "fade",
+                  presentation:
+                    Platform.OS === "android" ? "transparentModal" : "modal",
+                  gestureEnabled: true,
+                  animation: "slide_from_bottom",
                 }}
                 name="SearchScreen"
                 component={SearchScreen}
@@ -149,9 +151,10 @@ function AppNavigator() {
                 options={{
                   title: "Chỉnh sửa trang cá nhân",
                   headerShown: false,
-                  presentation: "transparentModal",
+                  presentation:
+                    Platform.OS === "android" ? "transparentModal" : "modal",
+                  gestureEnabled: true,
                   animation: "slide_from_bottom",
-                  gestureEnabled: false,
                 }}
                 component={EditProfileScreen}
               />

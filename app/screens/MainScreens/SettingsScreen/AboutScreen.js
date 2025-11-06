@@ -9,6 +9,7 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const Section = ({ title, children }) => (
   <View style={styles.section}>
@@ -18,14 +19,17 @@ const Section = ({ title, children }) => (
 );
 
 export default function AboutScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color="#319527" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Giới thiệu</Text>
+        <View className="w-6 h-6"></View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -136,13 +140,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
     height: 50,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 16,
+    fontSize: 18,
+    fontWeight: "600",
     color: "#319527",
   },
   content: {
@@ -203,5 +210,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 24,
     marginBottom: 16,
+    paddingBottom: 16,
   },
 });

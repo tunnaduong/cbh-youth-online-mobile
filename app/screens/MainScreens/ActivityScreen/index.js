@@ -14,6 +14,7 @@ import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "react-native-fast-image";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ActivityItem = ({ item, navigation }) => {
   const truncateText = (text, maxLength = 30) => {
@@ -159,6 +160,7 @@ const ActivityItem = ({ item, navigation }) => {
 };
 
 const ActivityScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [activities, setActivities] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -266,10 +268,12 @@ const ActivityScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: "#fff", paddingTop: insets.top }}
+    >
+      {/* Header */}
       <View
         style={{
-          backgroundColor: "#fff",
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 16,
@@ -277,16 +281,10 @@ const ActivityScreen = ({ navigation }) => {
           borderBottomWidth: 1,
           borderBottomColor: "#f0f0f0",
           height: 50,
+          backgroundColor: "#fff",
         }}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={{
-            position: "absolute",
-            left: 16,
-            zIndex: 1,
-          }}
-        >
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#319527" />
         </TouchableOpacity>
         <Text
@@ -301,6 +299,7 @@ const ActivityScreen = ({ navigation }) => {
         >
           Hoạt động của bạn
         </Text>
+        <View style={{ width: 24, height: 24 }}></View>
       </View>
 
       <FlatList

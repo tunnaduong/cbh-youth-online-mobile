@@ -84,7 +84,9 @@ const PostScreen = ({ route, navigation }) => {
   const { item, postId, screenName } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
-  const [isSaved, setIsSaved] = useState(item?.saved ?? false);
+  const [isSaved, setIsSaved] = useState(
+    item?.saved ?? item?.is_saved ?? false
+  );
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
   const [commentText, setCommentText] = useState("");
@@ -255,15 +257,17 @@ const PostScreen = ({ route, navigation }) => {
   const fetchData = async () => {
     try {
       const response = await getPostDetail(postId); // Fetch post data from API
-      const { topic, comments } = response.data;
+      const { post: topic, comments } = response.data;
 
       if (!item && !post) {
         setPost(topic); // Set the post data in state
-        setVotes(topic.votes); // Set the votes in state
-        setIsSaved(topic.saved); // Set the saved status in state
+        setVotes(topic?.votes ?? []); // Set the votes in state
+        setIsSaved(topic?.is_saved ?? false); // Set the saved status in state
       }
       setPost(topic); // Update post state
-      setComments(comments);
+      setVotes(topic?.votes ?? []); // Update votes state
+      setIsSaved(topic?.is_saved ?? false); // Update saved status
+      setComments(comments ?? []);
       console.log(JSON.stringify(comments, null, 2));
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -362,7 +366,7 @@ const PostScreen = ({ route, navigation }) => {
       });
     } catch (error) {
       console.error("Voting failed:", error);
-      setVotes(post.votes); // Revert UI if API fails
+      setVotes(post?.votes ?? []); // Revert UI if API fails
     }
   };
 
@@ -480,9 +484,11 @@ const PostScreen = ({ route, navigation }) => {
         setTimeout(() => {
           scrollToComment(resp.data.id);
         }, 100);
-        const updatedPostData = response.data.topic;
+        const updatedPostData = response.data.post;
         setPost(updatedPostData);
-        setComments(response.data.comments);
+        setVotes(updatedPostData?.votes ?? []);
+        setIsSaved(updatedPostData?.is_saved ?? false);
+        setComments(response.data.comments ?? []);
 
         // IMPORTANT: Update FeedContext
         setFeed((prevFeed) =>
@@ -552,21 +558,20 @@ const PostScreen = ({ route, navigation }) => {
           return comments.map((comment) => {
             // If this is the target comment, update its votes
             if (comment.id === commentId) {
-              const existingVote = comment.votes.find(
+              const votes = comment.votes ?? [];
+              const existingVote = votes.find(
                 (vote) => vote.username === username
               );
 
-              let newVotes = [...comment.votes];
+              let newVotes = [...votes];
 
               if (existingVote) {
                 if (existingVote.vote_value === voteValue) {
                   // User is undoing their vote
-                  newVotes = comment.votes.filter(
-                    (vote) => vote.username !== username
-                  );
+                  newVotes = votes.filter((vote) => vote.username !== username);
                 } else {
                   // User is changing their vote
-                  newVotes = comment.votes.map((vote) =>
+                  newVotes = votes.map((vote) =>
                     vote.username === username
                       ? { ...vote, vote_value: voteValue }
                       : vote
@@ -574,10 +579,7 @@ const PostScreen = ({ route, navigation }) => {
                 }
               } else {
                 // User is voting for the first time
-                newVotes = [
-                  ...comment.votes,
-                  { username, vote_value: voteValue },
-                ];
+                newVotes = [...votes, { username, vote_value: voteValue }];
               }
 
               return { ...comment, votes: newVotes };
@@ -619,26 +621,28 @@ const PostScreen = ({ route, navigation }) => {
       prevComments.map((comment) => {
         if (comment.id === commentId) {
           // Found the parent comment, now update the specific reply
+          const replies = comment.replies ?? [];
           return {
             ...comment,
-            replies: comment.replies.map((reply) => {
+            replies: replies.map((reply) => {
               if (reply.id === replyId) {
                 // Apply the same voting logic to the reply
-                const existingVote = reply.votes.find(
+                const votes = reply.votes ?? [];
+                const existingVote = votes.find(
                   (vote) => vote.username === username
                 );
 
-                let newVotes = [...reply.votes];
+                let newVotes = [...votes];
 
                 if (existingVote) {
                   if (existingVote.vote_value === voteValue) {
                     // User is undoing their vote
-                    newVotes = reply.votes.filter(
+                    newVotes = votes.filter(
                       (vote) => vote.username !== username
                     );
                   } else {
                     // User is changing their vote
-                    newVotes = reply.votes.map((vote) =>
+                    newVotes = votes.map((vote) =>
                       vote.username === username
                         ? { ...vote, vote_value: voteValue }
                         : vote
@@ -646,10 +650,7 @@ const PostScreen = ({ route, navigation }) => {
                   }
                 } else {
                   // User is voting for the first time
-                  newVotes = [
-                    ...reply.votes,
-                    { username, vote_value: voteValue },
-                  ];
+                  newVotes = [...votes, { username, vote_value: voteValue }];
                 }
 
                 return { ...reply, votes: newVotes };
@@ -665,6 +666,15 @@ const PostScreen = ({ route, navigation }) => {
 
   const Comment = React.forwardRef(
     ({ comment, level = 0, border = false }, ref) => {
+      if (!comment || !comment.id) {
+        return null;
+      }
+
+      const votes = comment.votes ?? [];
+      const author = comment.author ?? {};
+      const content = comment.content ?? "";
+      const replies = comment.replies ?? [];
+
       return (
         <View
           ref={ref} // Attach ref here
@@ -690,8 +700,9 @@ const PostScreen = ({ route, navigation }) => {
           >
             <Pressable
               onPress={() =>
+                author.username &&
                 navigation.navigate("ProfileScreen", {
-                  username: comment.author.username,
+                  username: author.username,
                 })
               }
             >
@@ -702,25 +713,28 @@ const PostScreen = ({ route, navigation }) => {
                   borderColor: "#dee2e6",
                 }}
               >
-                <Image
-                  source={{
-                    uri: `https://api.chuyenbienhoa.com/v1.0/users/${comment.author.username}/avatar`,
-                  }}
-                  style={{ width: 40, height: 40, borderRadius: 30 }}
-                />
+                {author.username && (
+                  <Image
+                    source={{
+                      uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
+                    }}
+                    style={{ width: 40, height: 40, borderRadius: 30 }}
+                  />
+                )}
               </View>
             </Pressable>
             <View style={{ flexShrink: 1 }}>
               <Pressable
                 onPress={() =>
+                  author.username &&
                   navigation.navigate("ProfileScreen", {
-                    username: comment.author.username,
+                    username: author.username,
                   })
                 }
               >
                 <Text style={{ fontWeight: "bold", color: "#319527" }}>
-                  {comment.author.profile_name}
-                  {comment.author.verified && (
+                  {author.profile_name || author.username || "Ẩn danh"}
+                  {author.verified && (
                     <View>
                       <Verified
                         width={15}
@@ -737,17 +751,17 @@ const PostScreen = ({ route, navigation }) => {
                   flexShrink: 1,
                 }}
               >
-                {comment.content}
+                {String(content)}
               </Text>
               <View className="flex-row items-center mt-1">
                 <Text style={{ fontSize: 12, color: "gray" }}>
-                  {comment.created_at} ·
+                  {comment.created_at || ""} ·
                 </Text>
                 <TouchableOpacity
                   onPress={() =>
                     focusCommentInput(
                       comment.id,
-                      comment.author.profile_name,
+                      author.profile_name || author.username || "",
                       level
                     )
                   }
@@ -768,7 +782,7 @@ const PostScreen = ({ route, navigation }) => {
                     name="arrow-up-outline"
                     size={18}
                     color={
-                      comment.votes.some(
+                      votes.some(
                         (vote) =>
                           vote.username === username && vote.vote_value === 1
                       )
@@ -781,12 +795,12 @@ const PostScreen = ({ route, navigation }) => {
                   style={[
                     { fontSize: 14, fontWeight: "600" },
                     { color: "#9ca3af", textAlign: "center" },
-                    comment.votes.some(
+                    votes.some(
                       (vote) =>
                         vote.username === username && vote.vote_value === 1
                     )
                       ? { color: "#22c55e" }
-                      : comment.votes.some(
+                      : votes.some(
                           (vote) =>
                             vote.username === username && vote.vote_value === -1
                         )
@@ -794,10 +808,7 @@ const PostScreen = ({ route, navigation }) => {
                       : { color: "#9ca3af" },
                   ]}
                 >
-                  {comment.votes.reduce(
-                    (acc, vote) => acc + vote.vote_value,
-                    0
-                  )}
+                  {votes.reduce((acc, vote) => acc + (vote.vote_value || 0), 0)}
                 </Text>
                 <TouchableOpacity
                   onPress={() => handleCommentVote(comment.id, -1)}
@@ -806,7 +817,7 @@ const PostScreen = ({ route, navigation }) => {
                     name="arrow-down-outline"
                     size={18}
                     color={
-                      comment.votes.some(
+                      votes.some(
                         (vote) =>
                           vote.username === username && vote.vote_value === -1
                       )
@@ -820,9 +831,9 @@ const PostScreen = ({ route, navigation }) => {
           </View>
 
           {/* Render replies recursively */}
-          {comment.replies?.length > 0 && (
+          {replies.length > 0 && (
             <View style={{ marginTop: 10 }}>
-              {comment.replies.map((reply) => (
+              {replies.map((reply) => (
                 <Comment
                   key={reply.id}
                   comment={reply}
@@ -1013,7 +1024,9 @@ const PostScreen = ({ route, navigation }) => {
                     />
                   </Pressable>
                   <View className="flex-1 flex-row-reverse items-center">
-                    <Text className="text-gray-500">{post.views}</Text>
+                    <Text className="text-gray-500">
+                      {post.view_count ?? post.views ?? 0}
+                    </Text>
                     <View className="mr-1 ml-2">
                       <Ionicons
                         name="eye-outline"
@@ -1021,7 +1034,10 @@ const PostScreen = ({ route, navigation }) => {
                         color={"#6b7280"}
                       />
                     </View>
-                    <Text className="text-gray-500">{post.comments}</Text>
+                    <Text className="text-gray-500">
+                      {post.reply_count ??
+                        (Array.isArray(comments) ? comments.length : 0)}
+                    </Text>
                     <View className="mr-1">
                       <Ionicons
                         name="chatbox-outline"

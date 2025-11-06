@@ -7,11 +7,14 @@ import {
   TouchableOpacity,
   Switch,
   Image,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import FastImage from "react-native-fast-image";
 import { ScrollView } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 
 const SettingItem = ({
   icon,
@@ -79,15 +82,17 @@ const SettingSection = ({ title, children }) => {
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
   const [darkMode, setDarkMode] = React.useState(false);
+  const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color="#319527" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Cài đặt</Text>
+        <View className="w-6 h-6"></View>
       </View>
 
       <ScrollView>
@@ -129,12 +134,22 @@ export default function SettingsScreen({ navigation }) {
           <SettingItem
             icon="lock-closed-outline"
             title="Bảo mật"
-            onPress={() => {}}
+            onPress={() => {
+              Toast.show({
+                type: "info",
+                text1: "Tính năng đang được phát triển",
+              });
+            }}
           />
           <SettingItem
             icon="notifications-outline"
             title="Thông báo"
-            onPress={() => {}}
+            onPress={() => {
+              Toast.show({
+                type: "info",
+                text1: "Tính năng đang được phát triển",
+              });
+            }}
           />
         </SettingSection>
 
@@ -144,13 +159,24 @@ export default function SettingsScreen({ navigation }) {
             title="Chế độ tối"
             isSwitch
             value={darkMode}
-            onPress={(value) => setDarkMode(value)}
+            onPress={(value) => {
+              setDarkMode(value);
+              Toast.show({
+                type: "info",
+                text1: "Tính năng đang được phát triển",
+              });
+            }}
           />
           <SettingItem
             icon="language-outline"
             title="Ngôn ngữ"
             value="Tiếng Việt"
-            onPress={() => {}}
+            onPress={() => {
+              Toast.show({
+                type: "info",
+                text1: "Tính năng đang được phát triển",
+              });
+            }}
           />
           <SettingItem icon="ban-outline" title="Chặn" onPress={() => {}} />
           <SettingItem
@@ -172,13 +198,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
     height: 50,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 16,
+    fontSize: 18,
+    fontWeight: "600",
     color: "#319527",
   },
   profileSection: {

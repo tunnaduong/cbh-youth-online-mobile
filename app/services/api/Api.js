@@ -99,7 +99,7 @@ export const getHomePosts = (page = 1) => {
 };
 
 export const incrementPostView = (id) => {
-  return Api.postRequest("/v1.0/topics/" + id + "/views/authenticated");
+  return Api.postRequest("/v1.0/topics/" + id + "/views");
 };
 
 export const votePost = (id, params) => {
@@ -259,4 +259,25 @@ export const createConversation = (id) => {
   return Api.postRequest("/v1.0/chat/conversations", {
     participant_id: id,
   });
+};
+
+// Notifications
+export const getNotifications = (page = 1, perPage = 20) => {
+  return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`);
+};
+
+export const getUnreadNotificationCount = () => {
+  return Api.getRequest("/v1.0/notifications/unread-count");
+};
+
+export const markNotificationAsRead = (id) => {
+  return Api.postRequest(`/v1.0/notifications/${id}/read`);
+};
+
+export const markAllNotificationsAsRead = () => {
+  return Api.postRequest("/v1.0/notifications/read-all");
+};
+
+export const deleteNotification = (id) => {
+  return Api.deleteRequest(`/v1.0/notifications/${id}`);
 };

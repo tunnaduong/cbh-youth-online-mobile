@@ -14,6 +14,7 @@ import { getProfile } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ProfileDetailScreen = ({ navigation, route }) => {
   const { username: currentUsername } = useContext(AuthContext);
@@ -21,6 +22,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const [profileData, setProfileData] = useState(null);
   const username = route.params?.username || currentUsername;
   const isCurrentUser = username === currentUsername;
+  const insets = useSafeAreaInsets();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -51,7 +53,9 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView
+        style={[styles.loadingContainer, { paddingTop: insets.top }]}
+      >
         <CustomLoading />
       </SafeAreaView>
     );
@@ -80,7 +84,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>

@@ -20,6 +20,53 @@ import { useNavigation } from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+// Reusable component for collapsible menu items
+const CollapsibleMenuItem = ({
+  title,
+  iconName,
+  sectionKey,
+  isCollapsed,
+  getChevronRotation,
+  toggleSection,
+  children,
+}) => {
+  return (
+    <>
+      <List.Item
+        title={title}
+        onPress={() => toggleSection(sectionKey)}
+        right={() => (
+          <Animated.View
+            style={{
+              transform: [
+                { translateX: 5 },
+                { rotate: getChevronRotation(sectionKey) },
+                { translateX: -5 },
+              ],
+            }}
+          >
+            <Ionicons
+              name="chevron-down-outline"
+              size={20}
+              style={{ marginRight: -10, marginTop: 3 }}
+            />
+          </Animated.View>
+        )}
+        left={() => (
+          <Ionicons
+            name={iconName}
+            size={24}
+            style={{ marginLeft: 14, marginRight: -5 }}
+          />
+        )}
+      />
+      <Collapsible collapsed={isCollapsed}>
+        <View style={{ paddingLeft: 40, paddingVertical: 10 }}>{children}</View>
+      </Collapsible>
+    </>
+  );
+};
+
 const Sidebar = () => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
@@ -135,7 +182,7 @@ const Sidebar = () => {
     <>
       <SafeAreaView className="mt-11">
         <ScrollView
-          contentContainerStyle={{ paddingBottom: 40, paddingTop: 5 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity
@@ -155,142 +202,50 @@ const Sidebar = () => {
           </TouchableOpacity>
           <List.Section>
             <List.Subheader>Tiện ích</List.Subheader>
-            <List.Item
+            <CollapsibleMenuItem
               title="Cộng đồng"
-              right={() => (
-                <Animated.View
-                  style={{
-                    transform: [
-                      { translateX: 5 }, // Move the origin point left by 10px
-                      { rotate: getChevronRotation("community") }, // Apply rotation
-                      { translateX: -5 },
-                    ],
-                  }}
-                >
-                  <Ionicons
-                    name="chevron-down-outline"
-                    size={20}
-                    style={{ marginRight: -10, marginTop: 3 }}
-                  />
-                </Animated.View>
-              )}
-              left={() => (
-                <Ionicons
-                  name="people-outline"
-                  size={24}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
-              onPress={() => toggleSection("community")}
-            />
-            <Collapsible collapsed={collapsedSections.community}>
-              <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
-                <Text>- Sub-item 1</Text>
-                <Text>- Sub-item 2</Text>
-              </View>
-            </Collapsible>
-            <List.Item
+              iconName="people-outline"
+              sectionKey="community"
+              isCollapsed={collapsedSections.community}
+              getChevronRotation={getChevronRotation}
+              toggleSection={toggleSection}
+            >
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </CollapsibleMenuItem>
+            <CollapsibleMenuItem
               title="Báo cáo"
-              onPress={() => toggleSection("reports")}
-              right={() => (
-                <Animated.View
-                  style={{
-                    transform: [
-                      { translateX: 5 }, // Move the origin point left by 10px
-                      { rotate: getChevronRotation("reports") }, // Apply rotation
-                      { translateX: -5 },
-                    ],
-                  }}
-                >
-                  <Ionicons
-                    name="chevron-down-outline"
-                    size={20}
-                    style={{ marginRight: -10, marginTop: 3 }}
-                  />
-                </Animated.View>
-              )}
-              left={() => (
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={24}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
-            />
-            <Collapsible collapsed={collapsedSections.reports}>
-              <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
-                <Text>- Sub-item 1</Text>
-                <Text>- Sub-item 2</Text>
-              </View>
-            </Collapsible>
-            <List.Item
+              iconName="alert-circle-outline"
+              sectionKey="reports"
+              isCollapsed={collapsedSections.reports}
+              getChevronRotation={getChevronRotation}
+              toggleSection={toggleSection}
+            >
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </CollapsibleMenuItem>
+            <CollapsibleMenuItem
               title="Tra cứu"
-              onPress={() => toggleSection("search")}
-              right={() => (
-                <Animated.View
-                  style={{
-                    transform: [
-                      { translateX: 5 }, // Move the origin point left by 10px
-                      { rotate: getChevronRotation("search") }, // Apply rotation
-                      { translateX: -5 },
-                    ],
-                  }}
-                >
-                  <Ionicons
-                    name="chevron-down-outline"
-                    size={20}
-                    style={{ marginRight: -10, marginTop: 3 }}
-                  />
-                </Animated.View>
-              )}
-              left={() => (
-                <Ionicons
-                  name="search-outline"
-                  size={24}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
-            />
-            <Collapsible collapsed={collapsedSections.search}>
-              <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
-                <Text>- Sub-item 1</Text>
-                <Text>- Sub-item 2</Text>
-              </View>
-            </Collapsible>
-            <List.Item
+              iconName="search-outline"
+              sectionKey="search"
+              isCollapsed={collapsedSections.search}
+              getChevronRotation={getChevronRotation}
+              toggleSection={toggleSection}
+            >
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </CollapsibleMenuItem>
+            <CollapsibleMenuItem
               title="Khám phá"
-              onPress={() => toggleSection("explore")}
-              right={() => (
-                <Animated.View
-                  style={{
-                    transform: [
-                      { translateX: 5 }, // Move the origin point left by 10px
-                      { rotate: getChevronRotation("explore") }, // Apply rotation
-                      { translateX: -5 },
-                    ],
-                  }}
-                >
-                  <Ionicons
-                    name="chevron-down-outline"
-                    size={20}
-                    style={{ marginRight: -10, marginTop: 3 }}
-                  />
-                </Animated.View>
-              )}
-              left={() => (
-                <Ionicons
-                  name="telescope-outline"
-                  size={24}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
-            />
-            <Collapsible collapsed={collapsedSections.explore}>
-              <View style={{ paddingLeft: 40, paddingVertical: 10 }}>
-                <Text>- Sub-item 1</Text>
-                <Text>- Sub-item 2</Text>
-              </View>
-            </Collapsible>
+              iconName="telescope-outline"
+              sectionKey="explore"
+              isCollapsed={collapsedSections.explore}
+              getChevronRotation={getChevronRotation}
+              toggleSection={toggleSection}
+            >
+              <Text>- Sub-item 1</Text>
+              <Text>- Sub-item 2</Text>
+            </CollapsibleMenuItem>
           </List.Section>
           <List.Section>
             <List.Subheader>Thiết lập</List.Subheader>

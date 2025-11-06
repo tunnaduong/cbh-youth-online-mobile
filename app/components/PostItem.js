@@ -11,6 +11,7 @@ import {
   Dimensions,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
+import RenderHTML from "react-native-render-html";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
@@ -328,11 +329,24 @@ const PostItem = ({
         </TouchableOpacity>
       </View>
       <Pressable onPress={handleExpandPost}>
-        <Markdown style={styles}>
-          {isExpanded
-            ? convertToMarkdownLink(item.content)
-            : convertToMarkdownLink(truncatedContent)}
-        </Markdown>
+        <View style={{ paddingHorizontal: 15 }}>
+          <RenderHTML
+            contentWidth={Dimensions.get("window").width - 30}
+            source={{
+              html: isExpanded ? item.content : truncatedContent,
+            }}
+            baseStyle={{
+              fontSize: 16,
+              color: "#000",
+            }}
+            tagsStyles={{
+              p: { marginBottom: 8, marginTop: 0 },
+              strong: { fontWeight: "bold" },
+              em: { fontStyle: "italic" },
+              br: { marginBottom: 4 },
+            }}
+          />
+        </View>
       </Pressable>
       {item.image_urls.length > 0 && (
         <View className="bg-[#E4EEE3] mt-2">
