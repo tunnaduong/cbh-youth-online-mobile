@@ -28,6 +28,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="com.fatties.youth"/>
         <data android:scheme="exp+cbh-youth-online-mobile"/>
       </intent-filter>
     </activity>

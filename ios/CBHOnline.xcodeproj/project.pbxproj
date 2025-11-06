@@ -9,24 +9,24 @@
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		9427B9FAD6FD3F2B70ABD2DA /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8D35AA9DCB2D24FF5FDE8B92 /* PrivacyInfo.xcprivacy */; };
+		90685F7BD6B1E3E0A2095049 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8153C0FF5047AC7457070825 /* PrivacyInfo.xcprivacy */; };
+		B2741B401485228E5C6C0F44 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0A105A20B7940F619B54718 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		F5EA6392C45F37CBF3FB0550 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B995B52591079A0F894D5EB /* ExpoModulesProvider.swift */; };
-		F6915017D154B28C1F92583E /* libPods-CBHOnline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 09F03271A41C9FA9BD4582F8 /* libPods-CBHOnline.a */; };
+		F3C76C5F10936EE91C06C6E4 /* libPods-CBHOnline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1A4A9D87A5E67E5064A352EB /* libPods-CBHOnline.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		09F03271A41C9FA9BD4582F8 /* libPods-CBHOnline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CBHOnline.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07F961A680F5B00A75B9A /* CBHOnline.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CBHOnline.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = CBHOnline/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = CBHOnline/Info.plist; sourceTree = "<group>"; };
-		1B995B52591079A0F894D5EB /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-CBHOnline/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		2E504EA111BF92C0896E3576 /* Pods-CBHOnline.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CBHOnline.debug.xcconfig"; path = "Target Support Files/Pods-CBHOnline/Pods-CBHOnline.debug.xcconfig"; sourceTree = "<group>"; };
-		8D35AA9DCB2D24FF5FDE8B92 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = CBHOnline/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		1A4A9D87A5E67E5064A352EB /* libPods-CBHOnline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-CBHOnline.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3AA6645BBB5CE050C67F58DD /* Pods-CBHOnline.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CBHOnline.release.xcconfig"; path = "Target Support Files/Pods-CBHOnline/Pods-CBHOnline.release.xcconfig"; sourceTree = "<group>"; };
+		8153C0FF5047AC7457070825 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = CBHOnline/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = CBHOnline/SplashScreen.storyboard; sourceTree = "<group>"; };
+		B0A105A20B7940F619B54718 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-CBHOnline/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		BB57FE5CE05BB595C9CB31CA /* Pods-CBHOnline.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CBHOnline.release.xcconfig"; path = "Target Support Files/Pods-CBHOnline/Pods-CBHOnline.release.xcconfig"; sourceTree = "<group>"; };
+		C77C8539E905ED546DFC9950 /* Pods-CBHOnline.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-CBHOnline.debug.xcconfig"; path = "Target Support Files/Pods-CBHOnline/Pods-CBHOnline.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = CBHOnline/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* CBHOnline-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "CBHOnline-Bridging-Header.h"; path = "CBHOnline/CBHOnline-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F6915017D154B28C1F92583E /* libPods-CBHOnline.a in Frameworks */,
+				F3C76C5F10936EE91C06C6E4 /* libPods-CBHOnline.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,34 +53,36 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				8D35AA9DCB2D24FF5FDE8B92 /* PrivacyInfo.xcprivacy */,
+				8153C0FF5047AC7457070825 /* PrivacyInfo.xcprivacy */,
 			);
 			name = CBHOnline;
 			sourceTree = "<group>";
 		};
-		157F4DBBDFBC09AEA2371667 /* ExpoModulesProviders */ = {
+		21660EF68ABF7079B62F3F2F /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				45236D1C7D82DF2E4A271E59 /* CBHOnline */,
+				C77C8539E905ED546DFC9950 /* Pods-CBHOnline.debug.xcconfig */,
+				3AA6645BBB5CE050C67F58DD /* Pods-CBHOnline.release.xcconfig */,
 			);
-			name = ExpoModulesProviders;
+			name = Pods;
+			path = Pods;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				09F03271A41C9FA9BD4582F8 /* libPods-CBHOnline.a */,
+				1A4A9D87A5E67E5064A352EB /* libPods-CBHOnline.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		45236D1C7D82DF2E4A271E59 /* CBHOnline */ = {
+		6626C81C6591D5C6BCB14C28 /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				1B995B52591079A0F894D5EB /* ExpoModulesProvider.swift */,
+				C9116B00FA39B827CF8E7CAF /* CBHOnline */,
 			);
-			name = CBHOnline;
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -97,8 +99,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				D517DB09F17EF6787122731F /* Pods */,
-				157F4DBBDFBC09AEA2371667 /* ExpoModulesProviders */,
+				21660EF68ABF7079B62F3F2F /* Pods */,
+				6626C81C6591D5C6BCB14C28 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -122,14 +124,12 @@
 			path = CBHOnline/Supporting;
 			sourceTree = "<group>";
 		};
-		D517DB09F17EF6787122731F /* Pods */ = {
+		C9116B00FA39B827CF8E7CAF /* CBHOnline */ = {
 			isa = PBXGroup;
 			children = (
-				2E504EA111BF92C0896E3576 /* Pods-CBHOnline.debug.xcconfig */,
-				BB57FE5CE05BB595C9CB31CA /* Pods-CBHOnline.release.xcconfig */,
+				B0A105A20B7940F619B54718 /* ExpoModulesProvider.swift */,
 			);
-			name = Pods;
-			path = Pods;
+			name = CBHOnline;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -140,13 +140,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "CBHOnline" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				BCD1DE7B3D7380DE74AF1A5D /* [Expo] Configure project */,
+				AEF59F3F9C19FC2542116A24 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				A51EAF1870E1AA5583781DEF /* [CP] Embed Pods Frameworks */,
+				1F20F8F8B91BE0014F01F3D9 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -196,7 +196,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				9427B9FAD6FD3F2B70ABD2DA /* PrivacyInfo.xcprivacy in Resources */,
+				90685F7BD6B1E3E0A2095049 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,6 +238,24 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+		1F20F8F8B91BE0014F01F3D9 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-CBHOnline/Pods-CBHOnline-frameworks.sh",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-CBHOnline/Pods-CBHOnline-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
@@ -328,25 +346,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-CBHOnline/Pods-CBHOnline-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		A51EAF1870E1AA5583781DEF /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-CBHOnline/Pods-CBHOnline-frameworks.sh",
-				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/hermes.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-CBHOnline/Pods-CBHOnline-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		BCD1DE7B3D7380DE74AF1A5D /* [Expo] Configure project */ = {
+		AEF59F3F9C19FC2542116A24 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -373,7 +373,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				F5EA6392C45F37CBF3FB0550 /* ExpoModulesProvider.swift in Sources */,
+				B2741B401485228E5C6C0F44 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -382,7 +382,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2E504EA111BF92C0896E3576 /* Pods-CBHOnline.debug.xcconfig */;
+			baseConfigurationReference = C77C8539E905ED546DFC9950 /* Pods-CBHOnline.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -418,7 +418,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BB57FE5CE05BB595C9CB31CA /* Pods-CBHOnline.release.xcconfig */;
+			baseConfigurationReference = 3AA6645BBB5CE050C67F58DD /* Pods-CBHOnline.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

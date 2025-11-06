@@ -6,6 +6,8 @@ import { AuthContext } from "./app/contexts/AuthContext";
 import { useStatusBar } from "./app/contexts/StatusBarContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
+import ForgotPasswordScreen from "./app/screens/ForgotPasswordScreen";
+import ResetPasswordScreen from "./app/screens/ResetPasswordScreen";
 import MainScreens from "./app/screens/MainScreens";
 import { TailwindProvider } from "tailwindcss-react-native";
 import SearchScreen from "./app/screens/MainScreens/SearchScreen";
@@ -252,6 +254,16 @@ function AppNavigator() {
                 name="Signup"
                 options={{ title: "Đăng ký", headerShown: false }}
                 component={SignupScreen}
+              />
+              <Stack.Screen
+                name="ForgotPassword"
+                options={{ title: "Quên mật khẩu", headerShown: false }}
+                component={ForgotPasswordScreen}
+              />
+              <Stack.Screen
+                name="ResetPassword"
+                options={{ title: "Đặt lại mật khẩu", headerShown: false }}
+                component={ResetPasswordScreen}
               />
             </>
           )}

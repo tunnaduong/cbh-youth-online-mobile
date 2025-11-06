@@ -33,38 +33,9 @@ export const signupRequest = (params) => {
 
 export const loginWithOAuth = async (params) => {
   try {
-    console.log("loginWithOAuth: Sending request to backend:", {
-      endpoint: "/v1.0/login/oauth",
-      provider: params.provider,
-      hasAccessToken: !!params.accessToken,
-      hasIdToken: !!params.idToken,
-      hasProfile: !!params.profile,
-      profileId: params.profile?.id,
-      profileEmail: params.profile?.email,
-      profileName: params.profile?.name,
-    });
-
     const response = await Api.postRequest("/v1.0/login/oauth", params);
-
-    console.log("loginWithOAuth: Backend response received:", {
-      status: response.status,
-      statusText: response.statusText,
-      hasData: !!response.data,
-      hasToken: !!response.data?.token,
-      hasUser: !!response.data?.user,
-    });
-
     return response;
   } catch (error) {
-    console.error("loginWithOAuth: Request failed:", {
-      message: error.message,
-      response: error.response,
-      responseData: error.response?.data,
-      responseStatus: error.response?.status,
-      responseHeaders: error.response?.headers,
-      requestConfig: error.config,
-    });
-
     if (error.response && error.response.data && error.response.data.error) {
       throw new Error(error.response.data.error);
     } else if (
@@ -117,8 +88,34 @@ export const uploadFile = (formData) => {
   return Api.postFormDataRequest("/v1.0/upload", formData);
 };
 
-export const forgotPasswordVerify = (params) => {
-  return Api.postRequest("/v1.0/password/reset/verify", params);
+export const forgotPasswordVerify = async (params) => {
+  try {
+    console.log("forgotPasswordVerify: Sending request with params:", {
+      email: params.email,
+      hasToken: !!params.token,
+      hasPassword: !!params.password,
+      hasPasswordConfirmation: !!params.password_confirmation,
+    });
+    const response = await Api.postRequest(
+      "/v1.0/password/reset/verify",
+      params
+    );
+    console.log("forgotPasswordVerify: Response received:", response);
+    return response;
+  } catch (error) {
+    console.error("forgotPasswordVerify: Error details:", {
+      message: error.message,
+      response: error.response,
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      config: error.config,
+      url: error.config?.url,
+      baseURL: error.config?.baseURL,
+      fullURL: error.config?.baseURL + error.config?.url,
+    });
+    throw error;
+  }
 };
 
 export const getPostDetail = (id) => {

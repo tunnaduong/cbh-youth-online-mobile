@@ -6,18 +6,11 @@ WebBrowser.maybeCompleteAuthSession();
 
 // OAuth configuration
 const GOOGLE_CLIENT_ID =
-  "464238880090-8i4nq7p20st8lj2jb46ah1gh5ft7up93.apps.googleusercontent.com";
+  "464238880090-1c3s1seien4msnnmqdcu0mp10dacabik.apps.googleusercontent.com";
 const FACEBOOK_CLIENT_ID = "585636393835324";
 
-// Redirect URI - sử dụng custom scheme cho Android Client ID
-// Expo sẽ tự động tạo redirect URI phù hợp với platform
-const getRedirectUri = () => {
-  return AuthSession.makeRedirectUri({
-    scheme: "com.fatties.youth",
-    path: "oauth2redirect",
-    useProxy: false,
-  });
-};
+// Redirect URI - sử dụng backend callback URL cho cả Google và Facebook
+const REDIRECT_URI = "https://api.chuyenbienhoa.com/v1.0/oauth/callback";
 
 // Track active auth sessions to prevent multiple calls
 let activeGoogleAuthSession = false;
@@ -35,8 +28,7 @@ export const loginWithGoogle = async () => {
 
   activeGoogleAuthSession = true;
   try {
-    const redirectUri = getRedirectUri();
-    console.log("Google OAuth: Using redirect URI:", redirectUri);
+    console.log("Google OAuth: Using redirect URI:", REDIRECT_URI);
     console.log("Google OAuth: Client ID (Android):", GOOGLE_CLIENT_ID);
 
     const discovery = {
@@ -49,7 +41,7 @@ export const loginWithGoogle = async () => {
       clientId: GOOGLE_CLIENT_ID,
       scopes: ["openid", "profile", "email"],
       responseType: AuthSession.ResponseType.Code,
-      redirectUri: redirectUri,
+      redirectUri: REDIRECT_URI,
       usePKCE: true,
     });
 
@@ -160,8 +152,7 @@ export const loginWithFacebook = async () => {
 
   activeFacebookAuthSession = true;
   try {
-    const redirectUri = getRedirectUri();
-    console.log("Facebook OAuth: Using redirect URI:", redirectUri);
+    console.log("Facebook OAuth: Using redirect URI:", REDIRECT_URI);
     console.log("Facebook OAuth: Client ID:", FACEBOOK_CLIENT_ID);
 
     const discovery = {
@@ -173,7 +164,7 @@ export const loginWithFacebook = async () => {
       clientId: FACEBOOK_CLIENT_ID,
       scopes: ["public_profile", "email"],
       responseType: AuthSession.ResponseType.Token,
-      redirectUri: redirectUri,
+      redirectUri: REDIRECT_URI,
       usePKCE: false,
     });
 

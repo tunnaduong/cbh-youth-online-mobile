@@ -28,6 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>com.fatties.youth</string>
+          <string>com.fatties.youth</string>
         </array>
       </dict>
       <dict>
