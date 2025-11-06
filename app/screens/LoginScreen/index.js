@@ -37,13 +37,10 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       const response = await loginRequest({ username: email, password });
-      console.log("Login successful:", response.data);
 
       // Save token and user info
       signIn(response.data.token, response.data.user);
     } catch (error) {
-      console.log("Login failed:", error);
-
       // Show an error message to the user
       Alert.alert(
         "Đăng nhập thất bại",
@@ -57,23 +54,13 @@ const LoginScreen = ({ navigation }) => {
   const handleGoogleLogin = async () => {
     // Prevent multiple clicks
     if (loading) {
-      console.log("Google OAuth: Already processing, ignoring duplicate click");
       return;
     }
 
     setLoading(true);
     try {
-      console.log("Starting Google OAuth login...");
       const oauthResult = await loginWithGoogle();
 
-      console.log("Google OAuth result received:", {
-        provider: oauthResult.provider,
-        hasAccessToken: !!oauthResult.accessToken,
-        hasIdToken: !!oauthResult.idToken,
-        hasProfile: !!oauthResult.profile,
-      });
-
-      console.log("Calling backend API with OAuth data...");
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
@@ -81,34 +68,12 @@ const LoginScreen = ({ navigation }) => {
         profile: oauthResult.profile,
       });
 
-      console.log("Backend API response:", {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        headers: response.headers,
-      });
-
       if (response.data && response.data.token) {
-        console.log("OAuth login successful, signing in user...");
         signIn(response.data.token, response.data.user);
       } else {
-        console.error(
-          "Backend response missing token or user data:",
-          response.data
-        );
         throw new Error("Phản hồi từ server không hợp lệ");
       }
     } catch (error) {
-      console.error("Google OAuth login failed - Full error:", {
-        message: error.message,
-        response: error.response,
-        responseData: error.response?.data,
-        responseStatus: error.response?.status,
-        responseHeaders: error.response?.headers,
-        stack: error.stack,
-        error: error,
-      });
-
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -124,25 +89,13 @@ const LoginScreen = ({ navigation }) => {
   const handleFacebookLogin = async () => {
     // Prevent multiple clicks
     if (loading) {
-      console.log(
-        "Facebook OAuth: Already processing, ignoring duplicate click"
-      );
       return;
     }
 
     setLoading(true);
     try {
-      console.log("Starting Facebook OAuth login...");
       const oauthResult = await loginWithFacebook();
 
-      console.log("Facebook OAuth result received:", {
-        provider: oauthResult.provider,
-        hasAccessToken: !!oauthResult.accessToken,
-        hasIdToken: !!oauthResult.idToken,
-        hasProfile: !!oauthResult.profile,
-      });
-
-      console.log("Calling backend API with OAuth data...");
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
@@ -150,34 +103,12 @@ const LoginScreen = ({ navigation }) => {
         profile: oauthResult.profile,
       });
 
-      console.log("Backend API response:", {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        headers: response.headers,
-      });
-
       if (response.data && response.data.token) {
-        console.log("OAuth login successful, signing in user...");
         signIn(response.data.token, response.data.user);
       } else {
-        console.error(
-          "Backend response missing token or user data:",
-          response.data
-        );
         throw new Error("Phản hồi từ server không hợp lệ");
       }
     } catch (error) {
-      console.error("Facebook OAuth login failed - Full error:", {
-        message: error.message,
-        response: error.response,
-        responseData: error.response?.data,
-        responseStatus: error.response?.status,
-        responseHeaders: error.response?.headers,
-        stack: error.stack,
-        error: error,
-      });
-
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||

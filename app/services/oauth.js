@@ -33,9 +33,6 @@ export const loginWithGoogle = async () => {
 
   activeGoogleAuthSession = true;
   try {
-    console.log("Google OAuth: Using redirect URI:", REDIRECT_URI);
-    console.log("Google OAuth: Client ID (Android):", GOOGLE_CLIENT_ID);
-
     const discovery = {
       authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
       tokenEndpoint: "https://oauth2.googleapis.com/token",
@@ -53,51 +50,58 @@ export const loginWithGoogle = async () => {
     // Store request for deep link handling
     activeGoogleRequest = request;
 
-    // Log the authorization URL that will be opened
-    const authUrl = await request.makeAuthUrlAsync(discovery);
-    console.log("Google OAuth: Authorization URL:", authUrl);
+    await request.makeAuthUrlAsync(discovery);
+
+    // Store code verifier for manual exchange if needed
+    let codeVerifier = null;
+    try {
+      if (request.codeVerifier) {
+        codeVerifier = request.codeVerifier;
+      } else if (request._codeVerifier) {
+        codeVerifier = request._codeVerifier;
+      } else {
+        // Try common property names
+        for (const prop of [
+          "codeVerifier",
+          "_codeVerifier",
+          "verifier",
+          "_verifier",
+          "pkce",
+          "_pkce",
+        ]) {
+          if (request[prop]) {
+            codeVerifier = request[prop];
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      // Code verifier not accessible, will use backend exchange
+    }
 
     // Store code from deep link if received
     let deepLinkCode = null;
 
     // Set up deep link listener BEFORE promptAsync
     const deepLinkListener = Linking.addEventListener("url", (event) => {
-      console.log("Google OAuth: Deep link received:", event.url);
       try {
-        // Handle both formats: com.fatties.youth:oauth and com.fatties.youth://oauth
-        // Android browser may strip trailing slashes, so we need to handle both
-        let urlStr = event.url;
-        if (urlStr.startsWith("com.fatties.youth://")) {
-          urlStr = urlStr.replace("com.fatties.youth://", "https://");
-        } else if (urlStr.startsWith("com.fatties.youth:")) {
-          urlStr = urlStr.replace("com.fatties.youth:", "https://");
-        }
+        const urlStr = event.url;
 
-        const url = new URL(urlStr);
-        if (url.pathname === "/oauth" || url.pathname === "oauth") {
-          const code = url.searchParams.get("code");
-          const provider = url.searchParams.get("provider");
-          const error = url.searchParams.get("error");
+        // Check if it's our OAuth deep link
+        if (urlStr.includes("com.fatties.youth") && urlStr.includes("oauth")) {
+          // Extract query parameters manually
+          const queryString = urlStr.split("?")[1] || "";
+          const params = new URLSearchParams(queryString);
+          const code = params.get("code");
+          const error = params.get("error");
 
-          console.log("Google OAuth: Parsed deep link:", {
-            code: !!code,
-            provider,
-            error,
-            pathname: url.pathname,
-          });
-
-          // Accept code regardless of provider in deep link
-          // We know this is Google OAuth from context (we're in loginWithGoogle function)
           if (code) {
-            console.log(
-              "Google OAuth: Storing code from deep link for processing..."
-            );
             deepLinkCode = code;
             WebBrowser.maybeCompleteAuthSession();
           }
         }
       } catch (e) {
-        console.log("Google OAuth: Error parsing deep link:", e);
+        // Ignore parsing errors
       }
     });
 
@@ -106,52 +110,62 @@ export const loginWithGoogle = async () => {
       showInRecents: true,
     });
 
-    // Clean up listener
-    deepLinkListener.remove();
-    activeGoogleRequest = null;
-
-    console.log("Google OAuth promptAsync result:", {
-      type: result.type,
-      params: result.params,
-      errorCode: result.errorCode,
-      error: result.error,
-    });
-
     // Handle different result types
     if (result.type === "locked") {
-      console.log("Google OAuth: Session is locked");
+      deepLinkListener.remove();
+      activeGoogleRequest = null;
       throw new Error(
         "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau."
       );
     }
 
     if (result.type === "dismiss") {
-      console.log(
-        "Google OAuth: promptAsync returned dismiss, checking for deep link code..."
-      );
-
       // Wait a bit for deep link to arrive if it hasn't yet
       if (!deepLinkCode) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
       // Check if we got code from deep link listener
-      // We're in Google OAuth context, so any code received is for Google
       if (deepLinkCode) {
-        console.log("Google OAuth: Found code from deep link, processing...");
         try {
-          // Manually process the code
-          const tokenResult = await request.exchangeCodeAsync(
-            { code: deepLinkCode },
-            discovery
-          );
+          let tokenResult;
+          if (request && typeof request.exchangeCodeAsync === "function") {
+            tokenResult = await request.exchangeCodeAsync(
+              { code: deepLinkCode },
+              discovery
+            );
+          } else if (codeVerifier) {
+            // Exchange code via backend API (backend has client_secret)
+            const { exchangeOAuthCode } = require("./api/Api");
 
-          console.log("Google OAuth: Token exchange result:", {
-            hasAccessToken: !!tokenResult.accessToken,
-            hasIdToken: !!tokenResult.idToken,
-            tokenType: tokenResult.tokenType,
-            expiresIn: tokenResult.expiresIn,
-          });
+            try {
+              const exchangeResponse = await exchangeOAuthCode({
+                code: deepLinkCode,
+                code_verifier: codeVerifier,
+                provider: "google",
+              });
+
+              if (!exchangeResponse?.access_token) {
+                throw new Error("Backend did not return access_token");
+              }
+
+              // Convert to format expected by rest of code
+              tokenResult = {
+                accessToken: exchangeResponse.access_token,
+                idToken: exchangeResponse.id_token || null,
+                tokenType: exchangeResponse.token_type || "Bearer",
+                expiresIn: exchangeResponse.expires_in,
+              };
+            } catch (error) {
+              throw new Error(
+                `Token exchange failed: ${error.message || "Unknown error"}`
+              );
+            }
+          } else {
+            throw new Error(
+              "Cannot exchange code: exchangeCodeAsync method not available and code verifier not found. Please try again."
+            );
+          }
 
           const { accessToken, idToken } = tokenResult;
 
@@ -161,18 +175,12 @@ export const loginWithGoogle = async () => {
               `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
             );
 
-            console.log(
-              "Google OAuth: User info response status:",
-              userInfoResponse.status
-            );
-
             if (userInfoResponse.ok) {
               const userInfo = await userInfoResponse.json();
-              console.log("Google OAuth: User info received:", {
-                id: userInfo.id,
-                email: userInfo.email,
-                name: userInfo.name,
-              });
+
+              // Clean up listener before returning
+              deepLinkListener.remove();
+              activeGoogleRequest = null;
 
               return {
                 provider: "google",
@@ -183,24 +191,20 @@ export const loginWithGoogle = async () => {
             }
           }
         } catch (e) {
-          console.log("Google OAuth: Error processing deep link code:", e);
+          // Error processing deep link code
         }
       }
 
-      console.log(
-        "Google OAuth: User dismissed or webview closed unexpectedly"
-      );
-      console.log("Google OAuth: This might be due to:");
-      console.log("1. Redirect URI not configured in Google Cloud Console");
-      console.log("2. User closed the browser/webview");
+      // Clean up listener if we didn't successfully process the code
+      deepLinkListener.remove();
+      activeGoogleRequest = null;
+
       throw new Error(
         "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau."
       );
     }
 
     if (result.type === "success" && result.params.code) {
-      console.log("Google OAuth: Received authorization code");
-
       // Exchange authorization code for tokens
       const tokenResult = await request.exchangeCodeAsync(
         {
@@ -209,17 +213,9 @@ export const loginWithGoogle = async () => {
         discovery
       );
 
-      console.log("Google OAuth: Token exchange result:", {
-        hasAccessToken: !!tokenResult.accessToken,
-        hasIdToken: !!tokenResult.idToken,
-        tokenType: tokenResult.tokenType,
-        expiresIn: tokenResult.expiresIn,
-      });
-
       const { accessToken, idToken } = tokenResult;
 
       if (!accessToken) {
-        console.log("Google OAuth: No access token received", tokenResult);
         throw new Error("Không thể lấy access token từ Google");
       }
 
@@ -228,27 +224,15 @@ export const loginWithGoogle = async () => {
         `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
       );
 
-      console.log(
-        "Google OAuth: User info response status:",
-        userInfoResponse.status
-      );
-
       if (!userInfoResponse.ok) {
-        const errorText = await userInfoResponse.text();
-        console.log("Google OAuth: Failed to get user info", {
-          status: userInfoResponse.status,
-          statusText: userInfoResponse.statusText,
-          error: errorText,
-        });
         throw new Error("Không thể lấy thông tin người dùng từ Google");
       }
 
       const userInfo = await userInfoResponse.json();
-      console.log("Google OAuth: User info received:", {
-        id: userInfo.id,
-        email: userInfo.email,
-        name: userInfo.name,
-      });
+
+      // Clean up listener before returning
+      deepLinkListener.remove();
+      activeGoogleRequest = null;
 
       return {
         provider: "google",
@@ -257,28 +241,19 @@ export const loginWithGoogle = async () => {
         profile: userInfo,
       };
     } else {
-      console.log("Google OAuth: Failed or cancelled", {
-        type: result.type,
-        params: result.params,
-        errorCode: result.errorCode,
-        error: result.error,
-      });
+      // Clean up listener for other result types
+      deepLinkListener.remove();
+      activeGoogleRequest = null;
       throw new Error("Đăng nhập với Google thất bại hoặc bị hủy");
     }
   } catch (error) {
-    console.log("Google OAuth: Error details:", {
-      message: error.message,
-      stack: error.stack,
-      error: error,
-    });
     throw error;
   } finally {
     activeGoogleAuthSession = false;
   }
 };
 
-// Facebook OAuth using Authorization Code flow (giống Google)
-// Chuyển từ Implicit flow vì fragment (#) không được gửi đến server
+// Facebook OAuth using Authorization Code flow
 export const loginWithFacebook = async () => {
   // Prevent multiple simultaneous calls
   if (activeFacebookAuthSession) {
@@ -290,9 +265,6 @@ export const loginWithFacebook = async () => {
 
   activeFacebookAuthSession = true;
   try {
-    console.log("Facebook OAuth: Using redirect URI:", REDIRECT_URI);
-    console.log("Facebook OAuth: Client ID:", FACEBOOK_CLIENT_ID);
-
     const discovery = {
       authorizationEndpoint: "https://www.facebook.com/v18.0/dialog/oauth",
       tokenEndpoint: "https://graph.facebook.com/v18.0/oauth/access_token",
@@ -309,61 +281,31 @@ export const loginWithFacebook = async () => {
     // Store request for deep link handling
     activeFacebookRequest = request;
 
-    // Log the authorization URL that will be opened
-    const authUrl = await request.makeAuthUrlAsync(discovery);
-    console.log("Facebook OAuth: Authorization URL:", authUrl);
-
-    console.log("Facebook OAuth: About to call promptAsync...");
-    console.log("Facebook OAuth: Request config:", {
-      clientId: FACEBOOK_CLIENT_ID,
-      redirectUri: REDIRECT_URI,
-      responseType: "code",
-      usePKCE: true,
-    });
+    await request.makeAuthUrlAsync(discovery);
 
     // Store code from deep link if received
     let deepLinkCode = null;
-    let deepLinkProvider = null;
 
     // Set up deep link listener BEFORE promptAsync
     const deepLinkListener = Linking.addEventListener("url", (event) => {
-      console.log("Facebook OAuth: Deep link received:", event.url);
       try {
-        // Handle both formats: com.fatties.youth:oauth and com.fatties.youth://oauth
-        // Android browser may strip trailing slashes, so we need to handle both
-        let urlStr = event.url;
-        if (urlStr.startsWith("com.fatties.youth://")) {
-          urlStr = urlStr.replace("com.fatties.youth://", "https://");
-        } else if (urlStr.startsWith("com.fatties.youth:")) {
-          urlStr = urlStr.replace("com.fatties.youth:", "https://");
-        }
+        const urlStr = event.url;
 
-        const url = new URL(urlStr);
-        if (url.pathname === "/oauth" || url.pathname === "oauth") {
-          const code = url.searchParams.get("code");
-          const provider = url.searchParams.get("provider");
-          const error = url.searchParams.get("error");
+        // Check if it's our OAuth deep link
+        if (urlStr.includes("com.fatties.youth") && urlStr.includes("oauth")) {
+          // Extract query parameters manually
+          const queryString = urlStr.split("?")[1] || "";
+          const params = new URLSearchParams(queryString);
+          const code = params.get("code");
+          const error = params.get("error");
 
-          console.log("Facebook OAuth: Parsed deep link:", {
-            code: !!code,
-            provider,
-            error,
-            pathname: url.pathname,
-          });
-
-          // Accept code regardless of provider in deep link
-          // We know this is Facebook OAuth from context (we're in loginWithFacebook function)
           if (code) {
-            console.log(
-              "Facebook OAuth: Storing code from deep link for processing..."
-            );
             deepLinkCode = code;
-            deepLinkProvider = "facebook"; // Force to facebook since we're in Facebook OAuth flow
             WebBrowser.maybeCompleteAuthSession();
           }
         }
       } catch (e) {
-        console.log("Facebook OAuth: Error parsing deep link:", e);
+        // Ignore parsing errors
       }
     });
 
@@ -376,48 +318,27 @@ export const loginWithFacebook = async () => {
     deepLinkListener.remove();
     activeFacebookRequest = null;
 
-    console.log("Facebook OAuth promptAsync result:", {
-      type: result.type,
-      params: result.params,
-      errorCode: result.errorCode,
-      error: result.error,
-      url: result.url,
-    });
-
     // Handle different result types
     if (result.type === "locked") {
-      console.log("Facebook OAuth: Session is locked");
       throw new Error(
         "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau."
       );
     }
 
     if (result.type === "dismiss") {
-      console.log(
-        "Facebook OAuth: promptAsync returned dismiss, checking for deep link code..."
-      );
-
       // Wait a bit for deep link to arrive if it hasn't yet
       if (!deepLinkCode) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
 
       // Check if we got code from deep link listener
-      // We're in Facebook OAuth context, so any code received is for Facebook
       if (deepLinkCode) {
-        console.log("Facebook OAuth: Found code from deep link, processing...");
         try {
           // Manually process the code
           const tokenResult = await request.exchangeCodeAsync(
             { code: deepLinkCode },
             discovery
           );
-
-          console.log("Facebook OAuth: Token exchange result:", {
-            hasAccessToken: !!tokenResult.accessToken,
-            tokenType: tokenResult.tokenType,
-            expiresIn: tokenResult.expiresIn,
-          });
 
           const { accessToken } = tokenResult;
           if (accessToken) {
@@ -426,20 +347,9 @@ export const loginWithFacebook = async () => {
               `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
             );
 
-            console.log(
-              "Facebook OAuth: User info response status:",
-              userInfoResponse.status
-            );
-
             if (userInfoResponse.ok) {
               const userInfo = await userInfoResponse.json();
               if (!userInfo.error) {
-                console.log("Facebook OAuth: User info received:", {
-                  id: userInfo.id,
-                  email: userInfo.email,
-                  name: userInfo.name,
-                });
-
                 return {
                   provider: "facebook",
                   accessToken: accessToken,
@@ -450,27 +360,16 @@ export const loginWithFacebook = async () => {
             }
           }
         } catch (e) {
-          console.log("Facebook OAuth: Error processing deep link code:", e);
+          // Error processing deep link code
         }
       }
 
-      console.log(
-        "Facebook OAuth: User dismissed or webview closed unexpectedly"
-      );
-      console.log("Facebook OAuth: This might be due to:");
-      console.log("1. Redirect URI not configured in Facebook App Settings");
-      console.log(
-        "2. Facebook not accepting Authorization Code flow for mobile"
-      );
-      console.log("3. User closed the browser/webview");
       throw new Error(
         "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau."
       );
     }
 
     if (result.type === "success" && result.params.code) {
-      console.log("Facebook OAuth: Received authorization code");
-
       // Exchange authorization code for tokens
       const tokenResult = await request.exchangeCodeAsync(
         {
@@ -479,16 +378,9 @@ export const loginWithFacebook = async () => {
         discovery
       );
 
-      console.log("Facebook OAuth: Token exchange result:", {
-        hasAccessToken: !!tokenResult.accessToken,
-        tokenType: tokenResult.tokenType,
-        expiresIn: tokenResult.expiresIn,
-      });
-
       const { accessToken } = tokenResult;
 
       if (!accessToken) {
-        console.log("Facebook OAuth: No access token received", tokenResult);
         throw new Error("Không thể lấy access token từ Facebook");
       }
 
@@ -497,36 +389,18 @@ export const loginWithFacebook = async () => {
         `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
       );
 
-      console.log(
-        "Facebook OAuth: User info response status:",
-        userInfoResponse.status
-      );
-
       if (!userInfoResponse.ok) {
-        const errorText = await userInfoResponse.text();
-        console.log("Facebook OAuth: Failed to get user info", {
-          status: userInfoResponse.status,
-          statusText: userInfoResponse.statusText,
-          error: errorText,
-        });
         throw new Error("Không thể lấy thông tin người dùng từ Facebook");
       }
 
       const userInfo = await userInfoResponse.json();
 
       if (userInfo.error) {
-        console.log("Facebook OAuth: API error", userInfo.error);
         throw new Error(
           userInfo.error.message ||
             "Không thể lấy thông tin người dùng từ Facebook"
         );
       }
-
-      console.log("Facebook OAuth: User info received:", {
-        id: userInfo.id,
-        email: userInfo.email,
-        name: userInfo.name,
-      });
 
       return {
         provider: "facebook",
@@ -535,20 +409,9 @@ export const loginWithFacebook = async () => {
         profile: userInfo,
       };
     } else {
-      console.log("Facebook OAuth: Failed or cancelled", {
-        type: result.type,
-        params: result.params,
-        errorCode: result.errorCode,
-        error: result.error,
-      });
       throw new Error("Đăng nhập với Facebook thất bại hoặc bị hủy");
     }
   } catch (error) {
-    console.log("Facebook OAuth: Error details:", {
-      message: error.message,
-      stack: error.stack,
-      error: error,
-    });
     throw error;
   } finally {
     activeFacebookAuthSession = false;

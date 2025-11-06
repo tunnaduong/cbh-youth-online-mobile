@@ -52,6 +52,32 @@ export const loginWithOAuth = async (params) => {
   }
 };
 
+export const exchangeOAuthCode = async (params) => {
+  try {
+    const response = await Api.postRequest("/v1.0/oauth/exchange", params);
+
+    // Handle both direct response and response.data
+    if (response && response.data) {
+      return response.data;
+    }
+    return response;
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.error) {
+      throw new Error(error.response.data.error);
+    } else if (
+      error.response &&
+      error.response.data &&
+      error.response.data.message
+    ) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error(
+        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+      );
+    }
+  }
+};
+
 export const getHomePosts = (page = 1) => {
   return Api.getRequest("/v1.0/topics?page=" + page);
 };
