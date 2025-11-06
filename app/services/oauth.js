@@ -5,10 +5,6 @@ import { Linking } from "react-native";
 // Complete the auth session for proper cleanup
 WebBrowser.maybeCompleteAuthSession();
 
-// Store active requests to handle deep links manually
-let activeGoogleRequest = null;
-let activeFacebookRequest = null;
-
 // OAuth configuration
 const GOOGLE_CLIENT_ID =
   "464238880090-1c3s1seien4msnnmqdcu0mp10dacabik.apps.googleusercontent.com";
@@ -25,9 +21,6 @@ let activeFacebookAuthSession = false;
 export const loginWithGoogle = async () => {
   // Prevent multiple simultaneous calls
   if (activeGoogleAuthSession) {
-    console.warn(
-      "Google OAuth: Session already active, ignoring duplicate call"
-    );
     throw new Error("Đang xử lý đăng nhập với Google. Vui lòng đợi...");
   }
 
@@ -47,14 +40,14 @@ export const loginWithGoogle = async () => {
       usePKCE: true,
     });
 
-    // Store request for deep link handling
-    activeGoogleRequest = request;
-
     await request.makeAuthUrlAsync(discovery);
 
     // Store code verifier for manual exchange if needed
+    // Try to access code verifier from request (may not be directly accessible)
     let codeVerifier = null;
     try {
+      // AuthRequest may store code verifier internally
+      // Try to access it if available
       if (request.codeVerifier) {
         codeVerifier = request.codeVerifier;
       } else if (request._codeVerifier) {
@@ -85,6 +78,8 @@ export const loginWithGoogle = async () => {
     // Set up deep link listener BEFORE promptAsync
     const deepLinkListener = Linking.addEventListener("url", (event) => {
       try {
+        // Parse deep link manually to handle both formats
+        // Format: com.fatties.youth:oauth?code=... or com.fatties.youth://oauth?code=...
         const urlStr = event.url;
 
         // Check if it's our OAuth deep link
@@ -95,6 +90,8 @@ export const loginWithGoogle = async () => {
           const code = params.get("code");
           const error = params.get("error");
 
+          // Accept code regardless of provider in deep link
+          // We know this is Google OAuth from context (we're in loginWithGoogle function)
           if (code) {
             deepLinkCode = code;
             WebBrowser.maybeCompleteAuthSession();
@@ -112,8 +109,8 @@ export const loginWithGoogle = async () => {
 
     // Handle different result types
     if (result.type === "locked") {
+      // Clean up listener
       deepLinkListener.remove();
-      activeGoogleRequest = null;
       throw new Error(
         "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau."
       );
@@ -126,8 +123,11 @@ export const loginWithGoogle = async () => {
       }
 
       // Check if we got code from deep link listener
+      // We're in Google OAuth context, so any code received is for Google
       if (deepLinkCode) {
         try {
+          // Try to exchange code - request should still be valid
+          // The request object should still have exchangeCodeAsync after promptAsync
           let tokenResult;
           if (request && typeof request.exchangeCodeAsync === "function") {
             tokenResult = await request.exchangeCodeAsync(
@@ -180,7 +180,6 @@ export const loginWithGoogle = async () => {
 
               // Clean up listener before returning
               deepLinkListener.remove();
-              activeGoogleRequest = null;
 
               return {
                 provider: "google",
@@ -197,7 +196,6 @@ export const loginWithGoogle = async () => {
 
       // Clean up listener if we didn't successfully process the code
       deepLinkListener.remove();
-      activeGoogleRequest = null;
 
       throw new Error(
         "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau."
@@ -232,7 +230,6 @@ export const loginWithGoogle = async () => {
 
       // Clean up listener before returning
       deepLinkListener.remove();
-      activeGoogleRequest = null;
 
       return {
         provider: "google",
@@ -243,7 +240,6 @@ export const loginWithGoogle = async () => {
     } else {
       // Clean up listener for other result types
       deepLinkListener.remove();
-      activeGoogleRequest = null;
       throw new Error("Đăng nhập với Google thất bại hoặc bị hủy");
     }
   } catch (error) {
@@ -253,13 +249,11 @@ export const loginWithGoogle = async () => {
   }
 };
 
-// Facebook OAuth using Authorization Code flow
+// Facebook OAuth using Authorization Code flow (giống Google)
+// Chuyển từ Implicit flow vì fragment (#) không được gửi đến server
 export const loginWithFacebook = async () => {
   // Prevent multiple simultaneous calls
   if (activeFacebookAuthSession) {
-    console.warn(
-      "Facebook OAuth: Session already active, ignoring duplicate call"
-    );
     throw new Error("Đang xử lý đăng nhập với Facebook. Vui lòng đợi...");
   }
 
@@ -278,17 +272,47 @@ export const loginWithFacebook = async () => {
       usePKCE: true,
     });
 
-    // Store request for deep link handling
-    activeFacebookRequest = request;
-
     await request.makeAuthUrlAsync(discovery);
+
+    // Store code verifier for manual exchange if needed
+    // Try to access code verifier from request (may not be directly accessible)
+    let codeVerifier = null;
+    try {
+      // AuthRequest may store code verifier internally
+      // Try to access it if available
+      if (request.codeVerifier) {
+        codeVerifier = request.codeVerifier;
+      } else if (request._codeVerifier) {
+        codeVerifier = request._codeVerifier;
+      } else {
+        // Try common property names
+        for (const prop of [
+          "codeVerifier",
+          "_codeVerifier",
+          "verifier",
+          "_verifier",
+          "pkce",
+          "_pkce",
+        ]) {
+          if (request[prop]) {
+            codeVerifier = request[prop];
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      // Code verifier not accessible, will use backend exchange
+    }
 
     // Store code from deep link if received
     let deepLinkCode = null;
+    let deepLinkProvider = null;
 
     // Set up deep link listener BEFORE promptAsync
     const deepLinkListener = Linking.addEventListener("url", (event) => {
       try {
+        // Parse deep link manually to handle both formats
+        // Format: com.fatties.youth:oauth?code=... or com.fatties.youth://oauth?code=...
         const urlStr = event.url;
 
         // Check if it's our OAuth deep link
@@ -297,10 +321,12 @@ export const loginWithFacebook = async () => {
           const queryString = urlStr.split("?")[1] || "";
           const params = new URLSearchParams(queryString);
           const code = params.get("code");
-          const error = params.get("error");
 
+          // Accept code regardless of provider in deep link
+          // We know this is Facebook OAuth from context (we're in loginWithFacebook function)
           if (code) {
             deepLinkCode = code;
+            deepLinkProvider = "facebook"; // Force to facebook since we're in Facebook OAuth flow
             WebBrowser.maybeCompleteAuthSession();
           }
         }
@@ -314,12 +340,10 @@ export const loginWithFacebook = async () => {
       showInRecents: true,
     });
 
-    // Clean up listener
-    deepLinkListener.remove();
-    activeFacebookRequest = null;
-
     // Handle different result types
     if (result.type === "locked") {
+      // Clean up listener
+      deepLinkListener.remove();
       throw new Error(
         "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau."
       );
@@ -332,13 +356,49 @@ export const loginWithFacebook = async () => {
       }
 
       // Check if we got code from deep link listener
+      // We're in Facebook OAuth context, so any code received is for Facebook
       if (deepLinkCode) {
         try {
-          // Manually process the code
-          const tokenResult = await request.exchangeCodeAsync(
-            { code: deepLinkCode },
-            discovery
-          );
+          // Try to exchange code - request should still be valid
+          // The request object should still have exchangeCodeAsync after promptAsync
+          let tokenResult;
+          if (request && typeof request.exchangeCodeAsync === "function") {
+            tokenResult = await request.exchangeCodeAsync(
+              { code: deepLinkCode },
+              discovery
+            );
+          } else if (codeVerifier) {
+            // Exchange code via backend API (backend has client_secret)
+            const { exchangeOAuthCode } = require("./api/Api");
+
+            try {
+              const exchangeResponse = await exchangeOAuthCode({
+                code: deepLinkCode,
+                code_verifier: codeVerifier,
+                provider: "facebook",
+              });
+
+              if (!exchangeResponse?.access_token) {
+                throw new Error("Backend did not return access_token");
+              }
+
+              // Convert to format expected by rest of code
+              tokenResult = {
+                accessToken: exchangeResponse.access_token,
+                idToken: null,
+                tokenType: exchangeResponse.token_type || "Bearer",
+                expiresIn: exchangeResponse.expires_in,
+              };
+            } catch (error) {
+              throw new Error(
+                `Token exchange failed: ${error.message || "Unknown error"}`
+              );
+            }
+          } else {
+            throw new Error(
+              "Cannot exchange code: exchangeCodeAsync method not available and code verifier not found. Please try again."
+            );
+          }
 
           const { accessToken } = tokenResult;
           if (accessToken) {
@@ -350,6 +410,9 @@ export const loginWithFacebook = async () => {
             if (userInfoResponse.ok) {
               const userInfo = await userInfoResponse.json();
               if (!userInfo.error) {
+                // Clean up listener before returning
+                deepLinkListener.remove();
+
                 return {
                   provider: "facebook",
                   accessToken: accessToken,
@@ -363,6 +426,9 @@ export const loginWithFacebook = async () => {
           // Error processing deep link code
         }
       }
+
+      // Clean up listener if we didn't successfully process the code
+      deepLinkListener.remove();
 
       throw new Error(
         "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau."

@@ -86,7 +86,6 @@ const SignupScreen = ({ navigation }) => {
   };
 
   const handleGoogleSignup = async () => {
-    // Prevent multiple clicks
     if (loading) {
       return;
     }

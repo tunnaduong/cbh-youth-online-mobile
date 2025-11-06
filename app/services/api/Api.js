@@ -54,7 +54,21 @@ export const loginWithOAuth = async (params) => {
 
 export const exchangeOAuthCode = async (params) => {
   try {
+    console.log("Api: exchangeOAuthCode - Request params:", {
+      code: params.code ? "present" : "missing",
+      code_verifier: params.code_verifier ? "present" : "missing",
+      provider: params.provider,
+      providerType: typeof params.provider,
+      providerLength: params.provider?.length,
+      fullParams: params,
+    });
     const response = await Api.postRequest("/v1.0/oauth/exchange", params);
+    console.log("Api: exchangeOAuthCode - Response:", response);
+    console.log("Api: exchangeOAuthCode - Response type:", typeof response);
+    console.log(
+      "Api: exchangeOAuthCode - Response keys:",
+      Object.keys(response || {})
+    );
 
     // Handle both direct response and response.data
     if (response && response.data) {
@@ -62,6 +76,8 @@ export const exchangeOAuthCode = async (params) => {
     }
     return response;
   } catch (error) {
+    console.log("Api: exchangeOAuthCode - Error:", error);
+    console.log("Api: exchangeOAuthCode - Error response:", error.response);
     if (error.response && error.response.data && error.response.data.error) {
       throw new Error(error.response.data.error);
     } else if (
