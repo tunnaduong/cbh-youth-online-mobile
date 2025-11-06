@@ -64,9 +64,17 @@ export const loginWithGoogle = async () => {
     const deepLinkListener = Linking.addEventListener("url", (event) => {
       console.log("Google OAuth: Deep link received:", event.url);
       try {
-        const urlStr = event.url.replace("com.fatties.youth://", "https://");
+        // Handle both formats: com.fatties.youth:oauth and com.fatties.youth://oauth
+        // Android browser may strip trailing slashes, so we need to handle both
+        let urlStr = event.url;
+        if (urlStr.startsWith("com.fatties.youth://")) {
+          urlStr = urlStr.replace("com.fatties.youth://", "https://");
+        } else if (urlStr.startsWith("com.fatties.youth:")) {
+          urlStr = urlStr.replace("com.fatties.youth:", "https://");
+        }
+
         const url = new URL(urlStr);
-        if (url.pathname === "/oauth") {
+        if (url.pathname === "/oauth" || url.pathname === "oauth") {
           const code = url.searchParams.get("code");
           const provider = url.searchParams.get("provider");
           const error = url.searchParams.get("error");
@@ -75,6 +83,7 @@ export const loginWithGoogle = async () => {
             code: !!code,
             provider,
             error,
+            pathname: url.pathname,
           });
 
           // Accept code regardless of provider in deep link
@@ -320,9 +329,17 @@ export const loginWithFacebook = async () => {
     const deepLinkListener = Linking.addEventListener("url", (event) => {
       console.log("Facebook OAuth: Deep link received:", event.url);
       try {
-        const urlStr = event.url.replace("com.fatties.youth://", "https://");
+        // Handle both formats: com.fatties.youth:oauth and com.fatties.youth://oauth
+        // Android browser may strip trailing slashes, so we need to handle both
+        let urlStr = event.url;
+        if (urlStr.startsWith("com.fatties.youth://")) {
+          urlStr = urlStr.replace("com.fatties.youth://", "https://");
+        } else if (urlStr.startsWith("com.fatties.youth:")) {
+          urlStr = urlStr.replace("com.fatties.youth:", "https://");
+        }
+
         const url = new URL(urlStr);
-        if (url.pathname === "/oauth") {
+        if (url.pathname === "/oauth" || url.pathname === "oauth") {
           const code = url.searchParams.get("code");
           const provider = url.searchParams.get("provider");
           const error = url.searchParams.get("error");
@@ -331,6 +348,7 @@ export const loginWithFacebook = async () => {
             code: !!code,
             provider,
             error,
+            pathname: url.pathname,
           });
 
           // Accept code regardless of provider in deep link
