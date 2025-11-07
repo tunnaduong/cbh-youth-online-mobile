@@ -205,7 +205,7 @@ const CreatePostScreen = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar barStyle={"default"} />
+      <StatusBar barStyle="dark-content" />
       <ProgressHUD loadText="Đang đăng..." visible={loading} />
       <View
         style={[

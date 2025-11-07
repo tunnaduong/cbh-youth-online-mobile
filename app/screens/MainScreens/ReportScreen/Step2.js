@@ -13,7 +13,6 @@ import {
   SafeAreaView,
   TouchableOpacity,
   StatusBar,
-  Platform,
   TextInput,
   ScrollView,
   Modal,
@@ -29,6 +28,7 @@ import BottomSheet, {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import ReportHeader from "../../../components/ReportHeader";
 
 const STEPS = [
   {
@@ -448,19 +448,7 @@ export default function Step2({ navigation, route }) {
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
-      <View
-        style={[
-          styles.headerNav,
-          Platform.OS === "android"
-            ? { marginTop: insets.top }
-            : { height: 65, paddingVertical: 12 },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={25} color={"#A7A7A7"} />
-        </TouchableOpacity>
-        <Text style={styles.headerNavTitle}>Tạo báo cáo</Text>
-      </View>
+      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
 
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
@@ -560,20 +548,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  headerNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    borderBottomColor: "#ccc",
-    borderBottomWidth: 0.8,
-    backgroundColor: "#F2F2F2",
-  },
-  headerNavTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 16,
-    color: "#309627",
   },
   header: {
     flexDirection: "row",

@@ -396,6 +396,65 @@ const HomeScreen = ({ navigation, route }) => {
     );
   }, [userStories]);
 
+  // Create renderContent for text stories
+  const renderTextContent = (story) => {
+    if (!story.type === "text" || !story.text_content) return null;
+
+    const containerStyle = {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: "100%",
+      height: "100%",
+    };
+
+    // Calculate text position based on percentages
+    // We'll use a wrapper View to position the text
+    const textWrapperStyle = {
+      position: "absolute",
+      width: "80%",
+      alignItems: "center",
+      justifyContent: "center",
+    };
+
+    const textStyle = {
+      fontSize: 24,
+      fontWeight: "bold",
+      color: "#fff",
+      textAlign: "center",
+      paddingHorizontal: 20,
+      textShadowColor: "rgba(0, 0, 0, 0.5)",
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
+      fontStyle: story.font_style || "normal",
+    };
+
+    const textContent = (
+      <View style={textWrapperStyle}>
+        <Text style={textStyle}>{story.text_content}</Text>
+      </View>
+    );
+
+    // if (isGradient && Array.isArray(backgroundColor)) {
+    return (
+      <LinearGradient
+        colors={backgroundColor}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={containerStyle}
+      >
+        {textContent}
+      </LinearGradient>
+    );
+    // } else {
+    //   return (
+    //     <View style={[containerStyle, { backgroundColor }]}>{textContent}</View>
+    //   );
+    // }
+  };
+
   const transformStoriesData = (apiResponse) => {
     console.log(
       "[InstagramStories] transformStoriesData called with:",
@@ -422,6 +481,8 @@ const HomeScreen = ({ navigation, route }) => {
         },
         duration: story.duration,
         renderFooter: () => <ReplyBar />,
+        renderContent: () =>
+          story.type === "text" ? renderTextContent(story) : undefined,
         date: story.created_at_human,
       })),
     }));

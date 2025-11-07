@@ -24,6 +24,7 @@ import {
   Linking,
   ActionSheetIOS,
   Alert,
+  StatusBar,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -866,6 +867,7 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar barStyle="light-content" />
       <View style={{ flex: 1, backgroundColor: "#000" }}>
         {/* Header */}
         {!isCameraMode && (

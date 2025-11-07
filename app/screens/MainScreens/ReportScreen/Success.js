@@ -5,11 +5,11 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CommonActions } from "@react-navigation/native";
+import ReportHeader from "../../../components/ReportHeader";
 
 export default function Success({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -26,19 +26,7 @@ export default function Success({ navigation }) {
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
-      <View
-        style={[
-          styles.headerNav,
-          Platform.OS === "android"
-            ? { marginTop: insets.top }
-            : { height: 65, paddingVertical: 12 },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={25} color={"#A7A7A7"} />
-        </TouchableOpacity>
-        <Text style={styles.headerNavTitle}>Tạo báo cáo</Text>
-      </View>
+      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
 
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -122,20 +110,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 16,
-  },
-  headerNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    borderBottomColor: "#ccc",
-    borderBottomWidth: 0.8,
-    backgroundColor: "#F2F2F2",
-  },
-  headerNavTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 16,
-    color: "#309627",
   },
   headerContent: {
     flex: 1,

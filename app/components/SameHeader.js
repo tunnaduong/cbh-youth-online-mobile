@@ -38,10 +38,12 @@ const FeatureHeader = ({
               resizeMode="contain"
             />
             <View className="ml-1">
-              <Text className="text-[#319527] text-[11px]">
+              <Text className="text-[#319527] font-light">
                 Diễn đàn học sinh
               </Text>
-              <Text className="font-bold text-[#319527]">Chuyên Biên Hòa</Text>
+              <Text className="font-bold text-[#319527] -mt-0.5">
+                Chuyên Biên Hòa
+              </Text>
             </View>
           </View>
         </SafeAreaView>

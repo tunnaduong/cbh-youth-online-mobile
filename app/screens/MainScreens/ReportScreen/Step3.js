@@ -6,12 +6,12 @@ import {
   SafeAreaView,
   TouchableOpacity,
   StatusBar,
-  Platform,
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
+import ReportHeader from "../../../components/ReportHeader";
 
 const STEPS = [
   {
@@ -107,18 +107,33 @@ export default function Step3({ navigation, route }) {
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
+      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
+
       <View
-        style={[
-          styles.headerNav,
-          Platform.OS === "android"
-            ? { marginTop: insets.top }
-            : { height: 65, paddingVertical: 12 },
-        ]}
+        style={{
+          backgroundColor: "#FFF3CD",
+          borderLeftWidth: 4,
+          borderLeftColor: "#FFC107",
+          padding: 12,
+          marginHorizontal: 15,
+          marginTop: 10,
+          marginBottom: 5,
+          borderRadius: 4,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={25} color={"#A7A7A7"} />
-        </TouchableOpacity>
-        <Text style={styles.headerNavTitle}>Tạo báo cáo</Text>
+        <Ionicons name="alert-circle-outline" size={20} color="#856404" />
+        <Text
+          style={{
+            marginLeft: 10,
+            color: "#856404",
+            fontSize: 14,
+            flex: 1,
+          }}
+        >
+          Thông tin báo cáo của bạn sẽ không được lưu lại.
+        </Text>
       </View>
 
       <ScrollView style={styles.scrollView}>
@@ -181,20 +196,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  headerNav: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    borderBottomColor: "#ccc",
-    borderBottomWidth: 0.8,
-    backgroundColor: "#F2F2F2",
-  },
-  headerNavTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginLeft: 16,
-    color: "#309627",
   },
   header: {
     flexDirection: "row",

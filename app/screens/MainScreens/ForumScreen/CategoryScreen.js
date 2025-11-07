@@ -25,24 +25,93 @@ const CategoryScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [forumData, setForumData] = useState(null);
-  const { categoryId } = route.params;
+  const { categoryId } = route.params || {};
 
   useEffect(() => {
-    fetchForumData();
-  }, []);
+    if (categoryId) {
+      fetchForumData();
+    } else {
+      console.error("CategoryScreen: categoryId is missing from route params");
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: "Không tìm thấy thông tin chuyên mục.",
+      });
+      setLoading(false);
+    }
+  }, [categoryId]);
 
   const fetchForumData = async () => {
+    if (!categoryId) {
+      console.error("CategoryScreen: Cannot fetch - categoryId is missing");
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log(
+        "CategoryScreen: Fetching forum data for categoryId:",
+        categoryId
+      );
       const response = await getSubforumPosts(categoryId);
-      setForumData(response.data);
+      console.log("CategoryScreen: Response received:", response);
+
+      if (response && response.data) {
+        setForumData(response.data);
+      } else {
+        throw new Error("Invalid response format");
+      }
       setLoading(false);
     } catch (error) {
-      console.error("Error fetching forum data:", error);
+      console.error("CategoryScreen: Error fetching forum data:", {
+        error,
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        categoryId,
+      });
+
+      let errorMessage =
+        "Không thể tải dữ liệu diễn đàn. Vui lòng thử lại sau.";
+      let shouldNavigateBack = false;
+
+      // Check if the error message indicates subforum not found
+      const errorData = error.response?.data;
+      const errorMessageText = errorData?.message || error.message || "";
+
+      if (
+        error.response?.status === 500 &&
+        (errorMessageText.includes("No query results for model") ||
+          errorMessageText.includes("ForumSubforum"))
+      ) {
+        // Subforum doesn't exist in database
+        errorMessage = "Chuyên mục này không tồn tại hoặc đã bị xóa.";
+        shouldNavigateBack = true;
+      } else if (error.response?.status === 500) {
+        errorMessage = "Lỗi máy chủ. Vui lòng thử lại sau.";
+      } else if (error.response?.status === 404) {
+        errorMessage = "Không tìm thấy chuyên mục này.";
+        shouldNavigateBack = true;
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       Toast.show({
         type: "error",
         text1: "Lỗi tải dữ liệu",
-        text2: "Không thể tải dữ liệu diễn đàn. Vui lòng thử lại sau.",
+        text2: errorMessage,
       });
+
+      // Navigate back if subforum doesn't exist
+      if (shouldNavigateBack) {
+        setTimeout(() => {
+          navigation.goBack();
+        }, 2000);
+      }
+
       setLoading(false);
     }
   };
@@ -55,7 +124,9 @@ const CategoryScreen = ({ navigation, route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView
+        style={[styles.loadingContainer, { paddingTop: insets.top }]}
+      >
         <CustomLoading />
       </SafeAreaView>
     );
@@ -63,7 +134,12 @@ const CategoryScreen = ({ navigation, route }) => {
 
   if (!forumData) {
     return (
-      <SafeAreaView className="flex-1 bg-white">
+      <SafeAreaView
+        style={[
+          { flex: 1, backgroundColor: "#fff" },
+          { paddingTop: insets.top },
+        ]}
+      >
         <View className="flex-row items-center justify-center h-[50px] relative px-4">
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -141,7 +217,9 @@ const CategoryScreen = ({ navigation, route }) => {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <SafeAreaView
+      style={[{ flex: 1, backgroundColor: "#fff" }, { paddingTop: insets.top }]}
+    >
       {/* Custom Header */}
       <View
         style={{

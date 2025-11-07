@@ -6,10 +6,10 @@ import {
   SafeAreaView,
   TouchableOpacity,
   StatusBar,
-  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ReportHeader from "../../../components/ReportHeader";
 
 const STEPS = [
   {
@@ -94,34 +94,33 @@ export default function ReportScreen({ navigation }) {
       <StatusBar barStyle="dark-content" />
 
       {/* Header */}
+      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
 
       <View
-        style={[
-          {
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            borderBottomColor: "#ccc",
-            borderBottomWidth: 0.8,
-            backgroundColor: "#F2F2F2",
-          },
-          Platform.OS === "android"
-            ? { marginTop: insets.top }
-            : { height: 65, paddingVertical: 12 },
-        ]}
+        style={{
+          backgroundColor: "#FFF3CD",
+          borderLeftWidth: 4,
+          borderLeftColor: "#FFC107",
+          padding: 12,
+          marginHorizontal: 15,
+          marginTop: 10,
+          marginBottom: 5,
+          borderRadius: 4,
+          flexDirection: "row",
+          alignItems: "center",
+        }}
       >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={25} color={"#A7A7A7"} />
-        </TouchableOpacity>
+        <Ionicons name="alert-circle-outline" size={20} color="#856404" />
         <Text
           style={{
-            fontSize: 20,
-            fontWeight: "bold",
-            marginLeft: 16,
-            color: "#309627",
+            marginLeft: 10,
+            color: "#856404",
+            fontSize: 14,
+            flex: 1,
           }}
         >
-          Tạo báo cáo
+          Chức năng đang ở chế độ xem trước. Khi nào hệ thống được cập nhật, bạn
+          sẽ có thể sử dụng chức năng này.
         </Text>
       </View>
 
