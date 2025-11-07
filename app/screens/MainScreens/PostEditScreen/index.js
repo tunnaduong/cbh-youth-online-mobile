@@ -374,6 +374,7 @@ const PostEditScreen = ({ navigation, route }) => {
           <TextInput
             style={styles.titleInput}
             placeholder="Chủ đề bạn muốn chia sẻ là gì?"
+            placeholderTextColor="#999"
             value={title}
             onChangeText={setTitle}
           />
@@ -388,6 +389,7 @@ const PostEditScreen = ({ navigation, route }) => {
           <TextInput
             style={styles.contentInput}
             placeholder="Bạn đang nghĩ gì?"
+            placeholderTextColor="#999"
             value={postContent}
             onChangeText={setPostContent}
             multiline
@@ -537,11 +539,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 16,
     fontWeight: "600",
+    color: "#000",
   },
   contentInput: {
     height: 200,
     padding: 12,
     fontSize: 16,
+    color: "#000",
   },
   postButton: {
     backgroundColor: "#007AFF",

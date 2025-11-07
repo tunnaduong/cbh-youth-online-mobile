@@ -63,8 +63,10 @@ const CommentBar = React.forwardRef(
                   fontSize: 14,
                   flex: 1,
                   padding: 5,
+                  color: "#000",
                 }}
                 placeholder={placeholderText}
+                placeholderTextColor="#999"
                 multiline={true}
                 ref={ref}
                 onChangeText={onChangeText}

@@ -298,6 +298,7 @@ const EditProfileScreen = ({ navigation }) => {
                   setProfileData((prev) => ({ ...prev, profile_name: text }))
                 }
                 placeholder="Nhập tên hiển thị"
+                placeholderTextColor="#999"
               />
             </View>
 
@@ -310,6 +311,7 @@ const EditProfileScreen = ({ navigation }) => {
                   setProfileData((prev) => ({ ...prev, bio: text }))
                 }
                 placeholder="Thêm tiểu sử"
+                placeholderTextColor="#999"
                 multiline
                 numberOfLines={3}
               />
@@ -324,6 +326,7 @@ const EditProfileScreen = ({ navigation }) => {
                   setProfileData((prev) => ({ ...prev, class_name: text }))
                 }
                 placeholder="Nhập lớp của bạn"
+                placeholderTextColor="#999"
               />
             </View>
 
@@ -336,6 +339,7 @@ const EditProfileScreen = ({ navigation }) => {
                   setProfileData((prev) => ({ ...prev, location: text }))
                 }
                 placeholder="Nhập địa chỉ"
+                placeholderTextColor="#999"
               />
             </View>
 
@@ -481,6 +485,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 16,
     height: 44,
+    color: "#000",
   },
   bioInput: {
     height: 100,

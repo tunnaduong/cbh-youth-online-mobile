@@ -122,7 +122,13 @@ export default function ChatScreen({ navigation }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.avatar_url;
     }
-    // You might want to add a default group avatar here
+    // Special case for "Tán gẫu linh tinh" group
+    if (
+      conversation.type === "group" &&
+      conversation.name === "Tán gẫu linh tinh"
+    ) {
+      return "local:chat.jpg";
+    }
     return null;
   };
 
@@ -137,11 +143,15 @@ export default function ChatScreen({ navigation }) {
       }}
     >
       <FastImage
-        source={{
-          uri:
-            getAvatar(item) ||
-            "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-        }}
+        source={
+          getAvatar(item) === "local:chat.jpg"
+            ? require("../../../assets/chat.jpg")
+            : {
+                uri:
+                  getAvatar(item) ||
+                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+              }
+        }
         style={styles.avatar}
       />
       <View style={styles.info}>
@@ -289,7 +299,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: "#222",
+    color: "#000",
     paddingHorizontal: 10,
     backgroundColor: "transparent",
   },

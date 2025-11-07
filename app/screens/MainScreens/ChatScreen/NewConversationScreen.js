@@ -150,6 +150,7 @@ const NewConversationScreen = ({ navigation }) => {
         <TextInput
           style={styles.searchInput}
           placeholder="Tìm kiếm người dùng..."
+          placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={handleSearch}
           autoCapitalize="none"

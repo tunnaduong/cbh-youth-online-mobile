@@ -261,8 +261,10 @@ export const getConversations = () => {
   return Api.getRequest("/v1.0/chat/conversations");
 };
 
-export const getConversationMessages = (id) => {
-  return Api.getRequest("/v1.0/chat/conversations/" + id + "/messages");
+export const getConversationMessages = (id, page = 1) => {
+  return Api.getRequest(
+    "/v1.0/chat/conversations/" + id + "/messages?page=" + page
+  );
 };
 
 export const sendMessage = (id, params) => {

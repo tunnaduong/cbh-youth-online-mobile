@@ -105,6 +105,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="hello@example.com"
+                  placeholderTextColor="#999"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -175,6 +176,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     backgroundColor: "#FBFFFB",
+    color: "#000",
   },
   submitButton: {
     backgroundColor: "#319527",
