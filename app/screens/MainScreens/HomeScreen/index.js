@@ -31,6 +31,7 @@ import {
   getHomePosts,
   getStories,
   incrementPostView,
+  resendVerificationEmail,
 } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -396,6 +397,7 @@ const HomeScreen = ({ navigation, route }) => {
   const ListHeader = () => {
     return (
       <>
+        <EmailVerificationAlert />
         <ScrollView
           style={{
             borderBottomWidth: 10,
@@ -906,6 +908,7 @@ const HomeScreen = ({ navigation, route }) => {
             transform: [{ translateY: -69 }],
           }}
         />
+        <ResendVerificationModal />
       </View>
     </>
   );

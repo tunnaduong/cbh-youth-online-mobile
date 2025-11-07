@@ -25,6 +25,8 @@ import {
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import relativeTime from "dayjs/plugin/relativeTime";
+import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
+import { useFocusEffect } from "@react-navigation/native";
 
 dayjs.extend(relativeTime);
 dayjs.locale("vi");
@@ -140,6 +142,9 @@ export default function NotificationScreen({ navigation }) {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
+  const { refreshNotificationCount, setNotificationUnreadCount } =
+    useUnreadCountsContext();
+
   const fetchNotifications = useCallback(
     async (pageNum = 1, append = false) => {
       try {
@@ -187,6 +192,11 @@ export default function NotificationScreen({ navigation }) {
         if (append) {
           setNotifications((prev) => {
             const newNotifications = [...prev, ...formattedNotifications];
+            // Update unread count when loading more
+            const localUnreadCount = newNotifications.filter(
+              (n) => !n.is_read
+            ).length;
+            setNotificationUnreadCount(localUnreadCount);
             return newNotifications;
           });
         } else {
@@ -200,18 +210,38 @@ export default function NotificationScreen({ navigation }) {
         } else {
           setHasMore(fetchedNotifications.length === 20);
         }
+
+        // Refresh unread count after fetching notifications (especially after pull to refresh)
+        // Only refresh if it's the first page (not when loading more)
+        if (pageNum === 1 && !append) {
+          // Calculate unread count from local state and sync to context
+          const localUnreadCount = formattedNotifications.filter(
+            (n) => !n.is_read
+          ).length;
+          // Update context with local count immediately for instant UI update
+          setNotificationUnreadCount(localUnreadCount);
+          // Also fetch from API to ensure accuracy
+          refreshNotificationCount();
+        }
       } catch (error) {
       } finally {
         setLoading(false);
         setRefreshing(false);
       }
     },
-    []
+    [refreshNotificationCount, setNotificationUnreadCount]
   );
 
   useEffect(() => {
     fetchNotifications(1, false);
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // Refresh unread count when screen is focused
+      refreshNotificationCount();
+    }, [refreshNotificationCount])
+  );
 
   const handleScroll = (event) => {
     if (!refreshing) {
@@ -223,7 +253,9 @@ export default function NotificationScreen({ navigation }) {
     setRefreshing(true);
     setPage(1);
     fetchNotifications(1, false);
-  }, [fetchNotifications]);
+    // Also explicitly refresh unread count on pull to refresh
+    refreshNotificationCount();
+  }, [fetchNotifications, refreshNotificationCount]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore && !refreshing) {
@@ -236,13 +268,19 @@ export default function NotificationScreen({ navigation }) {
   const handleMarkAsRead = async (notificationId) => {
     try {
       await markNotificationAsRead(notificationId);
-      setNotifications((prev) =>
-        prev.map((notif) =>
+      setNotifications((prev) => {
+        const updated = prev.map((notif) =>
           notif.id === notificationId
             ? { ...notif, is_read: true, read: true }
             : notif
-        )
-      );
+        );
+        // Update unread count from local state immediately
+        const localUnreadCount = updated.filter((n) => !n.is_read).length;
+        setNotificationUnreadCount(localUnreadCount);
+        return updated;
+      });
+      // Also refresh from API to ensure accuracy
+      refreshNotificationCount();
     } catch (error) {
       console.error("Error marking notification as read:", error);
     }
@@ -251,9 +289,18 @@ export default function NotificationScreen({ navigation }) {
   const handleMarkAllAsRead = async () => {
     try {
       await markAllNotificationsAsRead();
-      setNotifications((prev) =>
-        prev.map((notif) => ({ ...notif, is_read: true, read: true }))
-      );
+      setNotifications((prev) => {
+        const updated = prev.map((notif) => ({
+          ...notif,
+          is_read: true,
+          read: true,
+        }));
+        // Update unread count to 0 immediately
+        setNotificationUnreadCount(0);
+        return updated;
+      });
+      // Also refresh from API to ensure accuracy
+      refreshNotificationCount();
     } catch (error) {
       console.error("Error marking all notifications as read:", error);
     }
@@ -284,7 +331,13 @@ export default function NotificationScreen({ navigation }) {
             handleMarkAsRead(item.id);
           }
           // Navigate to relevant screen based on notification type
-          if (item.data?.topic_id) {
+          // Check if it's a welcome notification
+          if (
+            item.type === "system_message" &&
+            item.data?.message?.includes("Chào mừng")
+          ) {
+            navigation.navigate("PostScreen", { postId: 173336279 });
+          } else if (item.data?.topic_id) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.data?.post_id) {
             navigation.navigate("PostScreen", { postId: item.data.post_id });
@@ -295,7 +348,16 @@ export default function NotificationScreen({ navigation }) {
           }
         }}
       >
-        <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
+        <Image
+          source={
+            !isSystemMessage
+              ? {
+                  uri: item.user.avatar,
+                }
+              : require("../../../assets/logo.png")
+          }
+          style={[styles.avatar, { alignSelf: "flex-start" }]}
+        />
         <View style={styles.content}>
           <Text style={styles.message}>
             {isSystemMessage ? (
@@ -395,11 +457,21 @@ export default function NotificationScreen({ navigation }) {
       <View style={[styles.header, { marginTop: insets.top }]}>
         <Text style={styles.headerTitle}>Thông báo</Text>
         <TouchableOpacity
-          style={styles.readAllButton}
+          style={[
+            styles.readAllButton,
+            unreadCount === 0 && styles.readAllButtonDisabled,
+          ]}
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
         >
-          <Text style={styles.readAllText}>Đọc tất cả ({unreadCount})</Text>
+          <Text
+            style={[
+              styles.readAllText,
+              unreadCount === 0 && styles.readAllTextDisabled,
+            ]}
+          >
+            Đọc tất cả ({unreadCount})
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -422,13 +494,7 @@ export default function NotificationScreen({ navigation }) {
           }}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="transparent"
-              colors={["transparent"]}
-              style={{ backgroundColor: "transparent" }}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
@@ -483,10 +549,19 @@ const styles = StyleSheet.create({
     shadowRadius: 2.22,
     elevation: 3,
   },
+  readAllButtonDisabled: {
+    backgroundColor: "#d0d0d0",
+    opacity: 0.6,
+    shadowOpacity: 0.1,
+    elevation: 1,
+  },
   readAllText: {
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  readAllTextDisabled: {
+    color: "#888",
   },
   notification: {
     flexDirection: "row",
@@ -499,6 +574,8 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#dee2e6",
   },
   content: {
     flex: 1,

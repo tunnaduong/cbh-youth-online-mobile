@@ -194,6 +194,7 @@ export default function SearchScreen({ navigation }) {
               <TextInput
                 style={styles.searchInput}
                 placeholder="Tìm kiếm trên CYO"
+                placeholderTextColor="#999"
                 onChangeText={setQuery}
                 value={query}
                 autoFocus
@@ -351,6 +352,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
     includeFontPadding: false,
     textAlignVertical: "center",
+    color: "#000",
   },
   clearButton: {
     padding: 5,

@@ -16,26 +16,59 @@ import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import FastImage from "react-native-fast-image";
 import { useFocusEffect } from "@react-navigation/native";
+import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import dayjs from "dayjs";
 
 const formatMessageTime = (timestamp) => {
   if (!timestamp) return "";
   const messageTime = dayjs(timestamp);
-  const hours = parseInt(messageTime.format("H"));
-  const period = hours < 12 ? "SA" : "CH";
-  return `${messageTime.format("hh:mm")} ${period}`;
+  const now = dayjs();
+  const diffInDays = now.diff(messageTime, "day");
+
+  // Within the same day: show time (01:15 SA)
+  if (diffInDays === 0) {
+    const hours = parseInt(messageTime.format("H"));
+    const period = hours < 12 ? "SA" : "CH";
+    return `${messageTime.format("hh:mm")} ${period}`;
+  }
+
+  // After 1 day but within 1 week: show day of week (Th 5, Th 4, CN)
+  if (diffInDays < 7) {
+    const dayNames = ["CN", "Th 2", "Th 3", "Th 4", "Th 5", "Th 6", "Th 7"];
+    return dayNames[messageTime.day()];
+  }
+
+  // After 1 week: show day and month (29 thg 10)
+  const months = [
+    "thg 1",
+    "thg 2",
+    "thg 3",
+    "thg 4",
+    "thg 5",
+    "thg 6",
+    "thg 7",
+    "thg 8",
+    "thg 9",
+    "thg 10",
+    "thg 11",
+    "thg 12",
+  ];
+  return `${messageTime.date()} ${months[messageTime.month()]}`;
 };
 
 export default function ChatScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [search, setSearch] = useState("");
   const insets = useSafeAreaInsets();
+  const { refreshChatCount } = useUnreadCountsContext();
 
   useFocusEffect(
     React.useCallback(() => {
       // Fetch updated data for the profile when the screen comes into focus
       fetchConversations();
-    }, [])
+      // Refresh unread count when screen is focused
+      refreshChatCount();
+    }, [refreshChatCount])
   );
 
   useEffect(() => {
@@ -53,6 +86,8 @@ export default function ChatScreen({ navigation }) {
       const response = await getConversations();
       setConversations(response.data);
       storage.set("conversations", JSON.stringify(response.data));
+      // Refresh unread count after fetching conversations
+      refreshChatCount();
     } catch (error) {
       console.error("Error fetching conversations:", error);
       Toast.show({
@@ -125,8 +160,18 @@ export default function ChatScreen({ navigation }) {
             : ""}
         </Text>
         {item.unread_count > 0 && (
-          <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{item.unread_count}</Text>
+          <View style={styles.unreadContainer}>
+            {item.type === "group" && item.name === "Tán gẫu linh tinh" && (
+              <Ionicons
+                name="notifications-off"
+                size={18}
+                color="#888"
+                style={styles.muteIcon}
+              />
+            )}
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadText}>{item.unread_count}</Text>
+            </View>
           </View>
         )}
       </View>
@@ -187,28 +232,28 @@ export default function ChatScreen({ navigation }) {
         data={filteredConversations}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 80, flex: 1 }}
+        contentContainerStyle={{
+          paddingBottom: 80,
+          flex: filteredConversations.length === 0 ? 1 : undefined,
+        }}
         ItemSeparatorComponent={() => (
           <View
             style={{ height: 1, backgroundColor: "#f0f0f0", marginLeft: 80 }}
           />
         )}
         ListEmptyComponent={
-          <View style={{ alignItems: "center", marginTop: 100 }}>
-            <Image
-              source={require("../../../assets/sad_frog.png")}
-              style={{
-                height: 90,
-                width: 90,
-                alignSelf: "center",
-                marginTop: 20,
-              }}
-            />
-            <Text className="text-center font-light text-gray-500 mt-2">
-              {search
-                ? "Không tìm thấy cuộc trò chuyện nào..."
-                : "Bạn chưa có cuộc trò chuyện nào."}
-            </Text>
+          <View style={{ flex: 1, marginTop: 44 }}>
+            <View style={styles.emptyContainer}>
+              <Image
+                source={require("../../../assets/sad_frog.png")}
+                style={styles.emptyImage}
+              />
+              <Text style={styles.emptyText}>
+                {search
+                  ? "Không tìm thấy cuộc trò chuyện nào..."
+                  : "Chưa có cuộc trò chuyện nào..."}
+              </Text>
+            </View>
           </View>
         }
       />
@@ -286,6 +331,13 @@ const styles = StyleSheet.create({
     color: "#888",
     marginBottom: 4,
   },
+  unreadContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  muteIcon: {
+    marginRight: 2,
+  },
   unreadBadge: {
     backgroundColor: "#319527",
     borderRadius: 10,
@@ -299,5 +351,20 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
     fontSize: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyImage: {
+    height: 90,
+    width: 90,
+    marginBottom: 12,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#888",
+    textAlign: "center",
   },
 });

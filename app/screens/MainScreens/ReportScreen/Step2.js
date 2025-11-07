@@ -111,6 +111,7 @@ const TagInput = ({
         <BottomSheetTextInput
           style={styles.searchInput}
           placeholder="Nhập để tìm kiếm vi phạm..."
+          placeholderTextColor="#999"
           value={tagInput}
           onChangeText={onChangeText}
           maxLength={100}
@@ -331,6 +332,7 @@ export default function Step2({ navigation, route }) {
         <TextInput
           style={styles.input}
           placeholder="Nhập tên học sinh"
+          placeholderTextColor="#999"
           value={studentName}
           onChangeText={setStudentName}
         />
@@ -352,6 +354,7 @@ export default function Step2({ navigation, route }) {
           value={className}
           onChangeText={setClassName}
           placeholder="Nhập tên lớp"
+          placeholderTextColor="#999"
         />
       </View>
 
@@ -362,6 +365,7 @@ export default function Step2({ navigation, route }) {
           value={absences}
           onChangeText={setAbsences}
           placeholder="0"
+          placeholderTextColor="#999"
           keyboardType="numeric"
         />
       </View>
@@ -485,6 +489,7 @@ export default function Step2({ navigation, route }) {
             <TextInput
               style={[styles.input, styles.notesInput]}
               placeholder="Nhập các ghi chú (nếu có)"
+              placeholderTextColor="#999"
               value={notes}
               onChangeText={setNotes}
               multiline
@@ -639,6 +644,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    color: "#000",
   },
   dateInput: {
     flexDirection: "row",
@@ -737,6 +743,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
+    color: "#000",
   },
   loadingIndicator: {
     position: "absolute",

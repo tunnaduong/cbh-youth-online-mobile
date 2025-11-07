@@ -124,6 +124,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="hello@example.com"
+                  placeholderTextColor="#999"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -137,6 +138,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="Nhập token từ email"
+                  placeholderTextColor="#999"
                   value={token}
                   onChangeText={setToken}
                   autoCapitalize="none"
@@ -149,6 +151,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="••••••••••••"
+                    placeholderTextColor="#999"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -173,6 +176,7 @@ const ResetPasswordScreen = ({ navigation, route }) => {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="••••••••••••"
+                    placeholderTextColor="#999"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
@@ -255,6 +259,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     backgroundColor: "#FBFFFB",
+    color: "#000",
   },
   passwordContainer: {
     position: "relative",

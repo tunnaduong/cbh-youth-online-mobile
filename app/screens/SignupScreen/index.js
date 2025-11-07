@@ -187,6 +187,7 @@ const SignupScreen = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="john_doe"
+                  placeholderTextColor="#999"
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
@@ -198,6 +199,7 @@ const SignupScreen = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="John Doe"
+                  placeholderTextColor="#999"
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -209,6 +211,7 @@ const SignupScreen = ({ navigation }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="hello@example.com"
+                  placeholderTextColor="#999"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -222,6 +225,7 @@ const SignupScreen = ({ navigation }) => {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="••••••••••••"
+                    placeholderTextColor="#999"
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -246,6 +250,7 @@ const SignupScreen = ({ navigation }) => {
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
                     placeholder="••••••••••••"
+                    placeholderTextColor="#999"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
@@ -371,6 +376,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     backgroundColor: "#FBFFFB",
+    color: "#000",
   },
   passwordContainer: {
     position: "relative",

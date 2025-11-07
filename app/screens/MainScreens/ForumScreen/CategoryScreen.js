@@ -191,7 +191,7 @@ const CategoryScreen = ({ navigation, route }) => {
             <View className="flex-row items-center gap-1">
               <Ionicons name="chatbubble-outline" size={16} color="#666" />
               <Text className="text-sm text-gray-500">
-                {thread?.reply_count}
+                {thread?.reply_count}+
               </Text>
             </View>
             <View className="flex-row items-center gap-1">

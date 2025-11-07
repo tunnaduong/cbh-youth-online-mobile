@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dimensions, View } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -11,6 +11,8 @@ import Sidebar from "../../components/Sidebar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
+import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
+import TabBarBadge from "../../components/TabBarBadge";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
@@ -19,6 +21,8 @@ export default function MainScreens({ navigation }) {
   const [setting, setSetting] = React.useState(false);
   const insets = useSafeAreaInsets();
   const [currentRoute, setCurrentRoute] = useState("Home");
+  const tabBarHeightRef = useRef(null);
+  const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
 
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
@@ -56,6 +60,7 @@ export default function MainScreens({ navigation }) {
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
+              let badgeCount = null;
 
               if (route.name === "Home") {
                 iconName = focused ? "home" : "home-outline";
@@ -63,11 +68,18 @@ export default function MainScreens({ navigation }) {
                 iconName = focused ? "people" : "people-outline";
               } else if (route.name === "Notifications") {
                 iconName = focused ? "notifications" : "notifications-outline";
+                badgeCount = notificationUnreadCount;
               } else if (route.name === "Chat") {
                 iconName = focused ? "chatbubble" : "chatbubble-outline";
+                badgeCount = chatUnreadCount;
               }
 
-              return <Ionicons name={iconName} size={size} color={color} />;
+              return (
+                <View style={{ position: "relative" }}>
+                  <Ionicons name={iconName} size={size} color={color} />
+                  {badgeCount !== null && <TabBarBadge count={badgeCount} />}
+                </View>
+              );
             },
             tabBarActiveTintColor: "#319527",
             tabBarInactiveTintColor: "gray",
