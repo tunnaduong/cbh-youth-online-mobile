@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [username, setUsername] = useState(null);
   const [profileName, setProfileName] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
+  const [emailVerifiedAt, setEmailVerifiedAt] = useState(null);
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -25,10 +26,12 @@ export const AuthProvider = ({ children }) => {
           setUsername(parsed.username || null);
           setProfileName(parsed.profile_name || null);
           setUserInfo(parsed);
+          setEmailVerifiedAt(parsed.email_verified_at || null);
         } else {
           setUsername(null);
           setProfileName(null);
           setUserInfo(null);
+          setEmailVerifiedAt(null);
         }
       } catch (e) {
         console.error("Failed to load user data:", e);
@@ -48,6 +51,7 @@ export const AuthProvider = ({ children }) => {
     setUsername(user.username || null);
     setProfileName(user.profile_name || null);
     setUserInfo(user);
+    setEmailVerifiedAt(user.email_verified_at || null);
   };
 
   const signOut = async () => {
@@ -58,10 +62,20 @@ export const AuthProvider = ({ children }) => {
     setUsername(null);
     setProfileName(null);
     setUserInfo(null);
+    setEmailVerifiedAt(null);
 
     storage.clear();
 
     await logoutRequest();
+  };
+
+  const updateEmailVerificationStatus = (emailVerifiedAt) => {
+    setEmailVerifiedAt(emailVerifiedAt);
+    if (userInfo) {
+      const updatedUserInfo = { ...userInfo, email_verified_at: emailVerifiedAt };
+      setUserInfo(updatedUserInfo);
+      AsyncStorage.setItem("user_info", JSON.stringify(updatedUserInfo));
+    }
   };
 
   return (
@@ -73,6 +87,8 @@ export const AuthProvider = ({ children }) => {
         profileName,
         setUserInfo,
         userInfo,
+        emailVerifiedAt,
+        updateEmailVerificationStatus,
         signIn,
         signOut,
       }}

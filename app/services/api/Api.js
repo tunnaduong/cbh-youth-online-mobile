@@ -122,6 +122,27 @@ export const verifyEmail = (token) => {
   return Api.getRequest("/v1.0/email/verify/" + token);
 };
 
+export const resendVerificationEmail = async () => {
+  try {
+    const response = await Api.postRequest("/v1.0/email/resend-verification");
+    return response;
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.error) {
+      throw new Error(error.response.data.error);
+    } else if (
+      error.response &&
+      error.response.data &&
+      error.response.data.message
+    ) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error(
+        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+      );
+    }
+  }
+};
+
 export const forgotPassword = (params) => {
   return Api.postRequest("/v1.0/password/reset", params);
 };

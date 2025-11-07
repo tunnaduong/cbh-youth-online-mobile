@@ -18,7 +18,6 @@ const DummyComponent = () => null;
 export default function MainScreens({ navigation }) {
   const [setting, setSetting] = React.useState(false);
   const insets = useSafeAreaInsets();
-  const [slideProgress, setSlideProgress] = React.useState(0);
   const [currentRoute, setCurrentRoute] = useState("Home");
 
   // This will be used to measure the tab bar height
@@ -48,24 +47,11 @@ export default function MainScreens({ navigation }) {
       menuPosition="left"
       isOpen={setting}
       onChange={(isOpen) => setSetting(isOpen)}
-      onSliding={setSlideProgress}
       edgeHitWidth={100}
       bounceBackOnOverdraw={false}
       disableGestures={currentRoute !== "Home"}
     >
       <View style={{ flex: 1 }}>
-        <View
-          style={{
-            position: "absolute",
-            opacity: slideProgress,
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: 0.8,
-            backgroundColor: "#B3B3B3",
-            zIndex: 999,
-          }}
-        />
         <Tab.Navigator
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {

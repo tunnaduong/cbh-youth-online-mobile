@@ -36,8 +36,13 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   async (response) => {
     try {
+      // Check if user is authenticated before updating online status
+      const token = await AsyncStorage.getItem("auth_token");
+
       // Don't call updateOnlineStatus if the current request is already updating online status
+      // or if the user is not authenticated
       if (
+        token &&
         !response.config.url.includes("/v1.0/online-status") &&
         !response.config.url.includes("/v1.0/login") &&
         !response.config.url.includes("/v1.0/register")

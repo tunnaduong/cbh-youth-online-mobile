@@ -28,8 +28,16 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "data": [{ "scheme": "com.fatties.youth", "host": "oauth" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "com.fatties.youth",
+              "host": "oauth"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
@@ -58,7 +66,8 @@
           "microphonePermission": "Cho phép CBH Youth Online truy cập microphone của bạn",
           "recordAudioAndroid": true
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }
