@@ -58,8 +58,15 @@ const HomeScreen = ({ navigation, route }) => {
   const [userStories, setUserStories] = useState([]);
   const storiesReadyRef = useRef(false);
   const storiesLoadedRef = useRef(false); // Track if stories have been loaded into component
-  const { username, isLoggedIn, emailVerifiedAt, userInfo, updateEmailVerificationStatus } = useContext(AuthContext);
-  const [verificationModalVisible, setVerificationModalVisible] = useState(false);
+  const {
+    username,
+    isLoggedIn,
+    emailVerifiedAt,
+    userInfo,
+    updateEmailVerificationStatus,
+  } = useContext(AuthContext);
+  const [verificationModalVisible, setVerificationModalVisible] =
+    useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
 
   React.useEffect(() => {
@@ -666,7 +673,8 @@ const HomeScreen = ({ navigation, route }) => {
       Toast.show({
         type: "success",
         text1: "Thành công",
-        text2: "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.",
+        text2:
+          "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.",
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -676,7 +684,9 @@ const HomeScreen = ({ navigation, route }) => {
       Toast.show({
         type: "error",
         text1: "Đã có lỗi xảy ra",
-        text2: error.message || "Không thể gửi email xác minh. Vui lòng thử lại sau.",
+        text2:
+          error.message ||
+          "Không thể gửi email xác minh. Vui lòng thử lại sau.",
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -694,7 +704,9 @@ const HomeScreen = ({ navigation, route }) => {
         animationType="fade"
         onRequestClose={() => setVerificationModalVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setVerificationModalVisible(false)}>
+        <TouchableWithoutFeedback
+          onPress={() => setVerificationModalVisible(false)}
+        >
           <View
             style={{
               flex: 1,
@@ -759,7 +771,8 @@ const HomeScreen = ({ navigation, route }) => {
                     lineHeight: 22,
                   }}
                 >
-                  Để sử dụng đầy đủ các tính năng như tạo bài viết, bạn cần xác minh địa chỉ email của mình.
+                  Để sử dụng đầy đủ các tính năng như tạo bài viết, bạn cần xác
+                  minh địa chỉ email của mình.
                 </Text>
 
                 {userInfo?.email && (
