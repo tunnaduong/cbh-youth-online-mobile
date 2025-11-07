@@ -371,6 +371,10 @@ const PostItem = ({
                 paddingVertical: 2,
                 borderRadius: 4,
               },
+              a: {
+                color: "#319527",
+                textDecorationLine: "underline",
+              },
             }}
           />
         </View>

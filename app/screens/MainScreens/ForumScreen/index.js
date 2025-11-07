@@ -149,7 +149,12 @@ export default function ForumScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+      <SafeAreaView
+        style={[
+          { flex: 1, backgroundColor: "#fff" },
+          { paddingTop: insets.top },
+        ]}
+      >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Diễn đàn</Text>
           <TouchableOpacity
@@ -174,8 +179,10 @@ export default function ForumScreen({ navigation }) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <View style={[styles.header, { marginTop: insets.top }]}>
+    <SafeAreaView
+      style={[{ flex: 1, backgroundColor: "#fff" }, { paddingTop: insets.top }]}
+    >
+      <View style={styles.header}>
         <Text style={styles.headerTitle}>Diễn đàn</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate("ProfileScreen", { username })}
@@ -284,7 +291,7 @@ export default function ForumScreen({ navigation }) {
           </View>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

@@ -31,7 +31,6 @@ import {
   getHomePosts,
   getStories,
   incrementPostView,
-  resendVerificationEmail,
 } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -56,8 +55,6 @@ const HomeScreen = ({ navigation, route }) => {
   const storyRef = useRef(null);
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
-  const storiesReadyRef = useRef(false);
-  const storiesLoadedRef = useRef(false); // Track if stories have been loaded into component
   const {
     username,
     isLoggedIn,
@@ -83,7 +80,6 @@ const HomeScreen = ({ navigation, route }) => {
   // Add effect to handle refresh trigger from story creation
   useEffect(() => {
     if (route.params?.refresh) {
-      console.log("[InstagramStories] Refresh triggered from route params");
       fetchStories();
     }
   }, [route.params?.refresh]);
@@ -194,7 +190,6 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   const handleStoryOptions = () => {
-    console.log("[InstagramStories] handleStoryOptions called");
     storyRef?.current.pause(); // Pause the story timer
     actionSheetRef.current?.show();
   };
@@ -213,9 +208,6 @@ const HomeScreen = ({ navigation, route }) => {
         marginTop: 10,
       }}
       onClose={() => {
-        console.log(
-          "[InstagramStories] ActionSheet closed, resuming story timer"
-        );
         storyRef?.current.resume(); // Resume story timer when sheet closes
       }}
       gestureEnabled={true}
@@ -328,146 +320,24 @@ const HomeScreen = ({ navigation, route }) => {
 
   const fetchStories = async () => {
     try {
-      console.log("[InstagramStories] fetchStories called");
       const response = await getStories();
-      console.log("[InstagramStories] API response:", response);
       if (response?.data) {
         const formattedStories = transformStoriesData(response);
-        console.log("[InstagramStories] Formatted stories:", formattedStories);
         setUserStories(formattedStories);
       }
     } catch (error) {
-      console.error("[InstagramStories] Error fetching stories:", error);
+      console.error("Error fetching stories:", error);
     }
   };
 
   useEffect(() => {
-    console.log("[InstagramStories] Component mounted, fetching stories");
     fetchStories();
   }, []);
 
-  useEffect(() => {
-    console.log(
-      "[InstagramStories] useEffect triggered - userStories.length:",
-      userStories.length,
-      "storyRef.current:",
-      !!storyRef.current
-    );
-    // Check if ref is set after stories are loaded
-    if (
-      userStories.length > 0 &&
-      storyRef.current &&
-      !storiesLoadedRef.current
-    ) {
-      console.log(
-        "[InstagramStories] Stories and ref are ready, component is now ready"
-      );
-      // Component now shows modal immediately without waiting for prefetch
-      storiesReadyRef.current = true;
-      storiesLoadedRef.current = true;
-    } else if (userStories.length === 0 || !storyRef.current) {
-      storiesReadyRef.current = false;
-      storiesLoadedRef.current = false;
-      console.log("[InstagramStories] Stories or ref not ready yet");
-    }
-  }, [userStories]);
-
-  // Also check when component mounts/updates to catch ref being set
-  useEffect(() => {
-    if (
-      userStories.length > 0 &&
-      storyRef.current &&
-      !storiesLoadedRef.current
-    ) {
-      console.log(
-        "[InstagramStories] Ref became available, component is now ready"
-      );
-      // Component now shows modal immediately without waiting for prefetch
-      storiesReadyRef.current = true;
-      storiesLoadedRef.current = true;
-    }
-  });
-
-  useEffect(() => {
-    console.log("[InstagramStories] userStories state updated:", userStories);
-    console.log(
-      "[InstagramStories] Number of users with stories:",
-      userStories.length
-    );
-  }, [userStories]);
-
-  // Create renderContent for text stories
-  const renderTextContent = (story) => {
-    if (!story.type === "text" || !story.text_content) return null;
-
-    const containerStyle = {
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      width: "100%",
-      height: "100%",
-    };
-
-    // Calculate text position based on percentages
-    // We'll use a wrapper View to position the text
-    const textWrapperStyle = {
-      position: "absolute",
-      width: "80%",
-      alignItems: "center",
-      justifyContent: "center",
-    };
-
-    const textStyle = {
-      fontSize: 24,
-      fontWeight: "bold",
-      color: "#fff",
-      textAlign: "center",
-      paddingHorizontal: 20,
-      textShadowColor: "rgba(0, 0, 0, 0.5)",
-      textShadowOffset: { width: 0, height: 1 },
-      textShadowRadius: 3,
-      fontStyle: story.font_style || "normal",
-    };
-
-    const textContent = (
-      <View style={textWrapperStyle}>
-        <Text style={textStyle}>{story.text_content}</Text>
-      </View>
-    );
-
-    // if (isGradient && Array.isArray(backgroundColor)) {
-    return (
-      <LinearGradient
-        colors={backgroundColor}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={containerStyle}
-      >
-        {textContent}
-      </LinearGradient>
-    );
-    // } else {
-    //   return (
-    //     <View style={[containerStyle, { backgroundColor }]}>{textContent}</View>
-    //   );
-    // }
-  };
-
   const transformStoriesData = (apiResponse) => {
-    console.log(
-      "[InstagramStories] transformStoriesData called with:",
-      apiResponse
-    );
-    if (!apiResponse?.data) {
-      console.log(
-        "[InstagramStories] No data in API response, returning empty array"
-      );
-      return [];
-    }
+    if (!apiResponse?.data) return [];
 
-    const transformed = apiResponse.data.data.map((user) => ({
+    return apiResponse.data.data.map((user) => ({
       uid: user.id,
       id: user.username,
       name: user.name,
@@ -481,13 +351,9 @@ const HomeScreen = ({ navigation, route }) => {
         },
         duration: story.duration,
         renderFooter: () => <ReplyBar />,
-        renderContent: () =>
-          story.type === "text" ? renderTextContent(story) : undefined,
         date: story.created_at_human,
       })),
     }));
-    console.log("[InstagramStories] Transformed data:", transformed);
-    return transformed;
   };
 
   const EmailVerificationAlert = () => {
@@ -530,7 +396,6 @@ const HomeScreen = ({ navigation, route }) => {
   const ListHeader = () => {
     return (
       <>
-        <EmailVerificationAlert />
         <ScrollView
           style={{
             borderBottomWidth: 10,
@@ -564,90 +429,10 @@ const HomeScreen = ({ navigation, route }) => {
               </View>
             </View>
           </TouchableHighlight>
-          {userStories.map((user, index) => (
+          {userStories.map((user) => (
             <TouchableHighlight
               key={user.id}
-              onPress={() => {
-                console.log(
-                  "[InstagramStories] Story opened for user:",
-                  user.id,
-                  user.name
-                );
-                console.log("[InstagramStories] User uid:", user.uid);
-                console.log("[InstagramStories] User index:", index);
-                console.log("[InstagramStories] User stories:", user.stories);
-                console.log(
-                  "[InstagramStories] storyRef.current:",
-                  storyRef.current
-                );
-                console.log(
-                  "[InstagramStories] storiesReadyRef.current:",
-                  storiesReadyRef.current
-                );
-                console.log(
-                  "[InstagramStories] userStories.length:",
-                  userStories.length
-                );
-
-                if (!storyRef.current) {
-                  console.error("[InstagramStories] storyRef.current is null!");
-                  return;
-                }
-
-                // Stories are already passed via props
-                if (userStories.length > 0 && storyRef.current) {
-                  console.log(
-                    "[InstagramStories] Attempting to show story, storiesLoadedRef:",
-                    storiesLoadedRef.current
-                  );
-
-                  // Show story immediately - component no longer blocks on prefetch
-                  try {
-                    console.log("[InstagramStories] Calling show()");
-                    storyRef.current.show(user.id);
-                    console.log(
-                      "[InstagramStories] show() called successfully"
-                    );
-                  } catch (error) {
-                    console.error(
-                      "[InstagramStories] Error calling show():",
-                      error
-                    );
-                  }
-
-                  return;
-                }
-
-                // If immediate call didn't work or conditions not met, wait and retry
-                console.warn(
-                  "[InstagramStories] Stories component not ready yet, waiting..."
-                );
-                let attempts = 0;
-                const maxAttempts = 30; // 3 seconds max
-                const checkReady = setInterval(() => {
-                  attempts++;
-                  if (storyRef.current && userStories.length > 0) {
-                    clearInterval(checkReady);
-                    console.log(
-                      "[InstagramStories] Component ready, showing story"
-                    );
-                    try {
-                      storyRef.current.show(user.id);
-                    } catch (error) {
-                      console.error(
-                        "[InstagramStories] Error calling show():",
-                        error
-                      );
-                    }
-                  } else if (attempts >= maxAttempts) {
-                    clearInterval(checkReady);
-                    console.error(
-                      "[InstagramStories] Timeout waiting for component to be ready"
-                    );
-                  }
-                }, 100);
-                return;
-              }}
+              onPress={() => storyRef.current?.show(user.id)}
               className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]"
             >
               <View>
@@ -717,7 +502,6 @@ const HomeScreen = ({ navigation, route }) => {
     // Play the Lottie animation in a loop
     lottieRef.current?.play();
 
-    console.log("[InstagramStories] Refreshing stories");
     fetchStories();
 
     handleFetchFeed().finally(() => {
@@ -1117,51 +901,11 @@ const HomeScreen = ({ navigation, route }) => {
           storyAnimationDuration={300}
           storyAvatarSize={30}
           onMore={handleStoryOptions}
-          onShow={(id) => {
-            console.log(
-              "[InstagramStories] onShow callback triggered with id:",
-              id
-            );
-            // When onShow is called, component is definitely ready
-            storiesLoadedRef.current = true;
-            console.log(
-              "[InstagramStories] Component confirmed ready via onShow callback"
-            );
-          }}
-          onHide={(id) => {
-            console.log(
-              "[InstagramStories] onHide callback triggered with id:",
-              id
-            );
-          }}
-          onClose={() => {
-            console.log("[InstagramStories] Stories modal closed");
-          }}
-          onStoryStart={(storyIndex, userId) => {
-            console.log(
-              "[InstagramStories] Story started - index:",
-              storyIndex,
-              "userId:",
-              userId
-            );
-          }}
-          onStoryEnd={(storyIndex, userId) => {
-            console.log(
-              "[InstagramStories] Story ended - index:",
-              storyIndex,
-              "userId:",
-              userId
-            );
-          }}
-          onAllStoriesEnd={() => {
-            console.log("[InstagramStories] All stories ended");
-          }}
           toast={<Toast topOffset={60} />}
           containerStyle={{
             transform: [{ translateY: -69 }],
           }}
         />
-        <ResendVerificationModal />
       </View>
     </>
   );

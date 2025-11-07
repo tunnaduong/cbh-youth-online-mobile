@@ -33,17 +33,47 @@ dayjs.locale("vi");
 const formatNotificationMessage = (notification) => {
   const { type, data, actor } = notification;
 
+  // System messages don't have an actor
+  if (type === "system_message") {
+    return data?.message || "Thông báo mới";
+  }
+
   if (!actor) {
-    return "Thông báo mới";
+    // Handle other notifications without actor
+    switch (type) {
+      case "topic_pinned":
+        return `đã ghim bài đăng "${data?.topic_title || ""}" của bạn`;
+      case "topic_moved":
+        return `đã chuyển bài đăng "${data?.topic_title || ""}" của bạn`;
+      case "topic_closed":
+        return `đã đóng bài đăng "${data?.topic_title || ""}" của bạn`;
+      default:
+        return "Thông báo mới";
+    }
   }
 
   const actorName = actor.profile_name || actor.username;
 
   switch (type) {
+    case "topic_liked":
+      return `thích bài đăng "${data?.topic_title || ""}" của bạn`;
+    case "topic_commented":
+      return `đã bình luận trong bài đăng "${data?.topic_title || ""}" của bạn`;
+    case "comment_liked":
+      return `đã thích bình luận của bạn`;
+    case "comment_replied":
+      return `đã trả lời bình luận của bạn`;
+    case "mentioned":
+      return `nhắc đến bạn trong một bình luận`;
+    // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
-      return `thích bài đăng "${data?.post_title || ""}" của bạn`;
+      return `thích bài đăng "${
+        data?.post_title || data?.topic_title || ""
+      }" của bạn`;
     case "App\\Notifications\\PostCommented":
-      return `đã bình luận trong bài đăng "${data?.post_title || ""}" của bạn`;
+      return `đã bình luận trong bài đăng "${
+        data?.post_title || data?.topic_title || ""
+      }" của bạn`;
     case "App\\Notifications\\UserFollowed":
       return "đã theo dõi bạn";
     case "App\\Notifications\\UserMentioned":
@@ -114,48 +144,63 @@ export default function NotificationScreen({ navigation }) {
     async (pageNum = 1, append = false) => {
       try {
         const response = await getNotifications(pageNum, 20);
-        const fetchedNotifications = response.notifications || [];
+
+        // Check if response has data property (some APIs wrap in data)
+        const notificationsData =
+          response.data?.notifications || response.notifications || [];
+        const fetchedNotifications = Array.isArray(notificationsData)
+          ? notificationsData
+          : [];
 
         // Transform API response to match UI format
-        const formattedNotifications = fetchedNotifications.map((notif) => ({
-          id: notif.id,
-          type: notif.type,
-          data: notif.data,
-          is_read: notif.is_read,
-          read_at: notif.read_at,
-          created_at: notif.created_at,
-          created_at_human: notif.created_at_human,
-          actor: notif.actor,
-          user: {
-            name:
-              notif.actor?.profile_name ||
-              notif.actor?.username ||
-              "Người dùng",
-            avatar:
-              notif.actor?.avatar_url ||
-              `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
-          },
-          content: formatNotificationMessage(notif),
-          time: formatTime(notif.created_at),
-          read: notif.is_read,
-        }));
+        const formattedNotifications = fetchedNotifications.map((notif) => {
+          // Handle system messages and notifications without actors
+          const isSystemMessage =
+            notif.type === "system_message" || !notif.actor;
+
+          return {
+            id: notif.id,
+            type: notif.type,
+            data: notif.data,
+            is_read: notif.is_read,
+            read_at: notif.read_at,
+            created_at: notif.created_at,
+            created_at_human: notif.created_at_human,
+            actor: notif.actor,
+            user: {
+              name: isSystemMessage
+                ? "Hệ thống"
+                : notif.actor?.profile_name ||
+                  notif.actor?.username ||
+                  "Người dùng",
+              avatar: isSystemMessage
+                ? "https://api.chuyenbienhoa.com/v1.0/users/system/avatar" // Default system avatar
+                : notif.actor?.avatar_url ||
+                  `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
+            },
+            content: formatNotificationMessage(notif),
+            time: formatTime(notif.created_at),
+            read: notif.is_read,
+          };
+        });
 
         if (append) {
-          setNotifications((prev) => [...prev, ...formattedNotifications]);
+          setNotifications((prev) => {
+            const newNotifications = [...prev, ...formattedNotifications];
+            return newNotifications;
+          });
         } else {
           setNotifications(formattedNotifications);
         }
 
         // Check if there are more pages
-        if (response.pagination) {
-          setHasMore(
-            response.pagination.current_page < response.pagination.last_page
-          );
+        const paginationData = response.data?.pagination || response.pagination;
+        if (paginationData) {
+          setHasMore(paginationData.current_page < paginationData.last_page);
         } else {
           setHasMore(fetchedNotifications.length === 20);
         }
       } catch (error) {
-        console.error("Error fetching notifications:", error);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -225,47 +270,56 @@ export default function NotificationScreen({ navigation }) {
     }
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={[
-        styles.notification,
-        !item.read && { backgroundColor: "#F3FDF1" },
-      ]}
-      onPress={() => {
-        if (!item.read) {
-          handleMarkAsRead(item.id);
-        }
-        // Navigate to relevant screen based on notification type
-        if (item.data?.post_id) {
-          navigation.navigate("PostScreen", { postId: item.data.post_id });
-        } else if (
-          item.type === "App\\Notifications\\UserFollowed" &&
-          item.actor?.username
-        ) {
-          navigation.navigate("ProfileScreen", {
-            username: item.actor.username,
-          });
-        }
-      }}
-    >
-      <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
-      <View style={styles.content}>
-        <Text style={styles.message}>
-          <Text style={styles.name}>{item.user.name}</Text> {item.content}
-        </Text>
-        <Text style={styles.time}>{item.time}</Text>
-      </View>
+  const renderItem = ({ item }) => {
+    const isSystemMessage = item.type === "system_message" || !item.actor;
+
+    return (
       <TouchableOpacity
-        style={styles.moreButton}
+        style={[
+          styles.notification,
+          !item.read && { backgroundColor: "#F3FDF1" },
+        ]}
         onPress={() => {
-          setSelectedNotification(item);
-          setShowActionMenu(true);
+          if (!item.read) {
+            handleMarkAsRead(item.id);
+          }
+          // Navigate to relevant screen based on notification type
+          if (item.data?.topic_id) {
+            navigation.navigate("PostScreen", { postId: item.data.topic_id });
+          } else if (item.data?.post_id) {
+            navigation.navigate("PostScreen", { postId: item.data.post_id });
+          } else if (item.actor?.username) {
+            navigation.navigate("ProfileScreen", {
+              username: item.actor.username,
+            });
+          }
         }}
       >
-        <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+        <Image source={{ uri: item.user.avatar }} style={styles.avatar} />
+        <View style={styles.content}>
+          <Text style={styles.message}>
+            {isSystemMessage ? (
+              item.content
+            ) : (
+              <>
+                <Text style={styles.name}>{item.user.name}</Text> {item.content}
+              </>
+            )}
+          </Text>
+          <Text style={styles.time}>{item.time}</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.moreButton}
+          onPress={() => {
+            setSelectedNotification(item);
+            setShowActionMenu(true);
+          }}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  );
+    );
+  };
 
   const ActionMenu = () => (
     <Modal

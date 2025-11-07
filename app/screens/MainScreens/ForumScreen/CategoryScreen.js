@@ -9,6 +9,7 @@ import {
   StatusBar,
   SafeAreaView,
   ImageBackground,
+  RefreshControl,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "react-native-fast-image";
@@ -242,13 +243,12 @@ const CategoryScreen = ({ navigation, route }) => {
       </View>
 
       <ScrollView
-        className="flex-1"
         refreshControl={
-          <CustomRefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
+        style={{
+          flex: 1,
+        }}
       >
         {/* Category Header */}
         <View className="bg-white border-b border-gray-200">
