@@ -669,6 +669,9 @@ const HomeScreen = ({ navigation, route }) => {
           storyAvatarSize={30}
           onMore={handleStoryOptions}
           toast={<Toast topOffset={60} />}
+          containerStyle={{
+            transform: [{ translateY: -69 }],
+          }}
         />
       </View>
     </>

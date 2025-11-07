@@ -360,14 +360,14 @@ const CreatePostScreen = ({ navigation }) => {
           />
           <View className="flex-row items-center gap-2 mt-1">
             <TouchableOpacity
-              onPress={() => navigateToHelp(213057)}
+              onPress={() => navigateToHelp(865586194)}
               className="flex-row items-center h-10 gap-2 border-[1.3px] border-[#319527] rounded-xl py-1.5 px-3 self-start"
             >
               <Ionicons name="logo-markdown" size={15} />
               <Text>Hỗ trợ Markdown</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => navigateToHelp(213054)}
+              onPress={() => navigateToHelp(173336279)}
               className="flex-row items-center h-10 justify-center gap-1 border-[1.3px] border-[#319527] rounded-xl px-3 self-start"
             >
               <Ionicons name="warning" size={18} />

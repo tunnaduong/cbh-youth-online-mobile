@@ -32,7 +32,7 @@ dayjs.locale("vi");
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification) => {
   const { type, data, actor } = notification;
-  
+
   if (!actor) {
     return "Thông báo mới";
   }
@@ -58,40 +58,40 @@ const formatNotificationMessage = (notification) => {
 // Helper function to format time
 const formatTime = (dateString) => {
   if (!dateString) return "Vừa xong";
-  
+
   const date = dayjs(dateString);
   const now = dayjs();
   const diffInSeconds = now.diff(date, "second");
-  
+
   if (diffInSeconds < 60) {
     return "Vừa xong";
   }
-  
+
   const diffInMinutes = now.diff(date, "minute");
   if (diffInMinutes < 60) {
     return `${diffInMinutes} phút trước`;
   }
-  
+
   const diffInHours = now.diff(date, "hour");
   if (diffInHours < 24) {
     return `${diffInHours} giờ trước`;
   }
-  
+
   const diffInDays = now.diff(date, "day");
   if (diffInDays < 7) {
     return `${diffInDays} ngày trước`;
   }
-  
+
   const diffInWeeks = now.diff(date, "week");
   if (diffInWeeks < 4) {
     return `${diffInWeeks} tuần trước`;
   }
-  
+
   const diffInMonths = now.diff(date, "month");
   if (diffInMonths < 12) {
     return `${diffInMonths} tháng trước`;
   }
-  
+
   const diffInYears = now.diff(date, "year");
   return `${diffInYears} năm trước`;
 };
@@ -110,49 +110,59 @@ export default function NotificationScreen({ navigation }) {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
-  const fetchNotifications = useCallback(async (pageNum = 1, append = false) => {
-    try {
-      const response = await getNotifications(pageNum, 20);
-      const fetchedNotifications = response.notifications || [];
-      
-      // Transform API response to match UI format
-      const formattedNotifications = fetchedNotifications.map((notif) => ({
-        id: notif.id,
-        type: notif.type,
-        data: notif.data,
-        is_read: notif.is_read,
-        read_at: notif.read_at,
-        created_at: notif.created_at,
-        created_at_human: notif.created_at_human,
-        actor: notif.actor,
-        user: {
-          name: notif.actor?.profile_name || notif.actor?.username || "Người dùng",
-          avatar: notif.actor?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
-        },
-        content: formatNotificationMessage(notif),
-        time: formatTime(notif.created_at),
-        read: notif.is_read,
-      }));
+  const fetchNotifications = useCallback(
+    async (pageNum = 1, append = false) => {
+      try {
+        const response = await getNotifications(pageNum, 20);
+        const fetchedNotifications = response.notifications || [];
 
-      if (append) {
-        setNotifications((prev) => [...prev, ...formattedNotifications]);
-      } else {
-        setNotifications(formattedNotifications);
-      }
+        // Transform API response to match UI format
+        const formattedNotifications = fetchedNotifications.map((notif) => ({
+          id: notif.id,
+          type: notif.type,
+          data: notif.data,
+          is_read: notif.is_read,
+          read_at: notif.read_at,
+          created_at: notif.created_at,
+          created_at_human: notif.created_at_human,
+          actor: notif.actor,
+          user: {
+            name:
+              notif.actor?.profile_name ||
+              notif.actor?.username ||
+              "Người dùng",
+            avatar:
+              notif.actor?.avatar_url ||
+              `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
+          },
+          content: formatNotificationMessage(notif),
+          time: formatTime(notif.created_at),
+          read: notif.is_read,
+        }));
 
-      // Check if there are more pages
-      if (response.pagination) {
-        setHasMore(response.pagination.current_page < response.pagination.last_page);
-      } else {
-        setHasMore(fetchedNotifications.length === 20);
+        if (append) {
+          setNotifications((prev) => [...prev, ...formattedNotifications]);
+        } else {
+          setNotifications(formattedNotifications);
+        }
+
+        // Check if there are more pages
+        if (response.pagination) {
+          setHasMore(
+            response.pagination.current_page < response.pagination.last_page
+          );
+        } else {
+          setHasMore(fetchedNotifications.length === 20);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    } catch (error) {
-      console.error("Error fetching notifications:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   useEffect(() => {
     fetchNotifications(1, false);
@@ -207,7 +217,9 @@ export default function NotificationScreen({ navigation }) {
   const handleDeleteNotification = async (notificationId) => {
     try {
       await deleteNotification(notificationId);
-      setNotifications((prev) => prev.filter((notif) => notif.id !== notificationId));
+      setNotifications((prev) =>
+        prev.filter((notif) => notif.id !== notificationId)
+      );
     } catch (error) {
       console.error("Error deleting notification:", error);
     }
@@ -226,8 +238,13 @@ export default function NotificationScreen({ navigation }) {
         // Navigate to relevant screen based on notification type
         if (item.data?.post_id) {
           navigation.navigate("PostScreen", { postId: item.data.post_id });
-        } else if (item.type === "App\\Notifications\\UserFollowed" && item.actor?.username) {
-          navigation.navigate("ProfileScreen", { username: item.actor.username });
+        } else if (
+          item.type === "App\\Notifications\\UserFollowed" &&
+          item.actor?.username
+        ) {
+          navigation.navigate("ProfileScreen", {
+            username: item.actor.username,
+          });
         }
       }}
     >
@@ -332,21 +349,12 @@ export default function NotificationScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      <AnimatedLottieView
-        source={require("../../../assets/refresh.json")}
-        style={{
-          width: 40,
-          height: 40,
-          position: "absolute",
-          zIndex: 0,
-          alignSelf: "center",
-          top: 50 + insets.top + 10,
-        }}
-        ref={lottieRef}
-      />
-
       {loading && notifications.length === 0 ? (
-        <CustomLoading />
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <CustomLoading />
+        </View>
       ) : (
         <FlatList
           onScroll={handleScroll}
