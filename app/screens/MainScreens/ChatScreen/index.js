@@ -169,21 +169,21 @@ export default function ChatScreen({ navigation }) {
             ? formatMessageTime(item.latest_message.created_at)
             : ""}
         </Text>
-        {item.unread_count > 0 && (
-          <View style={styles.unreadContainer}>
-            {item.type === "group" && item.name === "Tán gẫu linh tinh" && (
-              <Ionicons
-                name="notifications-off"
-                size={18}
-                color="#888"
-                style={styles.muteIcon}
-              />
-            )}
+        <View style={styles.unreadContainer}>
+          {item.type === "group" && item.name === "Tán gẫu linh tinh" && (
+            <Ionicons
+              name="notifications-off"
+              size={18}
+              color="#888"
+              style={styles.muteIcon}
+            />
+          )}
+          {item.unread_count > 0 && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadText}>{item.unread_count}</Text>
             </View>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     </TouchableOpacity>
   );
