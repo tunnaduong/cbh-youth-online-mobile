@@ -958,12 +958,34 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         }
       } catch (error) {
         console.error("Error replying to story:", error);
+        
+        // Extract error message from API response
+        let errorMessage = "Không thể gửi tin nhắn. Vui lòng thử lại.";
+        
+        if (error.response?.data) {
+          // Handle different error response formats
+          if (error.response.data.message) {
+            // Single message string
+            if (typeof error.response.data.message === 'string') {
+              errorMessage = error.response.data.message;
+            } 
+            // Message object (validation errors)
+            else if (typeof error.response.data.message === 'object') {
+              const firstError = Object.values(error.response.data.message)[0];
+              errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+            }
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
         Toast.show({
           type: "error",
           text1: "Lỗi",
-          text2:
-            error.response?.data?.message ||
-            "Không thể gửi tin nhắn. Vui lòng thử lại.",
+          text2: errorMessage,
+          visibilityTime: 4000,
         });
       } finally {
         setIsSending(false);
