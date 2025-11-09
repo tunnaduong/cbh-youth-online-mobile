@@ -822,6 +822,10 @@ const ConversationScreen = ({ navigation, route }) => {
           // Different usernames (for guests or fallback)
           nextMessage.sender?.username !== item.sender?.username));
 
+    // Check if this is a story reply message
+    const isStoryReply = item.metadata?.story_reply === true;
+    const storyOwnerName = item.metadata?.story_owner_name;
+    
     return (
       <View
         style={[
@@ -832,6 +836,22 @@ const ConversationScreen = ({ navigation, route }) => {
             styles.groupMessageWrapper,
         ]}
       >
+        {/* Show story reply header */}
+        {isStoryReply && (
+          <View
+            style={[
+              styles.storyReplyHeader,
+              item.is_myself && styles.storyReplyHeaderRight,
+            ]}
+          >
+            <Ionicons name="arrow-back" size={14} color="#666" />
+            <Text style={styles.storyReplyText}>
+              {item.is_myself
+                ? `Bạn đã trả lời tin của ${storyOwnerName || "người dùng"}`
+                : `${item.sender?.profile_name || item.sender?.username || "Người dùng"} đã trả lời tin của bạn`}
+            </Text>
+          </View>
+        )}
         {/* Show sender name for group chats when sender changes */}
         {isGroupChat && !item.is_myself && senderChanged && (
           <Text style={styles.senderName}>
@@ -1117,6 +1137,22 @@ const styles = StyleSheet.create({
   },
   theirMessageTime: {
     marginLeft: 4,
+  },
+  storyReplyHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  storyReplyHeaderRight: {
+    justifyContent: "flex-end",
+  },
+  storyReplyText: {
+    fontSize: 12,
+    color: "#666",
+    marginLeft: 4,
+    fontStyle: "italic",
   },
   inputContainer: {
     flexDirection: "row",
