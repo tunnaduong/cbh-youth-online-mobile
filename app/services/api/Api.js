@@ -249,6 +249,22 @@ export const deleteStory = (id) => {
   return Api.deleteRequest("/v1.0/stories/" + id);
 };
 
+export const reactToStory = (storyId, reactionType) => {
+  return Api.postRequest("/v1.0/stories/" + storyId + "/react", {
+    reaction_type: reactionType,
+  });
+};
+
+export const removeStoryReaction = (storyId) => {
+  return Api.deleteRequest("/v1.0/stories/" + storyId + "/react");
+};
+
+export const replyToStory = (storyId, content) => {
+  return Api.postRequest("/v1.0/stories/" + storyId + "/reply", {
+    content: content,
+  });
+};
+
 export const searchQuery = (query, type = "") => {
   return Api.getRequest("/v1.0/search?query=" + query + "&type=" + type);
 };

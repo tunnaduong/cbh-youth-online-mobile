@@ -13,16 +13,28 @@ import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import TabBarBadge from "../../components/TabBarBadge";
+import { useNavigation } from "@react-navigation/native";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
-export default function MainScreens({ navigation }) {
+export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = React.useState(false);
   const insets = useSafeAreaInsets();
   const [currentRoute, setCurrentRoute] = useState("Home");
   const tabBarHeightRef = useRef(null);
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
+  const tabNavigatorRef = useRef(null);
+  const homeScreenScrollTriggerRef = useRef(null);
+
+  // Function to trigger scroll to top or reload in HomeScreen
+  const triggerHomeScrollOrReload = () => {
+    // Trigger the action using a timestamp param
+    // The HomeScreen will listen for this param change
+    if (homeScreenScrollTriggerRef.current) {
+      homeScreenScrollTriggerRef.current(Date.now());
+    }
+  };
 
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
@@ -32,7 +44,7 @@ export default function MainScreens({ navigation }) {
 
   // Add navigation state listener to track current route
   useEffect(() => {
-    const unsubscribe = navigation.addListener("state", (e) => {
+    const unsubscribe = stackNavigation.addListener("state", (e) => {
       // Get the state of the bottom tab navigator
       const bottomTabState = e.data.state?.routes?.[0]?.state;
       if (bottomTabState) {
@@ -43,7 +55,7 @@ export default function MainScreens({ navigation }) {
     });
 
     return unsubscribe;
-  }, [navigation]);
+  }, [stackNavigation]);
 
   return (
     <SideMenu
@@ -57,6 +69,7 @@ export default function MainScreens({ navigation }) {
     >
       <View style={{ flex: 1 }}>
         <Tab.Navigator
+          ref={tabNavigatorRef}
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
@@ -98,7 +111,6 @@ export default function MainScreens({ navigation }) {
         >
           <Tab.Screen
             name="Home"
-            component={HomeScreen}
             options={{
               title: "Trang chủ",
               headerShown: true,
@@ -107,17 +119,39 @@ export default function MainScreens({ navigation }) {
                 return (
                   <SameHeader
                     icon="search"
-                    action={() => navigation.navigate("SearchScreen")}
+                    action={() => stackNavigation.navigate("SearchScreen")}
                     havingIcon
                     setSetting={setSetting}
+                    onLogoPress={triggerHomeScrollOrReload}
                   />
                 );
+              },
+            }}
+            listeners={{
+              tabPress: (e) => {
+                // Check if already on Home tab using the tracked currentRoute state
+                // This should be reliable since it's updated via navigation state listener
+                if (currentRoute === "Home") {
+                  // Prevent default navigation since we're already on Home
+                  e.preventDefault();
+                  // Trigger scroll to top or reload
+                  triggerHomeScrollOrReload();
+                }
               },
             }}
             tabBar={(props) => (
               <View onLayout={onTabBarLayout}>{props.tabBar(props)}</View>
             )}
-          />
+          >
+            {(props) => (
+              <HomeScreen
+                {...props}
+                scrollTriggerRef={(triggerFn) => {
+                  homeScreenScrollTriggerRef.current = triggerFn;
+                }}
+              />
+            )}
+          </Tab.Screen>
           <Tab.Screen
             name="Forum"
             component={MenuScreen}

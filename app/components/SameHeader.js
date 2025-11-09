@@ -23,6 +23,7 @@ const FeatureHeader = ({
   havingBorder = false,
   havingIcon = false,
   setSetting,
+  onLogoPress,
 }) => (
   <View>
     <View style={havingBorder ? styles.containerWithBorder : styles.container}>
@@ -31,7 +32,11 @@ const FeatureHeader = ({
       </TouchableOpacity>
       {havingIcon ? (
         <SafeAreaView className="-mt-1">
-          <View style={styles.logoContainer}>
+          <TouchableOpacity 
+            onPress={onLogoPress}
+            activeOpacity={0.7}
+            style={styles.logoContainer}
+          >
             <Image
               style={styles.logo}
               source={require("../assets/logo.png")}
@@ -45,7 +50,7 @@ const FeatureHeader = ({
                 Chuyên Biên Hòa
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
         </SafeAreaView>
       ) : (
         <Text style={styles.title}>{title}</Text>

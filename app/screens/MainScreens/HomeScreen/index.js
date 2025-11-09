@@ -25,6 +25,7 @@ import {
   Modal,
   Switch,
   TouchableHighlight,
+  Platform,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -32,12 +33,16 @@ import {
   getStories,
   incrementPostView,
   resendVerificationEmail,
+  reactToStory,
+  removeStoryReaction,
+  replyToStory,
 } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
+import { useStatusBar } from "../../../contexts/StatusBarContext";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import FastImage from "react-native-fast-image";
@@ -45,7 +50,7 @@ import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import KeyboardSpacer from "react-native-keyboard-spacer";
 import ActionSheet from "react-native-actions-sheet";
 
-const HomeScreen = ({ navigation, route }) => {
+const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
@@ -56,6 +61,8 @@ const HomeScreen = ({ navigation, route }) => {
   const storyRef = useRef(null);
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
+  const [currentStory, setCurrentStory] = useState(null);
+  const [currentStoryUser, setCurrentStoryUser] = useState(null);
   const {
     username,
     isLoggedIn,
@@ -63,9 +70,18 @@ const HomeScreen = ({ navigation, route }) => {
     userInfo,
     updateEmailVerificationStatus,
   } = useContext(AuthContext);
+  const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
+  const previousStatusBarStyle = useRef({
+    barStyle: "dark-content",
+    backgroundColor: "#ffffff",
+  });
   const [verificationModalVisible, setVerificationModalVisible] =
     useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
+  const scrollPositionRef = useRef(0);
+  const isScrollingRef = useRef(false);
+  const isProcessingRef = useRef(false);
+  const lastTriggerTimeRef = useRef(0);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -84,6 +100,23 @@ const HomeScreen = ({ navigation, route }) => {
       fetchStories();
     }
   }, [route.params?.refresh]);
+
+  // Handle story highlighting from notifications
+  useEffect(() => {
+    if (route.params?.highlightStoryId && userStories.length > 0) {
+      // Find the user and story to highlight
+      const storyToHighlight = route.params.highlightStoryId;
+      const userWithStory = userStories.find((user) =>
+        user.stories.some((story) => story.storyId === storyToHighlight)
+      );
+      if (userWithStory) {
+        // Open the story viewer for that user
+        setTimeout(() => {
+          storyRef.current?.show(userWithStory.id);
+        }, 500);
+      }
+    }
+  }, [route.params?.highlightStoryId, userStories]);
 
   const handleFetchFeed = async (page = 1) => {
     try {
@@ -193,6 +226,21 @@ const HomeScreen = ({ navigation, route }) => {
   const handleStoryOptions = () => {
     storyRef?.current.pause(); // Pause the story timer
     actionSheetRef.current?.show();
+  };
+
+  const handleStoryShow = () => {
+    // Save current status bar style
+    previousStatusBarStyle.current = { barStyle, backgroundColor };
+    // Change to light content (white text) for dark background
+    updateStatusBar("light-content", "#000000");
+  };
+
+  const handleStoryHide = () => {
+    // Restore previous status bar style
+    updateStatusBar(
+      previousStatusBarStyle.current.barStyle,
+      previousStatusBarStyle.current.backgroundColor
+    );
   };
 
   const StoryOptionsModal = () => (
@@ -347,12 +395,26 @@ const HomeScreen = ({ navigation, route }) => {
       },
       stories: user.stories.map((story) => ({
         id: story.id,
+        storyId: story.id, // Store the actual story ID
+        userId: user.id, // Store user ID
+        username: user.username, // Store username
         source: {
           uri: `https://api.chuyenbienhoa.com${story.media_url}`,
         },
         duration: story.duration,
-        renderFooter: () => <ReplyBar />,
+        renderFooter: () => (
+          <ReplyBar
+            storyId={story.id}
+            userId={user.id}
+            username={user.username}
+            navigation={navigation}
+          />
+        ),
         date: story.created_at_human,
+        onStoryItemPress: () => {
+          setCurrentStory(story.id);
+          setCurrentStoryUser({ id: user.id, username: user.username });
+        },
       })),
     }));
   };
@@ -490,28 +552,97 @@ const HomeScreen = ({ navigation, route }) => {
   };
 
   const handleScroll = (event) => {
-    if (!refreshing) {
-      lottieRef.current?.play(); // Play up to the calculated frame
+    // Track scroll position
+    const offsetY = event.nativeEvent.contentOffset.y;
+    scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
+    isScrollingRef.current = false;
+
+    // If scrolled to top during manual scroll, reset processing flag
+    if (offsetY <= 10 && isProcessingRef.current && !refreshing) {
+      isProcessingRef.current = false;
     }
   };
 
-  const handleRefresh = () => {
+  const handleScrollBeginDrag = () => {
+    isScrollingRef.current = true;
+  };
+
+  const handleRefresh = React.useCallback(() => {
+    // Prevent multiple refresh calls - use ref for immediate check
+    if (isProcessingRef.current) {
+      return;
+    }
+
+    isProcessingRef.current = true;
     setRefreshing(true);
     setHasMore(true);
     setCurrentPage(2);
     viewedPosts.current = new Set(); // Reset viewed posts
 
-    // Play the Lottie animation in a loop
-    lottieRef.current?.play();
+    // Don't manually scroll - let RefreshControl handle it naturally
+    // This prevents content from being pushed down
 
     fetchStories();
 
     handleFetchFeed().finally(() => {
       setTimeout(() => {
         setRefreshing(false);
+        isProcessingRef.current = false;
+        // Reset scroll position after refresh completes
+        scrollPositionRef.current = 0;
       }, 1000);
     });
-  };
+  }, []);
+
+  // Function to scroll to top or reload
+  const scrollToTopOrReload = React.useCallback(() => {
+    // Debounce: prevent rapid clicks (minimum 300ms between triggers)
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) {
+      return;
+    }
+    lastTriggerTimeRef.current = now;
+
+    // If already processing (refreshing or scrolling), ignore - use ref for immediate check
+    if (isProcessingRef.current) {
+      return;
+    }
+
+    const isAtTop = scrollPositionRef.current <= 10; // Consider 10px threshold for "at top"
+
+    if (isAtTop) {
+      // Already at top, trigger refresh (like pull-to-refresh)
+      // This will set isProcessingRef to true, preventing multiple calls
+      handleRefresh();
+    } else {
+      // Scroll to top first, then user can click again to refresh
+      // Use a ref to track if we're scrolling to top
+      const wasScrollingToTop = isProcessingRef.current;
+      isProcessingRef.current = true;
+
+      if (flatListRef.current) {
+        flatListRef.current.scrollToOffset({
+          offset: 0,
+          animated: true,
+        });
+        // Reset processing flag after scroll animation completes
+        // This allows the next click to trigger refresh
+        setTimeout(() => {
+          scrollPositionRef.current = 0;
+          isProcessingRef.current = false;
+        }, 600); // Slightly longer to ensure scroll completes
+      } else {
+        isProcessingRef.current = false;
+      }
+    }
+  }, [handleRefresh]);
+
+  // Expose scroll/reload function via ref callback
+  React.useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
 
   const handleResendVerification = async () => {
     setResendingVerification(true);
@@ -708,6 +839,17 @@ const HomeScreen = ({ navigation, route }) => {
 
   const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
 
+  // Map emojis to reaction types
+  const emojiToReactionType = {
+    "👍": "like",
+    "❤️": "love",
+    "🔥": "like", // Fire doesn't exist in API, use like
+    "😆": "haha",
+    "😮": "wow",
+    "😢": "sad",
+    "😡": "angry",
+  };
+
   const FloatingEmoji = ({ emoji, onComplete }) => {
     const translateY = useRef(new Animated.Value(0)).current;
     const translateX = useRef(new Animated.Value(0)).current;
@@ -760,18 +902,72 @@ const HomeScreen = ({ navigation, route }) => {
     );
   };
 
-  const ReplyBar = () => {
+  const ReplyBar = ({ storyId, userId, username, navigation }) => {
     const [floatingEmojis, setFloatingEmojis] = useState([]);
+    const [replyText, setReplyText] = useState("");
+    const [isSending, setIsSending] = useState(false);
 
-    const handleEmojiPress = (emoji) => {
-      if (emoji === "add") return;
+    const handleEmojiPress = async (emoji) => {
+      if (emoji === "add" || !storyId) return;
 
       const id = Date.now();
       setFloatingEmojis((prev) => [...prev, { id, emoji }]);
+
+      // Map emoji to reaction type and send to API
+      const reactionType = emojiToReactionType[emoji];
+      if (reactionType) {
+        try {
+          await reactToStory(storyId, reactionType);
+        } catch (error) {
+          console.error("Error reacting to story:", error);
+          Toast.show({
+            type: "error",
+            text1: "Lỗi",
+            text2: "Không thể thả cảm xúc. Vui lòng thử lại.",
+          });
+        }
+      }
     };
 
     const handleAnimationComplete = (id) => {
       setFloatingEmojis((prev) => prev.filter((emoji) => emoji.id !== id));
+    };
+
+    const handleSendReply = async () => {
+      if (!replyText.trim() || !storyId || isSending) return;
+
+      setIsSending(true);
+      try {
+        const response = await replyToStory(storyId, replyText.trim());
+        setReplyText("");
+        Toast.show({
+          type: "success",
+          text1: "Đã gửi",
+          text2: "Tin nhắn đã được gửi đến người dùng.",
+        });
+
+        // Optionally navigate to conversation after sending reply
+        if (response?.data?.conversation_id && navigation) {
+          // Navigate to conversation screen to see the sent message
+          navigation.navigate("ChatScreen", {
+            screen: "ConversationScreen",
+            params: {
+              conversationId: response.data.conversation_id,
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error replying to story:", error);
+        Toast.show({
+          type: "error",
+          text1: "Lỗi",
+          text2:
+            error.response?.data?.message ||
+            "Không thể gửi tin nhắn. Vui lòng thử lại.",
+        });
+      } finally {
+        setIsSending(false);
+      }
     };
 
     return (
@@ -799,9 +995,21 @@ const HomeScreen = ({ navigation, route }) => {
               placeholder="Chia sẻ cảm nghĩ của bạn..."
               placeholderTextColor="#aaa"
               style={styles.input}
+              value={replyText}
+              onChangeText={setReplyText}
+              onSubmitEditing={handleSendReply}
+              editable={!isSending}
             />
-            <TouchableOpacity style={{ position: "absolute", right: 20 }}>
-              <Ionicons name="send" size={24} color="#fff" />
+            <TouchableOpacity
+              style={{ position: "absolute", right: 20 }}
+              onPress={handleSendReply}
+              disabled={!replyText.trim() || isSending}
+            >
+              {isSending ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="send" size={24} color="#fff" />
+              )}
             </TouchableOpacity>
           </View>
         </SafeAreaView>
@@ -834,23 +1042,34 @@ const HomeScreen = ({ navigation, route }) => {
   ) : (
     <>
       <View style={{ backgroundColor: "white", flex: 1 }}>
-        <AnimatedLottieView
-          source={require("../../../assets/refresh.json")}
-          style={{
-            width: 40,
-            height: 40,
-            position: "absolute",
-            top: 5,
-            width: "100%",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          ref={lottieRef}
-          // progress={refreshing ? undefined : lottieProgress} // Use progress only when not refreshing
-          // loop={refreshing}
-        />
+        {refreshing && (
+          <View
+            style={{
+              position: "absolute",
+              top: 5,
+              left: 0,
+              right: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+            }}
+          >
+            <LottieView
+              source={require("../../../assets/refresh.json")}
+              style={{
+                width: 40,
+                height: 40,
+              }}
+              ref={lottieRef}
+              loop
+              autoPlay
+            />
+          </View>
+        )}
         <FlatList
           onScroll={handleScroll}
+          onScrollBeginDrag={handleScrollBeginDrag}
+          scrollEventThrottle={16}
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={feed}
@@ -878,7 +1097,12 @@ const HomeScreen = ({ navigation, route }) => {
               colors={["transparent"]}
               style={{ backgroundColor: "transparent" }}
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={() => {
+                // When user pulls to refresh, also prevent multiple calls
+                if (!isProcessingRef.current) {
+                  handleRefresh();
+                }
+              }}
             />
           }
           ListFooterComponent={ListEndLoader}
@@ -903,9 +1127,24 @@ const HomeScreen = ({ navigation, route }) => {
           storyAnimationDuration={300}
           storyAvatarSize={30}
           onMore={handleStoryOptions}
+          onShow={handleStoryShow}
+          onHide={handleStoryHide}
+          onStoryItemPress={(item, index) => {
+            // item is the story object, find the actual story ID
+            const user = userStories.find((u) =>
+              u.stories.some((s) => s.id === item.id)
+            );
+            if (user) {
+              const story = user.stories.find((s) => s.id === item.id);
+              if (story) {
+                setCurrentStory(story.storyId);
+                setCurrentStoryUser({ id: user.uid, username: user.id });
+              }
+            }
+          }}
           toast={<Toast topOffset={60} />}
           containerStyle={{
-            transform: [{ translateY: -69 }],
+            transform: [{ translateY: Platform.OS === "android" ? -69 : -15 }],
           }}
         />
         <ResendVerificationModal />

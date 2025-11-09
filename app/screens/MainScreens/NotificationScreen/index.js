@@ -67,6 +67,10 @@ const formatNotificationMessage = (notification) => {
       return `đã trả lời bình luận của bạn`;
     case "mentioned":
       return `nhắc đến bạn trong một bình luận`;
+    case "story_reacted":
+      return `đã thả cảm xúc ${data?.reaction_emoji || "👍"} vào tin của bạn`;
+    case "story_replied":
+      return `đã trả lời tin của bạn`;
     // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
       return `thích bài đăng "${
@@ -337,6 +341,24 @@ export default function NotificationScreen({ navigation }) {
             item.data?.message?.includes("Chào mừng")
           ) {
             navigation.navigate("PostScreen", { postId: 173336279 });
+          } else if (item.type === "story_reacted") {
+            // Navigate to home screen to show stories (story will be highlighted)
+            navigation.navigate("HomeScreen", { 
+              highlightStoryId: item.data?.story_id 
+            });
+          } else if (item.type === "story_replied") {
+            // Navigate to conversation screen
+            if (item.data?.conversation_id) {
+              navigation.navigate("ChatScreen", {
+                screen: "ConversationScreen",
+                params: {
+                  conversationId: item.data.conversation_id,
+                },
+              });
+            } else {
+              // Fallback to chat screen if conversation_id is missing
+              navigation.navigate("ChatScreen");
+            }
           } else if (item.data?.topic_id) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.data?.post_id) {
@@ -368,6 +390,11 @@ export default function NotificationScreen({ navigation }) {
               </>
             )}
           </Text>
+          {item.type === "story_replied" && item.data?.message_excerpt && (
+            <Text style={styles.excerpt} numberOfLines={2}>
+              {item.data.message_excerpt}
+            </Text>
+          )}
           <Text style={styles.time}>{item.time}</Text>
         </View>
         <TouchableOpacity
@@ -594,6 +621,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginTop: 4,
+  },
+  excerpt: {
+    fontSize: 13,
+    color: "#888",
+    marginTop: 4,
+    fontStyle: "italic",
   },
   moreButton: {
     padding: 8,

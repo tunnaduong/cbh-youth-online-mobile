@@ -107,7 +107,7 @@ const Sidebar = () => {
   const getChevronRotation = (section) => {
     return rotationValues[section].interpolate({
       inputRange: [0, 1],
-      outputRange: ["0deg", "180deg"], // Rotate from 0 to 180 degrees
+      outputRange: ["-90deg", "0deg"], // Rotate from 0 to 180 degrees
     });
   };
 
