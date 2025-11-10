@@ -1,5 +1,10 @@
 import React from "react";
-import { TouchableOpacity, View, TextInput } from "react-native";
+import {
+  TouchableOpacity,
+  View,
+  TextInput,
+  ActivityIndicator,
+} from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 
 const CommentBar = React.forwardRef(
@@ -11,6 +16,8 @@ const CommentBar = React.forwardRef(
       value,
       onKeyPress,
       disabled,
+      editable = true,
+      isSubmitting = false,
       style,
     },
     ref
@@ -72,6 +79,7 @@ const CommentBar = React.forwardRef(
                 onChangeText={onChangeText}
                 value={value}
                 onKeyPress={onKeyPress}
+                editable={editable}
               ></TextInput>
               {/* <TouchableOpacity onPress={onUpload}>
                 <Ionicons
@@ -93,11 +101,17 @@ const CommentBar = React.forwardRef(
               onPress={onSubmit}
               disabled={disabled}
             >
-              <Ionicons
-                name={"send"}
-                size={25}
-                color={disabled ? "#81BDFF" : "#0079FF"}
-              />
+              {isSubmitting ? (
+                <View style={{ width: 25 }}>
+                  <ActivityIndicator size="small" color="#319527" />
+                </View>
+              ) : (
+                <Ionicons
+                  name={"send"}
+                  size={25}
+                  color={disabled ? "#C7F0C2" : "#319527"}
+                />
+              )}
             </TouchableOpacity>
           </View>
         </View>

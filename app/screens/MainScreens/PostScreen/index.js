@@ -15,6 +15,8 @@ import {
   Text,
   Pressable,
   Image,
+  Platform,
+  ActionSheetIOS,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -24,6 +26,8 @@ import {
   getPostDetail,
   incrementPostView,
   voteComment,
+  updateComment,
+  deleteComment,
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
 import { FeedContext } from "../../../contexts/FeedContext";
@@ -44,6 +48,9 @@ const PostScreen = ({ route, navigation }) => {
   const [commentText, setCommentText] = useState("");
   const [parentId, setParentId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
   const commentInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
@@ -340,14 +347,23 @@ const PostScreen = ({ route, navigation }) => {
   };
 
   const onSubmit = async () => {
-    if (!commentText.trim()) return;
+    // Handle editing comment
+    if (editingCommentId) {
+      await handleUpdateComment();
+      return;
+    }
+
+    // Handle new comment or reply
+    if (!commentText.trim() || isSubmitting) return;
 
     let replyingToId = parentId;
 
+    setIsSubmitting(true);
     try {
       // Send comment to API
       const resp = await commentPost(post.id, {
         comment: commentText.trim(),
+        topic_id: post.id,
         replying_to: replyingToId,
       });
 
@@ -410,6 +426,8 @@ const PostScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error("Error submitting comment:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -541,6 +559,222 @@ const PostScreen = ({ route, navigation }) => {
     );
   };
 
+  const findCommentById = (comments, targetId) => {
+    for (const comment of comments) {
+      if (comment.id === targetId) {
+        return comment;
+      }
+      if (comment.replies?.length > 0) {
+        const found = findCommentById(comment.replies, targetId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  const handleLongPressComment = (commentId) => {
+    const comment = findCommentById(comments, commentId);
+    if (!comment) return;
+
+    const isCommentOwner = comment.author?.username === username;
+    if (!isCommentOwner) return;
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ["Hủy", "Chỉnh sửa bình luận", "Xóa bình luận"],
+          destructiveButtonIndex: 2,
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            // Edit comment
+            setEditingCommentId(commentId);
+            setEditingCommentText(comment.content || "");
+            setParentId(null);
+            setReplyingTo(null);
+            if (commentInputRef.current) {
+              commentInputRef.current.focus();
+            }
+          } else if (buttonIndex === 2) {
+            // Delete comment
+            handleDeleteComment(commentId);
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        "Tùy chọn",
+        "Chọn hành động",
+        [
+          {
+            text: "Hủy",
+            style: "cancel",
+          },
+          {
+            text: "Chỉnh sửa bình luận",
+            onPress: () => {
+              setEditingCommentId(commentId);
+              setEditingCommentText(comment.content || "");
+              setParentId(null);
+              setReplyingTo(null);
+              if (commentInputRef.current) {
+                commentInputRef.current.focus();
+              }
+            },
+          },
+          {
+            text: "Xóa bình luận",
+            style: "destructive",
+            onPress: () => handleDeleteComment(commentId),
+          },
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    Alert.alert("Xóa bình luận", "Bạn có chắc chắn muốn xóa bình luận này?", [
+      {
+        text: "Hủy",
+        style: "cancel",
+      },
+      {
+        text: "Xóa",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteComment(commentId);
+            // Refresh comments
+            const response = await getPostDetail(postId);
+            if (response.data) {
+              setComments(response.data.comments ?? []);
+              const updatedPostData = response.data.post;
+              setPost(updatedPostData);
+
+              // Update FeedContext
+              setFeed((prevFeed) =>
+                prevFeed.map((feedItem) =>
+                  feedItem.id === postId
+                    ? {
+                        ...feedItem,
+                        comments:
+                          roundToNearestFive(
+                            response.data.comments
+                              ? response.data.comments.length
+                              : parseInt(
+                                  updatedPostData.comments?.replace(/\D/g, ""),
+                                  10
+                                ) || 0
+                          ) + "+",
+                      }
+                    : feedItem
+                )
+              );
+
+              if (screenName) {
+                setRecentPostsProfile((prevFeed) =>
+                  prevFeed.map((feedItem) =>
+                    feedItem.id === postId
+                      ? {
+                          ...feedItem,
+                          comments:
+                            roundToNearestFive(
+                              response.data.comments
+                                ? response.data.comments.length
+                                : parseInt(
+                                    updatedPostData.comments?.replace(
+                                      /\D/g,
+                                      ""
+                                    ),
+                                    10
+                                  ) || 0
+                            ) + "+",
+                        }
+                      : feedItem
+                  )
+                );
+              }
+            }
+          } catch (error) {
+            console.error("Error deleting comment:", error);
+            Alert.alert("Lỗi", "Không thể xóa bình luận. Vui lòng thử lại.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleUpdateComment = async () => {
+    if (!editingCommentText.trim() || isSubmitting || !editingCommentId) return;
+
+    setIsSubmitting(true);
+    try {
+      await updateComment(editingCommentId, {
+        comment: editingCommentText.trim(),
+      });
+
+      // Reset editing state
+      setEditingCommentId(null);
+      setEditingCommentText("");
+
+      // Refresh comments
+      const response = await getPostDetail(postId);
+      if (response.data) {
+        setComments(response.data.comments ?? []);
+        const updatedPostData = response.data.post;
+        setPost(updatedPostData);
+
+        // Update FeedContext
+        setFeed((prevFeed) =>
+          prevFeed.map((feedItem) =>
+            feedItem.id === postId
+              ? {
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                            updatedPostData.comments?.replace(/\D/g, ""),
+                            10
+                          ) || 0
+                    ) + "+",
+                }
+              : feedItem
+          )
+        );
+
+        if (screenName) {
+          setRecentPostsProfile((prevFeed) =>
+            prevFeed.map((feedItem) =>
+              feedItem.id === postId
+                ? {
+                    ...feedItem,
+                    comments:
+                      roundToNearestFive(
+                        response.data.comments
+                          ? response.data.comments.length
+                          : parseInt(
+                              updatedPostData.comments?.replace(/\D/g, ""),
+                              10
+                            ) || 0
+                      ) + "+",
+                  }
+                : feedItem
+            )
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error updating comment:", error);
+      Alert.alert("Lỗi", "Không thể chỉnh sửa bình luận. Vui lòng thử lại.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const Comment = React.forwardRef(
     ({ comment, level = 0, border = false }, ref) => {
       if (!comment || !comment.id) {
@@ -561,46 +795,24 @@ const PostScreen = ({ route, navigation }) => {
         >
           {/* Render the main comment */}
 
-          <View
-            style={[
-              {
-                paddingVertical: 10,
-                flexDirection: "row",
-                gap: 10,
-              },
-              border && {
-                borderLeftWidth: 3,
-                borderLeftColor: "#e4eee3",
-                paddingLeft: 10,
-              },
-            ]}
+          <Pressable
+            onLongPress={() => handleLongPressComment(comment.id)}
+            delayLongPress={500}
           >
-            <Pressable
-              onPress={() =>
-                author.username &&
-                navigation.navigate("ProfileScreen", {
-                  username: author.username,
-                })
-              }
+            <View
+              style={[
+                {
+                  paddingVertical: 10,
+                  flexDirection: "row",
+                  gap: 10,
+                },
+                border && {
+                  borderLeftWidth: 3,
+                  borderLeftColor: "#e4eee3",
+                  paddingLeft: 10,
+                },
+              ]}
             >
-              <View
-                className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#dee2e6",
-                }}
-              >
-                {author.username && (
-                  <Image
-                    source={{
-                      uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
-                    }}
-                    style={{ width: 40, height: 40, borderRadius: 30 }}
-                  />
-                )}
-              </View>
-            </Pressable>
-            <View style={{ flexShrink: 1 }}>
               <Pressable
                 onPress={() =>
                   author.username &&
@@ -609,103 +821,156 @@ const PostScreen = ({ route, navigation }) => {
                   })
                 }
               >
-                <Text style={{ fontWeight: "bold", color: "#319527" }}>
-                  {author.profile_name || author.username || "Ẩn danh"}
-                  {author.verified && (
-                    <View>
-                      <Verified
-                        width={15}
-                        height={15}
-                        color={"#319527"}
-                        style={{ marginBottom: -3 }}
-                      />
-                    </View>
+                <View
+                  className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: "#dee2e6",
+                  }}
+                >
+                  {author.username && (
+                    <Image
+                      source={{
+                        uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
+                      }}
+                      style={{ width: 40, height: 40, borderRadius: 30 }}
+                    />
                   )}
-                </Text>
+                </View>
               </Pressable>
-              <Text
-                style={{
-                  flexShrink: 1,
-                }}
-              >
-                {String(content)}
-              </Text>
-              <View className="flex-row items-center mt-1">
-                <Text style={{ fontSize: 12, color: "gray" }}>
-                  {comment.created_at || ""} ·
-                </Text>
-                <TouchableOpacity
+              <View style={{ flexShrink: 1 }}>
+                <Pressable
                   onPress={() =>
-                    focusCommentInput(
-                      comment.id,
-                      author.profile_name || author.username || "",
-                      level
-                    )
+                    author.username &&
+                    navigation.navigate("ProfileScreen", {
+                      username: author.username,
+                    })
                   }
                 >
-                  <Text className="text-gray-500 font-bold text-[12px]">
-                    {" "}
-                    Trả lời
+                  <Text style={{ fontWeight: "bold", color: "#319527" }}>
+                    {author.profile_name || author.username || "Ẩn danh"}
+                    {author.verified && (
+                      <View>
+                        <Verified
+                          width={15}
+                          height={15}
+                          color={"#319527"}
+                          style={{ marginBottom: -3 }}
+                        />
+                      </View>
+                    )}
                   </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View className="flex-1 items-end shrink-0">
-              <View>
-                <TouchableOpacity
-                  onPress={() => handleCommentVote(comment.id, 1)}
+                </Pressable>
+                {/* Show notification if parent comment was deleted */}
+                {comment.deleted_parent_username && (
+                  <View
+                    style={{
+                      marginVertical: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      backgroundColor: "#f3f4f6",
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: "#e5e7eb",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                      Bình luận mà{" "}
+                      <Text style={{ fontWeight: "600" }}>
+                        {author.profile_name || author.username || "Ẩn danh"}
+                      </Text>{" "}
+                      đang phản hồi đã bị xóa
+                    </Text>
+                  </View>
+                )}
+                <Text
+                  style={{
+                    flexShrink: 1,
+                  }}
                 >
-                  <Ionicons
-                    name="arrow-up-outline"
-                    size={18}
-                    color={
+                  {String(content)}
+                </Text>
+                <View className="flex-row items-center mt-1">
+                  <Text style={{ fontSize: 12, color: "gray" }}>
+                    {comment.created_at || ""} ·
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      focusCommentInput(
+                        comment.id,
+                        author.profile_name || author.username || "",
+                        level
+                      )
+                    }
+                  >
+                    <Text className="text-gray-500 font-bold text-[12px]">
+                      {" "}
+                      Trả lời
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View className="flex-1 items-end shrink-0">
+                <View>
+                  <TouchableOpacity
+                    onPress={() => handleCommentVote(comment.id, 1)}
+                  >
+                    <Ionicons
+                      name="arrow-up-outline"
+                      size={18}
+                      color={
+                        votes.some(
+                          (vote) =>
+                            vote.username === username && vote.vote_value === 1
+                        )
+                          ? "#22c55e"
+                          : "#9ca3af"
+                      }
+                    />
+                  </TouchableOpacity>
+                  <Text
+                    style={[
+                      { fontSize: 14, fontWeight: "600" },
+                      { color: "#9ca3af", textAlign: "center" },
                       votes.some(
                         (vote) =>
                           vote.username === username && vote.vote_value === 1
                       )
-                        ? "#22c55e"
-                        : "#9ca3af"
-                    }
-                  />
-                </TouchableOpacity>
-                <Text
-                  style={[
-                    { fontSize: 14, fontWeight: "600" },
-                    { color: "#9ca3af", textAlign: "center" },
-                    votes.some(
-                      (vote) =>
-                        vote.username === username && vote.vote_value === 1
-                    )
-                      ? { color: "#22c55e" }
-                      : votes.some(
+                        ? { color: "#22c55e" }
+                        : votes.some(
+                            (vote) =>
+                              vote.username === username &&
+                              vote.vote_value === -1
+                          )
+                        ? { color: "#ef4444" }
+                        : { color: "#9ca3af" },
+                    ]}
+                  >
+                    {votes.reduce(
+                      (acc, vote) => acc + (vote.vote_value || 0),
+                      0
+                    )}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleCommentVote(comment.id, -1)}
+                  >
+                    <Ionicons
+                      name="arrow-down-outline"
+                      size={18}
+                      color={
+                        votes.some(
                           (vote) =>
                             vote.username === username && vote.vote_value === -1
                         )
-                      ? { color: "#ef4444" }
-                      : { color: "#9ca3af" },
-                  ]}
-                >
-                  {votes.reduce((acc, vote) => acc + (vote.vote_value || 0), 0)}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => handleCommentVote(comment.id, -1)}
-                >
-                  <Ionicons
-                    name="arrow-down-outline"
-                    size={18}
-                    color={
-                      votes.some(
-                        (vote) =>
-                          vote.username === username && vote.vote_value === -1
-                      )
-                        ? "#ef4444"
-                        : "#9ca3af"
-                    }
-                  />
-                </TouchableOpacity>
+                          ? "#ef4444"
+                          : "#9ca3af"
+                      }
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
+          </Pressable>
 
           {/* Render replies recursively */}
           {replies.length > 0 && (
@@ -779,7 +1044,7 @@ const PostScreen = ({ route, navigation }) => {
               )}
             </View>
           </ScrollView>
-          {parentId && (
+          {(parentId || editingCommentId) && (
             <View
               style={{
                 flexDirection: "row",
@@ -792,13 +1057,17 @@ const PostScreen = ({ route, navigation }) => {
               }}
             >
               <Text style={{ color: "#6b7280", fontSize: 14, flex: 1 }}>
-                Đang trả lời bình luận của{" "}
-                <Text style={{ fontWeight: "bold" }}>{replyingTo}</Text>...
+                {editingCommentId
+                  ? "Đang chỉnh sửa bình luận..."
+                  : `Đang trả lời bình luận của ${replyingTo}...`}
               </Text>
               <TouchableOpacity
                 onPress={() => {
-                  setParentId(null); // Reset parentId
-                  setReplyingTo(null); // Reset replyingTo
+                  setParentId(null);
+                  setReplyingTo(null);
+                  setEditingCommentId(null);
+                  setEditingCommentText("");
+                  setCommentText("");
                 }}
                 style={{
                   marginLeft: 10,
@@ -813,11 +1082,25 @@ const PostScreen = ({ route, navigation }) => {
           )}
           <CommentBar
             ref={commentInputRef}
-            placeholderText={parentId ? "Nhập trả lời..." : "Nhập bình luận..."}
+            placeholderText={
+              editingCommentId
+                ? "Chỉnh sửa bình luận..."
+                : parentId
+                ? "Nhập trả lời..."
+                : "Nhập bình luận..."
+            }
             onSubmit={onSubmit}
-            value={commentText}
-            onChangeText={setCommentText}
-            disabled={!commentText.trim()}
+            value={editingCommentId ? editingCommentText : commentText}
+            onChangeText={
+              editingCommentId ? setEditingCommentText : setCommentText
+            }
+            disabled={
+              editingCommentId
+                ? !editingCommentText.trim() || isSubmitting
+                : !commentText.trim() || isSubmitting
+            }
+            editable={!isSubmitting}
+            isSubmitting={isSubmitting}
           />
         </SafeAreaView>
       </KeyboardAvoidingView>

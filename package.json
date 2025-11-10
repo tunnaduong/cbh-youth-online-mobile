@@ -22,6 +22,7 @@
     "@react-navigation/native": "^7.0.13",
     "@react-navigation/stack": "^7.0.18",
     "@shopify/react-native-skia": "v2.0.0-next.4",
+    "@sindresorhus/slugify": "^3.0.0",
     "axios": "^1.7.9",
     "dayjs": "^1.11.13",
     "deprecated-react-native-prop-types": "^5.0.0",

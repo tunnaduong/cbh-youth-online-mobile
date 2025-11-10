@@ -193,6 +193,14 @@ export const voteComment = (id, params) => {
   return Api.postRequest("/v1.0/comments/" + id + "/votes", params);
 };
 
+export const updateComment = (id, params) => {
+  return Api.putRequest("/v1.0/comments/" + id, params);
+};
+
+export const deleteComment = (id) => {
+  return Api.deleteRequest("/v1.0/comments/" + id);
+};
+
 export const getForumCategories = () => {
   return Api.getRequest("/v1.0/forum/categories");
 };

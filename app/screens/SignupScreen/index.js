@@ -284,8 +284,19 @@ const SignupScreen = ({ navigation }) => {
                 />
                 <Text style={styles.checkboxLabel}>
                   Tôi đồng ý với{" "}
-                  <Text style={styles.link}>Điều khoản sử dụng</Text> và{" "}
-                  <Text style={styles.link}>Chính sách quyền riêng tư</Text>
+                  <Text
+                    style={styles.link}
+                    onPress={() => navigation.navigate("TermsOfServiceScreen")}
+                  >
+                    Điều khoản sử dụng
+                  </Text>{" "}
+                  và{" "}
+                  <Text
+                    style={styles.link}
+                    onPress={() => navigation.navigate("PrivacyPolicyScreen")}
+                  >
+                    Chính sách quyền riêng tư
+                  </Text>
                 </Text>
               </View>
 

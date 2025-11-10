@@ -179,7 +179,7 @@ export default function SearchScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
       <View style={{ flex: 1 }}>
         <View style={{ paddingTop: inset.top }}>
           <View style={styles.topBar}>
@@ -309,7 +309,7 @@ export default function SearchScreen({ navigation }) {
           )}
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     paddingRight: 35,
     paddingVertical: 0,
-    minHeight: 40,
+    minHeight: 30,
     includeFontPadding: false,
     textAlignVertical: "center",
     color: "#000",

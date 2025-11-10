@@ -43,9 +43,9 @@ export default function AboutScreen({ navigation }) {
         </View>
 
         <Text style={styles.description}>
-          Trường THPT Chuyên Biên Hòa, tỉnh Hà Nam, với truyền thống hơn 60 năm
-          xây dựng và phát triển, là ngọn cờ đầu đào tạo mũi nhọn và phát triển
-          toàn diện học sinh.
+          Trường THPT Chuyên Biên Hòa, tỉnh Ninh Bình, với truyền thống hơn 60
+          năm xây dựng và phát triển, là ngọn cờ đầu đào tạo mũi nhọn và phát
+          triển toàn diện học sinh.
         </Text>
 
         <Text style={styles.description}>
@@ -55,7 +55,7 @@ export default function AboutScreen({ navigation }) {
 
         <Section title="Lịch sử Thành tích">
           <Text style={styles.sectionText}>
-            Thành lập năm 1959, trường cấp III đầu tiên của Hà Nam. Đạt nhiều
+            Thành lập năm 1959, trường cấp III đầu tiên của Hà Nam cũ. Đạt nhiều
             Huân chương Lao động và Độc lập cao quý. Nổi bật với hơn 60 giải HSG
             quốc gia năm 2023-2024.
           </Text>
@@ -124,7 +124,7 @@ export default function AboutScreen({ navigation }) {
         </Section>
 
         <Text style={styles.copyright}>
-          © 2025 Công ty Cổ phần Giải pháp Giáo dục Fatties Software - Được phát
+          © 2025 Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát
           triển bởi học sinh, dành cho học sinh.
         </Text>
       </ScrollView>

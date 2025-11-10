@@ -30,6 +30,8 @@ import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
+import TermsOfServiceScreen from "./app/screens/MainScreens/SettingsScreen/TermsOfServiceScreen";
+import PrivacyPolicyScreen from "./app/screens/MainScreens/SettingsScreen/PrivacyPolicyScreen";
 import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
@@ -37,6 +39,7 @@ import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
 import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen";
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
+import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 
 const Stack = createStackNavigator();
 
@@ -101,10 +104,8 @@ function AppNavigator() {
                 options={{
                   title: "Tìm kiếm",
                   headerShown: false,
-                  presentation:
-                    Platform.OS === "android" ? "transparentModal" : "modal",
-                  gestureEnabled: true,
-                  animation: "slide_from_bottom",
+                  gestureEnabled: false,
+                  animation: "fade",
                 }}
                 name="SearchScreen"
                 component={SearchScreen}
@@ -185,6 +186,20 @@ function AppNavigator() {
                 }}
               />
               <Stack.Screen
+                name="TermsOfServiceScreen"
+                component={TermsOfServiceScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="PrivacyPolicyScreen"
+                component={PrivacyPolicyScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="SavedPostsScreen"
                 component={SavedPostsScreen}
                 options={{
@@ -235,6 +250,15 @@ function AppNavigator() {
                   gestureEnabled: false,
                 }}
               />
+              <Stack.Screen
+                name="ExploreScreen"
+                component={ExploreScreen}
+                options={{
+                  title: "Khám phá",
+                  headerBackButtonDisplayMode: "minimal",
+                  headerTintColor: "#319527",
+                }}
+              />
             </>
           ) : (
             <>
@@ -261,6 +285,20 @@ function AppNavigator() {
                 name="ForgotPassword"
                 options={{ title: "Quên mật khẩu", headerShown: false }}
                 component={ForgotPasswordScreen}
+              />
+              <Stack.Screen
+                name="TermsOfServiceScreen"
+                component={TermsOfServiceScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="PrivacyPolicyScreen"
+                component={PrivacyPolicyScreen}
+                options={{
+                  headerShown: false,
+                }}
               />
             </>
           )}

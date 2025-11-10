@@ -178,7 +178,16 @@ export default function SettingsScreen({ navigation }) {
               });
             }}
           />
-          <SettingItem icon="ban-outline" title="Chặn" onPress={() => {}} />
+          <SettingItem
+            icon="ban-outline"
+            title="Chặn"
+            onPress={() => {
+              Toast.show({
+                type: "info",
+                text1: "Tính năng đang được phát triển",
+              });
+            }}
+          />
           <SettingItem
             icon="information-circle-outline"
             title="Về ứng dụng"

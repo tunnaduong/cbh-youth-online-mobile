@@ -23,6 +23,8 @@ import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
 import FBCollage from "react-native-fb-collage";
+import Toast from "react-native-toast-message";
+import { generatePostSlug } from "../utils/slugify";
 
 const PostItem = ({
   navigation,
@@ -128,7 +130,9 @@ const PostItem = ({
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${item.author.username}/posts/${item.id}?source=share`
+              `https://chuyenbienhoa.com/${
+                item.author.username
+              }/posts/${generatePostSlug(item.id, item.title)}?source=share`
             );
           }}
         >
@@ -157,7 +161,14 @@ const PostItem = ({
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
+        <TouchableOpacity
+          onPress={() =>
+            Toast.show({
+              type: "info",
+              text1: "Tính năng đang được phát triển",
+            })
+          }
+        >
           <View className="flex-row items-center">
             <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
             <Text
@@ -341,6 +352,29 @@ const PostItem = ({
               color: "#000",
             }}
             tagsStyles={{
+              h1: {
+                fontSize: 24,
+                fontWeight: "bold",
+                marginVertical: 12,
+              },
+              h2: {
+                fontSize: 18,
+                fontWeight: "bold",
+                marginTop: 14,
+                marginBottom: 8,
+              },
+              h3: {
+                fontSize: 16,
+                fontWeight: "bold",
+                marginTop: 12,
+                marginBottom: 6,
+              },
+              h4: {
+                fontSize: 14,
+                fontWeight: "600",
+                marginTop: 10,
+                marginBottom: 4,
+              },
               p: { marginBottom: 8, marginTop: 0 },
               strong: { fontWeight: "bold" },
               em: { fontStyle: "italic" },

@@ -209,6 +209,12 @@ const EditProfileScreen = ({ navigation }) => {
 
     if (!result.canceled) {
       setSelectedCoverImage(result.assets[0].uri);
+      setTimeout(() => {
+        Toast.show({
+          type: "info",
+          text1: "Tính năng ảnh bìa đang phát triển",
+        });
+      }, 1000);
     }
   };
 
