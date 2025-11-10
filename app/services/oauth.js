@@ -301,12 +301,56 @@ export const loginWithGoogle = async () => {
       console.log("Google OAuth: Received authorization code");
 
       // Exchange authorization code for tokens
-      const tokenResult = await request.exchangeCodeAsync(
-        {
-          code: result.params.code,
-        },
-        discovery
-      );
+      // Prefer backend exchange to avoid state mismatch and method availability issues
+      let tokenResult;
+      if (codeVerifier) {
+        // Use backend exchange with code_verifier (more reliable)
+        console.log("Google OAuth: Exchanging code via backend API...");
+        const { exchangeOAuthCode } = require("./api/Api");
+
+        try {
+          const exchangeResponse = await exchangeOAuthCode({
+            code: result.params.code,
+            code_verifier: codeVerifier,
+            provider: "google",
+          });
+
+          if (!exchangeResponse?.access_token) {
+            throw new Error("Backend did not return access_token");
+          }
+
+          tokenResult = {
+            accessToken: exchangeResponse.access_token,
+            idToken: exchangeResponse.id_token || null,
+            tokenType: exchangeResponse.token_type || "Bearer",
+            expiresIn: exchangeResponse.expires_in,
+          };
+        } catch (error) {
+          console.log("Google OAuth: Backend token exchange failed:", error);
+          throw new Error(
+            `Token exchange failed: ${error.message || "Unknown error"}`
+          );
+        }
+      } else if (request && typeof request.exchangeCodeAsync === "function") {
+        // Fallback to direct exchange if code_verifier not available
+        try {
+          tokenResult = await request.exchangeCodeAsync(
+            {
+              code: result.params.code,
+            },
+            discovery
+          );
+        } catch (exchangeError) {
+          console.log("Google OAuth: Direct exchange failed:", exchangeError);
+          throw new Error(
+            `Token exchange failed: ${exchangeError.message || "Unknown error"}`
+          );
+        }
+      } else {
+        throw new Error(
+          "Cannot exchange code: code verifier not found and exchangeCodeAsync method not available. Please try again."
+        );
+      }
 
       console.log("Google OAuth: Token exchange result:", {
         hasAccessToken: !!tokenResult.accessToken,
@@ -424,8 +468,9 @@ export const loginWithFacebook = async () => {
       // Code verifier not accessible, will use backend exchange
     }
 
-    // Store code from deep link if received
+    // Store code and state from deep link if received
     let deepLinkCode = null;
+    let deepLinkState = null;
     let deepLinkProvider = null;
 
     // Set up deep link listener BEFORE promptAsync
@@ -441,11 +486,13 @@ export const loginWithFacebook = async () => {
           const queryString = urlStr.split("?")[1] || "";
           const params = new URLSearchParams(queryString);
           const code = params.get("code");
+          const state = params.get("state");
 
           // Accept code regardless of provider in deep link
           // We know this is Facebook OAuth from context (we're in loginWithFacebook function)
           if (code) {
             deepLinkCode = code;
+            deepLinkState = state;
             deepLinkProvider = "facebook"; // Force to facebook since we're in Facebook OAuth flow
             WebBrowser.maybeCompleteAuthSession();
           }
@@ -479,16 +526,12 @@ export const loginWithFacebook = async () => {
       // We're in Facebook OAuth context, so any code received is for Facebook
       if (deepLinkCode) {
         try {
-          // Try to exchange code - request should still be valid
-          // The request object should still have exchangeCodeAsync after promptAsync
+          // Try to exchange code
+          // When using deep link with backend redirect, prefer backend exchange to avoid state mismatch
           let tokenResult;
-          if (request && typeof request.exchangeCodeAsync === "function") {
-            tokenResult = await request.exchangeCodeAsync(
-              { code: deepLinkCode },
-              discovery
-            );
-          } else if (codeVerifier) {
+          if (codeVerifier) {
             // Exchange code via backend API (backend has client_secret)
+            // This avoids state mismatch issues when redirecting through backend
             const { exchangeOAuthCode } = require("./api/Api");
 
             try {
@@ -514,9 +557,35 @@ export const loginWithFacebook = async () => {
                 `Token exchange failed: ${error.message || "Unknown error"}`
               );
             }
+          } else if (
+            request &&
+            typeof request.exchangeCodeAsync === "function"
+          ) {
+            // Fallback: try using exchangeCodeAsync with state if available
+            try {
+              const exchangeParams = { code: deepLinkCode };
+              if (deepLinkState) {
+                exchangeParams.state = deepLinkState;
+              }
+              tokenResult = await request.exchangeCodeAsync(
+                exchangeParams,
+                discovery
+              );
+            } catch (exchangeError) {
+              // If exchange fails due to state mismatch, throw a clearer error
+              if (
+                exchangeError.message?.includes("state") ||
+                exchangeError.code === "state_mismatch"
+              ) {
+                throw new Error(
+                  "Không thể xác thực đăng nhập. Vui lòng thử lại. (State verification failed)"
+                );
+              }
+              throw exchangeError;
+            }
           } else {
             throw new Error(
-              "Cannot exchange code: exchangeCodeAsync method not available and code verifier not found. Please try again."
+              "Cannot exchange code: code verifier not found and exchangeCodeAsync method not available. Please try again."
             );
           }
 
@@ -557,12 +626,53 @@ export const loginWithFacebook = async () => {
 
     if (result.type === "success" && result.params.code) {
       // Exchange authorization code for tokens
-      const tokenResult = await request.exchangeCodeAsync(
-        {
-          code: result.params.code,
-        },
-        discovery
-      );
+      // Prefer backend exchange to avoid state mismatch and method availability issues
+      let tokenResult;
+      if (codeVerifier) {
+        // Use backend exchange with code_verifier (more reliable)
+        const { exchangeOAuthCode } = require("./api/Api");
+
+        try {
+          const exchangeResponse = await exchangeOAuthCode({
+            code: result.params.code,
+            code_verifier: codeVerifier,
+            provider: "facebook",
+          });
+
+          if (!exchangeResponse?.access_token) {
+            throw new Error("Backend did not return access_token");
+          }
+
+          tokenResult = {
+            accessToken: exchangeResponse.access_token,
+            idToken: null,
+            tokenType: exchangeResponse.token_type || "Bearer",
+            expiresIn: exchangeResponse.expires_in,
+          };
+        } catch (error) {
+          throw new Error(
+            `Token exchange failed: ${error.message || "Unknown error"}`
+          );
+        }
+      } else if (request && typeof request.exchangeCodeAsync === "function") {
+        // Fallback to direct exchange if code_verifier not available
+        try {
+          tokenResult = await request.exchangeCodeAsync(
+            {
+              code: result.params.code,
+            },
+            discovery
+          );
+        } catch (exchangeError) {
+          throw new Error(
+            `Token exchange failed: ${exchangeError.message || "Unknown error"}`
+          );
+        }
+      } else {
+        throw new Error(
+          "Cannot exchange code: code verifier not found and exchangeCodeAsync method not available. Please try again."
+        );
+      }
 
       const { accessToken } = tokenResult;
 
