@@ -13,8 +13,6 @@ import {
   StatusBar,
 } from "react-native";
 import { AuthContext } from "../../contexts/AuthContext";
-import saveToken from "../../utils/saveToken";
-import saveUserInfo from "../../utils/saveUserInfo";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
 import CheckBox from "react-native-check-box";
@@ -28,7 +26,7 @@ const SignupScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { setIsLoggedIn } = useContext(AuthContext);
+  const { signIn } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
@@ -69,13 +67,22 @@ const SignupScreen = ({ navigation }) => {
       password,
     })
       .then((response) => {
+        signIn(response.data.token, response.data.user);
         Alert.alert(
           "Đăng ký thành công!",
-          "Chúc mừng bạn đã đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản."
+          "Chúc mừng bạn đã đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: "MainScreens" }],
+                });
+              },
+            },
+          ]
         );
-        saveToken(response.data.token);
-        saveUserInfo(response.data.user);
-        setIsLoggedIn(true);
       })
       .catch((error) => {
         Alert.alert("Đăng ký thất bại", error.response.data.message);
@@ -102,9 +109,7 @@ const SignupScreen = ({ navigation }) => {
       });
 
       if (response.data && response.data.token) {
-        saveToken(response.data.token);
-        saveUserInfo(response.data.user);
-        setIsLoggedIn(true);
+        signIn(response.data.token, response.data.user);
       } else {
         throw new Error("Phản hồi từ server không hợp lệ");
       }
@@ -139,9 +144,7 @@ const SignupScreen = ({ navigation }) => {
       });
 
       if (response.data && response.data.token) {
-        saveToken(response.data.token);
-        saveUserInfo(response.data.user);
-        setIsLoggedIn(true);
+        signIn(response.data.token, response.data.user);
       } else {
         throw new Error("Phản hồi từ server không hợp lệ");
       }

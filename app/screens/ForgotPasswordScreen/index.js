@@ -43,14 +43,14 @@ const ForgotPasswordScreen = ({ navigation }) => {
       if (response.data && response.data.status === "success") {
         Alert.alert(
           "Thành công",
-          response.data.message ||
-            "Email reset mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.",
+
+          "Email reset mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn." ||
+            response.data.message,
           [
             {
               text: "OK",
-              onPress: () => {
-                navigation.navigate("ResetPassword", { email });
-              },
+              onPress: () => {},
+              style: "default",
             },
           ]
         );

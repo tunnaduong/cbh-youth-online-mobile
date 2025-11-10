@@ -72,7 +72,10 @@ export const AuthProvider = ({ children }) => {
   const updateEmailVerificationStatus = (emailVerifiedAt) => {
     setEmailVerifiedAt(emailVerifiedAt);
     if (userInfo) {
-      const updatedUserInfo = { ...userInfo, email_verified_at: emailVerifiedAt };
+      const updatedUserInfo = {
+        ...userInfo,
+        email_verified_at: emailVerifiedAt,
+      };
       setUserInfo(updatedUserInfo);
       AsyncStorage.setItem("user_info", JSON.stringify(updatedUserInfo));
     }
