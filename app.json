@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "0.8.3",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "light",
@@ -15,9 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "icon": {
-        "dark": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
-        "light": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
-        "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
+        "dark": "./app/assets/1.png",
+        "light": "./app/assets/1.png",
+        "tinted": "./app/assets/1.png"
       },
       "bundleIdentifier": "com.fatties.youth",
       "infoPlist": {
@@ -34,14 +34,11 @@
               "host": "oauth"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./app/assets/adaptive-icon.png",
+        "foregroundImage": "./app/assets/2.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.fatties.youth"
@@ -54,7 +51,7 @@
         "projectId": "172eec8c-8c58-453c-a375-258412496e09"
       }
     },
-    "runtimeVersion": "0.7.1",
+    "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/172eec8c-8c58-453c-a375-258412496e09"
     },
