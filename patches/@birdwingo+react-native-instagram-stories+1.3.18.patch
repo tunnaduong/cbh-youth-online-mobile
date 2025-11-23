@@ -1,0 +1,479 @@
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej
+new file mode 100644
+index 0000000..eb9f3e1
+--- /dev/null
++++ b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej
+@@ -0,0 +1,180 @@
++@@ -1,25 +1,33 @@
++-import { SharedValue } from 'react-native-reanimated';
+++import { SharedValue } from "react-native-reanimated";
++ import {
++-  ImageProps, ImageStyle, TextProps, TextStyle, ViewStyle,
++-} from 'react-native';
++-import { ReactNode } from 'react';
++-import { InstagramStoriesProps, InstagramStoryProps, StoryItemProps } from './instagramStoriesDTO';
++-import { ProgressStorageProps } from './helpersDTO';
+++  ImageProps,
+++  ImageStyle,
+++  TextProps,
+++  TextStyle,
+++  ViewStyle,
+++} from "react-native";
+++import { ReactNode } from "react";
+++import {
+++  InstagramStoriesProps,
+++  InstagramStoryProps,
+++  StoryItemProps,
+++} from "./instagramStoriesDTO";
+++import { ProgressStorageProps } from "./helpersDTO";
++ 
++ export interface StoryAvatarListProps {
++   stories: InstagramStoryProps[];
++-  loadingStory: StoryAvatarProps['loadingStory'];
++-  seenStories: StoryAvatarProps['seenStories'];
++-  colors: StoryAvatarProps['colors'];
++-  seenColors: StoryAvatarProps['seenColors'];
++-  size: StoryAvatarProps['size'];
++-  showName: InstagramStoriesProps['showName'];
++-  nameTextStyle: InstagramStoriesProps['nameTextStyle'];
++-  nameTextProps: InstagramStoriesProps['nameTextProps'];
++-  avatarListContainerStyle: InstagramStoriesProps['avatarListContainerStyle'];
++-  avatarListContainerProps: InstagramStoriesProps['avatarListContainerProps'];
+++  loadingStory: StoryAvatarProps["loadingStory"];
+++  seenStories: StoryAvatarProps["seenStories"];
+++  colors: StoryAvatarProps["colors"];
+++  seenColors: StoryAvatarProps["seenColors"];
+++  size: StoryAvatarProps["size"];
+++  showName: InstagramStoriesProps["showName"];
+++  nameTextStyle: InstagramStoriesProps["nameTextStyle"];
+++  nameTextProps: InstagramStoriesProps["nameTextProps"];
+++  avatarListContainerStyle: InstagramStoriesProps["avatarListContainerStyle"];
+++  avatarListContainerProps: InstagramStoriesProps["avatarListContainerProps"];
++   avatarBorderRadius?: number;
++-  onPress: ( id: string ) => void;
+++  onPress: (id: string) => void;
++ }
++ 
++ export interface StoryAvatarProps extends InstagramStoryProps {
++@@ -62,35 +70,36 @@
++   footerComponent?: ReactNode;
++   hideElementsOnLongPress?: boolean;
++   hideOverlayViewOnLongPress?: boolean;
++-  loopingStories?: 'none' | 'all' | 'onlyLast';
+++  loopingStories?: "none" | "all" | "onlyLast";
++   statusBarTranslucent?: boolean;
+++  toast?: ReactNode;
++   onLoad: () => void;
++-  onShow?: ( id: string ) => void;
++-  onHide?: ( id: string ) => void;
++-  onSeenStoriesChange: ( user: string, value: string ) => void;
++-  onSwipeUp?: ( userId?: string, storyId?: string ) => void;
++-  onStoryStart?: ( userId?: string, storyId?: string ) => void;
++-  onStoryEnd?: ( userId?: string, storyId?: string ) => void;
+++  onShow?: (id: string) => void;
+++  onHide?: (id: string) => void;
+++  onSeenStoriesChange: (user: string, value: string) => void;
+++  onSwipeUp?: (userId?: string, storyId?: string) => void;
+++  onStoryStart?: (userId?: string, storyId?: string) => void;
+++  onStoryEnd?: (userId?: string, storyId?: string) => void;
++ }
++ 
++ export type StoryModalPublicMethods = {
++-  show: ( id: string ) => void;
+++  show: (id: string) => void;
++   hide: () => void;
++   pause: () => void;
++   resume: () => void;
++   goToPreviousStory: () => void;
++   goToNextStory: () => void;
++-  getCurrentStory: () => { userId?: string, storyId?: string };
++-  goToSpecificStory: ( userId: string, index?: number ) => void;
+++  getCurrentStory: () => { userId?: string; storyId?: string };
+++  goToSpecificStory: (userId: string, index?: number) => void;
++ };
++ 
++ export type GestureContext = {
++-  x: number,
++-  pressedX: number,
++-  pressedAt: number,
++-  moving: boolean,
++-  vertical: boolean,
++-  userId?: string,
+++  x: number;
+++  pressedX: number;
+++  pressedAt: number;
+++  moving: boolean;
+++  vertical: boolean;
+++  userId?: string;
++ };
++ 
++ export interface AnimationProps {
++@@ -100,7 +109,7 @@
++ }
++ 
++ export interface StoryImageProps {
++-  stories: InstagramStoryProps['stories'];
+++  stories: InstagramStoryProps["stories"];
++   activeStory: SharedValue<string | undefined>;
++   defaultStory?: StoryItemProps;
++   isDefaultVideo: boolean;
++@@ -111,8 +120,8 @@
++   imageStyles?: ImageStyle;
++   imageProps?: ImageProps;
++   videoDuration?: number;
++-  onImageLayout: ( height: number ) => void;
++-  onLoad: ( duration?: number ) => void;
+++  onImageLayout: (height: number) => void;
+++  onLoad: (duration?: number) => void;
++ }
++ 
++ export interface StoryProgressProps {
++@@ -125,22 +134,26 @@
++   progressContainerStyle?: ViewStyle;
++ }
++ 
++-export interface StoryProgressItemProps extends Omit<StoryProgressProps, 'length'> {
+++export interface StoryProgressItemProps
+++  extends Omit<StoryProgressProps, "length"> {
++   index: number;
++   width: number;
++ }
++ 
++ export interface StoryHeaderProps {
++-  avatarSource: ImageProps['source'];
+++  avatarSource: ImageProps["source"];
++   name?: string;
+++  date?: string;
++   avatarSize: number;
++   textStyle?: TextStyle;
++   closeColor: string;
++   headerStyle?: ViewStyle;
++   headerContainerStyle?: ViewStyle;
+++  onMore: () => void;
++   onClose: () => void;
++   renderStoryHeader?: () => ReactNode;
++   onStoryHeaderPress?: () => void;
+++  toast?: ReactNode;
++ }
++ 
++ export interface IconProps {
++@@ -148,7 +161,7 @@
++ }
++ 
++ export interface StoryContentProps {
++-  stories: InstagramStoryProps['stories'];
+++  stories: InstagramStoryProps["stories"];
++   active: SharedValue<boolean>;
++   activeStory: SharedValue<string | undefined>;
++ }
++@@ -172,13 +185,13 @@
++   hideElements: SharedValue<boolean>;
++   hideOverlayViewOnLongPress?: boolean;
++   videoDuration?: number;
++-  onLoad: ( duration?: number ) => void;
+++  onLoad: (duration?: number) => void;
++ }
++ 
++ export interface StoryVideoProps {
++-  source: ImageProps['source'];
+++  source: ImageProps["source"];
++   paused: SharedValue<boolean>;
++   isActive: SharedValue<boolean>;
++-  onLoad: ( duration: number ) => void;
++-  onLayout: ( height: number ) => void;
+++  onLoad: (duration: number) => void;
+++  onLayout: (height: number) => void;
++ }
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej.orig b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej.orig
+new file mode 100644
+index 0000000..bdfecc6
+--- /dev/null
++++ b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej.orig
+@@ -0,0 +1,87 @@
++@@ -1,43 +1,58 @@
++-import React, { FC, memo } from 'react';
++-import { View } from 'react-native';
++-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
++-import { StoryProgressItemProps } from '../../core/dto/componentsDTO';
++-import ProgressStyles from './Progress.styles';
++-import { PROGRESS_ACTIVE_COLOR, PROGRESS_COLOR } from '../../core/constants';
++-
++-const AnimatedView = Animated.createAnimatedComponent( View );
++-
++-const ProgressItem: FC<StoryProgressItemProps> = ( {
++-  progress, active, activeStory, index, width,
++-  progressActiveColor = PROGRESS_ACTIVE_COLOR, progressColor = PROGRESS_COLOR,
++-} ) => {
++-
++-  const animatedStyle = useAnimatedStyle( () => {
++-
++-    if ( !active.value || activeStory.value < index ) {
++-
+++import React, { FC, memo } from "react";
+++import { View } from "react-native";
+++import Animated, { useAnimatedStyle } from "react-native-reanimated";
+++import { StoryProgressItemProps } from "../../core/dto/componentsDTO";
+++import ProgressStyles from "./Progress.styles";
+++import { PROGRESS_ACTIVE_COLOR, PROGRESS_COLOR } from "../../core/constants";
+++
+++const AnimatedView = Animated.createAnimatedComponent(View);
+++
+++const ProgressItem: FC<StoryProgressItemProps> = ({
+++  progress,
+++  active,
+++  activeStory,
+++  index,
+++  width,
+++  progressActiveColor = PROGRESS_ACTIVE_COLOR,
+++  progressColor = PROGRESS_COLOR,
+++}) => {
+++  const animatedStyle = useAnimatedStyle(() => {
+++    if (!active.value || activeStory.value < index) {
++       return { width: 0 };
++-
++     }
++ 
++-    if ( activeStory.value > index ) {
++-
+++    if (activeStory.value > index) {
++       return { width };
++-
++     }
++ 
++     return { width: width * progress.value };
++-
++-  } );
+++  });
++ 
++   return (
++-    <View style={[ ProgressStyles.item, { backgroundColor: progressColor }, { width } ]}>
+++    <View
+++      style={[
+++        {
+++          height: 3,
+++          borderRadius: 8,
+++          overflow: "hidden",
+++        },
+++        { backgroundColor: progressColor },
+++        { width },
+++      ]}
+++    >
++       <AnimatedView
++-        style={[ ProgressStyles.item, { backgroundColor: progressActiveColor }, animatedStyle ]}
+++        style={[
+++          {
+++            height: 3,
+++            borderRadius: 8,
+++            overflow: "hidden",
+++          },
+++          { backgroundColor: progressActiveColor },
+++          animatedStyle,
+++        ]}
++       />
++     </View>
++   );
++-
++ };
++ 
++-export default memo( ProgressItem );
+++export default memo(ProgressItem);
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
+index 32010ab..be563ad 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
+@@ -1,57 +1,85 @@
+-import React, { FC, memo } from 'react';
+-import {
+-  View, Text, Image, TouchableOpacity,
+-  Pressable,
+-} from 'react-native';
+-import { WIDTH } from '../../core/constants';
+-import HeaderStyles from './Header.styles';
+-import { StoryHeaderProps } from '../../core/dto/componentsDTO';
+-import Close from '../Icon/close';
++import React, { FC, memo } from "react";
++import { View, Text, Image, TouchableOpacity, Pressable } from "react-native";
++import { WIDTH } from "../../core/constants";
++import HeaderStyles from "./Header.styles";
++import { StoryHeaderProps } from "../../core/dto/componentsDTO";
++import Close from "../Icon/close";
++import { Ionicons } from "@expo/vector-icons";
+ 
+-const StoryHeader: FC<StoryHeaderProps> = ( {
+-  avatarSource, name, onClose, avatarSize, textStyle, closeColor, headerStyle,
+-  headerContainerStyle, renderStoryHeader, onStoryHeaderPress,
+-} ) => {
+-
+-  const styles = { width: avatarSize, height: avatarSize, borderRadius: avatarSize };
++const StoryHeader: FC<StoryHeaderProps> = ({
++  avatarSource,
++  name,
++  date,
++  onClose,
++  avatarSize,
++  textStyle,
++  closeColor,
++  headerStyle,
++  headerContainerStyle,
++  renderStoryHeader,
++  onStoryHeaderPress,
++  onMore,
++}) => {
++  const styles = {
++    width: avatarSize,
++    height: avatarSize,
++    borderRadius: avatarSize,
++  };
+   const width = WIDTH - HeaderStyles.container.left * 2;
+ 
+-  if ( renderStoryHeader ) {
+-
++  if (renderStoryHeader) {
+     return (
+-      <View
+-        style={[ HeaderStyles.container, { width }, headerContainerStyle ]}
+-      >
++      <View style={[HeaderStyles.container, { width }, headerContainerStyle]}>
+         {renderStoryHeader()}
+       </View>
+     );
+-
+   }
+ 
+   return (
+-    <View style={[
+-      HeaderStyles.container, HeaderStyles.containerFlex,
+-      { width }, headerContainerStyle,
+-    ]}
++    <View
++      style={[
++        HeaderStyles.container,
++        HeaderStyles.containerFlex,
++        { width },
++        headerContainerStyle,
++      ]}
+     >
+-      <Pressable style={[ HeaderStyles.left, headerStyle ]} onPress={() => onStoryHeaderPress?.()}>
+-        {( Boolean( avatarSource ) ) && (
+-          <View style={[ HeaderStyles.avatar, { borderRadius: styles.borderRadius } ]}>
++      <Pressable
++        style={[HeaderStyles.left, headerStyle]}
++        onPress={() => onStoryHeaderPress?.()}
++      >
++        {Boolean(avatarSource) && (
++          <View
++            style={[HeaderStyles.avatar, { borderRadius: styles.borderRadius }]}
++          >
+             <Image source={avatarSource!} style={styles} />
+           </View>
+         )}
+-        {Boolean( name ) && <Text style={textStyle}>{name}</Text>}
++        <View style={{ flexDirection: "column", gap: 2 }}>
++          {Boolean(name) && <Text style={textStyle}>{name}</Text>}
++          {Boolean(date) && (
++            <Text style={[textStyle, { fontSize: 12, opacity: 0.8 }]}>
++              {date}
++            </Text>
++          )}
++        </View>
+       </Pressable>
+-      <TouchableOpacity
+-        onPress={onClose}
+-        hitSlop={16}
+-        testID="storyCloseButton"
+-      >
+-        <Close color={closeColor} />
+-      </TouchableOpacity>
++      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
++        {onMore && (
++          <TouchableOpacity onPress={onMore}>
++            <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
++          </TouchableOpacity>
++        )}
++        <TouchableOpacity
++          onPress={onClose}
++          hitSlop={16}
++          testID="storyCloseButton"
++        >
++          <Close color={closeColor} />
++        </TouchableOpacity>
++      </View>
+     </View>
+   );
+-
+ };
+ 
+-export default memo( StoryHeader );
++export default memo(StoryHeader);
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
+index dd93855..bede20e 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
+@@ -1,7 +1,7 @@
+ import React, {
+   forwardRef, memo, useEffect, useImperativeHandle, useState,
+ } from 'react';
+-import { GestureResponderEvent, Modal, Pressable } from 'react-native';
++import { GestureResponderEvent, Modal, Pressable, View } from 'react-native';
+ import Animated, {
+   cancelAnimation, interpolate, runOnJS, useAnimatedGestureHandler, useAnimatedReaction,
+   useAnimatedStyle,
+@@ -20,7 +20,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+   backgroundColor, videoProps, closeIconColor, modalAnimationDuration = STORY_ANIMATION_DURATION,
+   storyAnimationDuration = STORY_ANIMATION_DURATION, hideElementsOnLongPress, loopingStories = 'none',
+   statusBarTranslucent, loaderColor, loaderBackgroundColor, onLoad, onShow, onHide,
+-  onSeenStoriesChange, onSwipeUp, onStoryStart, onStoryEnd, footerComponent, ...props
++  onSeenStoriesChange, onSwipeUp, onStoryStart, onStoryEnd, footerComponent, toast, ...props
+ }, ref ) => {
+ 
+   const [ visible, setVisible ] = useState( false );
+@@ -510,6 +510,11 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+           {footerComponent && footerComponent}
+         </Animated.View>
+       </GestureHandler>
++      {toast && (
++        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, pointerEvents: 'box-none' }}>
++          {toast}
++        </View>
++      )}
+     </Modal>
+   );
+ 
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/componentsDTO.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/componentsDTO.ts
+index c1a2ad0..491afd7 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/componentsDTO.ts
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/componentsDTO.ts
+@@ -64,6 +64,7 @@ export interface StoryModalProps {
+   hideOverlayViewOnLongPress?: boolean;
+   loopingStories?: 'none' | 'all' | 'onlyLast';
+   statusBarTranslucent?: boolean;
++  toast?: ReactNode;
+   loaderColor?: string;
+   loaderBackgroundColor?: string;
+   onLoad: () => void;
+@@ -138,11 +139,13 @@ export interface StoryProgressItemProps extends Omit<StoryProgressProps, 'length
+ export interface StoryHeaderProps {
+   avatarSource: ImageProps['source'];
+   name?: string;
++  date?: string;
+   avatarSize: number;
+   textStyle?: TextStyle;
+   closeColor: string;
+   headerStyle?: ViewStyle;
+   headerContainerStyle?: ViewStyle;
++  onMore?: () => void;
+   onClose: () => void;
+   renderStoryHeader?: () => ReactNode;
+   onStoryHeaderPress?: () => void;
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/instagramStoriesDTO.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/instagramStoriesDTO.ts
+index 263c8ea..966adef 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/instagramStoriesDTO.ts
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/instagramStoriesDTO.ts
+@@ -70,6 +70,7 @@ export interface InstagramStoriesProps {
+   onSwipeUp?: ( userId?: string, storyId?: string ) => void;
+   onStoryStart?: ( userId?: string, storyId?: string ) => void;
+   onStoryEnd?: ( userId?: string, storyId?: string ) => void;
++  onMore?: () => void;
+ }
+ 
+ export type InstagramStoriesPublicMethods = {
