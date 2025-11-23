@@ -64,7 +64,19 @@
           "recordAudioAndroid": true
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./app/assets/notification.png",
+          "color": "#ffffff",
+          "sounds": []
+        }
+      ],
       "expo-web-browser"
-    ]
+    ],
+    "notification": {
+      "icon": "./app/assets/notification.png",
+      "color": "#ffffff"
+    }
   }
 }

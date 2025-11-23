@@ -340,3 +340,16 @@ export const markAllNotificationsAsRead = () => {
 export const deleteNotification = (id) => {
   return Api.deleteRequest(`/v1.0/notifications/${id}`);
 };
+
+// Expo Push Notifications
+export const registerExpoPushToken = (params) => {
+  return Api.postRequest("/v1.0/notifications/expo/register", params);
+};
+
+export const unregisterExpoPushToken = (params) => {
+  return Api.deleteRequest("/v1.0/notifications/expo/unregister", params);
+};
+
+export const getExpoPushTokens = () => {
+  return Api.getRequest("/v1.0/notifications/expo/tokens");
+};
