@@ -40,6 +40,8 @@ import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
+import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
+import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 
 const Stack = createStackNavigator();
 
@@ -257,6 +259,20 @@ function AppNavigator() {
                   title: "Khám phá",
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: "#319527",
+                }}
+              />
+              <Stack.Screen
+                name="StoryViewersScreen"
+                component={StoryViewersScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="ArchiveScreen"
+                component={ArchiveScreen}
+                options={{
+                  headerShown: false,
                 }}
               />
             </>

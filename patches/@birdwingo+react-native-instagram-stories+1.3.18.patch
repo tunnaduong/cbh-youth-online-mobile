@@ -405,6 +405,53 @@ index 32010ab..be563ad 100644
  
 -export default memo( StoryHeader );
 +export default memo(StoryHeader);
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
+index 9fa47d8..607d96f 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
+@@ -1,6 +1,6 @@
+-import React, { FC, memo } from 'react';
++import React, { FC, memo, useState, useEffect } from 'react';
+ import Animated, {
+-  useAnimatedStyle, useDerivedValue, useSharedValue, withTiming,
++  useAnimatedStyle, useDerivedValue, useSharedValue, withTiming, useAnimatedReaction, runOnJS,
+ } from 'react-native-reanimated';
+ import StoryAnimation from '../Animation';
+ import ListStyles from './List.styles';
+@@ -26,6 +26,24 @@ const StoryList: FC<StoryListProps> = ( {
+     () => stories.findIndex( ( item ) => item.id === activeStory.value ),
+   );
+ 
++  // Get current story date
++  const [currentStoryDate, setCurrentStoryDate] = useState<string | undefined>(undefined);
++
++  useAnimatedReaction(
++    () => activeStory.value,
++    (storyId) => {
++      if (storyId) {
++        const story = stories.find((item) => item.id === storyId);
++        if (story?.date) {
++          runOnJS(setCurrentStoryDate)(story.date);
++        } else {
++          runOnJS(setCurrentStoryDate)(undefined);
++        }
++      }
++    },
++    [stories]
++  );
++
+   const animatedStyles = useAnimatedStyle( () => ( { height: imageHeight.value } ) );
+   const contentStyles = useAnimatedStyle( () => ( {
+     opacity: withTiming( hideElements.value ? 0 : 1 ),
+@@ -79,7 +97,7 @@ const StoryList: FC<StoryListProps> = ( {
+               progressActiveColor={progressActiveColor}
+               progressContainerStyle={progressContainerStyle}
+             />
+-            <StoryHeader {...props} />
++            <StoryHeader {...props} date={currentStoryDate} />
+             <StoryContent stories={stories} active={isActive} activeStory={activeStory} />
+           </Animated.View>
+         </Animated.View>
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
 index dd93855..bede20e 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx

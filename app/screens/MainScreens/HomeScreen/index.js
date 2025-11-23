@@ -36,7 +36,10 @@ import {
   reactToStory,
   removeStoryReaction,
   replyToStory,
+  getStoryViewers,
+  markStoryAsViewed,
 } from "../../../services/api/Api";
+import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -228,11 +231,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     actionSheetRef.current?.show();
   };
 
-  const handleStoryShow = () => {
+  const handleStoryShow = (userId) => {
     // Save current status bar style
     previousStatusBarStyle.current = { barStyle, backgroundColor };
     // Change to light content (white text) for dark background
     updateStatusBar("light-content", "#000000");
+  };
+
+  const handleStoryStart = async (userId, storyId) => {
+    // Mark story as viewed when story starts
+    if (storyId) {
+      try {
+        await markStoryAsViewed(storyId);
+      } catch (error) {
+        // Silently fail - don't show error to user
+        console.error("Failed to mark story as viewed:", error);
+      }
+    }
   };
 
   const handleStoryHide = () => {
@@ -241,6 +256,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       previousStatusBarStyle.current.barStyle,
       previousStatusBarStyle.current.backgroundColor
     );
+  };
+
+  const dismissStoryModal = () => {
+    // Method to dismiss story modal
+    if (storyRef.current && typeof storyRef.current.hide === "function") {
+      storyRef.current.hide();
+    }
   };
 
   const StoryOptionsModal = () => (
@@ -402,15 +424,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           uri: `https://api.chuyenbienhoa.com${story.media_url}`,
         },
         duration: story.duration,
+        viewers_count: story.viewers?.length || 0,
         renderFooter: () => (
           <ReplyBar
             storyId={story.id}
             userId={user.id}
             username={user.username}
             navigation={navigation}
+            viewersCount={story.viewers?.length || 0}
+            onDismissStory={dismissStoryModal}
           />
         ),
-        date: story.created_at_human,
+        date: story.created_at
+          ? formatTime(story.created_at)
+          : story.created_at_human,
         onStoryItemPress: () => {
           setCurrentStory(story.id);
           setCurrentStoryUser({ id: user.id, username: user.username });
@@ -902,10 +929,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
   };
 
-  const ReplyBar = ({ storyId, userId, username, navigation }) => {
+  const ReplyBar = ({
+    storyId,
+    userId,
+    username,
+    navigation,
+    viewersCount = 0,
+    onDismissStory,
+  }) => {
     const [floatingEmojis, setFloatingEmojis] = useState([]);
     const [replyText, setReplyText] = useState("");
     const [isSending, setIsSending] = useState(false);
+    const isOwnStory = String(userId) === String(userInfo?.id);
 
     const handleEmojiPress = async (emoji) => {
       if (emoji === "add" || !storyId) return;
@@ -958,21 +993,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         }
       } catch (error) {
         console.error("Error replying to story:", error);
-        
+
         // Extract error message from API response
         let errorMessage = "Không thể gửi tin nhắn. Vui lòng thử lại.";
-        
+
         if (error.response?.data) {
           // Handle different error response formats
           if (error.response.data.message) {
             // Single message string
-            if (typeof error.response.data.message === 'string') {
+            if (typeof error.response.data.message === "string") {
               errorMessage = error.response.data.message;
-            } 
+            }
             // Message object (validation errors)
-            else if (typeof error.response.data.message === 'object') {
+            else if (typeof error.response.data.message === "object") {
               const firstError = Object.values(error.response.data.message)[0];
-              errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+              errorMessage = Array.isArray(firstError)
+                ? firstError[0]
+                : firstError;
             }
           } else if (error.response.data.error) {
             errorMessage = error.response.data.error;
@@ -980,7 +1017,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         } else if (error.message) {
           errorMessage = error.message;
         }
-        
+
         Toast.show({
           type: "error",
           text1: "Lỗi",
@@ -991,6 +1028,40 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         setIsSending(false);
       }
     };
+
+    const handleViewCountPress = () => {
+      if (navigation && storyId) {
+        // Dismiss story modal first
+        if (onDismissStory) {
+          onDismissStory();
+        }
+        // Small delay to ensure modal is dismissed before navigation
+        setTimeout(() => {
+          navigation.navigate("StoryViewersScreen", {
+            storyId: storyId,
+          });
+        }, 100);
+      }
+    };
+
+    // If it's the user's own story, show view count instead of reply/reaction
+    if (isOwnStory) {
+      return (
+        <SafeAreaView>
+          <View style={styles.viewCountBar}>
+            <TouchableOpacity
+              onPress={handleViewCountPress}
+              style={styles.viewCountButton}
+            >
+              <Ionicons name="eye-outline" size={20} color="#fff" />
+              <Text style={styles.viewCountText}>
+                {viewersCount === 0 ? 0 : viewersCount - 1} {"lượt xem"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      );
+    }
 
     return (
       <View style={{ flex: 1 }}>
@@ -1135,7 +1206,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           ref={storyRef}
           stories={userStories}
           hideAvatarList={true}
-          showName={false}
+          showName={true}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -1151,6 +1222,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           onMore={handleStoryOptions}
           onShow={handleStoryShow}
           onHide={handleStoryHide}
+          onStoryStart={handleStoryStart}
           onStoryItemPress={(item, index) => {
             // item is the story object, find the actual story ID
             const user = userStories.find((u) =>
@@ -1189,6 +1261,21 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: 15,
     color: "#A7A7A7",
+  },
+  viewCountBar: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  viewCountButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  viewCountText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
   },
   modalOverlay: {
     flex: 1,

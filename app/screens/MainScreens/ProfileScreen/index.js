@@ -680,6 +680,21 @@ const ProfileScreen = ({ route, navigation }) => {
                   style={styles.optionArrow}
                 />
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("ArchiveScreen", { username: username })
+                }
+                style={styles.option}
+              >
+                <Ionicons name="archive-outline" size={22} color="#333" />
+                <Text style={styles.optionText}>Kho lưu trữ</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={22}
+                  color="#999"
+                  style={styles.optionArrow}
+                />
+              </TouchableOpacity>
             </View>
           )}
         </ScrollView>

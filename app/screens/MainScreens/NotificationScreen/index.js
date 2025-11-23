@@ -22,14 +22,9 @@ import {
   markAllNotificationsAsRead,
   deleteNotification,
 } from "../../../services/api/Api";
-import dayjs from "dayjs";
-import "dayjs/locale/vi";
-import relativeTime from "dayjs/plugin/relativeTime";
 import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { useFocusEffect } from "@react-navigation/native";
-
-dayjs.extend(relativeTime);
-dayjs.locale("vi");
+import formatTime from "../../../utils/formatTime";
 
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification) => {
@@ -89,47 +84,6 @@ const formatNotificationMessage = (notification) => {
     default:
       return "đã tương tác với bạn";
   }
-};
-
-// Helper function to format time
-const formatTime = (dateString) => {
-  if (!dateString) return "Vừa xong";
-
-  const date = dayjs(dateString);
-  const now = dayjs();
-  const diffInSeconds = now.diff(date, "second");
-
-  if (diffInSeconds < 60) {
-    return "Vừa xong";
-  }
-
-  const diffInMinutes = now.diff(date, "minute");
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} phút trước`;
-  }
-
-  const diffInHours = now.diff(date, "hour");
-  if (diffInHours < 24) {
-    return `${diffInHours} giờ trước`;
-  }
-
-  const diffInDays = now.diff(date, "day");
-  if (diffInDays < 7) {
-    return `${diffInDays} ngày trước`;
-  }
-
-  const diffInWeeks = now.diff(date, "week");
-  if (diffInWeeks < 4) {
-    return `${diffInWeeks} tuần trước`;
-  }
-
-  const diffInMonths = now.diff(date, "month");
-  if (diffInMonths < 12) {
-    return `${diffInMonths} tháng trước`;
-  }
-
-  const diffInYears = now.diff(date, "year");
-  return `${diffInYears} năm trước`;
 };
 
 export default function NotificationScreen({ navigation }) {
@@ -343,8 +297,8 @@ export default function NotificationScreen({ navigation }) {
             navigation.navigate("PostScreen", { postId: 173336279 });
           } else if (item.type === "story_reacted") {
             // Navigate to home screen to show stories (story will be highlighted)
-            navigation.navigate("HomeScreen", { 
-              highlightStoryId: item.data?.story_id 
+            navigation.navigate("HomeScreen", {
+              highlightStoryId: item.data?.story_id,
             });
           } else if (item.type === "story_replied") {
             // Navigate to conversation screen

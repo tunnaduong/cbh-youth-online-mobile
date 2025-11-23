@@ -273,6 +273,18 @@ export const replyToStory = (storyId, content) => {
   });
 };
 
+export const getStoryViewers = (storyId) => {
+  return Api.getRequest("/v1.0/stories/" + storyId + "/viewers");
+};
+
+export const getStoryArchive = () => {
+  return Api.getRequest("/v1.0/stories/archive");
+};
+
+export const markStoryAsViewed = (storyId) => {
+  return Api.postRequest("/v1.0/stories/" + storyId + "/view", {});
+};
+
 export const searchQuery = (query, type = "") => {
   return Api.getRequest("/v1.0/search?query=" + query + "&type=" + type);
 };
