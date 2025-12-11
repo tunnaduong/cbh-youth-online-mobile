@@ -36,8 +36,9 @@ const CreatePostScreen = ({ navigation }) => {
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const view = [
-    { label: "Công khai", value: 0 },
-    { label: "Riêng tư", value: 1 },
+    { label: "Công khai", value: "public", icon: "earth" },
+    { label: "Chỉ người theo dõi", value: "followers", icon: "people" },
+    { label: "Riêng tư", value: "private", icon: "lock-closed" },
   ];
   const [viewSelected, setViewSelected] = useState(view[0]);
   const [loading, setLoading] = useState(false);
@@ -155,10 +156,11 @@ const CreatePostScreen = ({ navigation }) => {
         description: postContent,
         cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
         subforum_id: selected?.value ?? null,
-        visibility: viewSelected.value,
+        visibility: 0,
+        privacy: viewSelected.value,
       });
 
-      if (viewSelected.value === 0) {
+      if (viewSelected.value === "public") {
         setFeed((prevPosts) => [response.data, ...prevPosts]);
       }
 
@@ -313,11 +315,11 @@ const CreatePostScreen = ({ navigation }) => {
                 alignSelf: "flex-start",
               }}
               leftIcon={
-                viewSelected.value === 0 ? (
-                  <Ionicons name="earth" size={15} color={"#777"} />
-                ) : (
-                  <Ionicons name="lock-closed" size={15} color={"#777"} />
-                )
+                <Ionicons
+                  name={viewSelected.icon}
+                  size={15}
+                  color={"#777"}
+                />
               }
               textStyle={{
                 fontSize: 12,

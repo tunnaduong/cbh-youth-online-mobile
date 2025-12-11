@@ -18,6 +18,7 @@ import { getForumCategories } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import LottieView from "lottie-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const { width } = Dimensions.get("window");
 
@@ -184,6 +185,12 @@ export default function ForumScreen({ navigation }) {
     >
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Diễn đàn</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("MemberRankingScreen")}
+          style={{ marginRight: 15 }}
+        >
+          <Ionicons name="trophy-outline" size={26} color="#319527" />
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={() => navigation.navigate("ProfileScreen", { username })}
         >

@@ -205,6 +205,34 @@ export const getForumCategories = () => {
   return Api.getRequest("/v1.0/forum/categories");
 };
 
+export const getCurrentUser = () => {
+  return Api.getRequest("/v1.0/user");
+};
+
+export const deleteAccount = async (password) => {
+  try {
+    const response = await Api.postRequest("/v1.0/user/delete-account", {
+      password,
+      confirm_text: "XÓA TÀI KHOẢN",
+    });
+    return response;
+  } catch (error) {
+    if (error.response && error.response.data && error.response.data.error) {
+      throw new Error(error.response.data.error);
+    } else if (
+      error.response &&
+      error.response.data &&
+      error.response.data.message
+    ) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error(
+        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+      );
+    }
+  }
+};
+
 export const getProfile = (username) => {
   return Api.getRequest("/v1.0/users/" + username + "/profile");
 };
@@ -233,12 +261,21 @@ export const updateProfile = (username, params) => {
   return Api.putRequest("/v1.0/users/" + username + "/profile", params);
 };
 
+export const changePassword = (params) => {
+  return Api.postRequest("/v1.0/password/change", params);
+};
+
+
 export const getSavedPosts = () => {
   return Api.getRequest("/v1.0/user/saved-topics");
 };
 
 export const getActivities = () => {
   return Api.getRequest("/v1.0/activities");
+};
+
+export const getMemberRanking = (limit = 8) => {
+  return Api.getRequest("/v1.0/users/ranking?limit=" + limit);
 };
 
 export const getLikedPosts = () => {
@@ -339,6 +376,15 @@ export const markAllNotificationsAsRead = () => {
 
 export const deleteNotification = (id) => {
   return Api.deleteRequest(`/v1.0/notifications/${id}`);
+};
+
+// Notification Settings
+export const getNotificationSettings = () => {
+  return Api.getRequest("/v1.0/notification-settings");
+};
+
+export const updateNotificationSettings = (params) => {
+  return Api.putRequest("/v1.0/notification-settings", params);
 };
 
 // Expo Push Notifications

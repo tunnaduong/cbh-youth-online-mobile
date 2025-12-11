@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { logoutRequest } from "../services/api/Api";
+import { logoutRequest, getCurrentUser } from "../services/api/Api";
 import { storage } from "../global/storage";
 
 export const AuthContext = createContext();
@@ -81,6 +81,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshUserInfo = async () => {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    try {
+      const response = await getCurrentUser();
+      if (response?.data) {
+        const user = response.data;
+        setUsername(user.username || null);
+        setProfileName(user.profile_name || null);
+        setUserInfo(user);
+        setEmailVerifiedAt(user.email_verified_at || null);
+        await AsyncStorage.setItem("user_info", JSON.stringify(user));
+      }
+    } catch (error) {
+      console.error("Failed to refresh user info:", error);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -92,6 +112,7 @@ export const AuthProvider = ({ children }) => {
         userInfo,
         emailVerifiedAt,
         updateEmailVerificationStatus,
+        refreshUserInfo,
         signIn,
         signOut,
       }}

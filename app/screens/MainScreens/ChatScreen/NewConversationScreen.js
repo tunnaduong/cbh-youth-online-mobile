@@ -181,7 +181,7 @@ const NewConversationScreen = ({ navigation }) => {
               style={{ width: 180, height: 160, marginBottom: 20 }}
             />
             <Text style={styles.searchPrompt}>
-              Nhập tên người dùng để bắt đầu tìm kiếm
+              Nhập username để bắt đầu tìm kiếm
             </Text>
           </View>
         )}

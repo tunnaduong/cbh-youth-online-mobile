@@ -26,6 +26,7 @@ import {
   Switch,
   TouchableHighlight,
   Platform,
+  AppState,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -72,6 +73,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     emailVerifiedAt,
     userInfo,
     updateEmailVerificationStatus,
+    refreshUserInfo,
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
   const previousStatusBarStyle = useRef({
@@ -611,6 +613,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     fetchStories();
 
+    // Refresh user info to update email verification status
+    if (isLoggedIn && refreshUserInfo) {
+      refreshUserInfo();
+    }
+
     handleFetchFeed().finally(() => {
       setTimeout(() => {
         setRefreshing(false);
@@ -619,7 +626,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         scrollPositionRef.current = 0;
       }, 1000);
     });
-  }, []);
+  }, [isLoggedIn, refreshUserInfo]);
 
   // Function to scroll to top or reload
   const scrollToTopOrReload = React.useCallback(() => {
@@ -670,6 +677,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       scrollTriggerRef(scrollToTopOrReload);
     }
   }, [scrollTriggerRef, scrollToTopOrReload]);
+
+  // Refresh user info when app comes to foreground
+  React.useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active" && isLoggedIn && refreshUserInfo) {
+        // App has come to the foreground, refresh user info to update email verification status
+        refreshUserInfo();
+      }
+    });
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [isLoggedIn, refreshUserInfo]);
 
   const handleResendVerification = async () => {
     setResendingVerification(true);

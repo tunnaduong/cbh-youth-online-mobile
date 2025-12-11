@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import CheckBox from "react-native-check-box";
 import { signupRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 const SignupScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -29,7 +30,16 @@ const SignupScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
+
+  useEffect(() => {
+    AppleAuthentication.isAvailableAsync().then((available) => {
+      console.log("Apple Auth Available:", available);
+      setIsAppleAuthAvailable(available);
+    }).catch((e) => console.log("Apple Auth Check Error:", e));
+  }, []);
 
   const handleSignup = async () => {
     if (!agreeToTerms) {
@@ -159,6 +169,48 @@ const SignupScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+
+  };
+
+  const handleAppleSignup = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const response = await loginWithOAuth({
+        provider: "apple",
+        idToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        email: credential.email,
+        fullName: credential.fullName,
+        user: credential.user,
+      });
+
+      if (response.data && response.data.token) {
+        signIn(response.data.token, response.data.user);
+      } else {
+        throw new Error("Phản hồi từ server không hợp lệ");
+      }
+    } catch (error) {
+      if (error.code === "ERR_REQUEST_CANCELED") {
+        // User canceled, do nothing
+      } else {
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message ||
+          "Đã xảy ra lỗi khi đăng ký với Apple. Vui lòng thử lại.";
+        Alert.alert("Đăng ký thất bại", errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -185,6 +237,44 @@ const SignupScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.form}>
+
+              {isAppleAuthAvailable && (
+                <TouchableOpacity
+                  style={styles.appleButton}
+                  onPress={handleAppleSignup}
+                >
+                  <Icon name="logo-apple" size={24} color="#000" />
+                  <Text style={styles.appleButtonText}>Tiếp tục với Apple</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={handleGoogleSignup}
+              >
+                <Image
+                  source={require("../../assets/google.png")}
+                  style={{ width: 24, height: 24 }}
+                />
+                <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.facebookButton}
+                onPress={handleFacebookSignup}
+              >
+                <Icon name="logo-facebook" size={24} color="#1877F2" />
+                <Text style={styles.facebookButtonText}>
+                  Tiếp tục với Facebook
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.orContainer}>
+                <View style={styles.orLine} />
+                <Text style={styles.orText}>hoặc đăng ký bằng</Text>
+                <View style={styles.orLine} />
+              </View>
+
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Tên đăng nhập</Text>
                 <TextInput
@@ -307,32 +397,7 @@ const SignupScreen = ({ navigation }) => {
                 <Text style={styles.signUpButtonText}>Tạo tài khoản</Text>
               </TouchableOpacity>
 
-              <View style={styles.orContainer}>
-                <View style={styles.orLine} />
-                <Text style={styles.orText}>hoặc đăng ký bằng</Text>
-                <View style={styles.orLine} />
-              </View>
 
-              <TouchableOpacity
-                style={styles.googleButton}
-                onPress={handleGoogleSignup}
-              >
-                <Image
-                  source={require("../../assets/google.png")}
-                  style={{ width: 24, height: 24 }}
-                />
-                <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.facebookButton}
-                onPress={handleFacebookSignup}
-              >
-                <Icon name="logo-facebook" size={24} color="#1877F2" />
-                <Text style={styles.facebookButtonText}>
-                  Tiếp tục với Facebook
-                </Text>
-              </TouchableOpacity>
 
               <View style={styles.loginPrompt}>
                 <Text style={styles.loginPromptText}>Đã có tài khoản?</Text>
@@ -444,6 +509,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   googleButton: {
+    marginTop: -5,
     height: 48,
     borderRadius: 38,
     backgroundColor: "#f5f5f5",
@@ -488,6 +554,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#319527",
     fontWeight: "600",
+  },
+  appleButton: {
+    height: 48,
+    borderRadius: 38,
+    backgroundColor: "#f5f5f5",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  appleButtonText: {
+    fontSize: 16,
+    color: "#666",
   },
 });
 

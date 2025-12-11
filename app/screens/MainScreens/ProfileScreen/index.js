@@ -459,35 +459,65 @@ const ProfileScreen = ({ route, navigation }) => {
             </View>
           </View>
 
-          {isCurrentUser ? (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("EditProfileScreen")}
-              className="-mt-5 bg-white border-[1.5px] p-3 border-green-600 rounded-full mx-4"
-            >
-              <Text className="text-center font-semibold">
-                Chỉnh sửa trang cá nhân
-              </Text>
-            </TouchableOpacity>
-          ) : followed ? (
-            <TouchableOpacity
-              onPress={() => handleFollow(userId)}
-              className="-mt-5 bg-[#319528] h-11 rounded-full mx-4 justify-center items-center flex-row"
-            >
-              <Ionicons name="add-circle-outline" size={20} color={"white"} />
-              <Text className="text-center font-semibold ml-1 text-white">
-                Theo dõi
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={() => handleFollow(userId)}
-              className="-mt-5 bg-white h-11 border-[1.5px] border-green-600 rounded-full mx-4 justify-center items-center"
-            >
-              <Text className="text-center font-semibold text-[#319528]">
-                Đã theo dõi
-              </Text>
-            </TouchableOpacity>
-          )}
+          <View className="-mt-5">
+            {isCurrentUser ? (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("EditProfileScreen")}
+                className="bg-white border-[1.5px] p-3 border-green-600 rounded-full mx-4"
+              >
+                <Text className="text-center font-semibold">
+                  Chỉnh sửa trang cá nhân
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <View className="-mt-5 px-4 flex-row gap-2">
+                {followed ? (
+                  <TouchableOpacity
+                    onPress={() => handleFollow(userId)}
+                    className="bg-[#319528] h-11 rounded-full justify-center items-center flex-row flex-1"
+                  >
+                    <Ionicons name="add-circle-outline" size={20} color={"white"} />
+                    <Text className="text-center font-semibold ml-1 text-white">
+                      Theo dõi
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => handleFollow(userId)}
+                    className="bg-white h-11 border-[1.5px] border-green-600 rounded-full justify-center items-center flex-1"
+                  >
+                    <Text className="text-center font-semibold text-[#319528]">
+                      Đã theo dõi
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("ConversationScreen", {
+                      isNewConversation: true,
+                      selectedUser: {
+                        id: userData?.id,
+                        profile_name: userData?.profile?.profile_name,
+                        avatar_url: userData?.profile?.profile_picture,
+                        username: userData?.username,
+                      },
+                    })
+                  }
+                  className="bg-gray-100 h-11 rounded-full justify-center items-center flex-row flex-1"
+                >
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={20}
+                    color="black"
+                  />
+                  <Text className="text-center font-semibold ml-1 text-black">
+                    Nhắn tin
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
 
           <View className="mx-4 mt-3 bg-neutral-100 p-4 rounded-xl">
             <Text className="font-semibold text-lg">Thông tin cá nhân</Text>
@@ -571,11 +601,10 @@ const ProfileScreen = ({ route, navigation }) => {
           {/* User stats and tabs */}
           <View className="mx-4 flex-row items-center justify-between">
             <TouchableOpacity
-              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
-                activeTab === "posts"
-                  ? "bg-[#C7F0C2] border-[#2D8824]"
-                  : "border-transparent"
-              }`}
+              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${activeTab === "posts"
+                ? "bg-[#C7F0C2] border-[#2D8824]"
+                : "border-transparent"
+                }`}
               onPress={() => setActiveTab("posts")}
             >
               <Text className="font-semibold text-xs">Bài viết</Text>
@@ -585,11 +614,10 @@ const ProfileScreen = ({ route, navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
-                activeTab === "following"
-                  ? "bg-[#C7F0C2] border-[#2D8824]"
-                  : "border-transparent"
-              }`}
+              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${activeTab === "following"
+                ? "bg-[#C7F0C2] border-[#2D8824]"
+                : "border-transparent"
+                }`}
               onPress={() => setActiveTab("following")}
             >
               <Text className="font-semibold text-xs">Đang t.dõi</Text>
@@ -599,11 +627,10 @@ const ProfileScreen = ({ route, navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${
-                activeTab === "followers"
-                  ? "bg-[#C7F0C2] border-[#2D8824]"
-                  : "border-transparent"
-              }`}
+              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${activeTab === "followers"
+                ? "bg-[#C7F0C2] border-[#2D8824]"
+                : "border-transparent"
+                }`}
               onPress={() => setActiveTab("followers")}
             >
               <Text className="font-semibold text-xs">Người t.dõi</Text>

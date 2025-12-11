@@ -8,6 +8,7 @@ import {
   Switch,
   Image,
   Alert,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -15,6 +16,7 @@ import FastImage from "react-native-fast-image";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import * as Application from 'expo-application';
 
 const SettingItem = ({
   icon,
@@ -134,22 +136,12 @@ export default function SettingsScreen({ navigation }) {
           <SettingItem
             icon="lock-closed-outline"
             title="Bảo mật"
-            onPress={() => {
-              Toast.show({
-                type: "info",
-                text1: "Tính năng đang được phát triển",
-              });
-            }}
+            onPress={() => navigation.navigate("SecurityScreen")}
           />
           <SettingItem
             icon="notifications-outline"
             title="Thông báo"
-            onPress={() => {
-              Toast.show({
-                type: "info",
-                text1: "Tính năng đang được phát triển",
-              });
-            }}
+            onPress={() => navigation.navigate("NotificationSettingsScreen")}
           />
         </SettingSection>
 
@@ -194,6 +186,27 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => navigation.navigate("AboutScreen")}
           />
         </SettingSection>
+
+        <Text style={styles.versionText}>
+          CBH Online phiên bản v{Application.nativeApplicationVersion} ({Application.nativeBuildVersion})
+        </Text>
+
+        <View style={styles.socialContainer}>
+          <TouchableOpacity
+            onPress={() =>
+              Linking.openURL("https://github.com/tunnaduong/cbh-youth-online-mobile")
+            }
+            style={styles.socialButton}
+          >
+            <Ionicons name="logo-github" size={24} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://facebook.com/CBHYouthOnline")}
+            style={styles.socialButton}
+          >
+            <Ionicons name="logo-facebook" size={24} color="#1877F2" />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -314,5 +327,21 @@ const styles = StyleSheet.create({
   languageText: {
     fontSize: 14,
     color: "#666",
+  },
+  versionText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  socialContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 30,
+    gap: 20,
+  },
+  socialButton: {
+    padding: 8,
   },
 });

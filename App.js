@@ -42,6 +42,10 @@ import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConve
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
+import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
+
+import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
+import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 
 const Stack = createStackNavigator();
 
@@ -202,6 +206,20 @@ function AppNavigator() {
                 }}
               />
               <Stack.Screen
+                name="SecurityScreen"
+                component={SecurityScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="NotificationSettingsScreen"
+                component={NotificationSettingsScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="SavedPostsScreen"
                 component={SavedPostsScreen}
                 options={{
@@ -235,6 +253,11 @@ function AppNavigator() {
               <Stack.Screen
                 name="CategoryScreen"
                 component={CategoryScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="MemberRankingScreen"
+                component={MemberRankingScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

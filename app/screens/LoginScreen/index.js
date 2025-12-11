@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from "react";
+import React, { useState, useContext, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -26,6 +27,16 @@ const LoginScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+
+  const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
+
+  useEffect(() => {
+    AppleAuthentication.isAvailableAsync().then((available) => {
+      console.log("Apple Auth Available:", available);
+      setIsAppleAuthAvailable(available);
+    }).catch((e) => console.log("Apple Auth Check Error:", e));
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -187,6 +198,47 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
+  const handleAppleLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      const response = await loginWithOAuth({
+        provider: "apple",
+        idToken: credential.identityToken,
+        authorizationCode: credential.authorizationCode,
+        email: credential.email,
+        fullName: credential.fullName,
+        user: credential.user,
+      });
+
+      if (response.data && response.data.token) {
+        signIn(response.data.token, response.data.user);
+      } else {
+        throw new Error("Phản hồi từ server không hợp lệ");
+      }
+    } catch (error) {
+      if (error.code === "ERR_REQUEST_CANCELED") {
+        // User canceled, do nothing
+      } else {
+        const errorMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          error.message ||
+          "Đã xảy ra lỗi khi đăng nhập với Apple. Vui lòng thử lại.";
+        Alert.alert("Đăng nhập thất bại", errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <ProgressHUD loadText="Đang đăng nhập..." visible={loading} />
@@ -274,6 +326,16 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.orText}>hoặc đăng nhập bằng</Text>
                 <View style={styles.line} />
               </View>
+
+              {isAppleAuthAvailable && (
+                <TouchableOpacity
+                  style={styles.appleButton}
+                  onPress={handleAppleLogin}
+                >
+                  <Icon name="logo-apple" size={24} color="#000" />
+                  <Text style={styles.appleButtonText}>Tiếp tục với Apple</Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={styles.googleButton}
@@ -391,6 +453,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   googleButton: {
+    marginTop: -5,
     height: 48,
     borderRadius: 38,
     backgroundColor: "#f5f5f5",
@@ -427,6 +490,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#E2E8F0",
     borderWidth: 0.5,
     borderColor: "#E2E8F0",
+  },
+  appleButton: {
+    height: 48,
+    borderRadius: 38,
+    backgroundColor: "#f5f5f5",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  appleButtonText: {
+    fontSize: 16,
+    color: "#666",
   },
 });
 
