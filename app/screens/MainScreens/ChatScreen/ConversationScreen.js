@@ -225,18 +225,6 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const pickImage = async () => {
     try {
-      // Request permission
-      const { status } =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== "granted") {
-        Toast.show({
-          type: "error",
-          text1: "Quyền truy cập",
-          text2: "Cần quyền truy cập thư viện ảnh để gửi ảnh.",
-        });
-        return;
-      }
-
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -825,15 +813,15 @@ const ConversationScreen = ({ navigation, route }) => {
     // Check if this is a story reply message
     const isStoryReply = item.metadata?.story_reply === true;
     const storyOwnerName = item.metadata?.story_owner_name;
-    
+
     return (
       <View
         style={[
           // Add extra spacing for group chats when sender changes (applies to entire message block)
           isGroupChat &&
-            !item.is_myself &&
-            senderChanged &&
-            styles.groupMessageWrapper,
+          !item.is_myself &&
+          senderChanged &&
+          styles.groupMessageWrapper,
         ]}
       >
         {/* Show story reply header */}
@@ -970,10 +958,10 @@ const ConversationScreen = ({ navigation, route }) => {
               getHeaderAvatar() === "local:chat.jpg"
                 ? require("../../../assets/chat.jpg")
                 : {
-                    uri:
-                      getHeaderAvatar() ||
-                      "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                  }
+                  uri:
+                    getHeaderAvatar() ||
+                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+                }
             }
             style={styles.headerAvatar}
           />
@@ -981,8 +969,8 @@ const ConversationScreen = ({ navigation, route }) => {
             {isNewConversation
               ? selectedUser.profile_name
               : currentConversation?.type === "group"
-              ? currentConversation?.name || "Unnamed Group"
-              : currentConversation?.participants[0]?.profile_name}
+                ? currentConversation?.name || "Unnamed Group"
+                : currentConversation?.participants[0]?.profile_name}
           </Text>
         </View>
         <TouchableOpacity>
