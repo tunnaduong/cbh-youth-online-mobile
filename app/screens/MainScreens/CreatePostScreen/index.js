@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
   StatusBar,
+  Switch,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -24,6 +25,7 @@ import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import FastImage from "react-native-fast-image";
 import { CommonActions } from "@react-navigation/native";
 
@@ -43,6 +45,14 @@ const CreatePostScreen = ({ navigation }) => {
   const [viewSelected, setViewSelected] = useState(view[0]);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState([]);
+
+  useEffect(() => {
+    if (isAnonymous && viewSelected.value === 'followers') {
+      setViewSelected(view[0]); // Reset to public
+    }
+  }, [isAnonymous]);
 
   const navigateToPost = (postId) => {
     if (navigation) {
@@ -104,8 +114,37 @@ const CreatePostScreen = ({ navigation }) => {
     }
   };
 
+  const pickDocument = async () => {
+    try {
+      let result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        multiple: true,
+      });
+
+      if (!result.canceled && result.assets) {
+        setSelectedDocuments((prev) => [...prev, ...result.assets]);
+      }
+    } catch (error) {
+      console.log("Error picking document:", error);
+      Toast.show({
+        type: "error",
+        text1: "Lỗi chọn tài liệu",
+        text2: "Vui lòng thử lại.",
+        autoHide: true,
+        visibilityTime: 3000,
+        topOffset: 60,
+      });
+    }
+  };
+
   const removeImage = (indexToRemove) => {
     setSelectedImages((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  const removeDocument = (indexToRemove) => {
+    setSelectedDocuments((prev) =>
       prev.filter((_, index) => index !== indexToRemove)
     );
   };
@@ -126,6 +165,7 @@ const CreatePostScreen = ({ navigation }) => {
     try {
       setLoading(true);
       let cdnIds = [];
+      let docIds = [];
 
       if (selectedImages.length > 0) {
         // Upload all images
@@ -151,13 +191,32 @@ const CreatePostScreen = ({ navigation }) => {
         }
       }
 
+      if (selectedDocuments.length > 0) {
+        // Upload all documents
+        for (const dock of selectedDocuments) {
+          const formData = new FormData();
+
+          formData.append("uid", userInfo.id);
+          formData.append("file", {
+            uri: dock.uri,
+            name: dock.name,
+            type: dock.mimeType || "application/octet-stream",
+          });
+
+          const uploadResponse = await uploadFile(formData);
+          docIds.push(uploadResponse.data.id);
+        }
+      }
+
       const response = await createPost({
         title,
         description: postContent,
         cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
+        cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
         subforum_id: selected?.value ?? null,
         visibility: 0,
         privacy: viewSelected.value,
+        anonymous: isAnonymous,
       });
 
       if (viewSelected.value === "public") {
@@ -275,22 +334,29 @@ const CreatePostScreen = ({ navigation }) => {
           }}
           pointerEvents="box-none"
         >
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={{
-              width: 70,
-              height: 70,
-              borderRadius: 35,
-              borderColor: "#ccc",
-              borderWidth: 1,
-            }}
-          />
+          {isAnonymous ? (<>
+            <View className="w-[70px] h-[70px] bg-[#e9f1e9] rounded-full items-center justify-center">
+              <Text className="text-white font-bold text-4xl">?</Text>
+            </View>
+          </>) : (
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={{
+                width: 70,
+                height: 70,
+                borderRadius: 35,
+                borderColor: "#ccc",
+                borderWidth: 1,
+              }}
+            />
+          )}
+
           <View style={{ flex: 1 }}>
             <Text className="font-medium text-lg" numberOfLines={1}>
-              {profileName}
-              {userInfo.verified && (
+              {isAnonymous ? "Người dùng ẩn danh" : profileName}
+              {userInfo.verified && !isAnonymous && (
                 <View>
                   <Verified
                     width={20}
@@ -302,7 +368,7 @@ const CreatePostScreen = ({ navigation }) => {
               )}
             </Text>
             <Dropdown
-              options={view}
+              options={isAnonymous ? view.filter(v => v.value !== 'followers') : view}
               placeholder={"Công khai"}
               selectedValue={viewSelected}
               onValueChange={setViewSelected}
@@ -329,6 +395,7 @@ const CreatePostScreen = ({ navigation }) => {
             />
           </View>
         </View>
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.titleInput}
@@ -354,6 +421,26 @@ const CreatePostScreen = ({ navigation }) => {
             multiline
             textAlignVertical="top"
           />
+          <View
+            style={{
+              height: 0,
+              borderTopWidth: 1,
+              borderColor: "#ddd",
+              marginHorizontal: 12,
+            }}
+          ></View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}>
+            <View>
+              <Text style={{ fontWeight: 'bold', fontSize: 15, color: "#404040", marginBottom: 5 }}>Đăng ẩn danh</Text>
+              <Text style={{ color: '#666', fontSize: 12 }}>Người kiểm duyệt vẫn sẽ thấy thông tin của bạn</Text>
+            </View>
+            <Switch
+              trackColor={{ false: '#767577', true: '#309627' }}
+              thumbColor={isAnonymous ? '#f4f3f4' : '#f4f3f4'}
+              onValueChange={() => setIsAnonymous(!isAnonymous)}
+              value={isAnonymous}
+            />
+          </View>
         </View>
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
           <Dropdown
@@ -378,6 +465,21 @@ const CreatePostScreen = ({ navigation }) => {
               <Text>Quy tắc</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Document list */}
+          {selectedDocuments.length > 0 && (
+            <View style={{ marginTop: 10 }}>
+              {selectedDocuments.map((doc, index) => (
+                <View key={index} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0F2F5', padding: 10, borderRadius: 8, marginBottom: 5 }}>
+                  <Ionicons name="document-text-outline" size={24} color="#309627" />
+                  <Text style={{ flex: 1, marginHorizontal: 10 }} numberOfLines={1}>{doc.name}</Text>
+                  <TouchableOpacity onPress={() => removeDocument(index)}>
+                    <Ionicons name="close-circle" size={20} color="#666" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
 
           {selectedImages.length > 0 ? (
             <ScrollView
@@ -445,22 +547,41 @@ const CreatePostScreen = ({ navigation }) => {
               </View>
             </ScrollView>
           ) : (
-            <TouchableOpacity
-              onPress={() => {
-                if (typeof pickImage === "function") {
-                  pickImage();
-                }
-              }}
-              className="items-center justify-center mt-5 self-start border-[1.3px] border-[#ECECEC] rounded-xl p-10"
-            >
-              <Ionicons
-                name="add-outline"
-                size={40}
-                color={"#519527"}
-                style={{ marginTop: -5 }}
-              />
-              <Text className="text-[#319527]">Thêm ảnh</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (typeof pickImage === "function") {
+                    pickImage();
+                  }
+                }}
+                className="items-center justify-center border-[1.3px] border-[#ECECEC] rounded-xl flex-1"
+                style={{
+                  height: 100
+                }}
+              >
+                <Ionicons
+                  name="image-outline"
+                  size={30}
+                  color={"#519527"}
+                />
+                <Text className="text-[#319527] mt-1">Thêm ảnh</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={pickDocument}
+                className="items-center justify-center border-[1.3px] border-[#ECECEC] rounded-xl flex-1"
+                style={{
+                  height: 100
+                }}
+              >
+                <Ionicons
+                  name="document-attach-outline"
+                  size={30}
+                  color={"#519527"}
+                />
+                <Text className="text-[#319527] mt-1">Thêm tài liệu</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </ScrollView>

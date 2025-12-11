@@ -8,6 +8,7 @@ import {
   Share,
   Alert,
   Dimensions,
+  Linking,
 } from "react-native";
 import RenderHTML from "react-native-render-html";
 import Verified from "../assets/Verified";
@@ -130,8 +131,7 @@ const PostItem = ({
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${
-                item.author.username
+              `https://chuyenbienhoa.com/${item.author.username
               }/posts/${generatePostSlug(item.id, item.title)}?source=share`
             );
           }}
@@ -433,6 +433,38 @@ const PostItem = ({
           />
         </View>
       )}
+
+      {/* Document attachment display */}
+      {item.document_urls && item.document_urls.length > 0 && (
+        <View style={{ paddingHorizontal: 15, marginTop: 10 }}>
+          {item.document_urls.map((docUrl, index) => {
+            const fileName = docUrl.split('/').pop();
+            return (
+              <TouchableOpacity
+                key={index}
+                onPress={() => Linking.openURL(docUrl)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#F0F2F5',
+                  padding: 10,
+                  borderRadius: 8,
+                  marginBottom: 5,
+                  borderWidth: 1,
+                  borderColor: '#ddd'
+                }}
+              >
+                <Ionicons name="document-text" size={30} color="#309627" />
+                <View style={{ marginLeft: 10, flex: 1 }}>
+                  <Text style={{ fontWeight: '500', fontSize: 15 }} numberOfLines={1}>{fileName}</Text>
+                  <Text style={{ fontSize: 12, color: '#666' }}>Nhấn để xem tài liệu</Text>
+                </View>
+                <Ionicons name="download-outline" size={24} color="#666" />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
       <View
         style={{
           height: 1,
@@ -443,34 +475,36 @@ const PostItem = ({
       ></View>
       <Pressable
         onPress={() => {
-          if (navigation && item?.author?.username) {
+          if (!item.anonymous && navigation && item?.author?.username) {
             navigation.navigate("ProfileScreen", {
               username: item.author.username,
             });
           }
         }}
         className="px-[15px] flex-row items-center"
-        disabled={!navigation || !item?.author?.username}
+        disabled={!navigation || !item?.author?.username || !!item.anonymous}
       >
         <View
-          className="bg-white w-[42px] rounded-full overflow-hidden"
-          style={{
-            borderWidth: 1,
-            borderColor: "#dee2e6",
-          }}
+          className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden items-center justify-center border border-[#dee2e6]"
         >
-          {item?.author?.username && (
-            <Image
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${item.author.username}/avatar`,
-              }}
-              style={{ width: 40, height: 40, borderRadius: 30 }}
-            />
+          {item.anonymous ? (
+            <View className="w-full h-full bg-[#e9f1e9] items-center justify-center">
+              <Text className="text-white font-bold text-xl">?</Text>
+            </View>
+          ) : (
+            item?.author?.username && (
+              <Image
+                source={{
+                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${item.author.username}/avatar`,
+                }}
+                style={{ width: 40, height: 40, borderRadius: 30 }}
+              />
+            )
           )}
         </View>
         <Text className="font-bold text-[#319527] ml-2 shrink">
-          {item?.author?.profile_name || item?.author?.username || ""}
-          {item?.author?.verified && (
+          {item.anonymous ? "Người dùng ẩn danh" : (item?.author?.profile_name || item?.author?.username || "")}
+          {item?.author?.verified && !item.anonymous && (
             <View>
               <Verified
                 width={15}
@@ -505,11 +539,11 @@ const PostItem = ({
               )
                 ? { color: "#22c55e" } // Apply green color for upvotes
                 : currentVotes.some(
-                    (vote) =>
-                      vote?.username === username && vote.vote_value === -1
-                  )
-                ? { color: "#ef4444" } // Apply red color for downvotes
-                : { color: "#9ca3af" }, // Default gray color
+                  (vote) =>
+                    vote?.username === username && vote.vote_value === -1
+                )
+                  ? { color: "#ef4444" } // Apply red color for downvotes
+                  : { color: "#9ca3af" }, // Default gray color
               { fontSize: 20, fontWeight: "600" }, // Additional styles
             ]}
           >

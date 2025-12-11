@@ -3,9 +3,9 @@ PODS:
   - DoubleConversion (1.1.6)
   - EASClient (0.14.4):
     - ExpoModulesCore
-  - EXApplication (6.1.5):
+  - EXApplication (7.0.8):
     - ExpoModulesCore
-  - EXConstants (17.1.7):
+  - EXConstants (18.0.11):
     - ExpoModulesCore
   - EXImageLoader (5.1.0):
     - ExpoModulesCore
@@ -286,6 +286,8 @@ PODS:
     - ZXingObjC/OneD
     - ZXingObjC/PDF417
   - ExpoCrypto (14.1.5):
+    - ExpoModulesCore
+  - ExpoDocumentPicker (13.1.6):
     - ExpoModulesCore
   - ExpoFileSystem (18.1.11):
     - ExpoModulesCore
@@ -2783,6 +2785,7 @@ DEPENDENCIES:
   - ExpoAsset (from `../node_modules/expo-asset/ios`)
   - ExpoCamera (from `../node_modules/expo-camera/ios`)
   - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
+  - ExpoDocumentPicker (from `../node_modules/expo-document-picker/ios`)
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios`)
   - ExpoFont (from `../node_modules/expo-font/ios`)
   - ExpoImageManipulator (from `../node_modules/expo-image-manipulator/ios`)
@@ -2932,6 +2935,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-camera/ios"
   ExpoCrypto:
     :path: "../node_modules/expo-crypto/ios"
+  ExpoDocumentPicker:
+    :path: "../node_modules/expo-document-picker/ios"
   ExpoFileSystem:
     :path: "../node_modules/expo-file-system/ios"
   ExpoFont:
@@ -3136,8 +3141,8 @@ SPEC CHECKSUMS:
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   EASClient: fe396f88189ce51edd819abe12df16c99e98bcd2
-  EXApplication: 1e06972201838375ca1ec1ba34d586a98a5dc718
-  EXConstants: 98bcf0f22b820f9b28f9fee55ff2daededadd2f8
+  EXApplication: 1e98d4b1dccdf30627f92917f4b2c5a53c330e5f
+  EXConstants: c378c1b344ff1ecfbad27b90f0e48d1d0ead8cbb
   EXImageLoader: 4d3d3284141f1a45006cc4d0844061c182daf7ee
   EXJSONUtils: 1d3e4590438c3ee593684186007028a14b3686cd
   EXManifests: 691a779b04e4f2c96da46fb9bef4f86174fefcb5
@@ -3151,6 +3156,7 @@ SPEC CHECKSUMS:
   ExpoAsset: ef06e880126c375f580d4923fdd1cdf4ee6ee7d6
   ExpoCamera: e1879906d41184e84b57d7643119f8509414e318
   ExpoCrypto: a9f1d75baeea6ef8b03c1660621585196c382e85
+  ExpoDocumentPicker: b263a279685b6640b8c8bc70d71c83067aeaae55
   ExpoFileSystem: 7f92f7be2f5c5ed40a7c9efc8fa30821181d9d63
   ExpoFont: cf508bc2e6b70871e05386d71cab927c8524cc8e
   ExpoImageManipulator: 1e06e7a1e56f454e75d01b7032c1e44963bfc865
