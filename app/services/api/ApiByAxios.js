@@ -17,7 +17,7 @@ export const putRequest = (endpoint, params = {}) => {
 
 // Delete Data with optional data
 export const deleteRequest = (endpoint, params = {}) => {
-  return axiosInstance.delete(endpoint, params);
+  return axiosInstance.delete(endpoint, { data: params });
 };
 
 // Post Data with form-data content type
