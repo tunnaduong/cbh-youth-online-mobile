@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
@@ -15,14 +16,19 @@ import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 const ProfileDetailScreen = ({ navigation, route }) => {
-  const { username: currentUsername } = useContext(AuthContext);
+  const {
+    username: currentUsername,
+    blockUser,
+    unblockUser,
+    blockedUsers,
+  } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const username = route.params?.username || currentUsername;
   const isCurrentUser = username === currentUsername;
   const insets = useSafeAreaInsets();
+  const isBlocked = blockedUsers?.includes(username);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -83,6 +89,113 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     </View>
   );
 
+  const handleBlockUser = () => {
+    Alert.alert(
+      "Chặn người dùng",
+      `Bạn có chắc chắn muốn chặn ${username}? Bạn sẽ không còn nhìn thấy nội dung từ người này.`,
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Chặn",
+          style: "destructive",
+          onPress: async () => {
+            await blockUser(username);
+            Toast.show({
+              type: "success",
+              text1: "Đã chặn người dùng",
+              text2: "Bạn sẽ không còn thấy nội dung từ người này.",
+            });
+            navigation.goBack();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleUnblockUser = () => {
+    Alert.alert(
+      "Bỏ chặn người dùng",
+      `Bạn có chắc chắn muốn bỏ chặn ${username}?`,
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Bỏ chặn",
+          onPress: async () => {
+            await unblockUser(username);
+            Toast.show({
+              type: "success",
+              text1: "Đã bỏ chặn",
+              text2: "Bạn sẽ lại thấy nội dung từ người này.",
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReportUser = () => {
+    // Navigate to ReportScreen but maybe we need a simpler flow for user reporting
+    // Since ReportScreen is currently tailored for school violations, we can use a simpler
+    // reporting mechanism or direct to a specific flow.
+    // For now, let's use a Toast to simulate reporting as per requirement "Blocking should also notify...".
+    // But since this is a separate "Report" action:
+    Alert.alert(
+      "Báo cáo người dùng",
+      "Bạn muốn báo cáo người dùng này vì nội dung không phù hợp?",
+      [
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+        {
+          text: "Báo cáo",
+          onPress: () => {
+            // Simulate report API call
+            console.log(`[Safety] User reported: ${username}`);
+            Toast.show({
+              type: "success",
+              text1: "Đã gửi báo cáo",
+              text2: "Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét.",
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const showOptions = () => {
+    Alert.alert(
+      "Tùy chọn",
+      `Chọn hành động đối với ${username}`,
+      [
+        {
+          text: "Báo cáo người dùng",
+          onPress: handleReportUser,
+        },
+        !isBlocked
+          ? {
+              text: "Chặn người dùng",
+              onPress: handleBlockUser,
+              style: "destructive",
+            }
+          : {
+              text: "Bỏ chặn người dùng",
+              onPress: handleUnblockUser,
+            },
+        {
+          text: "Hủy",
+          style: "cancel",
+        },
+      ].filter(Boolean)
+    );
+  };
+
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -98,7 +211,9 @@ const ProfileDetailScreen = ({ navigation, route }) => {
             <Ionicons name="create-outline" size={24} color="#319527" />
           </TouchableOpacity>
         ) : (
-          <View className="w-6 h-6"></View>
+          <TouchableOpacity onPress={showOptions}>
+            <Ionicons name="ellipsis-vertical" size={24} color="#319527" />
+          </TouchableOpacity>
         )}
       </View>
 

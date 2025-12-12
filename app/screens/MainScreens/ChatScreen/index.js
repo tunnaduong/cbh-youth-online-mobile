@@ -17,6 +17,7 @@ import { storage } from "../../../global/storage";
 import FastImage from "react-native-fast-image";
 import { useFocusEffect } from "@react-navigation/native";
 import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
+import { AuthContext } from "../../../contexts/AuthContext";
 import dayjs from "dayjs";
 
 const formatMessageTime = (timestamp) => {
@@ -61,6 +62,7 @@ export default function ChatScreen({ navigation }) {
   const [search, setSearch] = useState("");
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
+  const { blockedUsers } = useContext(AuthContext);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -100,6 +102,16 @@ export default function ChatScreen({ navigation }) {
 
   // Filter conversations by participant name or last message
   const filteredConversations = conversations.filter((item) => {
+    // Check if private conversation and user is blocked
+    if (
+      item.type === "private" &&
+      item.participants[0]?.username &&
+      blockedUsers &&
+      blockedUsers.includes(item.participants[0].username)
+    ) {
+      return false;
+    }
+
     const participantName =
       item.type === "private" ? item.participants[0]?.profile_name : item.name;
     const messageContent = item.latest_message?.content || "";

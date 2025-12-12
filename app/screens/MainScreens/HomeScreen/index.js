@@ -74,6 +74,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     userInfo,
     updateEmailVerificationStatus,
     refreshUserInfo,
+    blockedUsers,
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
   const previousStatusBarStyle = useRef({
@@ -410,7 +411,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const transformStoriesData = (apiResponse) => {
     if (!apiResponse?.data) return [];
 
-    return apiResponse.data.data.map((user) => ({
+    let users = apiResponse.data.data;
+
+    return users.map((user) => ({
       uid: user.id,
       id: user.username,
       name: user.name,
@@ -522,7 +525,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               </View>
             </View>
           </TouchableHighlight>
-          {userStories.map((user) => (
+          {filteredStories.map((user) => (
             <TouchableHighlight
               key={user.id}
               onPress={() => storyRef.current?.show(user.id)}
@@ -950,6 +953,24 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
   };
 
+  const filteredFeed = useMemo(() => {
+    if (!feed) return null;
+    if (blockedUsers && blockedUsers.length > 0) {
+      return feed.filter((post) => !blockedUsers.includes(post.user.username));
+    }
+    return feed;
+  }, [feed, blockedUsers]);
+
+  const filteredStories = useMemo(() => {
+    if (!userStories) return [];
+    if (blockedUsers && blockedUsers.length > 0) {
+      return userStories.filter(
+        (user) => !blockedUsers.includes(user.id) // user.id here maps to username based on transformStoriesData
+      );
+    }
+    return userStories;
+  }, [userStories, blockedUsers]);
+
   const ReplyBar = ({
     storyId,
     userId,
@@ -1133,7 +1154,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
   };
 
-  return feed == null ? (
+  return filteredFeed == null ? (
     <View
       style={{
         alignItems: "center",
@@ -1186,7 +1207,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           scrollEventThrottle={16}
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
-          data={feed}
+          data={filteredFeed}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           contentContainerStyle={{
             paddingBottom: 30,
@@ -1225,7 +1246,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
         <InstagramStories
           ref={storyRef}
-          stories={userStories}
+          stories={filteredStories}
           hideAvatarList={true}
           showName={true}
           textStyle={{
