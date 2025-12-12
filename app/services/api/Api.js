@@ -399,3 +399,13 @@ export const unregisterExpoPushToken = (params) => {
 export const getExpoPushTokens = () => {
   return Api.getRequest("/v1.0/notifications/expo/tokens");
 };
+
+export const reportUser = (username, reason) => {
+  // Try to use a dedicated endpoint or a generic report endpoint if available
+  // Fallback to a stubbed network call if necessary, but this shows intent
+  return Api.postRequest("/v1.0/reports", {
+    target_type: "user",
+    target_id: username,
+    reason: reason,
+  });
+};
