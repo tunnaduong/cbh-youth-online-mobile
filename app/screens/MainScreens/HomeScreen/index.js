@@ -27,6 +27,7 @@ import {
   TouchableHighlight,
   Platform,
   AppState,
+  Alert,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -39,7 +40,10 @@ import {
   replyToStory,
   getStoryViewers,
   markStoryAsViewed,
+  blockUser,
+  reportUser,
 } from "../../../services/api/Api";
+import ReportModal from "../../../components/ReportModal";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -67,6 +71,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [userStories, setUserStories] = useState([]);
   const [currentStory, setCurrentStory] = useState(null);
   const [currentStoryUser, setCurrentStoryUser] = useState(null);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const {
     username,
     isLoggedIn,
@@ -268,6 +273,36 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
   };
 
+  const handleReportSubmit = async (reason) => {
+    try {
+      if (!currentStoryUser) return;
+      await reportUser({ story_id: currentStory, reported_user_id: currentStoryUser.uid || currentStoryUser.id, reason });
+      Toast.show({
+        type: "success",
+        text1: "Đã gửi báo cáo",
+        text2: "Cảm ơn bạn đã báo cáo nội dung này.",
+        topOffset: 60,
+      });
+    } catch (e) {
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: e.message || "Không thể gửi báo cáo",
+        topOffset: 60,
+      });
+    }
+  };
+
+  const handleBlockUser = () => {
+    // Use Alert from React Native (need import, but might rely on Toast or confirming)
+    // Since we are in Modal context (ActionSheet), Alert works.
+    // But verify Alert is imported? No, it's not imported in snippet.
+    // Assuming I'll add Alert to imports if needed, or use a custom Confirmation.
+    // For now I'll just use the blockUser API directly with a simple confirmation if possible?
+    // Or just call it. But blocking is destructive.
+    // I'll import Alert in next chunk.
+  };
+
   const StoryOptionsModal = () => (
     <ActionSheet
       ref={actionSheetRef}
@@ -342,11 +377,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         <TouchableOpacity
           onPress={() => {
             actionSheetRef.current?.hide();
-            Toast.show({
-              type: "info",
-              text1: "Đã gửi báo cáo!",
-              text2: "Cảm ơn bạn đã báo cáo nội dung này.",
-            });
+            setReportModalVisible(true);
           }}
         >
           <View className="flex-row items-center py-4 mx-5 border-b border-gray-300">
@@ -387,9 +418,43 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               Bỏ theo dõi người này
             </Text>
           </View>
+
         </TouchableOpacity>
-      </View>
-    </ActionSheet>
+
+        <TouchableOpacity
+          onPress={() => {
+            actionSheetRef.current?.hide();
+            Alert.alert("Chặn người dùng?", "Bạn sẽ không thấy tin của người này nữa.", [
+              { text: "Hủy", style: "cancel" },
+              {
+                text: "Chặn", style: "destructive", onPress: async () => {
+                  try {
+                    if (currentStoryUser) {
+                      await blockUser(currentStoryUser.id || currentStoryUser.uid);
+                      Toast.show({ type: "success", text1: "Đã chặn người dùng" });
+                      dismissStoryModal();
+                      // Refresh stories?
+                      fetchStories();
+                    }
+                  } catch (e) {
+                    Toast.show({ type: "error", text1: "Lỗi", text2: e.message });
+                  }
+                }
+              }
+            ]);
+          }}
+        >
+          <View className="flex-row items-center py-4 mx-5">
+            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+              <Ionicons name="ban-outline" size={23} color="#ef4444" />
+            </View>
+            <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
+              Chặn người này
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View >
+    </ActionSheet >
   );
 
   const fetchStories = async () => {
@@ -1284,6 +1349,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }}
         />
         <ResendVerificationModal />
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
       </View>
     </>
   );

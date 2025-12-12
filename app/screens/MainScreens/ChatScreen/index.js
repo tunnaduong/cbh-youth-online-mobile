@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getConversations } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
-import FastImage from "react-native-fast-image";
 import { useFocusEffect } from "@react-navigation/native";
 import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -154,15 +153,15 @@ export default function ChatScreen({ navigation }) {
         });
       }}
     >
-      <FastImage
+      <Image
         source={
           getAvatar(item) === "local:chat.jpg"
             ? require("../../../assets/chat.jpg")
             : {
-                uri:
-                  getAvatar(item) ||
-                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-              }
+              uri:
+                getAvatar(item) ||
+                "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+            }
         }
         style={styles.avatar}
       />

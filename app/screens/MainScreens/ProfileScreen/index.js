@@ -24,12 +24,16 @@ import {
   followUser,
   getProfile,
   unfollowUser,
+  blockUser,
+  reportUser,
 } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedContext } from "../../../contexts/FeedContext";
 import FastImage from "react-native-fast-image";
 import Verified from "../../../assets/Verified";
+import ReportModal from "../../../components/ReportModal";
+import { Alert, ActionSheetIOS, Platform } from "react-native";
 
 const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
@@ -43,6 +47,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const isCurrentUser = userId === username;
   const [activeTab, setActiveTab] = useState("posts");
   const [followed, setFollowed] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -165,6 +170,71 @@ const ProfileScreen = ({ route, navigation }) => {
       }
     }, [route.params?.post, route.params?.postId])
   );
+
+
+
+  const confirmBlock = () => {
+    Alert.alert(
+      "Chặn người dùng?",
+      "Bạn sẽ không còn thấy bài viết của người này nữa.",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Chặn",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await blockUser(userData.id);
+              Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
+                { text: "OK", onPress: () => navigation.goBack() }
+              ]);
+            } catch (e) {
+              Alert.alert("Lỗi", e.message || "Không thể chặn người dùng này");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const showOptions = () => {
+    const options = ["Báo cáo", "Chặn người dùng", "Hủy"];
+    const destructiveButtonIndex = 1;
+    const cancelButtonIndex = 2;
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) setReportModalVisible(true);
+          else if (buttonIndex === 1) confirmBlock();
+        }
+      );
+    } else {
+      Alert.alert(
+        "Tùy chọn",
+        null,
+        [
+          { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
+          { text: "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
+          { text: "Hủy", style: "cancel" },
+        ]
+      );
+    }
+  };
+
+  const handleReportSubmit = async (reason) => {
+    try {
+      await reportUser({ reported_user_id: userData.id, reason });
+      Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
+    } catch (e) {
+      Alert.alert("Lỗi", e.message || "Không thể gửi báo cáo");
+    }
+  };
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -379,7 +449,17 @@ const ProfileScreen = ({ route, navigation }) => {
           ) : (
             <View className="w-[24px]"></View>
           )}
+          {!isCurrentUser && (
+            <TouchableOpacity onPress={showOptions} style={{ position: 'absolute', right: 16 }}>
+              <Ionicons name="ellipsis-vertical" size={24} color="#319527" />
+            </TouchableOpacity>
+          )}
         </View>
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
         <CustomLoading
           size={50}
           style={{
@@ -725,7 +805,7 @@ const ProfileScreen = ({ route, navigation }) => {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </SafeAreaView >
     </>
   );
 };

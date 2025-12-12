@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import FastImage from "react-native-fast-image";
 import {
   searchChatUsername,
   createConversation,
@@ -106,7 +105,7 @@ const NewConversationScreen = ({ navigation }) => {
           )
         }
       >
-        <FastImage
+        <Image
           source={{ uri: searchResult.user.avatar_url }}
           style={styles.avatar}
         />

@@ -400,12 +400,18 @@ export const getExpoPushTokens = () => {
   return Api.getRequest("/v1.0/notifications/expo/tokens");
 };
 
-export const reportUser = (username, reason) => {
-  // Try to use a dedicated endpoint or a generic report endpoint if available
-  // Fallback to a stubbed network call if necessary, but this shows intent
-  return Api.postRequest("/v1.0/reports", {
-    target_type: "user",
-    target_id: username,
-    reason: reason,
-  });
+export const reportUser = (params) => {
+  return Api.postRequest("/v1.0/reports", params);
+};
+
+export const blockUser = (userId) => {
+  return Api.postRequest("/v1.0/users/block", { blocked_user_id: userId });
+};
+
+export const unblockUser = (userId) => {
+  return Api.postRequest("/v1.0/users/unblock", { blocked_user_id: userId });
+};
+
+export const getBlockedUsers = () => {
+  return Api.getRequest("/v1.0/users/blocked");
 };

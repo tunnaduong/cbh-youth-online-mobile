@@ -19,7 +19,9 @@ import {
   savePost,
   unsavePost,
   votePost,
+  reportUser,
 } from "../services/api/Api";
+import ReportModal from "./ReportModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
@@ -45,6 +47,7 @@ const PostItem = ({
   const { username } = useContext(AuthContext);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const isCurrentUser = item?.author?.username === username;
 
@@ -108,6 +111,15 @@ const PostItem = ({
     );
   };
 
+  const handleReportSubmit = async (reason) => {
+    try {
+      await reportUser({ topic_id: item.id, reason });
+      Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
+    } catch (e) {
+      Alert.alert("Lỗi", e.message || "Không thể gửi báo cáo");
+    }
+  };
+
   const handleMoreOptions = () => {
     showBottomSheet(
       <>
@@ -162,12 +174,10 @@ const PostItem = ({
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          onPress={() =>
-            Toast.show({
-              type: "info",
-              text1: "Tính năng đang được phát triển",
-            })
-          }
+          onPress={() => {
+            setReportModalVisible(true);
+            hideBottomSheet();
+          }}
         >
           <View className="flex-row items-center">
             <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
@@ -175,7 +185,7 @@ const PostItem = ({
               style={{ padding: 12, fontSize: 17 }}
               className="text-red-500"
             >
-              Báo cáo
+              Báo cáo vi phạm
             </Text>
           </View>
         </TouchableOpacity>
@@ -621,7 +631,12 @@ const PostItem = ({
           </View>
         </View>
       </View>
-    </View>
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
+    </View >
   );
 };
 

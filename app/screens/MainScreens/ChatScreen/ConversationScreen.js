@@ -13,12 +13,16 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import FastImage from "react-native-fast-image";
+// import FastImage from "react-native-fast-image";
 import {
   getConversationMessages,
   sendMessage,
   createConversation,
+  blockUser,
+  reportUser,
 } from "../../../services/api/Api";
+import ReportModal from "../../../components/ReportModal";
+import { Alert, ActionSheetIOS } from "react-native";
 import Toast from "react-native-toast-message";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
@@ -113,6 +117,108 @@ const ConversationScreen = ({ navigation, route }) => {
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+
+  // Logic to identify the other user in private chat
+  const otherUser = isNewConversation
+    ? selectedUser
+    : (currentConversation?.type === 'private' ? currentConversation?.participants?.[0] : null);
+
+  const confirmBlock = () => {
+    if (!otherUser) return;
+    Alert.alert(
+      "Chặn người dùng?",
+      "Bạn sẽ không nhận được tin nhắn từ người này nữa.",
+      [
+        { text: "Hủy", style: "cancel" },
+        {
+          text: "Chặn",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await blockUser(otherUser.id);
+              Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
+                { text: "OK", onPress: () => navigation.navigate("ChatScreen") } // Go back to list
+              ]);
+            } catch (e) {
+              Alert.alert("Lỗi", e.message || "Không thể chặn người dùng");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleReportSubmit = async (reason) => {
+    try {
+      // If we have an otherUser, report them directly.
+      // If generic (Group), maybe report conversation?
+      // Since Api expects reported_user_id, we need a user.
+      // Assuming for now report functionality targets the other user in private chat.
+      // For group, we might need a different flow or select a member.
+      // I'll fallback to alerting if no user.
+      if (!otherUser && !isNewConversation) {
+        // Maybe report the group? But API needs reported_user_id (currently).
+        // We'll report the conversation ID in 'reason' or separate field if extended (not asking to extend generic report).
+        alert("Chức năng báo cáo nhóm chưa khả dụng.");
+        return;
+      }
+
+      const targetId = otherUser?.id || selectedUser?.id;
+      if (targetId) {
+        await reportUser({ reported_user_id: targetId, reason });
+        Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi.");
+      } else {
+        Alert.alert("Lỗi", "Không thể xác định người dùng để báo cáo.");
+      }
+    } catch (e) {
+      Alert.alert("Lỗi", e.message || "Không thể gửi báo cáo");
+    }
+  };
+
+  const showOptions = () => {
+    const options = ["Báo cáo", "Chặn người dùng", "Hủy"];
+    const destructiveButtonIndex = 1;
+    const cancelButtonIndex = 2;
+
+    if (!otherUser) {
+      // If no user to block (e.g. group), show limited options or alert
+      // For simple implementation, just show Report if applicable or nothing
+      // Or show "Thông tin nhóm" etc.
+      // I will just show 'Report' if I can report group, else nothing specific for now blocks unless user asked for group blocking.
+      // User asked "user can report ... from chat".
+      // Use limited options
+      Alert.alert("Tùy chọn", null, [
+        { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
+        { text: "Hủy", style: "cancel" }
+      ]);
+      return;
+    }
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex,
+          destructiveButtonIndex,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) setReportModalVisible(true);
+          else if (buttonIndex === 1) confirmBlock();
+        }
+      );
+    } else {
+      Alert.alert(
+        "Tùy chọn",
+        null,
+        [
+          { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
+          { text: "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
+          { text: "Hủy", style: "cancel" },
+        ]
+      );
+    }
+  };
 
   const getHeaderAvatar = () => {
     if (isNewConversation) {
@@ -855,7 +961,7 @@ const ConversationScreen = ({ navigation, route }) => {
           ]}
         >
           {!item.is_myself && isLastInGroup && (
-            <FastImage
+            <Image
               source={{
                 uri:
                   item.sender?.avatar_url ||
@@ -881,14 +987,14 @@ const ConversationScreen = ({ navigation, route }) => {
                   // TODO: Open image in full screen viewer
                 }}
               >
-                <FastImage
+                <Image
                   source={{
                     uri: item.file_url.startsWith("http")
                       ? item.file_url
                       : `https://chuyenbienhoa.com${item.file_url}`,
                   }}
                   style={styles.messageImage}
-                  resizeMode={FastImage.resizeMode.cover}
+                  resizeMode={"cover"}
                 />
                 {sending && item.is_myself && !item.read_at && (
                   <View style={styles.imageLoadingOverlay}>
@@ -953,7 +1059,7 @@ const ConversationScreen = ({ navigation, route }) => {
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <View style={styles.headerProfile}>
-          <FastImage
+          <Image
             source={
               getHeaderAvatar() === "local:chat.jpg"
                 ? require("../../../assets/chat.jpg")
@@ -973,10 +1079,15 @@ const ConversationScreen = ({ navigation, route }) => {
                 : currentConversation?.participants[0]?.profile_name}
           </Text>
         </View>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={showOptions}>
           <Ionicons name="ellipsis-vertical" size={24} color="#000" />
         </TouchableOpacity>
       </View>
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
 
       {/* Messages List */}
       <FlatList
