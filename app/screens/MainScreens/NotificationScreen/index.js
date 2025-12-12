@@ -68,13 +68,11 @@ const formatNotificationMessage = (notification) => {
       return `đã trả lời tin của bạn`;
     // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
-      return `thích bài đăng "${
-        data?.post_title || data?.topic_title || ""
-      }" của bạn`;
+      return `thích bài đăng "${data?.post_title || data?.topic_title || ""
+        }" của bạn`;
     case "App\\Notifications\\PostCommented":
-      return `đã bình luận trong bài đăng "${
-        data?.post_title || data?.topic_title || ""
-      }" của bạn`;
+      return `đã bình luận trong bài đăng "${data?.post_title || data?.topic_title || ""
+        }" của bạn`;
     case "App\\Notifications\\UserFollowed":
       return "đã theo dõi bạn";
     case "App\\Notifications\\UserMentioned":
@@ -134,12 +132,12 @@ export default function NotificationScreen({ navigation }) {
               name: isSystemMessage
                 ? "Hệ thống"
                 : notif.actor?.profile_name ||
-                  notif.actor?.username ||
-                  "Người dùng",
+                notif.actor?.username ||
+                "Người dùng",
               avatar: isSystemMessage
                 ? "https://api.chuyenbienhoa.com/v1.0/users/system/avatar" // Default system avatar
                 : notif.actor?.avatar_url ||
-                  `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
+                `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
             },
             content: formatNotificationMessage(notif),
             time: formatTime(notif.created_at),
@@ -303,15 +301,12 @@ export default function NotificationScreen({ navigation }) {
           } else if (item.type === "story_replied") {
             // Navigate to conversation screen
             if (item.data?.conversation_id) {
-              navigation.navigate("ChatScreen", {
-                screen: "ConversationScreen",
-                params: {
-                  conversationId: item.data.conversation_id,
-                },
+              navigation.navigate("ConversationScreen", {
+                conversationId: item.data.conversation_id,
               });
             } else {
               // Fallback to chat screen if conversation_id is missing
-              navigation.navigate("ChatScreen");
+              navigation.navigate("Chat");
             }
           } else if (item.data?.topic_id) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
@@ -328,8 +323,8 @@ export default function NotificationScreen({ navigation }) {
           source={
             !isSystemMessage
               ? {
-                  uri: item.user.avatar,
-                }
+                uri: item.user.avatar,
+              }
               : require("../../../assets/logo.png")
           }
           style={[styles.avatar, { alignSelf: "flex-start" }]}

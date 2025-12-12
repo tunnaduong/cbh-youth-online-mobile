@@ -138,10 +138,11 @@ const ConversationScreen = ({ navigation, route }) => {
             try {
               await blockUser(otherUser.id);
               Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
-                { text: "OK", onPress: () => navigation.navigate("ChatScreen") } // Go back to list
+                { text: "OK", onPress: () => navigation.goBack() } // Go back to list
               ]);
             } catch (e) {
-              Alert.alert("Lỗi", e.message || "Không thể chặn người dùng");
+              const errorMessage = e.response?.data?.message || e.message || "Không thể chặn người dùng";
+              Alert.alert("Lỗi", errorMessage);
             }
           }
         }
@@ -172,7 +173,8 @@ const ConversationScreen = ({ navigation, route }) => {
         Alert.alert("Lỗi", "Không thể xác định người dùng để báo cáo.");
       }
     } catch (e) {
-      Alert.alert("Lỗi", e.message || "Không thể gửi báo cáo");
+      const errorMessage = e.response?.data?.message || e.message || "Không thể gửi báo cáo";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 
@@ -1058,7 +1060,16 @@ const ConversationScreen = ({ navigation, route }) => {
         >
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <View style={styles.headerProfile}>
+        <TouchableOpacity
+          style={styles.headerProfile}
+          onPress={() => {
+            if (otherUser) {
+              navigation.navigate("ProfileScreen", {
+                username: otherUser.username,
+              });
+            }
+          }}
+        >
           <Image
             source={
               getHeaderAvatar() === "local:chat.jpg"
@@ -1078,7 +1089,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 ? currentConversation?.name || "Unnamed Group"
                 : currentConversation?.participants[0]?.profile_name}
           </Text>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={showOptions}>
           <Ionicons name="ellipsis-vertical" size={24} color="#000" />
         </TouchableOpacity>

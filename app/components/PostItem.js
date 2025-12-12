@@ -116,7 +116,7 @@ const PostItem = ({
       await reportUser({ topic_id: item.id, reason });
       Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
     } catch (e) {
-      Alert.alert("Lỗi", e.message || "Không thể gửi báo cáo");
+      Alert.alert("Lỗi", e.response?.data?.message || e.message || "Không thể gửi báo cáo");
     }
   };
 
@@ -448,7 +448,7 @@ const PostItem = ({
       {item.document_urls && item.document_urls.length > 0 && (
         <View style={{ paddingHorizontal: 15, marginTop: 10 }}>
           {item.document_urls.map((docUrl, index) => {
-            const fileName = docUrl.split('/').pop();
+            const fileName = decodeURIComponent(docUrl.split('/').pop()).replace(/^\d+_/, '');
             return (
               <TouchableOpacity
                 key={index}

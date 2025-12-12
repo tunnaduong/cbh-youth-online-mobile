@@ -17,6 +17,7 @@ import {
   Image,
   Platform,
   ActionSheetIOS,
+  KeyboardAvoidingView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -31,10 +32,11 @@ import {
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
 import { FeedContext } from "../../../contexts/FeedContext";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem from "../../../components/PostItem";
 import Verified from "../../../assets/Verified";
+import ReportModal from "../../../components/ReportModal";
+import { reportUser } from "../../../services/api/Api";
 
 const PostScreen = ({ route, navigation }) => {
   const { item, postId, screenName } = route.params; // Destructure item from route.params
@@ -57,6 +59,7 @@ const PostScreen = ({ route, navigation }) => {
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const isCurrentUser = post?.author?.username === username;
+  const [reportModalVisible, setReportModalVisible] = useState(false);
 
   React.useEffect(() => {
     fetchData();
@@ -126,7 +129,10 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => console.log("Report", post?.id)}>
+        <TouchableOpacity onPress={() => {
+          hideBottomSheet();
+          setReportModalVisible(true);
+        }}>
           <View className="flex-row items-center">
             <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
             <Text
@@ -388,17 +394,17 @@ const PostScreen = ({ route, navigation }) => {
           prevFeed.map((feedItem) =>
             feedItem.id === postId
               ? {
-                  ...feedItem,
-                  comments:
-                    roundToNearestFive(
-                      response.data.comments
-                        ? response.data.comments.length
-                        : parseInt(
-                            updatedPostData.comments?.replace(/\D/g, ""),
-                            10
-                          ) || 0
-                    ) + "+",
-                }
+                ...feedItem,
+                comments:
+                  roundToNearestFive(
+                    response.data.comments
+                      ? response.data.comments.length
+                      : parseInt(
+                        updatedPostData.comments?.replace(/\D/g, ""),
+                        10
+                      ) || 0
+                  ) + "+",
+              }
               : feedItem
           )
         );
@@ -408,17 +414,17 @@ const PostScreen = ({ route, navigation }) => {
             prevFeed.map((feedItem) =>
               feedItem.id === postId
                 ? {
-                    ...feedItem,
-                    comments:
-                      roundToNearestFive(
-                        response.data.comments
-                          ? response.data.comments.length
-                          : parseInt(
-                              updatedPostData.comments?.replace(/\D/g, ""),
-                              10
-                            ) || 0
-                      ) + "+",
-                  }
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                          updatedPostData.comments?.replace(/\D/g, ""),
+                          10
+                        ) || 0
+                    ) + "+",
+                }
                 : feedItem
             )
           );
@@ -428,6 +434,21 @@ const PostScreen = ({ route, navigation }) => {
       console.error("Error submitting comment:", error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleReportSubmit = async (reason) => {
+    try {
+      await reportUser({ topic_id: post.id, reason });
+      Alert.alert(
+        "Cảm ơn",
+        "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất."
+      );
+    } catch (e) {
+      Alert.alert(
+        "Lỗi",
+        e.response?.data?.message || e.message || "Không thể gửi báo cáo"
+      );
     }
   };
 
@@ -658,17 +679,17 @@ const PostScreen = ({ route, navigation }) => {
                 prevFeed.map((feedItem) =>
                   feedItem.id === postId
                     ? {
-                        ...feedItem,
-                        comments:
-                          roundToNearestFive(
-                            response.data.comments
-                              ? response.data.comments.length
-                              : parseInt(
-                                  updatedPostData.comments?.replace(/\D/g, ""),
-                                  10
-                                ) || 0
-                          ) + "+",
-                      }
+                      ...feedItem,
+                      comments:
+                        roundToNearestFive(
+                          response.data.comments
+                            ? response.data.comments.length
+                            : parseInt(
+                              updatedPostData.comments?.replace(/\D/g, ""),
+                              10
+                            ) || 0
+                        ) + "+",
+                    }
                     : feedItem
                 )
               );
@@ -678,20 +699,20 @@ const PostScreen = ({ route, navigation }) => {
                   prevFeed.map((feedItem) =>
                     feedItem.id === postId
                       ? {
-                          ...feedItem,
-                          comments:
-                            roundToNearestFive(
-                              response.data.comments
-                                ? response.data.comments.length
-                                : parseInt(
-                                    updatedPostData.comments?.replace(
-                                      /\D/g,
-                                      ""
-                                    ),
-                                    10
-                                  ) || 0
-                            ) + "+",
-                        }
+                        ...feedItem,
+                        comments:
+                          roundToNearestFive(
+                            response.data.comments
+                              ? response.data.comments.length
+                              : parseInt(
+                                updatedPostData.comments?.replace(
+                                  /\D/g,
+                                  ""
+                                ),
+                                10
+                              ) || 0
+                          ) + "+",
+                      }
                       : feedItem
                   )
                 );
@@ -731,17 +752,17 @@ const PostScreen = ({ route, navigation }) => {
           prevFeed.map((feedItem) =>
             feedItem.id === postId
               ? {
-                  ...feedItem,
-                  comments:
-                    roundToNearestFive(
-                      response.data.comments
-                        ? response.data.comments.length
-                        : parseInt(
-                            updatedPostData.comments?.replace(/\D/g, ""),
-                            10
-                          ) || 0
-                    ) + "+",
-                }
+                ...feedItem,
+                comments:
+                  roundToNearestFive(
+                    response.data.comments
+                      ? response.data.comments.length
+                      : parseInt(
+                        updatedPostData.comments?.replace(/\D/g, ""),
+                        10
+                      ) || 0
+                  ) + "+",
+              }
               : feedItem
           )
         );
@@ -751,17 +772,17 @@ const PostScreen = ({ route, navigation }) => {
             prevFeed.map((feedItem) =>
               feedItem.id === postId
                 ? {
-                    ...feedItem,
-                    comments:
-                      roundToNearestFive(
-                        response.data.comments
-                          ? response.data.comments.length
-                          : parseInt(
-                              updatedPostData.comments?.replace(/\D/g, ""),
-                              10
-                            ) || 0
-                      ) + "+",
-                  }
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                          updatedPostData.comments?.replace(/\D/g, ""),
+                          10
+                        ) || 0
+                    ) + "+",
+                }
                 : feedItem
             )
           );
@@ -938,12 +959,12 @@ const PostScreen = ({ route, navigation }) => {
                       )
                         ? { color: "#22c55e" }
                         : votes.some(
-                            (vote) =>
-                              vote.username === username &&
-                              vote.vote_value === -1
-                          )
-                        ? { color: "#ef4444" }
-                        : { color: "#9ca3af" },
+                          (vote) =>
+                            vote.username === username &&
+                            vote.vote_value === -1
+                        )
+                          ? { color: "#ef4444" }
+                          : { color: "#9ca3af" },
                     ]}
                   >
                     {votes.reduce(
@@ -1080,29 +1101,35 @@ const PostScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           )}
-          <CommentBar
-            ref={commentInputRef}
-            placeholderText={
-              editingCommentId
-                ? "Chỉnh sửa bình luận..."
-                : parentId
-                ? "Nhập trả lời..."
-                : "Nhập bình luận..."
-            }
-            onSubmit={onSubmit}
-            value={editingCommentId ? editingCommentText : commentText}
-            onChangeText={
-              editingCommentId ? setEditingCommentText : setCommentText
-            }
-            disabled={
-              editingCommentId
-                ? !editingCommentText.trim() || isSubmitting
-                : !commentText.trim() || isSubmitting
-            }
-            editable={!isSubmitting}
-            isSubmitting={isSubmitting}
+          <ReportModal
+            visible={reportModalVisible}
+            onClose={() => setReportModalVisible(false)}
+            onSubmit={handleReportSubmit}
           />
         </SafeAreaView>
+      </KeyboardAvoidingView>
+      {/* Keyboard Avoiding View for Comment Input */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0} // Adjust based on your header height
+      >
+        <CommentBar
+          commentText={commentText}
+          setCommentText={setCommentText}
+          onSubmit={onSubmit}
+          inputRef={commentInputRef}
+          replyingTo={replyingTo}
+          onCancelReply={() => {
+            setParentId(null);
+            setReplyingTo(null);
+          }}
+          isSubmitting={isSubmitting}
+          editingCommentId={editingCommentId}
+          onCancelEdit={() => {
+            setEditingCommentId(null);
+            setEditingCommentText("");
+          }}
+        />
       </KeyboardAvoidingView>
     </>
   );

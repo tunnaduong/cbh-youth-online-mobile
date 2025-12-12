@@ -38,7 +38,7 @@ import { Alert, ActionSheetIOS, Platform } from "react-native";
 const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
-  const { username, profileName } = React.useContext(AuthContext);
+  const { username, profileName, blockUser: blockUserInContext } = React.useContext(AuthContext);
   const userId = route?.params?.username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -185,11 +185,13 @@ const ProfileScreen = ({ route, navigation }) => {
           onPress: async () => {
             try {
               await blockUser(userData.id);
+              await blockUserInContext(userData.username);
               Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
                 { text: "OK", onPress: () => navigation.goBack() }
               ]);
             } catch (e) {
-              Alert.alert("Lỗi", e.message || "Không thể chặn người dùng này");
+              const errorMessage = e.response?.data?.message || e.message || "Không thể chặn người dùng này";
+              Alert.alert("Lỗi", errorMessage);
             }
           }
         }
@@ -232,7 +234,8 @@ const ProfileScreen = ({ route, navigation }) => {
       await reportUser({ reported_user_id: userData.id, reason });
       Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
     } catch (e) {
-      Alert.alert("Lỗi", e.message || "Không thể gửi báo cáo");
+      const errorMessage = e.response?.data?.message || e.message || "Không thể gửi báo cáo";
+      Alert.alert("Lỗi", errorMessage);
     }
   };
 

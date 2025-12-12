@@ -80,6 +80,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     updateEmailVerificationStatus,
     refreshUserInfo,
     blockedUsers,
+    blockUser: blockUserInContext,
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
   const previousStatusBarStyle = useRef({
@@ -128,6 +129,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       }
     }
   }, [route.params?.highlightStoryId, userStories]);
+
+  const currentStoryUserRef = useRef(null); // Ref to hold fresh user object for callbacks
+
+  const updateCurrentStoryUser = (user) => {
+    setCurrentStoryUser(user);
+    currentStoryUserRef.current = user;
+  };
 
   const handleFetchFeed = async (page = 1) => {
     try {
@@ -234,7 +242,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
   };
 
-  const handleStoryOptions = () => {
+  const handleStoryOptions = (userId) => {
+    // If the library passes the userId here, let's use it to ensure context is set!
+    if (userId) {
+      console.log("handleStoryOptions called with userId:", userId);
+      const user = userStories.find((u) => u.id === userId || u.uid === userId);
+      if (user) {
+        updateCurrentStoryUser({ id: user.uid, username: user.id });
+      }
+    } else {
+      console.log("handleStoryOptions called without userId, relying on currentStoryUser state");
+    }
+
     storyRef?.current.pause(); // Pause the story timer
     actionSheetRef.current?.show();
   };
@@ -247,6 +266,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryStart = async (userId, storyId) => {
+    // userId here matches the 'id' field in transformed data (which is username based on my transform)
+    // Actually, let's verify what userId is passed by the library. It passes the story's user id field.
+    // In transform, I set uid: user.id, id: user.username.
+
+    // Find the user and story to set current state
+    const user = userStories.find((u) => u.id === userId || u.uid === userId);
+    if (user) {
+      const story = user.stories.find(s => s.id === storyId);
+      if (story) {
+        setCurrentStory(story.id); // or story.storyId
+        updateCurrentStoryUser({ id: user.uid, username: user.id }); // user.id is username string
+      }
+    }
+
     // Mark story as viewed when story starts
     if (storyId) {
       try {
@@ -428,16 +461,42 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               { text: "Hủy", style: "cancel" },
               {
                 text: "Chặn", style: "destructive", onPress: async () => {
+                  // Use ref for immediate access to freshness
+                  const userToBlockRef = currentStoryUserRef.current;
+                  console.log("Blocking user (ref)...", userToBlockRef);
+
                   try {
-                    if (currentStoryUser) {
-                      await blockUser(currentStoryUser.id || currentStoryUser.uid);
-                      Toast.show({ type: "success", text1: "Đã chặn người dùng" });
+                    let userToBlock = userToBlockRef;
+
+                    // Fallback using currentStory if user is missing
+                    if (!userToBlock && currentStory) {
+                      const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStory));
+                      if (foundUser) {
+                        userToBlock = { id: foundUser.uid, username: foundUser.id };
+                      }
+                    }
+
+                    if (userToBlock) {
+                      await blockUser(userToBlock.id || userToBlock.uid);
+
+                      // Handle potential username mismatch in object structure
+                      const usernameToBlock = userToBlock.username || userToBlock.id;
+                      await blockUserInContext(usernameToBlock);
+
+                      // Force a small delay to ensure modal close animation doesn't conflict with Alert
                       dismissStoryModal();
-                      // Refresh stories?
+                      setTimeout(() => {
+                        Alert.alert("Thành công", "Đã chặn người dùng");
+                      }, 500);
+
                       fetchStories();
+                    } else {
+                      console.error("No user found to block");
+                      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
                     }
                   } catch (e) {
-                    Toast.show({ type: "error", text1: "Lỗi", text2: e.message });
+                    console.error("Block error:", e);
+                    Alert.alert("Lỗi", e.message || "Có lỗi xảy ra");
                   }
                 }
               }
@@ -459,8 +518,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const fetchStories = async () => {
     try {
+      console.log("HomeScreen fetching stories. BlockedUsers:", blockedUsers);
       const response = await getStories();
       if (response?.data) {
+        console.log("Stories fetched:", response.data.data?.length);
         const formattedStories = transformStoriesData(response);
         setUserStories(formattedStories);
       }
@@ -471,7 +532,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   useEffect(() => {
     fetchStories();
-  }, []);
+  }, [blockedUsers]);
 
   const transformStoriesData = (apiResponse) => {
     if (!apiResponse?.data) return [];
@@ -1021,7 +1082,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const filteredFeed = useMemo(() => {
     if (!feed) return null;
     if (blockedUsers && blockedUsers.length > 0) {
-      return feed.filter((post) => !blockedUsers.includes(post.user.username));
+      return feed.filter((post) => !blockedUsers.includes(post.user?.username));
     }
     return feed;
   }, [feed, blockedUsers]);
@@ -1089,13 +1150,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         });
 
         // Optionally navigate to conversation after sending reply
+        // Optionally navigate to conversation after sending reply
         if (response?.data?.conversation_id && navigation) {
           // Navigate to conversation screen to see the sent message
-          navigation.navigate("ChatScreen", {
-            screen: "ConversationScreen",
-            params: {
-              conversationId: response.data.conversation_id,
-            },
+          navigation.navigate("ConversationScreen", {
+            conversationId: response.data.conversation_id,
           });
         }
       } catch (error) {
@@ -1326,6 +1385,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           storyAvatarSize={30}
+          onStoryHeaderPress={(userId) => {
+            console.log("Global Story Header Pressed for:", userId);
+            if (userId) {
+              const username = userId; // In my transform, id IS the username
+              dismissStoryModal();
+              setTimeout(() => {
+                navigation.navigate("ProfileScreen", {
+                  username: username,
+                });
+              }, 300);
+            }
+          }}
           onMore={handleStoryOptions}
           onShow={handleStoryShow}
           onHide={handleStoryHide}

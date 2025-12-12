@@ -66,6 +66,49 @@ const ArchiveScreen = ({ route, navigation }) => {
         },
         duration: 10,
         date: story.created_at_human,
+        renderFooter: () => (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 20,
+              left: 0,
+              right: 0,
+              paddingHorizontal: 16,
+              zIndex: 9999,
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                storyRef.current?.hide();
+                setTimeout(() => {
+                  navigation.navigate("StoryViewersScreen", {
+                    storyId: story.id,
+                  });
+                }, 100);
+              }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "rgba(0,0,0,0.5)",
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+                borderRadius: 20,
+              }}
+            >
+              <Ionicons name="eye" size={20} color="#fff" />
+              <Text style={{ color: "white", marginLeft: 8, fontWeight: 'bold' }}>
+                {story.viewers_count} người xem
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={{ padding: 10 }}>
+              <Ionicons name="heart" size={24} color={story.user_has_liked ? "#ff3b30" : "#fff"} />
+            </TouchableOpacity>
+          </View>
+        ),
       })),
     };
   };

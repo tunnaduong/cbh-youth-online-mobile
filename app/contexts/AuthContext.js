@@ -4,6 +4,7 @@ import {
   logoutRequest,
   getCurrentUser,
   reportUser,
+  getBlockedUsers,
 } from "../services/api/Api";
 import { storage } from "../global/storage";
 
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const token = await AsyncStorage.getItem("auth_token");
         const storedUserInfo = await AsyncStorage.getItem("user_info");
-        const storedBlockedUsers = await AsyncStorage.getItem("blocked_users");
+        // const storedBlockedUsers = await AsyncStorage.getItem("blocked_users"); // Legacy
 
         setIsLoggedIn(!!token);
 
@@ -40,9 +41,30 @@ export const AuthProvider = ({ children }) => {
           setEmailVerifiedAt(null);
         }
 
-        if (storedBlockedUsers) {
-          setBlockedUsers(JSON.parse(storedBlockedUsers));
+        // Sync Blocked Users from API if logged in
+        if (token) {
+          try {
+            const response = await getBlockedUsers();
+            if (response?.data) {
+              // Assuming API returns list of user objects with 'username' field
+              const blockedUsernames = response.data.map(u => u.username);
+              console.log("Synced blocked users from API:", blockedUsernames);
+              setBlockedUsers(blockedUsernames);
+              await AsyncStorage.setItem("blocked_users", JSON.stringify(blockedUsernames));
+            }
+          } catch (apiError) {
+            console.error("Failed to sync blocked users from API:", apiError);
+            // Fallback to local storage if API fails
+            const storedBlockedUsers = await AsyncStorage.getItem("blocked_users");
+            if (storedBlockedUsers) {
+              setBlockedUsers(JSON.parse(storedBlockedUsers));
+            }
+          }
+        } else {
+          // Not logged in, clear or blocked users irrelevant
+          setBlockedUsers([]);
         }
+
       } catch (e) {
         console.error("Failed to load user data:", e);
       } finally {
@@ -62,6 +84,18 @@ export const AuthProvider = ({ children }) => {
     setProfileName(user.profile_name || null);
     setUserInfo(user);
     setEmailVerifiedAt(user.email_verified_at || null);
+
+    // Fetch blocked users on sign in
+    try {
+      const response = await getBlockedUsers();
+      if (response?.data) {
+        const blockedUsernames = response.data.map(u => u.username);
+        setBlockedUsers(blockedUsernames);
+        await AsyncStorage.setItem("blocked_users", JSON.stringify(blockedUsernames));
+      }
+    } catch (e) {
+      console.error("Error fetching blocked users on login:", e);
+    }
   };
 
   const signOut = async () => {
@@ -103,7 +137,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const unblockUser = async (userToUnblock) => {
+    console.log("AuthContext unblockUser:", userToUnblock);
+    console.log("Current blockedUsers:", blockedUsers);
     const newBlocked = blockedUsers.filter((u) => u !== userToUnblock);
+    console.log("New blockedUsers:", newBlocked);
     setBlockedUsers(newBlocked);
     await AsyncStorage.setItem("blocked_users", JSON.stringify(newBlocked));
   };
@@ -155,6 +192,9 @@ export const AuthProvider = ({ children }) => {
         signIn,
         signOut,
         blockedUsers,
+        blockUserInContext: blockUser,
+        unblockUserInContext: unblockUser,
+        // Keep old names for backward compatibility if needed, but prefer InContext variants
         blockUser,
         unblockUser,
       }}

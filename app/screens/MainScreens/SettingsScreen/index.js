@@ -174,10 +174,7 @@ export default function SettingsScreen({ navigation }) {
             icon="ban-outline"
             title="Chặn"
             onPress={() => {
-              Toast.show({
-                type: "info",
-                text1: "Tính năng đang được phát triển",
-              });
+              navigation.navigate("BlockedUsersScreen");
             }}
           />
           <SettingItem

@@ -46,6 +46,7 @@ import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
 
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
+import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 
 const Stack = createStackNavigator();
 
@@ -208,6 +209,13 @@ function AppNavigator() {
               <Stack.Screen
                 name="SecurityScreen"
                 component={SecurityScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="BlockedUsersScreen"
+                component={BlockedUsersScreen}
                 options={{
                   headerShown: false,
                 }}

@@ -278,10 +278,10 @@ index 0000000..bdfecc6
 +-export default memo( ProgressItem );
 ++export default memo(ProgressItem);
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
-index 32010ab..be563ad 100644
+index 32010ab..0ba2a35 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
-@@ -1,57 +1,85 @@
+@@ -1,57 +1,95 @@
 -import React, { FC, memo } from 'react';
 -import {
 -  View, Text, Image, TouchableOpacity,
@@ -318,6 +318,8 @@ index 32010ab..be563ad 100644
 +  renderStoryHeader,
 +  onStoryHeaderPress,
 +  onMore,
++  userId,
++  ...rest
 +}) => {
 +  const styles = {
 +    width: avatarSize,
@@ -333,8 +335,17 @@ index 32010ab..be563ad 100644
 -      <View
 -        style={[ HeaderStyles.container, { width }, headerContainerStyle ]}
 -      >
+-        {renderStoryHeader()}
 +      <View style={[HeaderStyles.container, { width }, headerContainerStyle]}>
-         {renderStoryHeader()}
++        {renderStoryHeader({ 
++          avatarSource, 
++          name, 
++          date, 
++          onClose, 
++          onMore,
++          userId,
++          ...rest 
++        })}
        </View>
      );
 -
@@ -358,7 +369,7 @@ index 32010ab..be563ad 100644
 -          <View style={[ HeaderStyles.avatar, { borderRadius: styles.borderRadius } ]}>
 +      <Pressable
 +        style={[HeaderStyles.left, headerStyle]}
-+        onPress={() => onStoryHeaderPress?.()}
++        onPress={() => onStoryHeaderPress?.(userId)}
 +      >
 +        {Boolean(avatarSource) && (
 +          <View
@@ -406,7 +417,7 @@ index 32010ab..be563ad 100644
 -export default memo( StoryHeader );
 +export default memo(StoryHeader);
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
-index 9fa47d8..607d96f 100644
+index 9fa47d8..3973562 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
 @@ -1,6 +1,6 @@
@@ -448,7 +459,7 @@ index 9fa47d8..607d96f 100644
                progressContainerStyle={progressContainerStyle}
              />
 -            <StoryHeader {...props} />
-+            <StoryHeader {...props} date={currentStoryDate} />
++            <StoryHeader {...props} date={currentStoryDate} userId={id} />
              <StoryContent stories={stories} active={isActive} activeStory={activeStory} />
            </Animated.View>
          </Animated.View>
