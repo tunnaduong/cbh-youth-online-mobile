@@ -89,6 +89,7 @@ const SettingSection = ({ title, children, titleColor }) => {
 
 export default function BlockedUsersScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { unblockUserInContext } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
