@@ -50,7 +50,16 @@ axiosInstance.interceptors.response.use(
         await axiosInstance.post("/v1.0/online-status");
       }
     } catch (error) {
-      console.error("Error updating online status:", error);
+      console.error("--- ONLINE STATUS UPDATE ERROR ---");
+      if (error.response) {
+        console.error("Status:", error.response.status);
+        console.error("Error Data:", JSON.stringify(error.response.data, null, 2));
+        console.error("Request URL:", error.config.url);
+        console.error("Authorization Header:", error.config.headers?.Authorization ? "Present" : "Missing");
+      } else {
+        console.error("Message:", error.message);
+      }
+      console.error("----------------------------------");
     }
     return response;
   },
