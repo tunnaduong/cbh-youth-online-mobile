@@ -20,6 +20,9 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import {
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
@@ -37,8 +40,10 @@ import PostItem from "../../../components/PostItem";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { reportUser } from "../../../services/api/Api";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const PostScreen = ({ route, navigation }) => {
+  const { theme, isDarkMode } = useTheme();
   const { item, postId, screenName } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
@@ -60,6 +65,8 @@ const PostScreen = ({ route, navigation }) => {
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const isCurrentUser = post?.author?.username === username;
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const headerHeight = 50 + insets.top;
 
   React.useEffect(() => {
     fetchData();
@@ -84,9 +91,9 @@ const PostScreen = ({ route, navigation }) => {
             <Ionicons
               name={isSaved ? "bookmark" : "bookmark-outline"}
               size={23}
-              color={isSaved ? "#000" : undefined}
+              color={isSaved ? theme.primary : theme.text}
             />
-            <Text style={{ padding: 12, fontSize: 17 }}>
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
               {isSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
             </Text>
           </View>
@@ -99,9 +106,9 @@ const PostScreen = ({ route, navigation }) => {
             hideBottomSheet();
           }}
         >
-          <View className="flex-row items-center">
-            <Ionicons name="share-outline" size={23} />
-            <Text style={{ padding: 12, fontSize: 17 }}>Chia sẻ</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons name="share-outline" size={23} color={theme.text} />
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>Chia sẻ</Text>
           </View>
         </TouchableOpacity>
         {isCurrentUser && (
@@ -122,8 +129,8 @@ const PostScreen = ({ route, navigation }) => {
             }}
           >
             <View className="flex-row items-center">
-              <Ionicons name="create-outline" size={23} />
-              <Text style={{ padding: 12, fontSize: 17 }}>
+              <Ionicons name="create-outline" size={23} color={theme.text} />
+              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
                 Chỉnh sửa bài đăng
               </Text>
             </View>
@@ -213,7 +220,7 @@ const PostScreen = ({ route, navigation }) => {
           onPress={handleOpenBottomSheet}
           style={{ marginRight: 16 }}
         >
-          <Ionicons name="ellipsis-horizontal" size={24} color="#319527" />
+          <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
         </TouchableOpacity>
       ),
     });
@@ -829,7 +836,7 @@ const PostScreen = ({ route, navigation }) => {
                 },
                 border && {
                   borderLeftWidth: 3,
-                  borderLeftColor: "#e4eee3",
+                  borderLeftColor: isDarkMode ? "#2e4e2a" : "#e4eee3",
                   paddingLeft: 10,
                 },
               ]}
@@ -843,10 +850,14 @@ const PostScreen = ({ route, navigation }) => {
                 }
               >
                 <View
-                  className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden"
                   style={{
+                    backgroundColor: theme.background,
+                    width: 42,
+                    height: 42,
+                    borderRadius: 21,
+                    overflow: "hidden",
                     borderWidth: 1,
-                    borderColor: "#dee2e6",
+                    borderColor: theme.border,
                   }}
                 >
                   {author.username && (
@@ -868,36 +879,35 @@ const PostScreen = ({ route, navigation }) => {
                     })
                   }
                 >
-                  <Text style={{ fontWeight: "bold", color: "#319527" }}>
+                  <Text style={{ fontWeight: "bold", color: theme.primary }}>
                     {author.profile_name || author.username || "Ẩn danh"}
                     {author.verified && (
                       <View>
                         <Verified
                           width={15}
                           height={15}
-                          color={"#319527"}
+                          color={theme.primary}
                           style={{ marginBottom: -3 }}
                         />
                       </View>
                     )}
                   </Text>
                 </Pressable>
-                {/* Show notification if parent comment was deleted */}
                 {comment.deleted_parent_username && (
                   <View
                     style={{
                       marginVertical: 8,
                       paddingHorizontal: 12,
                       paddingVertical: 8,
-                      backgroundColor: "#f3f4f6",
+                      backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6",
                       borderRadius: 8,
                       borderWidth: 1,
-                      borderColor: "#e5e7eb",
+                      borderColor: theme.border,
                     }}
                   >
-                    <Text style={{ fontSize: 12, color: "#6b7280" }}>
+                    <Text style={{ fontSize: 12, color: theme.subText }}>
                       Bình luận mà{" "}
-                      <Text style={{ fontWeight: "600" }}>
+                      <Text style={{ fontWeight: "600", color: theme.text }}>
                         {author.profile_name || author.username || "Ẩn danh"}
                       </Text>{" "}
                       đang phản hồi đã bị xóa
@@ -907,6 +917,7 @@ const PostScreen = ({ route, navigation }) => {
                 <Text
                   style={{
                     flexShrink: 1,
+                    color: theme.text,
                   }}
                 >
                   {String(content)}
@@ -924,7 +935,7 @@ const PostScreen = ({ route, navigation }) => {
                       )
                     }
                   >
-                    <Text className="text-gray-500 font-bold text-[12px]">
+                    <Text style={{ color: theme.subText, fontWeight: "bold", fontSize: 12 }}>
                       {" "}
                       Trả lời
                     </Text>
@@ -945,14 +956,14 @@ const PostScreen = ({ route, navigation }) => {
                             vote.username === username && vote.vote_value === 1
                         )
                           ? "#22c55e"
-                          : "#9ca3af"
+                          : theme.subText
                       }
                     />
                   </TouchableOpacity>
                   <Text
                     style={[
                       { fontSize: 14, fontWeight: "600" },
-                      { color: "#9ca3af", textAlign: "center" },
+                      { color: theme.subText, textAlign: "center" },
                       votes.some(
                         (vote) =>
                           vote.username === username && vote.vote_value === 1
@@ -964,7 +975,7 @@ const PostScreen = ({ route, navigation }) => {
                             vote.vote_value === -1
                         )
                           ? { color: "#ef4444" }
-                          : { color: "#9ca3af" },
+                          : { color: theme.subText },
                     ]}
                   >
                     {votes.reduce(
@@ -984,7 +995,7 @@ const PostScreen = ({ route, navigation }) => {
                             vote.username === username && vote.vote_value === -1
                         )
                           ? "#ef4444"
-                          : "#9ca3af"
+                          : theme.subText
                       }
                     />
                   </TouchableOpacity>
@@ -1017,16 +1028,16 @@ const PostScreen = ({ route, navigation }) => {
       style={{
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "white",
+        backgroundColor: theme.background,
         flex: 1,
       }}
     ></View>
   ) : (
     <>
       <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: "white" }}
-        behavior={"padding"}
-        keyboardVerticalOffset={110}
+        style={{ flex: 1, backgroundColor: theme.background }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={headerHeight}
       >
         <SafeAreaView
           style={{
@@ -1035,7 +1046,7 @@ const PostScreen = ({ route, navigation }) => {
         >
           <ScrollView
             contentContainerStyle={{
-              backgroundColor: "white",
+              backgroundColor: theme.background,
             }}
             ref={scrollViewRef}
           >
@@ -1050,10 +1061,10 @@ const PostScreen = ({ route, navigation }) => {
               screenName={screenName}
             />
             {/* comment section */}
-            <View className="px-[15px] mb-4">
-              <Text className="font-bold text-[20px] my-4">Bình luận</Text>
+            <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
+              <Text style={{ fontWeight: "bold", fontSize: 20, marginVertical: 16, color: theme.text }}>Bình luận</Text>
               {comments.length === 0 ? (
-                <Text className="text-gray-500">Chưa có bình luận nào</Text>
+                <Text style={{ color: theme.subText }}>Chưa có bình luận nào</Text>
               ) : (
                 comments.map((comment) => (
                   <Comment
@@ -1072,12 +1083,12 @@ const PostScreen = ({ route, navigation }) => {
                 alignItems: "center",
                 paddingHorizontal: 15,
                 paddingVertical: 10,
-                backgroundColor: "#f3f4f6",
+                backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6",
                 borderTopWidth: 1,
-                borderTopColor: "#e5e7eb",
+                borderTopColor: theme.border,
               }}
             >
-              <Text style={{ color: "#6b7280", fontSize: 14, flex: 1 }}>
+              <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }}>
                 {editingCommentId
                   ? "Đang chỉnh sửa bình luận..."
                   : `Đang trả lời bình luận của ${replyingTo}...`}
@@ -1093,7 +1104,7 @@ const PostScreen = ({ route, navigation }) => {
                 style={{
                   marginLeft: 10,
                   padding: 5,
-                  backgroundColor: "#e5e7eb",
+                  backgroundColor: isDarkMode ? "#374151" : "#e5e7eb",
                   borderRadius: 50,
                 }}
               >
@@ -1101,35 +1112,23 @@ const PostScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           )}
+
+          <CommentBar
+            value={commentText}
+            onChangeText={setCommentText}
+            placeholderText="Viết bình luận..."
+            onSubmit={onSubmit}
+            ref={commentInputRef}
+            isSubmitting={isSubmitting}
+            disabled={!commentText.trim() || isSubmitting}
+          />
+
           <ReportModal
             visible={reportModalVisible}
             onClose={() => setReportModalVisible(false)}
             onSubmit={handleReportSubmit}
           />
         </SafeAreaView>
-      </KeyboardAvoidingView>
-      {/* Keyboard Avoiding View for Comment Input */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0} // Adjust based on your header height
-      >
-        <CommentBar
-          commentText={commentText}
-          setCommentText={setCommentText}
-          onSubmit={onSubmit}
-          inputRef={commentInputRef}
-          replyingTo={replyingTo}
-          onCancelReply={() => {
-            setParentId(null);
-            setReplyingTo(null);
-          }}
-          isSubmitting={isSubmitting}
-          editingCommentId={editingCommentId}
-          onCancelEdit={() => {
-            setEditingCommentId(null);
-            setEditingCommentText("");
-          }}
-        />
       </KeyboardAvoidingView>
     </>
   );

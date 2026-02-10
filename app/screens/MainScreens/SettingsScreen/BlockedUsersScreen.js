@@ -13,6 +13,7 @@ import {
   Platform,
   Switch,
   Image,
+  StatusBar,
 } from "react-native";
 import React, { useContext, useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,6 +28,7 @@ import {
   unblockUser,
 } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const SettingItem = ({
   icon,
@@ -37,49 +39,51 @@ const SettingItem = ({
   chevron = true,
   lastItem = false,
   color = "#000",
+  theme,
 }) => (
   <TouchableOpacity
-    style={[styles.settingItem, lastItem && styles.lastSettingItem]}
+    style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}
     onPress={onPress}
     disabled={isSwitch}
   >
     <View style={styles.settingItemLeft}>
       <View style={styles.settingItemIcon}>
-        <Ionicons name={icon} size={22} color={color === "#FF3B30" ? color : "#666"} />
+        <Ionicons name={icon} size={22} color={color === "#FF3B30" ? color : theme.subText} />
       </View>
-      <Text style={[styles.settingItemText, { color }]}>{title}</Text>
+      <Text style={[styles.settingItemText, { color: color === "#FF3B30" ? color : theme.text }]}>{title}</Text>
     </View>
     {isSwitch ? (
       <Switch
         value={value}
         onValueChange={onPress}
-        trackColor={{ true: "#319527" }}
+        trackColor={{ true: theme.primary }}
       />
     ) : value ? (
       <View style={styles.settingItemRight}>
-        <Text style={styles.valueText}>{value}</Text>
+        <Text style={[styles.valueText, { color: theme.subText }]}>{value}</Text>
         {chevron && (
-          <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+          <Ionicons name="chevron-forward" size={20} color={theme.subText} />
         )}
       </View>
     ) : (
-      chevron && <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+      chevron && <Ionicons name="chevron-forward" size={20} color={theme.subText} />
     )}
   </TouchableOpacity>
 );
 
-const SettingSection = ({ title, children, titleColor }) => {
+const SettingSection = ({ title, children, titleColor, theme, isDarkMode }) => {
   const childrenArray = React.Children.toArray(children);
 
   return (
-    <View style={styles.settingSection}>
-      <Text style={[styles.sectionTitle, titleColor && { color: titleColor }]}>
+    <View style={[styles.settingSection, { backgroundColor: isDarkMode ? "#1f2937" : "#FAFAFA" }]}>
+      <Text style={[styles.sectionTitle, { color: titleColor || theme.primary }]}>
         {title}
       </Text>
       <View style={styles.sectionContent}>
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
+            theme,
           })
         )}
       </View>
@@ -89,6 +93,7 @@ const SettingSection = ({ title, children, titleColor }) => {
 
 export default function BlockedUsersScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const { unblockUserInContext } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState([]);
@@ -154,44 +159,45 @@ export default function BlockedUsersScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Người dùng đã chặn</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>Người dùng đã chặn</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {loading ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <ActivityIndicator color="#319527" />
+          <ActivityIndicator color={theme.primary} />
         </View>
       ) : blockedUsers.length === 0 ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-          <Ionicons name="people-outline" size={50} color="#ccc" />
-          <Text style={{ marginTop: 10, color: "#666" }}>Bạn chưa chặn ai cả</Text>
+          <Ionicons name="people-outline" size={50} color={theme.subText} />
+          <Text style={{ marginTop: 10, color: theme.subText }}>Bạn chưa chặn ai cả</Text>
         </View>
       ) : (
         <ScrollView style={styles.content}>
           {blockedUsers.map((user) => (
-            <View key={user.id} style={styles.userItem}>
+            <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <Image
                   source={{ uri: user.profile?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar` }}
-                  style={styles.avatar}
+                  style={[styles.avatar, { backgroundColor: isDarkMode ? "#374151" : "#eee" }]}
                 />
                 <View style={{ marginLeft: 12 }}>
-                  <Text style={styles.userName}>{user.profile?.profile_name || user.username}</Text>
-                  <Text style={styles.userUsername}>@{user.username}</Text>
+                  <Text style={[styles.userName, { color: theme.text }]}>{user.profile?.profile_name || user.username}</Text>
+                  <Text style={[styles.userUsername, { color: theme.subText }]}>@{user.username}</Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={styles.unblockButton}
+                style={[styles.unblockButton, { borderColor: theme.primary }]}
                 onPress={() => handleUnblock(user.id, user.username)}
               >
-                <Text style={styles.unblockText}>Bỏ chặn</Text>
+                <Text style={[styles.unblockText, { color: theme.primary }]}>Bỏ chặn</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -205,7 +211,6 @@ export default function BlockedUsersScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -214,20 +219,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
     height: 50,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   content: {
     flex: 1,
   },
   settingSection: {
     marginBottom: 24,
-    backgroundColor: "#FAFAFA",
     margin: 15,
     borderRadius: 15,
     paddingTop: 20,
@@ -235,7 +237,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#319527",
     marginLeft: 16,
     marginBottom: 8,
   },
@@ -243,7 +244,6 @@ const styles = StyleSheet.create({
     // backgroundColor: "#fff",
   },
   settingItemIcon: {
-    backgroundColor: "#F1F1F1",
     padding: 7,
     borderRadius: 30,
     marginRight: 12,
@@ -255,7 +255,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#E5E5E5",
   },
   lastSettingItem: {
     borderBottomWidth: 0,
@@ -266,7 +265,6 @@ const styles = StyleSheet.create({
   },
   settingItemText: {
     fontSize: 16,
-    color: "#000",
   },
   settingItemRight: {
     flexDirection: "row",
@@ -274,7 +272,6 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontSize: 14,
-    color: "#666",
     marginRight: 8,
   },
   centeredView: {
@@ -285,7 +282,6 @@ const styles = StyleSheet.create({
   },
   modalView: {
     width: "90%",
-    backgroundColor: "white",
     borderRadius: 20,
     padding: 20,
     alignItems: "center",
@@ -307,14 +303,12 @@ const styles = StyleSheet.create({
   modalText: {
     marginBottom: 15,
     textAlign: "center",
-    color: "#666",
     fontSize: 14,
     lineHeight: 20,
   },
   input: {
     width: "100%",
     height: 44,
-    borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 8,
     marginBottom: 12,
@@ -350,32 +344,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
   },
   avatar: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#eee',
   },
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
   userUsername: {
     fontSize: 14,
-    color: '#666',
   },
   unblockButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#319527',
   },
   unblockText: {
-    color: '#319527',
     fontSize: 14,
     fontWeight: '500',
   },

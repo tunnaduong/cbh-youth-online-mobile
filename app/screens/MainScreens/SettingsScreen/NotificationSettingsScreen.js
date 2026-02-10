@@ -8,6 +8,7 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,6 +17,7 @@ import {
   getNotificationSettings,
   updateNotificationSettings,
 } from "../../../services/api/Api";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const SettingItem = ({
   icon,
@@ -26,20 +28,22 @@ const SettingItem = ({
   isSwitch,
   lastItem = false,
   disabled = false,
+  theme,
+  isDarkMode,
 }) => (
-  <View style={[styles.settingItem, lastItem && styles.lastSettingItem]}>
+  <View style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}>
     <View style={styles.settingItemLeft}>
       {icon && (
-        <View style={styles.settingItemIcon}>
-          <Ionicons name={icon} size={22} color="#666" />
+        <View style={[styles.settingItemIcon, { backgroundColor: isDarkMode ? "#374151" : "#F1F1F1" }]}>
+          <Ionicons name={icon} size={22} color={theme.subText} />
         </View>
       )}
       <View style={{ flex: 1, marginRight: 8 }}>
-        <Text style={[styles.settingItemText, disabled && { color: "#999" }]}>
+        <Text style={[styles.settingItemText, { color: theme.text }, disabled && { color: theme.subText }]}>
           {title}
         </Text>
         {description && (
-          <Text style={styles.settingItemDescription}>{description}</Text>
+          <Text style={[styles.settingItemDescription, { color: theme.subText }]}>{description}</Text>
         )}
       </View>
     </View>
@@ -48,27 +52,29 @@ const SettingItem = ({
         value={value}
         onValueChange={onPress}
         disabled={disabled}
-        trackColor={{ true: "#319527" }}
+        trackColor={{ true: theme.primary }}
       />
     ) : (
       <TouchableOpacity onPress={onPress} disabled={disabled}>
-        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+        <Ionicons name="chevron-forward" size={20} color={theme.subText} />
       </TouchableOpacity>
     )}
   </View>
 );
 
-const SettingSection = ({ title, children }) => {
+const SettingSection = ({ title, children, theme, isDarkMode }) => {
   const childrenArray = React.Children.toArray(children);
 
   return (
-    <View style={styles.settingSection}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.settingSection, { backgroundColor: isDarkMode ? "#1f2937" : "#FAFAFA" }]}>
+      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
       <View style={styles.sectionContent}>
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
             key: index,
+            theme,
+            isDarkMode,
           })
         )}
       </View>
@@ -78,6 +84,7 @@ const SettingSection = ({ title, children }) => {
 
 export default function NotificationSettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -197,25 +204,26 @@ export default function NotificationSettingsScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#319527" />
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thông báo</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>Thông báo</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView>
-        <SettingSection title="Thông báo đẩy">
+        <SettingSection title="Thông báo đẩy" theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="notifications-outline"
             title="Cho phép thông báo"
@@ -223,18 +231,22 @@ export default function NotificationSettingsScreen({ navigation }) {
             isSwitch
             value={pushEnabled}
             onPress={(v) => handleToggle('pushEnabled', v)}
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
         </SettingSection>
 
         {pushEnabled && (
           <>
-            <SettingSection title="Tương tác">
+            <SettingSection title="Tương tác" theme={theme} isDarkMode={isDarkMode}>
               <SettingItem
                 icon="heart-outline"
                 title="Lượt thích"
                 isSwitch
                 value={likesEnabled}
                 onPress={(v) => handleToggle('likesEnabled', v)}
+                theme={theme}
+                isDarkMode={isDarkMode}
               />
               <SettingItem
                 icon="chatbubble-outline"
@@ -242,6 +254,8 @@ export default function NotificationSettingsScreen({ navigation }) {
                 isSwitch
                 value={commentsEnabled}
                 onPress={(v) => handleToggle('commentsEnabled', v)}
+                theme={theme}
+                isDarkMode={isDarkMode}
               />
               <SettingItem
                 icon="at-outline"
@@ -250,10 +264,12 @@ export default function NotificationSettingsScreen({ navigation }) {
                 value={mentionsEnabled}
                 onPress={(v) => handleToggle('mentionsEnabled', v)}
                 lastItem
+                theme={theme}
+                isDarkMode={isDarkMode}
               />
             </SettingSection>
 
-            <SettingSection title="Kết nối">
+            <SettingSection title="Kết nối" theme={theme} isDarkMode={isDarkMode}>
               <SettingItem
                 icon="person-add-outline"
                 title="Người theo dõi mới"
@@ -263,6 +279,8 @@ export default function NotificationSettingsScreen({ navigation }) {
                   handleToggle('followsEnabled', v);
                   setMessagesEnabled(v); // Sync simply for UI, backend treats as one
                 }}
+                theme={theme}
+                isDarkMode={isDarkMode}
               />
               <SettingItem
                 icon="mail-outline"
@@ -274,12 +292,14 @@ export default function NotificationSettingsScreen({ navigation }) {
                   setFollowsEnabled(v); // Sync simply for UI
                 }}
                 lastItem
+                theme={theme}
+                isDarkMode={isDarkMode}
               />
             </SettingSection>
           </>
         )}
 
-        <SettingSection title="Khác">
+        <SettingSection title="Khác" theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="mail-open-outline"
             title="Email thông báo"
@@ -287,6 +307,8 @@ export default function NotificationSettingsScreen({ navigation }) {
             isSwitch
             value={emailEnabled}
             onPress={(v) => handleToggle('emailEnabled', v)}
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
           <SettingItem
             icon="newspaper-outline"
@@ -295,6 +317,8 @@ export default function NotificationSettingsScreen({ navigation }) {
             value={newsEnabled}
             onPress={(v) => handleToggle('newsEnabled', v)}
             lastItem
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
         </SettingSection>
       </ScrollView>
@@ -305,7 +329,6 @@ export default function NotificationSettingsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   centerContent: {
     justifyContent: "center",
@@ -318,17 +341,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
     height: 50,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   settingSection: {
     marginBottom: 24,
-    backgroundColor: "#FAFAFA",
     margin: 15,
     borderRadius: 15,
     paddingTop: 20,
@@ -336,7 +356,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#319527",
     marginLeft: 16,
     marginBottom: 8,
   },
@@ -344,7 +363,6 @@ const styles = StyleSheet.create({
     // backgroundColor: "#fff",
   },
   settingItemIcon: {
-    backgroundColor: "#F1F1F1",
     padding: 7,
     borderRadius: 30,
     marginRight: 12,
@@ -356,7 +374,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#E5E5E5",
   },
   lastSettingItem: {
     borderBottomWidth: 0,
@@ -368,11 +385,9 @@ const styles = StyleSheet.create({
   },
   settingItemText: {
     fontSize: 16,
-    color: "#000",
   },
   settingItemDescription: {
     fontSize: 12,
-    color: "#666",
     marginTop: 2,
   },
 });

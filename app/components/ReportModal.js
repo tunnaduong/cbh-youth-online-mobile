@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 const ReportModal = ({ visible, onClose, onSubmit }) => {
   const [reason, setReason] = useState('');
+  const { theme, isDarkMode } = useTheme();
 
   const handleSubmit = () => {
     if (!reason.trim()) return;
@@ -18,11 +20,16 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
               <TouchableWithoutFeedback>
-                <View style={styles.content}>
-                  <Text style={styles.title}>Báo cáo vi phạm</Text>
+                <View style={[styles.content, { backgroundColor: theme.cardBackground }]}>
+                  <Text style={[styles.title, { color: theme.text }]}>Báo cáo vi phạm</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, {
+                      backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
+                      borderColor: theme.border,
+                      color: theme.text
+                    }]}
                     placeholder="Nhập lý do báo cáo (tối thiểu 10 ký tự)..."
+                    placeholderTextColor={theme.subText}
                     multiline
                     value={reason}
                     onChangeText={setReason}
@@ -30,11 +37,11 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
                   />
                   <View style={styles.buttons}>
                     <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
-                      <Text style={styles.cancelText}>Hủy</Text>
+                      <Text style={[styles.cancelText, { color: theme.subText }]}>Hủy</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={handleSubmit}
-                      style={[styles.submitButton, !reason.trim() && styles.disabled]}
+                      style={[styles.submitButton, { backgroundColor: theme.primary }, !reason.trim() && styles.disabled]}
                       disabled={!reason.trim()}
                     >
                       <Text style={styles.submitText}>Gửi báo cáo</Text>
@@ -65,7 +72,6 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '85%',
-    backgroundColor: 'white',
     borderRadius: 14,
     padding: 20,
     shadowColor: "#000",
@@ -82,17 +88,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 15,
     textAlign: 'center',
-    color: '#333'
   },
   input: {
     height: 120,
-    borderColor: '#e5e7eb',
     borderWidth: 1,
     borderRadius: 8,
     padding: 12,
     textAlignVertical: 'top',
     marginBottom: 20,
-    backgroundColor: '#f9fafb',
     fontSize: 16
   },
   buttons: {
@@ -108,16 +111,13 @@ const styles = StyleSheet.create({
   submitButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
-    backgroundColor: '#319527',
     borderRadius: 6
   },
   disabled: {
     opacity: 0.5,
-    backgroundColor: '#a5d6a7'
   },
   cancelText: {
     fontWeight: '600',
-    color: '#6b7280'
   },
   submitText: {
     fontWeight: '600',

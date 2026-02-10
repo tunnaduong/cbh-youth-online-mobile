@@ -48,13 +48,16 @@ import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScr
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 
+import { useTheme } from "./app/contexts/ThemeContext";
+
 const Stack = createStackNavigator();
 
-// Create a separate navigator component that uses the insets
-function AppNavigator() {
+// Main App component
+const App = () => {
+  const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
-  const insets = useSafeAreaInsets(); // Now this will work properly
 
   const handleSplashFinish = () => {
     setShowSplash(false);
@@ -62,7 +65,7 @@ function AppNavigator() {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
         <LottieView
           source={require("./app/assets/refresh.json")}
           style={{
@@ -72,7 +75,7 @@ function AppNavigator() {
           loop
           autoPlay
         />
-        <Text>Đang tải...</Text>
+        <Text style={{ color: theme.text }}>Đang tải...</Text>
       </View>
     );
   }
@@ -83,13 +86,26 @@ function AppNavigator() {
 
   return (
     <>
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={Platform.OS === "android" ? theme.headerBackground : "transparent"}
+        translucent={Platform.OS === "android"}
+      />
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{
             headerStyle: {
-              height: 50 + insets.top, // Now this will work properly
-              backgroundColor: "#fff",
+              height: 50 + insets.top,
+              backgroundColor: theme.headerBackground,
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 0,
+              shadowOffset: { height: 0, width: 0 },
             },
+            headerTitleStyle: {
+              color: theme.text,
+            },
+            headerTintColor: theme.primary,
             headerTitleContainerStyle: {
               paddingVertical: 10,
             },
@@ -122,7 +138,18 @@ function AppNavigator() {
                 options={{
                   title: "Chi tiết bài viết",
                   headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: "#319527",
+                  headerTintColor: theme.primary,
+                  headerStyle: {
+                    height: 50 + insets.top,
+                    backgroundColor: theme.headerBackground,
+                    elevation: 0,
+                    shadowOpacity: 0,
+                    borderBottomWidth: 0,
+                    shadowOffset: { height: 0, width: 0 },
+                  },
+                  headerTitleStyle: {
+                    color: theme.text,
+                  }
                 }}
                 component={PostScreen}
               />
@@ -250,13 +277,13 @@ function AppNavigator() {
               />
               <Stack.Screen
                 name="CreateStory"
-                component={CreateStoryScreen}
                 options={{
                   headerShown: false,
                   presentation: "transparentModal",
                   animation: "slide_from_bottom",
                   gestureEnabled: false,
                 }}
+                component={CreateStoryScreen}
               />
               <Stack.Screen
                 name="CategoryScreen"
@@ -275,13 +302,13 @@ function AppNavigator() {
               />
               <Stack.Screen
                 name="NewConversationScreen"
-                component={NewConversationScreen}
                 options={{
                   headerShown: false,
                   presentation: "transparentModal",
                   animation: "slide_from_bottom",
                   gestureEnabled: false,
                 }}
+                component={NewConversationScreen}
               />
               <Stack.Screen
                 name="ExploreScreen"
@@ -289,7 +316,14 @@ function AppNavigator() {
                 options={{
                   title: "Khám phá",
                   headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: "#319527",
+                  headerTintColor: theme.primary,
+                  headerStyle: {
+                    height: 50 + insets.top,
+                    backgroundColor: theme.headerBackground,
+                    borderBottomWidth: 0,
+                    shadowOffset: { height: 0, width: 0 },
+                    elevation: 0,
+                  },
                 }}
               />
               <Stack.Screen
@@ -353,33 +387,17 @@ function AppNavigator() {
       </NavigationContainer>
     </>
   );
-}
-
-// Main App component with SafeAreaProvider
-const App = () => {
-  const { barStyle, backgroundColor } = useStatusBar();
-
-  return (
-    <SafeAreaProvider>
-      <KeyboardProvider>
-        <StatusBar
-          barStyle={barStyle}
-          backgroundColor={
-            Platform.OS === "android" ? backgroundColor : undefined
-          }
-          translucent={Platform.OS === "android"}
-        />
-        <AppNavigator />
-      </KeyboardProvider>
-    </SafeAreaProvider>
-  );
 };
 
 export default () => (
   <TailwindProvider>
     <GestureHandlerRootView>
       <MultiContextProvider>
-        <App />
+        <SafeAreaProvider>
+          <KeyboardProvider>
+            <App />
+          </KeyboardProvider>
+        </SafeAreaProvider>
       </MultiContextProvider>
       <Toast topOffset={60} />
     </GestureHandlerRootView>

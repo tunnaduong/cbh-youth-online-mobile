@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,8 +35,10 @@ import FastImage from "react-native-fast-image";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const ProfileScreen = ({ route, navigation }) => {
+  const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState(null);
   const { username, profileName, blockUser: blockUserInContext } = React.useContext(AuthContext);
@@ -210,6 +213,7 @@ const ProfileScreen = ({ route, navigation }) => {
           options,
           cancelButtonIndex,
           destructiveButtonIndex,
+          userInterfaceStyle: isDarkMode ? "dark" : "light",
         },
         (buttonIndex) => {
           if (buttonIndex === 0) setReportModalVisible(true);
@@ -273,7 +277,7 @@ const ProfileScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <CustomLoading />
       </SafeAreaView>
     );
@@ -300,7 +304,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const renderUserItem = (user) => (
     <TouchableOpacity
       key={user.id}
-      style={styles.userItem}
+      style={[styles.userItem, { borderBottomColor: theme.border }]}
       onPress={() => {
         navigation.push("ProfileScreen", {
           username: user.username,
@@ -309,10 +313,10 @@ const ProfileScreen = ({ route, navigation }) => {
     >
       <Image source={{ uri: user.profile_picture }} style={styles.userAvatar} />
       <View style={styles.userInfo}>
-        <Text style={styles.userName} numberOfLines={1}>
+        <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
           {user.profile_name}
         </Text>
-        <Text style={styles.userUsername} numberOfLines={1}>
+        <Text style={[styles.userUsername, { color: theme.subText }]} numberOfLines={1}>
           @{user.username}
         </Text>
       </View>
@@ -322,15 +326,15 @@ const ProfileScreen = ({ route, navigation }) => {
           style={[
             styles.followButton,
             user.isFollowed
-              ? { backgroundColor: "#E5E7EB" }
-              : { backgroundColor: "#319527" },
+              ? { backgroundColor: isDarkMode ? "#374151" : "#E5E7EB" }
+              : { backgroundColor: theme.primary },
           ]}
           onPress={() => handleFollowUserOnTab(user)}
         >
           <Text
             style={[
               styles.followButtonText,
-              user.isFollowed ? { color: "#000" } : { color: "#FFF" },
+              user.isFollowed ? { color: theme.text } : { color: "#FFF" },
             ]}
           >
             {user.isFollowed ? "Đang theo dõi" : "Theo dõi"}
@@ -357,7 +361,7 @@ const ProfileScreen = ({ route, navigation }) => {
                     marginTop: 20,
                   }}
                 />
-                <Text className="text-center font-light text-gray-500 mt-2">
+                <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
                   Chưa có bài viết nào...
                 </Text>
               </View>
@@ -390,7 +394,7 @@ const ProfileScreen = ({ route, navigation }) => {
                     marginTop: 20,
                   }}
                 />
-                <Text className="text-center font-light text-gray-500 mt-2">
+                <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
                   Chưa theo dõi ai cả...
                 </Text>
               </View>
@@ -414,7 +418,7 @@ const ProfileScreen = ({ route, navigation }) => {
                     marginTop: 20,
                   }}
                 />
-                <Text className="text-center font-light text-gray-500 mt-2">
+                <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
                   Chưa có người theo dõi nào...
                 </Text>
               </View>
@@ -431,30 +435,31 @@ const ProfileScreen = ({ route, navigation }) => {
 
   return (
     <>
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <View
-          style={[styles.header, { height: 50 }]}
+          style={[styles.header, { height: 50, borderBottomColor: theme.border }]}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout;
             setHeaderHeight(height);
           }}
         >
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#319527" />
+            <Ionicons name="arrow-back" size={24} color={theme.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
+          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
             {isCurrentUser ? "Trang cá nhân" : userData?.profile.profile_name}
           </Text>
           {isCurrentUser ? (
             <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-              <Ionicons name="settings-outline" size={24} color="#319527" />
+              <Ionicons name="settings-outline" size={24} color={theme.primary} />
             </TouchableOpacity>
           ) : (
-            <View className="w-[24px]"></View>
+            <View style={{ width: 24 }}></View>
           )}
           {!isCurrentUser && (
             <TouchableOpacity onPress={showOptions} style={{ position: 'absolute', right: 16 }}>
-              <Ionicons name="ellipsis-vertical" size={24} color="#319527" />
+              <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -474,7 +479,7 @@ const ProfileScreen = ({ route, navigation }) => {
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: "#fff" }}
+          contentContainerStyle={{ backgroundColor: theme.background }}
           refreshControl={
             <RefreshControl
               tintColor="transparent"
@@ -489,7 +494,7 @@ const ProfileScreen = ({ route, navigation }) => {
           <View
             style={{
               height: 170,
-              backgroundColor: "#d1d1d1",
+              backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
               borderRadius: 15,
               margin: 16,
             }}
@@ -506,70 +511,68 @@ const ProfileScreen = ({ route, navigation }) => {
               width: "55%",
             }}
           >
-            <View className="relative bg-white rounded-full">
+            <View style={{ position: "relative", backgroundColor: theme.background, borderRadius: 999 }}>
               <FastImage
                 source={{
                   uri: userData?.profile?.profile_picture,
                 }}
-                style={styles.avatar}
+                style={[styles.avatar, { borderColor: theme.background }]}
               />
               {/* Online status */}
               {userData?.stats?.is_online ? (
-                <View className="bg-white rounded-full w-5 h-5 absolute bottom-0 right-0 mr-3 mb-3 justify-center items-center">
-                  <View className="w-[14px] h-[14px] bg-green-600 rounded-full"></View>
+                <View style={{ backgroundColor: theme.background, borderRadius: 999, width: 20, height: 20, position: "absolute", bottom: 0, right: 0, marginRight: 12, marginBottom: 12, justifyContent: "center", alignItems: "center" }}>
+                  <View style={{ width: 14, height: 14, backgroundColor: "#16a34a", borderRadius: 999 }}></View>
                 </View>
-              ) : (
-                <></>
-              )}
+              ) : null}
             </View>
             <View>
-              <Text style={styles.name} numberOfLines={2}>
+              <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
                 {userData?.profile?.profile_name}
                 {userData?.profile?.verified && (
                   <View>
                     <Verified
                       width={23}
                       height={23}
-                      color={"#319527"}
+                      color={theme.primary}
                       style={{ marginBottom: -5 }}
                     />
                   </View>
                 )}
               </Text>
-              <Text style={styles.username} numberOfLines={1}>
+              <Text style={[styles.username, { color: theme.subText }]} numberOfLines={1}>
                 @{userData?.username}
               </Text>
             </View>
           </View>
 
-          <View className="-mt-5">
+          <View style={{ marginTop: -20 }}>
             {isCurrentUser ? (
               <TouchableOpacity
                 onPress={() => navigation.navigate("EditProfileScreen")}
-                className="bg-white border-[1.5px] p-3 border-green-600 rounded-full mx-4"
+                style={{ backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999, marginHorizontal: 16 }}
               >
-                <Text className="text-center font-semibold">
+                <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
                   Chỉnh sửa trang cá nhân
                 </Text>
               </TouchableOpacity>
             ) : (
-              <View className="-mt-5 px-4 flex-row gap-2">
+              <View style={{ marginTop: -20, paddingHorizontal: 16, flexDirection: "row", gap: 8 }}>
                 {followed ? (
                   <TouchableOpacity
                     onPress={() => handleFollow(userId)}
-                    className="bg-[#319528] h-11 rounded-full justify-center items-center flex-row flex-1"
+                    style={{ backgroundColor: theme.primary, height: 44, borderRadius: 999, justifyContent: "center", alignItems: "center", flexDirection: "row", flex: 1 }}
                   >
                     <Ionicons name="add-circle-outline" size={20} color={"white"} />
-                    <Text className="text-center font-semibold ml-1 text-white">
+                    <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: "white" }}>
                       Theo dõi
                     </Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity
                     onPress={() => handleFollow(userId)}
-                    className="bg-white h-11 border-[1.5px] border-green-600 rounded-full justify-center items-center flex-1"
+                    style={{ backgroundColor: "transparent", height: 44, borderWidth: 1.5, borderColor: theme.primary, borderRadius: 999, justifyContent: "center", alignItems: "center", flex: 1 }}
                   >
-                    <Text className="text-center font-semibold text-[#319528]">
+                    <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
                       Đã theo dõi
                     </Text>
                   </TouchableOpacity>
@@ -587,14 +590,14 @@ const ProfileScreen = ({ route, navigation }) => {
                       },
                     })
                   }
-                  className="bg-gray-100 h-11 rounded-full justify-center items-center flex-row flex-1"
+                  style={{ backgroundColor: isDarkMode ? "#374151" : "#f3f4f6", height: 44, borderRadius: 999, justifyContent: "center", alignItems: "center", flexDirection: "row", flex: 1 }}
                 >
                   <Ionicons
                     name="chatbubble-ellipses-outline"
                     size={20}
-                    color="black"
+                    color={theme.text}
                   />
-                  <Text className="text-center font-semibold ml-1 text-black">
+                  <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: theme.text }}>
                     Nhắn tin
                   </Text>
                 </TouchableOpacity>
@@ -602,71 +605,58 @@ const ProfileScreen = ({ route, navigation }) => {
             )}
           </View>
 
-          <View className="mx-4 mt-3 bg-neutral-100 p-4 rounded-xl">
-            <Text className="font-semibold text-lg">Thông tin cá nhân</Text>
+          <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: isDarkMode ? "#1f2937" : "#f5f5f5", padding: 16, borderRadius: 12 }}>
+            <Text style={{ fontWeight: "600", fontSize: 18, color: theme.text }}>Thông tin cá nhân</Text>
             {userData?.profile?.bio && (
-              <Text className="text-gray-600 text-sm mt-2 mb-3">
+              <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8, marginBottom: 12 }}>
                 {userData?.profile?.bio}
               </Text>
             )}
-            <View className="gap-0.5">
-              {userData?.profile?.class_name ? (
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="school-outline" size={16} />
-                  <Text className="text-sm">
-                    Lớp {userData?.profile?.class_name}
-                  </Text>
-                </View>
-              ) : (
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="school-outline" size={16} />
-                  <Text className="text-sm">Lớp chưa cập nhật</Text>
+            <View style={{ gap: 2 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Ionicons name="school-outline" size={16} color={theme.subText} />
+                <Text style={{ fontSize: 14, color: theme.text }}>
+                  {userData?.profile?.class_name ? `Lớp ${userData?.profile?.class_name}` : "Lớp chưa cập nhật"}
+                </Text>
+              </View>
+              {userData?.profile?.location && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons name="location-outline" size={16} color={theme.subText} />
+                  <Text style={{ fontSize: 14, color: theme.text }}>{userData?.profile?.location}</Text>
                 </View>
               )}
-              {userData?.profile?.location ? (
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="location-outline" size={16} />
-                  <Text className="text-sm">{userData?.profile?.location}</Text>
-                </View>
-              ) : (
-                <></>
-              )}
-              {userData?.profile?.birthday ? (
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="gift-outline" size={16} />
-                  <Text className="text-sm">
+              {userData?.profile?.birthday && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons name="gift-outline" size={16} color={theme.subText} />
+                  <Text style={{ fontSize: 14, color: theme.text }}>
                     Sinh vào {userData?.profile?.birthday}
                   </Text>
                 </View>
-              ) : (
-                <></>
               )}
-              {userData?.profile?.joined_at ? (
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="calendar-outline" size={16} />
-                  <Text className="text-sm">
+              {userData?.profile?.joined_at && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Ionicons name="calendar-outline" size={16} color={theme.subText} />
+                  <Text style={{ fontSize: 14, color: theme.text }}>
                     Đã tham gia {userData?.profile?.joined_at}
                   </Text>
                 </View>
-              ) : (
-                <></>
               )}
             </View>
             <TouchableOpacity
-              className="absolute bottom-[20px] right-[16px]"
+              style={{ position: "absolute", bottom: 20, right: 16 }}
               onPress={() =>
                 navigation.navigate("ProfileDetailScreen", {
                   username: userData?.username,
                 })
               }
             >
-              <Text>Xem chi tiết</Text>
+              <Text style={{ color: theme.primary }}>Xem chi tiết</Text>
               <View
                 style={{
-                  height: 0,
+                  height: 1,
                   width: "100%",
-                  borderTopColor: "black",
-                  borderTopWidth: 1,
+                  backgroundColor: theme.primary,
+                  marginTop: 1,
                 }}
               />
             </TouchableOpacity>
@@ -674,7 +664,7 @@ const ProfileScreen = ({ route, navigation }) => {
 
           <View
             style={{
-              borderTopColor: "#ECECEC",
+              borderTopColor: theme.border,
               borderTopWidth: 1,
               marginVertical: 20,
               marginHorizontal: 16,
@@ -682,56 +672,56 @@ const ProfileScreen = ({ route, navigation }) => {
           />
 
           {/* User stats and tabs */}
-          <View className="mx-4 flex-row items-center justify-between">
+          <View style={{ marginHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <TouchableOpacity
-              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${activeTab === "posts"
-                ? "bg-[#C7F0C2] border-[#2D8824]"
-                : "border-transparent"
-                }`}
+              style={[
+                { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
+                activeTab === "posts" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+              ]}
               onPress={() => setActiveTab("posts")}
             >
-              <Text className="font-semibold text-xs">Bài viết</Text>
-              <Text className="font-extrabold text-lg">
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Bài viết</Text>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.posts}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${activeTab === "following"
-                ? "bg-[#C7F0C2] border-[#2D8824]"
-                : "border-transparent"
-                }`}
+              style={[
+                { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
+                activeTab === "following" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+              ]}
               onPress={() => setActiveTab("following")}
             >
-              <Text className="font-semibold text-xs">Đang t.dõi</Text>
-              <Text className="font-extrabold text-lg">
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Đang t.dõi</Text>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.following}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className={`gap-1 justify-center items-center px-[8px] py-[4px] rounded-xl border-[1.2px] ${activeTab === "followers"
-                ? "bg-[#C7F0C2] border-[#2D8824]"
-                : "border-transparent"
-                }`}
+              style={[
+                { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
+                activeTab === "followers" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+              ]}
               onPress={() => setActiveTab("followers")}
             >
-              <Text className="font-semibold text-xs">Người t.dõi</Text>
-              <Text className="font-extrabold text-lg">
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Người t.dõi</Text>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.followers}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="gap-1 justify-center items-center px-[8px] py-[4px]">
-              <Text className="font-semibold text-xs">Thích</Text>
-              <Text className="font-extrabold text-lg">
+            <TouchableOpacity style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}>
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Thích</Text>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.total_likes_count}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity className="gap-1 justify-center items-center px-[8px] py-[4px]">
-              <Text className="font-semibold text-xs">Điểm</Text>
-              <Text className="font-extrabold text-lg">
+            <TouchableOpacity style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}>
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Điểm</Text>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.activity_points}
               </Text>
             </TouchableOpacity>
@@ -739,7 +729,7 @@ const ProfileScreen = ({ route, navigation }) => {
 
           <View
             style={{
-              borderTopColor: "#ECECEC",
+              borderTopColor: isDarkMode ? "#111827" : "#ECECEC",
               borderTopWidth: 10,
               marginTop: 20,
             }}
@@ -749,44 +739,44 @@ const ProfileScreen = ({ route, navigation }) => {
           {renderTabContent()}
 
           {isCurrentUser && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Hoạt động của bạn</Text>
+            <View style={[styles.section, { borderTopColor: theme.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Hoạt động của bạn</Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate("SavedPostsScreen")}
-                style={styles.option}
+                style={[styles.option, { borderBottomColor: theme.border }]}
               >
-                <Ionicons name="bookmark-outline" size={22} color="#333" />
-                <Text style={styles.optionText}>Bài viết đã lưu</Text>
+                <Ionicons name="bookmark-outline" size={22} color={theme.text} />
+                <Text style={[styles.optionText, { color: theme.text }]}>Bài viết đã lưu</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}
-                  color="#999"
+                  color={theme.subText}
                   style={styles.optionArrow}
                 />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => navigation.navigate("LikedPostsScreen")}
-                style={styles.option}
+                style={[styles.option, { borderBottomColor: theme.border }]}
               >
-                <Ionicons name="heart-outline" size={22} color="#333" />
-                <Text style={styles.optionText}>Bài viết đã thích</Text>
+                <Ionicons name="heart-outline" size={22} color={theme.text} />
+                <Text style={[styles.optionText, { color: theme.text }]}>Bài viết đã thích</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}
-                  color="#999"
+                  color={theme.subText}
                   style={styles.optionArrow}
                 />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => navigation.navigate("ActivityScreen")}
-                style={styles.option}
+                style={[styles.option, { borderBottomColor: theme.border }]}
               >
-                <Ionicons name="time-outline" size={22} color="#333" />
-                <Text style={styles.optionText}>Lịch sử hoạt động</Text>
+                <Ionicons name="time-outline" size={22} color={theme.text} />
+                <Text style={[styles.optionText, { color: theme.text }]}>Lịch sử hoạt động</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}
-                  color="#999"
+                  color={theme.subText}
                   style={styles.optionArrow}
                 />
               </TouchableOpacity>
@@ -794,14 +784,14 @@ const ProfileScreen = ({ route, navigation }) => {
                 onPress={() =>
                   navigation.navigate("ArchiveScreen", { username: username })
                 }
-                style={styles.option}
+                style={[styles.option, { borderBottomColor: theme.border }]}
               >
-                <Ionicons name="archive-outline" size={22} color="#333" />
-                <Text style={styles.optionText}>Kho lưu trữ</Text>
+                <Ionicons name="archive-outline" size={22} color={theme.text} />
+                <Text style={[styles.optionText, { color: theme.text }]}>Kho lưu trữ</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}
-                  color="#999"
+                  color={theme.subText}
                   style={styles.optionArrow}
                 />
               </TouchableOpacity>
@@ -816,29 +806,24 @@ const ProfileScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
     position: "relative",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   header: {
-    backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
     maxWidth: "85%",
   },
   profileHeader: {
@@ -850,7 +835,6 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 6,
-    borderColor: "#fff",
   },
   name: {
     fontSize: 22,
@@ -859,12 +843,10 @@ const styles = StyleSheet.create({
   },
   username: {
     fontSize: 16,
-    color: "#666",
     marginTop: 4,
   },
   bio: {
     fontSize: 14,
-    color: "#333",
     marginTop: 10,
     textAlign: "center",
     paddingHorizontal: 20,
@@ -875,7 +857,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#f0f0f0",
     marginHorizontal: 16,
     marginTop: 100,
   },
@@ -888,20 +869,17 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 14,
-    color: "#666",
     marginTop: 4,
   },
   editProfileButton: {
     marginHorizontal: 16,
     marginTop: 20,
     paddingVertical: 12,
-    backgroundColor: "#f0f0f0",
     borderRadius: 8,
     alignItems: "center",
   },
   editProfileText: {
     fontWeight: "600",
-    color: "#333",
   },
   section: {
     marginTop: 25,
@@ -917,7 +895,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   optionText: {
     fontSize: 16,
@@ -945,7 +922,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   userAvatar: {
     width: 50,
@@ -962,16 +938,13 @@ const styles = StyleSheet.create({
   },
   userUsername: {
     fontSize: 14,
-    color: "#666",
   },
   followButton: {
-    backgroundColor: "#319527",
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 16,
   },
   followButtonText: {
-    color: "#fff",
     fontWeight: "600",
     fontSize: 12,
   },
@@ -979,7 +952,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 40,
     marginBottom: 40,
-    color: "#888",
     fontSize: 16,
   },
 });

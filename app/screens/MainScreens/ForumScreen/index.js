@@ -11,6 +11,7 @@ import {
   Animated,
   FlatList,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -19,28 +20,29 @@ import CustomLoading from "../../../components/CustomLoading";
 import LottieView from "lottie-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width } = Dimensions.get("window");
 
-const ForumSection = ({ section, navigation }) => (
-  <View style={styles.sectionBox}>
+const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
+  <View style={[styles.sectionBox, { borderColor: theme.primary, backgroundColor: theme.cardBackground, shadowColor: isDarkMode ? "#000" : theme.primary }]}>
     <TouchableOpacity
       onPress={() =>
         navigation.navigate("CategoryScreen", { categoryId: section.id })
       }
     >
-      <Text style={styles.sectionTitle}>{section.name}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{section.name}</Text>
       <View style={styles.sectionStats}>
-        <Text style={styles.statText}>
-          Bài viết: <Text style={styles.statBold}>{section.post_count}</Text>
+        <Text style={[styles.statText, { color: theme.text }]}>
+          Bài viết: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
         </Text>
-        <Text style={styles.statText}>
+        <Text style={[styles.statText, { color: theme.text }]}>
           Bình luận:{" "}
-          <Text style={styles.statBold}>{section.comment_count}</Text>
+          <Text style={[styles.statBold, { color: theme.text }]}>{section.comment_count}</Text>
         </Text>
       </View>
     </TouchableOpacity>
-    <View style={styles.latestBox}>
+    <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
       {section.latest_post ? (
         <>
           <TouchableOpacity
@@ -51,13 +53,13 @@ const ForumSection = ({ section, navigation }) => (
             }
           >
             <View style={{ flexDirection: "row", gap: 10 }}>
-              <Text style={styles.latestLabel}>Mới nhất</Text>
-              <Text style={styles.latestTime}>
+              <Text style={[styles.latestLabel, { color: theme.subText }]}>Mới nhất</Text>
+              <Text style={[styles.latestTime, { color: theme.subText }]}>
                 {section.latest_post.created_at}
               </Text>
             </View>
-            <Text style={styles.latestContent}>
-              <Text style={styles.latestAuthor}>
+            <Text style={[styles.latestContent, { color: theme.text }]}>
+              <Text style={[styles.latestAuthor, { color: theme.primary }]}>
                 {section.latest_post.user.name}:
               </Text>{" "}
               {section.latest_post.title}
@@ -65,13 +67,14 @@ const ForumSection = ({ section, navigation }) => (
           </TouchableOpacity>
         </>
       ) : (
-        <Text style={styles.latestLabel}>Chưa có bài viết mới</Text>
+        <Text style={[styles.latestLabel, { color: theme.subText }]}>Chưa có bài viết mới</Text>
       )}
     </View>
   </View>
 );
 
 export default function ForumScreen({ navigation }) {
+  const { theme, isDarkMode } = useTheme();
   const [activeCategory, setActiveCategory] = useState(1);
   const { username } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
@@ -86,7 +89,7 @@ export default function ForumScreen({ navigation }) {
   const insets = useSafeAreaInsets();
 
   const handleTabScroll = (index) => {
-    const tabWidth = 180; // Approximate width of each tab
+    const tabWidth = 180;
     const scrollPosition = Math.max(0, (index + 1) * tabWidth - width);
     tabScrollViewRef.current?.scrollTo({ x: scrollPosition, animated: true });
   };
@@ -152,12 +155,13 @@ export default function ForumScreen({ navigation }) {
     return (
       <SafeAreaView
         style={[
-          { flex: 1, backgroundColor: "#fff" },
+          { flex: 1, backgroundColor: theme.background },
           { paddingTop: insets.top },
         ]}
       >
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Diễn đàn</Text>
+          <Text style={[styles.headerTitle, { color: theme.primary }]}>Diễn đàn</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
@@ -165,15 +169,15 @@ export default function ForumScreen({ navigation }) {
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}
-              style={styles.avatar}
+              style={[styles.avatar, { borderColor: theme.border }]}
             />
           </TouchableOpacity>
         </View>
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
         >
           <CustomLoading />
-          <Text style={{ marginTop: 15 }}>Đang tải diễn đàn...</Text>
+          <Text style={{ marginTop: 15, color: theme.text }}>Đang tải diễn đàn...</Text>
         </View>
       </SafeAreaView>
     );
@@ -181,15 +185,16 @@ export default function ForumScreen({ navigation }) {
 
   return (
     <SafeAreaView
-      style={[{ flex: 1, backgroundColor: "#fff" }, { paddingTop: insets.top }]}
+      style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Diễn đàn</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>Diễn đàn</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate("MemberRankingScreen")}
           style={{ marginRight: 15 }}
         >
-          <Ionicons name="trophy-outline" size={26} color="#319527" />
+          <Ionicons name="trophy-outline" size={26} color={theme.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => navigation.navigate("ProfileScreen", { username })}
@@ -198,12 +203,12 @@ export default function ForumScreen({ navigation }) {
             source={{
               uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
             }}
-            style={styles.avatar}
+            style={[styles.avatar, { borderColor: theme.border }]}
           />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: theme.background }]}>
         <ScrollView
           ref={tabScrollViewRef}
           horizontal
@@ -216,12 +221,14 @@ export default function ForumScreen({ navigation }) {
               onPress={() => handleActiveCategory(cat.id, index)}
               style={[
                 styles.tab,
-                activeCategory === cat.id && styles.tabActive,
+                { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
+                activeCategory === cat.id && (isDarkMode ? { backgroundColor: "#2e4e2a" } : styles.tabActive),
               ]}
             >
               <Text
                 style={[
                   styles.tabText,
+                  { color: theme.text },
                   activeCategory === cat.id && styles.tabTextActive,
                 ]}
               >
@@ -256,7 +263,6 @@ export default function ForumScreen({ navigation }) {
           {
             useNativeDriver: false,
             listener: (event) => {
-              // Sync tab scroll while dragging
               const offsetX = event.nativeEvent.contentOffset.x;
               const index = offsetX / width;
               handleTabScroll(index);
@@ -266,11 +272,11 @@ export default function ForumScreen({ navigation }) {
         onMomentumScrollEnd={handlePageChange}
         keyExtractor={(item) => `category-${item.id}`}
         renderItem={({ item }) => (
-          <View style={{ width }}>
+          <View style={{ width, backgroundColor: theme.background }}>
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{
-                backgroundColor: "white",
+                backgroundColor: theme.background,
                 paddingHorizontal: 16,
                 paddingBottom: 20,
                 paddingTop: 5,
@@ -292,6 +298,8 @@ export default function ForumScreen({ navigation }) {
                   key={section.id}
                   section={section}
                   navigation={navigation}
+                  theme={theme}
+                  isDarkMode={isDarkMode}
                 />
               ))}
             </ScrollView>
@@ -312,7 +320,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#319527",
     flex: 1,
   },
   avatar: {
@@ -320,12 +327,10 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: "#fff",
   },
   tabContainer: {
     height: 45,
     marginTop: 10,
-    // marginBottom: 10,
   },
   tabScrollContent: {
     paddingHorizontal: 16,
@@ -334,7 +339,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: "#F3FDF1",
     marginRight: 7,
     height: 35,
     justifyContent: "center",
@@ -343,7 +347,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#C7F0C2",
   },
   tabText: {
-    color: "#222",
     fontWeight: "500",
     fontSize: 15,
   },
@@ -353,16 +356,13 @@ const styles = StyleSheet.create({
   },
   sectionBox: {
     borderWidth: 1,
-    borderColor: "#319527",
     borderRadius: 10,
     padding: 10,
     marginBottom: 16,
-    backgroundColor: "#fff",
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: "bold",
-    color: "#319527",
     marginBottom: 6,
   },
   sectionStats: {
@@ -372,36 +372,29 @@ const styles = StyleSheet.create({
   },
   statText: {
     fontSize: 14,
-    color: "#222",
   },
   statBold: {
     fontWeight: "bold",
-    color: "#222",
   },
   latestBox: {
-    backgroundColor: "#F3FDF1",
     borderRadius: 6,
     padding: 8,
     marginTop: 2,
   },
   latestLabel: {
     fontSize: 13,
-    color: "#888",
     fontWeight: "bold",
     marginBottom: 2,
   },
   latestContent: {
     fontSize: 14,
-    color: "#222",
     marginBottom: 2,
   },
   latestAuthor: {
     fontWeight: "bold",
-    color: "#319527",
   },
   latestTime: {
     fontSize: 12,
-    color: "#888",
     marginLeft: "auto",
   },
 });

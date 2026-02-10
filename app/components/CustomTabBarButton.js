@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+import { useTheme } from "../contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -25,6 +26,7 @@ const CustomTabBarButton = ({ onPress }) => {
   const button3Anim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
   const navigation = useNavigation();
+  const { theme, isDarkMode } = useTheme();
 
   // Close buttons when app goes to background
   useEffect(() => {
@@ -39,7 +41,7 @@ const CustomTabBarButton = ({ onPress }) => {
     if (showButtons) {
       animateButtonsOut();
     } else {
-      onPress();
+      if (onPress) onPress();
       setShowButtons(true);
       animateButtonsIn();
     }
@@ -66,7 +68,6 @@ const CustomTabBarButton = ({ onPress }) => {
         useNativeDriver: true,
       }),
       Animated.timing(button3Anim, {
-        // Add this animation
         toValue: 1,
         duration: 300,
         easing: Easing.out(Easing.ease),
@@ -120,7 +121,7 @@ const CustomTabBarButton = ({ onPress }) => {
       {
         translateY: button1Anim.interpolate({
           inputRange: [0, 1],
-          outputRange: [0, -160], // Move "Tạo bài viết" further up
+          outputRange: [0, -160],
         }),
       },
     ],
@@ -132,7 +133,7 @@ const CustomTabBarButton = ({ onPress }) => {
       {
         translateY: button2Anim.interpolate({
           inputRange: [0, 1],
-          outputRange: [0, -80], // Move "Tạo báo cáo" less far up
+          outputRange: [0, -80],
         }),
       },
     ],
@@ -144,7 +145,7 @@ const CustomTabBarButton = ({ onPress }) => {
       {
         translateY: button3Anim.interpolate({
           inputRange: [0, 1],
-          outputRange: [0, -240], // Move third button even further up
+          outputRange: [0, -240],
         }),
       },
     ],
@@ -153,7 +154,6 @@ const CustomTabBarButton = ({ onPress }) => {
 
   return (
     <View style={styles.container}>
-      {/* Full-screen transparent overlay to capture taps outside */}
       {showButtons && (
         <TouchableWithoutFeedback onPress={handleDismiss}>
           <View style={styles.dismissOverlay} />
@@ -162,75 +162,82 @@ const CustomTabBarButton = ({ onPress }) => {
 
       {showButtons && (
         <View style={styles.overlay}>
-          <Animated.View style={[styles.additionalButton, button3Style]}>
+          <Animated.View style={[styles.additionalButton, button3Style, { backgroundColor: theme.cardBackground }]}>
             <TouchableOpacity
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
               }}
-              onPress={() => navigation.navigate("CreatePostScreen")}
+              onPress={() => {
+                navigation.navigate("CreatePostScreen");
+                handleDismiss();
+              }}
             >
-              <Ionicons name="create-outline" size={35} color={"#319527"} />
-              <Text style={styles.buttonText}>Tạo bài viết</Text>
+              <Ionicons name="create-outline" size={35} color={theme.primary} />
+              <Text style={[styles.buttonText, { color: theme.primary }]}>Tạo bài viết</Text>
             </TouchableOpacity>
           </Animated.View>
-          <Animated.View style={[styles.additionalButton, button1Style]}>
+          <Animated.View style={[styles.additionalButton, button1Style, { backgroundColor: theme.cardBackground }]}>
             <TouchableOpacity
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
               }}
-              onPress={() =>
+              onPress={() => {
                 Toast.show({
                   type: "info",
                   text1: "Tính năng đang được phát triển",
-                })
-              }
+                });
+                handleDismiss();
+              }}
             >
-              <Ionicons name="mic-outline" size={35} color={"#319527"} />
+              <Ionicons name="mic-outline" size={35} color={theme.primary} />
               <Text
                 style={[
                   styles.buttonText,
-                  { textAlign: "left", marginLeft: 10 },
+                  { textAlign: "left", marginLeft: 10, color: theme.primary },
                 ]}
               >
                 Tạo ghi âm
               </Text>
             </TouchableOpacity>
           </Animated.View>
-          <Animated.View style={[styles.additionalButton, button2Style]}>
+          <Animated.View style={[styles.additionalButton, button2Style, { backgroundColor: theme.cardBackground }]}>
             <TouchableOpacity
               style={{
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
               }}
-              onPress={() => navigation.navigate("ReportScreen")}
+              onPress={() => {
+                navigation.navigate("ReportScreen");
+                handleDismiss();
+              }}
             >
               <Ionicons
                 name="document-text-outline"
                 size={35}
-                color={"#319527"}
+                color={theme.primary}
               />
-              <Text style={styles.buttonText}>Tạo báo cáo</Text>
+              <Text style={[styles.buttonText, { color: theme.primary }]}>Tạo báo cáo</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
       )}
       <Pressable style={styles.buttonContainer} onPress={handlePress}>
         <Animated.View
-          style={[styles.iconContainer, { transform: [{ rotate }] }]}
+          style={[styles.iconContainer, { transform: [{ rotate }], backgroundColor: theme.cardBackground }]}
         >
           <Ionicons
             name="add-circle"
             size={60}
-            color={"#319527"}
+            color={theme.primary}
             style={styles.icon}
           />
         </Animated.View>
-        <Text style={styles.label}>Tạo</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>Tạo</Text>
       </Pressable>
     </View>
   );
@@ -242,27 +249,26 @@ const styles = StyleSheet.create({
   },
   dismissOverlay: {
     position: "absolute",
-    top: -height, // Position it to cover the entire screen
+    top: -height,
     left: -width / 2,
-    width: width * 2, // Make it extra wide to ensure coverage
-    height: height * 2, // Make it extra tall to ensure coverage
-    backgroundColor: "transparent", // Transparent but will capture touches
-    zIndex: 1, // Above regular content but below the buttons
+    width: width * 2,
+    height: height * 2,
+    backgroundColor: "transparent",
+    zIndex: 1,
   },
   overlay: {
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 2, // Above the dismissOverlay
+    zIndex: 2,
   },
   buttonContainer: {
     top: -30,
     alignItems: "center",
-    zIndex: 3, // Above everything else
+    zIndex: 3,
   },
   iconContainer: {
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
     borderRadius: 35,
   },
   icon: {
@@ -273,7 +279,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: "bold",
-    color: "#858585",
     fontSize: 10,
     marginTop: 3,
   },
@@ -281,7 +286,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
     borderRadius: 40,
     padding: 10,
     marginHorizontal: 10,
@@ -295,7 +299,6 @@ const styles = StyleSheet.create({
   buttonText: {
     marginLeft: 5,
     fontSize: 16,
-    color: "#319527",
     textAlign: "center",
     width: 90,
   },

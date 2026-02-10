@@ -14,6 +14,7 @@ import RenderHTML from "react-native-render-html";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import {
   deletePost,
   savePost,
@@ -49,6 +50,7 @@ const PostItem = ({
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
+  const { theme, isDarkMode } = useTheme();
   const isCurrentUser = item?.author?.username === username;
 
   // Use external state if provided (for single view), otherwise use item props
@@ -122,20 +124,20 @@ const PostItem = ({
 
   const handleMoreOptions = () => {
     showBottomSheet(
-      <>
+      <View style={{ backgroundColor: theme.cardBackground }}>
         <TouchableOpacity
           onPress={() => {
             handleSavePost();
             hideBottomSheet();
           }}
         >
-          <View className="flex-row items-center">
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons
               name={currentSaved ? "bookmark" : "bookmark-outline"}
               size={23}
-              color={currentSaved ? "#000" : undefined}
+              color={currentSaved ? theme.primary : theme.text}
             />
-            <Text style={{ padding: 12, fontSize: 17 }}>
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
               {currentSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
             </Text>
           </View>
@@ -148,26 +150,31 @@ const PostItem = ({
             );
           }}
         >
-          <View className="flex-row items-center">
-            <Ionicons name="share-outline" size={23} />
-            <Text style={{ padding: 12, fontSize: 17 }}>Chia sẻ</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Ionicons name="share-outline" size={23} color={theme.text} />
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>Chia sẻ</Text>
           </View>
         </TouchableOpacity>
         {isCurrentUser && (
           <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
-            <View className="flex-row items-center">
-              <Ionicons name="lock-closed-outline" size={23} />
-              <Text style={{ padding: 12, fontSize: 17 }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
+              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
                 Cài đặt quyền riêng tư
               </Text>
             </View>
           </TouchableOpacity>
         )}
         {isCurrentUser && (
-          <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
-            <View className="flex-row items-center">
-              <Ionicons name="create-outline" size={23} />
-              <Text style={{ padding: 12, fontSize: 17 }}>
+          <TouchableOpacity onPress={() => {
+            if (navigation) {
+              navigation.navigate("EditPostScreen", { postId: item.id });
+            }
+            hideBottomSheet();
+          }}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="create-outline" size={23} color={theme.text} />
+              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
                 Chỉnh sửa bài đăng
               </Text>
             </View>
@@ -179,11 +186,10 @@ const PostItem = ({
             hideBottomSheet();
           }}
         >
-          <View className="flex-row items-center">
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
             <Text
-              style={{ padding: 12, fontSize: 17 }}
-              className="text-red-500"
+              style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
             >
               Báo cáo vi phạm
             </Text>
@@ -191,18 +197,17 @@ const PostItem = ({
         </TouchableOpacity>
         {isCurrentUser && (
           <TouchableOpacity onPress={handleDeletePost}>
-            <View className="flex-row items-center">
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="trash-outline" size={23} color={"#ef4444"} />
               <Text
-                style={{ padding: 12, fontSize: 17 }}
-                className="text-red-500"
+                style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
               >
                 Xóa bài viết
               </Text>
             </View>
           </TouchableOpacity>
         )}
-      </>
+      </View>
     );
   };
 
@@ -312,13 +317,21 @@ const PostItem = ({
     <View
       style={{
         borderBottomWidth: single ? 15 : 10,
-        borderBottomColor: "#E6E6E6",
+        borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
+        backgroundColor: theme.background,
       }}
     >
-      <View className="flex-row justify-between shrink">
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         {single ? (
           // Single view: no navigation, just show title
-          <Text className="font-bold text-[21px] px-[15px] mt-[15px] shrink flex-1">
+          <Text style={{
+            fontWeight: "bold",
+            fontSize: 21,
+            paddingHorizontal: 15,
+            marginTop: 15,
+            flex: 1,
+            color: theme.text
+          }}>
             {item.title}
           </Text>
         ) : (
@@ -332,17 +345,24 @@ const PostItem = ({
                   screenName,
                 })
               }
-              className="shrink flex-1"
+              style={{ flex: 1 }}
             >
-              <Text className="font-bold text-[21px] px-[15px] mt-[15px] shrink flex-1">
+              <Text style={{
+                fontWeight: "bold",
+                fontSize: 21,
+                paddingHorizontal: 15,
+                marginTop: 15,
+                flex: 1,
+                color: theme.text
+              }}>
                 {item.title}
               </Text>
             </Pressable>
             <TouchableOpacity
-              className="mr-3 mt-3 shrink-0"
+              style={{ marginRight: 12, marginTop: 12 }}
               onPress={handleMoreOptions}
             >
-              <Ionicons name="ellipsis-horizontal" size={20} />
+              <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
             </TouchableOpacity>
           </>
         )}
@@ -359,40 +379,44 @@ const PostItem = ({
             }}
             baseStyle={{
               fontSize: 16,
-              color: "#000",
+              color: theme.text,
             }}
             tagsStyles={{
               h1: {
                 fontSize: 24,
                 fontWeight: "bold",
                 marginVertical: 12,
+                color: theme.text,
               },
               h2: {
                 fontSize: 18,
                 fontWeight: "bold",
                 marginTop: 14,
                 marginBottom: 8,
+                color: theme.text,
               },
               h3: {
                 fontSize: 16,
                 fontWeight: "bold",
                 marginTop: 12,
                 marginBottom: 6,
+                color: theme.text,
               },
               h4: {
                 fontSize: 14,
                 fontWeight: "600",
                 marginTop: 10,
                 marginBottom: 4,
+                color: theme.text,
               },
-              p: { marginBottom: 8, marginTop: 0 },
-              strong: { fontWeight: "bold" },
-              em: { fontStyle: "italic" },
+              p: { marginBottom: 8, marginTop: 0, color: theme.text },
+              strong: { fontWeight: "bold", color: theme.text },
+              em: { fontStyle: "italic", color: theme.text },
               br: { marginBottom: 4 },
               blockquote: {
-                backgroundColor: "#f7f7f8",
+                backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
                 borderLeftWidth: 4,
-                borderLeftColor: "#e5e7eb",
+                borderLeftColor: theme.primary,
                 marginVertical: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 8,
@@ -401,13 +425,13 @@ const PostItem = ({
               },
               hr: {
                 borderTopWidth: 1,
-                borderTopColor: "#ededed",
+                borderTopColor: theme.border,
                 marginVertical: 15,
                 backgroundColor: "transparent",
                 height: 1,
               },
               code: {
-                backgroundColor: "#f7f7f8",
+                backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
                 color: "#d63384",
                 fontFamily: "monospace",
                 fontSize: 14,
@@ -416,7 +440,7 @@ const PostItem = ({
                 borderRadius: 4,
               },
               a: {
-                color: "#319527",
+                color: theme.primary,
                 textDecorationLine: "underline",
               },
             }}
@@ -424,7 +448,7 @@ const PostItem = ({
         </View>
       </Pressable>
       {item.image_urls && item.image_urls.length > 0 && (
-        <View className="bg-[#E4EEE3] mt-2">
+        <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
           <FBCollage
             images={item.image_urls}
             imageOnPress={(index) => {
@@ -456,20 +480,20 @@ const PostItem = ({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  backgroundColor: '#F0F2F5',
+                  backgroundColor: theme.iconBackground,
                   padding: 10,
                   borderRadius: 8,
                   marginBottom: 5,
                   borderWidth: 1,
-                  borderColor: '#ddd'
+                  borderColor: theme.border
                 }}
               >
-                <Ionicons name="document-text" size={30} color="#309627" />
+                <Ionicons name="document-text" size={30} color={theme.primary} />
                 <View style={{ marginLeft: 10, flex: 1 }}>
-                  <Text style={{ fontWeight: '500', fontSize: 15 }} numberOfLines={1}>{fileName}</Text>
-                  <Text style={{ fontSize: 12, color: '#666' }}>Nhấn để xem tài liệu</Text>
+                  <Text style={{ fontWeight: '500', fontSize: 15, color: theme.text }} numberOfLines={1}>{fileName}</Text>
+                  <Text style={{ fontSize: 12, color: theme.subText }}>Nhấn để xem tài liệu</Text>
                 </View>
-                <Ionicons name="download-outline" size={24} color="#666" />
+                <Ionicons name="download-outline" size={24} color={theme.subText} />
               </TouchableOpacity>
             );
           })}
@@ -478,7 +502,7 @@ const PostItem = ({
       <View
         style={{
           height: 1,
-          backgroundColor: "#E6E6E6",
+          backgroundColor: theme.border,
           marginHorizontal: 15,
           marginVertical: 20,
         }}
@@ -491,15 +515,25 @@ const PostItem = ({
             });
           }
         }}
-        className="px-[15px] flex-row items-center"
+        style={{ paddingHorizontal: 15, flexDirection: "row", alignItems: "center" }}
         disabled={!navigation || !item?.author?.username || !!item.anonymous}
       >
         <View
-          className="bg-white w-[42px] h-[42px] rounded-full overflow-hidden items-center justify-center border border-[#dee2e6]"
+          style={{
+            backgroundColor: theme.cardBackground,
+            width: 42,
+            height: 42,
+            borderRadius: 21,
+            overflow: "hidden",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: theme.border
+          }}
         >
           {item.anonymous ? (
-            <View className="w-full h-full bg-[#e9f1e9] items-center justify-center">
-              <Text className="text-white font-bold text-xl">?</Text>
+            <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
             </View>
           ) : (
             item?.author?.username && (
@@ -512,23 +546,23 @@ const PostItem = ({
             )
           )}
         </View>
-        <Text className="font-bold text-[#319527] ml-2 shrink">
+        <Text style={{ fontWeight: "bold", color: theme.primary, marginLeft: 8, flexShrink: 1 }}>
           {item.anonymous ? "Người dùng ẩn danh" : (item?.author?.profile_name || item?.author?.username || "")}
           {item?.author?.verified && !item.anonymous && (
             <View>
               <Verified
                 width={15}
                 height={15}
-                color={"#319527"}
+                color={theme.primary}
                 style={{ marginBottom: -3 }}
               />
             </View>
           )}
         </Text>
-        <Text> · {item.time || item.created_at_human || item.created_at}</Text>
+        <Text style={{ color: theme.subText }}> · {item.time || item.created_at_human || item.created_at}</Text>
       </Pressable>
-      <View className="flex-row items-center px-[15px] my-4">
-        <View className="gap-3 flex-row items-center">
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
+        <View style={{ gap: 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
           <Pressable onPress={() => handleVote(1)}>
             <Ionicons
               name="arrow-up-outline"
@@ -538,7 +572,7 @@ const PostItem = ({
                   (vote) => vote?.username === username && vote.vote_value === 1
                 )
                   ? "#22c55e"
-                  : "#9ca3af"
+                  : theme.subText
               }
             />
           </Pressable>
@@ -553,7 +587,7 @@ const PostItem = ({
                     vote?.username === username && vote.vote_value === -1
                 )
                   ? { color: "#ef4444" } // Apply red color for downvotes
-                  : { color: "#9ca3af" }, // Default gray color
+                  : { color: theme.subText }, // Default themed color
               { fontSize: 20, fontWeight: "600" }, // Additional styles
             ]}
           >
@@ -572,7 +606,7 @@ const PostItem = ({
                     vote?.username === username && vote.vote_value === -1
                 )
                   ? "#ef4444"
-                  : "#9ca3af"
+                  : theme.subText
               }
             />
           </Pressable>
@@ -587,30 +621,30 @@ const PostItem = ({
                 justifyContent: "center", // Center the content vertically
               },
               currentSaved
-                ? { backgroundColor: "#CDEBCA" } // Green background when saved
-                : { backgroundColor: "#EAEAEA" }, // Gray background when not saved
+                ? { backgroundColor: isDarkMode ? "#1B3A1E" : "#CDEBCA" } // Green background when saved
+                : { backgroundColor: theme.iconBackground }, // Themed background when not saved
             ]}
           >
             <Ionicons
               name="bookmark"
               size={20}
-              color={currentSaved ? "#319527" : "#9ca3af"} // Green icon when saved, gray when not saved
+              color={currentSaved ? theme.primary : theme.subText} // Green icon when saved, themed when not saved
             />
           </Pressable>
-          <View className="flex-1 flex-row-reverse items-center">
-            <Text className="text-gray-500">
+          <View style={{ flex: 1, flexDirection: "row-reverse", alignItems: "center" }}>
+            <Text style={{ color: theme.subText }}>
               {item.view_count ?? item.views_count ?? item.views ?? 0}
             </Text>
-            <View className="mr-1 ml-2">
-              <Ionicons name="eye-outline" size={20} color={"#6b7280"} />
+            <View style={{ marginRight: 4, marginLeft: 8 }}>
+              <Ionicons name="eye-outline" size={20} color={theme.subText} />
             </View>
             {single ? (
               // Single view: just show comment count, no navigation
-              <View className="flex-row-reverse items-center">
-                <Text className="text-gray-500 ml-1">
+              <View style={{ flexDirection: "row-reverse", alignItems: "center" }}>
+                <Text style={{ color: theme.subText, marginLeft: 4 }}>
                   {item.reply_count ?? item.comments ?? 0}
                 </Text>
-                <Ionicons name="chatbox-outline" size={20} color={"#6b7280"} />
+                <Ionicons name="chatbox-outline" size={20} color={theme.subText} />
               </View>
             ) : (
               // Feed view: clickable comment count that navigates
@@ -622,10 +656,10 @@ const PostItem = ({
                     screenName,
                   })
                 }
-                className="flex-row-reverse items-center"
+                style={{ flexDirection: "row-reverse", alignItems: "center" }}
               >
-                <Text className="text-gray-500 ml-1">{item.comments ?? 0}</Text>
-                <Ionicons name="chatbox-outline" size={20} color={"#6b7280"} />
+                <Text style={{ color: theme.subText, marginLeft: 4 }}>{item.comments ?? 0}</Text>
+                <Ionicons name="chatbox-outline" size={20} color={theme.subText} />
               </Pressable>
             )}
           </View>

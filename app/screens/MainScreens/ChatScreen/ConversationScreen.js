@@ -31,6 +31,8 @@ import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
 import Api from "../../../services/api/ApiByAxios";
+import { useTheme } from "../../../contexts/ThemeContext";
+import { StatusBar } from "react-native";
 
 dayjs.locale("vi");
 
@@ -114,6 +116,7 @@ const ConversationScreen = ({ navigation, route }) => {
     route.params;
   const [sending, setSending] = useState(false);
   const { username, profileName } = useContext(AuthContext);
+  const { theme, isDarkMode } = useTheme();
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
@@ -857,7 +860,7 @@ const ConversationScreen = ({ navigation, route }) => {
     if (item.type === "date") {
       return (
         <View style={styles.dateHeaderContainer}>
-          <Text style={styles.dateHeaderText}>{item.date}</Text>
+          <Text style={[styles.dateHeaderText, { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0", color: theme.subText }]}>{item.date}</Text>
         </View>
       );
     }
@@ -865,7 +868,7 @@ const ConversationScreen = ({ navigation, route }) => {
     if (item.type === "time") {
       return (
         <View style={styles.timeHeaderContainer}>
-          <Text style={styles.timeHeaderText}>{item.time}</Text>
+          <Text style={[styles.timeHeaderText, { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0", color: theme.subText }]}>{item.time}</Text>
         </View>
       );
     }
@@ -950,7 +953,7 @@ const ConversationScreen = ({ navigation, route }) => {
         )}
         {/* Show sender name for group chats when sender changes */}
         {isGroupChat && !item.is_myself && senderChanged && (
-          <Text style={styles.senderName}>
+          <Text style={[styles.senderName, { color: theme.subText }]}>
             {item.sender?.profile_name || item.sender?.username || "Ẩn danh"}
           </Text>
         )}
@@ -976,8 +979,8 @@ const ConversationScreen = ({ navigation, route }) => {
             style={[
               styles.messageBubble,
               item.is_myself
-                ? styles.myMessageBubble
-                : styles.theirMessageBubble,
+                ? [styles.myMessageBubble, { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" }]
+                : [styles.theirMessageBubble, { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" }],
               !item.is_myself && !isLastInGroup && { marginLeft: 40 },
               item.type === "image" && styles.imageMessageBubble,
             ]}
@@ -1005,7 +1008,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 )}
               </TouchableOpacity>
             ) : (
-              <Text style={styles.messageText}>{item.content}</Text>
+              <Text style={[styles.messageText, { color: item.is_myself ? (isDarkMode ? "#ecfdf5" : "#000") : theme.text }]}>{item.content}</Text>
             )}
           </View>
         </View>
@@ -1019,7 +1022,7 @@ const ConversationScreen = ({ navigation, route }) => {
               !item.is_myself && { marginLeft: 40 },
             ]}
           >
-            <Text style={styles.messageTime}>
+            <Text style={[styles.messageTime, { color: theme.subText }]}>
               {formatMessageTime(item.created_at)}
             </Text>
             {item.is_myself && (
@@ -1029,13 +1032,13 @@ const ConversationScreen = ({ navigation, route }) => {
                     <Ionicons
                       name="checkmark"
                       size={12}
-                      color="#319527"
+                      color={theme.primary}
                       style={styles.checkOverlap}
                     />
-                    <Ionicons name="checkmark" size={12} color="#319527" />
+                    <Ionicons name="checkmark" size={12} color={theme.primary} />
                   </View>
                 ) : (
-                  <Ionicons name="checkmark" size={12} color="#888" />
+                  <Ionicons name="checkmark" size={12} color={theme.subText} />
                 )}
               </View>
             )}
@@ -1046,19 +1049,20 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top, height: 60 + insets.top },
+          { paddingTop: insets.top, height: 60 + insets.top, backgroundColor: theme.background, borderBottomColor: theme.border },
         ]}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#000" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.headerProfile}
@@ -1082,7 +1086,7 @@ const ConversationScreen = ({ navigation, route }) => {
             }
             style={styles.headerAvatar}
           />
-          <Text style={styles.headerName}>
+          <Text style={[styles.headerName, { color: theme.text }]}>
             {isNewConversation
               ? selectedUser.profile_name
               : currentConversation?.type === "group"
@@ -1091,7 +1095,7 @@ const ConversationScreen = ({ navigation, route }) => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={showOptions}>
-          <Ionicons name="ellipsis-vertical" size={24} color="#000" />
+          <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
         </TouchableOpacity>
       </View>
       <ReportModal
@@ -1115,20 +1119,20 @@ const ConversationScreen = ({ navigation, route }) => {
 
       {/* Input Bar */}
       <KeyboardAvoidingView behavior={"padding"}>
-        <SafeAreaView>
-          <View style={styles.inputContainer}>
+        <SafeAreaView style={{ backgroundColor: theme.background }}>
+          <View style={[styles.inputContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
             <TouchableOpacity
               style={styles.attachButton}
               onPress={pickImage}
               disabled={sending}
             >
-              <Ionicons name="image-outline" size={24} color="#666" />
+              <Ionicons name="image-outline" size={24} color={theme.subText} />
             </TouchableOpacity>
             <TextInput
               ref={inputRef}
-              style={styles.input}
+              style={[styles.input, { backgroundColor: isDarkMode ? "#1f2937" : "#f5f5f5", color: theme.text }]}
               placeholder="Nội dung tin nhắn"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.subText}
               value={message}
               onChangeText={setMessage}
               multiline
@@ -1136,7 +1140,7 @@ const ConversationScreen = ({ navigation, route }) => {
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                { backgroundColor: message.trim() ? "#319527" : "#ccc" },
+                { backgroundColor: message.trim() ? theme.primary : (isDarkMode ? "#374151" : "#ccc") },
               ]}
               disabled={!message.trim() || sending}
               onPress={handleSendMessage}
@@ -1153,15 +1157,12 @@ const ConversationScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   headerProfile: {
     flex: 1,
@@ -1206,11 +1207,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   myMessageBubble: {
-    backgroundColor: "#E8F5E9",
     borderBottomRightRadius: 4,
   },
   theirMessageBubble: {
-    backgroundColor: "#F5F5F5",
     borderBottomLeftRadius: 4,
   },
   imageMessageBubble: {
@@ -1235,11 +1234,9 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
-    color: "#000",
   },
   messageTime: {
     fontSize: 12,
-    color: "#888",
   },
   myMessageTime: {
     textAlign: "right",
@@ -1260,7 +1257,6 @@ const styles = StyleSheet.create({
   },
   storyReplyText: {
     fontSize: 12,
-    color: "#666",
     marginLeft: 4,
     fontStyle: "italic",
   },
@@ -1269,8 +1265,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 8,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
-    backgroundColor: "#fff",
   },
   attachButton: {
     padding: 8,
@@ -1279,9 +1273,7 @@ const styles = StyleSheet.create({
     flex: 1,
     marginHorizontal: 8,
     padding: 8,
-    backgroundColor: "#f5f5f5",
     borderRadius: 20,
-    color: "#000",
     maxHeight: 100,
   },
   sendButton: {
@@ -1293,7 +1285,6 @@ const styles = StyleSheet.create({
   },
   messageDate: {
     fontSize: 13,
-    color: "#666",
     textAlign: "center",
     marginVertical: 16,
   },
@@ -1304,8 +1295,6 @@ const styles = StyleSheet.create({
   },
   timeHeaderText: {
     fontSize: 12,
-    color: "#666",
-    backgroundColor: "#f0f0f0",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1318,8 +1307,6 @@ const styles = StyleSheet.create({
   },
   dateHeaderText: {
     fontSize: 14,
-    color: "#666",
-    backgroundColor: "#f0f0f0",
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 16,
@@ -1328,7 +1315,6 @@ const styles = StyleSheet.create({
   },
   senderName: {
     fontSize: 12,
-    color: "#666",
     marginLeft: 48,
     marginBottom: 4,
     marginTop: 8,

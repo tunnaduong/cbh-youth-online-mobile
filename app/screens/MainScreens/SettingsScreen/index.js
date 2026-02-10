@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useTheme } from "../../../contexts/ThemeContext";
 import FastImage from "react-native-fast-image";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,23 +27,28 @@ const SettingItem = ({
   isSwitch,
   chevron = true,
   lastItem = false,
+  theme,
 }) => (
   <TouchableOpacity
-    style={[styles.settingItem, lastItem && styles.lastSettingItem]}
+    style={[
+      styles.settingItem,
+      lastItem && styles.lastSettingItem,
+      { borderBottomColor: theme.border }
+    ]}
     onPress={onPress}
     disabled={isSwitch}
   >
     <View style={styles.settingItemLeft}>
-      <View style={styles.settingItemIcon}>
-        <Ionicons name={icon} size={22} color="#666" />
+      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+        <Ionicons name={icon} size={22} color={theme.subText} />
       </View>
-      <Text style={styles.settingItemText}>{title}</Text>
+      <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
     </View>
     {isSwitch ? (
       <Switch
         value={value}
         onValueChange={onPress}
-        trackColor={{ true: "#319527" }}
+        trackColor={{ true: theme.primary }}
       />
     ) : value ? (
       <View style={styles.settingItemRight}>
@@ -51,29 +57,30 @@ const SettingItem = ({
             source={require("../../../assets/vietnam.png")}
             style={styles.flagIcon}
           />
-          <Text style={styles.languageText}>{value}</Text>
+          <Text style={[styles.languageText, { color: theme.subText }]}>{value}</Text>
         </View>
         {chevron && (
-          <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+          <Ionicons name="chevron-forward" size={20} color={theme.subText} />
         )}
       </View>
     ) : (
-      chevron && <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+      chevron && <Ionicons name="chevron-forward" size={20} color={theme.subText} />
     )}
   </TouchableOpacity>
 );
 
-const SettingSection = ({ title, children }) => {
+const SettingSection = ({ title, children, theme }) => {
   // Convert children to array to check for last item
   const childrenArray = React.Children.toArray(children);
 
   return (
-    <View style={styles.settingSection}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.settingSection, { backgroundColor: theme.sectionBackground }]}>
+      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
       <View style={styles.sectionContent}>
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
+            theme,
           })
         )}
       </View>
@@ -83,23 +90,24 @@ const SettingSection = ({ title, children }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const [darkMode, setDarkMode] = React.useState(false);
+  const { isDarkMode, theme, toggleTheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border, backgroundColor: theme.headerBackground }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cài đặt</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>Cài đặt</Text>
         <View className="w-6 h-6"></View>
       </View>
 
       <ScrollView>
         {/* Profile Section */}
-        <View style={styles.profileSection}>
+        <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
           <FastImage
             source={{
               uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar`,
@@ -107,7 +115,7 @@ export default function SettingsScreen({ navigation }) {
             style={styles.avatar}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{userInfo.profile_name}</Text>
+            <Text style={[styles.profileName, { color: theme.text }]}>{userInfo.profile_name}</Text>
             {/* <Text style={styles.profileClass}>Lớp 12 Toán</Text> */}
             <TouchableOpacity
               style={styles.viewProfileButton}
@@ -117,13 +125,13 @@ export default function SettingsScreen({ navigation }) {
                 })
               }
             >
-              <Text style={styles.viewProfileText}>Xem trang cá nhân</Text>
+              <Text style={[styles.viewProfileText, { color: theme.primary }]}>Xem trang cá nhân</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Settings List */}
-        <SettingSection title="Tài khoản">
+        <SettingSection title="Tài khoản" theme={theme}>
           <SettingItem
             icon="person-outline"
             title="Thông tin tài khoản"
@@ -145,18 +153,14 @@ export default function SettingsScreen({ navigation }) {
           />
         </SettingSection>
 
-        <SettingSection title="Ứng dụng">
+        <SettingSection title="Ứng dụng" theme={theme}>
           <SettingItem
             icon="moon-outline"
             title="Chế độ tối"
             isSwitch
-            value={darkMode}
+            value={isDarkMode}
             onPress={(value) => {
-              setDarkMode(value);
-              Toast.show({
-                type: "info",
-                text1: "Tính năng đang được phát triển",
-              });
+              toggleTheme(value);
             }}
           />
           <SettingItem
@@ -184,7 +188,7 @@ export default function SettingsScreen({ navigation }) {
           />
         </SettingSection>
 
-        <Text style={styles.versionText}>
+        <Text style={[styles.versionText, { color: theme.subText }]}>
           CBH Online phiên bản v{Application.nativeApplicationVersion} ({Application.nativeBuildVersion})
         </Text>
 
@@ -195,7 +199,7 @@ export default function SettingsScreen({ navigation }) {
             }
             style={styles.socialButton}
           >
-            <Ionicons name="logo-github" size={24} color="#333" />
+            <Ionicons name="logo-github" size={24} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => Linking.openURL("https://facebook.com/CBHYouthOnline")}
@@ -212,7 +216,6 @@ export default function SettingsScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -221,19 +224,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
     height: 50,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   profileSection: {
     flexDirection: "row",
     padding: 16,
     alignItems: "center",
-    backgroundColor: "#fff",
     marginBottom: 16,
   },
   avatar: {
@@ -248,25 +248,21 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#000",
     marginBottom: 4,
   },
   profileClass: {
     fontSize: 14,
-    color: "#666",
     marginBottom: 8,
   },
   viewProfileButton: {
     alignSelf: "flex-start",
   },
   viewProfileText: {
-    color: "#319527",
     fontSize: 14,
     fontWeight: "500",
   },
   settingSection: {
     marginBottom: 24,
-    backgroundColor: "#FAFAFA",
     margin: 15,
     borderRadius: 15,
     paddingTop: 20,
@@ -274,7 +270,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#319527",
     marginLeft: 16,
     marginBottom: 8,
   },
@@ -282,7 +277,6 @@ const styles = StyleSheet.create({
     // backgroundColor: "#fff",
   },
   settingItemIcon: {
-    backgroundColor: "#F1F1F1",
     padding: 7,
     borderRadius: 30,
   },
@@ -293,7 +287,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#E5E5E5",
   },
   lastSettingItem: {
     borderBottomWidth: 0,
@@ -305,7 +298,6 @@ const styles = StyleSheet.create({
   settingItemText: {
     fontSize: 16,
     marginLeft: 12,
-    color: "#000",
   },
   settingItemRight: {
     flexDirection: "row",
@@ -323,11 +315,9 @@ const styles = StyleSheet.create({
   },
   languageText: {
     fontSize: 14,
-    color: "#666",
   },
   versionText: {
     fontSize: 14,
-    color: "#666",
     textAlign: "center",
     marginBottom: 16,
   },

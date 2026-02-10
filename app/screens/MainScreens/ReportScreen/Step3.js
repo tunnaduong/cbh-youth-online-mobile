@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import ReportHeader from "../../../components/ReportHeader";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const STEPS = [
   {
@@ -44,6 +45,7 @@ export default function Step3({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const isClassViolation = Boolean(cleanliness || uniform);
   const { userInfo } = useContext(AuthContext);
+  const { theme, isDarkMode } = useTheme();
 
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
@@ -54,7 +56,7 @@ export default function Step3({ navigation, route }) {
               style={[
                 styles.stepNumber,
                 {
-                  backgroundColor: "#319527",
+                  backgroundColor: theme.primary,
                 },
               ]}
             >
@@ -62,12 +64,12 @@ export default function Step3({ navigation, route }) {
                 {step.id}
               </Text>
             </View>
-            <Text style={[styles.stepText, { color: "#319527" }]}>
+            <Text style={[styles.stepText, { color: theme.primary }]}>
               {step.title}
             </Text>
           </View>
           {index < STEPS.length - 1 && (
-            <View style={[styles.stepLine, { backgroundColor: "#319527" }]} />
+            <View style={[styles.stepLine, { backgroundColor: theme.primary }]} />
           )}
         </React.Fragment>
       ))}
@@ -76,8 +78,8 @@ export default function Step3({ navigation, route }) {
 
   const InfoItem = ({ label, value }) => (
     <View style={styles.infoItem}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      <Text style={[styles.infoLabel, { color: theme.subText }]}>{label}</Text>
+      <Text style={[styles.infoValue, { color: theme.text }]}>{value}</Text>
     </View>
   );
 
@@ -103,15 +105,15 @@ export default function Step3({ navigation, route }) {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
       <ReportHeader navigation={navigation} title="Tạo báo cáo" />
 
       <View
         style={{
-          backgroundColor: "#FFF3CD",
+          backgroundColor: isDarkMode ? "#312e16" : "#FFF3CD",
           borderLeftWidth: 4,
           borderLeftColor: "#FFC107",
           padding: 12,
@@ -123,11 +125,11 @@ export default function Step3({ navigation, route }) {
           alignItems: "center",
         }}
       >
-        <Ionicons name="alert-circle-outline" size={20} color="#856404" />
+        <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
         <Text
           style={{
             marginLeft: 10,
-            color: "#856404",
+            color: isDarkMode ? "#fef3c7" : "#856404",
             fontSize: 14,
             flex: 1,
           }}
@@ -136,8 +138,8 @@ export default function Step3({ navigation, route }) {
         </Text>
       </View>
 
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
+      <ScrollView style={[styles.scrollView, { backgroundColor: theme.background }]}>
+        <View style={[styles.header, { backgroundColor: theme.primary }]}>
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle}>Báo cáo vi phạm</Text>
             <Text style={styles.headerSubtitle}>
@@ -154,16 +156,16 @@ export default function Step3({ navigation, route }) {
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={styles.contentTitle}>Bước 3: Xác nhận thông tin</Text>
-          <Text style={styles.contentSubtitle}>
+          <Text style={[styles.contentTitle, { color: theme.text }]}>Bước 3: Xác nhận thông tin</Text>
+          <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
             Vui lòng kiểm tra lại thông tin trước khi gửi báo cáo
           </Text>
 
-          <View style={styles.confirmationCard}>
+          <View style={[styles.confirmationCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             {isClassViolation ? renderClassInfo() : renderStudentInfo()}
             <View style={styles.notesContainer}>
-              <Text style={styles.infoLabel}>Ghi chú</Text>
-              <Text style={styles.notesText}>
+              <Text style={[styles.infoLabel, { color: theme.subText }]}>Ghi chú</Text>
+              <Text style={[styles.notesText, { color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#F5F5F5" }]}>
                 {notes || "Không có ghi chú"}
               </Text>
             </View>
@@ -173,7 +175,7 @@ export default function Step3({ navigation, route }) {
 
       {/* Submit Button */}
       <TouchableOpacity
-        style={styles.submitButton}
+        style={[styles.submitButton, { backgroundColor: theme.primary }]}
         onPress={() => {
           // TODO: Implement submit logic
           navigation.reset({
@@ -192,7 +194,6 @@ export default function Step3({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   scrollView: {
     flex: 1,
@@ -200,7 +201,6 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#319527",
     padding: 16,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -265,32 +265,26 @@ const styles = StyleSheet.create({
   contentTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#000",
     marginBottom: 8,
   },
   contentSubtitle: {
     fontSize: 16,
-    color: "#666",
     marginBottom: 24,
   },
   confirmationCard: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
   },
   infoItem: {
     marginBottom: 16,
   },
   infoLabel: {
     fontSize: 14,
-    color: "#666",
     marginBottom: 4,
   },
   infoValue: {
     fontSize: 16,
-    color: "#000",
     fontWeight: "500",
   },
   notesContainer: {
@@ -298,8 +292,6 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontSize: 16,
-    color: "#000",
-    backgroundColor: "#F5F5F5",
     padding: 12,
     borderRadius: 8,
     minHeight: 100,
@@ -308,7 +300,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#319527",
     margin: 16,
     padding: 16,
     borderRadius: 30,

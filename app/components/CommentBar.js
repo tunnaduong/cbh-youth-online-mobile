@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useTheme } from "../contexts/ThemeContext";
 
 const CommentBar = React.forwardRef(
   (
@@ -22,13 +23,15 @@ const CommentBar = React.forwardRef(
     },
     ref
   ) => {
+    const { theme, isDarkMode } = useTheme();
+
     return (
       <View
         style={[
           {
-            backgroundColor: "white",
+            backgroundColor: theme.background,
             borderTopWidth: 1,
-            borderTopColor: "#DFDEDD",
+            borderTopColor: theme.border,
           },
           style,
         ]}
@@ -46,18 +49,9 @@ const CommentBar = React.forwardRef(
               alignItems: "center",
             }}
           >
-            {/* <UserAvatar
-              username={username}
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 50,
-              }}
-              containerStyle={{ marginRight: 10 }}
-            /> */}
             <View
               style={{
-                backgroundColor: "#DFDEDD",
+                backgroundColor: isDarkMode ? "#374151" : "#DFDEDD",
                 borderRadius: 50,
                 padding: 7,
                 paddingLeft: 13,
@@ -70,10 +64,10 @@ const CommentBar = React.forwardRef(
                   fontSize: 14,
                   flex: 1,
                   padding: 5,
-                  color: "#000",
+                  color: theme.text,
                 }}
                 placeholder={placeholderText}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.subText}
                 multiline={true}
                 ref={ref}
                 onChangeText={onChangeText}
@@ -81,17 +75,6 @@ const CommentBar = React.forwardRef(
                 onKeyPress={onKeyPress}
                 editable={editable}
               ></TextInput>
-              {/* <TouchableOpacity onPress={onUpload}>
-                <Ionicons
-                  style={{
-                    textAlign: "right",
-                    paddingLeft: 5,
-                    paddingRight: 5,
-                  }}
-                  name={"camera-outline"}
-                  size={25}
-                />
-              </TouchableOpacity> */}
             </View>
             <TouchableOpacity
               style={{
@@ -103,13 +86,13 @@ const CommentBar = React.forwardRef(
             >
               {isSubmitting ? (
                 <View style={{ width: 25 }}>
-                  <ActivityIndicator size="small" color="#319527" />
+                  <ActivityIndicator size="small" color={theme.primary} />
                 </View>
               ) : (
                 <Ionicons
                   name={"send"}
                   size={25}
-                  color={disabled ? "#C7F0C2" : "#319527"}
+                  color={disabled ? (isDarkMode ? "#1e2e1c" : "#C7F0C2") : theme.primary}
                 />
               )}
             </TouchableOpacity>

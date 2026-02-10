@@ -9,6 +9,7 @@ import {
   FlatList,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,9 +20,11 @@ import {
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import CustomLoading from "../../../components/CustomLoading";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const NewConversationScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -110,46 +113,47 @@ const NewConversationScreen = ({ navigation }) => {
           style={styles.avatar}
         />
         <View style={styles.userInfo}>
-          <Text style={styles.userName}>
+          <Text style={[styles.userName, { color: theme.text }]}>
             {searchResult.user.profile_name || searchResult.user.username}
           </Text>
-          <Text style={styles.userHandle}>@{searchResult.user.username}</Text>
+          <Text style={[styles.userHandle, { color: theme.subText }]}>@{searchResult.user.username}</Text>
         </View>
       </TouchableOpacity>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top, height: 50 + insets.top },
+          { paddingTop: insets.top, height: 50 + insets.top, backgroundColor: theme.background, borderBottomColor: theme.border },
         ]}
       >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Tin nhắn mới</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>Tin nhắn mới</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { borderBottomColor: theme.border }]}>
         <Ionicons
           name="search"
           size={20}
-          color="#666"
+          color={theme.subText}
           style={styles.searchIcon}
         />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.text }]}
           placeholder="Tìm kiếm người dùng..."
-          placeholderTextColor="#999"
+          placeholderTextColor={theme.subText}
           value={searchQuery}
           onChangeText={handleSearch}
           autoCapitalize="none"
@@ -171,7 +175,7 @@ const NewConversationScreen = ({ navigation }) => {
               source={require("../../../assets/sad_frog.png")}
               style={{ width: 100, height: 100, marginBottom: 5 }}
             />
-            <Text style={styles.noResults}>Không tìm thấy người dùng nào</Text>
+            <Text style={[styles.noResults, { color: theme.subText }]}>Không tìm thấy người dùng nào</Text>
           </View>
         ) : (
           <View style={styles.centerContainer}>
@@ -179,7 +183,7 @@ const NewConversationScreen = ({ navigation }) => {
               source={require("../../../assets/search-main.png")}
               style={{ width: 180, height: 160, marginBottom: 20 }}
             />
-            <Text style={styles.searchPrompt}>
+            <Text style={[styles.searchPrompt, { color: theme.subText }]}>
               Nhập username để bắt đầu tìm kiếm
             </Text>
           </View>
@@ -192,28 +196,23 @@ const NewConversationScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
   },
   searchIcon: {
     marginRight: 8,
@@ -221,7 +220,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: "#000",
   },
   resultsContainer: {
     flex: 1,
@@ -244,11 +242,9 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#000",
   },
   userHandle: {
     fontSize: 14,
-    color: "#666",
     marginTop: 2,
   },
   centerContainer: {
@@ -258,12 +254,10 @@ const styles = StyleSheet.create({
   },
   noResults: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
   },
   searchPrompt: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
   },
 });

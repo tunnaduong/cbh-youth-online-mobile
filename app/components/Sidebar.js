@@ -16,6 +16,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { List } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
@@ -31,11 +32,13 @@ const CollapsibleMenuItem = ({
   getChevronRotation,
   toggleSection,
   children,
+  theme,
 }) => {
   return (
     <>
       <List.Item
         title={title}
+        titleStyle={{ color: theme.text }}
         onPress={() => toggleSection(sectionKey)}
         right={() => (
           <Animated.View
@@ -50,6 +53,7 @@ const CollapsibleMenuItem = ({
             <Ionicons
               name="chevron-down-outline"
               size={20}
+              color={theme.subText}
               style={{ marginRight: -10, marginTop: 3 }}
             />
           </Animated.View>
@@ -58,12 +62,13 @@ const CollapsibleMenuItem = ({
           <Ionicons
             name={iconName}
             size={24}
+            color={theme.text}
             style={{ marginLeft: 14, marginRight: -5 }}
           />
         )}
       />
       <Collapsible collapsed={isCollapsed}>
-        <View style={{ paddingLeft: 40 }}>{children}</View>
+        <View style={{ paddingLeft: 40, backgroundColor: theme.background }}>{children}</View>
       </Collapsible>
     </>
   );
@@ -73,6 +78,7 @@ const Sidebar = () => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
+  const { theme, isDarkMode } = useTheme();
   const [collapsedSections, setCollapsedSections] = useState({
     community: true,
     reports: true,
@@ -147,14 +153,6 @@ const Sidebar = () => {
     signOut();
   };
 
-  const clearAll = async () => {
-    try {
-      await AsyncStorage.clear();
-    } catch (e) {
-      // clear error
-    }
-  };
-
   const onPressIOS = () => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
@@ -162,7 +160,7 @@ const Sidebar = () => {
         options: ["Hủy", "Đăng xuất"],
         destructiveButtonIndex: 1,
         cancelButtonIndex: 0,
-        userInterfaceStyle: "dark",
+        userInterfaceStyle: isDarkMode ? "dark" : "light",
       },
       (buttonIndex) => {
         if (buttonIndex === 0) {
@@ -206,14 +204,14 @@ const Sidebar = () => {
   }, []);
 
   return (
-    <>
-      <SafeAreaView className="mt-11">
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <SafeAreaView style={{ flex: 1, marginTop: Platform.OS === "android" ? 0 : 44 }}>
         <ScrollView
           contentContainerStyle={{ paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
         >
           <TouchableOpacity
-            className="gap-y-2 mx-4"
+            style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 16, gap: 8 }}
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
             <FastImage
@@ -223,12 +221,12 @@ const Sidebar = () => {
               style={{ width: 60, height: 60, borderRadius: 30 }}
             />
             <View>
-              <Text className="text-lg font-bold">{profileName}</Text>
-              <Text className="text-gray-500">@{username}</Text>
+              <Text style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}>{profileName}</Text>
+              <Text style={{ color: theme.subText }}>@{username}</Text>
             </View>
           </TouchableOpacity>
           <List.Section>
-            <List.Subheader>Tiện ích</List.Subheader>
+            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>Tiện ích</List.Subheader>
             <CollapsibleMenuItem
               title="Cộng đồng"
               iconName="people-outline"
@@ -236,9 +234,11 @@ const Sidebar = () => {
               isCollapsed={collapsedSections.community}
               getChevronRotation={getChevronRotation}
               toggleSection={toggleSection}
+              theme={theme}
             >
               <List.Item
                 title="Bảng tin"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("MainScreens", { screen: "Home" })
                 }
@@ -246,6 +246,7 @@ const Sidebar = () => {
               />
               <List.Item
                 title="Diễn đàn"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("MainScreens", { screen: "Forum" })
                 }
@@ -253,6 +254,7 @@ const Sidebar = () => {
               />
               <List.Item
                 title="Loa lớn"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
                     type: "info",
@@ -263,6 +265,7 @@ const Sidebar = () => {
               />
               <List.Item
                 title="Tin tức Đoàn"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("CategoryScreen", { categoryId: 32 })
                 }
@@ -270,6 +273,7 @@ const Sidebar = () => {
               />
               <List.Item
                 title="Đã lưu"
+                titleStyle={{ color: theme.text }}
                 onPress={() => navigation.navigate("SavedPostsScreen")}
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
@@ -281,9 +285,11 @@ const Sidebar = () => {
               isCollapsed={collapsedSections.reports}
               getChevronRotation={getChevronRotation}
               toggleSection={toggleSection}
+              theme={theme}
             >
               <List.Item
                 title="Vi phạm học sinh"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("ReportScreen", { type: "student" })
                 }
@@ -291,6 +297,7 @@ const Sidebar = () => {
               />
               <List.Item
                 title="Vi phạm tập thể lớp"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("ReportScreen", { type: "class" })
                 }
@@ -304,9 +311,11 @@ const Sidebar = () => {
               isCollapsed={collapsedSections.search}
               getChevronRotation={getChevronRotation}
               toggleSection={toggleSection}
+              theme={theme}
             >
               <List.Item
                 title="Thời khóa biểu"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
                     type: "info",
@@ -317,6 +326,7 @@ const Sidebar = () => {
               />
               <List.Item
                 title="Xếp hạng lớp"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
                     type: "info",
@@ -327,6 +337,7 @@ const Sidebar = () => {
               />
               <List.Item
                 title="Xếp hạng thành viên"
+                titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
                     type: "info",
@@ -338,11 +349,13 @@ const Sidebar = () => {
             </CollapsibleMenuItem>
             <List.Item
               title="Khám phá"
+              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("ExploreScreen")}
               left={() => (
                 <Ionicons
                   name="telescope-outline"
                   size={24}
+                  color={theme.text}
                   style={{ marginLeft: 14, marginRight: -5 }}
                 />
               )}
@@ -350,6 +363,7 @@ const Sidebar = () => {
                 <Ionicons
                   name="chevron-down-outline"
                   size={20}
+                  color={theme.subText}
                   style={{
                     marginRight: -10,
                     marginTop: 3,
@@ -360,14 +374,16 @@ const Sidebar = () => {
             />
           </List.Section>
           <List.Section>
-            <List.Subheader>Thiết lập</List.Subheader>
+            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>Thiết lập</List.Subheader>
             <List.Item
               title="Cài đặt"
+              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("Settings")}
               left={() => (
                 <Ionicons
                   name="settings-outline"
                   size={24}
+                  color={theme.text}
                   style={{ marginLeft: 14, marginRight: -5 }}
                 />
               )}
@@ -389,20 +405,23 @@ const Sidebar = () => {
             />
           </List.Section>
           <List.Section>
-            <List.Subheader>Hỗ trợ</List.Subheader>
+            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>Hỗ trợ</List.Subheader>
             <List.Item
               title="Giới thiệu"
+              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("AboutScreen")}
               left={() => (
                 <Ionicons
                   name="information-circle-outline"
                   size={24}
+                  color={theme.text}
                   style={{ marginLeft: 14, marginRight: -5 }}
                 />
               )}
             />
             <List.Item
               title="Trợ giúp"
+              titleStyle={{ color: theme.text }}
               onPress={() =>
                 Linking.openURL("https://www.chuyenbienhoa.com/help")
               }
@@ -410,28 +429,33 @@ const Sidebar = () => {
                 <Ionicons
                   name="help-circle-outline"
                   size={24}
+                  color={theme.text}
                   style={{ marginLeft: 14, marginRight: -5 }}
                 />
               )}
             />
             <List.Item
               title="Quyền riêng tư"
+              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("PrivacyPolicyScreen")}
               left={() => (
                 <Ionicons
                   name="document-text-outline"
                   size={24}
+                  color={theme.text}
                   style={{ marginLeft: 14, marginRight: -5 }}
                 />
               )}
             />
             <List.Item
               title="Điều khoản sử dụng"
+              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("TermsOfServiceScreen")}
               left={() => (
                 <Ionicons
                   name="document-text-outline"
                   size={24}
+                  color={theme.text}
                   style={{ marginLeft: 14, marginRight: -5 }}
                 />
               )}
@@ -439,7 +463,7 @@ const Sidebar = () => {
           </List.Section>
         </ScrollView>
       </SafeAreaView>
-    </>
+    </View>
   );
 };
 

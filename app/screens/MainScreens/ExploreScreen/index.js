@@ -8,10 +8,12 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width } = Dimensions.get("window");
 const cardSize = (width - 48) / 3; // 4 columns with padding
@@ -51,6 +53,7 @@ const featureCards = [
 
 const ExploreScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
 
   const handleCardPress = (card) => {
     Toast.show({
@@ -60,7 +63,8 @@ const ExploreScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -69,7 +73,7 @@ const ExploreScreen = ({ navigation }) => {
         {/* Top Section with Greeting and Image */}
         <View style={styles.topSection}>
           <View style={styles.greetingContainer}>
-            <Text style={styles.greetingText}>Chào bạn, hôm nay bạn muốn </Text>
+            <Text style={[styles.greetingText, { color: theme.text }]}>Chào bạn, hôm nay bạn muốn </Text>
             <Text style={styles.highlightText}>làm gì...?</Text>
           </View>
           <View style={styles.imageContainer}>
@@ -87,7 +91,7 @@ const ExploreScreen = ({ navigation }) => {
             {featureCards.map((card) => (
               <TouchableOpacity
                 key={card.id}
-                style={styles.card}
+                style={[styles.card, { backgroundColor: theme.cardBackground }]}
                 onPress={() => handleCardPress(card)}
                 activeOpacity={0.7}
               >
@@ -95,11 +99,11 @@ const ExploreScreen = ({ navigation }) => {
                   <Ionicons
                     name={card.icon}
                     size={32}
-                    color="#319527"
+                    color={theme.primary}
                     style={styles.cardIcon}
                   />
                 </View>
-                <Text style={styles.cardText} numberOfLines={2}>
+                <Text style={[styles.cardText, { color: theme.text }]} numberOfLines={2}>
                   {card.title}
                 </Text>
               </TouchableOpacity>
@@ -114,7 +118,6 @@ const ExploreScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
   },
   scrollView: {
     flex: 1,
@@ -137,7 +140,6 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#333333",
     lineHeight: 32,
   },
   highlightText: {
@@ -171,7 +173,6 @@ const styles = StyleSheet.create({
   card: {
     width: cardSize,
     height: cardSize,
-    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 16,
     padding: 12,
@@ -195,7 +196,6 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#333333",
     textAlign: "center",
     marginTop: 4,
   },

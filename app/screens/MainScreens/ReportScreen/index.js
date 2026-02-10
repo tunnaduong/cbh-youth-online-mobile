@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ReportHeader from "../../../components/ReportHeader";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const STEPS = [
   {
@@ -49,6 +50,7 @@ const VIOLATION_TYPES = [
 export default function ReportScreen({ navigation }) {
   const [selectedType, setSelectedType] = useState(null);
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
 
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
@@ -59,14 +61,14 @@ export default function ReportScreen({ navigation }) {
               style={[
                 styles.stepNumber,
                 {
-                  backgroundColor: step.id === 1 ? "#319527" : "#E5E5E5",
+                  backgroundColor: step.id === 1 ? theme.primary : (isDarkMode ? "#374151" : "#E5E5E5"),
                 },
               ]}
             >
               <Text
                 style={[
                   styles.stepNumberText,
-                  { color: step.id === 1 ? "#fff" : "#666" },
+                  { color: step.id === 1 ? "#fff" : theme.subText },
                 ]}
               >
                 {step.id}
@@ -75,14 +77,14 @@ export default function ReportScreen({ navigation }) {
             <Text
               style={[
                 styles.stepText,
-                { color: step.id === 1 ? "#319527" : "#666" },
+                { color: step.id === 1 ? theme.primary : theme.subText },
               ]}
             >
               {step.title}
             </Text>
           </View>
           {index < STEPS.length - 1 && (
-            <View style={[styles.stepLine, { backgroundColor: "#E5E5E5" }]} />
+            <View style={[styles.stepLine, { backgroundColor: isDarkMode ? "#374151" : "#E5E5E5" }]} />
           )}
         </React.Fragment>
       ))}
@@ -90,15 +92,15 @@ export default function ReportScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
       <ReportHeader navigation={navigation} title="Tạo báo cáo" />
 
       <View
         style={{
-          backgroundColor: "#FFF3CD",
+          backgroundColor: isDarkMode ? "#312e16" : "#FFF3CD",
           borderLeftWidth: 4,
           borderLeftColor: "#FFC107",
           padding: 12,
@@ -110,11 +112,11 @@ export default function ReportScreen({ navigation }) {
           alignItems: "center",
         }}
       >
-        <Ionicons name="alert-circle-outline" size={20} color="#856404" />
+        <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
         <Text
           style={{
             marginLeft: 10,
-            color: "#856404",
+            color: isDarkMode ? "#fef3c7" : "#856404",
             fontSize: 14,
             flex: 1,
           }}
@@ -124,7 +126,7 @@ export default function ReportScreen({ navigation }) {
         </Text>
       </View>
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Báo cáo vi phạm</Text>
           <Text style={styles.headerSubtitle}>
@@ -141,8 +143,8 @@ export default function ReportScreen({ navigation }) {
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={styles.contentTitle}>Bước 1: Chọn đối tượng báo cáo</Text>
-        <Text style={styles.contentSubtitle}>
+        <Text style={[styles.contentTitle, { color: theme.text }]}>Bước 1: Chọn đối tượng báo cáo</Text>
+        <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
           Vui lòng chọn đối tượng bạn muốn báo cáo
         </Text>
 
@@ -152,16 +154,17 @@ export default function ReportScreen({ navigation }) {
             key={type.id}
             style={[
               styles.card,
-              selectedType === type.id && styles.selectedCard,
+              { backgroundColor: theme.cardBackground, borderColor: theme.border },
+              selectedType === type.id && [styles.selectedCard, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }],
             ]}
             onPress={() => setSelectedType(type.id)}
           >
-            <View style={styles.cardIcon}>
-              <Ionicons name={type.icon} size={24} color="#319527" />
+            <View style={[styles.cardIcon, { backgroundColor: isDarkMode ? "#374151" : "#F3FDF1" }]}>
+              <Ionicons name={type.icon} size={24} color={theme.primary} />
             </View>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>{type.title}</Text>
-              <Text style={styles.cardDescription} numberOfLines={3}>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{type.title}</Text>
+              <Text style={[styles.cardDescription, { color: theme.subText }]} numberOfLines={3}>
                 {type.description}
               </Text>
             </View>
@@ -171,7 +174,7 @@ export default function ReportScreen({ navigation }) {
 
       {/* Continue Button */}
       <TouchableOpacity
-        style={[styles.continueButton, { opacity: selectedType ? 1 : 0.5 }]}
+        style={[styles.continueButton, { backgroundColor: theme.primary, opacity: selectedType ? 1 : 0.5 }]}
         disabled={!selectedType}
         onPress={() => {
           navigation.navigate("Step2", {
@@ -189,12 +192,10 @@ export default function ReportScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#319527",
     padding: 16,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -259,32 +260,26 @@ const styles = StyleSheet.create({
   contentTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#000",
     marginBottom: 8,
   },
   contentSubtitle: {
     fontSize: 16,
-    color: "#666",
     marginBottom: 24,
   },
   card: {
     flexDirection: "row",
     padding: 16,
-    backgroundColor: "#fff",
     borderRadius: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
   },
   selectedCard: {
-    backgroundColor: "#F3FDF1",
-    borderColor: "#319527",
+    borderWidth: 1,
   },
   cardIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#F3FDF1",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -295,19 +290,16 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000",
     marginBottom: 4,
   },
   cardDescription: {
     fontSize: 14,
-    color: "#666",
     lineHeight: 20,
   },
   continueButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#319527",
     margin: 16,
     padding: 16,
     borderRadius: 30,

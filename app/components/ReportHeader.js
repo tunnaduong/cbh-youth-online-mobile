@@ -2,9 +2,11 @@ import React from "react";
 import { View, Text, TouchableOpacity, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../contexts/ThemeContext";
 
 export default function ReportHeader({ navigation, title, rightButton }) {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
 
   return (
     <View
@@ -14,8 +16,9 @@ export default function ReportHeader({ navigation, title, rightButton }) {
           alignItems: "center",
           paddingHorizontal: 16,
           height: 50,
-          borderBottomColor: "#ccc",
+          borderBottomColor: theme.border,
           borderBottomWidth: 0.8,
+          backgroundColor: theme.background,
         },
         Platform.OS === "android"
           ? { marginTop: 0 }
@@ -23,14 +26,14 @@ export default function ReportHeader({ navigation, title, rightButton }) {
       ]}
     >
       <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Ionicons name="chevron-back-circle" size={25} color={"#A7A7A7"} />
+        <Ionicons name="chevron-back-circle" size={25} color={theme.subText} />
       </TouchableOpacity>
       <Text
         style={{
           fontSize: 20,
           fontWeight: "bold",
           marginLeft: 16,
-          color: "#309627",
+          color: theme.primary,
         }}
       >
         {title}
@@ -42,7 +45,7 @@ export default function ReportHeader({ navigation, title, rightButton }) {
               marginLeft: "auto",
               paddingHorizontal: 25,
               paddingVertical: 10,
-              backgroundColor: "#309627",
+              backgroundColor: theme.primary,
               borderRadius: 20,
             },
             Platform.OS === "android" && { paddingVertical: 8 },

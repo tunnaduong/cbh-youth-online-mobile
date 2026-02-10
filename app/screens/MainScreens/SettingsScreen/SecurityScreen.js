@@ -13,6 +13,7 @@ import {
   Platform,
   Switch,
   Image,
+  StatusBar,
 } from "react-native";
 import React, { useContext, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import { deleteAccount, updateProfile, changePassword } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const SettingItem = ({
   icon,
@@ -30,50 +32,54 @@ const SettingItem = ({
   isSwitch,
   chevron = true,
   lastItem = false,
-  color = "#000",
+  color,
+  theme,
+  isDarkMode,
 }) => (
   <TouchableOpacity
-    style={[styles.settingItem, lastItem && styles.lastSettingItem]}
+    style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}
     onPress={onPress}
     disabled={isSwitch}
   >
     <View style={styles.settingItemLeft}>
-      <View style={styles.settingItemIcon}>
-        <Ionicons name={icon} size={22} color={color === "#FF3B30" ? color : "#666"} />
+      <View style={[styles.settingItemIcon, { backgroundColor: isDarkMode ? "#374151" : "#F1F1F1" }]}>
+        <Ionicons name={icon} size={22} color={color === "#FF3B30" ? color : theme.subText} />
       </View>
-      <Text style={[styles.settingItemText, { color }]}>{title}</Text>
+      <Text style={[styles.settingItemText, { color: color || theme.text }]}>{title}</Text>
     </View>
     {isSwitch ? (
       <Switch
         value={value}
         onValueChange={onPress}
-        trackColor={{ true: "#319527" }}
+        trackColor={{ true: theme.primary }}
       />
     ) : value ? (
       <View style={styles.settingItemRight}>
-        <Text style={styles.valueText}>{value}</Text>
+        <Text style={[styles.valueText, { color: theme.subText }]}>{value}</Text>
         {chevron && (
-          <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+          <Ionicons name="chevron-forward" size={20} color={theme.subText} />
         )}
       </View>
     ) : (
-      chevron && <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+      chevron && <Ionicons name="chevron-forward" size={20} color={theme.subText} />
     )}
   </TouchableOpacity>
 );
 
-const SettingSection = ({ title, children, titleColor }) => {
+const SettingSection = ({ title, children, titleColor, theme, isDarkMode }) => {
   const childrenArray = React.Children.toArray(children);
 
   return (
-    <View style={styles.settingSection}>
-      <Text style={[styles.sectionTitle, titleColor && { color: titleColor }]}>
+    <View style={[styles.settingSection, { backgroundColor: isDarkMode ? "#1f2937" : "#FAFAFA" }]}>
+      <Text style={[styles.sectionTitle, { color: titleColor || theme.primary }]}>
         {title}
       </Text>
       <View style={styles.sectionContent}>
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
+            theme,
+            isDarkMode,
           })
         )}
       </View>
@@ -84,6 +90,7 @@ const SettingSection = ({ title, children, titleColor }) => {
 export default function SecurityScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { signOut, userInfo, setUserInfo, refreshUserInfo } = useContext(AuthContext);
+  const { theme, isDarkMode } = useTheme();
 
   // Modal states
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -277,18 +284,19 @@ export default function SecurityScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Bảo mật</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>Bảo mật</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.content}>
-        <SettingSection title="Thông tin cá nhân">
+        <SettingSection title="Thông tin cá nhân" theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="person-outline"
             title="Tên đăng nhập"
@@ -297,6 +305,8 @@ export default function SecurityScreen({ navigation }) {
               setNewUsername(userInfo?.username || "");
               setUsernameModalVisible(true);
             }}
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
           <SettingItem
             icon="mail-outline"
@@ -306,14 +316,18 @@ export default function SecurityScreen({ navigation }) {
               setNewEmail(userInfo?.email || "");
               setEmailModalVisible(true);
             }}
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
         </SettingSection>
 
-        <SettingSection title="Đăng nhập & Bảo mật">
+        <SettingSection title="Đăng nhập & Bảo mật" theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="key-outline"
             title="Đổi mật khẩu"
             onPress={() => setPasswordModalVisible(true)}
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
           <SettingItem
             icon="shield-checkmark-outline"
@@ -324,16 +338,20 @@ export default function SecurityScreen({ navigation }) {
                 text1: "Tính năng đang được phát triển",
               });
             }}
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
         </SettingSection>
 
-        <SettingSection title="Vùng nguy hiểm" titleColor="#FF3B30">
+        <SettingSection title="Vùng nguy hiểm" titleColor="#FF3B30" theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="trash-outline"
             title="Xóa tài khoản"
             color="#FF3B30"
             chevron={false}
             onPress={handleDeleteAccount}
+            theme={theme}
+            isDarkMode={isDarkMode}
           />
         </SettingSection>
       </ScrollView>
@@ -349,24 +367,26 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={styles.modalView}>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
             <Text style={styles.modalTitle}>Xóa tài khoản vĩnh viễn</Text>
-            <Text style={styles.modalText}>
+            <Text style={[styles.modalText, { color: theme.subText }]}>
               Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa
               vĩnh viễn. Nhập mật khẩu và dòng chữ "XOÁ TÀI KHOẢN" để xác nhận.
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
               placeholder="Nhập mật khẩu của bạn"
+              placeholderTextColor={theme.subText}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
               placeholder="Nhập 'XOÁ TÀI KHOẢN'"
+              placeholderTextColor={theme.subText}
               value={confirmText}
               onChangeText={setConfirmText}
               autoCapitalize="sentences"
@@ -374,7 +394,7 @@ export default function SecurityScreen({ navigation }) {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: isDarkMode ? "#374151" : "#ddd" }]}
                 onPress={() => {
                   setDeleteModalVisible(false);
                   setPassword("");
@@ -382,7 +402,7 @@ export default function SecurityScreen({ navigation }) {
                 }}
                 disabled={loading}
               >
-                <Text style={styles.textStyle}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -416,15 +436,16 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={styles.modalView}>
-            <Text style={[styles.modalTitle, { color: "#000" }]}>Đổi tên đăng nhập</Text>
-            <Text style={styles.modalText}>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Đổi tên đăng nhập</Text>
+            <Text style={[styles.modalText, { color: theme.subText }]}>
               Đây là tên hiển thị công khai của bạn. Nó có thể là tên thật hoặc biệt danh của bạn. Bạn chỉ có thể thay đổi tên đăng nhập mỗi 30 ngày một lần.
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
               placeholder="Tên đăng nhập mới"
+              placeholderTextColor={theme.subText}
               value={newUsername}
               onChangeText={setNewUsername}
               autoCapitalize="none"
@@ -432,14 +453,14 @@ export default function SecurityScreen({ navigation }) {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: isDarkMode ? "#374151" : "#ddd" }]}
                 onPress={() => setUsernameModalVisible(false)}
                 disabled={loading}
               >
-                <Text style={[styles.textStyle, { color: "#000" }]}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#319527" }]}
+                style={[styles.button, { backgroundColor: theme.primary }]}
                 onPress={onUpdateUsername}
                 disabled={loading}
               >
@@ -466,15 +487,16 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={styles.modalView}>
-            <Text style={[styles.modalTitle, { color: "#000" }]}>Đổi Email</Text>
-            <Text style={styles.modalText}>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Đổi Email</Text>
+            <Text style={[styles.modalText, { color: theme.subText }]}>
               Nhập địa chỉ email mới của bạn.
             </Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
               placeholder="Email mới"
+              placeholderTextColor={theme.subText}
               value={newEmail}
               onChangeText={setNewEmail}
               autoCapitalize="none"
@@ -483,14 +505,14 @@ export default function SecurityScreen({ navigation }) {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: isDarkMode ? "#374151" : "#ddd" }]}
                 onPress={() => setEmailModalVisible(false)}
                 disabled={loading}
               >
-                <Text style={[styles.textStyle, { color: "#000" }]}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#319527" }]}
+                style={[styles.button, { backgroundColor: theme.primary }]}
                 onPress={onUpdateEmail}
                 disabled={loading}
               >
@@ -518,28 +540,31 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={styles.modalView}>
-            <Text style={[styles.modalTitle, { color: "#000" }]}>Đổi mật khẩu</Text>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Đổi mật khẩu</Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
               placeholder="Mật khẩu hiện tại"
+              placeholderTextColor={theme.subText}
               secureTextEntry
               value={currentPassword}
               onChangeText={setCurrentPassword}
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
               placeholder="Mật khẩu mới"
+              placeholderTextColor={theme.subText}
               secureTextEntry
               value={newPassword}
               onChangeText={setNewPassword}
             />
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
               placeholder="Xác nhận mật khẩu mới"
+              placeholderTextColor={theme.subText}
               secureTextEntry
               value={confirmNewPassword}
               onChangeText={setConfirmNewPassword}
@@ -547,7 +572,7 @@ export default function SecurityScreen({ navigation }) {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose]}
+                style={[styles.button, styles.buttonClose, { backgroundColor: isDarkMode ? "#374151" : "#ddd" }]}
                 onPress={() => {
                   setPasswordModalVisible(false);
                   setCurrentPassword("");
@@ -556,10 +581,10 @@ export default function SecurityScreen({ navigation }) {
                 }}
                 disabled={loading}
               >
-                <Text style={[styles.textStyle, { color: "#000" }]}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, { backgroundColor: "#319527" }]}
+                style={[styles.button, { backgroundColor: theme.primary }]}
                 onPress={onChangePassword}
                 disabled={loading}
               >
@@ -583,7 +608,6 @@ export default function SecurityScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -592,20 +616,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
     height: 50,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   content: {
     flex: 1,
   },
   settingSection: {
     marginBottom: 24,
-    backgroundColor: "#FAFAFA",
     margin: 15,
     borderRadius: 15,
     paddingTop: 20,
@@ -613,7 +634,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#319527",
     marginLeft: 16,
     marginBottom: 8,
   },
@@ -621,7 +641,6 @@ const styles = StyleSheet.create({
     // backgroundColor: "#fff",
   },
   settingItemIcon: {
-    backgroundColor: "#F1F1F1",
     padding: 7,
     borderRadius: 30,
     marginRight: 12,
@@ -633,7 +652,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#E5E5E5",
   },
   lastSettingItem: {
     borderBottomWidth: 0,
@@ -644,7 +662,6 @@ const styles = StyleSheet.create({
   },
   settingItemText: {
     fontSize: 16,
-    color: "#000",
   },
   settingItemRight: {
     flexDirection: "row",
@@ -652,7 +669,6 @@ const styles = StyleSheet.create({
   },
   valueText: {
     fontSize: 14,
-    color: "#666",
     marginRight: 8,
   },
   centeredView: {
@@ -663,7 +679,6 @@ const styles = StyleSheet.create({
   },
   modalView: {
     width: "90%",
-    backgroundColor: "white",
     borderRadius: 20,
     padding: 20,
     alignItems: "center",
@@ -680,19 +695,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
-    color: "#FF3B30",
   },
   modalText: {
     marginBottom: 15,
     textAlign: "center",
-    color: "#666",
     fontSize: 14,
     lineHeight: 20,
   },
   input: {
     width: "100%",
     height: 44,
-    borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 8,
     marginBottom: 12,
@@ -714,7 +726,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonClose: {
-    backgroundColor: "#ddd",
   },
   buttonDelete: {
     backgroundColor: "#FF3B30",

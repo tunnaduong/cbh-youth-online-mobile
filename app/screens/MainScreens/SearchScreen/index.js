@@ -19,9 +19,11 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
 import FastImage from "react-native-fast-image";
 import CustomLoading from "../../../components/CustomLoading";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 export default function SearchScreen({ navigation }) {
   const inset = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
@@ -70,7 +72,7 @@ export default function SearchScreen({ navigation }) {
   const renderUserItem = (user) => (
     <TouchableOpacity
       key={user.id}
-      style={styles.userItem}
+      style={[styles.userItem, { borderBottomColor: theme.border }]}
       onPress={() =>
         navigation.push("ProfileScreen", { username: user.username })
       }
@@ -83,14 +85,14 @@ export default function SearchScreen({ navigation }) {
         style={styles.userAvatar}
       />
       <View style={styles.userInfo}>
-        <Text style={styles.userName} numberOfLines={1}>
+        <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
           {user.profile_name}
         </Text>
-        <Text style={styles.userUsername} numberOfLines={1}>
+        <Text style={[styles.userUsername, { color: theme.subText }]} numberOfLines={1}>
           @{user.username}
         </Text>
         {user.bio && (
-          <Text style={styles.userBio} numberOfLines={1}>
+          <Text style={[styles.userBio, { color: theme.subText }]} numberOfLines={1}>
             {user.bio}
           </Text>
         )}
@@ -101,7 +103,7 @@ export default function SearchScreen({ navigation }) {
   const renderPostItem = (post) => (
     <TouchableOpacity
       key={post.id}
-      style={styles.postItem}
+      style={[styles.postItem, { borderBottomColor: theme.border }]}
       onPress={() => navigation.navigate("PostScreen", { postId: post.id })}
     >
       {post.image_urls && post.image_urls.length > 0 && (
@@ -113,11 +115,11 @@ export default function SearchScreen({ navigation }) {
         />
       )}
       <View style={styles.postContent}>
-        <Text style={styles.postTitle} numberOfLines={2}>
+        <Text style={[styles.postTitle, { color: theme.text }]} numberOfLines={2}>
           {post.title}
         </Text>
         <View style={styles.postMeta}>
-          <Text style={styles.postAuthor}>
+          <Text style={[styles.postAuthor, { color: theme.subText }]}>
             {post.author.profile_name} • {post.created_at}
           </Text>
         </View>
@@ -126,17 +128,19 @@ export default function SearchScreen({ navigation }) {
   );
 
   const renderFilterChips = () => (
-    <View style={styles.filterContainer}>
+    <View style={[styles.filterContainer, { borderBottomColor: theme.border }]}>
       <TouchableOpacity
         style={[
           styles.filterChip,
-          activeFilter === "all" && styles.activeFilterChip,
+          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
+          activeFilter === "all" && { backgroundColor: theme.primary },
         ]}
         onPress={() => setActiveFilter("all")}
       >
         <Text
           style={[
             styles.filterText,
+            { color: theme.subText },
             activeFilter === "all" && styles.activeFilterText,
           ]}
         >
@@ -146,13 +150,15 @@ export default function SearchScreen({ navigation }) {
       <TouchableOpacity
         style={[
           styles.filterChip,
-          activeFilter === "user" && styles.activeFilterChip,
+          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
+          activeFilter === "user" && { backgroundColor: theme.primary },
         ]}
         onPress={() => setActiveFilter("user")}
       >
         <Text
           style={[
             styles.filterText,
+            { color: theme.subText },
             activeFilter === "user" && styles.activeFilterText,
           ]}
         >
@@ -162,13 +168,15 @@ export default function SearchScreen({ navigation }) {
       <TouchableOpacity
         style={[
           styles.filterChip,
-          activeFilter === "post" && styles.activeFilterChip,
+          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
+          activeFilter === "post" && { backgroundColor: theme.primary },
         ]}
         onPress={() => setActiveFilter("post")}
       >
         <Text
           style={[
             styles.filterText,
+            { color: theme.subText },
             activeFilter === "post" && styles.activeFilterText,
           ]}
         >
@@ -179,22 +187,23 @@ export default function SearchScreen({ navigation }) {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={{ flex: 1 }}>
         <View style={{ paddingTop: inset.top }}>
-          <View style={styles.topBar}>
+          <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
             <TouchableHighlight
               style={styles.backButton}
-              underlayColor="rgba(0, 0, 0, .15)"
+              underlayColor={isDarkMode ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .05)"}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="chevron-back-outline" color="black" size={30} />
+              <Ionicons name="chevron-back-outline" color={theme.text} size={30} />
             </TouchableHighlight>
-            <View style={styles.searchInputContainer}>
+            <View style={[styles.searchInputContainer, { backgroundColor: isDarkMode ? "#374151" : "#DFDEDD" }]}>
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: theme.text }]}
                 placeholder="Tìm kiếm trên CYO"
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.subText}
                 onChangeText={setQuery}
                 value={query}
                 autoFocus
@@ -204,7 +213,7 @@ export default function SearchScreen({ navigation }) {
                   style={styles.clearButton}
                   onPress={() => setQuery("")}
                 >
-                  <Ionicons name="close-circle" size={20} color="#666" />
+                  <Ionicons name="close-circle" size={20} color={theme.subText} />
                 </TouchableOpacity>
               )}
             </View>
@@ -220,14 +229,14 @@ export default function SearchScreen({ navigation }) {
                 source={require("../../../assets/search-main.png")}
                 style={styles.image}
               />
-              <Text style={styles.searchPlaceholder}>
+              <Text style={[styles.searchPlaceholder, { color: theme.subText }]}>
                 Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, loa lớn...
               </Text>
             </View>
           ) : loading ? (
             <View style={styles.centerContainer}>
               <CustomLoading />
-              <Text style={styles.loadingText}>Đang tìm kiếm...</Text>
+              <Text style={[styles.loadingText, { color: theme.subText }]}>Đang tìm kiếm...</Text>
             </View>
           ) : hasSearched &&
             !results.users?.length &&
@@ -237,7 +246,7 @@ export default function SearchScreen({ navigation }) {
                 source={require("../../../assets/sad_frog.png")}
                 style={styles.noResultsImage}
               />
-              <Text style={styles.noResultsText}>
+              <Text style={[styles.noResultsText, { color: theme.subText }]}>
                 Không tìm thấy kết quả nào cho "{query}"
               </Text>
             </View>
@@ -245,51 +254,51 @@ export default function SearchScreen({ navigation }) {
             <>
               {(activeFilter === "user" ||
                 (activeFilter === "all" && results.users?.length > 0)) && (
-                <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>
-                    Người dùng{" "}
-                    {results.users?.length > 0 && `(${results.users.length})`}
-                  </Text>
-                  {results.users?.length > 0
-                    ? results.users.map(renderUserItem)
-                    : activeFilter === "user" && (
+                  <View style={styles.section}>
+                    <Text style={[styles.sectionTitle, { color: theme.primary }]}>
+                      Người dùng{" "}
+                      {results.users?.length > 0 && `(${results.users.length})`}
+                    </Text>
+                    {results.users?.length > 0
+                      ? results.users.map(renderUserItem)
+                      : activeFilter === "user" && (
                         <View style={styles.sectionNoResults}>
                           <Image
                             source={require("../../../assets/sad_frog.png")}
                             style={styles.sectionNoResultsImage}
                           />
-                          <Text style={styles.sectionNoResultsText}>
+                          <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
                             Không tìm thấy người dùng nào cho "{query}"
                           </Text>
                         </View>
                       )}
-                </View>
-              )}
+                  </View>
+                )}
               {(activeFilter === "all" || activeFilter === "post") && (
                 <View style={styles.section}>
                   {(activeFilter === "post" ||
                     (activeFilter === "all" && results.posts?.length > 0)) && (
-                    <>
-                      <Text style={styles.sectionTitle}>
-                        Bài viết{" "}
-                        {results.posts?.length > 0 &&
-                          `(${results.posts.length})`}
-                      </Text>
-                      {results.posts?.length > 0
-                        ? results.posts.map(renderPostItem)
-                        : activeFilter === "post" && (
+                      <>
+                        <Text style={[styles.sectionTitle, { color: theme.primary }]}>
+                          Bài viết{" "}
+                          {results.posts?.length > 0 &&
+                            `(${results.posts.length})`}
+                        </Text>
+                        {results.posts?.length > 0
+                          ? results.posts.map(renderPostItem)
+                          : activeFilter === "post" && (
                             <View style={styles.sectionNoResults}>
                               <Image
                                 source={require("../../../assets/sad_frog.png")}
                                 style={styles.sectionNoResultsImage}
                               />
-                              <Text style={styles.sectionNoResultsText}>
+                              <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
                                 Không tìm thấy bài viết nào cho "{query}"
                               </Text>
                             </View>
                           )}
-                    </>
-                  )}
+                      </>
+                    )}
                 </View>
               )}
               {activeFilter === "all" &&
@@ -300,7 +309,7 @@ export default function SearchScreen({ navigation }) {
                       source={require("../../../assets/sad_frog.png")}
                       style={styles.noResultsImage}
                     />
-                    <Text style={styles.noResultsText}>
+                    <Text style={[styles.noResultsText, { color: theme.subText }]}>
                       Không tìm thấy kết quả nào cho "{query}"
                     </Text>
                   </View>
@@ -330,14 +339,12 @@ const styles = StyleSheet.create({
     paddingBottom: 7,
     paddingTop: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#DFDEDD",
     minHeight: 55,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#DFDEDD",
     borderRadius: 50,
     paddingHorizontal: 13,
     paddingVertical: Platform.OS === "android" ? 0 : 4,
@@ -352,7 +359,6 @@ const styles = StyleSheet.create({
     minHeight: 30,
     includeFontPadding: false,
     textAlignVertical: "center",
-    color: "#000",
   },
   clearButton: {
     padding: 5,
@@ -376,7 +382,6 @@ const styles = StyleSheet.create({
   searchPlaceholder: {
     textAlign: "center",
     fontSize: 16,
-    color: "gray",
   },
   resultsContainer: {
     flex: 1,
@@ -389,14 +394,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    color: "#319527",
   },
   userItem: {
     flexDirection: "row",
     marginHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   userAvatar: {
     width: 50,
@@ -414,11 +417,9 @@ const styles = StyleSheet.create({
   },
   userUsername: {
     fontSize: 14,
-    color: "#666",
   },
   userBio: {
     fontSize: 14,
-    color: "#666",
     marginTop: 2,
   },
   postItem: {
@@ -426,7 +427,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     marginHorizontal: 16,
     paddingVertical: 10,
-    borderBottomColor: "#f0f0f0",
   },
   postContent: {
     flex: 1,
@@ -441,7 +441,6 @@ const styles = StyleSheet.create({
   },
   postAuthor: {
     fontSize: 14,
-    color: "#666",
   },
   postImage: {
     width: 60,
@@ -461,7 +460,6 @@ const styles = StyleSheet.create({
   },
   noResultsText: {
     fontSize: 16,
-    color: "#666",
     marginTop: 10,
     textAlign: "center",
   },
@@ -473,7 +471,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 10,
-    color: "#666",
     fontSize: 16,
   },
   filterContainer: {
@@ -481,21 +478,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
     gap: 8,
   },
   filterChip: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: "#f0f0f0",
-  },
-  activeFilterChip: {
-    backgroundColor: "#319527",
   },
   filterText: {
     fontSize: 14,
-    color: "#666",
   },
   activeFilterText: {
     color: "#fff",
@@ -513,7 +504,6 @@ const styles = StyleSheet.create({
   },
   sectionNoResultsText: {
     fontSize: 14,
-    color: "#666",
     marginTop: 8,
     textAlign: "center",
   },

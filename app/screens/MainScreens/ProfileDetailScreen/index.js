@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
@@ -16,6 +17,8 @@ import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../../../contexts/ThemeContext";
+
 const ProfileDetailScreen = ({ navigation, route }) => {
   const {
     username: currentUsername,
@@ -23,6 +26,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     unblockUser,
     blockedUsers,
   } = useContext(AuthContext);
+  const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
   const username = route.params?.username || currentUsername;
@@ -60,8 +64,9 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <SafeAreaView
-        style={[styles.loadingContainer, { paddingTop: insets.top }]}
+        style={[styles.loadingContainer, { paddingTop: insets.top, backgroundColor: theme.background }]}
       >
+        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <CustomLoading />
       </SafeAreaView>
     );
@@ -79,12 +84,12 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 
   const renderInfoItem = (icon, label, value) => (
     <View style={styles.infoItem}>
-      <View style={styles.infoIconContainer}>
-        <Ionicons name={icon} size={24} color="#319527" />
+      <View style={[styles.infoIconContainer, { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" }]}>
+        <Ionicons name={icon} size={24} color={theme.primary} />
       </View>
       <View style={styles.infoContent}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value || "Chưa cập nhật"}</Text>
+        <Text style={[styles.infoLabel, { color: theme.subText }]}>{label}</Text>
+        <Text style={[styles.infoValue, { color: theme.text }]}>{value || "Chưa cập nhật"}</Text>
       </View>
     </View>
   );
@@ -180,14 +185,14 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         },
         !isBlocked
           ? {
-              text: "Chặn người dùng",
-              onPress: handleBlockUser,
-              style: "destructive",
-            }
+            text: "Chặn người dùng",
+            onPress: handleBlockUser,
+            style: "destructive",
+          }
           : {
-              text: "Bỏ chặn người dùng",
-              onPress: handleUnblockUser,
-            },
+            text: "Bỏ chặn người dùng",
+            onPress: handleUnblockUser,
+          },
         {
           text: "Hủy",
           style: "cancel",
@@ -197,22 +202,23 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thông tin cá nhân</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>Thông tin cá nhân</Text>
         {isCurrentUser ? (
           <TouchableOpacity
             onPress={() => navigation.navigate("EditProfileScreen")}
           >
-            <Ionicons name="create-outline" size={24} color="#319527" />
+            <Ionicons name="create-outline" size={24} color={theme.primary} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity onPress={showOptions}>
-            <Ionicons name="ellipsis-vertical" size={24} color="#319527" />
+            <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
           </TouchableOpacity>
         )}
       </View>
@@ -226,14 +232,14 @@ const ProfileDetailScreen = ({ navigation, route }) => {
             }}
             style={styles.avatar}
           />
-          <Text style={styles.profileName}>{profileData?.profile_name}</Text>
-          <Text style={styles.username}>@{username}</Text>
+          <Text style={[styles.profileName, { color: theme.text }]}>{profileData?.profile_name}</Text>
+          <Text style={[styles.username, { color: theme.subText }]}>@{username}</Text>
         </View>
 
         {/* Bio Section */}
         {profileData?.bio && (
-          <View style={styles.bioSection}>
-            <Text style={styles.bioText}>{profileData.bio}</Text>
+          <View style={[styles.bioSection, { borderColor: theme.border }]}>
+            <Text style={[styles.bioText, { color: theme.text }]}>{profileData.bio}</Text>
           </View>
         )}
 
@@ -266,13 +272,11 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
@@ -281,13 +285,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
     height: 50,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   scrollView: {
     flex: 1,
@@ -305,13 +307,11 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 24,
     fontWeight: "600",
-    color: "#000",
     marginBottom: 4,
     textAlign: "center",
   },
   username: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
   },
   bioSection: {
@@ -319,11 +319,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#f0f0f0",
   },
   bioText: {
     fontSize: 16,
-    color: "#333",
     lineHeight: 24,
   },
   infoSection: {
@@ -338,7 +336,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f0f0f0",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -348,12 +345,10 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: "#666",
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 16,
-    color: "#000",
     fontWeight: "500",
   },
 });

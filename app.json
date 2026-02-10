@@ -15,9 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "icon": {
-        "dark": "./app/assets/christmas-ios.png",
-        "light": "./app/assets/christmas-ios.png",
-        "tinted": "./app/assets/christmas-ios.png"
+        "dark": "./app/assets/2026-ios.png",
+        "light": "./app/assets/2026-ios.png",
+        "tinted": "./app/assets/2026-ios.png"
       },
       "bundleIdentifier": "com.fatties.youth",
       "infoPlist": {
@@ -38,7 +38,7 @@
         }
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./app/assets/christmas-android.png",
+        "foregroundImage": "./app/assets/2026-android.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.fatties.youth"

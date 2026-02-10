@@ -25,6 +25,7 @@ import {
 import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { useFocusEffect } from "@react-navigation/native";
 import formatTime from "../../../utils/formatTime";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification) => {
@@ -85,6 +86,7 @@ const formatNotificationMessage = (notification) => {
 };
 
 export default function NotificationScreen({ navigation }) {
+  const { theme, isDarkMode } = useTheme();
   const [notifications, setNotifications] = useState([]);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showActionMenu, setShowActionMenu] = useState(false);
@@ -280,7 +282,7 @@ export default function NotificationScreen({ navigation }) {
       <TouchableOpacity
         style={[
           styles.notification,
-          !item.read && { backgroundColor: "#F3FDF1" },
+          !item.read && { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
         ]}
         onPress={() => {
           if (!item.read) {
@@ -327,24 +329,24 @@ export default function NotificationScreen({ navigation }) {
               }
               : require("../../../assets/logo.png")
           }
-          style={[styles.avatar, { alignSelf: "flex-start" }]}
+          style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
         />
         <View style={styles.content}>
-          <Text style={styles.message}>
+          <Text style={[styles.message, { color: theme.text }]}>
             {isSystemMessage ? (
               item.content
             ) : (
               <>
-                <Text style={styles.name}>{item.user.name}</Text> {item.content}
+                <Text style={[styles.name, { color: theme.text }]}>{item.user.name}</Text> {item.content}
               </>
             )}
           </Text>
           {item.type === "story_replied" && item.data?.message_excerpt && (
-            <Text style={styles.excerpt} numberOfLines={2}>
+            <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={2}>
               {item.data.message_excerpt}
             </Text>
           )}
-          <Text style={styles.time}>{item.time}</Text>
+          <Text style={[styles.time, { color: theme.subText }]}>{item.time}</Text>
         </View>
         <TouchableOpacity
           style={styles.moreButton}
@@ -353,7 +355,7 @@ export default function NotificationScreen({ navigation }) {
             setShowActionMenu(true);
           }}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color="#666" />
+          <Ionicons name="ellipsis-vertical" size={20} color={theme.subText} />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -371,11 +373,11 @@ export default function NotificationScreen({ navigation }) {
         activeOpacity={1}
         onPress={() => setShowActionMenu(false)}
       >
-        <View style={styles.actionMenu}>
+        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }]}>
           <TouchableOpacity
             style={[
               styles.actionItem,
-              { borderTopLeftRadius: 12, borderTopRightRadius: 12 },
+              { borderTopLeftRadius: 12, borderTopRightRadius: 12, backgroundColor: theme.cardBackground, borderBottomColor: theme.border },
             ]}
             onPress={() => {
               if (selectedNotification && !selectedNotification.read) {
@@ -384,19 +386,19 @@ export default function NotificationScreen({ navigation }) {
               setShowActionMenu(false);
             }}
           >
-            <Ionicons name="checkmark-outline" size={22} color="#319527" />
-            <Text style={[styles.actionText, { color: "#000" }]}>
+            <Ionicons name="checkmark-outline" size={22} color={theme.primary} />
+            <Text style={[styles.actionText, { color: theme.text }]}>
               Đánh dấu là đã đọc
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity style={[styles.actionItem, { backgroundColor: theme.cardBackground, borderBottomColor: theme.border }]}>
             <Ionicons
               name="notifications-off-outline"
               size={22}
               color="#FF3B30"
             />
-            <Text style={[styles.actionText, { color: "#000" }]}>
+            <Text style={[styles.actionText, { color: theme.text }]}>
               Tắt thông báo từ người này
             </Text>
           </TouchableOpacity>
@@ -408,6 +410,7 @@ export default function NotificationScreen({ navigation }) {
                 borderBottomLeftRadius: 12,
                 borderBottomRightRadius: 12,
                 borderBottomWidth: 0,
+                backgroundColor: theme.cardBackground,
               },
             ]}
             onPress={() => {
@@ -428,9 +431,9 @@ export default function NotificationScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={[styles.header, { marginTop: insets.top }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
         <Text style={styles.headerTitle}>Thông báo</Text>
         <TouchableOpacity
           style={[
@@ -453,7 +456,7 @@ export default function NotificationScreen({ navigation }) {
 
       {loading && notifications.length === 0 ? (
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
         >
           <CustomLoading />
         </View>
@@ -465,12 +468,12 @@ export default function NotificationScreen({ navigation }) {
           renderItem={renderItem}
           contentContainerStyle={{
             paddingBottom: 80,
-            backgroundColor: "#fff",
+            backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,
           }}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: theme.border }]} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
@@ -480,7 +483,7 @@ export default function NotificationScreen({ navigation }) {
                 source={require("../../../assets/sad_frog.png")}
                 style={styles.emptyImage}
               />
-              <Text style={styles.emptyText}>Chưa có thông báo nào...</Text>
+              <Text style={[styles.emptyText, { color: theme.subText }]}>Chưa có thông báo nào...</Text>
             </View>
           }
         />

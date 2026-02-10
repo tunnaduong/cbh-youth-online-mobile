@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View } from "react-native";
+import { Dimensions, View, Platform } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -14,6 +14,7 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import TabBarBadge from "../../components/TabBarBadge";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
@@ -26,6 +27,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
+  const { theme, isDarkMode } = useTheme();
 
   // Function to trigger scroll to top or reload in HomeScreen
   const triggerHomeScrollOrReload = () => {
@@ -67,7 +69,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
       bounceBackOnOverdraw={false}
       disableGestures={currentRoute !== "Home"}
     >
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
           screenOptions={({ route }) => ({
@@ -94,18 +96,31 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 </View>
               );
             },
-            tabBarActiveTintColor: "#319527",
-            tabBarInactiveTintColor: "gray",
+            tabBarActiveTintColor: theme.primary,
+            tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
+            tabBarStyle: {
+              backgroundColor: theme.tabBarBackground,
+              borderTopColor: theme.border,
+            },
             tabBarLabelStyle: {
               fontSize: 10,
               fontWeight: "bold",
             },
+            headerShadowVisible: false,
+            headerTitleAlign: "center",
+            headerTitleContainerStyle: {
+              marginHorizontal: 0,
+              paddingHorizontal: 0,
+              width: Dimensions.get("window").width,
+              alignItems: "center",
+            },
             // Set a consistent header height for all tabs
             headerStyle: {
               height: 50 + insets.top, // Base height + top safe area inset
-            },
-            headerTitleContainerStyle: {
-              paddingVertical: 5, // Adjust as needed
+              backgroundColor: theme.headerBackground,
+              elevation: 0,
+              shadowOpacity: 0,
+              borderBottomWidth: 0,
             },
           })}
         >
@@ -115,8 +130,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               title: "Trang chủ",
               headerShown: true,
               headerBackButtonMenuEnabled: false,
-              headerTitle: () => {
-                return (
+              headerTitle: () => (
+                <View style={{ width: Dimensions.get("window").width }}>
                   <SameHeader
                     icon="search"
                     action={() => stackNavigation.navigate("SearchScreen")}
@@ -124,8 +139,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
                     setSetting={setSetting}
                     onLogoPress={triggerHomeScrollOrReload}
                   />
-                );
-              },
+                </View>
+              ),
             }}
             listeners={{
               tabPress: (e) => {

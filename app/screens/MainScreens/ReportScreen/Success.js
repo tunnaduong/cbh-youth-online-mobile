@@ -5,14 +5,17 @@ import {
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CommonActions } from "@react-navigation/native";
 import ReportHeader from "../../../components/ReportHeader";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 export default function Success({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
 
   const handleReturnHome = () => {
     navigation.dispatch(
@@ -24,11 +27,12 @@ export default function Success({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
+    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
       <ReportHeader navigation={navigation} title="Tạo báo cáo" />
 
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Báo cáo vi phạm</Text>
           <Text style={styles.headerSubtitle}>
@@ -43,28 +47,28 @@ export default function Success({ navigation }) {
       {/* Steps Indicator */}
       <View style={styles.stepsContainer}>
         <View style={styles.stepItem}>
-          <View style={[styles.stepCircle, styles.completedStep]}>
+          <View style={[styles.stepCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="checkmark" size={20} color="#fff" />
           </View>
-          <Text style={[styles.stepText, styles.completedStepText]}>
+          <Text style={[styles.stepText, { color: theme.primary }]}>
             Chọn đối tượng
           </Text>
         </View>
-        <View style={[styles.stepLine, styles.completedLine]} />
+        <View style={[styles.stepLine, { backgroundColor: theme.primary }]} />
         <View style={styles.stepItem}>
-          <View style={[styles.stepCircle, styles.completedStep]}>
+          <View style={[styles.stepCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="checkmark" size={20} color="#fff" />
           </View>
-          <Text style={[styles.stepText, styles.completedStepText]}>
+          <Text style={[styles.stepText, { color: theme.primary }]}>
             Chi tiết vi phạm
           </Text>
         </View>
-        <View style={[styles.stepLine, styles.completedLine]} />
+        <View style={[styles.stepLine, { backgroundColor: theme.primary }]} />
         <View style={styles.stepItem}>
-          <View style={[styles.stepCircle, styles.completedStep]}>
+          <View style={[styles.stepCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="checkmark" size={20} color="#fff" />
           </View>
-          <Text style={[styles.stepText, styles.completedStepText]}>
+          <Text style={[styles.stepText, { color: theme.primary }]}>
             Xác nhận
           </Text>
         </View>
@@ -74,7 +78,7 @@ export default function Success({ navigation }) {
       <View style={styles.successContent}>
         <View
           style={{
-            backgroundColor: "#F3FBF2",
+            backgroundColor: isDarkMode ? "#064e3b" : "#F3FBF2",
             paddingVertical: 60,
             borderRadius: 16,
             justifyContent: "center",
@@ -82,15 +86,15 @@ export default function Success({ navigation }) {
             width: "100%",
           }}
         >
-          <View style={styles.checkCircle}>
+          <View style={[styles.checkCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="checkmark" size={50} color="#fff" />
           </View>
-          <Text style={styles.successText}>Gửi báo cáo thành công!</Text>
+          <Text style={[styles.successText, { color: theme.text }]}>Gửi báo cáo thành công!</Text>
         </View>
       </View>
 
       {/* Return Button */}
-      <TouchableOpacity style={styles.returnButton} onPress={handleReturnHome}>
+      <TouchableOpacity style={[styles.returnButton, { backgroundColor: theme.primary }]} onPress={handleReturnHome}>
         <Text style={styles.returnButtonText}>Quay về trang chủ</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -100,12 +104,10 @@ export default function Success({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#319527",
     padding: 16,
     borderRadius: 16,
     marginHorizontal: 16,
@@ -150,23 +152,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  completedStep: {
-    backgroundColor: "#319527",
-  },
   stepText: {
     fontSize: 12,
     textAlign: "center",
-  },
-  completedStepText: {
-    color: "#319527",
   },
   stepLine: {
     height: 1,
     flex: 0.5,
     marginHorizontal: -10,
-  },
-  completedLine: {
-    backgroundColor: "#319527",
   },
   successContent: {
     flex: 1,
@@ -178,7 +171,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#319527",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
@@ -186,11 +178,9 @@ const styles = StyleSheet.create({
   successText: {
     fontSize: 24,
     fontWeight: "600",
-    color: "#000",
     textAlign: "center",
   },
   returnButton: {
-    backgroundColor: "#319527",
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,

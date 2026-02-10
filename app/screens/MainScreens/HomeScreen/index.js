@@ -51,6 +51,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useStatusBar } from "../../../contexts/StatusBarContext";
+import { useTheme } from "../../../contexts/ThemeContext";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import FastImage from "react-native-fast-image";
@@ -83,6 +84,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     blockUser: blockUserInContext,
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
+  const { theme, isDarkMode } = useTheme();
   const previousStatusBarStyle = useRef({
     barStyle: "dark-content",
     backgroundColor: "#ffffff",
@@ -342,11 +344,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       containerStyle={{
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
+        backgroundColor: theme.cardBackground,
       }}
       indicatorStyle={{
         width: 30,
         height: 4,
-        backgroundColor: "#404040",
+        backgroundColor: isDarkMode ? "#666" : "#404040",
         marginTop: 10,
       }}
       onClose={() => {
@@ -354,19 +357,34 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       }}
       gestureEnabled={true}
     >
-      <View className="py-2">
-        <View className="flex-row items-center justify-between py-4 mx-5 border-b border-gray-300">
-          <View className="flex-row items-center">
-            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+      <View style={{ paddingVertical: 8, backgroundColor: theme.cardBackground }}>
+        <View style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingVertical: 16,
+          marginHorizontal: 20,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.border
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: theme.iconBackground,
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
               <Ionicons
                 name="notifications-outline"
                 size={23}
-                color="#7F7F7F"
+                color={theme.subText}
               />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17 }}>Nhận tin của người này</Text>
-              <Text className="text-gray-500 text-sm">
+              <Text style={{ fontSize: 17, color: theme.text }}>Nhận tin của người này</Text>
+              <Text style={{ color: theme.subText, fontSize: 13 }}>
                 Bật hoặc tắt tin mới của người này
               </Text>
             </View>
@@ -383,7 +401,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   : "Bạn sẽ không nhận được thông báo từ người này",
               });
             }}
-            trackColor={{ false: "#767577", true: "#319527" }}
+            trackColor={{ false: "#767577", true: theme.primary }}
           />
         </View>
 
@@ -397,11 +415,25 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             });
           }}
         >
-          <View className="flex-row items-center py-4 mx-5 border-b border-gray-300">
-            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
-              <Ionicons name="link-outline" size={23} color="#7F7F7F" />
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 16,
+            marginHorizontal: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border
+          }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: theme.iconBackground,
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
+              <Ionicons name="link-outline" size={23} color={theme.subText} />
             </View>
-            <Text style={{ marginLeft: 12, fontSize: 17 }}>
+            <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
               Sao chép liên kết để chia sẻ
             </Text>
           </View>
@@ -413,13 +445,27 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setReportModalVisible(true);
           }}
         >
-          <View className="flex-row items-center py-4 mx-5 border-b border-gray-300">
-            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
-              <Ionicons name="warning-outline" size={23} color="#7F7F7F" />
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 16,
+            marginHorizontal: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border
+          }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: theme.iconBackground,
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
+              <Ionicons name="warning-outline" size={23} color={theme.subText} />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17 }}>Báo cáo tin</Text>
-              <Text className="text-gray-500 text-sm">
+              <Text style={{ fontSize: 17, color: theme.text }}>Báo cáo tin</Text>
+              <Text style={{ color: theme.subText, fontSize: 13 }}>
                 Tin này chứa nội dung không phù hợp
               </Text>
             </View>
@@ -443,11 +489,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             });
           }}
         >
-          <View className="flex-row items-center py-4 mx-5">
-            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
-              <Ionicons name="close-outline" size={23} />
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 16,
+            marginHorizontal: 20
+          }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: theme.iconBackground,
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
+              <Ionicons name="close-outline" size={23} color={theme.text} />
             </View>
-            <Text style={{ marginLeft: 12, fontSize: 17 }}>
+            <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
               Bỏ theo dõi người này
             </Text>
           </View>
@@ -503,8 +561,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             ]);
           }}
         >
-          <View className="flex-row items-center py-4 mx-5">
-            <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 16,
+            marginHorizontal: 20
+          }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: theme.iconBackground,
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
               <Ionicons name="ban-outline" size={23} color="#ef4444" />
             </View>
             <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
@@ -586,7 +656,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       <TouchableOpacity
         onPress={() => setVerificationModalVisible(true)}
         style={{
-          backgroundColor: "#FFF3CD",
+          backgroundColor: isDarkMode ? "#332b00" : "#FFF3CD",
           borderLeftWidth: 4,
           borderLeftColor: "#FFC107",
           padding: 12,
@@ -598,18 +668,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           alignItems: "center",
         }}
       >
-        <Ionicons name="alert-circle-outline" size={20} color="#856404" />
+        <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
         <Text
           style={{
             marginLeft: 10,
-            color: "#856404",
+            color: isDarkMode ? "#FFC107" : "#856404",
             fontSize: 14,
             flex: 1,
           }}
         >
           Vui lòng xác minh địa chỉ email để sử dụng đầy đủ các tính năng
         </Text>
-        <Ionicons name="chevron-forward-outline" size={18} color="#856404" />
+        <Ionicons name="chevron-forward-outline" size={18} color={isDarkMode ? "#FFC107" : "#856404"} />
       </TouchableOpacity>
     );
   };
@@ -621,9 +691,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         <ScrollView
           style={{
             borderBottomWidth: 10,
-            borderBottomColor: "#E6E6E6",
+            borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
             padding: 15,
-            backgroundColor: "white",
+            backgroundColor: theme.background,
           }}
           contentContainerStyle={{ gap: 10, paddingRight: 15 }}
           horizontal
@@ -632,22 +702,51 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           {/* Story like Facebook component */}
           <TouchableHighlight
             onPress={() => navigation.navigate("CreateStory")}
-            className="relative overflow-hidden rounded-2xl bg-gray-200 w-[100px] h-[160px] border border-[#c4c4c4]"
+            style={{
+              position: "relative",
+              overflow: "hidden",
+              borderRadius: 16,
+              backgroundColor: theme.cardBackground,
+              width: 100,
+              height: 160,
+              borderWidth: 1,
+              borderColor: theme.border
+            }}
           >
-            <View className="flex-1">
+            <View style={{ flex: 1 }}>
               <FastImage
                 source={{
                   uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
                 }}
                 style={{ width: 100, height: 115 }}
               />
-              <View className="absolute bottom-0 left-0 right-0 bg-[#fafafa] pt-6 pb-2 text-center">
-                <Text className="text-[13px] font-medium text-center">
+              <View style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                backgroundColor: theme.cardBackground,
+                paddingTop: 24,
+                paddingBottom: 8,
+                alignItems: "center"
+              }}>
+                <Text style={{
+                  fontSize: 13,
+                  fontWeight: "500",
+                  textAlign: "center",
+                  color: theme.text
+                }}>
                   Tạo tin
                 </Text>
               </View>
-              <View className="absolute bottom-[28px] left-[31px] bg-[#fafafa] rounded-full">
-                <Ionicons name="add-circle" size={40} color={"#319527"} />
+              <View style={{
+                position: "absolute",
+                bottom: 28,
+                left: 31,
+                backgroundColor: theme.cardBackground,
+                borderRadius: 20
+              }}>
+                <Ionicons name="add-circle" size={40} color={theme.primary} />
               </View>
             </View>
           </TouchableHighlight>
@@ -655,7 +754,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             <TouchableHighlight
               key={user.id}
               onPress={() => storyRef.current?.show(user.id)}
-              className="relative w-[100px] h-[160px] rounded-2xl overflow-hidden bg-gray-200 border border-[#c4c4c4]"
+              style={{
+                position: "relative",
+                width: 100,
+                height: 160,
+                borderRadius: 16,
+                overflow: "hidden",
+                backgroundColor: theme.cardBackground,
+                borderWidth: 1,
+                borderColor: theme.border
+              }}
             >
               <View>
                 {/* Story Image */}
@@ -665,9 +773,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 />
 
                 {/* Avatar */}
-                <View className="absolute top-2 left-2">
-                  <View className="rounded-full p-0.5 border-2 border-[#319528]">
-                    <View className="w-6 h-6 rounded-full overflow-hidden">
+                <View style={{ position: "absolute", top: 8, left: 8 }}>
+                  <View style={{ borderRadius: 100, padding: 2, borderWidth: 2, borderColor: theme.primary }}>
+                    <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden" }}>
                       <Image
                         source={{ uri: user.avatarSource.uri }}
                         style={{ width: 24, height: 24 }}
@@ -873,7 +981,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             <TouchableWithoutFeedback>
               <View
                 style={{
-                  backgroundColor: "white",
+                  backgroundColor: theme.cardBackground,
                   borderRadius: 12,
                   padding: 20,
                   width: "85%",
@@ -904,7 +1012,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     style={{
                       fontSize: 20,
                       fontWeight: "bold",
-                      color: "#333",
+                      color: theme.text,
                       flex: 1,
                     }}
                   >
@@ -914,14 +1022,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     onPress={() => setVerificationModalVisible(false)}
                     style={{ padding: 5 }}
                   >
-                    <Ionicons name="close" size={24} color="#666" />
+                    <Ionicons name="close" size={24} color={theme.subText} />
                   </TouchableOpacity>
                 </View>
 
                 <Text
                   style={{
                     fontSize: 15,
-                    color: "#666",
+                    color: theme.subText,
                     marginBottom: 15,
                     lineHeight: 22,
                   }}
@@ -933,7 +1041,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 {userInfo?.email && (
                   <View
                     style={{
-                      backgroundColor: "#F5F5F5",
+                      backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5",
                       padding: 12,
                       borderRadius: 8,
                       marginBottom: 15,
@@ -942,7 +1050,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     <Text
                       style={{
                         fontSize: 13,
-                        color: "#999",
+                        color: theme.subText,
                         marginBottom: 4,
                       }}
                     >
@@ -951,7 +1059,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     <Text
                       style={{
                         fontSize: 15,
-                        color: "#333",
+                        color: theme.text,
                         fontWeight: "500",
                       }}
                     >
@@ -964,7 +1072,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   onPress={handleResendVerification}
                   disabled={resendingVerification}
                   style={{
-                    backgroundColor: resendingVerification ? "#CCC" : "#319527",
+                    backgroundColor: resendingVerification ? "#CCC" : theme.primary,
                     paddingVertical: 12,
                     paddingHorizontal: 20,
                     borderRadius: 8,
@@ -997,7 +1105,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 >
                   <Text
                     style={{
-                      color: "#666",
+                      color: theme.subText,
                       fontSize: 15,
                     }}
                   >
@@ -1252,10 +1360,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           <View style={styles.replyBar}>
             <TextInput
               placeholder="Chia sẻ cảm nghĩ của bạn..."
-              placeholderTextColor="#aaa"
-              style={styles.input}
+              placeholderTextColor={theme.subText}
+              style={[styles.input, { backgroundColor: isDarkMode ? "#374151" : "#666666", color: isDarkMode ? theme.text : "#FFFFFF" }]}
               value={replyText}
               onChangeText={setReplyText}
+              onFocus={() => storyRef?.current.pause()}
+              onBlur={() => storyRef?.current.resume()}
               onSubmitEditing={handleSendReply}
               editable={!isSending}
             />
@@ -1279,13 +1389,29 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   return filteredFeed == null ? (
-    <View
-      style={{
+    <ScrollView
+      contentContainerStyle={{
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "white",
-        flex: 1,
+        backgroundColor: theme.background,
+        flexGrow: 1,
       }}
+      alwaysBounceVertical
+      bounces
+      overScrollMode="always"
+      refreshControl={
+        <RefreshControl
+          tintColor="transparent"
+          colors={["transparent"]}
+          style={{ backgroundColor: "transparent" }}
+          refreshing={refreshing}
+          onRefresh={() => {
+            if (!isProcessingRef.current) {
+              handleRefresh();
+            }
+          }}
+        />
+      }
     >
       <LottieView
         source={require("../../../assets/refresh.json")}
@@ -1296,11 +1422,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         loop
         autoPlay
       />
-      <Text style={{ marginTop: 15 }}>Đang tải bảng tin...</Text>
-    </View>
+      <Text style={{ marginTop: 15, color: theme.text }}>Đang tải bảng tin...</Text>
+    </ScrollView>
   ) : (
     <>
-      <View style={{ backgroundColor: "white", flex: 1 }}>
+      <View style={{ backgroundColor: theme.background, flex: 1 }}>
         {refreshing && (
           <View
             style={{
@@ -1335,7 +1461,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           contentContainerStyle={{
             paddingBottom: 30,
-            backgroundColor: "white",
+            backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (
             <PostItem
@@ -1440,10 +1566,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 45,
-    backgroundColor: "#666666",
     borderRadius: 25,
     paddingHorizontal: 15,
-    color: "#A7A7A7",
   },
   viewCountBar: {
     paddingHorizontal: 16,
@@ -1467,7 +1591,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: "white",
+    backgroundColor: theme.cardBackground,
     paddingVertical: 10,
   },
 });

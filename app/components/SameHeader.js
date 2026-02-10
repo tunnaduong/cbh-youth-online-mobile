@@ -5,13 +5,15 @@ import {
   TouchableOpacity,
   View,
   SafeAreaView,
+  StyleSheet,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useTheme } from "../contexts/ThemeContext";
 
 // Simple header component
-const SimpleHeader = ({ title }) => (
-  <View style={styles.simpleContainer}>
-    <Text style={styles.simpleTitle}>{title}</Text>
+const SimpleHeader = ({ title, theme }) => (
+  <View style={[styles.simpleContainer, { backgroundColor: theme.background }]}>
+    <Text style={[styles.simpleTitle, { color: theme.text }]}>{title}</Text>
   </View>
 );
 
@@ -24,93 +26,94 @@ const FeatureHeader = ({
   havingIcon = false,
   setSetting,
   onLogoPress,
+  theme,
+  isDarkMode,
 }) => (
-  <View>
-    <View style={havingBorder ? styles.containerWithBorder : styles.container}>
-      <TouchableOpacity onPress={() => setSetting((setting) => !setting)}>
-        <Ionicons name={"menu-outline"} size={27} color="black" />
-      </TouchableOpacity>
-      {havingIcon ? (
-        <SafeAreaView className="-mt-1">
-          <TouchableOpacity 
-            onPress={onLogoPress}
-            activeOpacity={0.7}
-            style={styles.logoContainer}
-          >
-            <Image
-              style={styles.logo}
-              source={require("../assets/logo.png")}
-              resizeMode="contain"
-            />
-            <View className="ml-1">
-              <Text className="text-[#319527] font-light">
-                Diễn đàn học sinh
-              </Text>
-              <Text className="font-bold text-[#319527] -mt-0.5">
-                Chuyên Biên Hòa
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </SafeAreaView>
-      ) : (
-        <Text style={styles.title}>{title}</Text>
-      )}
-
-      <SafeAreaView className="-mt-1">
-        <TouchableOpacity onPress={action}>
-          <View style={styles.iconContainer}>
-            <Ionicons name={icon} size={23} color="black" />
+  <View style={[
+    havingBorder ? styles.containerWithBorder : styles.container,
+    {
+      backgroundColor: theme.headerBackground,
+      borderColor: theme.border,
+      borderBottomWidth: havingBorder ? StyleSheet.hairlineWidth : 0,
+    }
+  ]}>
+    <TouchableOpacity onPress={() => setSetting((setting) => !setting)}>
+      <Ionicons name={"menu-outline"} size={27} color={theme.text} />
+    </TouchableOpacity>
+    {havingIcon ? (
+      <SafeAreaView style={{ marginTop: -4 }}>
+        <TouchableOpacity
+          onPress={onLogoPress}
+          activeOpacity={0.7}
+          style={styles.logoContainer}
+        >
+          <Image
+            style={styles.logo}
+            source={require("../assets/logo.png")}
+            resizeMode="contain"
+          />
+          <View style={{ marginLeft: 4 }}>
+            <Text style={{ color: theme.primary, fontWeight: "300" }}>
+              Diễn đàn học sinh
+            </Text>
+            <Text style={{ color: theme.primary, fontWeight: "bold", marginTop: -2 }}>
+              Chuyên Biên Hòa
+            </Text>
           </View>
         </TouchableOpacity>
       </SafeAreaView>
-    </View>
+    ) : (
+      <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+    )}
+
+    <SafeAreaView style={{ marginTop: -4 }}>
+      <TouchableOpacity onPress={action}>
+        <View style={[styles.iconContainer, { backgroundColor: theme.iconBackground }]}>
+          <Ionicons name={icon} size={23} color={theme.text} />
+        </View>
+      </TouchableOpacity>
+    </SafeAreaView>
   </View>
 );
 
 // Main component that decides which header to render
 const SameHeader = (props) => {
+  const { theme, isDarkMode } = useTheme();
+
   if (props.defaultStyle) {
-    return <SimpleHeader title={props.title} />;
+    return <SimpleHeader title={props.title} theme={theme} />;
   }
-  return <FeatureHeader {...props} />;
+  return <FeatureHeader {...props} theme={theme} isDarkMode={isDarkMode} />;
 };
 
 // Extract all styles to a separate object
-const styles = {
+const styles = StyleSheet.create({
   simpleContainer: {
-    backgroundColor: "white",
+    paddingHorizontal: 15,
+    height: 50,
+    justifyContent: "center",
   },
   simpleTitle: {
     textAlign: "center",
-    fontWeight: "500",
+    fontWeight: "600",
     fontSize: 18,
-    flex: 1,
   },
   container: {
     width: "100%",
-    height: "100%",
+    height: 50,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "white",
+    paddingHorizontal: 15,
   },
   containerWithBorder: {
     width: "100%",
-    height: "100%",
+    height: 50,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "white",
-    borderBottomWidth: 0.2,
-    borderColor: "rgba(0,0,0,0.2)",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 7,
+    paddingHorizontal: 15,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   logoContainer: {
     flexDirection: "row",
@@ -121,18 +124,14 @@ const styles = {
     height: 35,
   },
   title: {
-    fontSize: 25,
+    fontSize: 22,
     fontWeight: "bold",
     textAlign: "left",
-    marginTop: 5,
   },
   iconContainer: {
-    backgroundColor: "rgba(0,0,0,0.10)",
-    padding: 5,
-    paddingLeft: 6,
-    paddingRight: 6,
-    borderRadius: 100,
+    padding: 6,
+    borderRadius: 20,
   },
-};
+});
 
 export default SameHeader;
