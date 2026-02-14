@@ -27,18 +27,20 @@ import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
 import FastImage from "react-native-fast-image";
 import { CommonActions } from "@react-navigation/native";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
   const [title, setTitle] = useState("");
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
+  const { theme, isDarkMode } = useTheme();
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const view = [
-    { label: "Công khai", value: 0 },
-    { label: "Riêng tư", value: 1 },
+    { label: "Công khai", value: 0, icon: "earth" },
+    { label: "Riêng tư", value: 1, icon: "lock-closed" },
   ];
   const [viewSelected, setViewSelected] = useState(view[0]);
   const [loading, setLoading] = useState(false);
@@ -240,7 +242,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
   if (!initialPost) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <ProgressHUD visible={true} />
       </View>
     );
@@ -248,7 +250,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
   return (
     <>
-      <StatusBar barStyle={"default"} />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <ProgressHUD loadText="Đang cập nhật..." visible={loading} />
       <View
         style={[
@@ -257,8 +259,9 @@ const PostEditScreen = ({ navigation, route }) => {
             alignItems: "center",
             paddingHorizontal: 16,
             height: 50,
-            borderBottomColor: "#ccc",
+            borderBottomColor: theme.border,
             borderBottomWidth: 0.8,
+            backgroundColor: theme.background,
           },
           Platform.OS === "android"
             ? { marginTop: insets.top }
@@ -266,14 +269,14 @@ const PostEditScreen = ({ navigation, route }) => {
         ]}
       >
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={25} color={"#A7A7A7"} />
+          <Ionicons name="chevron-back-circle" size={25} color={theme.subText} />
         </TouchableOpacity>
         <Text
           style={{
             fontSize: 20,
             fontWeight: "bold",
             marginLeft: 16,
-            color: "#309627",
+            color: theme.primary,
           }}
         >
           Chỉnh sửa bài viết
@@ -284,7 +287,7 @@ const PostEditScreen = ({ navigation, route }) => {
               marginLeft: "auto",
               paddingHorizontal: 25,
               paddingVertical: 10,
-              backgroundColor: "#309627",
+              backgroundColor: theme.primary,
               borderRadius: 20,
             },
             Platform.OS === "android" && { paddingVertical: 8 },
@@ -304,7 +307,7 @@ const PostEditScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.container}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
         <View
           style={{
             flexDirection: "row",
@@ -312,7 +315,7 @@ const PostEditScreen = ({ navigation, route }) => {
             gap: 10,
             paddingTop: 16,
             paddingLeft: 16,
-            backgroundColor: "#fff",
+            backgroundColor: theme.background,
           }}
           pointerEvents="box-none"
         >
@@ -324,19 +327,19 @@ const PostEditScreen = ({ navigation, route }) => {
               width: 70,
               height: 70,
               borderRadius: 35,
-              borderColor: "#ccc",
+              borderColor: theme.border,
               borderWidth: 1,
             }}
           />
           <View style={{ flex: 1 }}>
-            <Text className="font-medium text-lg" numberOfLines={1}>
+            <Text style={{ fontWeight: '500', fontSize: 18, color: theme.text }} numberOfLines={1}>
               {profileName}
               {userInfo.verified && (
                 <View>
                   <Verified
                     width={20}
                     height={20}
-                    color={"#319527"}
+                    color={theme.primary}
                     style={{ marginBottom: -5 }}
                   />
                 </View>
@@ -349,32 +352,32 @@ const PostEditScreen = ({ navigation, route }) => {
               onValueChange={setViewSelected}
               style={{
                 borderWidth: 0,
-                backgroundColor: "#f3f4f6",
+                backgroundColor: isDarkMode ? "#374151" : "#f3f4f6",
                 padding: 6,
                 borderRadius: 8,
                 gap: 3,
                 alignSelf: "flex-start",
               }}
               leftIcon={
-                viewSelected.value === 0 ? (
-                  <Ionicons name="earth" size={15} color={"#777"} />
-                ) : (
-                  <Ionicons name="lock-closed" size={15} color={"#777"} />
-                )
+                <Ionicons
+                  name={viewSelected.icon}
+                  size={15}
+                  color={theme.subText}
+                />
               }
               textStyle={{
                 fontSize: 12,
-                color: "#777",
+                color: theme.subText,
               }}
               arrowSize={15}
             />
           </View>
         </View>
-        <View style={styles.inputContainer}>
+        <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? "#1f2937" : "#fafafa", borderColor: theme.border }]}>
           <TextInput
-            style={styles.titleInput}
+            style={[styles.titleInput, { color: theme.text }]}
             placeholder="Chủ đề bạn muốn chia sẻ là gì?"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.subText}
             value={title}
             onChangeText={setTitle}
           />
@@ -382,14 +385,14 @@ const PostEditScreen = ({ navigation, route }) => {
             style={{
               height: 0,
               borderTopWidth: 1,
-              borderColor: "#ddd",
+              borderColor: theme.border,
               marginHorizontal: 12,
             }}
           ></View>
           <TextInput
-            style={styles.contentInput}
+            style={[styles.contentInput, { color: theme.text }]}
             placeholder="Bạn đang nghĩ gì?"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.subText}
             value={postContent}
             onChangeText={setPostContent}
             multiline
@@ -403,20 +406,20 @@ const PostEditScreen = ({ navigation, route }) => {
             selectedValue={selected}
             onValueChange={setSelected}
           />
-          <View className="flex-row items-center gap-2 mt-1">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <TouchableOpacity
               onPress={() => navigateToHelp(213057)}
-              className="flex-row items-center h-10 gap-2 border-[1.3px] border-[#319527] rounded-xl py-1.5 px-3 self-start"
+              style={{ flexDirection: 'row', alignItems: 'center', height: 40, gap: 8, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12 }}
             >
-              <Ionicons name="logo-markdown" size={15} />
-              <Text>Hỗ trợ Markdown</Text>
+              <Ionicons name="logo-markdown" size={15} color={theme.text} />
+              <Text style={{ color: theme.text }}>Hỗ trợ Markdown</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigateToHelp(213054)}
-              className="flex-row items-center h-10 justify-center gap-1 border-[1.3px] border-[#319527] rounded-xl px-3 self-start"
+              style={{ flexDirection: 'row', alignItems: 'center', height: 40, justifyContent: 'center', gap: 4, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingHorizontal: 12 }}
             >
-              <Ionicons name="warning" size={18} />
-              <Text>Quy tắc</Text>
+              <Ionicons name="warning" size={18} color={theme.text} />
+              <Text style={{ color: theme.text }}>Quy tắc</Text>
             </TouchableOpacity>
           </View>
 
@@ -436,8 +439,7 @@ const PostEditScreen = ({ navigation, route }) => {
                     return (
                       <View
                         key={`image-${index}-${uri}`}
-                        className="relative"
-                        style={{ marginTop: 7, marginRight: 7 }}
+                        style={{ marginTop: 7, marginRight: 7, position: 'relative' }}
                       >
                         <Image
                           source={{ uri }}
@@ -445,7 +447,7 @@ const PostEditScreen = ({ navigation, route }) => {
                             width: 146,
                             height: 146,
                             borderRadius: 13,
-                            borderColor: "#ccc",
+                            borderColor: theme.border,
                             borderWidth: 1,
                           }}
                         />
@@ -455,7 +457,16 @@ const PostEditScreen = ({ navigation, route }) => {
                               removeImage(index);
                             }
                           }}
-                          className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 border-[4px] border-white"
+                          style={{
+                            position: 'absolute',
+                            top: -8,
+                            right: -8,
+                            backgroundColor: '#ef4444',
+                            borderRadius: 999,
+                            padding: 6,
+                            borderWidth: 4,
+                            borderColor: theme.background
+                          }}
                         >
                           <Ionicons name="trash" size={20} color={"#fff"} />
                         </TouchableOpacity>
@@ -468,20 +479,24 @@ const PostEditScreen = ({ navigation, route }) => {
                       pickImage();
                     }
                   }}
-                  className="items-center justify-center border-[1.3px] border-[#ECECEC] rounded-xl"
                   style={{
                     width: 146,
                     height: 146,
                     marginTop: 7,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1.3,
+                    borderColor: theme.border,
+                    borderRadius: 12
                   }}
                 >
                   <Ionicons
                     name="add-outline"
                     size={40}
-                    color={"#519527"}
+                    color={theme.primary}
                     style={{ marginTop: -5 }}
                   />
-                  <Text className="text-[#319527]">Thêm ảnh</Text>
+                  <Text style={{ color: theme.primary }}>Thêm ảnh</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -492,15 +507,25 @@ const PostEditScreen = ({ navigation, route }) => {
                   pickImage();
                 }
               }}
-              className="items-center justify-center mt-5 self-start border-[1.3px] border-[#ECECEC] rounded-xl p-10"
+              style={{
+                height: 100,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1.3,
+                borderColor: theme.border,
+                borderRadius: 12,
+                marginTop: 20,
+                padding: 40,
+                alignSelf: 'flex-start'
+              }}
             >
               <Ionicons
                 name="add-outline"
                 size={40}
-                color={"#519527"}
+                color={theme.primary}
                 style={{ marginTop: -5 }}
               />
-              <Text className="text-[#319527]">Thêm ảnh</Text>
+              <Text style={{ color: theme.primary }}>Thêm ảnh</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -512,22 +537,18 @@ const PostEditScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
   },
   inputContainer: {
     padding: 5,
-    backgroundColor: "#fafafa",
     borderRadius: 15,
     marginHorizontal: 16,
     marginTop: 16,
     borderWidth: 1,
-    borderColor: "#ECECEC",
   },
   label: {
     fontSize: 16,
@@ -539,16 +560,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 16,
     fontWeight: "600",
-    color: "#000",
   },
   contentInput: {
     height: 200,
     padding: 12,
     fontSize: 16,
-    color: "#000",
   },
   postButton: {
-    backgroundColor: "#007AFF",
     padding: 16,
     borderRadius: 8,
     alignItems: "center",

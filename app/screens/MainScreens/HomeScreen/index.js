@@ -1591,7 +1591,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContent: {
-    backgroundColor: theme.cardBackground,
     paddingVertical: 10,
   },
 });

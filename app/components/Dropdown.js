@@ -10,6 +10,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useTheme } from "../contexts/ThemeContext";
 
 const Dropdown = ({
   options = [],
@@ -23,6 +24,7 @@ const Dropdown = ({
   textStyle,
 }) => {
   const [visible, setVisible] = useState(false);
+  const { theme, isDarkMode } = useTheme();
 
   const handleSelect = (value) => {
     onValueChange(value);
@@ -55,15 +57,15 @@ const Dropdown = ({
 
   return (
     <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, { color: theme.text }]}>{label}</Text>}
       <TouchableOpacity
-        style={[styles.dropdown, style]}
+        style={[styles.dropdown, { backgroundColor: theme.background, borderColor: theme.border }, style]}
         onPress={() => setVisible(true)}
       >
         <View style={{ flexDirection: "row", alignItems: "center", flex: isFitContent ? 0 : 1 }}>
           {leftIcon && <View style={{ marginRight: 8 }}>{leftIcon}</View>}
           <Text
-            style={[styles.dropdownText, textStyle, { flex: isFitContent ? 0 : 1 }]}
+            style={[styles.dropdownText, { color: selectedValue ? theme.text : theme.subText }, textStyle, { flex: isFitContent ? 0 : 1 }]}
             numberOfLines={1}
           >
             {selectedValue
@@ -74,7 +76,7 @@ const Dropdown = ({
         <Ionicons
           name="chevron-down-outline"
           size={arrowSize}
-          color={"#1B1B1B"}
+          color={theme.subText}
         />
       </TouchableOpacity>
 
@@ -89,22 +91,22 @@ const Dropdown = ({
           onPress={() => setVisible(false)}
           activeOpacity={1}
         >
-          <View style={[styles.modal, isGrouped && { maxHeight: "70%" }]}>
+          <View style={[styles.modal, { backgroundColor: theme.cardBackground }, isGrouped && { maxHeight: "70%" }]}>
             {isGrouped ? (
               <SectionList
                 sections={sections}
-                keyExtractor={(item) => item.value.toString()}
+                keyExtractor={(item) => item.id?.toString() || item.value?.toString() || Math.random().toString()}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.optionGrouped}
                     onPress={() => handleSelect(item)}
                   >
-                    <Text style={styles.optionText}>{item.label}</Text>
+                    <Text style={[styles.optionText, { color: theme.text }]}>{item.label}</Text>
                   </TouchableOpacity>
                 )}
                 renderSectionHeader={({ section: { title } }) => (
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionHeaderText}>{title}</Text>
+                  <View style={[styles.sectionHeader, { backgroundColor: theme.cardBackground }]}>
+                    <Text style={[styles.sectionHeaderText, { color: theme.subText }]}>{title}</Text>
                   </View>
                 )}
                 stickySectionHeadersEnabled={false}
@@ -112,13 +114,13 @@ const Dropdown = ({
             ) : (
               <FlatList
                 data={options}
-                keyExtractor={(item) => item.value ? item.value.toString() : Math.random().toString()}
+                keyExtractor={(item) => item.id?.toString() || item.value?.toString() || Math.random().toString()}
                 renderItem={({ item }) => (
                   <TouchableOpacity
-                    style={styles.option}
+                    style={[styles.option, { borderBottomColor: theme.border }]}
                     onPress={() => handleSelect(item)}
                   >
-                    <Text style={styles.optionText}>{item.label}</Text>
+                    <Text style={[styles.optionText, { color: theme.text }]}>{item.label}</Text>
                   </TouchableOpacity>
                 )}
               />
@@ -137,21 +139,17 @@ const styles = StyleSheet.create({
   label: {
     marginBottom: 5,
     fontSize: 16,
-    color: "#333",
   },
   dropdown: {
     borderWidth: 1,
-    borderColor: "#ECECEC",
     padding: 12,
     borderRadius: 15,
-    backgroundColor: "#fff",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   dropdownText: {
     fontSize: 16,
-    color: "#666666",
   },
   overlay: {
     flex: 1,
@@ -161,7 +159,6 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   modal: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 10,
     maxHeight: "60%", // Limit height
@@ -178,24 +175,17 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
   },
   optionGrouped: {
     paddingVertical: 12,
     paddingHorizontal: 20, // More indent for grouped items
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#f5f5f5",
   },
   optionText: {
     fontSize: 16,
-    color: "#333",
   },
   sectionHeader: {
     paddingVertical: 8,
     paddingHorizontal: 15,
-    backgroundColor: "#fff",
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#f0f0f0",
     marginTop: 5,
   },
   sectionHeaderText: {
