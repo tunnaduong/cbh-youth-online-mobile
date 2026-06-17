@@ -22,6 +22,7 @@ const Dropdown = ({
   leftIcon,
   arrowSize = 20,
   textStyle,
+  containerStyle,
 }) => {
   const [visible, setVisible] = useState(false);
   const { theme, isDarkMode } = useTheme();
@@ -56,7 +57,7 @@ const Dropdown = ({
   const isFitContent = flattenedStyle.alignSelf === 'flex-start';
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, containerStyle]}>
       {label && <Text style={[styles.label, { color: theme.text }]}>{label}</Text>}
       <TouchableOpacity
         style={[styles.dropdown, { backgroundColor: theme.background, borderColor: theme.border }, style]}

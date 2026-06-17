@@ -168,7 +168,8 @@ export default function SettingsScreen({ navigation }) {
                 value: useSystemTheme ? "system" : (isDarkMode ? "dark" : "light")
               }}
               onValueChange={(item) => setThemeMode(item.value)}
-              style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0 }}
+              style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0, backgroundColor: 'transparent' }}
+              containerStyle={{ marginVertical: 0 }}
               textStyle={{ color: theme.subText, fontSize: 16, textAlign: 'right' }}
               leftIcon={
                 <View style={styles.settingItemLeft}>
