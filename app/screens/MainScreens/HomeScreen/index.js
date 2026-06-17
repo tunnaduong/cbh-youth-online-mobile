@@ -1461,7 +1461,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           data={filteredFeed}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           contentContainerStyle={{
-            paddingBottom: 30,
+            paddingBottom: 110,
             backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (

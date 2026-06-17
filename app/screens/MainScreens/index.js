@@ -100,10 +100,22 @@ export default function MainScreens({ navigation: stackNavigation }) {
             tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
             tabBarStyle: {
               backgroundColor: theme.tabBarBackground,
-              borderTopColor: theme.border,
+              borderTopWidth: 0,
+              position: 'absolute',
+              bottom: Platform.OS === 'ios' ? 25 : 15,
+              left: 15,
+              right: 15,
+              elevation: 10,
+              borderRadius: 30,
+              height: 65,
+              shadowColor: "#000",
+              shadowOpacity: 0.15,
+              shadowOffset: { width: 0, height: 5 },
+              shadowRadius: 15,
+              paddingBottom: 8, // Adjust for center alignment
             },
             tabBarLabelStyle: {
-              fontSize: 10,
+              fontSize: 9, // Reduced font size to fit
               fontWeight: "bold",
             },
             headerShadowVisible: false,

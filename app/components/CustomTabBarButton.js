@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontWeight: "bold",
-    fontSize: 10,
+    fontSize: 9,
     marginTop: 3,
   },
   additionalButton: {

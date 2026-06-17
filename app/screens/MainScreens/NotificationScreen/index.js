@@ -467,7 +467,7 @@ export default function NotificationScreen({ navigation }) {
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={{
-            paddingBottom: 80,
+            paddingBottom: 110,
             backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,
           }}

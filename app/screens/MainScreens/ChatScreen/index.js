@@ -215,7 +215,7 @@ export default function ChatScreen({ navigation }) {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={{
-          paddingBottom: 80,
+          paddingBottom: 110,
           flex: filteredConversations.length === 0 ? 1 : undefined,
         }}
         ItemSeparatorComponent={() => (
