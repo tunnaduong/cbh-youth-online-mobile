@@ -17,11 +17,13 @@ import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
 import { forgotPassword } from "../../services/api/Api";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
+  const { theme } = useTheme();
 
   const handleSendResetLink = async () => {
     if (!email) {
@@ -78,7 +80,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     <>
       <ProgressHUD loadText={t("forgotPassword.loading")} visible={loading} />
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
           <TouchableOpacity
             className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
             onPress={() => {
@@ -93,17 +95,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
           </TouchableOpacity>
           <ScrollView style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>{t("forgotPassword.title")}</Text>
-              <Text style={styles.subtitle}>{t("forgotPassword.subtitle")}</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{t("forgotPassword.title")}</Text>
+              <Text style={[styles.subtitle, { color: theme.subText }]}>{t("forgotPassword.subtitle")}</Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("forgotPassword.email")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("forgotPassword.email")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="hello@example.com"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"

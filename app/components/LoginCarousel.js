@@ -7,9 +7,12 @@ import LoginCardCarousel, {
 } from "./LoginCardCarousel";
 import data from "../global/carouselData";
 
+import { useTheme } from "../contexts/ThemeContext";
+
 export default function LoginCarousel({ style }) {
   const [index, setIndex] = React.useState(0);
   const isCarousel = React.useRef(null);
+  const { theme } = useTheme();
   return (
     <>
       <View style={style}>
@@ -33,7 +36,7 @@ export default function LoginCarousel({ style }) {
             height: 10,
             borderRadius: 5,
             marginHorizontal: 0,
-            backgroundColor: "black",
+            backgroundColor: theme.text,
           }}
           containerStyle={{ paddingVertical: 5 }}
           inactiveDotOpacity={0.4}

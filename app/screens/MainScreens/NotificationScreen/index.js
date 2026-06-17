@@ -434,11 +434,12 @@ export default function NotificationScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-        <Text style={styles.headerTitle}>{t('navigation.notifications')}</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
         <TouchableOpacity
           style={[
             styles.readAllButton,
-            unreadCount === 0 && styles.readAllButtonDisabled,
+            { backgroundColor: theme.primary },
+            unreadCount === 0 && (isDarkMode ? { backgroundColor: "#2e2e2e", elevation: 0, shadowOpacity: 0 } : styles.readAllButtonDisabled),
           ]}
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
@@ -446,7 +447,8 @@ export default function NotificationScreen({ navigation }) {
           <Text
             style={[
               styles.readAllText,
-              unreadCount === 0 && styles.readAllTextDisabled,
+              { color: "#fff" },
+              unreadCount === 0 && (isDarkMode ? { color: "#666" } : styles.readAllTextDisabled),
             ]}
           >
             {t('notifications.readAll')} ({unreadCount})

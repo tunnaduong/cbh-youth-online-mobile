@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform, StyleSheet } from "react-native";
+import { Dimensions, View, Platform, StyleSheet, Text } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -105,7 +105,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               backgroundColor: 'transparent',
               borderTopWidth: 0,
               position: 'absolute',
-              bottom: Platform.OS === 'ios' ? 25 : 15,
+              bottom: Platform.OS === 'ios' ? 15 : 5,
               left: 45,
               right: 45,
               elevation: 10,
@@ -236,6 +236,21 @@ export default function MainScreens({ navigation: stackNavigation }) {
             options={{
               title: t('navigation.notifications'),
               headerShown: false,
+              tabBarLabel: ({ color }) => (
+                <Text
+                  style={{
+                    color,
+                    fontSize: 8.5,
+                    fontWeight: "bold",
+                    marginBottom: 5,
+                    textAlign: "center",
+                  }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                >
+                  {t('navigation.notifications')}
+                </Text>
+              )
             }}
           />
         </Tab.Navigator>

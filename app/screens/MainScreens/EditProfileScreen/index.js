@@ -27,9 +27,11 @@ import DatePicker from "react-native-date-picker";
 import RadioGroup from "react-native-radio-buttons-group";
 import FastImage from "react-native-fast-image";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const EditProfileScreen = ({ navigation }) => {
   const { username, userInfo, setUserInfo } = useContext(AuthContext);
+  const { theme, isDarkMode } = useTheme();
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [loadingFirst, setLoadingFirst] = useState(true);
@@ -50,20 +52,22 @@ const EditProfileScreen = ({ navigation }) => {
 
   const radioButtons = [
     {
-      id: "1", // acts as primary key, should be unique and non-empty string
+      id: "1",
       label: t('profile.male'),
       value: "male",
-      borderColor: "#319527",
-      color: "#319527",
+      borderColor: theme.primary,
+      color: theme.primary,
       size: 22,
+      labelStyle: { color: theme.text },
     },
     {
       id: "2",
       label: t('profile.female'),
       value: "female",
-      borderColor: "#319527",
-      color: "#319527",
+      borderColor: theme.primary,
+      color: theme.primary,
       size: 22,
+      labelStyle: { color: theme.text },
     },
   ];
 
@@ -220,33 +224,39 @@ const EditProfileScreen = ({ navigation }) => {
     }
   };
 
-  const formatDateToVietnamese = (date) => {
+  const formatDateToLocale = (date) => {
     const day = date.getDate();
     const month = date.getMonth() + 1;
     const year = date.getFullYear();
-    return `${day} Tháng ${month} ${year}`;
+    if (i18n.language === "vi") {
+      return `${day} Tháng ${month} ${year}`;
+    } else if (i18n.language === "ru") {
+      return `${day}.${month}.${year}`;
+    } else {
+      return `${month}/${day}/${year}`;
+    }
   };
 
   if (loadingFirst) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <CustomLoading />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView behavior={"padding"} style={{ flex: 1 }}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={24} color="#319527" />
+            <Ionicons name="close" size={24} color={theme.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{t('settings.editProfile')}</Text>
+          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('settings.editProfile')}</Text>
           <TouchableOpacity onPress={handleUpdateProfile} disabled={loading}>
             <Text
-              style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+              style={[styles.saveButton, { color: theme.primary }, loading && styles.saveButtonDisabled]}
             >
               {loading ? t('editProfile.saving') : t('settings.save')}
             </Text>
@@ -257,9 +267,9 @@ const EditProfileScreen = ({ navigation }) => {
           scrollEnabled={true}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: "white" }}
+          contentContainerStyle={{ backgroundColor: theme.background }}
         >
-          <Text style={styles.updateAvatarText}>{t('editProfile.updateAvatar')}</Text>
+          <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateAvatar')}</Text>
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <FastImage
@@ -272,10 +282,10 @@ const EditProfileScreen = ({ navigation }) => {
             />
             <TouchableOpacity
               onPress={pickImage}
-              style={styles.changeAvatarButton}
+              style={[styles.changeAvatarButton, { borderColor: theme.primary }]}
             >
-              <Ionicons name="camera-outline" size={20} color="#404040" />
-              <Text style={styles.changeAvatarText}>{t('editProfile.changeAvatar')}</Text>
+              <Ionicons name="camera-outline" size={20} color={theme.text} />
+              <Text style={[styles.changeAvatarText, { color: theme.text }]}>{t('editProfile.changeAvatar')}</Text>
             </TouchableOpacity>
             <FastImage
               source={{
@@ -287,79 +297,79 @@ const EditProfileScreen = ({ navigation }) => {
             />
             <TouchableOpacity
               onPress={pickCoverImage}
-              style={styles.changeAvatarButton}
+              style={[styles.changeAvatarButton, { borderColor: theme.primary }]}
             >
-              <Ionicons name="pencil-outline" size={20} color="#404040" />
-              <Text style={styles.changeAvatarText}>{t('editProfile.changeCover')}</Text>
+              <Ionicons name="pencil-outline" size={20} color={theme.text} />
+              <Text style={[styles.changeAvatarText, { color: theme.text }]}>{t('editProfile.changeCover')}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.updateAvatarText}>{t('editProfile.updateInfo')}</Text>
+          <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateInfo')}</Text>
           {/* Form Fields */}
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('editProfile.displayName')}</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>{t('editProfile.displayName')}</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
                 value={profileData.profile_name}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, profile_name: text }))
                 }
                 placeholder={t('editProfile.displayNamePlaceholder')}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.subText}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('editProfile.bio')}</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>{t('editProfile.bio')}</Text>
               <TextInput
-                style={[styles.input, styles.bioInput]}
+                style={[styles.input, styles.bioInput, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
                 value={profileData.bio}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, bio: text }))
                 }
                 placeholder={t('editProfile.bioPlaceholder')}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.subText}
                 multiline
                 numberOfLines={3}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('profile.class')}</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.class')}</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
                 value={profileData.class_name}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, class_name: text }))
                 }
                 placeholder={t('editProfile.classPlaceholder')}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.subText}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('profile.address')}</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.address')}</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
                 value={profileData.location}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, location: text }))
                 }
                 placeholder={t('editProfile.addressPlaceholder')}
-                placeholderTextColor="#999"
+                placeholderTextColor={theme.subText}
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('profile.birthday')}</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.birthday')}</Text>
               <TouchableOpacity
                 onPress={() => setOpen(true)}
-                style={[styles.input, { justifyContent: "center" }]}
+                style={[styles.input, { borderColor: theme.border, backgroundColor: theme.cardBackground, justifyContent: "center" }]}
               >
-                <Text style={{ color: profileData.birthday ? "#000" : "#999" }}>
+                <Text style={{ color: profileData.birthday ? theme.text : theme.subText }}>
                   {profileData.birthday
-                    ? formatDateToVietnamese(date)
+                    ? formatDateToLocale(date)
                     : t('editProfile.selectBirthday')}
                 </Text>
               </TouchableOpacity>
@@ -380,7 +390,7 @@ const EditProfileScreen = ({ navigation }) => {
                   setDate(selectedDate);
                   setProfileData((prev) => ({
                     ...prev,
-                    birthday: formatDateToVietnamese(selectedDate),
+                    birthday: formatDateToLocale(selectedDate),
                   }));
                 }}
                 onCancel={() => {
@@ -389,7 +399,7 @@ const EditProfileScreen = ({ navigation }) => {
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>{t('profile.gender')}</Text>
+              <Text style={[styles.label, { color: theme.primary }]}>{t('profile.gender')}</Text>
               <RadioGroup
                 radioButtons={radioButtons}
                 onPress={setSelectedId}

@@ -238,7 +238,7 @@ const ConversationScreen = ({ navigation, route }) => {
     // Special case for "Tán gẫu linh tinh" group
     if (
       currentConversation?.type === "group" &&
-      currentConversation?.name === t("chatConversation.casualGroupName")
+      (currentConversation?.name === "Tán gẫu linh tinh" || currentConversation?.name === t("chatConversation.casualGroupName"))
     ) {
       return "local:chat.jpg";
     }
@@ -1093,7 +1093,9 @@ const ConversationScreen = ({ navigation, route }) => {
             {isNewConversation
               ? selectedUser.profile_name
               : currentConversation?.type === "group"
-                ? currentConversation?.name || t("chatConversation.casualGroupName")
+                ? currentConversation?.name === "Tán gẫu linh tinh"
+                  ? t("chatConversation.casualGroupName")
+                  : currentConversation?.name || t("chatConversation.casualGroupName")
                 : currentConversation?.participants[0]?.profile_name}
           </Text>
         </TouchableOpacity>

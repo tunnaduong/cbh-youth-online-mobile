@@ -2,15 +2,17 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import LoginCarousel from "../../components/LoginCarousel";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const WelcomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const handleGetStarted = () => {
     navigation.navigate("Login");
   };
 
   return (
-    <View style={styles.container} className="gap-y-8">
+    <View style={[styles.container, { backgroundColor: theme.background }]} className="gap-y-8">
       <View className="items-center flex-1 gap-y-8 justify-end">
         <LoginCarousel />
       </View>
@@ -48,6 +50,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#fff",
   },
 });

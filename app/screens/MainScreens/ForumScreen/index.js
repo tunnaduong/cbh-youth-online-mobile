@@ -25,6 +25,32 @@ import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
+const getCategoryName = (name, t) => {
+  const keyMap = {
+    "Thông báo": "announcements",
+    "Chung": "general",
+    "Đoàn - Hội": "unionAssociation",
+    "Học tập": "academics",
+    "Sự kiện": "events",
+    "Câu lạc bộ": "clubs",
+    "Góc chia sẻ": "sharingCorner",
+    "Tán gẫu": "casual",
+    "Hỏi đáp": "qa",
+    "Góp ý": "feedback",
+    "Ý kiến & Đóng góp": "feedback",
+    "Thảo luận": "discussion",
+    "Báo cáo": "reports"
+  };
+  const key = keyMap[name];
+  if (key) {
+    const translated = t(`forumCategories.${key}`);
+    if (translated !== `forumCategories.${key}`) {
+      return translated;
+    }
+  }
+  return name;
+};
+
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <View style={[styles.sectionBox, { borderColor: theme.primary, backgroundColor: theme.cardBackground, shadowColor: isDarkMode ? "#000" : theme.primary }]}>
     <TouchableOpacity
@@ -32,7 +58,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
         navigation.navigate("CategoryScreen", { categoryId: section.id })
       }
     >
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{section.name}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{getCategoryName(section.name, t)}</Text>
       <View style={styles.sectionStats}>
         <Text style={[styles.statText, { color: theme.text }]}>
           {t('forum.posts')}: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
@@ -234,7 +260,7 @@ export default function ForumScreen({ navigation }) {
                   activeCategory === cat.id && styles.tabTextActive,
                 ]}
               >
-                {cat.name}
+                {getCategoryName(cat.name, t)}
               </Text>
             </TouchableOpacity>
           ))}

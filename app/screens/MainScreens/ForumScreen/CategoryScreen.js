@@ -22,6 +22,32 @@ import { getSubforumPosts } from "../../../services/api/Api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
 
+const getCategoryName = (name, t) => {
+  const keyMap = {
+    "Thông báo": "announcements",
+    "Chung": "general",
+    "Đoàn - Hội": "unionAssociation",
+    "Học tập": "academics",
+    "Sự kiện": "events",
+    "Câu lạc bộ": "clubs",
+    "Góc chia sẻ": "sharingCorner",
+    "Tán gẫu": "casual",
+    "Hỏi đáp": "qa",
+    "Góp ý": "feedback",
+    "Ý kiến & Đóng góp": "feedback",
+    "Thảo luận": "discussion",
+    "Báo cáo": "reports"
+  };
+  const key = keyMap[name];
+  if (key) {
+    const translated = t(`forumCategories.${key}`);
+    if (translated !== `forumCategories.${key}`) {
+      return translated;
+    }
+  }
+  return name;
+};
+
 const CategoryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -266,7 +292,7 @@ const CategoryScreen = ({ navigation, route }) => {
             />
             <View className="p-4">
               <Text className="text-2xl font-bold mb-2">
-                {forumData.subforum.name}
+                {getCategoryName(forumData.subforum.name, t)}
               </Text>
               <Text className="text-gray-600 leading-6">
                 {forumData.subforum.description}

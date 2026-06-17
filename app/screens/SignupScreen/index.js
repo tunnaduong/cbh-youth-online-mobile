@@ -20,8 +20,10 @@ import { signupRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const SignupScreen = ({ navigation }) => {
+  const { theme, isDarkMode } = useTheme();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -216,7 +218,7 @@ const SignupScreen = ({ navigation }) => {
   return (
     <>
       <ProgressHUD loadText={t("signup.loading")} visible={loading} />
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <TouchableOpacity
           className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
           onPress={() => {
@@ -232,55 +234,55 @@ const SignupScreen = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>{t("signup.title")}</Text>
-              <Text style={styles.subtitle}>{t("signup.subtitle")}</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{t("signup.title")}</Text>
+              <Text style={[styles.subtitle, { color: theme.subText }]}>{t("signup.subtitle")}</Text>
             </View>
 
             <View style={styles.form}>
 
               {isAppleAuthAvailable && (
                 <TouchableOpacity
-                  style={styles.appleButton}
+                  style={[styles.appleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                   onPress={handleAppleSignup}
                 >
-                  <Icon name="logo-apple" size={24} color="#000" />
-                  <Text style={styles.appleButtonText}>{t("signup.apple")}</Text>
+                  <Icon name="logo-apple" size={24} color={theme.text} />
+                  <Text style={[styles.appleButtonText, { color: theme.text }]}>{t("signup.apple")}</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.googleButton}
+                style={[styles.googleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleGoogleSignup}
               >
                 <Image
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
-                <Text style={styles.googleButtonText}>{t("signup.google")}</Text>
+                <Text style={[styles.googleButtonText, { color: theme.text }]}>{t("signup.google")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.facebookButton}
+                style={[styles.facebookButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleFacebookSignup}
               >
                 <Icon name="logo-facebook" size={24} color="#1877F2" />
-                <Text style={styles.facebookButtonText}>
+                <Text style={[styles.facebookButtonText, { color: theme.text }]}>
                   {t("signup.facebook")}
                 </Text>
               </TouchableOpacity>
 
               <View style={styles.orContainer}>
-                <View style={styles.orLine} />
-                <Text style={styles.orText}>{t("signup.or")}</Text>
-                <View style={styles.orLine} />
+                <View style={[styles.orLine, { backgroundColor: theme.border }]} />
+                <Text style={[styles.orText, { color: theme.subText }]}>{t("signup.or")}</Text>
+                <View style={[styles.orLine, { backgroundColor: theme.border }]} />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("signup.username")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.username")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="john_doe"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
@@ -288,11 +290,11 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("signup.fullName")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.fullName")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="John Doe"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -300,11 +302,11 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("signup.email")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.email")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="hello@example.com"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -313,12 +315,12 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("signup.password")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.password")}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={[styles.input, styles.passwordInput]}
+                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                     placeholder="••••••••••••"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.subText}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -331,19 +333,19 @@ const SignupScreen = ({ navigation }) => {
                     <Icon
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={24}
-                      color="#666"
+                      color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>{t("signup.confirmPassword")}</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.confirmPassword")}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={[styles.input, styles.passwordInput]}
+                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                     placeholder="••••••••••••"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.subText}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
@@ -358,7 +360,7 @@ const SignupScreen = ({ navigation }) => {
                         showConfirmPassword ? "eye-off-outline" : "eye-outline"
                       }
                       size={24}
-                      color="#666"
+                      color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
@@ -372,7 +374,7 @@ const SignupScreen = ({ navigation }) => {
                   }}
                   checkBoxColor="#319527"
                 />
-                <Text style={styles.checkboxLabel}>
+                <Text style={[styles.checkboxLabel, { color: theme.subText }]}>
                   {t("signup.agreePrefix")} {" "}
                   <Text
                     style={styles.link}
@@ -400,7 +402,7 @@ const SignupScreen = ({ navigation }) => {
 
 
               <View style={styles.loginPrompt}>
-                <Text style={styles.loginPromptText}>{t("signup.hasAccount")}</Text>
+                <Text style={[styles.loginPromptText, { color: theme.subText }]}>{t("signup.hasAccount")}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Login")}>
                   <Text style={styles.loginLink}>{t("signup.login")}</Text>
                 </TouchableOpacity>

@@ -92,6 +92,9 @@ export default function ChatScreen({ navigation }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.profile_name || "Unknown User";
     }
+    if (conversation.name === "Tán gẫu linh tinh") {
+      return t("chatConversation.casualGroupName");
+    }
     return conversation.name || "Unnamed Group";
   };
 
