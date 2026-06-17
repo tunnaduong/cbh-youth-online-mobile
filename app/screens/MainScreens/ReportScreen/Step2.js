@@ -32,7 +32,6 @@ import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 const STEPS = [
-  import { useTranslation } from "react-i18next";
   {
     id: 1,
     title: "Chọn đối tượng",
@@ -90,7 +89,6 @@ const SelectedTag = ({ tag, onRemove }) => {
       <TouchableOpacity onPress={() => onRemove(tag)}>
         <Ionicons name="close-circle" size={18} color={theme.subText} />
       </TouchableOpacity>
-      const { t } = useTranslation();
     </View>
   );
 };
