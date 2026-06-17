@@ -122,6 +122,25 @@
     "step1Title": "Шаг 1: Выберите субъект",
     "continue": "Продолжить"
   },
+  "editPost": {
+    "errorLoadTitle": "Не удалось загрузить пост",
+    "errorLoadDesc": "Пожалуйста, попробуйте позже.",
+    "errorImageTitle": "Ошибка выбора изображения",
+    "errorImageDesc": "Пожалуйста, попробуйте снова.",
+    "errorUpdateTitle": "Пока не удалось обновить пост",
+    "errorUpdateDesc": "Пожалуйста, введите заголовок и содержимое поста.",
+    "updating": "Обновление...",
+    "title": "Редактировать пост",
+    "save": "Сохранить",
+    "public": "Публичный",
+    "private": "Частный",
+    "placeholderTitle": "Какой темой вы хотите поделиться?",
+    "placeholderContent": "О чем вы думаете?",
+    "placeholderCategory": "Выберите категорию для этого поста",
+    "markdown": "Поддержка Markdown",
+    "rules": "Правила",
+    "addImage": "Добавить фото"
+  },
   "profile": {
     "title": "Профиль",
     "notUpdated": "Не указано",

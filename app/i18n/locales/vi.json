@@ -122,6 +122,25 @@
     "step1Title": "Bước 1: Chọn đối tượng báo cáo",
     "continue": "Tiếp tục"
   },
+  "editPost": {
+    "errorLoadTitle": "Không thể tải bài viết",
+    "errorLoadDesc": "Vui lòng thử lại sau.",
+    "errorImageTitle": "Lỗi chọn ảnh",
+    "errorImageDesc": "Vui lòng thử lại.",
+    "errorUpdateTitle": "Chưa thể cập nhật bài viết",
+    "errorUpdateDesc": "Vui lòng nhập tiêu đề và nội dung bài viết.",
+    "updating": "Đang cập nhật...",
+    "title": "Chỉnh sửa bài viết",
+    "save": "Lưu",
+    "public": "Công khai",
+    "private": "Riêng tư",
+    "placeholderTitle": "Chủ đề bạn muốn chia sẻ là gì?",
+    "placeholderContent": "Bạn đang nghĩ gì?",
+    "placeholderCategory": "Chọn chuyên mục cho bài viết này",
+    "markdown": "Hỗ trợ Markdown",
+    "rules": "Quy tắc",
+    "addImage": "Thêm ảnh"
+  },
   "profile": {
     "title": "Thông tin cá nhân",
     "notUpdated": "Chưa cập nhật",

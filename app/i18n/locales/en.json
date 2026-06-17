@@ -122,6 +122,25 @@
     "step1Title": "Step 1: Select report subject",
     "continue": "Continue"
   },
+  "editPost": {
+    "errorLoadTitle": "Cannot load post",
+    "errorLoadDesc": "Please try again later.",
+    "errorImageTitle": "Error picking image",
+    "errorImageDesc": "Please try again.",
+    "errorUpdateTitle": "Cannot update post yet",
+    "errorUpdateDesc": "Please enter the title and content of the post.",
+    "updating": "Updating...",
+    "title": "Edit post",
+    "save": "Save",
+    "public": "Public",
+    "private": "Private",
+    "placeholderTitle": "What topic do you want to share?",
+    "placeholderContent": "What's on your mind?",
+    "placeholderCategory": "Select a category for this post",
+    "markdown": "Markdown Support",
+    "rules": "Rules",
+    "addImage": "Add image"
+  },
   "profile": {
     "title": "Profile Information",
     "notUpdated": "Not updated",

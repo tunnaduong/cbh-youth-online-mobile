@@ -28,6 +28,7 @@ import * as ImagePicker from "expo-image-picker";
 import FastImage from "react-native-fast-image";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
@@ -38,9 +39,10 @@ const PostEditScreen = ({ navigation, route }) => {
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
+  const { t } = useTranslation();
   const view = [
-    { label: "Công khai", value: 0, icon: "earth" },
-    { label: "Riêng tư", value: 1, icon: "lock-closed" },
+    { label: t('editPost.public'), value: 0, icon: "earth" },
+    { label: t('editPost.private'), value: 1, icon: "lock-closed" },
   ];
   const [viewSelected, setViewSelected] = useState(view[0]);
   const [loading, setLoading] = useState(false);
@@ -82,8 +84,8 @@ const PostEditScreen = ({ navigation, route }) => {
         console.log("Error fetching post:", error);
         Toast.show({
           type: "error",
-          text1: "Không thể tải bài viết",
-          text2: "Vui lòng thử lại sau.",
+          text1: t('editPost.errorLoadTitle'),
+          text2: t('editPost.errorLoadDesc'),
           autoHide: true,
           visibilityTime: 3000,
           topOffset: 60,
@@ -119,8 +121,8 @@ const PostEditScreen = ({ navigation, route }) => {
       console.log("Error picking image:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi chọn ảnh",
-        text2: "Vui lòng thử lại.",
+        text1: t('editPost.errorImageTitle'),
+        text2: t('editPost.errorImageDesc'),
         autoHide: true,
         visibilityTime: 3000,
         topOffset: 60,
@@ -138,8 +140,8 @@ const PostEditScreen = ({ navigation, route }) => {
     if (title.trim() === "" || postContent.trim() === "") {
       Toast.show({
         type: "error",
-        text1: "Chưa thể cập nhật bài viết",
-        text2: "Vui lòng nhập tiêu đề và nội dung bài viết.",
+        text1: t('editPost.errorUpdateTitle'),
+        text2: t('editPost.errorUpdateDesc'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -212,8 +214,8 @@ const PostEditScreen = ({ navigation, route }) => {
       console.log("Error updating post:", error);
       Toast.show({
         type: "error",
-        text1: "Chưa thể cập nhật bài viết",
-        text2: error?.response?.data?.message || "Vui lòng thử lại sau.",
+        text1: t('editPost.errorUpdateTitle'),
+        text2: error?.response?.data?.message || t('editPost.errorLoadDesc'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -251,7 +253,7 @@ const PostEditScreen = ({ navigation, route }) => {
   return (
     <>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <ProgressHUD loadText="Đang cập nhật..." visible={loading} />
+      <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
       <View
         style={[
           {
@@ -279,7 +281,7 @@ const PostEditScreen = ({ navigation, route }) => {
             color: theme.primary,
           }}
         >
-          Chỉnh sửa bài viết
+          {t('editPost.title')}
         </Text>
         <TouchableOpacity
           style={[
@@ -302,7 +304,7 @@ const PostEditScreen = ({ navigation, route }) => {
               fontWeight: "600",
             }}
           >
-            Lưu
+            {t('editPost.save')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -347,7 +349,7 @@ const PostEditScreen = ({ navigation, route }) => {
             </Text>
             <Dropdown
               options={view}
-              placeholder={"Công khai"}
+              placeholder={t('editPost.public')}
               selectedValue={viewSelected}
               onValueChange={setViewSelected}
               style={{
@@ -376,7 +378,7 @@ const PostEditScreen = ({ navigation, route }) => {
         <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? "#1f2937" : "#fafafa", borderColor: theme.border }]}>
           <TextInput
             style={[styles.titleInput, { color: theme.text }]}
-            placeholder="Chủ đề bạn muốn chia sẻ là gì?"
+            placeholder={t('editPost.placeholderTitle')}
             placeholderTextColor={theme.subText}
             value={title}
             onChangeText={setTitle}
@@ -391,7 +393,7 @@ const PostEditScreen = ({ navigation, route }) => {
           ></View>
           <TextInput
             style={[styles.contentInput, { color: theme.text }]}
-            placeholder="Bạn đang nghĩ gì?"
+            placeholder={t('editPost.placeholderContent')}
             placeholderTextColor={theme.subText}
             value={postContent}
             onChangeText={setPostContent}
@@ -402,7 +404,7 @@ const PostEditScreen = ({ navigation, route }) => {
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
           <Dropdown
             options={subforums}
-            placeholder={"Chọn chuyên mục cho bài viết này"}
+            placeholder={t('editPost.placeholderCategory')}
             selectedValue={selected}
             onValueChange={setSelected}
           />
@@ -412,14 +414,14 @@ const PostEditScreen = ({ navigation, route }) => {
               style={{ flexDirection: 'row', alignItems: 'center', height: 40, gap: 8, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12 }}
             >
               <Ionicons name="logo-markdown" size={15} color={theme.text} />
-              <Text style={{ color: theme.text }}>Hỗ trợ Markdown</Text>
+              <Text style={{ color: theme.text }}>{t('editPost.markdown')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigateToHelp(213054)}
               style={{ flexDirection: 'row', alignItems: 'center', height: 40, justifyContent: 'center', gap: 4, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingHorizontal: 12 }}
             >
               <Ionicons name="warning" size={18} color={theme.text} />
-              <Text style={{ color: theme.text }}>Quy tắc</Text>
+              <Text style={{ color: theme.text }}>{t('editPost.rules')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -496,7 +498,7 @@ const PostEditScreen = ({ navigation, route }) => {
                     color={theme.primary}
                     style={{ marginTop: -5 }}
                   />
-                  <Text style={{ color: theme.primary }}>Thêm ảnh</Text>
+                  <Text style={{ color: theme.primary }}>{t('editPost.addImage')}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -525,7 +527,7 @@ const PostEditScreen = ({ navigation, route }) => {
                 color={theme.primary}
                 style={{ marginTop: -5 }}
               />
-              <Text style={{ color: theme.primary }}>Thêm ảnh</Text>
+              <Text style={{ color: theme.primary }}>{t('editPost.addImage')}</Text>
             </TouchableOpacity>
           )}
         </View>
