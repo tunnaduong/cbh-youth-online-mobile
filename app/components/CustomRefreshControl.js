@@ -12,8 +12,8 @@ const CustomRefreshControl = ({
       refreshing={refreshing}
       onRefresh={onRefresh}
       progressViewOffset={progressViewOffset}
-      tintColor="#319527"
-      colors={["#319527"]}
+      tintColor="transparent"
+      colors={["transparent"]}
       progressBackgroundColor="transparent"
       style={{ backgroundColor: "transparent" }}
     />

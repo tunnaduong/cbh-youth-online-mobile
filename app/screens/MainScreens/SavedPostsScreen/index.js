@@ -212,7 +212,14 @@ const SavedPostsScreen = ({ navigation }) => {
         )}
         ListHeaderComponent={ListHeader}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+          />
         }
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{

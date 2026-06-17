@@ -193,7 +193,14 @@ export default function MemberRankingScreen({ navigation }) {
         ListHeaderComponent={renderTop3}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+          />
         }
       />
     </SafeAreaView>

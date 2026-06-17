@@ -473,7 +473,14 @@ export default function NotificationScreen({ navigation }) {
           }}
           ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: theme.border }]} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor="transparent"
+              colors={["transparent"]}
+              progressBackgroundColor="transparent"
+              style={{ backgroundColor: "transparent" }}
+            />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}

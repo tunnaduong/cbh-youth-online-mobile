@@ -289,6 +289,7 @@ export default function ForumScreen({ navigation }) {
                   onRefresh={onRefresh}
                   tintColor="transparent"
                   colors={["transparent"]}
+                  progressBackgroundColor="transparent"
                   style={{ backgroundColor: "transparent" }}
                 />
               }

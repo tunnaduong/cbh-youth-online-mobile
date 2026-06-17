@@ -309,7 +309,14 @@ const ActivityScreen = ({ navigation }) => {
           <ActivityItem item={item} navigation={navigation} />
         )}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+          />
         }
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{

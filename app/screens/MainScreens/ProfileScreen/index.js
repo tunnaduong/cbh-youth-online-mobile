@@ -484,6 +484,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <RefreshControl
               tintColor="transparent"
               colors={["transparent"]}
+              progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
               refreshing={refreshing}
               onRefresh={handleRefresh}
