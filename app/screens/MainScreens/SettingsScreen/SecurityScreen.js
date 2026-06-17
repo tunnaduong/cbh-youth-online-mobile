@@ -23,6 +23,7 @@ import Toast from "react-native-toast-message";
 import { deleteAccount, updateProfile, changePassword } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const SettingItem = ({
   icon,
@@ -91,6 +92,7 @@ export default function SecurityScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { signOut, userInfo, setUserInfo, refreshUserInfo } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   // Modal states
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -291,15 +293,15 @@ export default function SecurityScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Bảo mật</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('security.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.content}>
-        <SettingSection title="Thông tin cá nhân" theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('security.personalInfo')} theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="person-outline"
-            title="Tên đăng nhập"
+            title={t('security.username')}
             value={userInfo?.username}
             onPress={() => {
               setNewUsername(userInfo?.username || "");
@@ -310,8 +312,8 @@ export default function SecurityScreen({ navigation }) {
           />
           <SettingItem
             icon="mail-outline"
-            title="Email"
-            value={userInfo?.email ? userInfo.email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : "Chưa cập nhật"}
+            title={t('security.email')}
+            value={userInfo?.email ? userInfo.email.replace(/(.{2})(.*)(@.*)/, "$1***$3") : t('security.notUpdated')}
             onPress={() => {
               setNewEmail(userInfo?.email || "");
               setEmailModalVisible(true);
@@ -321,21 +323,21 @@ export default function SecurityScreen({ navigation }) {
           />
         </SettingSection>
 
-        <SettingSection title="Đăng nhập & Bảo mật" theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('security.loginSecurity')} theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="key-outline"
-            title="Đổi mật khẩu"
+            title={t('security.changePassword')}
             onPress={() => setPasswordModalVisible(true)}
             theme={theme}
             isDarkMode={isDarkMode}
           />
           <SettingItem
             icon="shield-checkmark-outline"
-            title="Xác thực 2 yếu tố"
+            title={t('security.twoFactor')}
             onPress={() => {
               Toast.show({
                 type: "info",
-                text1: "Tính năng đang được phát triển",
+                text1: t('security.featureUnderDevelopment'),
               });
             }}
             theme={theme}
@@ -343,10 +345,10 @@ export default function SecurityScreen({ navigation }) {
           />
         </SettingSection>
 
-        <SettingSection title="Vùng nguy hiểm" titleColor="#FF3B30" theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('security.dangerZone')} titleColor="#FF3B30" theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="trash-outline"
-            title="Xóa tài khoản"
+            title={t('security.deleteAccount')}
             color="#FF3B30"
             chevron={false}
             onPress={handleDeleteAccount}
@@ -368,15 +370,14 @@ export default function SecurityScreen({ navigation }) {
           style={styles.centeredView}
         >
           <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
-            <Text style={styles.modalTitle}>Xóa tài khoản vĩnh viễn</Text>
+            <Text style={styles.modalTitle}>{t('security.deleteAccountTitle')}</Text>
             <Text style={[styles.modalText, { color: theme.subText }]}>
-              Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa
-              vĩnh viễn. Nhập mật khẩu và dòng chữ "XOÁ TÀI KHOẢN" để xác nhận.
+              {t('security.deleteAccountDesc')}
             </Text>
 
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
-              placeholder="Nhập mật khẩu của bạn"
+              placeholder={t('security.passwordPlaceholder')}
               placeholderTextColor={theme.subText}
               secureTextEntry
               value={password}
@@ -385,7 +386,7 @@ export default function SecurityScreen({ navigation }) {
 
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
-              placeholder="Nhập 'XOÁ TÀI KHOẢN'"
+              placeholder={t('security.confirmDeletePlaceholder')}
               placeholderTextColor={theme.subText}
               value={confirmText}
               onChangeText={setConfirmText}
@@ -402,7 +403,7 @@ export default function SecurityScreen({ navigation }) {
                 }}
                 disabled={loading}
               >
-                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>{t('security.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -416,7 +417,7 @@ export default function SecurityScreen({ navigation }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.textStyle}>Xóa vĩnh viễn</Text>
+                  <Text style={styles.textStyle}>{t('security.deleteForever')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -437,14 +438,14 @@ export default function SecurityScreen({ navigation }) {
           style={styles.centeredView}
         >
           <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Đổi tên đăng nhập</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('security.changeUsernameTitle')}</Text>
             <Text style={[styles.modalText, { color: theme.subText }]}>
-              Đây là tên hiển thị công khai của bạn. Nó có thể là tên thật hoặc biệt danh của bạn. Bạn chỉ có thể thay đổi tên đăng nhập mỗi 30 ngày một lần.
+              {t('security.usernameDescription')}
             </Text>
 
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
-              placeholder="Tên đăng nhập mới"
+              placeholder={t('security.newUsername')}
               placeholderTextColor={theme.subText}
               value={newUsername}
               onChangeText={setNewUsername}
@@ -457,7 +458,7 @@ export default function SecurityScreen({ navigation }) {
                 onPress={() => setUsernameModalVisible(false)}
                 disabled={loading}
               >
-                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>{t('security.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: theme.primary }]}
@@ -467,7 +468,7 @@ export default function SecurityScreen({ navigation }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.textStyle}>Lưu</Text>
+                  <Text style={styles.textStyle}>{t('settings.save')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -488,14 +489,14 @@ export default function SecurityScreen({ navigation }) {
           style={styles.centeredView}
         >
           <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Đổi Email</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('security.changeEmailTitle')}</Text>
             <Text style={[styles.modalText, { color: theme.subText }]}>
-              Nhập địa chỉ email mới của bạn.
+              {t('security.emailDescription')}
             </Text>
 
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
-              placeholder="Email mới"
+              placeholder={t('security.newEmail')}
               placeholderTextColor={theme.subText}
               value={newEmail}
               onChangeText={setNewEmail}
@@ -509,7 +510,7 @@ export default function SecurityScreen({ navigation }) {
                 onPress={() => setEmailModalVisible(false)}
                 disabled={loading}
               >
-                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>{t('security.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: theme.primary }]}
@@ -519,7 +520,7 @@ export default function SecurityScreen({ navigation }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.textStyle}>Lưu</Text>
+                  <Text style={styles.textStyle}>{t('settings.save')}</Text>
                 )}
               </TouchableOpacity>
             </View>

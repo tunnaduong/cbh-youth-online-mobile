@@ -158,7 +158,7 @@ const Sidebar = () => {
   const onPressIOS = () => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        title: t('settings.logoutConfirm') || "Bạn có chắc chắn muốn đăng xuất không?",
+        title: t('settings.logoutConfirm'),
         options: [t('settings.cancel') || "Hủy", t('settings.logout') || "Đăng xuất"],
         destructiveButtonIndex: 1,
         cancelButtonIndex: 0,
@@ -175,8 +175,8 @@ const Sidebar = () => {
   };
   const onPressAndroid = () =>
     Alert.alert(
-      t('navigation.notifications') || "Thông báo",
-      t('settings.logoutConfirm') || "Bạn có chắc chắn muốn đăng xuất không?",
+      t('settings.logout') || "Đăng xuất",
+      t('settings.logoutConfirm'),
       [
         {
           text: t('settings.yes') || "Có",
@@ -260,7 +260,7 @@ const Sidebar = () => {
                 onPress={() =>
                   Toast.show({
                     type: "info",
-                    text1: "Tính năng đang được phát triển",
+                    text1: t('sidebar.featureInDevelopment'),
                   })
                 }
                 style={{ paddingLeft: 0, marginLeft: 0 }}
@@ -321,7 +321,7 @@ const Sidebar = () => {
                 onPress={() =>
                   Toast.show({
                     type: "info",
-                    text1: "Tính năng đang được phát triển",
+                    text1: t('sidebar.featureInDevelopment'),
                   })
                 }
                 style={{ paddingLeft: 0, marginLeft: 0 }}
@@ -332,7 +332,7 @@ const Sidebar = () => {
                 onPress={() =>
                   Toast.show({
                     type: "info",
-                    text1: "Tính năng đang được phát triển",
+                    text1: t('sidebar.featureInDevelopment'),
                   })
                 }
                 style={{ paddingLeft: 0, marginLeft: 0 }}
@@ -343,7 +343,7 @@ const Sidebar = () => {
                 onPress={() =>
                   Toast.show({
                     type: "info",
-                    text1: "Tính năng đang được phát triển",
+                    text1: t('sidebar.featureInDevelopment'),
                   })
                 }
                 style={{ paddingLeft: 0, marginLeft: 0 }}

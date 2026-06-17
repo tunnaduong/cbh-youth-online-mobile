@@ -3,6 +3,7 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { useTheme } from "./ThemeContext";
 
 const BottomSheetContext = createContext();
 
@@ -11,6 +12,7 @@ export const useBottomSheet = () => useContext(BottomSheetContext);
 export const BottomSheetProvider = ({ children }) => {
   const bottomSheetRef = useRef(null);
   const [content, setContent] = useState(null);
+  const { theme } = useTheme();
 
   const snapPoints = ["90%"];
 
@@ -33,7 +35,8 @@ export const BottomSheetProvider = ({ children }) => {
         snapPoints={snapPoints}
         index={-1}
         enablePanDownToClose
-        backgroundStyle={{ backgroundColor: "#fff" }}
+        backgroundStyle={{ backgroundColor: theme.cardBackground }}
+        handleIndicatorStyle={{ backgroundColor: theme.border }}
         backdropComponent={(props) => (
           <BottomSheetBackdrop
             {...props}
@@ -43,7 +46,7 @@ export const BottomSheetProvider = ({ children }) => {
           />
         )}
       >
-        <BottomSheetView style={{ padding: 16, paddingBottom: 50 }}>
+        <BottomSheetView style={{ padding: 16, paddingBottom: 50, backgroundColor: theme.cardBackground }}>
           {content}
         </BottomSheetView>
       </BottomSheet>

@@ -2,11 +2,13 @@ import React, { useEffect, useRef } from "react";
 import { SafeAreaView, StyleSheet, View, Text, Image } from "react-native";
 import LottieView from "lottie-react-native";
 import { useTheme } from "../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 // This is our Splash Screen component
 const SplashScreen = ({ onFinish }) => {
   const animation = useRef(null);
   const { theme } = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // Start the animation when component mounts
@@ -37,8 +39,8 @@ const SplashScreen = ({ onFinish }) => {
             autoPlay={false}
             loop={false}
           />
-          <Text style={styles.appName.subheading}>Diễn đàn học sinh</Text>
-          <Text style={styles.appName.heading}>Chuyên Biên Hòa</Text>
+          <Text style={styles.appName.subheading}>{t('app.subtitle')}</Text>
+          <Text style={styles.appName.heading}>{t('app.name')}</Text>
         </View>
         <Image
           source={require("../assets/fatties.png")}

@@ -16,21 +16,23 @@ import {
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
 import { forgotPassword } from "../../services/api/Api";
+import { useTranslation } from "react-i18next";
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleSendResetLink = async () => {
     if (!email) {
-      Alert.alert("Vui lòng nhập email");
+      Alert.alert(t("forgotPassword.failureTitle"), t("forgotPassword.missingEmail"));
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert("Email không hợp lệ", "Vui lòng nhập địa chỉ email hợp lệ");
+      Alert.alert(t("forgotPassword.invalidEmailTitle"), t("forgotPassword.invalidEmailBody"));
       return;
     }
 
@@ -42,13 +44,11 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
       if (response.data && response.data.status === "success") {
         Alert.alert(
-          "Thành công",
-
-          "Email reset mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn." ||
-            response.data.message,
+          t("forgotPassword.successTitle"),
+          t("forgotPassword.successBody") || response.data.message,
           [
             {
-              text: "OK",
+              text: t("common.ok"),
               onPress: () => {},
               style: "default",
             },
@@ -68,7 +68,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         error.message ||
         "Đã xảy ra lỗi. Vui lòng thử lại.";
 
-      Alert.alert("Gửi email thất bại", errorMessage);
+      Alert.alert(t("forgotPassword.failureTitle"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -76,7 +76,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   return (
     <>
-      <ProgressHUD loadText="Đang gửi email..." visible={loading} />
+      <ProgressHUD loadText={t("forgotPassword.loading")} visible={loading} />
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
         <SafeAreaView style={styles.container}>
           <TouchableOpacity
@@ -93,15 +93,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
           </TouchableOpacity>
           <ScrollView style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Quên mật khẩu</Text>
-              <Text style={styles.subtitle}>
-                Nhập email của bạn để nhận link reset mật khẩu
-              </Text>
+              <Text style={styles.title}>{t("forgotPassword.title")}</Text>
+              <Text style={styles.subtitle}>{t("forgotPassword.subtitle")}</Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Địa chỉ Email</Text>
+                <Text style={styles.label}>{t("forgotPassword.email")}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="hello@example.com"
@@ -118,7 +116,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 style={styles.submitButton}
                 onPress={handleSendResetLink}
               >
-                <Text style={styles.submitButtonText}>Gửi link reset</Text>
+                <Text style={styles.submitButtonText}>{t("forgotPassword.sendLink")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -127,7 +125,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 }}
                 style={styles.backToLogin}
               >
-                <Text style={styles.backToLoginText}>Quay lại đăng nhập</Text>
+                <Text style={styles.backToLoginText}>{t("forgotPassword.backToLogin")}</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>

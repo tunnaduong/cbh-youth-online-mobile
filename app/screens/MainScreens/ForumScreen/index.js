@@ -21,10 +21,11 @@ import LottieView from "lottie-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 
-const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
+const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <View style={[styles.sectionBox, { borderColor: theme.primary, backgroundColor: theme.cardBackground, shadowColor: isDarkMode ? "#000" : theme.primary }]}>
     <TouchableOpacity
       onPress={() =>
@@ -34,10 +35,10 @@ const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
       <Text style={[styles.sectionTitle, { color: theme.primary }]}>{section.name}</Text>
       <View style={styles.sectionStats}>
         <Text style={[styles.statText, { color: theme.text }]}>
-          Bài viết: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
+          {t('forum.posts')}: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
         </Text>
         <Text style={[styles.statText, { color: theme.text }]}>
-          Bình luận:{" "}
+          {t('forum.comments')}:{" "}
           <Text style={[styles.statBold, { color: theme.text }]}>{section.comment_count}</Text>
         </Text>
       </View>
@@ -53,7 +54,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
             }
           >
             <View style={{ flexDirection: "row", gap: 10 }}>
-              <Text style={[styles.latestLabel, { color: theme.subText }]}>Mới nhất</Text>
+              <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.latest')}</Text>
               <Text style={[styles.latestTime, { color: theme.subText }]}>
                 {section.latest_post.created_at}
               </Text>
@@ -67,7 +68,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
           </TouchableOpacity>
         </>
       ) : (
-        <Text style={[styles.latestLabel, { color: theme.subText }]}>Chưa có bài viết mới</Text>
+        <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
       )}
     </View>
   </View>
@@ -75,6 +76,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
 
 export default function ForumScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(1);
   const { username } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
@@ -161,7 +163,7 @@ export default function ForumScreen({ navigation }) {
       >
         <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>Diễn đàn</Text>
+          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
@@ -177,7 +179,7 @@ export default function ForumScreen({ navigation }) {
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
         >
           <CustomLoading />
-          <Text style={{ marginTop: 15, color: theme.text }}>Đang tải diễn đàn...</Text>
+          <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -189,7 +191,7 @@ export default function ForumScreen({ navigation }) {
     >
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Diễn đàn</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate("MemberRankingScreen")}
           style={{ marginRight: 15 }}
@@ -295,13 +297,14 @@ export default function ForumScreen({ navigation }) {
               }
             >
               {item.subforums.map((section) => (
-                <ForumSection
-                  key={section.id}
-                  section={section}
-                  navigation={navigation}
-                  theme={theme}
-                  isDarkMode={isDarkMode}
-                />
+                  <ForumSection
+                    key={section.id}
+                    section={section}
+                    navigation={navigation}
+                    theme={theme}
+                    isDarkMode={isDarkMode}
+                    t={t}
+                  />
               ))}
             </ScrollView>
           </View>

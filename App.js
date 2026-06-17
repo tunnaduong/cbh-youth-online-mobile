@@ -49,12 +49,14 @@ import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const Stack = createStackNavigator();
 
 // Main App component
 const App = () => {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
@@ -75,7 +77,7 @@ const App = () => {
           loop
           autoPlay
         />
-        <Text style={{ color: theme.text }}>Đang tải...</Text>
+        <Text style={{ color: theme.text }}>{t('home.loading')}</Text>
       </View>
     );
   }

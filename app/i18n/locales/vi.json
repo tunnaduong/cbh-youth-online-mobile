@@ -6,25 +6,88 @@
     "chat": "Chat",
     "notifications": "Thông báo"
   },
+  "app": {
+    "name": "Chuyên Biên Hòa",
+    "subtitle": "Diễn đàn học sinh"
+  },
+  "welcomeCarousel": {
+    "item1": {
+      "title": "Chào mừng đến với ứng dụng",
+      "body": "CBH Youth Online là nơi kết nối, chia sẻ và phát triển dành riêng cho các bạn trẻ THPT Chuyên Biên Hòa."
+    },
+    "item2": {
+      "title": "Không bao giờ bỏ lỡ thông tin",
+      "body": "Cập nhật thông tin mới nhất về sự kiện trường và CLB. Chia sẻ kiến thức, tài liệu học tập, kinh nghiệm từ các thế hệ."
+    },
+    "item3": {
+      "title": "Giải pháp mới dành cho xung kích",
+      "body": "Gửi báo cáo vi phạm tập thể lớp và cá nhân một cách dễ dàng, ngay trên thiết bị di động mà không cần giấy tờ sổ sách."
+    },
+    "item4": {
+      "title": "Và còn nhiều tính năng khác...",
+      "body": "Hãy tự mình khám phá nhé! Chúc bạn có một trải nghiệm thú vị."
+    }
+  },
+  "common": {
+    "error": "Đã có lỗi xảy ra",
+    "ok": "OK"
+  },
+  "createActions": {
+    "post": "Tạo bài viết",
+    "recording": "Tạo ghi âm",
+    "report": "Tạo báo cáo",
+    "development": "Tính năng đang được phát triển"
+  },
   "home": {
     "loading": "Đang tải...",
+    "loadingError": "Không thể tải nội dung. Vui lòng thử lại sau.",
     "createStory": "Tạo tin",
     "verifyEmail": "Vui lòng xác minh địa chỉ email để sử dụng đầy đủ các tính năng",
+    "verifyEmailError": "Không thể gửi email xác minh. Vui lòng thử lại sau.",
     "receiveStory": "Nhận tin của người này",
     "turnOnOffStory": "Bật hoặc tắt tin mới của người này",
     "copyLinkShare": "Sao chép liên kết để chia sẻ",
     "reportStory": "Báo cáo tin",
     "reportStoryDesc": "Tin này chứa nội dung không phù hợp",
     "unfollowPerson": "Bỏ theo dõi người này",
-    "blockPerson": "Chặn người này"
+    "blockPerson": "Chặn người này",
+    "followNotificationsOn": "Đã bật thông báo",
+    "followNotificationsOff": "Đã tắt thông báo",
+    "receiveNotifications": "Bạn sẽ nhận được thông báo từ người này",
+    "stopNotifications": "Bạn sẽ không nhận được thông báo từ người này",
+    "share": "Chia sẻ",
+    "linkCopied": "Đã sao chép liên kết.",
+    "unfollowed": "Bạn đã bỏ theo dõi người này.",
+    "blockedTitle": "Chặn người dùng?",
+    "blockedBody": "Bạn sẽ không thấy tin của người này nữa.",
+    "blockedSuccessTitle": "Thành công",
+    "blockedSuccessMessage": "Đã chặn người dùng",
+    "blockedErrorTitle": "Lỗi",
+    "blockedErrorMessage": "Không tìm thấy thông tin người dùng",
+    "loadingFeed": "Đang tải bảng tin...",
+    "useFullFeatures": "Để sử dụng đầy đủ các tính năng như tạo bài viết, bạn cần xác minh email.",
+    "replyPlaceholder": "Chia sẻ cảm nghĩ của bạn..."
   },
   "chat": {
     "title": "Tin nhắn",
+    "you": "Bạn: ",
     "search": "Tìm kiếm cuộc trò chuyện...",
     "newMessage": "Tin nhắn mới",
     "send": "Gửi",
     "noMessages": "Chưa có tin nhắn nào",
-    "typeMessage": "Nhập tin nhắn..."
+    "typeMessage": "Nhập tin nhắn...",
+    "noConversations": "Không tìm thấy cuộc trò chuyện nào..."
+  },
+  "search": {
+    "all": "Tất cả",
+    "users": "Người dùng",
+    "posts": "Bài viết",
+    "placeholder": "Tìm kiếm trên CYO",
+    "hint": "Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, loa lớn...",
+    "searching": "Đang tìm kiếm...",
+    "noResults": "Không tìm thấy kết quả nào cho \"{{query}}\"",
+    "noUsersForQuery": "Không tìm thấy người dùng nào cho \"{{query}}\"",
+    "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\""
   },
   "follow": {
     "followers": "Người theo dõi",
@@ -33,6 +96,40 @@
     "unfollowAction": "Bỏ theo dõi",
     "message": "Nhắn tin",
     "editProfile": "Chỉnh sửa hồ sơ"
+  },
+  "forum": {
+    "title": "Diễn đàn",
+    "loading": "Đang tải diễn đàn...",
+    "latest": "Mới nhất",
+    "noNewPosts": "Chưa có bài viết mới",
+    "posts": "Bài viết",
+    "comments": "Bình luận"
+  },
+  "createPost": {
+    "title": "Tạo bài viết",
+    "publish": "Đăng",
+    "anonymous": "Đăng ẩn danh",
+    "anonymousDesc": "Người kiểm duyệt vẫn sẽ thấy thông tin của bạn",
+    "anonymousUser": "Người dùng ẩn danh",
+    "privacyPublic": "Công khai",
+    "privacyFollowers": "Chỉ người theo dõi",
+    "privacyPrivate": "Riêng tư",
+    "placeholderTitle": "Chủ đề bạn muốn chia sẻ là gì?",
+    "placeholderContent": "Bạn đang nghĩ gì?",
+    "placeholderCategory": "Chọn chuyên mục cho bài viết này",
+    "markdown": "Hỗ trợ Markdown",
+    "rules": "Quy tắc",
+    "addImage": "Thêm ảnh",
+    "addDocument": "Thêm tài liệu",
+    "posting": "Đang đăng...",
+    "pickImageError": "Lỗi chọn ảnh",
+    "pickDocumentError": "Lỗi chọn tài liệu",
+    "retry": "Vui lòng thử lại.",
+    "cannotPost": "Chưa thể đăng bài viết",
+    "missingFields": "Vui lòng nhập tiêu đề và nội dung bài viết.",
+    "postedSuccess": "Đăng bài viết thành công",
+    "reloading": "Đang tải lại trang...",
+    "tryAgainLater": "Vui lòng thử lại sau."
   },
   "sidebar": {
     "utilities": "Tiện ích",
@@ -73,13 +170,37 @@
     "editAction": "Chỉnh sửa",
     "reportSuccessTitle": "Cảm ơn",
     "reportSuccessBody": "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.",
+    "reportError": "Không thể gửi báo cáo",
     "optionsTitle": "Tùy chọn",
     "selectAction": "Chọn hành động",
     "editComment": "Chỉnh sửa bình luận",
     "deleteComment": "Xóa bình luận",
     "deleteCommentConfirm": "Bạn có chắc chắn muốn xóa bình luận này?",
     "deleteCommentError": "Không thể xóa bình luận. Vui lòng thử lại.",
-    "editCommentError": "Không thể chỉnh sửa bình luận. Vui lòng thử lại."
+    "editCommentError": "Không thể chỉnh sửa bình luận. Vui lòng thử lại.",
+    "report": "Báo cáo bài viết",
+    "commentsTitle": "Bình luận",
+    "noComments": "Chưa có bình luận nào",
+    "replyDeletedPrefix": "Bình luận mà",
+    "replyDeletedSuffix": "đang phản hồi đã bị xóa",
+    "editingComment": "Đang chỉnh sửa bình luận...",
+    "replyingTo": "Đang trả lời bình luận của {{username}}...",
+    "commentPlaceholder": "Viết bình luận..."
+  },
+  "savedPosts": {
+    "title": "Bài viết đã lưu",
+    "loading": "Đang tải bài viết đã lưu...",
+    "empty": "Bạn chưa lưu bài viết nào",
+    "loginPrompt": "Vui lòng đăng nhập để xem bài viết đã lưu",
+    "invalidData": "Định dạng dữ liệu không hợp lệ. Vui lòng thử lại sau.",
+    "loadError": "Không thể tải bài viết đã lưu. Vui lòng thử lại sau."
+  },
+  "likedPosts": {
+    "title": "Bài viết đã thích",
+    "loading": "Đang tải bài viết đã thích...",
+    "empty": "Bạn chưa thích bài viết nào",
+    "loginPrompt": "Vui lòng đăng nhập để xem bài viết đã thích",
+    "loadError": "Không thể tải bài viết đã thích. Vui lòng thử lại sau."
   },
   "notifications": {
     "newNotification": "Thông báo mới",
@@ -120,7 +241,11 @@
     "reportViolation": "Báo cáo vi phạm",
     "schoolName": "THPT Chuyên Biên Hòa - Hà Nam",
     "step1Title": "Bước 1: Chọn đối tượng báo cáo",
-    "continue": "Tiếp tục"
+    "continue": "Tiếp tục",
+    "modalTitle": "Báo cáo vi phạm",
+    "reasonPlaceholder": "Nhập lý do báo cáo (tối thiểu 10 ký tự)...",
+    "cancel": "Hủy",
+    "submit": "Gửi báo cáo"
   },
   "editPost": {
     "errorLoadTitle": "Không thể tải bài viết",
@@ -203,16 +328,81 @@
     "terms": "Điều khoản dịch vụ",
     "privacy": "Chính sách quyền riêng tư",
     "logout": "Đăng xuất",
+    "logoutConfirm": "Bạn có chắc chắn muốn đăng xuất không?",
+    "yes": "Có",
+    "no": "Không",
+    "application": "Ứng dụng",
     "theme": "Giao diện",
+    "auto": "Tự động",
     "light": "Sáng",
     "dark": "Tối",
     "system": "Hệ thống",
     "language": "Ngôn ngữ",
+    "version": "CBH Online phiên bản v{{appVersion}} ({{buildVersion}})",
     "selectLanguage": "Chọn ngôn ngữ",
     "vietnamese": "Tiếng Việt",
     "english": "English",
     "russian": "Tiếng Nga",
     "cancel": "Hủy",
     "save": "Lưu"
+  },
+  "security": {
+    "title": "Bảo mật",
+    "personalInfo": "Thông tin cá nhân",
+    "loginSecurity": "Đăng nhập & Bảo mật",
+    "dangerZone": "Vùng nguy hiểm",
+    "username": "Tên đăng nhập",
+    "email": "Email",
+    "notUpdated": "Chưa cập nhật",
+    "changePassword": "Đổi mật khẩu",
+    "twoFactor": "Xác thực 2 yếu tố",
+    "featureUnderDevelopment": "Tính năng đang được phát triển",
+    "deleteAccount": "Xóa tài khoản",
+    "deleteAccountTitle": "Xóa tài khoản vĩnh viễn",
+    "deleteAccountDesc": "Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn. Nhập mật khẩu và dòng chữ \"XOÁ TÀI KHOẢN\" để xác nhận.",
+    "passwordPlaceholder": "Nhập mật khẩu của bạn",
+    "confirmDeletePlaceholder": "Nhập 'XOÁ TÀI KHOẢN'",
+    "deleteForever": "Xóa vĩnh viễn",
+    "cancel": "Hủy",
+    "changeUsernameTitle": "Đổi tên đăng nhập",
+    "usernameDescription": "Đây là tên hiển thị công khai của bạn. Nó có thể là tên thật hoặc biệt danh của bạn. Bạn chỉ có thể thay đổi tên đăng nhập mỗi 30 ngày một lần.",
+    "newUsername": "Tên đăng nhập mới",
+    "changeEmailTitle": "Đổi Email",
+    "emailDescription": "Nhập địa chỉ email mới của bạn.",
+    "newEmail": "Email mới",
+    "currentPassword": "Mật khẩu hiện tại",
+    "newPassword": "Mật khẩu mới",
+    "confirmNewPassword": "Xác nhận mật khẩu mới",
+    "fillAll": "Vui lòng nhập đầy đủ thông tin",
+    "passwordMismatch": "Mật khẩu mới không khớp",
+    "passwordTooShort": "Mật khẩu mới phải có ít nhất 6 ký tự",
+    "passwordChanged": "Đổi mật khẩu thành công",
+    "saved": "Lưu",
+    "successTitle": "Thành công",
+    "successMessage": "Cập nhật thành công",
+    "errorTitle": "Lỗi",
+    "errorMessage": "Đã có lỗi xảy ra",
+    "checkEmail": "Đã gửi email xác nhận",
+    "checkEmailDesc": "Vui lòng kiểm tra hộp thư và xác nhận địa chỉ email của bạn"
+  },
+  "notificationSettings": {
+    "title": "Thông báo",
+    "pushNotifications": "Thông báo đẩy",
+    "allowPush": "Cho phép thông báo",
+    "allowPushDesc": "Nhận thông báo trên thiết bị này",
+    "interactions": "Tương tác",
+    "likes": "Lượt thích",
+    "comments": "Bình luận",
+    "mentions": "Nhắc đến",
+    "connections": "Kết nối",
+    "newFollowers": "Người theo dõi mới",
+    "messages": "Tin nhắn",
+    "other": "Khác",
+    "emailNotifications": "Email thông báo",
+    "emailNotificationsDesc": "Nhận cập nhật qua email",
+    "newsUpdates": "Tin tức & Cập nhật",
+    "loadingError": "Không thể tải cài đặt thông báo",
+    "saveError": "Không thể lưu cài đặt",
+    "featureUnderDevelopment": "Tính năng đang được phát triển"
   }
 }

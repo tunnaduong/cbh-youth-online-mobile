@@ -29,6 +29,7 @@ import { FeedContext } from "../contexts/FeedContext";
 import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
+import { useTranslation } from "react-i18next";
 
 const PostItem = ({
   navigation,
@@ -51,6 +52,7 @@ const PostItem = ({
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const isCurrentUser = item?.author?.username === username;
 
   // Use external state if provided (for single view), otherwise use item props
@@ -73,11 +75,11 @@ const PostItem = ({
 
   const handleDeletePost = async () => {
     Alert.alert(
-      "Xóa bài viết này?",
-      "Bạn có thể chỉnh sửa bài viết này thay vì xóa nó",
+      t('post.deleteConfirmTitle'),
+      t('post.deleteConfirmBody'),
       [
         {
-          text: "Xóa",
+          text: t('post.deleteAction'),
           style: "destructive",
           onPress: async () => {
             await deletePost(item.id);
@@ -96,7 +98,7 @@ const PostItem = ({
           },
         },
         {
-          text: "Chỉnh sửa",
+          text: t('post.editAction'),
           style: "default",
           onPress: () => {
             if (navigation) {
@@ -106,7 +108,7 @@ const PostItem = ({
           },
         },
         {
-          text: "Hủy",
+          text: t('settings.cancel'),
           style: "cancel",
         },
       ]
@@ -116,9 +118,9 @@ const PostItem = ({
   const handleReportSubmit = async (reason) => {
     try {
       await reportUser({ topic_id: item.id, reason });
-      Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
+      Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
-      Alert.alert("Lỗi", e.response?.data?.message || e.message || "Không thể gửi báo cáo");
+      Alert.alert(t('profile.errorTitle'), e.response?.data?.message || e.message || t('post.reportError'));
     }
   };
 
@@ -138,7 +140,7 @@ const PostItem = ({
               color={currentSaved ? theme.primary : theme.text}
             />
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {currentSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
+              {currentSaved ? t('post.unsave') : t('post.save')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -152,7 +154,7 @@ const PostItem = ({
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>Chia sẻ</Text>
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
         {isCurrentUser && (
@@ -160,7 +162,7 @@ const PostItem = ({
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                Cài đặt quyền riêng tư
+                {t('post.privacy')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -175,7 +177,7 @@ const PostItem = ({
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="create-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                Chỉnh sửa bài đăng
+                {t('post.edit')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -191,7 +193,7 @@ const PostItem = ({
             <Text
               style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
             >
-              Báo cáo vi phạm
+              {t('post.report')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -202,7 +204,7 @@ const PostItem = ({
               <Text
                 style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
               >
-                Xóa bài viết
+                {t('post.delete')}
               </Text>
             </View>
           </TouchableOpacity>

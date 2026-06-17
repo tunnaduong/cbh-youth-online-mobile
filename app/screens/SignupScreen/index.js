@@ -19,6 +19,7 @@ import CheckBox from "react-native-check-box";
 import { signupRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { useTranslation } from "react-i18next";
 
 const SignupScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -30,6 +31,7 @@ const SignupScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { t } = useTranslation();
 
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
@@ -43,9 +45,7 @@ const SignupScreen = ({ navigation }) => {
 
   const handleSignup = async () => {
     if (!agreeToTerms) {
-      Alert.alert(
-        "Vui lòng đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư"
-      );
+      Alert.alert(t("signup.failureTitle"), t("signup.mustAgree"));
       return;
     }
 
@@ -56,15 +56,15 @@ const SignupScreen = ({ navigation }) => {
       password === "" ||
       confirmPassword === ""
     ) {
-      Alert.alert("Vui lòng điền đầy đủ thông tin");
+      Alert.alert(t("common.error"), t("signup.missingInfo"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Mật khẩu không khớp", "Vui lòng nhập lại mật khẩu");
+      Alert.alert(t("signup.passwordMismatchTitle"), t("signup.passwordMismatchBody"));
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Mật khẩu phải dài ít nhất 6 ký tự");
+      Alert.alert(t("common.error"), t("signup.passwordLength"));
       return;
     }
 
@@ -121,16 +121,16 @@ const SignupScreen = ({ navigation }) => {
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("signup.invalidResponse"));
       }
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại.";
+        t("signup.googleError");
 
-      Alert.alert("Đăng ký thất bại", errorMessage);
+      Alert.alert(t("signup.failureTitle"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -156,16 +156,16 @@ const SignupScreen = ({ navigation }) => {
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("signup.invalidResponse"));
       }
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Đã xảy ra lỗi khi đăng ký với Facebook. Vui lòng thử lại.";
+        t("signup.facebookError");
 
-      Alert.alert("Đăng ký thất bại", errorMessage);
+      Alert.alert(t("signup.failureTitle"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -195,7 +195,7 @@ const SignupScreen = ({ navigation }) => {
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("signup.invalidResponse"));
       }
     } catch (error) {
       if (error.code === "ERR_REQUEST_CANCELED") {
@@ -205,8 +205,8 @@ const SignupScreen = ({ navigation }) => {
           error.response?.data?.message ||
           error.response?.data?.error ||
           error.message ||
-          "Đã xảy ra lỗi khi đăng ký với Apple. Vui lòng thử lại.";
-        Alert.alert("Đăng ký thất bại", errorMessage);
+          t("signup.appleError");
+        Alert.alert(t("signup.failureTitle"), errorMessage);
       }
     } finally {
       setLoading(false);
@@ -215,7 +215,7 @@ const SignupScreen = ({ navigation }) => {
 
   return (
     <>
-      <ProgressHUD loadText="Đang đăng ký..." visible={loading} />
+      <ProgressHUD loadText={t("signup.loading")} visible={loading} />
       <SafeAreaView style={styles.container}>
         <TouchableOpacity
           className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
@@ -232,8 +232,8 @@ const SignupScreen = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Đăng ký</Text>
-              <Text style={styles.subtitle}>Tạo một tài khoản để tiếp tục</Text>
+              <Text style={styles.title}>{t("signup.title")}</Text>
+              <Text style={styles.subtitle}>{t("signup.subtitle")}</Text>
             </View>
 
             <View style={styles.form}>
@@ -244,7 +244,7 @@ const SignupScreen = ({ navigation }) => {
                   onPress={handleAppleSignup}
                 >
                   <Icon name="logo-apple" size={24} color="#000" />
-                  <Text style={styles.appleButtonText}>Tiếp tục với Apple</Text>
+                  <Text style={styles.appleButtonText}>{t("signup.apple")}</Text>
                 </TouchableOpacity>
               )}
 
@@ -256,7 +256,7 @@ const SignupScreen = ({ navigation }) => {
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
-                <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+                <Text style={styles.googleButtonText}>{t("signup.google")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -265,18 +265,18 @@ const SignupScreen = ({ navigation }) => {
               >
                 <Icon name="logo-facebook" size={24} color="#1877F2" />
                 <Text style={styles.facebookButtonText}>
-                  Tiếp tục với Facebook
+                  {t("signup.facebook")}
                 </Text>
               </TouchableOpacity>
 
               <View style={styles.orContainer}>
                 <View style={styles.orLine} />
-                <Text style={styles.orText}>hoặc đăng ký bằng</Text>
+                <Text style={styles.orText}>{t("signup.or")}</Text>
                 <View style={styles.orLine} />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Tên đăng nhập</Text>
+                <Text style={styles.label}>{t("signup.username")}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="john_doe"
@@ -288,7 +288,7 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Họ và tên</Text>
+                <Text style={styles.label}>{t("signup.fullName")}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="John Doe"
@@ -300,7 +300,7 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Địa chỉ Email</Text>
+                <Text style={styles.label}>{t("signup.email")}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="hello@example.com"
@@ -313,7 +313,7 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mật khẩu</Text>
+                <Text style={styles.label}>{t("signup.password")}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
@@ -338,7 +338,7 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Xác nhận mật khẩu</Text>
+                <Text style={styles.label}>{t("signup.confirmPassword")}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
                     style={[styles.input, styles.passwordInput]}
@@ -373,19 +373,19 @@ const SignupScreen = ({ navigation }) => {
                   checkBoxColor="#319527"
                 />
                 <Text style={styles.checkboxLabel}>
-                  Tôi đồng ý với{" "}
+                  {t("signup.agreePrefix")} {" "}
                   <Text
                     style={styles.link}
                     onPress={() => navigation.navigate("TermsOfServiceScreen")}
                   >
-                    Điều khoản sử dụng
+                    {t("signup.terms")}
                   </Text>{" "}
-                  và{" "}
+                  {" "}{t("signup.and") || "và"}{" "}
                   <Text
                     style={styles.link}
                     onPress={() => navigation.navigate("PrivacyPolicyScreen")}
                   >
-                    Chính sách quyền riêng tư
+                    {t("signup.privacy")}
                   </Text>
                 </Text>
               </View>
@@ -394,15 +394,15 @@ const SignupScreen = ({ navigation }) => {
                 style={styles.signUpButton}
                 onPress={handleSignup}
               >
-                <Text style={styles.signUpButtonText}>Tạo tài khoản</Text>
+                <Text style={styles.signUpButtonText}>{t("signup.createAccount")}</Text>
               </TouchableOpacity>
 
 
 
               <View style={styles.loginPrompt}>
-                <Text style={styles.loginPromptText}>Đã có tài khoản?</Text>
+                <Text style={styles.loginPromptText}>{t("signup.hasAccount")}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                  <Text style={styles.loginLink}>Đăng nhập</Text>
+                  <Text style={styles.loginLink}>{t("signup.login")}</Text>
                 </TouchableOpacity>
               </View>
             </View>

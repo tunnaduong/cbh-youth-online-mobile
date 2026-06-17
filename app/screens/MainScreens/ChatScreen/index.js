@@ -62,7 +62,7 @@ export default function ChatScreen({ navigation }) {
       Toast.show({
         type: "error",
         text1: t('profile.errorTitle'),
-        text2: t('home.loadingError') || "Không thể tải danh sách tin nhắn. Vui lòng thử lại sau.",
+        text2: t('home.loadingError'),
       });
     }
   };
@@ -135,7 +135,7 @@ export default function ChatScreen({ navigation }) {
           {getChatName(item)}
         </Text>
         <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
-          {item.latest_message?.is_myself ? t('chat.you') || "Bạn: " : ""}
+          {item.latest_message?.is_myself ? t('chat.you') : ""}
           {item.latest_message?.content || t('chat.noMessages')}
         </Text>
       </View>
@@ -168,7 +168,7 @@ export default function ChatScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { marginTop: insets.top }]}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Tin nhắn</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.title')}</Text>
         <TouchableOpacity
           onPress={() => {
             navigation.navigate("NewConversationScreen");
@@ -235,7 +235,7 @@ export default function ChatScreen({ navigation }) {
               />
               <Text style={[styles.emptyText, { color: theme.subText }]}>
                 {search
-                  ? t('chat.noConversations') || "Không tìm thấy cuộc trò chuyện nào..."
+                  ? t('chat.noConversations')
                   : t('chat.noMessages')}
               </Text>
             </View>

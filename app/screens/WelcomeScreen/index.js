@@ -1,8 +1,10 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import LoginCarousel from "../../components/LoginCarousel";
+import { useTranslation } from "react-i18next";
 
 const WelcomeScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const handleGetStarted = () => {
     navigation.navigate("Login");
   };
@@ -21,7 +23,7 @@ const WelcomeScreen = ({ navigation }) => {
             style={styles.buttonText}
             className="text-center text-white text-base font-semibold"
           >
-            Đăng nhập
+            {t("signup.login")}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -30,7 +32,7 @@ const WelcomeScreen = ({ navigation }) => {
           }}
         >
           <Text className="text-center text-base text-[#319527] font-semibold">
-            Tạo tài khoản mới
+            {t("signup.createAccount")}
           </Text>
         </TouchableOpacity>
       </View>

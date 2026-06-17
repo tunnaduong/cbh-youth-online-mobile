@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const { width, height } = Dimensions.get("window");
 
@@ -27,6 +28,7 @@ const CustomTabBarButton = ({ onPress }) => {
   const [showButtons, setShowButtons] = useState(false);
   const navigation = useNavigation();
   const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const { t } = useTranslation();
 
   // Close buttons when app goes to background
   useEffect(() => {
@@ -175,7 +177,7 @@ const CustomTabBarButton = ({ onPress }) => {
               }}
             >
               <Ionicons name="create-outline" size={35} color={theme.primary} />
-              <Text style={[styles.buttonText, { color: theme.primary }]}>Tạo bài viết</Text>
+              <Text style={[styles.buttonText, { color: theme.primary }]}>{t('createActions.post')}</Text>
             </TouchableOpacity>
           </Animated.View>
           <Animated.View style={[styles.additionalButton, button1Style, { backgroundColor: theme.cardBackground }]}>
@@ -188,7 +190,7 @@ const CustomTabBarButton = ({ onPress }) => {
               onPress={() => {
                 Toast.show({
                   type: "info",
-                  text1: "Tính năng đang được phát triển",
+                  text1: t('createActions.development'),
                 });
                 handleDismiss();
               }}
@@ -200,7 +202,7 @@ const CustomTabBarButton = ({ onPress }) => {
                   { textAlign: "left", marginLeft: 10, color: theme.primary },
                 ]}
               >
-                Tạo ghi âm
+                {t('createActions.recording')}
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -221,7 +223,7 @@ const CustomTabBarButton = ({ onPress }) => {
                 size={35}
                 color={theme.primary}
               />
-              <Text style={[styles.buttonText, { color: theme.primary }]}>Tạo báo cáo</Text>
+              <Text style={[styles.buttonText, { color: theme.primary }]}>{t('createActions.report')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>
@@ -237,7 +239,7 @@ const CustomTabBarButton = ({ onPress }) => {
             style={styles.icon}
           />
         </Animated.View>
-        {!hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>Tạo</Text>}
+        {!hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>{t('navigation.create')}</Text>}
       </Pressable>
     </View>
   );

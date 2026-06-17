@@ -65,7 +65,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
-  const viewedPosts = React.useRef(new Set());
+  const viewedPosts = useRef(new Set());
   const flatListRef = React.useRef(null);
   const { feed, setFeed } = useContext(FeedContext);
   const lottieRef = useRef(null);
@@ -150,7 +150,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       Toast.show({
         type: "error",
         text1: t('profile.errorTitle') || "Đã có lỗi xảy ra",
-        text2: t('home.loadingError') || "Không thể tải bảng tin. Vui lòng thử lại sau.",
+        text2: t('home.loadingError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -397,10 +397,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               actionSheetRef.current?.hide();
               Toast.show({
                 type: "info",
-                text1: value ? "Đã bật thông báo" : "Đã tắt thông báo",
+                text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
                 text2: value
-                  ? "Bạn sẽ nhận được thông báo từ người này"
-                  : "Bạn sẽ không nhận được thông báo từ người này",
+                  ? t('home.receiveNotifications')
+                  : t('home.stopNotifications'),
               });
             }}
             trackColor={{ false: "#767577", true: theme.primary }}
@@ -412,8 +412,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             actionSheetRef.current?.hide();
             Toast.show({
               type: "info",
-              text1: "Chia sẻ",
-              text2: "Đã sao chép liên kết.",
+              text1: t('home.share'),
+              text2: t('home.linkCopied'),
             });
           }}
         >
@@ -486,8 +486,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             actionSheetRef.current?.hide();
             Toast.show({
               type: "info",
-              text1: "Bỏ theo dõi",
-              text2: "Bạn đã bỏ theo dõi người này.",
+              text1: t('home.unfollowPerson'),
+              text2: t('home.unfollowed'),
             });
           }}
         >
@@ -517,10 +517,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         <TouchableOpacity
           onPress={() => {
             actionSheetRef.current?.hide();
-            Alert.alert("Chặn người dùng?", "Bạn sẽ không thấy tin của người này nữa.", [
-              { text: "Hủy", style: "cancel" },
+            Alert.alert(t('home.blockedTitle'), t('home.blockedBody'), [
+              { text: t('settings.cancel'), style: "cancel" },
               {
-                text: "Chặn", style: "destructive", onPress: async () => {
+                text: t('home.blockPerson'), style: "destructive", onPress: async () => {
                   // Use ref for immediate access to freshness
                   const userToBlockRef = currentStoryUserRef.current;
                   console.log("Blocking user (ref)...", userToBlockRef);
@@ -546,13 +546,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       // Force a small delay to ensure modal close animation doesn't conflict with Alert
                       dismissStoryModal();
                       setTimeout(() => {
-                        Alert.alert("Thành công", "Đã chặn người dùng");
+                        Alert.alert(t('home.blockedSuccessTitle'), t('home.blockedSuccessMessage'));
                       }, 500);
 
                       fetchStories();
                     } else {
                       console.error("No user found to block");
-                      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
+                      Alert.alert(t('home.blockedErrorTitle'), t('home.blockedErrorMessage'));
                     }
                   } catch (e) {
                     console.error("Block error:", e);
@@ -1018,7 +1018,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       flex: 1,
                     }}
                   >
-                    Xác minh Email
+                    {t('home.verifyEmail')}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setVerificationModalVisible(false)}
@@ -1036,8 +1036,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     lineHeight: 22,
                   }}
                 >
-                  Để sử dụng đầy đủ các tính năng như tạo bài viết, bạn cần xác
-                  minh địa chỉ email của mình.
+                  {t('home.useFullFeatures')}
                 </Text>
 
                 {userInfo?.email && (
@@ -1361,7 +1360,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           </View>
           <View style={styles.replyBar}>
             <TextInput
-              placeholder="Chia sẻ cảm nghĩ của bạn..."
+              placeholder={t('chat.typeMessage')}
               placeholderTextColor={theme.subText}
               style={[styles.input, { backgroundColor: isDarkMode ? "#374151" : "#666666", color: isDarkMode ? theme.text : "#FFFFFF" }]}
               value={replyText}
@@ -1425,7 +1424,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         loop
         autoPlay
       />
-      <Text style={{ marginTop: 15, color: theme.text }}>Đang tải bảng tin...</Text>
+      <Text style={{ marginTop: 15, color: theme.text }}>{t('home.loadingFeed')}</Text>
     </ScrollView>
   ) : (
     <>

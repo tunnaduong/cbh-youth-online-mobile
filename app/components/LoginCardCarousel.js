@@ -1,18 +1,20 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
+import { useTranslation } from "react-i18next";
 
 export const SLIDER_WIDTH = Dimensions.get("window").width;
 export const ITEM_WIDTH = SLIDER_WIDTH;
 
 const LoginCardCarousel = ({ item, index }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container} key={index}>
       <View style={styles.outer} className="items-center px-6 gap-y-8">
         <Image source={item.imgUrl} style={{ width: 230, height: 230 }} />
         <View>
-          <Text className="text-xl font-bold text-center">{item.title}</Text>
+          <Text className="text-xl font-bold text-center">{t(item.titleKey)}</Text>
           <Text className="text-base text-center text-[#858585] mt-2">
-            {item.body}
+            {t(item.bodyKey)}
           </Text>
         </View>
       </View>

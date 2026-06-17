@@ -19,8 +19,11 @@ const initI18n = async () => {
   try {
     let savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
     if (!savedLanguage) {
-      const locales = getLocales();
-      savedLanguage = locales[0]?.languageCode === 'en' ? 'en' : 'vi';
+      savedLanguage = 'vi';
+    }
+
+    if (!resources[savedLanguage]) {
+      savedLanguage = 'vi';
     }
 
     await i18n
@@ -42,8 +45,9 @@ const initI18n = async () => {
 initI18n();
 
 export const changeLanguage = async (lng) => {
-  await AsyncStorage.setItem(LANGUAGE_KEY, lng);
-  i18n.changeLanguage(lng);
+  const nextLanguage = resources[lng] ? lng : 'vi';
+  await AsyncStorage.setItem(LANGUAGE_KEY, nextLanguage);
+  i18n.changeLanguage(nextLanguage);
 };
 
 export default i18n;

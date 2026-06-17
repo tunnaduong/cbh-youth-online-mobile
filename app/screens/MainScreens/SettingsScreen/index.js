@@ -97,6 +97,9 @@ export default function SettingsScreen({ navigation }) {
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
+  const languageCode = i18n.language?.split('-')[0] || 'vi';
+  const currentLanguage = languageCode === 'ru' ? 'ru' : languageCode === 'en' ? 'en' : 'vi';
+  const currentThemeLabel = useSystemTheme ? t('settings.auto') : (isDarkMode ? t('settings.dark') : t('settings.light'));
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
@@ -158,16 +161,16 @@ export default function SettingsScreen({ navigation }) {
           />
         </SettingSection>
 
-        <SettingSection title="Ứng dụng" theme={theme}>
+        <SettingSection title={t('settings.application')} theme={theme}>
           <View style={{ borderBottomWidth: 0.5, borderBottomColor: theme.border }}>
             <Dropdown
               options={[
-                { label: "Tự động", value: "system" },
-                { label: "Sáng", value: "light" },
-                { label: "Tối", value: "dark" },
+                { label: t('settings.auto'), value: "system" },
+                { label: t('settings.light'), value: "light" },
+                { label: t('settings.dark'), value: "dark" },
               ]}
               selectedValue={{
-                label: useSystemTheme ? "Tự động" : (isDarkMode ? "Tối" : "Sáng"),
+                label: currentThemeLabel,
                 value: useSystemTheme ? "system" : (isDarkMode ? "dark" : "light")
               }}
               onValueChange={(item) => setThemeMode(item.value)}
@@ -179,7 +182,7 @@ export default function SettingsScreen({ navigation }) {
                   <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
                     <Ionicons name="moon-outline" size={22} color={theme.subText} />
                   </View>
-                  <Text style={[styles.settingItemText, { color: theme.text }]}>Giao diện</Text>
+                  <Text style={[styles.settingItemText, { color: theme.text }]}>{t('settings.theme')}</Text>
                 </View>
               }
             />
@@ -193,8 +196,8 @@ export default function SettingsScreen({ navigation }) {
                 { label: `🇷🇺 ${t('settings.russian')}`, value: "ru" },
               ]}
               selectedValue={{
-                label: i18n.language === "ru" ? `🇷🇺 ${t('settings.russian')}` : i18n.language === "en" ? `🇬🇧 ${t('settings.english')}` : `🇻🇳 ${t('settings.vietnamese')}`,
-                value: i18n.language === "ru" ? "ru" : i18n.language === "en" ? "en" : "vi"
+                label: currentLanguage === "ru" ? `🇷🇺 ${t('settings.russian')}` : currentLanguage === "en" ? `🇬🇧 ${t('settings.english')}` : `🇻🇳 ${t('settings.vietnamese')}`,
+                value: currentLanguage
               }}
               onValueChange={(item) => changeLanguage(item.value)}
               style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0, backgroundColor: 'transparent' }}
@@ -225,7 +228,10 @@ export default function SettingsScreen({ navigation }) {
         </SettingSection>
 
         <Text style={[styles.versionText, { color: theme.subText }]}>
-          CBH Online phiên bản v{Application.nativeApplicationVersion} ({Application.nativeBuildVersion})
+          {t('settings.version', {
+            appVersion: Application.nativeApplicationVersion,
+            buildVersion: Application.nativeBuildVersion,
+          })}
         </Text>
 
         <View style={styles.socialContainer}>

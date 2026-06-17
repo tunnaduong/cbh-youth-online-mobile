@@ -82,7 +82,7 @@ const PostScreen = ({ route, navigation }) => {
 
   const handleOpenBottomSheet = () => {
     showBottomSheet(
-      <>
+      <View style={{ backgroundColor: theme.cardBackground }}>
         <TouchableOpacity
           onPress={() => {
             handleSavePost(!isSaved);
@@ -148,7 +148,7 @@ const PostScreen = ({ route, navigation }) => {
               style={{ padding: 12, fontSize: 17 }}
               className="text-red-500"
             >
-              {t('home.reportStory') || "Báo cáo"}
+              {t('post.report')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -165,7 +165,7 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
-      </>
+      </View>
     );
   };
 
@@ -456,7 +456,8 @@ const PostScreen = ({ route, navigation }) => {
     } catch (e) {
       Alert.alert(
         t('profile.errorTitle') || "Lỗi",
-        e.response?.data?.message || e.message || "Không thể gửi báo cáo"
+        t('profile.errorTitle'),
+        e.response?.data?.message || e.message || t('post.reportError')
       );
     }
   };
@@ -908,11 +909,11 @@ const PostScreen = ({ route, navigation }) => {
                     }}
                   >
                     <Text style={{ fontSize: 12, color: theme.subText }}>
-                      Bình luận mà{" "}
+                      {t('post.replyDeletedPrefix')}{" "}
                       <Text style={{ fontWeight: "600", color: theme.text }}>
                         {author.profile_name || author.username || "Ẩn danh"}
                       </Text>{" "}
-                      đang phản hồi đã bị xóa
+                      {t('post.replyDeletedSuffix')}
                     </Text>
                   </View>
                 )}
@@ -1064,9 +1065,9 @@ const PostScreen = ({ route, navigation }) => {
             />
             {/* comment section */}
             <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
-              <Text style={{ fontWeight: "bold", fontSize: 20, marginVertical: 16, color: theme.text }}>Bình luận</Text>
+              <Text style={{ fontWeight: "bold", fontSize: 20, marginVertical: 16, color: theme.text }}>{t('post.commentsTitle')}</Text>
               {comments.length === 0 ? (
-                <Text style={{ color: theme.subText }}>Chưa có bình luận nào</Text>
+                <Text style={{ color: theme.subText }}>{t('post.noComments')}</Text>
               ) : (
                 comments.map((comment) => (
                   <Comment
@@ -1092,8 +1093,8 @@ const PostScreen = ({ route, navigation }) => {
             >
               <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }}>
                 {editingCommentId
-                  ? "Đang chỉnh sửa bình luận..."
-                  : `Đang trả lời bình luận của ${replyingTo}...`}
+                  ? t('post.editingComment')
+                  : t('post.replyingTo', { username: replyingTo })}
               </Text>
               <TouchableOpacity
                 onPress={() => {
@@ -1118,7 +1119,7 @@ const PostScreen = ({ route, navigation }) => {
           <CommentBar
             value={commentText}
             onChangeText={setCommentText}
-            placeholderText="Viết bình luận..."
+            placeholderText={t('post.commentPlaceholder')}
             onSubmit={onSubmit}
             ref={commentInputRef}
             isSubmitting={isSubmitting}
