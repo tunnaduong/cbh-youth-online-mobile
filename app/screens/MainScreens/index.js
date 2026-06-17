@@ -71,7 +71,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
       bounceBackOnOverdraw={false}
       disableGestures={currentRoute !== "Home"}
     >
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 80 }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
           screenOptions={({ route }) => ({
