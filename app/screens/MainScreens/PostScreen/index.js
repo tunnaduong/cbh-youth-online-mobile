@@ -916,7 +916,7 @@ const PostScreen = ({ route, navigation }) => {
                     <Text style={{ fontSize: 12, color: theme.subText }}>
                       {t('post.replyDeletedPrefix')}{" "}
                       <Text style={{ fontWeight: "600", color: theme.text }}>
-{author.profile_name || author.username || t('post.anonymous')}
+                        {author.profile_name || author.username || t('post.anonymous')}
                       </Text>{" "}
                       {t('post.replyDeletedSuffix')}
                     </Text>
@@ -932,7 +932,7 @@ const PostScreen = ({ route, navigation }) => {
                 </Text>
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""} ·
+                    {comment.created_at || ""} ·
                   </Text>
                   <TouchableOpacity
                     onPress={() =>

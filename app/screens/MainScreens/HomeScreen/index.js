@@ -641,6 +641,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         date: story.created_at
           ? formatTime(story.created_at)
           : story.created_at_human,
+        created_at: story.created_at,
+        created_at_human: story.created_at_human,
         onStoryItemPress: () => {
           setCurrentStory(story.id);
           setCurrentStoryUser({ id: user.id, username: user.username });
@@ -1198,13 +1200,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const filteredStories = useMemo(() => {
     if (!userStories) return [];
-    if (blockedUsers && blockedUsers.length > 0) {
-      return userStories.filter(
-        (user) => !blockedUsers.includes(user.id) // user.id here maps to username based on transformStoriesData
-      );
-    }
-    return userStories;
-  }, [userStories, blockedUsers]);
+    const filtered = blockedUsers && blockedUsers.length > 0
+      ? userStories.filter((user) => !blockedUsers.includes(user.id))
+      : userStories;
+
+    return filtered.map((user) => ({
+      ...user,
+      stories: user.stories.map((story) => ({
+        ...story,
+        date: story.created_at
+          ? formatTime(story.created_at)
+          : (story.created_at_human || ""),
+      })),
+    }));
+  }, [userStories, blockedUsers, t]);
 
   const ReplyBar = ({
     storyId,

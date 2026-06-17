@@ -236,11 +236,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
             options={{
               title: t('navigation.notifications'),
               headerShown: false,
-              tabBarLabelStyle: {
-                fontSize: 8.2,
-                fontWeight: "bold",
-                marginBottom: 5,
-              }
             }}
           />
         </Tab.Navigator>

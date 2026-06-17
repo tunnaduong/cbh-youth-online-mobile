@@ -144,6 +144,7 @@ export default function NotificationScreen({ navigation }) {
             content: formatNotificationMessage(notif, t),
             time: formatTime(notif.created_at),
             read: notif.is_read,
+            raw: notif,
           };
         });
 
@@ -277,6 +278,11 @@ export default function NotificationScreen({ navigation }) {
 
   const renderItem = ({ item }) => {
     const isSystemMessage = item.type === "system_message" || !item.actor;
+    const userName = isSystemMessage
+      ? t('notifications.system')
+      : item.actor?.profile_name || item.actor?.username || t('notifications.user');
+    const displayContent = formatNotificationMessage(item.raw || item, t);
+    const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
     return (
       <TouchableOpacity
@@ -334,10 +340,10 @@ export default function NotificationScreen({ navigation }) {
         <View style={styles.content}>
           <Text style={[styles.message, { color: theme.text }]}>
             {isSystemMessage ? (
-              item.content
+              displayContent
             ) : (
               <>
-                <Text style={[styles.name, { color: theme.text }]}>{item.user.name}</Text> {item.content}
+                <Text style={[styles.name, { color: theme.text }]}>{userName}</Text> {displayContent}
               </>
             )}
           </Text>
@@ -346,7 +352,7 @@ export default function NotificationScreen({ navigation }) {
               {item.data.message_excerpt}
             </Text>
           )}
-          <Text style={[styles.time, { color: theme.subText }]}>{item.time}</Text>
+          <Text style={[styles.time, { color: theme.subText }]}>{displayTime}</Text>
         </View>
         <TouchableOpacity
           style={styles.moreButton}

@@ -8,6 +8,9 @@ const formatTime = (dateString) => {
   if (!dateString) return i18n.t("time.justNow");
 
   const date = dayjs(dateString);
+  if (!date.isValid()) {
+    return dateString;
+  }
   const now = dayjs();
   const diffInSeconds = now.diff(date, "second");
 
@@ -36,6 +39,9 @@ const formatTime = (dateString) => {
   }
 
   const diffInMonths = now.diff(date, "month");
+  if (diffInMonths < 1) {
+    return i18n.t("time.weeksAgo", { count: diffInWeeks });
+  }
   if (diffInMonths < 12) {
     return i18n.t("time.monthsAgo", { count: diffInMonths });
   }

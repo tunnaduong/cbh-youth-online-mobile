@@ -27,34 +27,40 @@ import formatTime from "../../../utils/formatTime";
 const { width } = Dimensions.get("window");
 
 const getCategoryName = (name, t) => {
+  if (!name) return name;
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
   const keyMap = {
-    "Thông báo": "announcements",
-    "Chung": "general",
-    "Đoàn - Hội": "unionAssociation",
-    "Học tập": "academics",
-    "Sự kiện": "events",
-    "Câu lạc bộ": "clubs",
-    "Góc chia sẻ": "sharingCorner",
-    "Tán gẫu": "casual",
-    "Hỏi đáp": "qa",
-    "Góp ý": "feedback",
-    "Ý kiến & Đóng góp": "feedback",
-    "Thảo luận": "discussion",
-    "Báo cáo": "reports",
-    "Phản hồi về diễn đàn": "forumFeedback",
-    "Nội quy": "rules",
-    "Nội quy diễn đàn": "forumRules",
-    "Tin tức": "news",
-    "Giải trí": "entertainment",
-    "Tài liệu": "documents",
-    "Tài liệu học tập": "academicDocuments",
-    "Tâm sự": "confessions",
-    "Chuyện của trường": "schoolStories",
-    "Hoạt động ngoại khóa": "extracurricular",
-    "Hỗ trợ kỹ thuật": "technicalSupport",
-    "Thông báo chung": "generalAnnouncements"
+    "thông báo": "announcements",
+    "thông báo chung": "generalAnnouncements",
+    "chung": "general",
+    "đoàn - hội": "unionAssociation",
+    "đoàn-hội": "unionAssociation",
+    "học tập": "academics",
+    "sự kiện": "events",
+    "câu lạc bộ": "clubs",
+    "góc chia sẻ": "sharingCorner",
+    "tán gẫu": "casual",
+    "tán gẫu linh tinh": "casual",
+    "hỏi đáp": "qa",
+    "góp ý": "feedback",
+    "ý kiến & đóng góp": "feedback",
+    "ý kiến đóng góp": "feedback",
+    "thảo luận": "discussion",
+    "báo cáo": "reports",
+    "phản hồi về diễn đàn": "forumFeedback",
+    "phản hồi diễn đàn": "forumFeedback",
+    "nội quy": "rules",
+    "nội quy diễn đàn": "forumRules",
+    "tin tức": "news",
+    "giải trí": "entertainment",
+    "tài liệu": "documents",
+    "tài liệu học tập": "academicDocuments",
+    "tâm sự": "confessions",
+    "chuyện của trường": "schoolStories",
+    "hoạt động ngoại khóa": "extracurricular",
+    "hỗ trợ kỹ thuật": "technicalSupport"
   };
-  const key = keyMap[name];
+  const key = keyMap[normalized];
   if (key) {
     const translated = t(`forumCategories.${key}`);
     if (translated !== `forumCategories.${key}`) {
