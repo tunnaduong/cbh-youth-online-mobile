@@ -29,6 +29,7 @@ import {
 } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const SettingItem = ({
   icon,
@@ -95,6 +96,7 @@ export default function BlockedUsersScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { unblockUserInContext } = useContext(AuthContext);
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,8 +113,8 @@ export default function BlockedUsersScreen({ navigation }) {
       console.error(error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải danh sách chặn",
+        text1: t("common.error"),
+        text2: t("blockedUsers.loadError"),
       });
     } finally {
       setLoading(false);
@@ -123,12 +125,12 @@ export default function BlockedUsersScreen({ navigation }) {
   const handleUnblock = (userId, username) => {
     console.log("handleUnblock called with:", userId, username);
     Alert.alert(
-      "Bỏ chặn người dùng",
-      "Bạn có chắc chắn muốn bỏ chặn người dùng này?",
+      t("blockedUsers.unblockTitle"),
+      t("blockedUsers.unblockConfirm"),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Bỏ chặn", style: "default", onPress: async () => {
+          text: t("blockedUsers.unblockAction"), style: "default", onPress: async () => {
             try {
               await unblockUser(userId);
               // Update context global state
@@ -142,14 +144,14 @@ export default function BlockedUsersScreen({ navigation }) {
               setBlockedUsers(prev => prev.filter(u => u.id !== userId));
               Toast.show({
                 type: "success",
-                text1: "Đã bỏ chặn người dùng"
+                text1: t("blockedUsers.unblockSuccess")
               });
             } catch (e) {
               console.error("Unblock error:", e);
               Toast.show({
                 type: "error",
-                text1: "Lỗi",
-                text2: e.message || "Không thể bỏ chặn"
+                text1: t("common.error"),
+                text2: e.message || t("blockedUsers.unblockError")
               });
             }
           }

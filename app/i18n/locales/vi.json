@@ -246,7 +246,16 @@
     "optionsTitle": "Tùy chọn",
     "casualGroupName": "Tán gẫu linh tinh",
     "cannotOpen": "Không thể mở cuộc trò chuyện. Vui lòng thử lại sau.",
-    "searchUsers": "Tìm kiếm người dùng..."
+    "searchUsers": "Tìm kiếm người dùng...",
+    "sendImageError": "Không thể chọn ảnh. Vui lòng thử lại.",
+    "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
+    "storyReply": {
+      "you": "Bạn đã trả lời tin của {{owner}}",
+      "other": "{{sender}} đã trả lời tin của bạn"
+    },
+    "anonymous": "Ẩn danh",
+    "am": "SA",
+    "pm": "CH"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",

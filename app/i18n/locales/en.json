@@ -246,7 +246,16 @@
     "optionsTitle": "Options",
     "casualGroupName": "Tán gẫu linh tinh",
     "cannotOpen": "Could not open conversation. Please try again later.",
-    "searchUsers": "Search users..."
+    "searchUsers": "Search users...",
+    "sendImageError": "Could not pick image. Please try again.",
+    "sendMessageError": "Could not send message. Please try again later.",
+    "storyReply": {
+      "you": "You replied to {{owner}}'s story",
+      "other": "{{sender}} replied to your story"
+    },
+    "anonymous": "Anonymous",
+    "am": "AM",
+    "pm": "PM"
   },
   "blockedUsers": {
     "title": "Blocked users",

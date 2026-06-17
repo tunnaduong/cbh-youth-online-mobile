@@ -88,7 +88,7 @@ const Dropdown = ({
         onRequestClose={() => setVisible(false)}
       >
         <TouchableOpacity
-          style={styles.overlay}
+          style={[styles.overlay, { backgroundColor: isDarkMode ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)" }]}
           onPress={() => setVisible(false)}
           activeOpacity={1}
         >

@@ -271,7 +271,7 @@ export default function SecurityScreen({ navigation }) {
       setTimeout(() => {
         Toast.show({
           type: "success",
-          text1: "Đổi mật khẩu thành công",
+          text1: t("security.passwordChanged"),
         });
       }, 500);
     } catch (error) {
@@ -542,11 +542,11 @@ export default function SecurityScreen({ navigation }) {
           style={styles.centeredView}
         >
           <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Đổi mật khẩu</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t('security.changePassword')}</Text>
 
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
-              placeholder="Mật khẩu hiện tại"
+              placeholder={t('security.currentPassword')}
               placeholderTextColor={theme.subText}
               secureTextEntry
               value={currentPassword}
@@ -555,7 +555,7 @@ export default function SecurityScreen({ navigation }) {
 
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
-              placeholder="Mật khẩu mới"
+              placeholder={t('security.newPassword')}
               placeholderTextColor={theme.subText}
               secureTextEntry
               value={newPassword}
@@ -564,7 +564,7 @@ export default function SecurityScreen({ navigation }) {
 
             <TextInput
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" }]}
-              placeholder="Xác nhận mật khẩu mới"
+              placeholder={t('security.confirmNewPassword')}
               placeholderTextColor={theme.subText}
               secureTextEntry
               value={confirmNewPassword}
@@ -582,7 +582,7 @@ export default function SecurityScreen({ navigation }) {
                 }}
                 disabled={loading}
               >
-                <Text style={[styles.textStyle, { color: theme.text }]}>Hủy</Text>
+                <Text style={[styles.textStyle, { color: theme.text }]}>{t('security.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: theme.primary }]}
@@ -592,7 +592,7 @@ export default function SecurityScreen({ navigation }) {
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.textStyle}>Lưu</Text>
+                  <Text style={styles.textStyle}>{t('security.saved')}</Text>
                 )}
               </TouchableOpacity>
             </View>
