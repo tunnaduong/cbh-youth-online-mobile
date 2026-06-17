@@ -14,6 +14,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
 
+import { useTranslation } from "react-i18next";
 const STEPS = [
   {
     id: 1,
@@ -47,6 +48,7 @@ export default function Step3({ navigation, route }) {
   const { userInfo } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
 
+  const { t } = useTranslation();
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
       {STEPS.map((step, index) => (
