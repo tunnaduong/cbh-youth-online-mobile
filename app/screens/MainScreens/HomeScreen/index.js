@@ -58,8 +58,10 @@ import FastImage from "react-native-fast-image";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import KeyboardSpacer from "react-native-keyboard-spacer";
 import ActionSheet from "react-native-actions-sheet";
+import { useTranslation } from "react-i18next";
 
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
@@ -147,8 +149,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       console.log("Error fetching newsfeed:", error);
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
-        text2: "Không thể tải bảng tin. Vui lòng thử lại sau.",
+        text1: t('profile.errorTitle') || "Đã có lỗi xảy ra",
+        text2: t('home.loadingError') || "Không thể tải bảng tin. Vui lòng thử lại sau.",
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -383,9 +385,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>Nhận tin của người này</Text>
+              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.receiveStory')}</Text>
               <Text style={{ color: theme.subText, fontSize: 13 }}>
-                Bật hoặc tắt tin mới của người này
+                {t('home.turnOnOffStory')}
               </Text>
             </View>
           </View>
@@ -434,7 +436,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="link-outline" size={23} color={theme.subText} />
             </View>
             <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              Sao chép liên kết để chia sẻ
+              {t('home.copyLinkShare')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -464,9 +466,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="warning-outline" size={23} color={theme.subText} />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>Báo cáo tin</Text>
+              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
               <Text style={{ color: theme.subText, fontSize: 13 }}>
-                Tin này chứa nội dung không phù hợp
+                {t('home.reportStoryDesc')}
               </Text>
             </View>
             <View style={{ marginLeft: "auto" }}>
@@ -506,7 +508,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="close-outline" size={23} color={theme.text} />
             </View>
             <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              Bỏ theo dõi người này
+              {t('home.unfollowPerson')}
             </Text>
           </View>
 
@@ -578,7 +580,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="ban-outline" size={23} color="#ef4444" />
             </View>
             <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
-              Chặn người này
+              {t('home.blockPerson')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -668,7 +670,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           alignItems: "center",
         }}
       >
-        <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
+          <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
         <Text
           style={{
             marginLeft: 10,
@@ -677,7 +679,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             flex: 1,
           }}
         >
-          Vui lòng xác minh địa chỉ email để sử dụng đầy đủ các tính năng
+          {t('home.verifyEmail')}
         </Text>
         <Ionicons name="chevron-forward-outline" size={18} color={isDarkMode ? "#FFC107" : "#856404"} />
       </TouchableOpacity>
@@ -736,7 +738,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   textAlign: "center",
                   color: theme.text
                 }}>
-                  Tạo tin
+                  {t('home.createStory')}
                 </Text>
               </View>
               <View style={{

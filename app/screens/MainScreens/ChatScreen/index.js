@@ -20,6 +20,7 @@ import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { AuthContext } from "../../../contexts/AuthContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -28,7 +29,9 @@ const formatMessageTime = (timestamp) => {
 export default function ChatScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const [conversations, setConversations] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers } = useContext(AuthContext);
@@ -58,8 +61,8 @@ export default function ChatScreen({ navigation }) {
       console.error("Error fetching conversations:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải danh sách tin nhắn. Vui lòng thử lại sau.",
+        text1: t('profile.errorTitle'),
+        text2: t('home.loadingError') || "Không thể tải danh sách tin nhắn. Vui lòng thử lại sau.",
       });
     }
   };
@@ -132,8 +135,8 @@ export default function ChatScreen({ navigation }) {
           {getChatName(item)}
         </Text>
         <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
-          {item.latest_message?.is_myself ? "Bạn: " : ""}
-          {item.latest_message?.content || "Chưa có tin nhắn nào"}
+          {item.latest_message?.is_myself ? t('chat.you') || "Bạn: " : ""}
+          {item.latest_message?.content || t('chat.noMessages')}
         </Text>
       </View>
       <View style={styles.meta}>
@@ -185,11 +188,11 @@ export default function ChatScreen({ navigation }) {
           >
             <Ionicons
               name="add"
-              size={24}
+              size={20}
               color="#fff"
-              style={{ marginTop: -3 }}
+              style={{ marginRight: 6 }}
             />
-            <Text style={{ color: "#fff", fontWeight: "600" }}>Tin nhắn mới</Text>
+            <Text style={{ color: "#fff", fontWeight: "600" }}>{t('chat.newMessage')}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -203,8 +206,8 @@ export default function ChatScreen({ navigation }) {
         />
         <TextInput
           style={[styles.searchInput, { color: theme.text }]}
-          placeholder="Tìm kiếm bạn bè, tin nhắn..."
-          placeholderTextColor={theme.subText}
+          placeholder={t('chat.search')}
+          placeholderTextColor="#A0A0A0"
           value={search}
           onChangeText={setSearch}
         />
@@ -232,8 +235,8 @@ export default function ChatScreen({ navigation }) {
               />
               <Text style={[styles.emptyText, { color: theme.subText }]}>
                 {search
-                  ? "Không tìm thấy cuộc trò chuyện nào..."
-                  : "Chưa có cuộc trò chuyện nào..."}
+                  ? t('chat.noConversations') || "Không tìm thấy cuộc trò chuyện nào..."
+                  : t('chat.noMessages')}
               </Text>
             </View>
           </View>

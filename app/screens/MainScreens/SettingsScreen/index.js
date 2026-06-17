@@ -184,22 +184,17 @@ export default function SettingsScreen({ navigation }) {
               }
             />
           </View>
-          <SettingItem
-            icon="text-outline"
-            title="Ẩn chữ thanh điều hướng"
-            isSwitch
-            value={hideTabLabels}
-            onPress={(value) => setHideTabLabels(value)}
-          />
+
           <View style={{ borderBottomWidth: 0.5, borderBottomColor: theme.border }}>
             <Dropdown
               options={[
-                { label: t('settings.vietnamese'), value: "vi" },
-                { label: t('settings.english'), value: "en" },
+                { label: `🇻🇳 ${t('settings.vietnamese')}`, value: "vi" },
+                { label: `🇬🇧 ${t('settings.english')}`, value: "en" },
+                { label: `🇷🇺 ${t('settings.russian')}`, value: "ru" },
               ]}
               selectedValue={{
-                label: i18n.language === "en" ? t('settings.english') : t('settings.vietnamese'),
-                value: i18n.language === "en" ? "en" : "vi"
+                label: i18n.language === "ru" ? `🇷🇺 ${t('settings.russian')}` : i18n.language === "en" ? `🇬🇧 ${t('settings.english')}` : `🇻🇳 ${t('settings.vietnamese')}`,
+                value: i18n.language === "ru" ? "ru" : i18n.language === "en" ? "en" : "vi"
               }}
               onValueChange={(item) => changeLanguage(item.value)}
               style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0, backgroundColor: 'transparent' }}

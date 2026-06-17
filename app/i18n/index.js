@@ -5,12 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import vi from './locales/vi.json';
 import en from './locales/en.json';
+import ru from './locales/ru.json';
 
 const LANGUAGE_KEY = 'app_language';
 
 const resources = {
   vi: { translation: vi },
   en: { translation: en },
+  ru: { translation: ru },
 };
 
 const initI18n = async () => {

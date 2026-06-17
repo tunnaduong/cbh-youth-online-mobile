@@ -16,6 +16,7 @@ import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import TabBarBadge from "../../components/TabBarBadge";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
@@ -28,7 +29,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
-  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   // Function to trigger scroll to top or reload in HomeScreen
   const triggerHomeScrollOrReload = () => {
@@ -97,7 +99,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 </View>
               );
             },
-            tabBarShowLabel: !hideTabLabels,
+            tabBarShowLabel: false,
             tabBarActiveTintColor: theme.primary,
             tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
             tabBarStyle: {
@@ -105,16 +107,17 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 25 : 15,
-              left: 25,
-              right: 25,
+              left: 45,
+              right: 45,
               elevation: 10,
               borderRadius: 30,
-              height: hideTabLabels ? 48 : 55,
+              height: 55,
               shadowColor: "#000",
               shadowOpacity: 0.15,
               shadowOffset: { width: 0, height: 5 },
               shadowRadius: 15,
-              paddingBottom: hideTabLabels ? 0 : 3, // Adjust for center alignment
+              paddingBottom: 0,
+              paddingHorizontal: 10,
             },
             tabBarBackground: () => (
               <BlurView
@@ -153,7 +156,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           <Tab.Screen
             name="Home"
             options={{
-              title: "Trang chủ",
+              title: t('navigation.home'),
               headerShown: true,
               headerBackButtonMenuEnabled: false,
               headerTitle: () => (
@@ -196,7 +199,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           <Tab.Screen
             name="Forum"
             component={MenuScreen}
-            options={{ title: "Diễn đàn", headerShown: false }}
+            options={{ title: t('navigation.forum'), headerShown: false }}
           />
           <Tab.Screen
             name="Create"
@@ -218,14 +221,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
                   }}
                 />
               ),
-              title: "Tạo",
+              title: t('navigation.create'),
             }}
           />
           <Tab.Screen
             name="Chat"
             component={ChatScreen}
             options={{
-              title: "Chat",
+              title: t('navigation.chat'),
               headerShown: false,
             }}
           />
@@ -233,7 +236,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             name="Notifications"
             component={NotificationScreen}
             options={{
-              title: "Thông báo",
+              title: t('navigation.notifications'),
               headerShown: false,
             }}
           />

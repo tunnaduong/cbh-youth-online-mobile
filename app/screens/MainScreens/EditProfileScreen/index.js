@@ -26,9 +26,11 @@ import CustomLoading from "../../../components/CustomLoading";
 import DatePicker from "react-native-date-picker";
 import RadioGroup from "react-native-radio-buttons-group";
 import FastImage from "react-native-fast-image";
+import { useTranslation } from "react-i18next";
 
 const EditProfileScreen = ({ navigation }) => {
   const { username, userInfo, setUserInfo } = useContext(AuthContext);
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [loadingFirst, setLoadingFirst] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -49,7 +51,7 @@ const EditProfileScreen = ({ navigation }) => {
   const radioButtons = [
     {
       id: "1", // acts as primary key, should be unique and non-empty string
-      label: "Nam",
+      label: t('profile.male'),
       value: "male",
       borderColor: "#319527",
       color: "#319527",
@@ -57,7 +59,7 @@ const EditProfileScreen = ({ navigation }) => {
     },
     {
       id: "2",
-      label: "Nữ",
+      label: t('profile.female'),
       value: "female",
       borderColor: "#319527",
       color: "#319527",
@@ -88,8 +90,8 @@ const EditProfileScreen = ({ navigation }) => {
       console.error("Error fetching profile:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải thông tin cá nhân",
+        text1: t('profile.errorTitle'),
+        text2: t('profile.errorLoading'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -165,8 +167,8 @@ const EditProfileScreen = ({ navigation }) => {
 
       Toast.show({
         type: "success",
-        text1: "Thành công",
-        text2: "Cập nhật thông tin thành công",
+        text1: t('editProfile.successTitle'),
+        text2: t('editProfile.successMessage'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -176,8 +178,8 @@ const EditProfileScreen = ({ navigation }) => {
       console.error("Error updating profile:", error.response.data);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể cập nhật thông tin",
+        text1: t('profile.errorTitle'),
+        text2: t('editProfile.errorUpdate'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -212,7 +214,7 @@ const EditProfileScreen = ({ navigation }) => {
       setTimeout(() => {
         Toast.show({
           type: "info",
-          text1: "Tính năng ảnh bìa đang phát triển",
+          text1: t('editProfile.coverDev'),
         });
       }, 1000);
     }
@@ -241,12 +243,12 @@ const EditProfileScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="close" size={24} color="#319527" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chỉnh sửa trang cá nhân</Text>
+          <Text style={styles.headerTitle}>{t('settings.editProfile')}</Text>
           <TouchableOpacity onPress={handleUpdateProfile} disabled={loading}>
             <Text
               style={[styles.saveButton, loading && styles.saveButtonDisabled]}
             >
-              {loading ? "Đang lưu..." : "Lưu"}
+              {loading ? t('editProfile.saving') : t('settings.save')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -257,7 +259,7 @@ const EditProfileScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ backgroundColor: "white" }}
         >
-          <Text style={styles.updateAvatarText}>Cập nhật ảnh</Text>
+          <Text style={styles.updateAvatarText}>{t('editProfile.updateAvatar')}</Text>
           {/* Avatar Section */}
           <View style={styles.avatarSection}>
             <FastImage
@@ -273,7 +275,7 @@ const EditProfileScreen = ({ navigation }) => {
               style={styles.changeAvatarButton}
             >
               <Ionicons name="camera-outline" size={20} color="#404040" />
-              <Text style={styles.changeAvatarText}>Thay đổi ảnh đại diện</Text>
+              <Text style={styles.changeAvatarText}>{t('editProfile.changeAvatar')}</Text>
             </TouchableOpacity>
             <FastImage
               source={{
@@ -288,35 +290,35 @@ const EditProfileScreen = ({ navigation }) => {
               style={styles.changeAvatarButton}
             >
               <Ionicons name="pencil-outline" size={20} color="#404040" />
-              <Text style={styles.changeAvatarText}>Thay đổi ảnh bìa</Text>
+              <Text style={styles.changeAvatarText}>{t('editProfile.changeCover')}</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.updateAvatarText}>Cập nhật thông tin</Text>
+          <Text style={styles.updateAvatarText}>{t('editProfile.updateInfo')}</Text>
           {/* Form Fields */}
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tên hiển thị</Text>
+              <Text style={styles.label}>{t('editProfile.displayName')}</Text>
               <TextInput
                 style={styles.input}
                 value={profileData.profile_name}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, profile_name: text }))
                 }
-                placeholder="Nhập tên hiển thị"
+                placeholder={t('editProfile.displayNamePlaceholder')}
                 placeholderTextColor="#999"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Tiểu sử</Text>
+              <Text style={styles.label}>{t('editProfile.bio')}</Text>
               <TextInput
                 style={[styles.input, styles.bioInput]}
                 value={profileData.bio}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, bio: text }))
                 }
-                placeholder="Thêm tiểu sử"
+                placeholder={t('editProfile.bioPlaceholder')}
                 placeholderTextColor="#999"
                 multiline
                 numberOfLines={3}
@@ -324,33 +326,33 @@ const EditProfileScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Lớp</Text>
+              <Text style={styles.label}>{t('profile.class')}</Text>
               <TextInput
                 style={styles.input}
                 value={profileData.class_name}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, class_name: text }))
                 }
-                placeholder="Nhập lớp của bạn"
+                placeholder={t('editProfile.classPlaceholder')}
                 placeholderTextColor="#999"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Địa chỉ</Text>
+              <Text style={styles.label}>{t('profile.address')}</Text>
               <TextInput
                 style={styles.input}
                 value={profileData.location}
                 onChangeText={(text) =>
                   setProfileData((prev) => ({ ...prev, location: text }))
                 }
-                placeholder="Nhập địa chỉ"
+                placeholder={t('editProfile.addressPlaceholder')}
                 placeholderTextColor="#999"
               />
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Ngày sinh</Text>
+              <Text style={styles.label}>{t('profile.birthday')}</Text>
               <TouchableOpacity
                 onPress={() => setOpen(true)}
                 style={[styles.input, { justifyContent: "center" }]}
@@ -358,7 +360,7 @@ const EditProfileScreen = ({ navigation }) => {
                 <Text style={{ color: profileData.birthday ? "#000" : "#999" }}>
                   {profileData.birthday
                     ? formatDateToVietnamese(date)
-                    : "Chọn ngày sinh"}
+                    : t('editProfile.selectBirthday')}
                 </Text>
               </TouchableOpacity>
 
@@ -367,10 +369,10 @@ const EditProfileScreen = ({ navigation }) => {
                 open={open}
                 date={date}
                 mode="date"
-                locale="vi"
-                title="Chọn ngày sinh"
-                confirmText="Xác nhận"
-                cancelText="Huỷ"
+                locale={i18n.language}
+                title={t('editProfile.selectBirthday')}
+                confirmText={t('editProfile.confirm')}
+                cancelText={t('profile.cancel')}
                 maximumDate={new Date()}
                 minimumDate={new Date(1900, 0, 1)}
                 onConfirm={(selectedDate) => {
@@ -387,7 +389,7 @@ const EditProfileScreen = ({ navigation }) => {
               />
             </View>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Giới tính</Text>
+              <Text style={styles.label}>{t('profile.gender')}</Text>
               <RadioGroup
                 radioButtons={radioButtons}
                 onPress={setSelectedId}
