@@ -42,6 +42,7 @@ import ReportModal from "../../../components/ReportModal";
 import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -69,6 +70,10 @@ const PostScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
   const { t } = useTranslation();
+
+  React.useEffect(() => {
+    navigation.setOptions({ title: t('post.details') });
+  }, [navigation, t]);
 
   React.useEffect(() => {
     fetchData();
@@ -927,7 +932,7 @@ const PostScreen = ({ route, navigation }) => {
                 </Text>
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at || ""} ·
+                    {comment.created_at ? formatTime(comment.created_at) : ""} ·
                   </Text>
                   <TouchableOpacity
                     onPress={() =>

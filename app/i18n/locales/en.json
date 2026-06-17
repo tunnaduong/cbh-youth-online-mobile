@@ -150,7 +150,19 @@
     "qa": "Q&A",
     "feedback": "Feedback & Suggestions",
     "discussion": "Discussion",
-    "reports": "Reports"
+    "reports": "Reports",
+    "forumFeedback": "Forum Feedback",
+    "rules": "Rules",
+    "forumRules": "Forum Rules",
+    "news": "News",
+    "entertainment": "Entertainment",
+    "documents": "Documents",
+    "academicDocuments": "Academic Documents",
+    "confessions": "Confessions",
+    "schoolStories": "School Stories",
+    "extracurricular": "Extracurricular Activities",
+    "technicalSupport": "Technical Support",
+    "generalAnnouncements": "General Announcements"
   },
   "forum": {
     "title": "Forum",

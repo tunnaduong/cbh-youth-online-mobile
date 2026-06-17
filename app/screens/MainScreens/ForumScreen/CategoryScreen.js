@@ -21,6 +21,8 @@ import Toast from "react-native-toast-message";
 import { getSubforumPosts } from "../../../services/api/Api";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../../contexts/ThemeContext";
+import formatTime from "../../../utils/formatTime";
 
 const getCategoryName = (name, t) => {
   const keyMap = {
@@ -36,7 +38,19 @@ const getCategoryName = (name, t) => {
     "Góp ý": "feedback",
     "Ý kiến & Đóng góp": "feedback",
     "Thảo luận": "discussion",
-    "Báo cáo": "reports"
+    "Báo cáo": "reports",
+    "Phản hồi về diễn đàn": "forumFeedback",
+    "Nội quy": "rules",
+    "Nội quy diễn đàn": "forumRules",
+    "Tin tức": "news",
+    "Giải trí": "entertainment",
+    "Tài liệu": "documents",
+    "Tài liệu học tập": "academicDocuments",
+    "Tâm sự": "confessions",
+    "Chuyện của trường": "schoolStories",
+    "Hoạt động ngoại khóa": "extracurricular",
+    "Hỗ trợ kỹ thuật": "technicalSupport",
+    "Thông báo chung": "generalAnnouncements"
   };
   const key = keyMap[name];
   if (key) {
@@ -50,6 +64,7 @@ const getCategoryName = (name, t) => {
 
 const CategoryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -154,7 +169,7 @@ const CategoryScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <SafeAreaView
-        style={[styles.loadingContainer, { paddingTop: insets.top }]}
+        style={[styles.loadingContainer, { paddingTop: insets.top, backgroundColor: theme.background }]}
       >
         <CustomLoading />
       </SafeAreaView>
@@ -165,26 +180,26 @@ const CategoryScreen = ({ navigation, route }) => {
     return (
       <SafeAreaView
         style={[
-          { flex: 1, backgroundColor: "#fff" },
+          { flex: 1, backgroundColor: theme.background },
           { paddingTop: insets.top },
         ]}
       >
-        <View className="flex-row items-center justify-center h-[50px] relative px-4">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", height: 50, position: "relative", paddingHorizontal: 16, backgroundColor: theme.background, borderBottomWidth: 1, borderBottomColor: theme.border }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="absolute left-2"
+            style={{ position: "absolute", left: 8 }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color="#319527" />
+            <Ionicons name="arrow-back" size={24} color={theme.primary} />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-[#319527]">{t('forum.title')}</Text>
+          <Text style={{ fontSize: 18, fontWeight: "bold", color: theme.primary }}>{t('forum.title')}</Text>
         </View>
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
           <Image
             source={require("../../../assets/sad_frog.png")}
-            className="w-20 h-20"
+            style={{ width: 80, height: 80 }}
           />
-          <Text>{t('forum.loadError')}</Text>
+          <Text style={{ color: theme.subText }}>{t('forum.loadError')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -193,51 +208,57 @@ const CategoryScreen = ({ navigation, route }) => {
   const ThreadItem = ({ thread }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate("PostScreen", { postId: thread?.id })}
-      className="flex-row p-4 border-b border-gray-200 bg-white"
+      style={{
+        flexDirection: "row",
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.border,
+        backgroundColor: theme.cardBackground,
+      }}
     >
-      <View className="flex-1">
-        <View className="flex-row items-center gap-2 mb-2">
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <FastImage
             source={{ uri: thread?.author?.avatar }}
-            className="w-5 h-5 rounded-full"
+            style={{ width: 20, height: 20, borderRadius: 10 }}
           />
-          <Text className="text-sm text-gray-600">
+          <Text style={{ fontSize: 14, color: theme.text }}>
             {thread?.author?.profile_name}
           </Text>
           {thread?.author?.verified ? (
-            <Ionicons name="checkmark-circle" size={14} color="#319527" />
+            <Ionicons name="checkmark-circle" size={14} color={theme.primary} />
           ) : (
             <></>
           )}
-          <Text className="text-sm text-gray-400">· {thread?.created_at}</Text>
+          <Text style={{ fontSize: 14, color: theme.subText }}>· {thread?.created_at ? formatTime(thread?.created_at) : ""}</Text>
         </View>
-        <Text className="text-base font-medium mb-3" numberOfLines={2}>
+        <Text style={{ fontSize: 16, fontWeight: "500", marginBottom: 12, color: theme.text }} numberOfLines={2}>
           {thread?.title}
         </Text>
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-4">
-            <View className="flex-row items-center gap-1">
-              <Ionicons name="chatbubble-outline" size={16} color="#666" />
-              <Text className="text-sm text-gray-500">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ionicons name="chatbubble-outline" size={16} color={theme.subText} />
+              <Text style={{ fontSize: 14, color: theme.subText }}>
                 {thread?.reply_count}+
               </Text>
             </View>
-            <View className="flex-row items-center gap-1">
-              <Ionicons name="eye-outline" size={16} color="#666" />
-              <Text className="text-sm text-gray-500">
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Ionicons name="eye-outline" size={16} color={theme.subText} />
+              <Text style={{ fontSize: 14, color: theme.subText }}>
                 {thread?.view_count}
               </Text>
             </View>
           </View>
-          <View className="flex-row items-center gap-1">
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
             <Text
-              className="text-sm text-gray-500 w-[140px] text-right"
+              style={{ fontSize: 14, color: theme.subText, width: 140, textAlign: "right" }}
               numberOfLines={1}
             >
               {thread?.latest_reply?.user?.profile_name}
             </Text>
-            <Text className="text-sm text-gray-400">
-              · {thread?.latest_reply?.created_at}
+            <Text style={{ fontSize: 14, color: theme.subText }}>
+              · {thread?.latest_reply?.created_at ? formatTime(thread?.latest_reply?.created_at) : ""}
             </Text>
           </View>
         </View>
@@ -247,26 +268,26 @@ const CategoryScreen = ({ navigation, route }) => {
 
   return (
     <SafeAreaView
-      style={[{ flex: 1, backgroundColor: "#fff" }, { paddingTop: insets.top }]}
+      style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
       {/* Custom Header */}
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: theme.background,
           borderBottomWidth: 1,
-          borderBottomColor: "#e5e5e5",
+          borderBottomColor: theme.border,
           height: 50,
         }}
       >
-        <View className="flex-row items-center justify-center h-[50px] relative px-4">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", height: 50, position: "relative", paddingHorizontal: 16 }}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            className="absolute left-2"
+            style={{ position: "absolute", left: 8 }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="arrow-back" size={24} color="#319527" />
+            <Ionicons name="arrow-back" size={24} color={theme.primary} />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-[#319527]">{t('forum.title')}</Text>
+          <Text style={{ fontSize: 18, fontWeight: "bold", color: theme.primary }}>{t('forum.title')}</Text>
         </View>
       </View>
 
@@ -276,25 +297,26 @@ const CategoryScreen = ({ navigation, route }) => {
         }
         style={{
           flex: 1,
+          backgroundColor: theme.background,
         }}
       >
         {/* Category Header */}
-        <View className="bg-white border-b border-gray-200">
+        <View style={{ backgroundColor: theme.background, borderBottomWidth: 1, borderBottomColor: theme.border }}>
           <ImageBackground
             source={{ uri: forumData.subforum.background }}
             resizeMode="cover"
           >
             <LinearGradient
-              colors={["#fff", "transparent"]}
+              colors={[theme.background, "transparent"]}
               start={{ x: 0.5, y: 0 }}
               end={{ x: 3, y: 0 }}
               style={{ position: "absolute", width: "100%", height: "100%" }}
             />
-            <View className="p-4">
-              <Text className="text-2xl font-bold mb-2">
+            <View style={{ padding: 16 }}>
+              <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 8, color: theme.text }}>
                 {getCategoryName(forumData.subforum.name, t)}
               </Text>
-              <Text className="text-gray-600 leading-6">
+              <Text style={{ color: theme.subText, lineHeight: 24 }}>
                 {forumData.subforum.description}
               </Text>
             </View>
@@ -302,19 +324,19 @@ const CategoryScreen = ({ navigation, route }) => {
         </View>
 
         {/* Thread List Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <Text className="font-medium">{t('forum.threadTitle')}</Text>
-          <Text className="font-medium">{t('forum.lastPost')}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1", borderBottomWidth: 1, borderBottomColor: theme.border }}>
+          <Text style={{ fontWeight: "500", color: theme.text }}>{t('forum.threadTitle')}</Text>
+          <Text style={{ fontWeight: "500", color: theme.text }}>{t('forum.lastPost')}</Text>
         </View>
 
         {/* Thread List */}
         {forumData.topics.length === 0 ? (
-          <View style={styles.loadingContainer}>
+          <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
             <Image
               source={require("../../../assets/sad_frog.png")}
-              className="w-20 h-20 mt-10 mb-3"
+              style={{ width: 80, height: 80, marginTop: 40, marginBottom: 12 }}
             />
-            <Text>{t('forum.noPostsInCategory')}</Text>
+            <Text style={{ color: theme.subText }}>{t('forum.noPostsInCategory')}</Text>
           </View>
         ) : (
           forumData.topics.map((thread) => (
@@ -329,7 +351,6 @@ const CategoryScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
   },

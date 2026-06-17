@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
 
 const { width } = Dimensions.get("window");
 
@@ -39,7 +40,19 @@ const getCategoryName = (name, t) => {
     "Góp ý": "feedback",
     "Ý kiến & Đóng góp": "feedback",
     "Thảo luận": "discussion",
-    "Báo cáo": "reports"
+    "Báo cáo": "reports",
+    "Phản hồi về diễn đàn": "forumFeedback",
+    "Nội quy": "rules",
+    "Nội quy diễn đàn": "forumRules",
+    "Tin tức": "news",
+    "Giải trí": "entertainment",
+    "Tài liệu": "documents",
+    "Tài liệu học tập": "academicDocuments",
+    "Tâm sự": "confessions",
+    "Chuyện của trường": "schoolStories",
+    "Hoạt động ngoại khóa": "extracurricular",
+    "Hỗ trợ kỹ thuật": "technicalSupport",
+    "Thông báo chung": "generalAnnouncements"
   };
   const key = keyMap[name];
   if (key) {
@@ -82,7 +95,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
             <View style={{ flexDirection: "row", gap: 10 }}>
               <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.latest')}</Text>
               <Text style={[styles.latestTime, { color: theme.subText }]}>
-                {section.latest_post.created_at}
+                {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
               </Text>
             </View>
             <Text style={[styles.latestContent, { color: theme.text }]}>

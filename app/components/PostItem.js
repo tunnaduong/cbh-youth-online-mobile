@@ -30,6 +30,7 @@ import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
+import formatTime from "../utils/formatTime";
 
 const PostItem = ({
   navigation,
@@ -561,7 +562,7 @@ const PostItem = ({
             </View>
           )}
         </Text>
-        <Text style={{ color: theme.subText }}> · {item.time || item.created_at_human || item.created_at}</Text>
+        <Text style={{ color: theme.subText }}> · {item.time || (item.created_at ? formatTime(item.created_at) : (item.created_at_human || ""))}</Text>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
         <View style={{ gap: 12, flexDirection: "row", alignItems: "center", flex: 1 }}>

@@ -150,7 +150,19 @@
     "qa": "Вопросы и ответы",
     "feedback": "Отзывы и предложения",
     "discussion": "Обсуждение",
-    "reports": "Отчеты"
+    "reports": "Отчеты",
+    "forumFeedback": "Отзывы о форуме",
+    "rules": "Правила",
+    "forumRules": "Правила форума",
+    "news": "Новости",
+    "entertainment": "Развлечения",
+    "documents": "Документы",
+    "academicDocuments": "Учебные материалы",
+    "confessions": "Откровения",
+    "schoolStories": "Школьные истории",
+    "extracurricular": "Внеклассные занятия",
+    "technicalSupport": "Техническая поддержка",
+    "generalAnnouncements": "Общие объявления"
   },
   "forum": {
     "title": "Форум",

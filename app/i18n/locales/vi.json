@@ -150,7 +150,19 @@
     "qa": "Hỏi đáp",
     "feedback": "Ý kiến & Đóng góp",
     "discussion": "Thảo luận",
-    "reports": "Báo cáo"
+    "reports": "Báo cáo",
+    "forumFeedback": "Phản hồi về diễn đàn",
+    "rules": "Nội quy",
+    "forumRules": "Nội quy diễn đàn",
+    "news": "Tin tức",
+    "entertainment": "Giải trí",
+    "documents": "Tài liệu",
+    "academicDocuments": "Tài liệu học tập",
+    "confessions": "Tâm sự",
+    "schoolStories": "Chuyện của trường",
+    "extracurricular": "Hoạt động ngoại khóa",
+    "technicalSupport": "Hỗ trợ kỹ thuật",
+    "generalAnnouncements": "Thông báo chung"
   },
   "forum": {
     "title": "Diễn đàn",
