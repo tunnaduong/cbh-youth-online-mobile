@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform } from "react-native";
+import { Dimensions, View, Platform, StyleSheet } from "react-native";
+import { BlurView } from "expo-blur";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -100,7 +101,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             tabBarActiveTintColor: theme.primary,
             tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
             tabBarStyle: {
-              backgroundColor: theme.tabBarBackground,
+              backgroundColor: 'transparent',
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 25 : 15,
@@ -115,6 +116,18 @@ export default function MainScreens({ navigation: stackNavigation }) {
               shadowRadius: 15,
               paddingBottom: hideTabLabels ? 0 : 3, // Adjust for center alignment
             },
+            tabBarBackground: () => (
+              <BlurView
+                tint={isDarkMode ? 'dark' : 'light'}
+                intensity={80}
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 30,
+                  overflow: 'hidden',
+                  backgroundColor: isDarkMode ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)',
+                }}
+              />
+            ),
             tabBarLabelStyle: {
               fontSize: 9, // Reduced font size to fit
               fontWeight: "bold",
