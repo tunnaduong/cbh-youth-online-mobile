@@ -106,8 +106,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 25 : 15,
-              left: 10,
-              right: 10,
+              left: 45,
+              right: 45,
               elevation: 10,
               borderRadius: 30,
               height: 60,
@@ -116,7 +116,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               shadowOffset: { width: 0, height: 5 },
               shadowRadius: 15,
               paddingBottom: 0,
-              paddingHorizontal: 2,
+              paddingHorizontal: 10,
             },
             tabBarBackground: () => (
               <View

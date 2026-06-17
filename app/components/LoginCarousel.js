@@ -16,7 +16,7 @@ export default function LoginCarousel({ style }) {
         <Carousel
           data={data}
           ref={isCarousel}
-          renderItem={LoginCardCarousel}
+          renderItem={({ item, index }) => <LoginCardCarousel item={item} index={index} />}
           sliderWidth={SLIDER_WIDTH}
           itemWidth={ITEM_WIDTH}
           onSnapToItem={(index) => setIndex(index)}
