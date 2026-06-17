@@ -16,6 +16,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import FastImage from "react-native-fast-image";
 import { ScrollView } from "react-native";
+import Dropdown from "../../../components/Dropdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import * as Application from 'expo-application';
@@ -91,7 +92,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const { isDarkMode, theme, toggleTheme } = useTheme();
+  const { isDarkMode, theme, setThemeMode, useSystemTheme } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -155,15 +156,28 @@ export default function SettingsScreen({ navigation }) {
         </SettingSection>
 
         <SettingSection title="Ứng dụng" theme={theme}>
-          <SettingItem
-            icon="moon-outline"
-            title="Chế độ tối"
-            isSwitch
-            value={isDarkMode}
-            onPress={(value) => {
-              toggleTheme(value);
-            }}
-          />
+          <View style={[styles.settingItem, { borderBottomColor: theme.border }]}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons name="moon-outline" size={22} color={theme.subText} />
+              </View>
+              <Text style={[styles.settingItemText, { color: theme.text }]}>Giao diện</Text>
+            </View>
+            <Dropdown
+              options={[
+                { label: "Tự động", value: "system" },
+                { label: "Sáng", value: "light" },
+                { label: "Tối", value: "dark" },
+              ]}
+              selectedValue={{
+                label: useSystemTheme ? "Tự động" : (isDarkMode ? "Tối" : "Sáng"),
+                value: useSystemTheme ? "system" : (isDarkMode ? "dark" : "light")
+              }}
+              onValueChange={(item) => setThemeMode(item.value)}
+              style={{ borderWidth: 0, paddingVertical: 0, paddingRight: 0 }}
+              textStyle={{ color: theme.subText, fontSize: 16 }}
+            />
+          </View>
           <SettingItem
             icon="language-outline"
             title="Ngôn ngữ"

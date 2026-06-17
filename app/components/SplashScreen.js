@@ -1,10 +1,12 @@
 import React, { useEffect, useRef } from "react";
 import { SafeAreaView, StyleSheet, View, Text, Image } from "react-native";
 import LottieView from "lottie-react-native";
+import { useTheme } from "../contexts/ThemeContext";
 
 // This is our Splash Screen component
 const SplashScreen = ({ onFinish }) => {
   const animation = useRef(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Start the animation when component mounts
@@ -23,7 +25,7 @@ const SplashScreen = ({ onFinish }) => {
   }, []);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={styles.animationContainer}>
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center" }}

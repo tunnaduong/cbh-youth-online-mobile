@@ -5,7 +5,7 @@
     "version": "1.5.3",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "com.fatties.youth",
     "splash": {

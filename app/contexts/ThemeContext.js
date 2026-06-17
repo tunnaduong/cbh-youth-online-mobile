@@ -43,11 +43,17 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     const savedTheme = storage.getString("theme");
     if (savedTheme) {
-      setIsDarkMode(savedTheme === "dark");
-      setUseSystemTheme(false);
+      if (savedTheme === "system") {
+        setIsDarkMode(systemColorScheme === "dark");
+        setUseSystemTheme(true);
+      } else {
+        setIsDarkMode(savedTheme === "dark");
+        setUseSystemTheme(false);
+      }
     } else {
       setIsDarkMode(systemColorScheme === "dark");
       setUseSystemTheme(true);
+      storage.set("theme", "system");
     }
   }, []);
 
@@ -57,10 +63,15 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [systemColorScheme, useSystemTheme]);
 
-  const toggleTheme = (value) => {
-    setIsDarkMode(value);
-    setUseSystemTheme(false);
-    storage.set("theme", value ? "dark" : "light");
+  const setThemeMode = (mode) => {
+    if (mode === "system") {
+      setUseSystemTheme(true);
+      setIsDarkMode(systemColorScheme === "dark");
+    } else {
+      setUseSystemTheme(false);
+      setIsDarkMode(mode === "dark");
+    }
+    storage.set("theme", mode);
   };
 
   const theme = isDarkMode ? colors.dark : colors.light;
@@ -70,7 +81,7 @@ export const ThemeProvider = ({ children }) => {
       value={{
         isDarkMode,
         theme,
-        toggleTheme,
+        setThemeMode,
         useSystemTheme,
         setUseSystemTheme,
       }}

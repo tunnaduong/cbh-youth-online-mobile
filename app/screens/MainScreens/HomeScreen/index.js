@@ -1403,6 +1403,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         <RefreshControl
           tintColor="transparent"
           colors={["transparent"]}
+          progressBackgroundColor="transparent"
           style={{ backgroundColor: "transparent" }}
           refreshing={refreshing}
           onRefresh={() => {
@@ -1480,6 +1481,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             <RefreshControl
               tintColor="transparent"
               colors={["transparent"]}
+              progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
               refreshing={refreshing}
               onRefresh={() => {
