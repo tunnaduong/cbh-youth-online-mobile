@@ -1,5 +1,5 @@
 import { registerRootComponent } from "expo";
-
+import "./app/i18n";
 import App from "./App";
 
 import { LogBox } from "react-native";

@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "title": "Cài đặt",
+    "account": "Tài khoản",
+    "editProfile": "Chỉnh sửa trang cá nhân",
+    "security": "Bảo mật",
+    "notifications": "Thông báo",
+    "blockedUsers": "Người dùng đã chặn",
+    "about": "Giới thiệu",
+    "terms": "Điều khoản dịch vụ",
+    "privacy": "Chính sách quyền riêng tư",
+    "logout": "Đăng xuất",
+    "theme": "Giao diện",
+    "light": "Sáng",
+    "dark": "Tối",
+    "system": "Hệ thống",
+    "language": "Ngôn ngữ",
+    "selectLanguage": "Chọn ngôn ngữ",
+    "vietnamese": "Tiếng Việt",
+    "english": "English",
+    "cancel": "Hủy",
+    "save": "Lưu"
+  }
+}

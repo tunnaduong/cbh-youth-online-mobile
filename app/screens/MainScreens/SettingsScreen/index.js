@@ -20,6 +20,8 @@ import Dropdown from "../../../components/Dropdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import * as Application from 'expo-application';
+import { useTranslation } from "react-i18next";
+import { changeLanguage } from "../../../i18n";
 
 const SettingItem = ({
   icon,
@@ -94,6 +96,7 @@ export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t, i18n } = useTranslation();
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
@@ -103,7 +106,7 @@ export default function SettingsScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Cài đặt</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('settings.title')}</Text>
         <View className="w-6 h-6"></View>
       </View>
 
@@ -127,16 +130,16 @@ export default function SettingsScreen({ navigation }) {
                 })
               }
             >
-              <Text style={[styles.viewProfileText, { color: theme.primary }]}>Xem trang cá nhân</Text>
+              <Text style={[styles.viewProfileText, { color: theme.primary }]}>{t('settings.editProfile')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Settings List */}
-        <SettingSection title="Tài khoản" theme={theme}>
+        <SettingSection title={t('settings.account')} theme={theme}>
           <SettingItem
             icon="person-outline"
-            title="Thông tin tài khoản"
+            title={t('settings.editProfile')}
             onPress={() =>
               navigation.navigate("ProfileDetailScreen", {
                 username: userInfo.username,
@@ -145,12 +148,12 @@ export default function SettingsScreen({ navigation }) {
           />
           <SettingItem
             icon="lock-closed-outline"
-            title="Bảo mật"
+            title={t('settings.security')}
             onPress={() => navigation.navigate("SecurityScreen")}
           />
           <SettingItem
             icon="notifications-outline"
-            title="Thông báo"
+            title={t('settings.notifications')}
             onPress={() => navigation.navigate("NotificationSettingsScreen")}
           />
         </SettingSection>
@@ -188,27 +191,40 @@ export default function SettingsScreen({ navigation }) {
             value={hideTabLabels}
             onPress={(value) => setHideTabLabels(value)}
           />
-          <SettingItem
-            icon="language-outline"
-            title="Ngôn ngữ"
-            value="Tiếng Việt"
-            onPress={() => {
-              Toast.show({
-                type: "info",
-                text1: "Tính năng đang được phát triển",
-              });
-            }}
-          />
+          <View style={{ borderBottomWidth: 0.5, borderBottomColor: theme.border }}>
+            <Dropdown
+              options={[
+                { label: t('settings.vietnamese'), value: "vi" },
+                { label: t('settings.english'), value: "en" },
+              ]}
+              selectedValue={{
+                label: i18n.language === "en" ? t('settings.english') : t('settings.vietnamese'),
+                value: i18n.language === "en" ? "en" : "vi"
+              }}
+              onValueChange={(item) => changeLanguage(item.value)}
+              style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0, backgroundColor: 'transparent' }}
+              containerStyle={{ marginVertical: 0 }}
+              textStyle={{ color: theme.subText, fontSize: 16, textAlign: 'right' }}
+              leftIcon={
+                <View style={styles.settingItemLeft}>
+                  <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+                    <Ionicons name="language-outline" size={22} color={theme.subText} />
+                  </View>
+                  <Text style={[styles.settingItemText, { color: theme.text }]}>{t('settings.language')}</Text>
+                </View>
+              }
+            />
+          </View>
           <SettingItem
             icon="ban-outline"
-            title="Chặn"
+            title={t('settings.blockedUsers')}
             onPress={() => {
               navigation.navigate("BlockedUsersScreen");
             }}
           />
           <SettingItem
             icon="information-circle-outline"
-            title="Về ứng dụng"
+            title={t('settings.about')}
             onPress={() => navigation.navigate("AboutScreen")}
           />
         </SettingSection>

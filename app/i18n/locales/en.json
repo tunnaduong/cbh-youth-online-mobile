@@ -1,0 +1,24 @@
+{
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "editProfile": "Edit Profile",
+    "security": "Security",
+    "notifications": "Notifications",
+    "blockedUsers": "Blocked Users",
+    "about": "About",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "logout": "Logout",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "language": "Language",
+    "selectLanguage": "Select language",
+    "vietnamese": "Tiếng Việt",
+    "english": "English",
+    "cancel": "Cancel",
+    "save": "Save"
+  }
+}
