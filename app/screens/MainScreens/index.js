@@ -106,8 +106,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 25 : 15,
-              left: 45,
-              right: 45,
+              left: 20,
+              right: 20,
               elevation: 10,
               borderRadius: 30,
               height: 55,
@@ -116,7 +116,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               shadowOffset: { width: 0, height: 5 },
               shadowRadius: 15,
               paddingBottom: 0,
-              paddingHorizontal: 10,
+              paddingHorizontal: 5,
             },
             tabBarBackground: () => (
               <View
@@ -129,8 +129,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
               />
             ),
             tabBarLabelStyle: {
-              fontSize: 9, // Reduced font size to fit
+              fontSize: 8, // Even smaller font size
               fontWeight: "bold",
+              marginTop: 2, // Move text closer to icon
             },
             headerShadowVisible: false,
             headerTitleAlign: "center",
