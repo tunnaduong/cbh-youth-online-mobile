@@ -27,7 +27,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, hideTabLabels } = useTheme();
 
   // Function to trigger scroll to top or reload in HomeScreen
   const triggerHomeScrollOrReload = () => {
@@ -96,6 +96,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 </View>
               );
             },
+            tabBarShowLabel: !hideTabLabels,
             tabBarActiveTintColor: theme.primary,
             tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
             tabBarStyle: {
@@ -103,16 +104,16 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 25 : 15,
-              left: 15,
-              right: 15,
+              left: 25,
+              right: 25,
               elevation: 10,
               borderRadius: 30,
-              height: 55,
+              height: hideTabLabels ? 48 : 55,
               shadowColor: "#000",
               shadowOpacity: 0.15,
               shadowOffset: { width: 0, height: 5 },
               shadowRadius: 15,
-              paddingBottom: 3, // Adjust for center alignment
+              paddingBottom: hideTabLabels ? 0 : 3, // Adjust for center alignment
             },
             tabBarLabelStyle: {
               fontSize: 9, // Reduced font size to fit

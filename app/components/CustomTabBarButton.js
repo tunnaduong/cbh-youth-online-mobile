@@ -26,7 +26,7 @@ const CustomTabBarButton = ({ onPress }) => {
   const button3Anim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
   const navigation = useNavigation();
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, hideTabLabels } = useTheme();
 
   // Close buttons when app goes to background
   useEffect(() => {
@@ -226,18 +226,18 @@ const CustomTabBarButton = ({ onPress }) => {
           </Animated.View>
         </View>
       )}
-      <Pressable style={styles.buttonContainer} onPress={handlePress}>
+      <Pressable style={[styles.buttonContainer, { top: hideTabLabels ? -15 : -22 }]} onPress={handlePress}>
         <Animated.View
           style={[styles.iconContainer, { transform: [{ rotate }], backgroundColor: theme.cardBackground }]}
         >
           <Ionicons
             name="add-circle"
-            size={60}
+            size={52}
             color={theme.primary}
             style={styles.icon}
           />
         </Animated.View>
-        <Text style={[styles.label, { color: theme.subText }]}>Tạo</Text>
+        {!hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>Tạo</Text>}
       </Pressable>
     </View>
   );
@@ -262,7 +262,6 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   buttonContainer: {
-    top: -30,
     alignItems: "center",
     zIndex: 3,
   },

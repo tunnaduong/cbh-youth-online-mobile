@@ -39,6 +39,7 @@ export const ThemeProvider = ({ children }) => {
   const systemColorScheme = useColorScheme();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [useSystemTheme, setUseSystemTheme] = useState(false);
+  const [hideTabLabels, setHideTabLabelsState] = useState(false);
 
   useEffect(() => {
     const savedTheme = storage.getString("theme");
@@ -54,6 +55,11 @@ export const ThemeProvider = ({ children }) => {
       setIsDarkMode(systemColorScheme === "dark");
       setUseSystemTheme(true);
       storage.set("theme", "system");
+    }
+
+    const savedHideTabLabels = storage.getBoolean("hideTabLabels");
+    if (savedHideTabLabels !== undefined) {
+      setHideTabLabelsState(savedHideTabLabels);
     }
   }, []);
 
@@ -74,6 +80,11 @@ export const ThemeProvider = ({ children }) => {
     storage.set("theme", mode);
   };
 
+  const setHideTabLabels = (value) => {
+    setHideTabLabelsState(value);
+    storage.set("hideTabLabels", value);
+  };
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   return (
@@ -84,6 +95,8 @@ export const ThemeProvider = ({ children }) => {
         setThemeMode,
         useSystemTheme,
         setUseSystemTheme,
+        hideTabLabels,
+        setHideTabLabels,
       }}
     >
       {children}

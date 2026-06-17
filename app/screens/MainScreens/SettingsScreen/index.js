@@ -92,7 +92,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const { isDarkMode, theme, setThemeMode, useSystemTheme } = useTheme();
+  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
 
   return (
@@ -180,6 +180,13 @@ export default function SettingsScreen({ navigation }) {
               }
             />
           </View>
+          <SettingItem
+            icon="text-outline"
+            title="Ẩn chữ thanh điều hướng"
+            isSwitch
+            value={hideTabLabels}
+            onPress={(value) => setHideTabLabels(value)}
+          />
           <SettingItem
             icon="language-outline"
             title="Ngôn ngữ"
