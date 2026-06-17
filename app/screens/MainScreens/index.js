@@ -71,7 +71,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
       bounceBackOnOverdraw={false}
       disableGestures={currentRoute !== "Home"}
     >
-      <View style={{ flex: 1, backgroundColor: theme.background, paddingBottom: 80 }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
           screenOptions={({ route }) => ({
@@ -98,7 +98,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 </View>
               );
             },
-            tabBarShowLabel: false,
+            tabBarShowLabel: true,
             tabBarActiveTintColor: theme.primary,
             tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
             tabBarStyle: {
@@ -106,17 +106,17 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 25 : 15,
-              left: 20,
-              right: 20,
+              left: 10,
+              right: 10,
               elevation: 10,
               borderRadius: 30,
-              height: 55,
+              height: 60,
               shadowColor: "#000",
               shadowOpacity: 0.15,
               shadowOffset: { width: 0, height: 5 },
               shadowRadius: 15,
               paddingBottom: 0,
-              paddingHorizontal: 5,
+              paddingHorizontal: 2,
             },
             tabBarBackground: () => (
               <View
@@ -129,9 +129,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
               />
             ),
             tabBarLabelStyle: {
-              fontSize: 8, // Even smaller font size
+              fontSize: 10, // Font size for labels
               fontWeight: "bold",
-              marginTop: 2, // Move text closer to icon
+              marginBottom: 5, // Space between icon and label
             },
             headerShadowVisible: false,
             headerTitleAlign: "center",
