@@ -1,4 +1,28 @@
 {
+  "time": {
+    "justNow": "Только что",
+    "minutesAgo": "{{count}} минут назад",
+    "hoursAgo": "{{count}} часов назад",
+    "daysAgo": "{{count}} дней назад",
+    "weeksAgo": "{{count}} недель назад",
+    "monthsAgo": "{{count}} месяцев назад",
+    "yearsAgo": "{{count}} лет назад"
+  },
+  "activity": {
+    "unknown": "имел активность",
+    "likedPost": "лайкнул пост",
+    "dislikedPost": "дизлайкнул пост",
+    "commented": "прокомментировал",
+    "likedComment": "лайкнул комментарий",
+    "dislikedComment": "дизлайкнул комментарий",
+    "createdPost": "создал новый пост",
+    "sharedPost": "поделился постом",
+    "followed": "подписался на",
+    "savedPost": "сохранил пост",
+    "createdStory": "создал историю",
+    "likedStory": "лайкнул историю",
+    "viewedStory": "просмотрел историю"
+  },
   "navigation": {
     "home": "Главная",
     "forum": "Форум",
@@ -186,7 +210,11 @@
     "replyDeletedSuffix": "идет ответ, был удален",
     "editingComment": "Редактирование комментария...",
     "replyingTo": "Ответ пользователю {{username}}...",
-    "commentPlaceholder": "Написать комментарий..."
+    "commentPlaceholder": "Написать комментарий...",
+    "tapToViewDoc": "Нажмите для просмотра документа",
+    "anonymousUser": "Анонимный пользователь",
+    "anonymous": "Анонимный",
+    "reply": "Ответить"
   },
   "savedPosts": {
     "title": "Сохраненные посты",

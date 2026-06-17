@@ -493,7 +493,7 @@ const PostItem = ({
                 <Ionicons name="document-text" size={30} color={theme.primary} />
                 <View style={{ marginLeft: 10, flex: 1 }}>
                   <Text style={{ fontWeight: '500', fontSize: 15, color: theme.text }} numberOfLines={1}>{fileName}</Text>
-                  <Text style={{ fontSize: 12, color: theme.subText }}>Nhấn để xem tài liệu</Text>
+                  <Text style={{ fontSize: 12, color: theme.subText }}>{t('post.tapToViewDoc')}</Text>
                 </View>
                 <Ionicons name="download-outline" size={24} color={theme.subText} />
               </TouchableOpacity>
@@ -549,7 +549,7 @@ const PostItem = ({
           )}
         </View>
         <Text style={{ fontWeight: "bold", color: theme.primary, marginLeft: 8, flexShrink: 1 }}>
-          {item.anonymous ? "Người dùng ẩn danh" : (item?.author?.profile_name || item?.author?.username || "")}
+          {item.anonymous ? t('post.anonymousUser') : (item?.author?.profile_name || item?.author?.username || "")}
           {item?.author?.verified && !item.anonymous && (
             <View>
               <Verified

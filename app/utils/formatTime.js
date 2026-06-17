@@ -1,56 +1,47 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/vi";
+import i18n from "../i18n";
 
 dayjs.extend(relativeTime);
-dayjs.locale("vi");
 
-/**
- * Format time to relative Vietnamese format
- * @param {string} dateString - ISO date string
- * @returns {string} Formatted time string
- */
 const formatTime = (dateString) => {
-  if (!dateString) return "Vừa xong";
+  if (!dateString) return i18n.t("time.justNow");
 
   const date = dayjs(dateString);
   const now = dayjs();
   const diffInSeconds = now.diff(date, "second");
 
   if (diffInSeconds < 60) {
-    return "Vừa xong";
+    return i18n.t("time.justNow");
   }
 
   const diffInMinutes = now.diff(date, "minute");
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} phút trước`;
+    return i18n.t("time.minutesAgo", { count: diffInMinutes });
   }
 
   const diffInHours = now.diff(date, "hour");
   if (diffInHours < 24) {
-    return `${diffInHours} giờ trước`;
+    return i18n.t("time.hoursAgo", { count: diffInHours });
   }
 
   const diffInDays = now.diff(date, "day");
   if (diffInDays < 7) {
-    return `${diffInDays} ngày trước`;
+    return i18n.t("time.daysAgo", { count: diffInDays });
   }
 
   const diffInWeeks = now.diff(date, "week");
   if (diffInWeeks < 4) {
-    return `${diffInWeeks} tuần trước`;
+    return i18n.t("time.weeksAgo", { count: diffInWeeks });
   }
 
   const diffInMonths = now.diff(date, "month");
   if (diffInMonths < 12) {
-    return `${diffInMonths} tháng trước`;
+    return i18n.t("time.monthsAgo", { count: diffInMonths });
   }
 
   const diffInYears = now.diff(date, "year");
-  return `${diffInYears} năm trước`;
+  return i18n.t("time.yearsAgo", { count: diffInYears });
 };
 
 export default formatTime;
-
-
-

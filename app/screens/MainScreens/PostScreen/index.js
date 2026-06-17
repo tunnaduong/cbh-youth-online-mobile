@@ -883,7 +883,7 @@ const PostScreen = ({ route, navigation }) => {
                   }
                 >
                   <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                    {author.profile_name || author.username || "Ẩn danh"}
+                    {author.profile_name || author.username || t('post.anonymous')}
                     {author.verified && (
                       <View>
                         <Verified
@@ -911,7 +911,7 @@ const PostScreen = ({ route, navigation }) => {
                     <Text style={{ fontSize: 12, color: theme.subText }}>
                       {t('post.replyDeletedPrefix')}{" "}
                       <Text style={{ fontWeight: "600", color: theme.text }}>
-                        {author.profile_name || author.username || "Ẩn danh"}
+{author.profile_name || author.username || t('post.anonymous')}
                       </Text>{" "}
                       {t('post.replyDeletedSuffix')}
                     </Text>
@@ -940,7 +940,7 @@ const PostScreen = ({ route, navigation }) => {
                   >
                     <Text style={{ color: theme.subText, fontWeight: "bold", fontSize: 12 }}>
                       {" "}
-                      Trả lời
+                      {t('post.reply')}
                     </Text>
                   </TouchableOpacity>
                 </View>

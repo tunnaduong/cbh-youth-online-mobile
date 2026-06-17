@@ -34,8 +34,9 @@ import Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { StatusBar } from "react-native";
 import { useTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
-dayjs.locale("vi");
+dayjs.locale(i18n.language || "vi");
 
 const CONVERSATION_CACHE_KEY = "conversation_";
 const CONVERSATION_TIMESTAMP_KEY = "conversation_timestamp_";

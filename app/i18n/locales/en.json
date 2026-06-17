@@ -1,4 +1,28 @@
 {
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago",
+    "weeksAgo": "{{count}} weeks ago",
+    "monthsAgo": "{{count}} months ago",
+    "yearsAgo": "{{count}} years ago"
+  },
+  "activity": {
+    "unknown": "had activity",
+    "likedPost": "liked the post",
+    "dislikedPost": "disliked the post",
+    "commented": "commented",
+    "likedComment": "liked the comment",
+    "dislikedComment": "disliked the comment",
+    "createdPost": "created a new post",
+    "sharedPost": "shared the post",
+    "followed": "started following",
+    "savedPost": "saved the post",
+    "createdStory": "created a story",
+    "likedStory": "liked the story of",
+    "viewedStory": "viewed the story of"
+  },
   "navigation": {
     "home": "Home",
     "forum": "Forum",
@@ -186,7 +210,11 @@
     "replyDeletedSuffix": "this is replying to has been deleted",
     "editingComment": "Editing comment...",
     "replyingTo": "Replying to {{username}}...",
-    "commentPlaceholder": "Write a comment..."
+    "commentPlaceholder": "Write a comment...",
+    "tapToViewDoc": "Tap to view document",
+    "anonymousUser": "Anonymous user",
+    "anonymous": "Anonymous",
+    "reply": "Reply"
   },
   "savedPosts": {
     "title": "Saved posts",

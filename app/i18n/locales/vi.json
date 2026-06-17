@@ -1,4 +1,28 @@
 {
+  "time": {
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước",
+    "weeksAgo": "{{count}} tuần trước",
+    "monthsAgo": "{{count}} tháng trước",
+    "yearsAgo": "{{count}} năm trước"
+  },
+  "activity": {
+    "unknown": "đã có hoạt động",
+    "likedPost": "đã thích bài viết",
+    "dislikedPost": "không thích bài viết",
+    "commented": "đã bình luận",
+    "likedComment": "đã thích bình luận",
+    "dislikedComment": "không thích bình luận",
+    "createdPost": "đã đăng bài viết mới",
+    "sharedPost": "đã chia sẻ bài viết",
+    "followed": "đã theo dõi",
+    "savedPost": "đã lưu bài viết",
+    "createdStory": "đã đăng tin mới",
+    "likedStory": "đã thích tin của",
+    "viewedStory": "đã xem tin của"
+  },
   "navigation": {
     "home": "Trang chủ",
     "forum": "Diễn đàn",
@@ -186,7 +210,11 @@
     "replyDeletedSuffix": "đang phản hồi đã bị xóa",
     "editingComment": "Đang chỉnh sửa bình luận...",
     "replyingTo": "Đang trả lời bình luận của {{username}}...",
-    "commentPlaceholder": "Viết bình luận..."
+    "commentPlaceholder": "Viết bình luận...",
+    "tapToViewDoc": "Nhấn để xem tài liệu",
+    "anonymousUser": "Người dùng ẩn danh",
+    "anonymous": "Ẩn danh",
+    "reply": "Trả lời"
   },
   "savedPosts": {
     "title": "Bài viết đã lưu",
