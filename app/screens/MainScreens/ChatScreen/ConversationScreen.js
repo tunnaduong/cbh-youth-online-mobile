@@ -33,6 +33,7 @@ import * as ImagePicker from "expo-image-picker";
 import Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { StatusBar } from "react-native";
+import { useTranslation } from "react-i18next";
 
 dayjs.locale("vi");
 
@@ -65,9 +66,9 @@ const injectTimeHeaders = (messages) => {
 
       let dateText;
       if (isToday) {
-        dateText = "Hôm nay";
+        dateText = t("chatConversation.today");
       } else if (isYesterday) {
-        dateText = "Hôm qua";
+        dateText = t("chatConversation.yesterday");
       } else {
         dateText = currDate.format("DD/MM/YYYY");
       }
@@ -121,6 +122,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const { t } = useTranslation();
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -130,22 +132,22 @@ const ConversationScreen = ({ navigation, route }) => {
   const confirmBlock = () => {
     if (!otherUser) return;
     Alert.alert(
-      "Chặn người dùng?",
-      "Bạn sẽ không nhận được tin nhắn từ người này nữa.",
+      t("chatConversation.blockTitle"),
+      t("chatConversation.blockBody"),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Chặn",
+          text: t("chatConversation.blockAction"),
           style: "destructive",
           onPress: async () => {
             try {
               await blockUser(otherUser.id);
-              Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
-                { text: "OK", onPress: () => navigation.goBack() } // Go back to list
+              Alert.alert(t("chatConversation.blockedTitle"), t("chatConversation.blockedBody"), [
+                { text: t("common.ok"), onPress: () => navigation.goBack() }
               ]);
             } catch (e) {
-              const errorMessage = e.response?.data?.message || e.message || "Không thể chặn người dùng";
-              Alert.alert("Lỗi", errorMessage);
+              const errorMessage = e.response?.data?.message || e.message || t("chatConversation.blockError");
+              Alert.alert(t("common.error"), errorMessage);
             }
           }
         }
@@ -164,25 +166,25 @@ const ConversationScreen = ({ navigation, route }) => {
       if (!otherUser && !isNewConversation) {
         // Maybe report the group? But API needs reported_user_id (currently).
         // We'll report the conversation ID in 'reason' or separate field if extended (not asking to extend generic report).
-        alert("Chức năng báo cáo nhóm chưa khả dụng.");
+        alert(t("chatConversation.groupReportUnavailable"));
         return;
       }
 
       const targetId = otherUser?.id || selectedUser?.id;
       if (targetId) {
         await reportUser({ reported_user_id: targetId, reason });
-        Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi.");
+        Alert.alert(t("chatConversation.thanksTitle"), t("chatConversation.reportSent"));
       } else {
-        Alert.alert("Lỗi", "Không thể xác định người dùng để báo cáo.");
+        Alert.alert(t("common.error"), t("chatConversation.reportTargetError"));
       }
     } catch (e) {
-      const errorMessage = e.response?.data?.message || e.message || "Không thể gửi báo cáo";
-      Alert.alert("Lỗi", errorMessage);
+      const errorMessage = e.response?.data?.message || e.message || t("chatConversation.reportError");
+      Alert.alert(t("common.error"), errorMessage);
     }
   };
 
   const showOptions = () => {
-    const options = ["Báo cáo", "Chặn người dùng", "Hủy"];
+    const options = [t("chatConversation.report"), t("chatConversation.blockUser"), t("common.cancel")];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
 
@@ -193,9 +195,9 @@ const ConversationScreen = ({ navigation, route }) => {
       // I will just show 'Report' if I can report group, else nothing specific for now blocks unless user asked for group blocking.
       // User asked "user can report ... from chat".
       // Use limited options
-      Alert.alert("Tùy chọn", null, [
-        { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
-        { text: "Hủy", style: "cancel" }
+      Alert.alert(t("chatConversation.optionsTitle"), null, [
+        { text: t("chatConversation.report"), onPress: () => setReportModalVisible(true) },
+        { text: t("common.cancel"), style: "cancel" }
       ]);
       return;
     }
@@ -214,12 +216,12 @@ const ConversationScreen = ({ navigation, route }) => {
       );
     } else {
       Alert.alert(
-        "Tùy chọn",
+        t("chatConversation.optionsTitle"),
         null,
         [
-          { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
-          { text: "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
-          { text: "Hủy", style: "cancel" },
+          { text: t("chatConversation.report"), onPress: () => setReportModalVisible(true) },
+          { text: t("chatConversation.blockUser"), onPress: confirmBlock, style: "destructive" },
+          { text: t("common.cancel"), style: "cancel" },
         ]
       );
     }

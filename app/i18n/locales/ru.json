@@ -30,7 +30,8 @@
   },
   "common": {
     "error": "Произошла ошибка",
-    "ok": "OK"
+    "ok": "OK",
+    "cancel": "Отмена"
   },
   "createActions": {
     "post": "Создать пост",
@@ -225,6 +226,37 @@
     "feature3Title": "И еще много функций...",
     "feature3Desc": "Изучите их сами! Желаем вам приятного опыта.",
     "copyright": "© 2025 Fatties Software Education Solutions Co., Ltd. - Разработано учениками для учеников."
+  },
+  "chatConversation": {
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "blockTitle": "Заблокировать пользователя?",
+    "blockBody": "Вы больше не будете получать сообщения от этого человека.",
+    "blockAction": "Заблокировать",
+    "blockedTitle": "Заблокировано",
+    "blockedBody": "Пользователь успешно заблокирован.",
+    "blockError": "Не удалось заблокировать пользователя",
+    "groupReportUnavailable": "Пожаловаться на группу пока нельзя.",
+    "thanksTitle": "Спасибо",
+    "reportSent": "Ваша жалоба отправлена.",
+    "reportTargetError": "Не удалось определить пользователя для жалобы.",
+    "reportError": "Не удалось отправить жалобу",
+    "report": "Пожаловаться",
+    "blockUser": "Заблокировать пользователя",
+    "optionsTitle": "Опции",
+    "casualGroupName": "Tán gẫu linh tinh",
+    "cannotOpen": "Не удалось открыть беседу. Попробуйте позже.",
+    "searchUsers": "Поиск пользователей..."
+  },
+  "blockedUsers": {
+    "title": "Заблокированные пользователи",
+    "empty": "Вы еще никого не заблокировали",
+    "loadError": "Не удалось загрузить список заблокированных",
+    "unblockTitle": "Разблокировать пользователя",
+    "unblockConfirm": "Вы уверены, что хотите разблокировать этого пользователя?",
+    "unblockAction": "Разблокировать",
+    "unblockSuccess": "Пользователь разблокирован",
+    "unblockError": "Не удалось разблокировать пользователя"
   },
   "notifications": {
     "newNotification": "Новое уведомление",

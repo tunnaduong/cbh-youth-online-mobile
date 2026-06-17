@@ -30,7 +30,8 @@
   },
   "common": {
     "error": "An error occurred",
-    "ok": "OK"
+    "ok": "OK",
+    "cancel": "Cancel"
   },
   "createActions": {
     "post": "Create post",
@@ -225,6 +226,37 @@
     "feature3Title": "And many more features...",
     "feature3Desc": "Explore them yourself. We hope you have a great experience.",
     "copyright": "© 2025 Fatties Software Education Solutions Co., Ltd. - Built by students, for students."
+  },
+  "chatConversation": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "blockTitle": "Block user?",
+    "blockBody": "You will no longer receive messages from this person.",
+    "blockAction": "Block",
+    "blockedTitle": "Blocked",
+    "blockedBody": "User blocked successfully.",
+    "blockError": "Cannot block user",
+    "groupReportUnavailable": "Group reporting is not available yet.",
+    "thanksTitle": "Thanks",
+    "reportSent": "Your report has been sent.",
+    "reportTargetError": "Could not identify the user to report.",
+    "reportError": "Could not send report",
+    "report": "Report",
+    "blockUser": "Block user",
+    "optionsTitle": "Options",
+    "casualGroupName": "Tán gẫu linh tinh",
+    "cannotOpen": "Could not open conversation. Please try again later.",
+    "searchUsers": "Search users..."
+  },
+  "blockedUsers": {
+    "title": "Blocked users",
+    "empty": "You haven't blocked anyone yet",
+    "loadError": "Could not load blocked users",
+    "unblockTitle": "Unblock user",
+    "unblockConfirm": "Are you sure you want to unblock this user?",
+    "unblockAction": "Unblock",
+    "unblockSuccess": "User unblocked",
+    "unblockError": "Cannot unblock user"
   },
   "notifications": {
     "newNotification": "New notification",

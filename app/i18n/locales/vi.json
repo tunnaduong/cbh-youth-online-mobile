@@ -30,7 +30,8 @@
   },
   "common": {
     "error": "Đã có lỗi xảy ra",
-    "ok": "OK"
+    "ok": "OK",
+    "cancel": "Hủy"
   },
   "createActions": {
     "post": "Tạo bài viết",
@@ -225,6 +226,37 @@
     "feature3Title": "Và còn nhiều tính năng khác...",
     "feature3Desc": "Hãy tự mình khám phá nhé! Chúc bạn có một trải nghiệm thú vị.",
     "copyright": "© 2025 Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
+  },
+  "chatConversation": {
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "blockTitle": "Chặn người dùng?",
+    "blockBody": "Bạn sẽ không nhận được tin nhắn từ người này nữa.",
+    "blockAction": "Chặn",
+    "blockedTitle": "Đã chặn",
+    "blockedBody": "Người dùng đã bị chặn thành công.",
+    "blockError": "Không thể chặn người dùng",
+    "groupReportUnavailable": "Chức năng báo cáo nhóm chưa khả dụng.",
+    "thanksTitle": "Cảm ơn",
+    "reportSent": "Báo cáo của bạn đã được gửi.",
+    "reportTargetError": "Không thể xác định người dùng để báo cáo.",
+    "reportError": "Không thể gửi báo cáo",
+    "report": "Báo cáo",
+    "blockUser": "Chặn người dùng",
+    "optionsTitle": "Tùy chọn",
+    "casualGroupName": "Tán gẫu linh tinh",
+    "cannotOpen": "Không thể mở cuộc trò chuyện. Vui lòng thử lại sau.",
+    "searchUsers": "Tìm kiếm người dùng..."
+  },
+  "blockedUsers": {
+    "title": "Người dùng đã chặn",
+    "empty": "Bạn chưa chặn ai cả",
+    "loadError": "Không thể tải danh sách chặn",
+    "unblockTitle": "Bỏ chặn người dùng",
+    "unblockConfirm": "Bạn có chắc chắn muốn bỏ chặn người dùng này?",
+    "unblockAction": "Bỏ chặn",
+    "unblockSuccess": "Đã bỏ chặn người dùng",
+    "unblockError": "Không thể bỏ chặn"
   },
   "notifications": {
     "newNotification": "Thông báo mới",
