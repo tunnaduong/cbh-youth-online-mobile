@@ -79,11 +79,11 @@ const SignupScreen = ({ navigation }) => {
       .then((response) => {
         signIn(response.data.token, response.data.user);
         Alert.alert(
-          "Đăng ký thành công!",
-          "Chúc mừng bạn đã đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.",
+          t("auth.signupSuccess"),
+          t("auth.signupSuccessBody"),
           [
             {
-              text: "OK",
+              text: t("common.ok"),
               onPress: () => {
                 navigation.reset({
                   index: 0,
@@ -95,7 +95,7 @@ const SignupScreen = ({ navigation }) => {
         );
       })
       .catch((error) => {
-        Alert.alert("Đăng ký thất bại", error.response.data.message);
+        Alert.alert(t("auth.signupError"), error.response.data.message);
       })
       .finally(() => {
         setLoading(false);
@@ -380,7 +380,7 @@ const SignupScreen = ({ navigation }) => {
                   >
                     {t("signup.terms")}
                   </Text>{" "}
-                  {" "}{t("signup.and") || "và"}{" "}
+                  {" "}{t("signup.and")}{" "}
                   <Text
                     style={styles.link}
                     onPress={() => navigation.navigate("PrivacyPolicyScreen")}

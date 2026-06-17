@@ -56,7 +56,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         );
       } else {
         throw new Error(
-          response.data?.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+          response.data?.message || t("common.error")
         );
       }
     } catch (error) {
@@ -66,7 +66,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Đã xảy ra lỗi. Vui lòng thử lại.";
+        t("common.error");
 
       Alert.alert(t("forgotPassword.failureTitle"), errorMessage);
     } finally {

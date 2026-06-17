@@ -20,9 +20,11 @@ import axios from "axios";
 import Toast from "react-native-toast-message";
 import { getSubforumPosts } from "../../../services/api/Api";
 import { LinearGradient } from "expo-linear-gradient";
+import { useTranslation } from "react-i18next";
 
 const CategoryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [forumData, setForumData] = useState(null);
@@ -35,8 +37,8 @@ const CategoryScreen = ({ navigation, route }) => {
       console.error("CategoryScreen: categoryId is missing from route params");
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không tìm thấy thông tin chuyên mục.",
+        text1: t("common.error"),
+        text2: t("forum.categoryNotFound"),
       });
       setLoading(false);
     }
@@ -74,7 +76,7 @@ const CategoryScreen = ({ navigation, route }) => {
       });
 
       let errorMessage =
-        "Không thể tải dữ liệu diễn đàn. Vui lòng thử lại sau.";
+        t("forum.loadError");
       let shouldNavigateBack = false;
 
       // Check if the error message indicates subforum not found
@@ -87,12 +89,12 @@ const CategoryScreen = ({ navigation, route }) => {
           errorMessageText.includes("ForumSubforum"))
       ) {
         // Subforum doesn't exist in database
-        errorMessage = "Chuyên mục này không tồn tại hoặc đã bị xóa.";
+        errorMessage = t("forum.categoryDeleted");
         shouldNavigateBack = true;
       } else if (error.response?.status === 500) {
-        errorMessage = "Lỗi máy chủ. Vui lòng thử lại sau.";
+        errorMessage = t("forum.serverError");
       } else if (error.response?.status === 404) {
-        errorMessage = "Không tìm thấy chuyên mục này.";
+        errorMessage = t("forum.categoryNotFound2");
         shouldNavigateBack = true;
       } else if (errorData?.message) {
         errorMessage = errorData.message;
@@ -102,7 +104,7 @@ const CategoryScreen = ({ navigation, route }) => {
 
       Toast.show({
         type: "error",
-        text1: "Lỗi tải dữ liệu",
+        text1: t("forum.loadDataError"),
         text2: errorMessage,
       });
 
@@ -149,14 +151,14 @@ const CategoryScreen = ({ navigation, route }) => {
           >
             <Ionicons name="arrow-back" size={24} color="#319527" />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-[#319527]">Diễn đàn</Text>
+          <Text className="text-lg font-bold text-[#319527]">{t('forum.title')}</Text>
         </View>
         <View style={styles.loadingContainer}>
           <Image
             source={require("../../../assets/sad_frog.png")}
             className="w-20 h-20"
           />
-          <Text>Không thể tải dữ liệu. Vui lòng thử lại sau.</Text>
+          <Text>{t('forum.loadError')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -238,7 +240,7 @@ const CategoryScreen = ({ navigation, route }) => {
           >
             <Ionicons name="arrow-back" size={24} color="#319527" />
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-[#319527]">Diễn đàn</Text>
+          <Text className="text-lg font-bold text-[#319527]">{t('forum.title')}</Text>
         </View>
       </View>
 
@@ -275,8 +277,8 @@ const CategoryScreen = ({ navigation, route }) => {
 
         {/* Thread List Header */}
         <View className="flex-row items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <Text className="font-medium">Tiêu đề</Text>
-          <Text className="font-medium">Bài viết cuối</Text>
+          <Text className="font-medium">{t('forum.threadTitle')}</Text>
+          <Text className="font-medium">{t('forum.lastPost')}</Text>
         </View>
 
         {/* Thread List */}
@@ -286,7 +288,7 @@ const CategoryScreen = ({ navigation, route }) => {
               source={require("../../../assets/sad_frog.png")}
               className="w-20 h-20 mt-10 mb-3"
             />
-            <Text>Chưa có bài viết nào trong chuyên mục này.</Text>
+            <Text>{t('forum.noPostsInCategory')}</Text>
           </View>
         ) : (
           forumData.topics.map((thread) => (

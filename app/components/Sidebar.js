@@ -159,7 +159,7 @@ const Sidebar = () => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
         title: t('settings.logoutConfirm'),
-        options: [t('settings.cancel') || "Hủy", t('settings.logout') || "Đăng xuất"],
+        options: [t('settings.cancel'), t('settings.logout')],
         destructiveButtonIndex: 1,
         cancelButtonIndex: 0,
         userInterfaceStyle: isDarkMode ? "dark" : "light",
@@ -175,17 +175,17 @@ const Sidebar = () => {
   };
   const onPressAndroid = () =>
     Alert.alert(
-      t('settings.logout') || "Đăng xuất",
+      t('settings.logout'),
       t('settings.logoutConfirm'),
       [
         {
-          text: t('settings.yes') || "Có",
+          text: t('settings.yes'),
           onPress: () => {
             goToScreen();
           },
         },
         {
-          text: t('settings.no') || "Không",
+          text: t('settings.no'),
           style: "cancel",
         },
       ],
@@ -391,7 +391,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title={t('settings.logout') || "Đăng xuất"}
+              title={t('settings.logout')}
               onPress={() => {
                 Platform.OS === "ios" ? onPressIOS() : onPressAndroid();
               }}

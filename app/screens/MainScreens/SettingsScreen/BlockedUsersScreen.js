@@ -168,7 +168,7 @@ export default function BlockedUsersScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Người dùng đã chặn</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('blockedUsers.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -179,7 +179,7 @@ export default function BlockedUsersScreen({ navigation }) {
       ) : blockedUsers.length === 0 ? (
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <Ionicons name="people-outline" size={50} color={theme.subText} />
-          <Text style={{ marginTop: 10, color: theme.subText }}>Bạn chưa chặn ai cả</Text>
+          <Text style={{ marginTop: 10, color: theme.subText }}>{t('blockedUsers.empty')}</Text>
         </View>
       ) : (
         <ScrollView style={styles.content}>
@@ -199,7 +199,7 @@ export default function BlockedUsersScreen({ navigation }) {
                 style={[styles.unblockButton, { borderColor: theme.primary }]}
                 onPress={() => handleUnblock(user.id, user.username)}
               >
-                <Text style={[styles.unblockText, { color: theme.primary }]}>Bỏ chặn</Text>
+                <Text style={[styles.unblockText, { color: theme.primary }]}>{t('blockedUsers.unblockAction')}</Text>
               </TouchableOpacity>
             </View>
           ))}

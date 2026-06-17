@@ -21,7 +21,8 @@
     "savedPost": "saved the post",
     "createdStory": "created a story",
     "likedStory": "liked the story of",
-    "viewedStory": "viewed the story of"
+    "viewedStory": "viewed the story of",
+    "loadError": "Could not load activities. Please try again later."
   },
   "navigation": {
     "home": "Home",
@@ -55,7 +56,10 @@
   "common": {
     "error": "An error occurred",
     "ok": "OK",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "other": "Other",
+    "unknownError": "An error occurred",
+    "close": "Close"
   },
   "createActions": {
     "post": "Create post",
@@ -91,7 +95,19 @@
     "blockedErrorMessage": "Could not find user information",
     "loadingFeed": "Loading feed...",
     "useFullFeatures": "To use all features such as creating posts, you need to verify your email.",
-    "replyPlaceholder": "Share your thoughts..."
+    "replyPlaceholder": "Share your thoughts...",
+    "reportSentTitle": "Report sent",
+    "reportSentBody": "Thank you for reporting this content.",
+    "resendVerificationSuccess": "Success",
+    "resendVerificationSuccessBody": "Verification email has been resent. Please check your inbox.",
+    "resendVerificationError": "Could not send verification email. Please try again later.",
+    "resendVerificationEmail": "Resend verification email",
+    "yourEmail": "Your email:",
+    "reactionError": "Could not react. Please try again.",
+    "replySent": "Sent",
+    "replySentBody": "Message has been sent to the user.",
+    "replySendError": "Could not send message. Please try again.",
+    "views": "views"
   },
   "chat": {
     "title": "Messages",
@@ -128,7 +144,16 @@
     "latest": "Latest",
     "noNewPosts": "No new posts yet",
     "posts": "Posts",
-    "comments": "Comments"
+    "comments": "Comments",
+    "categoryNotFound": "Category information not found.",
+    "loadError": "Could not load forum data. Please try again later.",
+    "categoryDeleted": "This category does not exist or has been deleted.",
+    "serverError": "Server error. Please try again later.",
+    "categoryNotFound2": "Category not found.",
+    "loadDataError": "Error loading data",
+    "threadTitle": "Title",
+    "lastPost": "Last post",
+    "noPostsInCategory": "No posts in this category yet."
   },
   "createPost": {
     "title": "Create post",
@@ -338,7 +363,39 @@
     "modalTitle": "Report violation",
     "reasonPlaceholder": "Enter a reason for reporting (at least 10 characters)...",
     "cancel": "Cancel",
-    "submit": "Send report"
+    "submit": "Send report",
+    "violationType": "Violation type",
+    "studentName": "Student name",
+    "studentNamePlaceholder": "Enter student name",
+    "className": "Class name",
+    "classNamePlaceholder": "Enter class name",
+    "absentStudents": "Absent students",
+    "hygiene": "Hygiene",
+    "uniform": "Uniform",
+    "reportTime": "Report time",
+    "reporter": "Reporting student",
+    "notes": "Notes",
+    "notesPlaceholder": "Enter notes (if any)",
+    "noNotes": "No notes",
+    "step2Title": "Step 2: Enter violation information",
+    "step2Subtitle": "Enter specific information about the violation",
+    "step3Title": "Step 3: Confirm information",
+    "step3Subtitle": "Please review the information before submitting the report",
+    "notSelected": "Not selected",
+    "absent": "Absent",
+    "submitSuccess": "Report submitted successfully!",
+    "backToHome": "Return to home",
+    "confirmDiscard": "Your report information will not be saved.",
+    "addOtherViolation": "Add other violation",
+    "searchViolation": "Type to search violations...",
+    "addNewViolation": "Add new violation",
+    "cleanliness": ["Clean", "Relatively clean", "Dirty", "Very dirty"],
+    "uniformStatus": ["Sufficient", "Relatively sufficient", "Insufficient"],
+    "studentViolationTypes": ["Late for school", "Not wearing uniform", "Not doing homework", "Talking during class", "Breaking class rules", "Not participating in group activities", "Other"],
+    "classViolationTypes": ["Poor cleaning duty", "Poor class discipline", "Not ensuring hygiene", "Inconsistent uniform", "Breaking school rules", "Other"],
+    "mockViolations": ["Phone usage violation", "Study schedule violation", "Classroom rules violation", "Safety regulation violation"],
+    "previewMode": "This feature is currently in preview mode. You will be able to use it once the system is updated.",
+    "classInfo": "Class information"
   },
   "editPost": {
     "errorLoadTitle": "Cannot load post",
@@ -377,6 +434,7 @@
     "blockAction": "Block",
     "blockSuccessTitle": "User Blocked",
     "blockSuccessMessage": "You will no longer see content from this user.",
+    "blockError": "Cannot block this user",
     "unblockTitle": "Unblock User",
     "unblockConfirm": "Are you sure you want to unblock {{username}}?",
     "unblockAction": "Unblock",
@@ -476,7 +534,12 @@
     "errorTitle": "Error",
     "errorMessage": "An error occurred",
     "checkEmail": "Verification email sent",
-    "checkEmailDesc": "Please check your inbox and confirm your email address"
+    "checkEmailDesc": "Please check your inbox and confirm your email address",
+    "invalidConfirmText": "Please enter the exact confirmation text 'DELETE ACCOUNT'",
+    "passwordRequired": "Please enter your password",
+    "accountDeleted": "Account deleted successfully",
+    "usernameRequired": "Please enter a new username",
+    "emailRequired": "Please enter a new email"
   },
   "notificationSettings": {
     "title": "Notifications",
@@ -497,5 +560,75 @@
     "loadingError": "Could not load notification settings",
     "saveError": "Could not save settings",
     "featureUnderDevelopment": "Feature is under development"
+  },
+  "storyViewers": {
+    "title": "Viewers",
+    "loadError": "Could not load viewer list.",
+    "empty": "No viewers yet"
+  },
+  "archive": {
+    "title": "Archive",
+    "loadError": "Could not load archive.",
+    "privacyNotice": "Archived stories will only be visible to you.",
+    "empty": "No stories yet",
+    "viewersCount": "{{count}} viewers"
+  },
+  "dropdown": {
+    "selectOption": "Select an option"
+  },
+  "auth": {
+    "googleProcessing": "Processing Google login. Please wait...",
+    "sessionInProgress": "Another login session is in progress. Please wait or try again later.",
+    "stateFailed": "Could not verify login. Please try again.",
+    "loginCancelled": "Login was cancelled or an error occurred. Please try again later.",
+    "googleTokenError": "Could not get access token from Google",
+    "googleUserInfoError": "Could not get user info from Google",
+    "googleFailed": "Google login failed or was cancelled",
+    "facebookProcessing": "Processing Facebook login. Please wait...",
+    "facebookTokenError": "Could not get access token from Facebook",
+    "facebookUserInfoError": "Could not get user info from Facebook",
+    "facebookFailed": "Facebook login failed or was cancelled"
+  },
+  "api": {
+    "networkError": "An unexpected error occurred. Please check your network connection and try again."
+  },
+  "story": {
+    "cameraError": "Camera initialization error",
+    "cameraErrorDesc": "Could not initialize camera. Please try again.",
+    "postSuccess": "Story posted successfully",
+    "textStoryPosted": "Text story has been posted.",
+    "drawingStoryPosted": "Drawing story has been posted.",
+    "storyPosted": "Your story has been posted.",
+    "contentError": "Content processing error",
+    "contentErrorDesc": "Could not process content. Please try again.",
+    "postError": "Story posting error",
+    "postErrorDesc": "Could not post story. Please try again later.",
+    "discardDrawing": "Discard drawing",
+    "discardStory": "Discard story",
+    "continueEditing": "Continue editing",
+    "exitConfirm": "Are you sure you want to exit?",
+    "exitConfirmDesc": "You will lose the entered content",
+    "exit": "Exit",
+    "noDrawingData": "No drawing data to save.",
+    "captureDrawingError": "Could not capture drawing.",
+    "drawingSaved": "Drawing saved",
+    "drawingUpdated": "Your drawing has been updated.",
+    "saveDrawingError": "Drawing save error",
+    "saveDrawingErrorDesc": "Could not save drawing. Please try again.",
+    "textPlaceholder": "Enter your story content...",
+    "drawingPlaceholder": "Enter content...",
+    "checkingPermission": "Checking permissions",
+    "pleaseWait": "Please wait a moment...",
+    "noCameraPermission": "No camera access",
+    "cameraPermissionDesc": "Please grant camera access in settings.",
+    "captureError": "Photo capture error",
+    "captureErrorDesc": "Could not take photo. Please try again.",
+    "done": "Done",
+    "posting": "Posting...",
+    "share": "Share",
+    "draw": "Draw",
+    "textContent": "Text story",
+    "edit": "Edit",
+    "createStory": "Create story"
   }
 }

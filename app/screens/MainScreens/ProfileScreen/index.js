@@ -180,23 +180,23 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const confirmBlock = () => {
     Alert.alert(
-      t('home.blockPerson') || "Chặn người dùng?",
-      t('profile.blockConfirm', { username: userData.profile.profile_name }) || "Bạn sẽ không còn thấy bài viết của người này nữa.",
+      t('home.blockPerson'),
+      t('profile.blockConfirm', { username: userData.profile.profile_name }),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t('profile.cancel'), style: "cancel" },
         {
-          text: "Chặn",
+          text: t('profile.blockAction'),
           style: "destructive",
           onPress: async () => {
             try {
               await blockUser(userData.id);
               await blockUserInContext(userData.username);
-              Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
-                { text: "OK", onPress: () => navigation.goBack() }
+              Alert.alert(t('profile.blockSuccessTitle'), t('profile.blockSuccessMessage'), [
+                { text: t('common.ok'), onPress: () => navigation.goBack() }
               ]);
             } catch (e) {
-              const errorMessage = e.response?.data?.message || e.message || "Không thể chặn người dùng này";
-              Alert.alert("Lỗi", errorMessage);
+              const errorMessage = e.response?.data?.message || e.message || t('profile.blockError');
+              Alert.alert(t('profile.errorTitle'), errorMessage);
             }
           }
         }
@@ -205,7 +205,7 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   const showOptions = () => {
-    const options = [t('home.reportStory') || "Báo cáo", t('home.blockPerson') || "Chặn người dùng", t('settings.cancel') || "Hủy"];
+    const options = [t('home.reportStory'), t('home.blockPerson'), t('settings.cancel')];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
 
@@ -227,9 +227,9 @@ const ProfileScreen = ({ route, navigation }) => {
         t('profile.optionsTitle') || "Tùy chọn",
         null,
         [
-          { text: t('home.reportStory') || "Báo cáo", onPress: () => setReportModalVisible(true) },
-          { text: t('home.blockPerson') || "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
-          { text: t('settings.cancel') || "Hủy", style: "cancel" },
+          { text: t('home.reportStory'), onPress: () => setReportModalVisible(true) },
+          { text: t('home.blockPerson'), onPress: confirmBlock, style: "destructive" },
+          { text: t('settings.cancel'), style: "cancel" },
         ]
       );
     }
@@ -238,10 +238,10 @@ const ProfileScreen = ({ route, navigation }) => {
   const handleReportSubmit = async (reason) => {
     try {
       await reportUser({ reported_user_id: userData.id, reason });
-      Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
+      Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
-      const errorMessage = e.response?.data?.message || e.message || "Không thể gửi báo cáo";
-      Alert.alert("Lỗi", errorMessage);
+      const errorMessage = e.response?.data?.message || e.message || t('post.reportError');
+      Alert.alert(t('profile.errorTitle'), errorMessage);
     }
   };
 

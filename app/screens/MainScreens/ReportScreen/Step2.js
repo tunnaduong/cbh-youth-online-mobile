@@ -30,47 +30,7 @@ import BottomSheet, {
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
-
-const STEPS = [
-  {
-    id: 1,
-    title: "Chọn đối tượng",
-    subtitle: "Vui lòng chọn đối tượng bạn muốn báo cáo",
-  },
-  {
-    id: 2,
-    title: "Chi tiết vi phạm",
-    subtitle: "Mô tả chi tiết về hành vi vi phạm",
-  },
-  {
-    id: 3,
-    title: "Xác nhận",
-    subtitle: "Xác nhận thông tin báo cáo",
-  },
-];
-
-const STUDENT_VIOLATION_TYPES = [
-  "Đi học muộn",
-  "Không mặc đồng phục",
-  "Không làm bài tập",
-  "Nói chuyện trong giờ học",
-  "Vi phạm nội quy lớp học",
-  "Không tham gia hoạt động tập thể",
-  "Khác",
-];
-
-const CLASS_VIOLATION_TYPES = [
-  "Trực nhật không tốt",
-  "Nề nếp lớp kém",
-  "Không đảm bảo vệ sinh",
-  "Không đồng phục đồng bộ",
-  "Vi phạm nội quy trường",
-  "Khác",
-];
-
-const CLEANLINESS_STATUS = ["Sạch sẽ", "Tương đối sạch sẽ", "Bẩn", "Rất bẩn"];
-
-const UNIFORM_STATUS = ["Đủ", "Tương đối đủ", "Thiếu"];
+import { useTranslation } from "react-i18next";
 
 const SuggestionItem = ({ item, onPress }) => {
   const { theme } = useTheme();
@@ -103,11 +63,12 @@ const TagInput = ({
   onAddTag,
 }) => {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   return (
     <KeyboardAvoidingView behavior={"padding"} keyboardVerticalOffset={110}>
       <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
         <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: theme.text }]}>Thêm vi phạm khác</Text>
+          <Text style={[styles.modalTitle, { color: theme.text }]}>{t('report.addOtherViolation')}</Text>
         </View>
 
         <View style={styles.selectedTagsContainer}>
@@ -119,7 +80,7 @@ const TagInput = ({
         <View style={styles.searchContainer}>
           <BottomSheetTextInput
             style={[styles.searchInput, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-            placeholder="Nhập để tìm kiếm vi phạm..."
+            placeholder={t('report.searchViolation')}
             placeholderTextColor={theme.subText}
             value={tagInput}
             onChangeText={onChangeText}
@@ -154,7 +115,7 @@ const TagInput = ({
           disabled={tagInput.length === 0}
           onPress={() => onAddTag(tagInput)}
         >
-          <Text style={styles.addCustomButtonText}>Thêm vi phạm mới</Text>
+          <Text style={styles.addCustomButtonText}>{t('report.addNewViolation')}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -178,7 +139,19 @@ export default function Step2({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const bottomSheetRef = useRef(null);
+
+  const STEPS = [
+    { id: 1, titleKey: "report.step1" },
+    { id: 2, titleKey: "report.step2" },
+    { id: 3, titleKey: "report.step3" },
+  ];
+
+  const STUDENT_VIOLATION_TYPES = t('report.studentViolationTypes', { returnObjects: true });
+  const CLASS_VIOLATION_TYPES = t('report.classViolationTypes', { returnObjects: true });
+  const CLEANLINESS_STATUS = t('report.cleanliness', { returnObjects: true });
+  const UNIFORM_STATUS = t('report.uniformStatus', { returnObjects: true });
 
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
@@ -208,7 +181,7 @@ export default function Step2({ navigation, route }) {
                 { color: step.id <= 2 ? theme.primary : theme.subText },
               ]}
             >
-              {step.title}
+              {t(step.titleKey)}
             </Text>
           </View>
           {index < STEPS.length - 1 && (
@@ -247,12 +220,7 @@ export default function Step2({ navigation, route }) {
     }
 
     // Mock suggestions based on query
-    const mockSuggestions = [
-      "Vi phạm quy định sử dụng điện thoại",
-      "Vi phạm giờ giấc học tập",
-      "Vi phạm nội quy phòng học",
-      "Vi phạm quy định an toàn",
-    ].filter((item) => item.toLowerCase().includes(text.toLowerCase()));
+    const mockSuggestions = t('report.mockViolations', { returnObjects: true }).filter((item) => item.toLowerCase().includes(text.toLowerCase()));
 
     setSuggestions(mockSuggestions);
   };
@@ -272,7 +240,7 @@ export default function Step2({ navigation, route }) {
 
   const renderViolationTypes = () => (
     <View style={styles.inputContainer}>
-      <Text style={[styles.label, { color: theme.subText }]}>Lỗi vi phạm</Text>
+      <Text style={[styles.label, { color: theme.subText }]}>{t('report.violationType')}</Text>
       <View style={styles.violationTypesContainer}>
         {(selectedViolationType === "class"
           ? CLASS_VIOLATION_TYPES
@@ -283,13 +251,13 @@ export default function Step2({ navigation, route }) {
             style={[
               styles.violationTypeChip,
               { borderColor: theme.border },
-              (type === "Khác" && selectedTags.length > 0) ||
+              (type === t('common.other') && selectedTags.length > 0) ||
                 violationType === type
                 ? [styles.selectedViolationType, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }]
                 : null,
             ]}
             onPress={() => {
-              if (type === "Khác") {
+              if (type === t('common.other')) {
                 handleShowTagInput();
               } else {
                 setViolationType(type);
@@ -301,13 +269,13 @@ export default function Step2({ navigation, route }) {
               style={[
                 styles.violationTypeText,
                 { color: theme.subText },
-                (type === "Khác" && selectedTags.length > 0) ||
+                (type === t('common.other') && selectedTags.length > 0) ||
                   violationType === type
                   ? [styles.selectedViolationTypeText, { color: theme.primary }]
                   : null,
               ]}
             >
-              {type === "Khác" && selectedTags.length > 0 ? `Khác` : type}
+              {type === t('common.other') && selectedTags.length > 0 ? t('common.other') : type}
             </Text>
           </TouchableOpacity>
         ))}
@@ -324,7 +292,7 @@ export default function Step2({ navigation, route }) {
 
   const renderDateInput = () => (
     <View style={styles.inputContainer}>
-      <Text style={[styles.label, { color: theme.subText }]}>Thời gian báo cáo</Text>
+      <Text style={[styles.label, { color: theme.subText }]}>{t('report.reportTime')}</Text>
       <View style={[styles.dateInput, { borderColor: theme.border, backgroundColor: isDarkMode ? "#1f2937" : "#fff" }]}>
         <Ionicons
           name="calendar-outline"
@@ -341,10 +309,10 @@ export default function Step2({ navigation, route }) {
     <>
       {/* Student Name Input */}
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>Họ tên học sinh</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>{t('report.studentName')}</Text>
         <TextInput
           style={[styles.input, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-          placeholder="Nhập tên học sinh"
+          placeholder={t('report.studentNamePlaceholder')}
           placeholderTextColor={theme.subText}
           value={studentName}
           onChangeText={setStudentName}
@@ -359,20 +327,20 @@ export default function Step2({ navigation, route }) {
 
   const renderClassForm = () => (
     <View style={styles.formSection}>
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>Thông tin lớp học</Text>
+      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{t('report.classInfo')}</Text>
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>Tên lớp</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>{t('report.className')}</Text>
         <TextInput
           style={[styles.input, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
           value={className}
           onChangeText={setClassName}
-          placeholder="Nhập tên lớp"
+          placeholder={t('report.classNamePlaceholder')}
           placeholderTextColor={theme.subText}
         />
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>Số học sinh vắng</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>{t('report.absentStudents')}</Text>
         <TextInput
           style={[styles.input, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
           value={absences}
@@ -384,7 +352,7 @@ export default function Step2({ navigation, route }) {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>Vệ sinh</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>{t('report.hygiene')}</Text>
         <View style={styles.optionsContainer}>
           {CLEANLINESS_STATUS.map((status) => (
             <TouchableOpacity
@@ -411,7 +379,7 @@ export default function Step2({ navigation, route }) {
       </View>
 
       <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>Đồng phục</Text>
+        <Text style={[styles.label, { color: theme.subText }]}>{t('report.uniform')}</Text>
         <View style={styles.optionsContainer}>
           {UNIFORM_STATUS.map((status) => (
             <TouchableOpacity
@@ -469,14 +437,14 @@ export default function Step2({ navigation, route }) {
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
-      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
+      <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
       <ScrollView style={[styles.scrollView, { backgroundColor: theme.background }]}>
         <View style={[styles.header, { backgroundColor: theme.primary }]}>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Báo cáo vi phạm</Text>
+            <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
             <Text style={styles.headerSubtitle}>
-              THPT Chuyên Biên Hòa - Hà Nam
+              {t('report.schoolName')}
             </Text>
           </View>
           <View style={styles.warningIcon}>
@@ -490,10 +458,10 @@ export default function Step2({ navigation, route }) {
         {/* Content */}
         <View style={styles.content}>
           <Text style={[styles.contentTitle, { color: theme.text }]}>
-            Bước 2: Điền thông tin vi phạm
+            {t('report.step2Title')}
           </Text>
           <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
-            Điền các thông tin cụ thể về vi phạm
+            {t('report.step2Subtitle')}
           </Text>
 
           {selectedViolationType === "class"
@@ -502,10 +470,10 @@ export default function Step2({ navigation, route }) {
 
           {/* Notes Input */}
           <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: theme.subText }]}>Ghi chú</Text>
+            <Text style={[styles.label, { color: theme.subText }]}>{t('report.notes')}</Text>
             <TextInput
               style={[styles.input, styles.notesInput, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-              placeholder="Nhập các ghi chú (nếu có)"
+              placeholder={t('report.notesPlaceholder')}
               placeholderTextColor={theme.subText}
               value={notes}
               onChangeText={setNotes}
@@ -528,7 +496,7 @@ export default function Step2({ navigation, route }) {
         disabled={!isFormValid()}
         onPress={handleSubmit}
       >
-        <Text style={styles.continueButtonText}>Tiếp tục</Text>
+        <Text style={styles.continueButtonText}>{t('report.continue')}</Text>
         <Ionicons name="arrow-forward" size={24} color="#fff" />
       </TouchableOpacity>
       <BottomSheet

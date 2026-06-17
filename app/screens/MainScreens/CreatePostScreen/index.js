@@ -374,7 +374,7 @@ const CreatePostScreen = ({ navigation }) => {
             </Text>
             <Dropdown
               options={isAnonymous ? view.filter(v => v.value !== 'followers') : view}
-              placeholder={"Công khai"}
+              placeholder={t('createPost.privacyPublic')}
               selectedValue={viewSelected}
               onValueChange={setViewSelected}
               style={{
@@ -404,7 +404,7 @@ const CreatePostScreen = ({ navigation }) => {
         <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? "#1f2937" : "#fafafa", borderColor: theme.border }]}>
           <TextInput
             style={[styles.titleInput, { color: theme.text }]}
-            placeholder="Chủ đề bạn muốn chia sẻ là gì?"
+            placeholder={t('createPost.placeholderTitle')}
             placeholderTextColor={theme.subText}
             value={title}
             onChangeText={setTitle}

@@ -21,6 +21,7 @@ import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const NewConversationScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -28,6 +29,7 @@ const NewConversationScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleSearch = async (query) => {
     setSearchQuery(query);
@@ -89,8 +91,8 @@ const NewConversationScreen = ({ navigation }) => {
       console.error("Error navigating to conversation:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể mở cuộc trò chuyện. Vui lòng thử lại sau.",
+        text1: t('common.error'),
+        text2: t('chatConversation.cannotOpen'),
       });
     }
   };

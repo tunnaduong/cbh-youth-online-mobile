@@ -45,6 +45,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Slider from "@react-native-community/slider";
 import { captureRef } from "react-native-view-shot";
 import { createStory } from "../../../services/api/Api";
+import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import KeyboardSpacer from "react-native-keyboard-spacer";
 
@@ -252,8 +253,8 @@ const StableCameraView = memo(
           console.error("Camera mount error:", error);
           Toast.show({
             type: "error",
-            text1: "Lỗi khởi tạo camera",
-            text2: "Không thể khởi tạo camera. Vui lòng thử lại.",
+            text1: t("story.cameraError"),
+            text2: t("story.cameraErrorDesc"),
           });
         }}
         onCameraReady={() => {
@@ -293,6 +294,7 @@ const TextOnlyContent = memo(({ text }) => (
 ));
 
 const CreateStoryScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [selectedImage, setSelectedImage] = useState(null);
   const [text, setText] = useState("");
   const [textPosition, setTextPosition] = useState({
@@ -423,12 +425,12 @@ const CreateStoryScreen = ({ navigation }) => {
 
         Toast.show({
           type: "success",
-          text1: "Đăng tin thành công",
+          text1: t("story.postSuccess"),
           text2: isTextOnly
-            ? "Tin văn bản đã được đăng."
+            ? t("story.textStoryPosted")
             : savedDrawingData
-            ? "Tin với bản vẽ đã được đăng."
-            : "Tin của bạn đã được đăng.",
+            ? t("story.drawingStoryPosted")
+            : t("story.storyPosted"),
         });
 
         // Reset navigation stack and go to MainScreens
@@ -450,8 +452,8 @@ const CreateStoryScreen = ({ navigation }) => {
         console.error("Error processing story content:", imageError);
         Toast.show({
           type: "error",
-          text1: "Lỗi xử lý nội dung",
-          text2: "Không thể xử lý nội dung. Vui lòng thử lại.",
+          text1: t("story.contentError"),
+          text2: t("story.contentErrorDesc"),
         });
         return;
       }
@@ -459,8 +461,8 @@ const CreateStoryScreen = ({ navigation }) => {
       console.error("Error uploading story:", error.response?.data || error);
       Toast.show({
         type: "error",
-        text1: "Lỗi đăng tin",
-        text2: "Không thể đăng tin. Vui lòng thử lại sau.",
+        text1: t("story.postError"),
+        text2: t("story.postErrorDesc"),
       });
     } finally {
       setIsUploading(false);
@@ -471,8 +473,8 @@ const CreateStoryScreen = ({ navigation }) => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
         options: [
-          type == "drawing" ? "Bỏ bản vẽ" : "Bỏ tin",
-          "Tiếp tục chỉnh sửa",
+          type == "drawing" ? t("story.discardDrawing") : t("story.discardStory"),
+          t("story.continueEditing"),
         ],
         destructiveButtonIndex: 0,
         userInterfaceStyle: "dark",
@@ -500,12 +502,12 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const handleExitAndroid = (type) => {
     Alert.alert(
-      "Bạn có chắc chắn muốn thoát không?",
-      "Bạn sẽ mất nội dung đã nhập",
+      t("story.exitConfirm"),
+      t("story.exitConfirmDesc"),
       [
         { text: "Hủy", style: "cancel" },
         {
-          text: "Thoát",
+          text: t("story.exit"),
           onPress: () => {
             if (type === "drawing") {
               setIsDrawing(false);
@@ -679,13 +681,13 @@ const CreateStoryScreen = ({ navigation }) => {
     try {
       const currentDrawingData = drawingRef.current?.getDrawingData?.();
       if (!currentDrawingData) {
-        throw new Error("Không có dữ liệu vẽ để lưu.");
+        throw new Error(t("story.noDrawingData"));
       }
 
       // Save both the drawing data and capture the image
       const imageBase64 = await drawingRef.current?.makeImageSnapshot();
       if (!imageBase64) {
-        throw new Error("Không thể chụp ảnh bản vẽ.");
+        throw new Error(t("story.captureDrawingError"));
       }
 
       setSavedDrawingData({
@@ -695,8 +697,8 @@ const CreateStoryScreen = ({ navigation }) => {
 
       Toast.show({
         type: "success",
-        text1: "Đã lưu bản vẽ",
-        text2: "Bản vẽ của bạn đã được cập nhật.",
+        text1: t("story.drawingSaved"),
+        text2: t("story.drawingUpdated"),
       });
 
       setIsDrawing(false);
@@ -705,15 +707,15 @@ const CreateStoryScreen = ({ navigation }) => {
       console.error("Error saving drawing:", error.message);
       Toast.show({
         type: "error",
-        text1: "Lỗi lưu bản vẽ",
-        text2: "Không thể lưu bản vẽ. Vui lòng thử lại.",
+        text1: t("story.saveDrawingError"),
+        text2: t("story.saveDrawingErrorDesc"),
       });
     }
   };
 
   // Memoize the text input placeholder
   const textInputPlaceholder = useMemo(
-    () => (isTextOnly ? "Nhập nội dung tin của bạn..." : "Nhập nội dung..."),
+    () => (isTextOnly ? t("story.textPlaceholder") : t("story.drawingPlaceholder")),
     [isTextOnly]
   );
 
@@ -726,8 +728,8 @@ const CreateStoryScreen = ({ navigation }) => {
     if (!permission) {
       Toast.show({
         type: "info",
-        text1: "Đang kiểm tra quyền truy cập",
-        text2: "Vui lòng đợi trong giây lát...",
+        text1: t("story.checkingPermission"),
+        text2: t("story.pleaseWait"),
       });
       return;
     }
@@ -737,8 +739,8 @@ const CreateStoryScreen = ({ navigation }) => {
       if (!result.granted) {
         Toast.show({
           type: "error",
-          text1: "Không có quyền truy cập camera",
-          text2: "Vui lòng cấp quyền truy cập camera trong cài đặt.",
+          text1: t("story.noCameraPermission"),
+          text2: t("story.cameraPermissionDesc"),
         });
         return;
       }
@@ -765,8 +767,8 @@ const CreateStoryScreen = ({ navigation }) => {
         console.error("Error taking photo:", error);
         Toast.show({
           type: "error",
-          text1: "Lỗi chụp ảnh",
-          text2: "Không thể chụp ảnh. Vui lòng thử lại.",
+          text1: t("story.captureError"),
+          text2: t("story.captureErrorDesc"),
         });
       }
     }
@@ -860,7 +862,7 @@ const CreateStoryScreen = ({ navigation }) => {
             : "text-[#319527]/50"
         }`}
       >
-        {isDrawing ? "Xong" : isUploading ? "Đang đăng..." : "Chia sẻ"}
+        {isDrawing ? t("story.done") : isUploading ? t("story.posting") : t("story.share")}
       </Text>
     </TouchableOpacity>
   );
@@ -892,12 +894,12 @@ const CreateStoryScreen = ({ navigation }) => {
             </TouchableOpacity>
             <Text className="text-white text-lg font-semibold">
               {isDrawing
-                ? "Vẽ"
+                ? t("story.draw")
                 : isTextOnly
-                ? "Tin văn bản"
+                ? t("story.textContent")
                 : selectedImage
-                ? "Chỉnh sửa"
-                : "Tạo tin"}
+                ? t("story.edit")
+                : t("story.createStory")}
             </Text>
             {headerRightButton}
           </View>

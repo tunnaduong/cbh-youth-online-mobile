@@ -238,7 +238,7 @@ const ConversationScreen = ({ navigation, route }) => {
     // Special case for "Tán gẫu linh tinh" group
     if (
       currentConversation?.type === "group" &&
-      currentConversation?.name === "Tán gẫu linh tinh"
+      currentConversation?.name === t("chatConversation.casualGroupName")
     ) {
       return "local:chat.jpg";
     }

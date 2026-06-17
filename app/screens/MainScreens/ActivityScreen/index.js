@@ -167,6 +167,7 @@ const ActivityScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
+  const { t } = useTranslation();
 
   const fetchActivities = async () => {
     try {
@@ -176,8 +177,8 @@ const ActivityScreen = ({ navigation }) => {
         console.log("Invalid response structure:", response);
         Toast.show({
           type: "error",
-          text1: "Đã có lỗi xảy ra",
-          text2: "Không thể tải hoạt động. Vui lòng thử lại sau.",
+          text1: t('common.error'),
+          text2: t('activity.loadError'),
           autoHide: true,
           visibilityTime: 5000,
           topOffset: 60,
@@ -205,8 +206,8 @@ const ActivityScreen = ({ navigation }) => {
       console.log("Error fetching activities:", error);
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
-        text2: "Không thể tải hoạt động. Vui lòng thử lại sau.",
+        text1: t('common.error'),
+        text2: t('activity.loadError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,

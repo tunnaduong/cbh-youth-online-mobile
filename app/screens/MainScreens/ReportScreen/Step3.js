@@ -15,23 +15,6 @@ import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 import { useTranslation } from "react-i18next";
-const STEPS = [
-  {
-    id: 1,
-    title: "Chọn đối tượng",
-    subtitle: "Vui lòng chọn đối tượng bạn muốn báo cáo",
-  },
-  {
-    id: 2,
-    title: "Chi tiết vi phạm",
-    subtitle: "Mô tả chi tiết về hành vi vi phạm",
-  },
-  {
-    id: 3,
-    title: "Xác nhận",
-    subtitle: "Xác nhận thông tin báo cáo",
-  },
-];
 
 export default function Step3({ navigation, route }) {
   const {
@@ -49,6 +32,13 @@ export default function Step3({ navigation, route }) {
   const { theme, isDarkMode } = useTheme();
 
   const { t } = useTranslation();
+
+  const STEPS = [
+    { id: 1, titleKey: "report.step1" },
+    { id: 2, titleKey: "report.step2" },
+    { id: 3, titleKey: "report.step3" },
+  ];
+
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
       {STEPS.map((step, index) => (
@@ -67,7 +57,7 @@ export default function Step3({ navigation, route }) {
               </Text>
             </View>
             <Text style={[styles.stepText, { color: theme.primary }]}>
-              {step.title}
+              {t(step.titleKey)}
             </Text>
           </View>
           {index < STEPS.length - 1 && (
@@ -87,22 +77,22 @@ export default function Step3({ navigation, route }) {
 
   const renderStudentInfo = () => (
     <>
-      <InfoItem label="Họ tên học sinh" value={studentName} />
-      <InfoItem label="Thời gian báo cáo" value={reportDate} />
-      <InfoItem label="Xung kích báo cáo" value={userInfo.profile_name} />
-      <InfoItem label="Lỗi vi phạm" value={violationType || "Chưa chọn"} />
+      <InfoItem label={t('report.studentName')} value={studentName} />
+      <InfoItem label={t('report.reportTime')} value={reportDate} />
+      <InfoItem label={t('report.reporter')} value={userInfo.profile_name} />
+      <InfoItem label={t('report.violationType')} value={violationType || t('report.notSelected')} />
     </>
   );
 
   const renderClassInfo = () => (
     <>
-      <InfoItem label="Tên lớp" value={studentName} />
-      <InfoItem label="Thời gian báo cáo" value={reportDate} />
-      <InfoItem label="Xung kích báo cáo" value={userInfo.profile_name} />
-      <InfoItem label="Vắng" value={absences || "0"} />
-      <InfoItem label="Vệ sinh" value={cleanliness} />
-      <InfoItem label="Đồng phục" value={uniform} />
-      <InfoItem label="Lỗi vi phạm" value={violationType || "Chưa chọn"} />
+      <InfoItem label={t('report.className')} value={studentName} />
+      <InfoItem label={t('report.reportTime')} value={reportDate} />
+      <InfoItem label={t('report.reporter')} value={userInfo.profile_name} />
+      <InfoItem label={t('report.absent')} value={absences || "0"} />
+      <InfoItem label={t('report.hygiene')} value={cleanliness} />
+      <InfoItem label={t('report.uniform')} value={uniform} />
+      <InfoItem label={t('report.violationType')} value={violationType || t('report.notSelected')} />
     </>
   );
 
@@ -111,7 +101,7 @@ export default function Step3({ navigation, route }) {
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
-      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
+      <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
       <View
         style={{
@@ -136,16 +126,16 @@ export default function Step3({ navigation, route }) {
             flex: 1,
           }}
         >
-          Thông tin báo cáo của bạn sẽ không được lưu lại.
+          {t('report.confirmDiscard')}
         </Text>
       </View>
 
       <ScrollView style={[styles.scrollView, { backgroundColor: theme.background }]}>
         <View style={[styles.header, { backgroundColor: theme.primary }]}>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Báo cáo vi phạm</Text>
+            <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
             <Text style={styles.headerSubtitle}>
-              THPT Chuyên Biên Hòa - Hà Nam
+              {t('report.schoolName')}
             </Text>
           </View>
           <View style={styles.warningIcon}>
@@ -158,17 +148,17 @@ export default function Step3({ navigation, route }) {
 
         {/* Content */}
         <View style={styles.content}>
-          <Text style={[styles.contentTitle, { color: theme.text }]}>Bước 3: Xác nhận thông tin</Text>
+          <Text style={[styles.contentTitle, { color: theme.text }]}>{t('report.step3Title')}</Text>
           <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
-            Vui lòng kiểm tra lại thông tin trước khi gửi báo cáo
+            {t('report.step3Subtitle')}
           </Text>
 
           <View style={[styles.confirmationCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
             {isClassViolation ? renderClassInfo() : renderStudentInfo()}
             <View style={styles.notesContainer}>
-              <Text style={[styles.infoLabel, { color: theme.subText }]}>Ghi chú</Text>
+              <Text style={[styles.infoLabel, { color: theme.subText }]}>{t('report.notes')}</Text>
               <Text style={[styles.notesText, { color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#F5F5F5" }]}>
-                {notes || "Không có ghi chú"}
+                {notes || t('report.noNotes')}
               </Text>
             </View>
           </View>
@@ -186,7 +176,7 @@ export default function Step3({ navigation, route }) {
           });
         }}
       >
-        <Text style={styles.submitButtonText}>Gửi báo cáo</Text>
+        <Text style={styles.submitButtonText}>{t('report.submit')}</Text>
         <Ionicons name="send" size={24} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>

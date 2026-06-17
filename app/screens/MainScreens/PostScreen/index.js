@@ -185,7 +185,7 @@ const PostScreen = ({ route, navigation }) => {
       t('post.deleteConfirmBody'),
       [
         {
-          text: t('post.deleteAction') || "Xóa",
+          text: t('post.deleteAction'),
           style: "destructive",
           onPress: async () => {
             await deletePost(post.id);
@@ -200,7 +200,7 @@ const PostScreen = ({ route, navigation }) => {
           },
         },
         {
-          text: t('post.editAction') || "Chỉnh sửa",
+          text: t('post.editAction'),
           style: "default",
           onPress: () => {
             navigation.navigate("EditPostScreen", { postId: post.id });
@@ -208,7 +208,7 @@ const PostScreen = ({ route, navigation }) => {
           },
         },
         {
-          text: t('settings.cancel') || "Hủy",
+          text: t('settings.cancel'),
           style: "cancel",
         },
       ]
@@ -613,7 +613,7 @@ const PostScreen = ({ route, navigation }) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [t('settings.cancel') || "Hủy", t('post.editComment'), t('post.deleteComment')],
+          options: [t('settings.cancel'), t('post.editComment'), t('post.deleteComment')],
           destructiveButtonIndex: 2,
           cancelButtonIndex: 0,
         },
@@ -639,7 +639,7 @@ const PostScreen = ({ route, navigation }) => {
         t('post.selectAction'),
         [
           {
-            text: t('settings.cancel') || "Hủy",
+            text: t('settings.cancel'),
             style: "cancel",
           },
           {
@@ -668,11 +668,11 @@ const PostScreen = ({ route, navigation }) => {
   const handleDeleteComment = async (commentId) => {
     Alert.alert(t('post.deleteComment'), t('post.deleteCommentConfirm'), [
       {
-        text: t('settings.cancel') || "Hủy",
+        text: t('settings.cancel'),
         style: "cancel",
       },
       {
-        text: t('post.deleteAction') || "Xóa",
+        text: t('post.deleteAction'),
         style: "destructive",
         onPress: async () => {
           try {

@@ -149,7 +149,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       console.log("Error fetching newsfeed:", error);
       Toast.show({
         type: "error",
-        text1: t('profile.errorTitle') || "Đã có lỗi xảy ra",
+        text1: t('common.error'),
         text2: t('home.loadingError'),
         autoHide: true,
         visibilityTime: 5000,
@@ -316,15 +316,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       await reportUser({ story_id: currentStory, reported_user_id: currentStoryUser.uid || currentStoryUser.id, reason });
       Toast.show({
         type: "success",
-        text1: "Đã gửi báo cáo",
-        text2: "Cảm ơn bạn đã báo cáo nội dung này.",
+        text1: t('home.reportSentTitle'),
+        text2: t('home.reportSentBody'),
         topOffset: 60,
       });
     } catch (e) {
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: e.message || "Không thể gửi báo cáo",
+        text1: t('common.error'),
+        text2: e.message || t('post.reportError'),
         topOffset: 60,
       });
     }
@@ -556,7 +556,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     }
                   } catch (e) {
                     console.error("Block error:", e);
-                    Alert.alert("Lỗi", e.message || "Có lỗi xảy ra");
+                    Alert.alert(t('common.error'), e.message || t('common.unknownError'));
                   }
                 }
               }
@@ -937,9 +937,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       await resendVerificationEmail();
       Toast.show({
         type: "success",
-        text1: "Thành công",
+        text1: t('home.resendVerificationSuccess'),
         text2:
-          "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.",
+          t('home.resendVerificationSuccessBody'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -948,10 +948,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
+        text1: t('common.error'),
         text2:
           error.message ||
-          "Không thể gửi email xác minh. Vui lòng thử lại sau.",
+          t('home.resendVerificationError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -1055,7 +1055,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                         marginBottom: 4,
                       }}
                     >
-                      Email của bạn:
+                      {t('home.yourEmail')}:
                     </Text>
                     <Text
                       style={{
@@ -1091,7 +1091,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                         fontWeight: "600",
                       }}
                     >
-                      Gửi lại email xác minh
+                      {t('home.resendVerificationEmail')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -1110,7 +1110,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       fontSize: 15,
                     }}
                   >
-                    Đóng
+                    {t('common.close')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1234,8 +1234,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           console.error("Error reacting to story:", error);
           Toast.show({
             type: "error",
-            text1: "Lỗi",
-            text2: "Không thể thả cảm xúc. Vui lòng thử lại.",
+            text1: t('common.error'),
+            text2: t('home.reactionError'),
           });
         }
       }
@@ -1254,8 +1254,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         setReplyText("");
         Toast.show({
           type: "success",
-          text1: "Đã gửi",
-          text2: "Tin nhắn đã được gửi đến người dùng.",
+          text1: t('home.replySent'),
+          text2: t('home.replySentBody'),
         });
 
         // Optionally navigate to conversation after sending reply
@@ -1270,7 +1270,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         console.error("Error replying to story:", error);
 
         // Extract error message from API response
-        let errorMessage = "Không thể gửi tin nhắn. Vui lòng thử lại.";
+        let errorMessage = t('home.replySendError');
 
         if (error.response?.data) {
           // Handle different error response formats
@@ -1295,7 +1295,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
         Toast.show({
           type: "error",
-          text1: "Lỗi",
+          text1: t('common.error'),
           text2: errorMessage,
           visibilityTime: 4000,
         });
@@ -1330,7 +1330,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             >
               <Ionicons name="eye-outline" size={20} color="#fff" />
               <Text style={styles.viewCountText}>
-                {viewersCount === 0 ? 0 : viewersCount - 1} {"lượt xem"}
+                {viewersCount === 0 ? 0 : viewersCount - 1} {" " + t('home.views')}
               </Text>
             </TouchableOpacity>
           </View>

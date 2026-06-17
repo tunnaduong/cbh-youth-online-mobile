@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const Dropdown = ({
   options = [],
@@ -26,6 +27,7 @@ const Dropdown = ({
 }) => {
   const [visible, setVisible] = useState(false);
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   const handleSelect = (value) => {
     onValueChange(value);
@@ -42,7 +44,7 @@ const Dropdown = ({
 
     const groups = {};
     options.forEach((opt) => {
-      const cat = opt.category || "Khác";
+      const cat = opt.category || t("common.other");
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(opt);
     });
@@ -71,7 +73,7 @@ const Dropdown = ({
           >
             {selectedValue
               ? selectedValue.label
-              : placeholder || "Chọn một tùy chọn"}
+              : placeholder || t("dropdown.selectOption")}
           </Text>
         </View>
         <Ionicons

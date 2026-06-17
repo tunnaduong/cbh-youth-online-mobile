@@ -21,7 +21,8 @@
     "savedPost": "đã lưu bài viết",
     "createdStory": "đã đăng tin mới",
     "likedStory": "đã thích tin của",
-    "viewedStory": "đã xem tin của"
+    "viewedStory": "đã xem tin của",
+    "loadError": "Không thể tải hoạt động. Vui lòng thử lại sau."
   },
   "navigation": {
     "home": "Trang chủ",
@@ -55,7 +56,10 @@
   "common": {
     "error": "Đã có lỗi xảy ra",
     "ok": "OK",
-    "cancel": "Hủy"
+    "cancel": "Hủy",
+    "other": "Khác",
+    "unknownError": "Có lỗi xảy ra",
+    "close": "Đóng"
   },
   "createActions": {
     "post": "Tạo bài viết",
@@ -91,7 +95,19 @@
     "blockedErrorMessage": "Không tìm thấy thông tin người dùng",
     "loadingFeed": "Đang tải bảng tin...",
     "useFullFeatures": "Để sử dụng đầy đủ các tính năng như tạo bài viết, bạn cần xác minh email.",
-    "replyPlaceholder": "Chia sẻ cảm nghĩ của bạn..."
+    "replyPlaceholder": "Chia sẻ cảm nghĩ của bạn...",
+    "reportSentTitle": "Đã gửi báo cáo",
+    "reportSentBody": "Cảm ơn bạn đã báo cáo nội dung này.",
+    "resendVerificationSuccess": "Thành công",
+    "resendVerificationSuccessBody": "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.",
+    "resendVerificationError": "Không thể gửi email xác minh. Vui lòng thử lại sau.",
+    "resendVerificationEmail": "Gửi lại email xác minh",
+    "yourEmail": "Email của bạn:",
+    "reactionError": "Không thể thả cảm xúc. Vui lòng thử lại.",
+    "replySent": "Đã gửi",
+    "replySentBody": "Tin nhắn đã được gửi đến người dùng.",
+    "replySendError": "Không thể gửi tin nhắn. Vui lòng thử lại.",
+    "views": "lượt xem"
   },
   "chat": {
     "title": "Tin nhắn",
@@ -128,7 +144,16 @@
     "latest": "Mới nhất",
     "noNewPosts": "Chưa có bài viết mới",
     "posts": "Bài viết",
-    "comments": "Bình luận"
+    "comments": "Bình luận",
+    "categoryNotFound": "Không tìm thấy thông tin chuyên mục.",
+    "loadError": "Không thể tải dữ liệu diễn đàn. Vui lòng thử lại sau.",
+    "categoryDeleted": "Chuyên mục này không tồn tại hoặc đã bị xóa.",
+    "serverError": "Lỗi máy chủ. Vui lòng thử lại sau.",
+    "categoryNotFound2": "Không tìm thấy chuyên mục này.",
+    "loadDataError": "Lỗi tải dữ liệu",
+    "threadTitle": "Tiêu đề",
+    "lastPost": "Bài viết cuối",
+    "noPostsInCategory": "Chưa có bài viết nào trong chuyên mục này."
   },
   "createPost": {
     "title": "Tạo bài viết",
@@ -338,7 +363,39 @@
     "modalTitle": "Báo cáo vi phạm",
     "reasonPlaceholder": "Nhập lý do báo cáo (tối thiểu 10 ký tự)...",
     "cancel": "Hủy",
-    "submit": "Gửi báo cáo"
+    "submit": "Gửi báo cáo",
+    "violationType": "Lỗi vi phạm",
+    "studentName": "Họ tên học sinh",
+    "studentNamePlaceholder": "Nhập tên học sinh",
+    "className": "Tên lớp",
+    "classNamePlaceholder": "Nhập tên lớp",
+    "absentStudents": "Số học sinh vắng",
+    "hygiene": "Vệ sinh",
+    "uniform": "Đồng phục",
+    "reportTime": "Thời gian báo cáo",
+    "reporter": "Xung kích báo cáo",
+    "notes": "Ghi chú",
+    "notesPlaceholder": "Nhập các ghi chú (nếu có)",
+    "noNotes": "Không có ghi chú",
+    "step2Title": "Bước 2: Điền thông tin vi phạm",
+    "step2Subtitle": "Điền các thông tin cụ thể về vi phạm",
+    "step3Title": "Bước 3: Xác nhận thông tin",
+    "step3Subtitle": "Vui lòng kiểm tra lại thông tin trước khi gửi báo cáo",
+    "notSelected": "Chưa chọn",
+    "absent": "Vắng",
+    "submitSuccess": "Gửi báo cáo thành công!",
+    "backToHome": "Quay về trang chủ",
+    "confirmDiscard": "Thông tin báo cáo của bạn sẽ không được lưu lại.",
+    "addOtherViolation": "Thêm vi phạm khác",
+    "searchViolation": "Nhập để tìm kiếm vi phạm...",
+    "addNewViolation": "Thêm vi phạm mới",
+    "cleanliness": ["Sạch sẽ", "Tương đối sạch sẽ", "Bẩn", "Rất bẩn"],
+    "uniformStatus": ["Đủ", "Tương đối đủ", "Thiếu"],
+    "studentViolationTypes": ["Đi học muộn", "Không mặc đồng phục", "Không làm bài tập", "Nói chuyện trong giờ học", "Vi phạm nội quy lớp học", "Không tham gia hoạt động tập thể", "Khác"],
+    "classViolationTypes": ["Trực nhật không tốt", "Nề nếp lớp kém", "Không đảm bảo vệ sinh", "Không đồng phục đồng bộ", "Vi phạm nội quy trường", "Khác"],
+    "mockViolations": ["Vi phạm quy định sử dụng điện thoại", "Vi phạm giờ giấc học tập", "Vi phạm nội quy phòng học", "Vi phạm quy định an toàn"],
+    "previewMode": "Chức năng đang ở chế độ xem trước. Khi nào hệ thống được cập nhật, bạn sẽ có thể sử dụng chức năng này.",
+    "classInfo": "Thông tin lớp học"
   },
   "editPost": {
     "errorLoadTitle": "Không thể tải bài viết",
@@ -377,6 +434,7 @@
     "blockAction": "Chặn",
     "blockSuccessTitle": "Đã chặn người dùng",
     "blockSuccessMessage": "Bạn sẽ không còn thấy nội dung từ người này.",
+    "blockError": "Không thể chặn người dùng này",
     "unblockTitle": "Bỏ chặn người dùng",
     "unblockConfirm": "Bạn có chắc chắn muốn bỏ chặn {{username}}?",
     "unblockAction": "Bỏ chặn",
@@ -476,7 +534,12 @@
     "errorTitle": "Lỗi",
     "errorMessage": "Đã có lỗi xảy ra",
     "checkEmail": "Đã gửi email xác nhận",
-    "checkEmailDesc": "Vui lòng kiểm tra hộp thư và xác nhận địa chỉ email của bạn"
+    "checkEmailDesc": "Vui lòng kiểm tra hộp thư và xác nhận địa chỉ email của bạn",
+    "invalidConfirmText": "Vui lòng nhập đúng nội dung xác nhận 'XOÁ TÀI KHOẢN'",
+    "passwordRequired": "Vui lòng nhập mật khẩu",
+    "accountDeleted": "Đã xóa tài khoản thành công",
+    "usernameRequired": "Vui lòng nhập tên đăng nhập mới",
+    "emailRequired": "Vui lòng nhập email mới"
   },
   "notificationSettings": {
     "title": "Thông báo",
@@ -497,5 +560,75 @@
     "loadingError": "Không thể tải cài đặt thông báo",
     "saveError": "Không thể lưu cài đặt",
     "featureUnderDevelopment": "Tính năng đang được phát triển"
+  },
+  "storyViewers": {
+    "title": "Người xem",
+    "loadError": "Không thể tải danh sách người xem.",
+    "empty": "Chưa có người xem"
+  },
+  "archive": {
+    "title": "Kho lưu trữ",
+    "loadError": "Không thể tải kho lưu trữ.",
+    "privacyNotice": "Tin đã lưu trữ sẽ chỉ hiển thị với mình bạn.",
+    "empty": "Chưa có story nào",
+    "viewersCount": "{{count}} người xem"
+  },
+  "dropdown": {
+    "selectOption": "Chọn một tùy chọn"
+  },
+  "auth": {
+    "googleProcessing": "Đang xử lý đăng nhập với Google. Vui lòng đợi...",
+    "sessionInProgress": "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau.",
+    "stateFailed": "Không thể xác thực đăng nhập. Vui lòng thử lại.",
+    "loginCancelled": "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau.",
+    "googleTokenError": "Không thể lấy access token từ Google",
+    "googleUserInfoError": "Không thể lấy thông tin người dùng từ Google",
+    "googleFailed": "Đăng nhập với Google thất bại hoặc bị hủy",
+    "facebookProcessing": "Đang xử lý đăng nhập với Facebook. Vui lòng đợi...",
+    "facebookTokenError": "Không thể lấy access token từ Facebook",
+    "facebookUserInfoError": "Không thể lấy thông tin người dùng từ Facebook",
+    "facebookFailed": "Đăng nhập với Facebook thất bại hoặc bị hủy"
+  },
+  "api": {
+    "networkError": "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+  },
+  "story": {
+    "cameraError": "Lỗi khởi tạo camera",
+    "cameraErrorDesc": "Không thể khởi tạo camera. Vui lòng thử lại.",
+    "postSuccess": "Đăng tin thành công",
+    "textStoryPosted": "Tin văn bản đã được đăng.",
+    "drawingStoryPosted": "Tin với bản vẽ đã được đăng.",
+    "storyPosted": "Tin của bạn đã được đăng.",
+    "contentError": "Lỗi xử lý nội dung",
+    "contentErrorDesc": "Không thể xử lý nội dung. Vui lòng thử lại.",
+    "postError": "Lỗi đăng tin",
+    "postErrorDesc": "Không thể đăng tin. Vui lòng thử lại sau.",
+    "discardDrawing": "Bỏ bản vẽ",
+    "discardStory": "Bỏ tin",
+    "continueEditing": "Tiếp tục chỉnh sửa",
+    "exitConfirm": "Bạn có chắc chắn muốn thoát không?",
+    "exitConfirmDesc": "Bạn sẽ mất nội dung đã nhập",
+    "exit": "Thoát",
+    "noDrawingData": "Không có dữ liệu vẽ để lưu.",
+    "captureDrawingError": "Không thể chụp ảnh bản vẽ.",
+    "drawingSaved": "Đã lưu bản vẽ",
+    "drawingUpdated": "Bản vẽ của bạn đã được cập nhật.",
+    "saveDrawingError": "Lỗi lưu bản vẽ",
+    "saveDrawingErrorDesc": "Không thể lưu bản vẽ. Vui lòng thử lại.",
+    "textPlaceholder": "Nhập nội dung tin của bạn...",
+    "drawingPlaceholder": "Nhập nội dung...",
+    "checkingPermission": "Đang kiểm tra quyền truy cập",
+    "pleaseWait": "Vui lòng đợi trong giây lát...",
+    "noCameraPermission": "Không có quyền truy cập camera",
+    "cameraPermissionDesc": "Vui lòng cấp quyền truy cập camera trong cài đặt.",
+    "captureError": "Lỗi chụp ảnh",
+    "captureErrorDesc": "Không thể chụp ảnh. Vui lòng thử lại.",
+    "done": "Xong",
+    "posting": "Đang đăng...",
+    "share": "Chia sẻ",
+    "draw": "Vẽ",
+    "textContent": "Tin văn bản",
+    "edit": "Chỉnh sửa",
+    "createStory": "Tạo tin"
   }
 }

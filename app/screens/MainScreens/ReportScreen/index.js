@@ -121,8 +121,7 @@ export default function ReportScreen({ navigation }) {
             flex: 1,
           }}
         >
-          Chức năng đang ở chế độ xem trước. Khi nào hệ thống được cập nhật, bạn
-          sẽ có thể sử dụng chức năng này.
+          {t('report.previewMode')}
         </Text>
       </View>
 

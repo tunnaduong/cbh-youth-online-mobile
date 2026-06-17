@@ -117,7 +117,7 @@ export default function SecurityScreen({ navigation }) {
   const getErrorMessage = (error) => {
     if (error.response?.data?.message) return error.response.data.message;
     if (error.response?.data?.error) return error.response.data.error;
-    return error.message || "Đã có lỗi xảy ra";
+    return error.message || t('security.errorMessage');
   };
 
   // Handlers
@@ -127,11 +127,11 @@ export default function SecurityScreen({ navigation }) {
 
   const onConfirmDelete = async () => {
     if (confirmText !== "XOÁ TÀI KHOẢN") {
-      Alert.alert("Lỗi", "Vui lòng nhập đúng nội dung xác nhận 'XOÁ TÀI KHOẢN'");
+      Alert.alert(t('common.error'), t('security.invalidConfirmText'));
       return;
     }
     if (!password) {
-      Alert.alert("Lỗi", "Vui lòng nhập mật khẩu");
+      Alert.alert(t('common.error'), t('security.passwordRequired'));
       return;
     }
 
@@ -145,7 +145,7 @@ export default function SecurityScreen({ navigation }) {
       setTimeout(() => {
         Toast.show({
           type: "success",
-          text1: "Đã xóa tài khoản thành công",
+          text1: t('security.accountDeleted'),
         });
       }, 500);
 
@@ -156,7 +156,7 @@ export default function SecurityScreen({ navigation }) {
       const msg = getErrorMessage(error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
+        text1: t('common.error'),
         text2: msg,
       });
     }
@@ -164,7 +164,7 @@ export default function SecurityScreen({ navigation }) {
 
   const onUpdateUsername = async () => {
     if (!newUsername.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập tên đăng nhập mới");
+      Alert.alert(t('common.error'), t('security.usernameRequired'));
       return;
     }
 
@@ -187,7 +187,7 @@ export default function SecurityScreen({ navigation }) {
       setTimeout(() => {
         Toast.show({
           type: "success",
-          text1: "Cập nhật thành công",
+          text1: t('security.successMessage'),
         });
       }, 500);
     } catch (error) {
@@ -195,7 +195,7 @@ export default function SecurityScreen({ navigation }) {
       const msg = getErrorMessage(error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
+        text1: t('common.error'),
         text2: msg,
       });
     }
@@ -203,7 +203,7 @@ export default function SecurityScreen({ navigation }) {
 
   const onUpdateEmail = async () => {
     if (!newEmail.trim()) {
-      Alert.alert("Lỗi", "Vui lòng nhập email mới");
+      Alert.alert(t('common.error'), t('security.emailRequired'));
       return;
     }
 
@@ -221,15 +221,15 @@ export default function SecurityScreen({ navigation }) {
       setLoading(false);
       setEmailModalVisible(false);
       Alert.alert(
-        "Đã gửi email xác nhận",
-        "Vui lòng kiểm tra hộp thư và xác nhận địa chỉ email của bạn"
+        t('security.checkEmail'),
+        t('security.checkEmailDesc')
       );
     } catch (error) {
       setLoading(false);
       const msg = getErrorMessage(error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
+        text1: t('common.error'),
         text2: msg,
       });
     }
@@ -237,17 +237,17 @@ export default function SecurityScreen({ navigation }) {
 
   const onChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmNewPassword) {
-      Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin");
+      Alert.alert(t('common.error'), t('security.fillAll'));
       return;
     }
 
     if (newPassword !== confirmNewPassword) {
-      Alert.alert("Lỗi", "Mật khẩu mới không khớp");
+      Alert.alert(t('common.error'), t('security.passwordMismatch'));
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert("Lỗi", "Mật khẩu mới phải có ít nhất 6 ký tự");
+      Alert.alert(t('common.error'), t('security.passwordTooShort'));
       return;
     }
 
@@ -279,7 +279,7 @@ export default function SecurityScreen({ navigation }) {
       const msg = getErrorMessage(error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
+        text1: t('common.error'),
         text2: msg,
       });
     }
