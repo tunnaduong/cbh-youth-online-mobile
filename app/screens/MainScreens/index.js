@@ -107,12 +107,12 @@ export default function MainScreens({ navigation: stackNavigation }) {
               right: 15,
               elevation: 10,
               borderRadius: 30,
-              height: 65,
+              height: 55,
               shadowColor: "#000",
               shadowOpacity: 0.15,
               shadowOffset: { width: 0, height: 5 },
               shadowRadius: 15,
-              paddingBottom: 8, // Adjust for center alignment
+              paddingBottom: 3, // Adjust for center alignment
             },
             tabBarLabelStyle: {
               fontSize: 9, // Reduced font size to fit

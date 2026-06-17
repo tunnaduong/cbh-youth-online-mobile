@@ -20,6 +20,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -27,6 +28,7 @@ const LoginScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { theme, isDarkMode } = useTheme();
 
 
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
@@ -243,7 +245,7 @@ const LoginScreen = ({ navigation }) => {
     <>
       <ProgressHUD loadText="Đang đăng nhập..." visible={loading} />
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
           <TouchableOpacity
             className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
             onPress={() => {
@@ -258,19 +260,19 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
           <ScrollView style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Đăng nhập</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: theme.text }]}>Đăng nhập</Text>
+              <Text style={[styles.subtitle, { color: theme.subText }]}>
                 Chào mừng bạn trở lại ứng dụng
               </Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Tên người dùng hoặc email</Text>
+                <Text style={[styles.label, { color: theme.text }]}>Tên người dùng hoặc email</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="hello@example.com"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -279,12 +281,12 @@ const LoginScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mật khẩu</Text>
+                <Text style={[styles.label, { color: theme.text }]}>Mật khẩu</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={[styles.input, styles.passwordInput]}
+                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                     placeholder="••••••••••••"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.subText}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -296,7 +298,7 @@ const LoginScreen = ({ navigation }) => {
                     <Icon
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={24}
-                      color="#666"
+                      color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
@@ -322,38 +324,38 @@ const LoginScreen = ({ navigation }) => {
                   paddingVertical: 16,
                 }}
               >
-                <View style={styles.line} />
-                <Text style={styles.orText}>hoặc đăng nhập bằng</Text>
-                <View style={styles.line} />
+                <View style={[styles.line, { backgroundColor: theme.border, borderColor: theme.border }]} />
+                <Text style={[styles.orText, { color: theme.subText }]}>hoặc đăng nhập bằng</Text>
+                <View style={[styles.line, { backgroundColor: theme.border, borderColor: theme.border }]} />
               </View>
 
               {isAppleAuthAvailable && (
                 <TouchableOpacity
-                  style={styles.appleButton}
+                  style={[styles.appleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                   onPress={handleAppleLogin}
                 >
-                  <Icon name="logo-apple" size={24} color="#000" />
-                  <Text style={styles.appleButtonText}>Tiếp tục với Apple</Text>
+                  <Icon name="logo-apple" size={24} color={theme.text} />
+                  <Text style={[styles.appleButtonText, { color: theme.text }]}>Tiếp tục với Apple</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.googleButton}
+                style={[styles.googleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleGoogleLogin}
               >
                 <Image
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
-                <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+                <Text style={[styles.googleButtonText, { color: theme.text }]}>Tiếp tục với Google</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.facebookButton}
+                style={[styles.facebookButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleFacebookLogin}
               >
                 <Icon name="logo-facebook" size={24} color="#1877F2" />
-                <Text style={styles.facebookButtonText}>
+                <Text style={[styles.facebookButtonText, { color: theme.text }]}>
                   Tiếp tục với Facebook
                 </Text>
               </TouchableOpacity>

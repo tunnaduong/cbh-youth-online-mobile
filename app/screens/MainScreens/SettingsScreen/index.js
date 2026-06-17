@@ -156,13 +156,7 @@ export default function SettingsScreen({ navigation }) {
         </SettingSection>
 
         <SettingSection title="Ứng dụng" theme={theme}>
-          <View style={[styles.settingItem, { borderBottomColor: theme.border }]}>
-            <View style={styles.settingItemLeft}>
-              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                <Ionicons name="moon-outline" size={22} color={theme.subText} />
-              </View>
-              <Text style={[styles.settingItemText, { color: theme.text }]}>Giao diện</Text>
-            </View>
+          <View style={{ borderBottomWidth: 0.5, borderBottomColor: theme.border }}>
             <Dropdown
               options={[
                 { label: "Tự động", value: "system" },
@@ -174,8 +168,16 @@ export default function SettingsScreen({ navigation }) {
                 value: useSystemTheme ? "system" : (isDarkMode ? "dark" : "light")
               }}
               onValueChange={(item) => setThemeMode(item.value)}
-              style={{ borderWidth: 0, paddingVertical: 0, paddingRight: 0 }}
-              textStyle={{ color: theme.subText, fontSize: 16 }}
+              style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0 }}
+              textStyle={{ color: theme.subText, fontSize: 16, textAlign: 'right' }}
+              leftIcon={
+                <View style={styles.settingItemLeft}>
+                  <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+                    <Ionicons name="moon-outline" size={22} color={theme.subText} />
+                  </View>
+                  <Text style={[styles.settingItemText, { color: theme.text }]}>Giao diện</Text>
+                </View>
+              }
             />
           </View>
           <SettingItem
