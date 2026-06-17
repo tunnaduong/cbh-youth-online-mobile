@@ -36,6 +36,7 @@ import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const ProfileScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -51,6 +52,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const [activeTab, setActiveTab] = useState("posts");
   const [followed, setFollowed] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const { t } = useTranslation();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -178,8 +180,8 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const confirmBlock = () => {
     Alert.alert(
-      "Chặn người dùng?",
-      "Bạn sẽ không còn thấy bài viết của người này nữa.",
+      t('home.blockPerson') || "Chặn người dùng?",
+      t('profile.blockConfirm', { username: userData.profile.profile_name }) || "Bạn sẽ không còn thấy bài viết của người này nữa.",
       [
         { text: "Hủy", style: "cancel" },
         {
@@ -203,7 +205,7 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   const showOptions = () => {
-    const options = ["Báo cáo", "Chặn người dùng", "Hủy"];
+    const options = [t('home.reportStory') || "Báo cáo", t('home.blockPerson') || "Chặn người dùng", t('settings.cancel') || "Hủy"];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
 
@@ -222,12 +224,12 @@ const ProfileScreen = ({ route, navigation }) => {
       );
     } else {
       Alert.alert(
-        "Tùy chọn",
+        t('profile.optionsTitle') || "Tùy chọn",
         null,
         [
-          { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
-          { text: "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
-          { text: "Hủy", style: "cancel" },
+          { text: t('home.reportStory') || "Báo cáo", onPress: () => setReportModalVisible(true) },
+          { text: t('home.blockPerson') || "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
+          { text: t('settings.cancel') || "Hủy", style: "cancel" },
         ]
       );
     }
@@ -337,7 +339,7 @@ const ProfileScreen = ({ route, navigation }) => {
               user.isFollowed ? { color: theme.text } : { color: "#FFF" },
             ]}
           >
-            {user.isFollowed ? "Đang theo dõi" : "Theo dõi"}
+            {user.isFollowed ? t('follow.following') : t('follow.followAction')}
           </Text>
         </TouchableOpacity>
       )}
@@ -448,7 +450,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <Ionicons name="arrow-back" size={24} color={theme.primary} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-            {isCurrentUser ? "Trang cá nhân" : userData?.profile.profile_name}
+            {isCurrentUser ? t('profile.title') : userData?.profile.profile_name}
           </Text>
           {isCurrentUser ? (
             <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
@@ -553,7 +555,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 style={{ backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999, marginHorizontal: 16 }}
               >
                 <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
-                  Chỉnh sửa trang cá nhân
+                  {t('follow.editProfile')}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -565,7 +567,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   >
                     <Ionicons name="add-circle-outline" size={20} color={"white"} />
                     <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: "white" }}>
-                      Theo dõi
+                      {t('follow.followAction')}
                     </Text>
                   </TouchableOpacity>
                 ) : (
@@ -574,7 +576,7 @@ const ProfileScreen = ({ route, navigation }) => {
                     style={{ backgroundColor: "transparent", height: 44, borderWidth: 1.5, borderColor: theme.primary, borderRadius: 999, justifyContent: "center", alignItems: "center", flex: 1 }}
                   >
                     <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
-                      Đã theo dõi
+                      {t('follow.following')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -599,7 +601,7 @@ const ProfileScreen = ({ route, navigation }) => {
                     color={theme.text}
                   />
                   <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: theme.text }}>
-                    Nhắn tin
+                    {t('follow.message')}
                   </Text>
                 </TouchableOpacity>
               </View>

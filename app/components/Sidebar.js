@@ -22,6 +22,7 @@ import { useNavigation } from "@react-navigation/native";
 import FastImage from "react-native-fast-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -86,6 +87,7 @@ const Sidebar = () => {
   });
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   // Animated values for each section
   const rotationValues = useRef({
@@ -156,8 +158,8 @@ const Sidebar = () => {
   const onPressIOS = () => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        title: "Bạn có chắc chắn muốn đăng xuất không?",
-        options: ["Hủy", "Đăng xuất"],
+        title: t('settings.logoutConfirm') || "Bạn có chắc chắn muốn đăng xuất không?",
+        options: [t('settings.cancel') || "Hủy", t('settings.logout') || "Đăng xuất"],
         destructiveButtonIndex: 1,
         cancelButtonIndex: 0,
         userInterfaceStyle: isDarkMode ? "dark" : "light",
@@ -173,17 +175,17 @@ const Sidebar = () => {
   };
   const onPressAndroid = () =>
     Alert.alert(
-      "Thông báo",
-      "Bạn có chắc chắn muốn đăng xuất không?",
+      t('navigation.notifications') || "Thông báo",
+      t('settings.logoutConfirm') || "Bạn có chắc chắn muốn đăng xuất không?",
       [
         {
-          text: "Có",
+          text: t('settings.yes') || "Có",
           onPress: () => {
             goToScreen();
           },
         },
         {
-          text: "Không",
+          text: t('settings.no') || "Không",
           style: "cancel",
         },
       ],
@@ -226,9 +228,9 @@ const Sidebar = () => {
             </View>
           </TouchableOpacity>
           <List.Section>
-            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>Tiện ích</List.Subheader>
+            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>{t('sidebar.utilities')}</List.Subheader>
             <CollapsibleMenuItem
-              title="Cộng đồng"
+              title={t('sidebar.community')}
               iconName="people-outline"
               sectionKey="community"
               isCollapsed={collapsedSections.community}
@@ -237,7 +239,7 @@ const Sidebar = () => {
               theme={theme}
             >
               <List.Item
-                title="Bảng tin"
+                title={t('sidebar.feed')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("MainScreens", { screen: "Home" })
@@ -245,7 +247,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title="Diễn đàn"
+                title={t('navigation.forum')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("MainScreens", { screen: "Forum" })
@@ -253,7 +255,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title="Loa lớn"
+                title={t('sidebar.loudspeaker')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
@@ -264,7 +266,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title="Tin tức Đoàn"
+                title={t('sidebar.youthUnionNews')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("CategoryScreen", { categoryId: 32 })
@@ -272,14 +274,14 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title="Đã lưu"
+                title={t('sidebar.saved')}
                 titleStyle={{ color: theme.text }}
                 onPress={() => navigation.navigate("SavedPostsScreen")}
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
             </CollapsibleMenuItem>
             <CollapsibleMenuItem
-              title="Báo cáo"
+              title={t('sidebar.reports')}
               iconName="alert-circle-outline"
               sectionKey="reports"
               isCollapsed={collapsedSections.reports}
@@ -288,7 +290,7 @@ const Sidebar = () => {
               theme={theme}
             >
               <List.Item
-                title="Vi phạm học sinh"
+                title={t('sidebar.studentViolation')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("ReportScreen", { type: "student" })
@@ -296,7 +298,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title="Vi phạm tập thể lớp"
+                title={t('sidebar.classViolation')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("ReportScreen", { type: "class" })
@@ -305,7 +307,7 @@ const Sidebar = () => {
               />
             </CollapsibleMenuItem>
             <CollapsibleMenuItem
-              title="Tra cứu"
+              title={t('sidebar.lookup')}
               iconName="search-outline"
               sectionKey="search"
               isCollapsed={collapsedSections.search}
@@ -314,7 +316,7 @@ const Sidebar = () => {
               theme={theme}
             >
               <List.Item
-                title="Thời khóa biểu"
+                title={t('sidebar.timetable')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
@@ -325,7 +327,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title="Xếp hạng lớp"
+                title={t('sidebar.classRanking')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
@@ -336,7 +338,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title="Xếp hạng thành viên"
+                title={t('sidebar.memberRanking')}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
@@ -348,7 +350,7 @@ const Sidebar = () => {
               />
             </CollapsibleMenuItem>
             <List.Item
-              title="Khám phá"
+              title={t('sidebar.explore')}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("ExploreScreen")}
               left={() => (
@@ -374,9 +376,9 @@ const Sidebar = () => {
             />
           </List.Section>
           <List.Section>
-            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>Thiết lập</List.Subheader>
+            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>{t('sidebar.settingsGroup')}</List.Subheader>
             <List.Item
-              title="Cài đặt"
+              title={t('settings.title')}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("Settings")}
               left={() => (
@@ -389,7 +391,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title="Đăng xuất"
+              title={t('settings.logout') || "Đăng xuất"}
               onPress={() => {
                 Platform.OS === "ios" ? onPressIOS() : onPressAndroid();
               }}
@@ -405,9 +407,9 @@ const Sidebar = () => {
             />
           </List.Section>
           <List.Section>
-            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>Hỗ trợ</List.Subheader>
+            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>{t('sidebar.support')}</List.Subheader>
             <List.Item
-              title="Giới thiệu"
+              title={t('sidebar.about')}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("AboutScreen")}
               left={() => (
@@ -420,7 +422,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title="Trợ giúp"
+              title={t('sidebar.help')}
               titleStyle={{ color: theme.text }}
               onPress={() =>
                 Linking.openURL("https://www.chuyenbienhoa.com/help")
@@ -435,7 +437,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title="Quyền riêng tư"
+              title={t('sidebar.privacy')}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("PrivacyPolicyScreen")}
               left={() => (
@@ -448,7 +450,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title="Điều khoản sử dụng"
+              title={t('sidebar.terms')}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("TermsOfServiceScreen")}
               left={() => (

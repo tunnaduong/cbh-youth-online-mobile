@@ -11,22 +11,23 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const STEPS = [
   {
     id: 1,
-    title: "Chọn đối tượng",
-    subtitle: "Vui lòng chọn đối tượng bạn muốn báo cáo",
+    titleKey: "report.step1",
+    subtitleKey: "report.step1Desc",
   },
   {
     id: 2,
-    title: "Chi tiết vi phạm",
-    subtitle: "Mô tả chi tiết về hành vi vi phạm",
+    titleKey: "report.step2",
+    subtitleKey: "report.step2Desc",
   },
   {
     id: 3,
-    title: "Xác nhận",
-    subtitle: "Xác nhận thông tin báo cáo",
+    titleKey: "report.step3",
+    subtitleKey: "report.step3Desc",
   },
 ];
 
@@ -34,16 +35,14 @@ const VIOLATION_TYPES = [
   {
     id: "student",
     icon: "person",
-    title: "Vi phạm học sinh",
-    description:
-      "Báo cáo các vi phạm của cá nhân học sinh như: đi học muộn, vi phạm nội quy...",
+    titleKey: "report.studentViolation",
+    descKey: "report.studentViolationDesc",
   },
   {
     id: "class",
     icon: "people",
-    title: "Vi phạm tập thể lớp",
-    description:
-      "Báo cáo các vi phạm liên quan đến toàn bộ lớp học như: trực nhật không tốt, nề nếp lớp...",
+    titleKey: "report.classViolation",
+    descKey: "report.classViolationDesc",
   },
 ];
 
@@ -51,6 +50,7 @@ export default function ReportScreen({ navigation }) {
   const [selectedType, setSelectedType] = useState(null);
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   const StepIndicator = () => (
     <View style={styles.stepContainer}>
@@ -80,7 +80,7 @@ export default function ReportScreen({ navigation }) {
                 { color: step.id === 1 ? theme.primary : theme.subText },
               ]}
             >
-              {step.title}
+              {t(step.titleKey)}
             </Text>
           </View>
           {index < STEPS.length - 1 && (
@@ -96,7 +96,7 @@ export default function ReportScreen({ navigation }) {
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
-      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
+      <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
       <View
         style={{
@@ -128,9 +128,9 @@ export default function ReportScreen({ navigation }) {
 
       <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Báo cáo vi phạm</Text>
+          <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
           <Text style={styles.headerSubtitle}>
-            THPT Chuyên Biên Hòa - Hà Nam
+            {t('report.schoolName')}
           </Text>
         </View>
         <View style={styles.warningIcon}>
@@ -143,9 +143,9 @@ export default function ReportScreen({ navigation }) {
 
       {/* Content */}
       <View style={styles.content}>
-        <Text style={[styles.contentTitle, { color: theme.text }]}>Bước 1: Chọn đối tượng báo cáo</Text>
+        <Text style={[styles.contentTitle, { color: theme.text }]}>{t('report.step1Title')}</Text>
         <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
-          Vui lòng chọn đối tượng bạn muốn báo cáo
+          {t('report.step1Desc')}
         </Text>
 
         {/* Violation Type Cards */}
@@ -163,9 +163,9 @@ export default function ReportScreen({ navigation }) {
               <Ionicons name={type.icon} size={24} color={theme.primary} />
             </View>
             <View style={styles.cardContent}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{type.title}</Text>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>{t(type.titleKey)}</Text>
               <Text style={[styles.cardDescription, { color: theme.subText }]} numberOfLines={3}>
-                {type.description}
+                {t(type.descKey)}
               </Text>
             </View>
           </TouchableOpacity>
@@ -182,7 +182,7 @@ export default function ReportScreen({ navigation }) {
           });
         }}
       >
-        <Text style={styles.continueButtonText}>Tiếp tục</Text>
+        <Text style={styles.continueButtonText}>{t('report.continue')}</Text>
         <Ionicons name="arrow-forward" size={24} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
