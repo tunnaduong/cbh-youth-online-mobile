@@ -27,7 +27,7 @@ export const useUnreadCounts = () => {
             (conversation) =>
               !(
                 conversation.type === "group" &&
-                conversation.name === "Tán gẫu linh tinh"
+                conversation.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh"
               )
           )
           .reduce(

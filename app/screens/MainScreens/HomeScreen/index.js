@@ -638,9 +638,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             onDismissStory={dismissStoryModal}
           />
         ),
-        date: story.created_at
-          ? formatTime(story.created_at)
-          : story.created_at_human,
+        date: formatTime(story.created_at || story.created_at_human),
         created_at: story.created_at,
         created_at_human: story.created_at_human,
         onStoryItemPress: () => {
@@ -1208,9 +1206,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       ...user,
       stories: user.stories.map((story) => ({
         ...story,
-        date: story.created_at
-          ? formatTime(story.created_at)
-          : (story.created_at_human || ""),
+        date: formatTime(story.created_at || story.created_at_human || ""),
       })),
     }));
   }, [userStories, blockedUsers, t]);
@@ -1469,6 +1465,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={filteredFeed}
+          extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           contentContainerStyle={{
             paddingBottom: 110,

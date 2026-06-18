@@ -92,7 +92,8 @@ export default function ChatScreen({ navigation }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.profile_name || "Unknown User";
     }
-    if (conversation.name === "Tán gẫu linh tinh") {
+    const nameNorm = conversation.name?.trim().normalize("NFC").toLowerCase();
+    if (nameNorm === "tán gẫu linh tinh") {
       return t("chatConversation.casualGroupName");
     }
     return conversation.name || "Unnamed Group";
@@ -102,9 +103,10 @@ export default function ChatScreen({ navigation }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.avatar_url;
     }
+    const nameNorm = conversation.name?.trim().normalize("NFC").toLowerCase();
     if (
       conversation.type === "group" &&
-      conversation.name === "Tán gẫu linh tinh"
+      nameNorm === "tán gẫu linh tinh"
     ) {
       return "local:chat.jpg";
     }
@@ -149,7 +151,7 @@ export default function ChatScreen({ navigation }) {
             : ""}
         </Text>
         <View style={styles.unreadContainer}>
-          {item.type === "group" && item.name === "Tán gẫu linh tinh" && (
+          {item.type === "group" && item.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh" && (
             <Ionicons
               name="notifications-off"
               size={18}

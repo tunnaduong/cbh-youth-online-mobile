@@ -87,7 +87,7 @@ const ArchiveScreen = ({ route, navigation }) => {
           uri: `https://api.chuyenbienhoa.com${story.media_url}`,
         },
         duration: 10,
-        date: story.created_at ? formatTime(story.created_at) : story.created_at_human,
+        date: formatTime(story.created_at || story.created_at_human),
         renderFooter: () => (
           <View
             style={{
