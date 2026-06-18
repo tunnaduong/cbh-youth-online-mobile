@@ -294,7 +294,7 @@ const styles = StyleSheet.create({
   androidOptionRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
   },
   androidRadioOuter: {
     width: 20,
@@ -312,7 +312,8 @@ const styles = StyleSheet.create({
   },
   androidOptionText: {
     fontSize: 16,
-    lineHeight: 24,
+    includeFontPadding: false,
+    textAlignVertical: "center",
   },
   androidActions: {
     flexDirection: "row",

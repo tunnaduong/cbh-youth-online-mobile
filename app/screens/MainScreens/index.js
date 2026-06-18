@@ -46,7 +46,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   const activeIndex = getRouteIndex(currentRoute);
   const usableWidth = tabBarWidth - 16;
   const buttonWidth = usableWidth / 5;
-  const indicatorWidth = 46;
+  const indicatorWidth = buttonWidth;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -75,15 +75,13 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         style={{
           position: "absolute",
           width: indicatorWidth,
-          height: hideTabLabels ? 34 : 40,
-          borderRadius: 18,
-          top: hideTabLabels ? 9 : 6,
-          left: 8 + (buttonWidth - indicatorWidth) / 2,
+          height: 52,
+          borderRadius: 26,
+          top: 0,
+          left: 8,
           opacity,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.45)",
-          borderWidth: 1.5,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.25)" : "rgba(255, 255, 255, 0.7)",
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
           shadowColor: isDarkMode ? "#fff" : "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: isDarkMode ? 0.3 : 0.15,
@@ -94,36 +92,13 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       >
         <LinearGradient
           colors={[
-            "rgba(255, 255, 255, 0.5)", 
-            "rgba(255, 255, 255, 0.15)", 
-            "rgba(255, 255, 255, 0.02)", 
+            isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+            isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
             "transparent"
           ]}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
+          end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFillObject}
-        />
-        <View
-          style={{
-            position: "absolute",
-            top: 0.5,
-            left: 2,
-            right: 2,
-            height: 1,
-            backgroundColor: "rgba(255, 255, 255, 0.8)",
-            borderRadius: 1,
-          }}
-        />
-        <View
-          style={{
-            position: "absolute",
-            bottom: 0.5,
-            left: 2,
-            right: 2,
-            height: 1,
-            backgroundColor: isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(0, 0, 0, 0.1)",
-            borderRadius: 1,
-          }}
         />
       </Animated.View>
     </View>

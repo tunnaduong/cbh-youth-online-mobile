@@ -228,7 +228,7 @@ const CustomTabBarButton = ({ onPress }) => {
           </Animated.View>
         </View>
       )}
-      <Pressable style={[styles.buttonContainer, { top: hideTabLabels ? -12 : -18 }]} onPress={handlePress}>
+      <Pressable style={[styles.buttonContainer, { top: hideTabLabels ? -15 : -21 }]} onPress={handlePress}>
         <Animated.View
           style={[styles.iconContainer, { transform: [{ rotate }], backgroundColor: theme.cardBackground }]}
         >
