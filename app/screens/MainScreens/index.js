@@ -22,7 +22,7 @@ const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
-  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 170);
+  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -300,8 +300,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 12 : 5,
-              left: 85,
-              right: 85,
+              left: 95,
+              right: 95,
               elevation: 10,
               borderRadius: 26,
               height: 52,

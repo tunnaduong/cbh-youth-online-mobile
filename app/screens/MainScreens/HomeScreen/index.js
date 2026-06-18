@@ -1348,7 +1348,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             >
               <Ionicons name="eye-outline" size={20} color="#fff" />
               <Text style={styles.viewCountText}>
-                {viewersCount === 0 ? 0 : viewersCount - 1} {" " + t('home.views')}
+                {t('home.views', { count: viewersCount === 0 ? 0 : viewersCount - 1 })}
               </Text>
             </TouchableOpacity>
           </View>

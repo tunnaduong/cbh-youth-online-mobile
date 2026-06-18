@@ -107,7 +107,7 @@
     "replySent": "Đã gửi",
     "replySentBody": "Tin nhắn đã được gửi đến người dùng.",
     "replySendError": "Không thể gửi tin nhắn. Vui lòng thử lại.",
-    "views": "lượt xem"
+    "views": "{{count}} lượt xem"
   },
   "chat": {
     "title": "Tin nhắn",

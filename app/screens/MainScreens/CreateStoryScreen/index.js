@@ -253,6 +253,7 @@ const TextInputArea = React.memo(
 const StableCameraView = memo(
   ({ cameraRef, cameraType, onClose, onCameraFlip, onTakePhoto }) => {
     console.log("StableCameraView rendering");
+    const { t } = useTranslation();
 
     return (
       <CameraView
@@ -706,77 +707,7 @@ const CreateStoryScreen = ({ navigation }) => {
       </TouchableOpacity>
     </View>
   );
-  const AndroidColorSelectModal = () => {
-    return (
-      <Modal
-        visible={androidColorsModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAndroidColorsModalVisible(false)}
-      >
-        <View style={styles.androidOverlay}>
-          <View style={[styles.androidDialog, { backgroundColor: "#2b2d31" }]}>
-            <Text style={[styles.androidTitle, { color: "#fff" }]}>
-              {t("story.selectBackground")}
-            </Text>
-            
-            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
-              {GRADIENTS.map((item) => {
-                const isSelected = JSON.stringify(item.colors) === JSON.stringify(textBackground);
-                
-                return (
-                  <TouchableOpacity
-                    key={item.nameKey}
-                    style={styles.androidOptionRow}
-                    onPress={() => {
-                      setTextBackground(item.colors);
-                      setAndroidColorsModalVisible(false);
-                      Toast.show({
-                        type: "info",
-                        text1: t("story.backgroundChanged", { name: t(`story.gradients.${item.nameKey}`) }),
-                        position: "bottom",
-                        visibilityTime: 1500,
-                      });
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.androidRadioOuter,
-                      { borderColor: isSelected ? "#319527" : "#aaa" }
-                    ]}>
-                      {isSelected && (
-                        <View style={[styles.androidRadioInner, { backgroundColor: "#319527" }]} />
-                      )}
-                    </View>
-                    <Text style={[
-                      styles.androidOptionText,
-                      { 
-                        color: "#fff",
-                        fontWeight: isSelected ? "bold" : "normal"
-                      }
-                    ]}>
-                      {t(`story.gradients.${item.nameKey}`)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
 
-            <View style={styles.androidActions}>
-              <TouchableOpacity
-                onPress={() => setAndroidColorsModalVisible(false)}
-                style={styles.androidCancelButton}
-              >
-                <Text style={{ color: "#319527", fontWeight: "600", fontSize: 14 }}>
-                  {t("common.cancel")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
   const saveDrawing = async () => {
     try {
       const currentDrawingData = drawingRef.current?.getDrawingData?.();
@@ -970,7 +901,73 @@ const CreateStoryScreen = ({ navigation }) => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
-      <AndroidColorSelectModal />
+      <Modal
+        visible={androidColorsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAndroidColorsModalVisible(false)}
+      >
+        <View style={styles.androidOverlay}>
+          <View style={[styles.androidDialog, { backgroundColor: "#2b2d31" }]}>
+            <Text style={[styles.androidTitle, { color: "#fff" }]}>
+              {t("story.selectBackground")}
+            </Text>
+            
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+              {GRADIENTS.map((item) => {
+                const isSelected = JSON.stringify(item.colors) === JSON.stringify(textBackground);
+                
+                return (
+                  <TouchableOpacity
+                    key={item.nameKey}
+                    style={styles.androidOptionRow}
+                    onPress={() => {
+                      setTextBackground(item.colors);
+                      setAndroidColorsModalVisible(false);
+                      Toast.show({
+                        type: "info",
+                        text1: t("story.backgroundChanged", { name: t(`story.gradients.${item.nameKey}`) }),
+                        position: "bottom",
+                        visibilityTime: 1500,
+                      });
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.androidRadioOuter,
+                      { borderColor: isSelected ? "#319527" : "#aaa" }
+                    ]}>
+                      {isSelected && (
+                        <View style={[styles.androidRadioInner, { backgroundColor: "#319527" }]} />
+                      )}
+                    </View>
+                    <Text style={[
+                      styles.androidOptionText,
+                      { 
+                        color: "#fff",
+                        fontWeight: isSelected ? "bold" : "normal"
+                      }
+                    ]}>
+                      {t(`story.gradients.${item.nameKey}`)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.androidActions}>
+              <TouchableOpacity
+                onPress={() => setAndroidColorsModalVisible(false)}
+                style={styles.androidCancelButton}
+              >
+                <Text style={{ color: "#319527", fontWeight: "600", fontSize: 14 }}>
+                  {t("common.cancel")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       <View style={{ flex: 1, backgroundColor: "#000" }}>
         {/* Header */}
         {!isCameraMode && (

@@ -113,7 +113,8 @@
     "replySent": "Sent",
     "replySentBody": "Message has been sent to the user.",
     "replySendError": "Could not send message. Please try again.",
-    "views": "views"
+    "views": "{{count}} view",
+    "views_plural": "{{count}} views"
   },
   "chat": {
     "title": "Messages",
