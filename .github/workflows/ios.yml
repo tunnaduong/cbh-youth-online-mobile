@@ -1,0 +1,80 @@
+name: Build iOS Unsigned IPA
+
+on:
+  push:
+    branches:
+      - dhphuc
+  workflow_dispatch: # Keeps the manual trigger option available
+
+jobs:
+  build-ios:
+    name: Build iOS Unsigned IPA
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cache Pods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install Pods
+        run: |
+          cd ios
+          pod install
+
+      - name: Detect iOS Project Name
+        id: detect_name
+        run: |
+          cd ios
+          # Finds the first .xcworkspace file and extracts just the name without the extension
+          WORKSPACE_NAME=$(basename *.xcworkspace .xcworkspace)
+          echo "APP_NAME=$WORKSPACE_NAME" >> $GITHUB_ENV
+          echo "Detected App Name: $WORKSPACE_NAME"
+
+      - name: Build Unsigned iOS Archive
+        run: |
+          cd ios
+          
+          xcodebuild clean archive \
+            -workspace "${{ env.APP_NAME }}.xcworkspace" \
+            -scheme "${{ env.APP_NAME }}" \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER=""
+
+      - name: Package .xcarchive into Unsigned .ipa
+        run: |
+          mkdir -p $RUNNER_TEMP/Payload
+          
+          # Copy the .app bundle to the Payload folder
+          cp -r "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive/Products/Applications/"*.app $RUNNER_TEMP/Payload/
+          
+          # Compress into an .ipa file
+          cd $RUNNER_TEMP
+          zip -r "${{ env.APP_NAME }}-unsigned.ipa" Payload
+
+      - name: Upload Unsigned IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-unsigned-ipa
+          path: ${{ runner.temp }}/*-unsigned.ipa
+          retention-days: 7
+          

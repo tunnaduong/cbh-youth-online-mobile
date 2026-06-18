@@ -25,6 +25,7 @@ import {
   ActionSheetIOS,
   Alert,
   StatusBar,
+  Modal,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -45,10 +46,21 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Slider from "@react-native-community/slider";
 import { captureRef } from "react-native-view-shot";
 import { createStory } from "../../../services/api/Api";
+import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import KeyboardSpacer from "react-native-keyboard-spacer";
 
 const { width, height } = Dimensions.get("window");
+
+const GRADIENTS = [
+  { colors: ["#FF6B6B", "#4ECDC4"], nameKey: "sunset" },
+  { colors: ["#8E2DE2", "#4A00E0"], nameKey: "royalIndigo" },
+  { colors: ["#FF416C", "#FF4B2B"], nameKey: "crimsonAlert" },
+  { colors: ["#11998E", "#38EF7D"], nameKey: "emeraldAurora" },
+  { colors: ["#0F2027", "#203A43", "#2C5364"], nameKey: "obsidianNight" },
+  { colors: ["#F9D423", "#FF4E50"], nameKey: "goldenHour" },
+  { colors: ["#00c6ff", "#0072ff"], nameKey: "skyBlue" },
+];
 
 const DrawingCanvas = React.forwardRef(
   (
@@ -242,6 +254,7 @@ const TextInputArea = React.memo(
 const StableCameraView = memo(
   ({ cameraRef, cameraType, onClose, onCameraFlip, onTakePhoto }) => {
     console.log("StableCameraView rendering");
+    const { t } = useTranslation();
 
     return (
       <CameraView
@@ -252,8 +265,8 @@ const StableCameraView = memo(
           console.error("Camera mount error:", error);
           Toast.show({
             type: "error",
-            text1: "Lỗi khởi tạo camera",
-            text2: "Không thể khởi tạo camera. Vui lòng thử lại.",
+            text1: t("story.cameraError"),
+            text2: t("story.cameraErrorDesc"),
           });
         }}
         onCameraReady={() => {
@@ -292,7 +305,131 @@ const TextOnlyContent = memo(({ text }) => (
   </View>
 ));
 
+const DRAWING_COLORS = [
+  "#FFFFFF",
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+  "#FFFF00",
+  "#FF00FF",
+  "#00FFFF",
+];
+
+const ColorPicker = ({ strokeColor, setStrokeColor }) => (
+  <View style={styles.colorPicker} pointerEvents="box-none">
+    {DRAWING_COLORS.map((color) => (
+      <TouchableOpacity
+        key={color}
+        style={[
+          styles.colorButton,
+          { backgroundColor: color },
+          strokeColor === color && styles.selectedColor,
+        ]}
+        onPress={() => setStrokeColor(color)}
+      />
+    ))}
+  </View>
+);
+
+const BrushSizePicker = ({ strokeWidth, setStrokeWidth, showBrushSize, t }) => {
+  const [sliderValue, setSliderValue] = useState(strokeWidth);
+  React.useEffect(() => { setSliderValue(strokeWidth); }, [strokeWidth]);
+  if (!showBrushSize) return null;
+  return (
+    <View style={styles.brushSizeSlider}>
+      <Text style={styles.brushSizeLabel}>{t("story.brushSize", { size: sliderValue })}</Text>
+      <Slider
+        style={styles.slider}
+        minimumValue={2}
+        maximumValue={20}
+        value={sliderValue}
+        step={1}
+        onValueChange={setSliderValue}
+        onSlidingComplete={setStrokeWidth}
+        minimumTrackTintColor="#FFFFFF"
+        maximumTrackTintColor="rgba(255,255,255,0.3)"
+        thumbStyle={styles.sliderThumb}
+      />
+    </View>
+  );
+};
+
+const DrawingTools = ({ drawingRef, isEraser, setIsEraser, showBrushSize, setShowBrushSize }) => (
+  <View style={styles.drawingTools}>
+    <TouchableOpacity style={[styles.toolButton, !isEraser && styles.activeToolButton]} onPress={() => setIsEraser(false)}>
+      <Ionicons name="brush" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={[styles.toolButton, isEraser && styles.activeToolButton]} onPress={() => setIsEraser(true)}>
+      <Image source={require("../../../assets/eraser.png")} style={{ width: 24, height: 24 }} />
+    </TouchableOpacity>
+    <TouchableOpacity style={[styles.toolButton, showBrushSize && styles.activeToolButton]} onPress={() => setShowBrushSize(!showBrushSize)}>
+      <Ionicons name="resize" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.toolButton} onPress={() => drawingRef.current?.handleUndo()}>
+      <Ionicons name="arrow-undo" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.toolButton} onPress={() => drawingRef.current?.handleClear()}>
+      <Ionicons name="trash" size={24} color="#fff" />
+    </TouchableOpacity>
+  </View>
+);
+
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, t }) => (
+  <View style={styles.toolsContainer}>
+    <TouchableOpacity style={styles.toolButton} onPress={() => setIsEditing(!isEditing)}>
+      <Ionicons name="text" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
+      <Ionicons name="image" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={[styles.toolButton, isDrawing && styles.activeToolButton]} onPress={() => setIsDrawing(!isDrawing)}>
+      <Ionicons name="brush" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.toolButton}
+      onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+    >
+      <Ionicons name="musical-notes" size={24} color="#fff" />
+    </TouchableOpacity>
+  </View>
+);
+
+const CameraUI = ({ permission, cameraRef, cameraType, handleCloseCamera, handleCameraFlip, handleTakePhoto, t }) => {
+  if (!permission) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.whiteText}>{t("story.requestingCameraPermission")}</Text>
+      </View>
+    );
+  }
+  if (!permission.granted) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.whiteText}>{t("story.noCameraPermission")}</Text>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={() => { if (Platform.OS === "ios") { Linking.openURL("app-settings:"); } else { Linking.openSettings(); } }}
+        >
+          <Text style={styles.permissionButtonText}>{t("story.openSettings")}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <StableCameraView
+        cameraRef={cameraRef}
+        cameraType={cameraType}
+        onClose={handleCloseCamera}
+        onCameraFlip={handleCameraFlip}
+        onTakePhoto={handleTakePhoto}
+      />
+    </View>
+  );
+};
+
 const CreateStoryScreen = ({ navigation }) => {
+  const { t } = useTranslation();
   const [selectedImage, setSelectedImage] = useState(null);
   const [text, setText] = useState("");
   const [textPosition, setTextPosition] = useState({
@@ -308,6 +445,7 @@ const CreateStoryScreen = ({ navigation }) => {
   const [savedDrawingData, setSavedDrawingData] = useState(null);
   const [isTextOnly, setIsTextOnly] = useState(false);
   const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]); // Default gradient colors
+
   const drawingRef = useRef(null);
   const insets = useSafeAreaInsets();
   const [isCameraMode, setIsCameraMode] = useState(false);
@@ -318,25 +456,22 @@ const CreateStoryScreen = ({ navigation }) => {
   const imageWithOverlaysRef = useRef(null);
   const [viewReady, setViewReady] = useState(false);
 
-  const gradientBackgrounds = [
-    ["#FF6B6B", "#4ECDC4"],
-    ["#A8E6CF", "#DCEDC1"],
-    ["#FFD93D", "#FF6B6B"],
-    ["#6C5B7B", "#C06C84"],
-    ["#355C7D", "#6C5B7B"],
-  ];
-
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
     setIsTextOnly(true);
     setIsEditing(true);
     setText("");
     // Randomly select a gradient background
-    const randomGradient =
-      gradientBackgrounds[
-        Math.floor(Math.random() * gradientBackgrounds.length)
-      ];
-    setTextBackground(randomGradient);
+    const randomIndex = Math.floor(Math.random() * GRADIENTS.length);
+    setTextBackground(GRADIENTS[randomIndex].colors);
+  };
+
+  const cycleGradient = () => {
+    const currentIndex = GRADIENTS.findIndex(
+      (g) => JSON.stringify(g.colors) === JSON.stringify(textBackground)
+    );
+    const nextIndex = (currentIndex + 1) % GRADIENTS.length;
+    setTextBackground(GRADIENTS[nextIndex].colors);
   };
 
   const onViewLayout = useCallback(() => {
@@ -390,6 +525,11 @@ const CreateStoryScreen = ({ navigation }) => {
 
         // For both image stories and text-only stories, capture the view
         if (selectedImage || isTextOnly) {
+          // Dismiss keyboard and stop editing first so that overlays are properly rendered in their final state
+          Keyboard.dismiss();
+          setIsEditing(false);
+          await new Promise((resolve) => setTimeout(resolve, 150));
+
           finalImageUri = await captureImageWithOverlays();
           if (!finalImageUri) {
             throw new Error("Failed to capture story content");
@@ -423,12 +563,12 @@ const CreateStoryScreen = ({ navigation }) => {
 
         Toast.show({
           type: "success",
-          text1: "Đăng tin thành công",
+          text1: t("story.postSuccess"),
           text2: isTextOnly
-            ? "Tin văn bản đã được đăng."
+            ? t("story.textStoryPosted")
             : savedDrawingData
-            ? "Tin với bản vẽ đã được đăng."
-            : "Tin của bạn đã được đăng.",
+            ? t("story.drawingStoryPosted")
+            : t("story.storyPosted"),
         });
 
         // Reset navigation stack and go to MainScreens
@@ -450,8 +590,8 @@ const CreateStoryScreen = ({ navigation }) => {
         console.error("Error processing story content:", imageError);
         Toast.show({
           type: "error",
-          text1: "Lỗi xử lý nội dung",
-          text2: "Không thể xử lý nội dung. Vui lòng thử lại.",
+          text1: t("story.contentError"),
+          text2: t("story.contentErrorDesc"),
         });
         return;
       }
@@ -459,8 +599,8 @@ const CreateStoryScreen = ({ navigation }) => {
       console.error("Error uploading story:", error.response?.data || error);
       Toast.show({
         type: "error",
-        text1: "Lỗi đăng tin",
-        text2: "Không thể đăng tin. Vui lòng thử lại sau.",
+        text1: t("story.postError"),
+        text2: t("story.postErrorDesc"),
       });
     } finally {
       setIsUploading(false);
@@ -471,8 +611,8 @@ const CreateStoryScreen = ({ navigation }) => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
         options: [
-          type == "drawing" ? "Bỏ bản vẽ" : "Bỏ tin",
-          "Tiếp tục chỉnh sửa",
+          type == "drawing" ? t("story.discardDrawing") : t("story.discardStory"),
+          t("story.continueEditing"),
         ],
         destructiveButtonIndex: 0,
         userInterfaceStyle: "dark",
@@ -500,12 +640,12 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const handleExitAndroid = (type) => {
     Alert.alert(
-      "Bạn có chắc chắn muốn thoát không?",
-      "Bạn sẽ mất nội dung đã nhập",
+      t("story.exitConfirm"),
+      t("story.exitConfirmDesc"),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Thoát",
+          text: t("story.exit"),
           onPress: () => {
             if (type === "drawing") {
               setIsDrawing(false);
@@ -544,148 +684,19 @@ const CreateStoryScreen = ({ navigation }) => {
     }
   };
 
-  const colors = [
-    "#FFFFFF",
-    "#FF0000",
-    "#00FF00",
-    "#0000FF",
-    "#FFFF00",
-    "#FF00FF",
-    "#00FFFF",
-  ];
 
-  const ColorPicker = () => {
-    return (
-      <View style={styles.colorPicker} pointerEvents="box-none">
-        {colors.map((color) => (
-          <TouchableOpacity
-            key={color}
-            style={[
-              styles.colorButton,
-              { backgroundColor: color },
-              strokeColor === color && styles.selectedColor,
-            ]}
-            onPress={() => setStrokeColor(color)}
-          />
-        ))}
-      </View>
-    );
-  };
-
-  const BrushSizePicker = React.memo(() => {
-    const [sliderValue, setSliderValue] = useState(strokeWidth);
-
-    // Sync slider value when strokeWidth changes from external sources
-    React.useEffect(() => {
-      setSliderValue(strokeWidth);
-    }, [strokeWidth]);
-
-    if (!showBrushSize) return null;
-
-    return (
-      <View style={styles.brushSizeSlider}>
-        <Text style={styles.brushSizeLabel}>
-          Kích thước bút: {sliderValue}px
-        </Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={2}
-          maximumValue={20}
-          value={sliderValue}
-          step={1}
-          onValueChange={setSliderValue}
-          onSlidingComplete={setStrokeWidth}
-          minimumTrackTintColor="#FFFFFF"
-          maximumTrackTintColor="rgba(255,255,255,0.3)"
-          thumbStyle={styles.sliderThumb}
-        />
-      </View>
-    );
-  });
-
-  const DrawingTools = ({ drawingRef }) => {
-    return (
-      <View style={styles.drawingTools}>
-        <TouchableOpacity
-          style={[styles.toolButton, !isEraser && styles.activeToolButton]}
-          onPress={() => setIsEraser(false)}
-        >
-          <Ionicons name="brush" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toolButton, isEraser && styles.activeToolButton]}
-          onPress={() => setIsEraser(true)}
-        >
-          <Image
-            source={require("../../../assets/eraser.png")}
-            style={{ width: 24, height: 24 }}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toolButton, showBrushSize && styles.activeToolButton]}
-          onPress={() => setShowBrushSize(!showBrushSize)}
-        >
-          <Ionicons name="resize" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.toolButton}
-          onPress={() => drawingRef.current?.handleUndo()}
-        >
-          <Ionicons name="arrow-undo" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.toolButton}
-          onPress={() => drawingRef.current?.handleClear()}
-        >
-          <Ionicons name="trash" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const ToolsBar = () => (
-    <View style={styles.toolsContainer}>
-      <TouchableOpacity
-        style={styles.toolButton}
-        onPress={() => setIsEditing(!isEditing)}
-      >
-        <Ionicons name="text" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
-        <Ionicons name="image" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.toolButton, isDrawing && styles.activeToolButton]}
-        onPress={() => setIsDrawing(!isDrawing)}
-      >
-        <Ionicons name="brush" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.toolButton}
-        onPress={() =>
-          Toast.show({
-            type: "info",
-            text1: "Tính năng đang phát triển",
-            text2: "Hãy cùng chờ đón tính năng này nhé",
-          })
-        }
-      >
-        <Ionicons name="musical-notes" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
-  );
 
   const saveDrawing = async () => {
     try {
       const currentDrawingData = drawingRef.current?.getDrawingData?.();
       if (!currentDrawingData) {
-        throw new Error("Không có dữ liệu vẽ để lưu.");
+        throw new Error(t("story.noDrawingData"));
       }
 
       // Save both the drawing data and capture the image
       const imageBase64 = await drawingRef.current?.makeImageSnapshot();
       if (!imageBase64) {
-        throw new Error("Không thể chụp ảnh bản vẽ.");
+        throw new Error(t("story.captureDrawingError"));
       }
 
       setSavedDrawingData({
@@ -695,8 +706,8 @@ const CreateStoryScreen = ({ navigation }) => {
 
       Toast.show({
         type: "success",
-        text1: "Đã lưu bản vẽ",
-        text2: "Bản vẽ của bạn đã được cập nhật.",
+        text1: t("story.drawingSaved"),
+        text2: t("story.drawingUpdated"),
       });
 
       setIsDrawing(false);
@@ -705,15 +716,15 @@ const CreateStoryScreen = ({ navigation }) => {
       console.error("Error saving drawing:", error.message);
       Toast.show({
         type: "error",
-        text1: "Lỗi lưu bản vẽ",
-        text2: "Không thể lưu bản vẽ. Vui lòng thử lại.",
+        text1: t("story.saveDrawingError"),
+        text2: t("story.saveDrawingErrorDesc"),
       });
     }
   };
 
   // Memoize the text input placeholder
   const textInputPlaceholder = useMemo(
-    () => (isTextOnly ? "Nhập nội dung tin của bạn..." : "Nhập nội dung..."),
+    () => (isTextOnly ? t("story.textPlaceholder") : t("story.drawingPlaceholder")),
     [isTextOnly]
   );
 
@@ -726,8 +737,8 @@ const CreateStoryScreen = ({ navigation }) => {
     if (!permission) {
       Toast.show({
         type: "info",
-        text1: "Đang kiểm tra quyền truy cập",
-        text2: "Vui lòng đợi trong giây lát...",
+        text1: t("story.checkingPermission"),
+        text2: t("story.pleaseWait"),
       });
       return;
     }
@@ -737,8 +748,8 @@ const CreateStoryScreen = ({ navigation }) => {
       if (!result.granted) {
         Toast.show({
           type: "error",
-          text1: "Không có quyền truy cập camera",
-          text2: "Vui lòng cấp quyền truy cập camera trong cài đặt.",
+          text1: t("story.noCameraPermission"),
+          text2: t("story.cameraPermissionDesc"),
         });
         return;
       }
@@ -765,8 +776,8 @@ const CreateStoryScreen = ({ navigation }) => {
         console.error("Error taking photo:", error);
         Toast.show({
           type: "error",
-          text1: "Lỗi chụp ảnh",
-          text2: "Không thể chụp ảnh. Vui lòng thử lại.",
+          text1: t("story.captureError"),
+          text2: t("story.captureErrorDesc"),
         });
       }
     }
@@ -800,49 +811,7 @@ const CreateStoryScreen = ({ navigation }) => {
     }
   }, [isDrawing, isTextOnly, selectedImage]);
 
-  const CameraUI = () => {
-    if (!permission) {
-      return (
-        <View style={styles.centerContainer}>
-          <Text style={styles.whiteText}>
-            Đang yêu cầu quyền truy cập camera...
-          </Text>
-        </View>
-      );
-    }
 
-    if (!permission.granted) {
-      return (
-        <View style={styles.centerContainer}>
-          <Text style={styles.whiteText}>Không có quyền truy cập camera.</Text>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={() => {
-              if (Platform.OS === "ios") {
-                Linking.openURL("app-settings:");
-              } else {
-                Linking.openSettings();
-              }
-            }}
-          >
-            <Text style={styles.permissionButtonText}>Mở Cài đặt</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    return (
-      <View style={StyleSheet.absoluteFill}>
-        <StableCameraView
-          cameraRef={cameraRef}
-          cameraType={cameraType}
-          onClose={handleCloseCamera}
-          onCameraFlip={handleCameraFlip}
-          onTakePhoto={handleTakePhoto}
-        />
-      </View>
-    );
-  };
 
   // Update the header right button to show loading state
   const headerRightButton = (
@@ -860,7 +829,7 @@ const CreateStoryScreen = ({ navigation }) => {
             : "text-[#319527]/50"
         }`}
       >
-        {isDrawing ? "Xong" : isUploading ? "Đang đăng..." : "Chia sẻ"}
+        {isDrawing ? t("story.done") : isUploading ? t("story.posting") : t("story.share")}
       </Text>
     </TouchableOpacity>
   );
@@ -868,6 +837,7 @@ const CreateStoryScreen = ({ navigation }) => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
+
       <View style={{ flex: 1, backgroundColor: "#000" }}>
         {/* Header */}
         {!isCameraMode && (
@@ -892,12 +862,12 @@ const CreateStoryScreen = ({ navigation }) => {
             </TouchableOpacity>
             <Text className="text-white text-lg font-semibold">
               {isDrawing
-                ? "Vẽ"
+                ? t("story.draw")
                 : isTextOnly
-                ? "Tin văn bản"
+                ? t("story.textContent")
                 : selectedImage
-                ? "Chỉnh sửa"
-                : "Tạo tin"}
+                ? t("story.edit")
+                : t("story.createStory")}
             </Text>
             {headerRightButton}
           </View>
@@ -906,7 +876,15 @@ const CreateStoryScreen = ({ navigation }) => {
         {/* Main Content */}
         <View style={{ flex: 1 }}>
           {isCameraMode ? (
-            <CameraUI />
+            <CameraUI
+              permission={permission}
+              cameraRef={cameraRef}
+              cameraType={cameraType}
+              handleCloseCamera={handleCloseCamera}
+              handleCameraFlip={handleCameraFlip}
+              handleTakePhoto={handleTakePhoto}
+              t={t}
+            />
           ) : selectedImage || isTextOnly ? (
             <View style={{ flex: 1 }}>
               <View style={styles.aspectRatioContainer}>
@@ -930,7 +908,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                     >
-                      {text && <TextOnlyContent text={text} />}
+                      {text && !isEditing && <TextOnlyContent text={text} />}
                     </LinearGradient>
                   ) : (
                     <>
@@ -981,13 +959,13 @@ const CreateStoryScreen = ({ navigation }) => {
               {/* UI Controls - Not Captured */}
               {isDrawing ? (
                 <View style={styles.overlayTools} pointerEvents="box-none">
-                  <ColorPicker />
-                  <BrushSizePicker />
-                  <DrawingTools drawingRef={drawingRef} />
+                  <ColorPicker strokeColor={strokeColor} setStrokeColor={setStrokeColor} />
+                  <BrushSizePicker strokeWidth={strokeWidth} setStrokeWidth={setStrokeWidth} showBrushSize={showBrushSize} t={t} />
+                  <DrawingTools drawingRef={drawingRef} isEraser={isEraser} setIsEraser={setIsEraser} showBrushSize={showBrushSize} setShowBrushSize={setShowBrushSize} />
                 </View>
               ) : !isTextOnly ? (
                 <>
-                  <ToolsBar />
+                  <ToolsBar isEditing={isEditing} setIsEditing={setIsEditing} isDrawing={isDrawing} setIsDrawing={setIsDrawing} pickImage={pickImage} t={t} />
                   {isEditing && (
                     <TextInputArea
                       text={text}
@@ -998,14 +976,31 @@ const CreateStoryScreen = ({ navigation }) => {
                   )}
                 </>
               ) : (
-                isEditing && (
-                  <TextInputArea
-                    text={text}
-                    setText={handleTextChange}
-                    isTextOnly={isTextOnly}
-                    placeholder={textInputPlaceholder}
-                  />
-                )
+                <>
+                  {isEditing && (
+                    <TextInputArea
+                      text={text}
+                      setText={handleTextChange}
+                      isTextOnly={isTextOnly}
+                      placeholder={textInputPlaceholder}
+                    />
+                  )}
+                  <View style={[styles.toolsContainer, { zIndex: 10000 }]}>
+                    <TouchableOpacity
+                      style={[
+                        styles.toolButton,
+                        {
+                          backgroundColor: "rgba(0,0,0,0.6)",
+                          borderWidth: 1,
+                          borderColor: "rgba(255,255,255,0.4)",
+                        },
+                      ]}
+                      onPress={cycleGradient}
+                    >
+                      <Ionicons name="color-palette-outline" size={24} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                </>
               )}
             </View>
           ) : (
@@ -1023,7 +1018,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       style={{ marginBottom: 3 }}
                     />
                     <Text className="text-white text-md font-semibold">
-                      Chụp ảnh
+                      {t("story.takePhoto")}
                     </Text>
                   </View>
                 </TouchableHighlight>
@@ -1039,7 +1034,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       style={{ marginBottom: 3 }}
                     />
                     <Text className="text-white text-md font-semibold">
-                      Văn bản
+                      {t("story.text")}
                     </Text>
                   </View>
                 </TouchableHighlight>
@@ -1048,7 +1043,7 @@ const CreateStoryScreen = ({ navigation }) => {
                 <View style={styles.imagePickerContent}>
                   <Ionicons name="image" size={40} color="#fff" />
                   <Text style={styles.imagePickerText}>
-                    Chọn ảnh từ thư viện
+                    {t("story.pickFromGallery")}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -1346,6 +1341,63 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
     includeFontPadding: false,
+  },
+  androidOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  androidDialog: {
+    width: "100%",
+    maxWidth: 320,
+    borderRadius: 28,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 24,
+  },
+  androidTitle: {
+    fontSize: 24,
+    fontWeight: "500",
+    marginBottom: 16,
+    lineHeight: 32,
+  },
+  androidOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  androidRadioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  androidRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  androidOptionText: {
+    fontSize: 16,
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
+  androidActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 16,
+  },
+  androidCancelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
 });
 

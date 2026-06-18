@@ -21,6 +21,7 @@ import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const NewConversationScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -28,6 +29,7 @@ const NewConversationScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const handleSearch = async (query) => {
     setSearchQuery(query);
@@ -89,8 +91,8 @@ const NewConversationScreen = ({ navigation }) => {
       console.error("Error navigating to conversation:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể mở cuộc trò chuyện. Vui lòng thử lại sau.",
+        text1: t('common.error'),
+        text2: t('chatConversation.cannotOpen'),
       });
     }
   };
@@ -138,7 +140,7 @@ const NewConversationScreen = ({ navigation }) => {
         >
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Tin nhắn mới</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.newMessage')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -152,7 +154,7 @@ const NewConversationScreen = ({ navigation }) => {
         />
         <TextInput
           style={[styles.searchInput, { color: theme.text }]}
-          placeholder="Tìm kiếm người dùng..."
+          placeholder={t('chat.searchUserPlaceholder')}
           placeholderTextColor={theme.subText}
           value={searchQuery}
           onChangeText={handleSearch}
@@ -175,7 +177,7 @@ const NewConversationScreen = ({ navigation }) => {
               source={require("../../../assets/sad_frog.png")}
               style={{ width: 100, height: 100, marginBottom: 5 }}
             />
-            <Text style={[styles.noResults, { color: theme.subText }]}>Không tìm thấy người dùng nào</Text>
+            <Text style={[styles.noResults, { color: theme.subText }]}>{t('chat.noUserFound')}</Text>
           </View>
         ) : (
           <View style={styles.centerContainer}>
@@ -184,7 +186,7 @@ const NewConversationScreen = ({ navigation }) => {
               style={{ width: 180, height: 160, marginBottom: 20 }}
             />
             <Text style={[styles.searchPrompt, { color: theme.subText }]}>
-              Nhập username để bắt đầu tìm kiếm
+              {t('chat.searchUserHint')}
             </Text>
           </View>
         )}

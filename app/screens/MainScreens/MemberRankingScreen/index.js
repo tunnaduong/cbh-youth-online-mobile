@@ -6,17 +6,20 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  SafeAreaView,
   StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getMemberRanking } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import FastImage from "react-native-fast-image";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 export default function MemberRankingScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [rankingData, setRankingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,7 +76,7 @@ export default function MemberRankingScreen({ navigation }) {
           <Text style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
             {second.profile_name}
           </Text>
-          <Text style={[styles.pointsTop, { color: theme.primary }]}>{second.total_points} điểm</Text>
+          <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: second.total_points })}</Text>
         </TouchableOpacity>
 
         {/* First Place */}
@@ -106,7 +109,7 @@ export default function MemberRankingScreen({ navigation }) {
           >
             {first.profile_name}
           </Text>
-          <Text style={[styles.pointsTop, { color: theme.primary }]}>{first.total_points} điểm</Text>
+          <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: first.total_points })}</Text>
         </TouchableOpacity>
 
         {/* Third Place */}
@@ -130,7 +133,7 @@ export default function MemberRankingScreen({ navigation }) {
           <Text style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
             {third.profile_name}
           </Text>
-          <Text style={[styles.pointsTop, { color: theme.primary }]}>{third.total_points} điểm</Text>
+          <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: third.total_points })}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -159,7 +162,7 @@ export default function MemberRankingScreen({ navigation }) {
           <Text style={[styles.itemName, { color: theme.text }]}>{item.profile_name}</Text>
           <Text style={[styles.itemUsername, { color: theme.subText }]}>@{item.username}</Text>
         </View>
-        <Text style={[styles.itemPoints, { color: theme.primary }]}>{item.total_points} điểm</Text>
+        <Text style={[styles.itemPoints, { color: theme.primary }]}>{t('profile.points', { count: item.total_points })}</Text>
       </TouchableOpacity>
     );
   };
@@ -173,7 +176,7 @@ export default function MemberRankingScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
@@ -182,7 +185,7 @@ export default function MemberRankingScreen({ navigation }) {
         >
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Bảng xếp hạng</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('profile.ranking')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -193,10 +196,17 @@ export default function MemberRankingScreen({ navigation }) {
         ListHeaderComponent={renderTop3}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh} 
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+          />
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

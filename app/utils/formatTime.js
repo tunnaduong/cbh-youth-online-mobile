@@ -1,56 +1,136 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import "dayjs/locale/vi";
+import i18n from "../i18n";
 
 dayjs.extend(relativeTime);
-dayjs.locale("vi");
 
-/**
- * Format time to relative Vietnamese format
- * @param {string} dateString - ISO date string
- * @returns {string} Formatted time string
- */
+const getTranslation = (unit, count) => {
+  const lang = i18n.language?.split("-")[0] || "vi";
+
+  if (lang === "vi") {
+    return i18n.t(`time.${unit}Ago`, { count });
+  }
+
+  if (lang === "en") {
+    if (count === 1) {
+      const singularUnits = {
+        minutes: "time.minuteAgo",
+        hours: "time.hourAgo",
+        days: "time.dayAgo",
+        weeks: "time.weekAgo",
+        months: "time.monthAgo",
+        years: "time.yearAgo",
+      };
+      return i18n.t(singularUnits[unit] || `time.${unit}Ago`, { count });
+    }
+    return i18n.t(`time.${unit}Ago`, { count });
+  }
+
+  if (lang === "ru") {
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    let form = "many"; // default: минут, часов, дней, лет
+
+    if (mod10 === 1 && mod100 !== 11) {
+      form = "one"; // минуту, час, день, год
+    } else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+      form = "few"; // минуты, часа, дня, года
+    }
+
+    return i18n.t(`time.${unit}Ago_${form}`, { count });
+  }
+
+  return i18n.t(`time.${unit}Ago`, { count });
+};
+
 const formatTime = (dateString) => {
-  if (!dateString) return "Vừa xong";
+  if (!dateString) return i18n.t("time.justNow");
 
-  const date = dayjs(dateString);
-  const now = dayjs();
-  const diffInSeconds = now.diff(date, "second");
+  let cleanString = String(dateString).trim();
 
-  if (diffInSeconds < 60) {
-    return "Vừa xong";
+  // Try standard dayjs parsing first if it looks like an ISO date/timestamp
+  const date = dayjs(cleanString);
+  if (
+    date.isValid() &&
+    !/^[0-9]+\s+[a-zA-Z\u00C0-\u1EF9]+/.test(cleanString) &&
+    !cleanString.includes("trước") &&
+    !cleanString.includes("xong")
+  ) {
+    const now = dayjs();
+    const diffInSeconds = now.diff(date, "second");
+
+    if (diffInSeconds < 60) {
+      return i18n.t("time.justNow");
+    }
+
+    const diffInMinutes = now.diff(date, "minute");
+    if (diffInMinutes < 60) {
+      return getTranslation("minutes", diffInMinutes);
+    }
+
+    const diffInHours = now.diff(date, "hour");
+    if (diffInHours < 24) {
+      return getTranslation("hours", diffInHours);
+    }
+
+    const diffInDays = now.diff(date, "day");
+    if (diffInDays < 7) {
+      return getTranslation("days", diffInDays);
+    }
+
+    const diffInWeeks = now.diff(date, "week");
+    if (diffInWeeks < 4) {
+      return getTranslation("weeks", diffInWeeks);
+    }
+
+    const diffInMonths = now.diff(date, "month");
+    if (diffInMonths < 1) {
+      return getTranslation("weeks", diffInWeeks);
+    }
+    if (diffInMonths < 12) {
+      return getTranslation("months", diffInMonths);
+    }
+
+    const diffInYears = now.diff(date, "year");
+    return getTranslation("years", diffInYears);
   }
 
-  const diffInMinutes = now.diff(date, "minute");
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} phút trước`;
+  // Parse and translate Vietnamese relative time strings
+  const cleaned = cleanString.toLowerCase();
+
+  if (
+    cleaned === "vừa xong" ||
+    cleaned === "vừa đăng" ||
+    cleaned.includes("vừa xong") ||
+    cleaned.includes("vừa đăng")
+  ) {
+    return i18n.t("time.justNow");
   }
 
-  const diffInHours = now.diff(date, "hour");
-  if (diffInHours < 24) {
-    return `${diffInHours} giờ trước`;
+  const match = cleaned.match(/^(\d+)\s+(phút|giờ|ngày|tuần|tháng|năm)\s+trước$/);
+  if (match) {
+    const count = parseInt(match[1], 10);
+    const unit = match[2];
+
+    switch (unit) {
+      case "phút":
+        return getTranslation("minutes", count);
+      case "giờ":
+        return getTranslation("hours", count);
+      case "ngày":
+        return getTranslation("days", count);
+      case "tuần":
+        return getTranslation("weeks", count);
+      case "tháng":
+        return getTranslation("months", count);
+      case "năm":
+        return getTranslation("years", count);
+      default:
+        break;
+    }
   }
 
-  const diffInDays = now.diff(date, "day");
-  if (diffInDays < 7) {
-    return `${diffInDays} ngày trước`;
-  }
-
-  const diffInWeeks = now.diff(date, "week");
-  if (diffInWeeks < 4) {
-    return `${diffInWeeks} tuần trước`;
-  }
-
-  const diffInMonths = now.diff(date, "month");
-  if (diffInMonths < 12) {
-    return `${diffInMonths} tháng trước`;
-  }
-
-  const diffInYears = now.diff(date, "year");
-  return `${diffInYears} năm trước`;
+  return dateString;
 };
 
 export default formatTime;
-
-
-

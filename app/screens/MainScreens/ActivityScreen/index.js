@@ -15,8 +15,10 @@ import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "react-native-fast-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslation } from "react-i18next";
 
 const ActivityItem = ({ item, navigation }) => {
+  const { t } = useTranslation();
   const truncateText = (text, maxLength = 30) => {
     if (!text) return "";
     return text.length > maxLength
@@ -61,43 +63,43 @@ const ActivityItem = ({ item, navigation }) => {
   const getActivityText = (item) => {
     if (!item.type) {
       console.warn("Activity item missing type:", item);
-      return "đã có hoạt động";
+      return t("activity.unknown");
     }
 
     switch (item.type.toLowerCase()) {
       case "like":
-        return "đã thích bài viết";
+        return t("activity.likedPost");
       case "dislike":
-        return "không thích bài viết";
+        return t("activity.dislikedPost");
       case "comment":
         return item.content
-          ? `đã bình luận: "${truncateText(item.content)}"`
-          : "đã bình luận";
+          ? `${t("activity.commented")}: "${truncateText(item.content)}"`
+          : t("activity.commented");
       case "comment_like":
         return item.comment?.content
-          ? `đã thích bình luận: "${truncateText(item.comment.content)}"`
-          : "đã thích bình luận";
+          ? `${t("activity.likedComment")}: "${truncateText(item.comment.content)}"`
+          : t("activity.likedComment");
       case "comment_dislike":
         return item.comment?.content
-          ? `không thích bình luận: "${truncateText(item.comment.content)}"`
-          : "không thích bình luận";
+          ? `${t("activity.dislikedComment")}: "${truncateText(item.comment.content)}"`
+          : t("activity.dislikedComment");
       case "post":
-        return "đã đăng bài viết mới";
+        return t("activity.createdPost");
       case "share":
-        return "đã chia sẻ bài viết";
+        return t("activity.sharedPost");
       case "follow":
-        return `đã theo dõi ${item.following?.profile_name}`;
+        return `${t("activity.followed")} ${item.following?.profile_name}`;
       case "saved":
-        return "đã lưu bài viết";
+        return t("activity.savedPost");
       case "story_create":
-        return "đã đăng tin mới";
+        return t("activity.createdStory");
       case "story_reaction":
-        return `đã thích tin của ${item.story?.author?.profile_name}`;
+        return `${t("activity.likedStory")} ${item.story?.author?.profile_name}`;
       case "story_view":
-        return `đã xem tin của ${item.story?.author?.profile_name}`;
+        return `${t("activity.viewedStory")} ${item.story?.author?.profile_name}`;
       default:
         console.warn("Unknown activity type:", item.type);
-        return `đã ${item.type}`;
+        return `${item.type}`;
     }
   };
 
@@ -165,6 +167,7 @@ const ActivityScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
+  const { t } = useTranslation();
 
   const fetchActivities = async () => {
     try {
@@ -174,8 +177,8 @@ const ActivityScreen = ({ navigation }) => {
         console.log("Invalid response structure:", response);
         Toast.show({
           type: "error",
-          text1: "Đã có lỗi xảy ra",
-          text2: "Không thể tải hoạt động. Vui lòng thử lại sau.",
+          text1: t('common.error'),
+          text2: t('activity.loadError'),
           autoHide: true,
           visibilityTime: 5000,
           topOffset: 60,
@@ -203,8 +206,8 @@ const ActivityScreen = ({ navigation }) => {
       console.log("Error fetching activities:", error);
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
-        text2: "Không thể tải hoạt động. Vui lòng thử lại sau.",
+        text1: t('common.error'),
+        text2: t('activity.loadError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -309,7 +312,14 @@ const ActivityScreen = ({ navigation }) => {
           <ActivityItem item={item} navigation={navigation} />
         )}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+          />
         }
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{

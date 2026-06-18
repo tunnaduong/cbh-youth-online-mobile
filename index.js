@@ -1,5 +1,10 @@
 import { registerRootComponent } from "expo";
+import * as SplashScreen from "expo-splash-screen";
 
+// Prevent the native splash screen from hiding automatically
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+import "./app/i18n";
 import App from "./App";
 
 import { LogBox } from "react-native";

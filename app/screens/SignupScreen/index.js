@@ -19,8 +19,11 @@ import CheckBox from "react-native-check-box";
 import { signupRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { useTranslation } from "react-i18next";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const SignupScreen = ({ navigation }) => {
+  const { theme, isDarkMode } = useTheme();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -30,6 +33,7 @@ const SignupScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const { t } = useTranslation();
 
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
@@ -43,9 +47,7 @@ const SignupScreen = ({ navigation }) => {
 
   const handleSignup = async () => {
     if (!agreeToTerms) {
-      Alert.alert(
-        "Vui lòng đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư"
-      );
+      Alert.alert(t("signup.failureTitle"), t("signup.mustAgree"));
       return;
     }
 
@@ -56,15 +58,15 @@ const SignupScreen = ({ navigation }) => {
       password === "" ||
       confirmPassword === ""
     ) {
-      Alert.alert("Vui lòng điền đầy đủ thông tin");
+      Alert.alert(t("common.error"), t("signup.missingInfo"));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Mật khẩu không khớp", "Vui lòng nhập lại mật khẩu");
+      Alert.alert(t("signup.passwordMismatchTitle"), t("signup.passwordMismatchBody"));
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Mật khẩu phải dài ít nhất 6 ký tự");
+      Alert.alert(t("common.error"), t("signup.passwordLength"));
       return;
     }
 
@@ -79,11 +81,11 @@ const SignupScreen = ({ navigation }) => {
       .then((response) => {
         signIn(response.data.token, response.data.user);
         Alert.alert(
-          "Đăng ký thành công!",
-          "Chúc mừng bạn đã đăng ký thành công. Vui lòng kiểm tra email để xác thực tài khoản.",
+          t("auth.signupSuccess"),
+          t("auth.signupSuccessBody"),
           [
             {
-              text: "OK",
+              text: t("common.ok"),
               onPress: () => {
                 navigation.reset({
                   index: 0,
@@ -95,7 +97,7 @@ const SignupScreen = ({ navigation }) => {
         );
       })
       .catch((error) => {
-        Alert.alert("Đăng ký thất bại", error.response.data.message);
+        Alert.alert(t("auth.signupError"), error.response.data.message);
       })
       .finally(() => {
         setLoading(false);
@@ -121,16 +123,16 @@ const SignupScreen = ({ navigation }) => {
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("signup.invalidResponse"));
       }
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Đã xảy ra lỗi khi đăng ký với Google. Vui lòng thử lại.";
+        t("signup.googleError");
 
-      Alert.alert("Đăng ký thất bại", errorMessage);
+      Alert.alert(t("signup.failureTitle"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -156,16 +158,16 @@ const SignupScreen = ({ navigation }) => {
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("signup.invalidResponse"));
       }
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Đã xảy ra lỗi khi đăng ký với Facebook. Vui lòng thử lại.";
+        t("signup.facebookError");
 
-      Alert.alert("Đăng ký thất bại", errorMessage);
+      Alert.alert(t("signup.failureTitle"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -195,7 +197,7 @@ const SignupScreen = ({ navigation }) => {
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("signup.invalidResponse"));
       }
     } catch (error) {
       if (error.code === "ERR_REQUEST_CANCELED") {
@@ -205,8 +207,8 @@ const SignupScreen = ({ navigation }) => {
           error.response?.data?.message ||
           error.response?.data?.error ||
           error.message ||
-          "Đã xảy ra lỗi khi đăng ký với Apple. Vui lòng thử lại.";
-        Alert.alert("Đăng ký thất bại", errorMessage);
+          t("signup.appleError");
+        Alert.alert(t("signup.failureTitle"), errorMessage);
       }
     } finally {
       setLoading(false);
@@ -215,8 +217,8 @@ const SignupScreen = ({ navigation }) => {
 
   return (
     <>
-      <ProgressHUD loadText="Đang đăng ký..." visible={loading} />
-      <SafeAreaView style={styles.container}>
+      <ProgressHUD loadText={t("signup.loading")} visible={loading} />
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
         <TouchableOpacity
           className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
           onPress={() => {
@@ -232,55 +234,55 @@ const SignupScreen = ({ navigation }) => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Đăng ký</Text>
-              <Text style={styles.subtitle}>Tạo một tài khoản để tiếp tục</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{t("signup.title")}</Text>
+              <Text style={[styles.subtitle, { color: theme.subText }]}>{t("signup.subtitle")}</Text>
             </View>
 
             <View style={styles.form}>
 
               {isAppleAuthAvailable && (
                 <TouchableOpacity
-                  style={styles.appleButton}
+                  style={[styles.appleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                   onPress={handleAppleSignup}
                 >
-                  <Icon name="logo-apple" size={24} color="#000" />
-                  <Text style={styles.appleButtonText}>Tiếp tục với Apple</Text>
+                  <Icon name="logo-apple" size={24} color={theme.text} />
+                  <Text style={[styles.appleButtonText, { color: theme.text }]}>{t("signup.apple")}</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.googleButton}
+                style={[styles.googleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleGoogleSignup}
               >
                 <Image
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
-                <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+                <Text style={[styles.googleButtonText, { color: theme.text }]}>{t("signup.google")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.facebookButton}
+                style={[styles.facebookButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleFacebookSignup}
               >
                 <Icon name="logo-facebook" size={24} color="#1877F2" />
-                <Text style={styles.facebookButtonText}>
-                  Tiếp tục với Facebook
+                <Text style={[styles.facebookButtonText, { color: theme.text }]}>
+                  {t("signup.facebook")}
                 </Text>
               </TouchableOpacity>
 
               <View style={styles.orContainer}>
-                <View style={styles.orLine} />
-                <Text style={styles.orText}>hoặc đăng ký bằng</Text>
-                <View style={styles.orLine} />
+                <View style={[styles.orLine, { backgroundColor: theme.border }]} />
+                <Text style={[styles.orText, { color: theme.subText }]}>{t("signup.or")}</Text>
+                <View style={[styles.orLine, { backgroundColor: theme.border }]} />
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Tên đăng nhập</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.username")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="john_doe"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={username}
                   onChangeText={setUsername}
                   autoCapitalize="none"
@@ -288,11 +290,11 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Họ và tên</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.fullName")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="John Doe"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={name}
                   onChangeText={setName}
                   autoCapitalize="words"
@@ -300,11 +302,11 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Địa chỉ Email</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.email")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="hello@example.com"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -313,12 +315,12 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mật khẩu</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.password")}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={[styles.input, styles.passwordInput]}
+                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                     placeholder="••••••••••••"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.subText}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -331,19 +333,19 @@ const SignupScreen = ({ navigation }) => {
                     <Icon
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={24}
-                      color="#666"
+                      color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Xác nhận mật khẩu</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("signup.confirmPassword")}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={[styles.input, styles.passwordInput]}
+                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                     placeholder="••••••••••••"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.subText}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     secureTextEntry={!showConfirmPassword}
@@ -358,7 +360,7 @@ const SignupScreen = ({ navigation }) => {
                         showConfirmPassword ? "eye-off-outline" : "eye-outline"
                       }
                       size={24}
-                      color="#666"
+                      color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
@@ -372,20 +374,20 @@ const SignupScreen = ({ navigation }) => {
                   }}
                   checkBoxColor="#319527"
                 />
-                <Text style={styles.checkboxLabel}>
-                  Tôi đồng ý với{" "}
+                <Text style={[styles.checkboxLabel, { color: theme.subText }]}>
+                  {t("signup.agreePrefix")} {" "}
                   <Text
                     style={styles.link}
                     onPress={() => navigation.navigate("TermsOfServiceScreen")}
                   >
-                    Điều khoản sử dụng
+                    {t("signup.terms")}
                   </Text>{" "}
-                  và{" "}
+                  {" "}{t("signup.and")}{" "}
                   <Text
                     style={styles.link}
                     onPress={() => navigation.navigate("PrivacyPolicyScreen")}
                   >
-                    Chính sách quyền riêng tư
+                    {t("signup.privacy")}
                   </Text>
                 </Text>
               </View>
@@ -394,15 +396,15 @@ const SignupScreen = ({ navigation }) => {
                 style={styles.signUpButton}
                 onPress={handleSignup}
               >
-                <Text style={styles.signUpButtonText}>Tạo tài khoản</Text>
+                <Text style={styles.signUpButtonText}>{t("signup.createAccount")}</Text>
               </TouchableOpacity>
 
 
 
               <View style={styles.loginPrompt}>
-                <Text style={styles.loginPromptText}>Đã có tài khoản?</Text>
+                <Text style={[styles.loginPromptText, { color: theme.subText }]}>{t("signup.hasAccount")}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                  <Text style={styles.loginLink}>Đăng nhập</Text>
+                  <Text style={styles.loginLink}>{t("signup.login")}</Text>
                 </TouchableOpacity>
               </View>
             </View>

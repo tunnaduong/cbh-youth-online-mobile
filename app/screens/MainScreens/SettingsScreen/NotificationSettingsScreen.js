@@ -18,6 +18,7 @@ import {
   updateNotificationSettings,
 } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const SettingItem = ({
   icon,
@@ -85,6 +86,7 @@ const SettingSection = ({ title, children, theme, isDarkMode }) => {
 export default function NotificationSettingsScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -129,8 +131,8 @@ export default function NotificationSettingsScreen({ navigation }) {
       console.error("Failed to fetch notification settings:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải cài đặt thông báo",
+        text1: t('security.errorTitle'),
+        text2: t('notificationSettings.loadingError'),
       });
       setLoading(false);
     }
@@ -190,8 +192,8 @@ export default function NotificationSettingsScreen({ navigation }) {
       console.error("Failed to update notification settings:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể lưu cài đặt",
+        text1: t('security.errorTitle'),
+        text2: t('notificationSettings.saveError'),
       });
       // Revert could be implemented here
       fetchSettings();
@@ -218,16 +220,16 @@ export default function NotificationSettingsScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Thông báo</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('notificationSettings.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView>
-        <SettingSection title="Thông báo đẩy" theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('notificationSettings.pushNotifications')} theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="notifications-outline"
-            title="Cho phép thông báo"
-            description="Nhận thông báo trên thiết bị này"
+            title={t('notificationSettings.allowPush')}
+            description={t('notificationSettings.allowPushDesc')}
             isSwitch
             value={pushEnabled}
             onPress={(v) => handleToggle('pushEnabled', v)}
@@ -238,10 +240,10 @@ export default function NotificationSettingsScreen({ navigation }) {
 
         {pushEnabled && (
           <>
-            <SettingSection title="Tương tác" theme={theme} isDarkMode={isDarkMode}>
+            <SettingSection title={t('notificationSettings.interactions')} theme={theme} isDarkMode={isDarkMode}>
               <SettingItem
                 icon="heart-outline"
-                title="Lượt thích"
+                title={t('notificationSettings.likes')}
                 isSwitch
                 value={likesEnabled}
                 onPress={(v) => handleToggle('likesEnabled', v)}
@@ -250,7 +252,7 @@ export default function NotificationSettingsScreen({ navigation }) {
               />
               <SettingItem
                 icon="chatbubble-outline"
-                title="Bình luận"
+                title={t('notificationSettings.comments')}
                 isSwitch
                 value={commentsEnabled}
                 onPress={(v) => handleToggle('commentsEnabled', v)}
@@ -259,7 +261,7 @@ export default function NotificationSettingsScreen({ navigation }) {
               />
               <SettingItem
                 icon="at-outline"
-                title="Nhắc đến"
+                title={t('notificationSettings.mentions')}
                 isSwitch
                 value={mentionsEnabled}
                 onPress={(v) => handleToggle('mentionsEnabled', v)}
@@ -269,10 +271,10 @@ export default function NotificationSettingsScreen({ navigation }) {
               />
             </SettingSection>
 
-            <SettingSection title="Kết nối" theme={theme} isDarkMode={isDarkMode}>
+            <SettingSection title={t('notificationSettings.connections')} theme={theme} isDarkMode={isDarkMode}>
               <SettingItem
                 icon="person-add-outline"
-                title="Người theo dõi mới"
+                title={t('notificationSettings.newFollowers')}
                 isSwitch
                 value={followsEnabled}
                 onPress={(v) => {
@@ -284,7 +286,7 @@ export default function NotificationSettingsScreen({ navigation }) {
               />
               <SettingItem
                 icon="mail-outline"
-                title="Tin nhắn"
+                title={t('notificationSettings.messages')}
                 isSwitch
                 value={messagesEnabled}
                 onPress={(v) => {
@@ -299,11 +301,11 @@ export default function NotificationSettingsScreen({ navigation }) {
           </>
         )}
 
-        <SettingSection title="Khác" theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('notificationSettings.other')} theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="mail-open-outline"
-            title="Email thông báo"
-            description="Nhận cập nhật qua email"
+            title={t('notificationSettings.emailNotifications')}
+            description={t('notificationSettings.emailNotificationsDesc')}
             isSwitch
             value={emailEnabled}
             onPress={(v) => handleToggle('emailEnabled', v)}
@@ -312,7 +314,7 @@ export default function NotificationSettingsScreen({ navigation }) {
           />
           <SettingItem
             icon="newspaper-outline"
-            title="Tin tức & Cập nhật"
+            title={t('notificationSettings.newsUpdates')}
             isSwitch
             value={newsEnabled}
             onPress={(v) => handleToggle('newsEnabled', v)}

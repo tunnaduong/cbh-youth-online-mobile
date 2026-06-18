@@ -15,8 +15,10 @@ import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "react-native-fast-image";
+import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
 
-const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
+const SavedPostItem = ({ item, navigation, onOptionsPress, t }) => (
   <TouchableOpacity
     onPress={() => navigation.navigate("PostScreen", { postId: item.topic.id })}
     className="flex-row p-4 border-b border-gray-100"
@@ -39,7 +41,7 @@ const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
         {item.topic.image_urls.length > 0 && (
           <>
             <Text className="text-gray-500 text-[13px]">
-              Đăng {item.topic.image_urls?.length || 1} ảnh
+              {t("savedPosts.postedPhotos", { count: item.topic.image_urls?.length || 1 })}
             </Text>
             <Text className="text-gray-500 text-[13px] mx-1">•</Text>
           </>
@@ -49,7 +51,7 @@ const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
         </Text>
       </View>
       <Text className="text-gray-500 text-[13px] mt-0.5">
-        Lưu {item.created_at}
+        {t("savedPosts.savedTime", { time: item.created_at ? formatTime(item.created_at) : "" })}
       </Text>
     </View>
     <TouchableOpacity
@@ -65,6 +67,7 @@ const SavedPostsScreen = ({ navigation }) => {
   const [savedPosts, setSavedPosts] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const { isLoggedIn } = useContext(AuthContext);
+  const { t } = useTranslation();
 
   const fetchSavedPosts = async () => {
     try {
@@ -74,8 +77,8 @@ const SavedPostsScreen = ({ navigation }) => {
         console.log("Invalid response structure:", response);
         Toast.show({
           type: "error",
-          text1: "Đã có lỗi xảy ra",
-          text2: "Định dạng dữ liệu không hợp lệ. Vui lòng thử lại sau.",
+          text1: t('common.error'),
+          text2: t('savedPosts.invalidData'),
           autoHide: true,
           visibilityTime: 5000,
           topOffset: 60,
@@ -88,8 +91,8 @@ const SavedPostsScreen = ({ navigation }) => {
       console.log("Error fetching saved posts:", error);
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
-        text2: "Không thể tải bài viết đã lưu. Vui lòng thử lại sau.",
+        text1: t('common.error'),
+        text2: t('savedPosts.loadError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -119,7 +122,7 @@ const SavedPostsScreen = ({ navigation }) => {
 
   const ListHeader = () => (
     <View className="px-4 py-3 border-b border-gray-100">
-      <Text className="text-[17px] font-medium">Đã lưu gần đây</Text>
+      <Text className="text-[17px] font-medium">{t("savedPosts.recentlySaved")}</Text>
     </View>
   );
 
@@ -130,7 +133,7 @@ const SavedPostsScreen = ({ navigation }) => {
         style={{ width: 130, height: 130 }}
       />
       <Text className="text-gray-500 text-center mt-4">
-        Bạn chưa lưu bài viết nào
+        {t('savedPosts.empty')}
       </Text>
     </View>
   );
@@ -139,7 +142,7 @@ const SavedPostsScreen = ({ navigation }) => {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <Text className="text-gray-500 mb-4">
-          Vui lòng đăng nhập để xem bài viết đã lưu
+          {t('savedPosts.loginPrompt')}
         </Text>
       </View>
     );
@@ -157,7 +160,7 @@ const SavedPostsScreen = ({ navigation }) => {
           loop
           autoPlay
         />
-        <Text className="mt-4">Đang tải bài viết đã lưu...</Text>
+        <Text className="mt-4">{t('savedPosts.loading')}</Text>
       </View>
     );
   }
@@ -196,23 +199,32 @@ const SavedPostsScreen = ({ navigation }) => {
           }}
           numberOfLines={1}
         >
-          Bài viết đã lưu
+          {t('savedPosts.title')}
         </Text>
       </View>
 
       <FlatList
         data={savedPosts}
+        extraData={t}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <SavedPostItem
             item={item}
             navigation={navigation}
             onOptionsPress={handleOptionsPress}
+            t={t}
           />
         )}
         ListHeaderComponent={ListHeader}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+          />
         }
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{

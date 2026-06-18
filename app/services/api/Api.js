@@ -1,4 +1,5 @@
 import * as Api from "./ApiByAxios";
+import i18n from "../../i18n";
 
 // Authentication
 export const loginRequest = async (params) => {
@@ -17,7 +18,7 @@ export const loginRequest = async (params) => {
       throw new Error(error.response.data.message);
     } else {
       throw new Error(
-        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+        i18n.t("api.networkError")
       );
     }
   }
@@ -46,7 +47,7 @@ export const loginWithOAuth = async (params) => {
       throw new Error(error.response.data.message);
     } else {
       throw new Error(
-        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+        i18n.t("api.networkError")
       );
     }
   }
@@ -88,7 +89,7 @@ export const exchangeOAuthCode = async (params) => {
       throw new Error(error.response.data.message);
     } else {
       throw new Error(
-        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+        i18n.t("api.networkError")
       );
     }
   }
@@ -137,7 +138,7 @@ export const resendVerificationEmail = async () => {
       throw new Error(error.response.data.message);
     } else {
       throw new Error(
-        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+        i18n.t("api.networkError")
       );
     }
   }
@@ -227,7 +228,7 @@ export const deleteAccount = async (password) => {
       throw new Error(error.response.data.message);
     } else {
       throw new Error(
-        "Đã có lỗi không mong muốn xảy ra. Vui lòng kiểm tra kết nối mạng của bạn và thử lại sau."
+        i18n.t("api.networkError")
       );
     }
   }

@@ -12,6 +12,7 @@ import {
   FlatList,
   Dimensions,
   StatusBar,
+  DeviceEventEmitter,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -21,23 +22,27 @@ import LottieView from "lottie-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
+import { getCategoryName } from "../../../utils/forumUtils";
 
 const { width } = Dimensions.get("window");
 
-const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
+
+const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <View style={[styles.sectionBox, { borderColor: theme.primary, backgroundColor: theme.cardBackground, shadowColor: isDarkMode ? "#000" : theme.primary }]}>
     <TouchableOpacity
       onPress={() =>
         navigation.navigate("CategoryScreen", { categoryId: section.id })
       }
     >
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{section.name}</Text>
+      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{getCategoryName(section.name, t)}</Text>
       <View style={styles.sectionStats}>
         <Text style={[styles.statText, { color: theme.text }]}>
-          Bài viết: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
+          {t('forum.posts')}: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
         </Text>
         <Text style={[styles.statText, { color: theme.text }]}>
-          Bình luận:{" "}
+          {t('forum.comments')}:{" "}
           <Text style={[styles.statBold, { color: theme.text }]}>{section.comment_count}</Text>
         </Text>
       </View>
@@ -53,9 +58,9 @@ const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
             }
           >
             <View style={{ flexDirection: "row", gap: 10 }}>
-              <Text style={[styles.latestLabel, { color: theme.subText }]}>Mới nhất</Text>
+              <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.latest')}</Text>
               <Text style={[styles.latestTime, { color: theme.subText }]}>
-                {section.latest_post.created_at}
+                {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
               </Text>
             </View>
             <Text style={[styles.latestContent, { color: theme.text }]}>
@@ -67,7 +72,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
           </TouchableOpacity>
         </>
       ) : (
-        <Text style={[styles.latestLabel, { color: theme.subText }]}>Chưa có bài viết mới</Text>
+        <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
       )}
     </View>
   </View>
@@ -75,6 +80,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode }) => (
 
 export default function ForumScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(1);
   const { username } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
@@ -94,7 +100,22 @@ export default function ForumScreen({ navigation }) {
     tabScrollViewRef.current?.scrollTo({ x: scrollPosition, animated: true });
   };
 
+  const lastScrollYRef = useRef(0);
+
   const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    
+    // Auto hide bottom tab bar
+    const diff = offsetY - lastScrollYRef.current;
+    if (offsetY < 50) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    } else if (diff > 15) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
+    } else if (diff < -10) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    }
+    lastScrollYRef.current = offsetY;
+
     if (!refreshing) {
       lottieRef.current?.play();
     }
@@ -161,7 +182,7 @@ export default function ForumScreen({ navigation }) {
       >
         <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>Diễn đàn</Text>
+          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
           <TouchableOpacity
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
@@ -177,7 +198,7 @@ export default function ForumScreen({ navigation }) {
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
         >
           <CustomLoading />
-          <Text style={{ marginTop: 15, color: theme.text }}>Đang tải diễn đàn...</Text>
+          <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -189,7 +210,7 @@ export default function ForumScreen({ navigation }) {
     >
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Diễn đàn</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate("MemberRankingScreen")}
           style={{ marginRight: 15 }}
@@ -232,7 +253,7 @@ export default function ForumScreen({ navigation }) {
                   activeCategory === cat.id && styles.tabTextActive,
                 ]}
               >
-                {cat.name}
+                {getCategoryName(cat.name, t)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -255,6 +276,7 @@ export default function ForumScreen({ navigation }) {
       <FlatList
         ref={flatListRef}
         data={categories}
+        extraData={{ t, theme, isDarkMode }}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -289,18 +311,20 @@ export default function ForumScreen({ navigation }) {
                   onRefresh={onRefresh}
                   tintColor="transparent"
                   colors={["transparent"]}
+                  progressBackgroundColor="transparent"
                   style={{ backgroundColor: "transparent" }}
                 />
               }
             >
               {item.subforums.map((section) => (
-                <ForumSection
-                  key={section.id}
-                  section={section}
-                  navigation={navigation}
-                  theme={theme}
-                  isDarkMode={isDarkMode}
-                />
+                  <ForumSection
+                    key={section.id}
+                    section={section}
+                    navigation={navigation}
+                    theme={theme}
+                    isDarkMode={isDarkMode}
+                    t={t}
+                  />
               ))}
             </ScrollView>
           </View>

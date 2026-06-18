@@ -41,6 +41,8 @@ import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -67,6 +69,11 @@ const PostScreen = ({ route, navigation }) => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
+  const { t } = useTranslation();
+
+  React.useEffect(() => {
+    navigation.setOptions({ title: t('post.details') });
+  }, [navigation, t]);
 
   React.useEffect(() => {
     fetchData();
@@ -80,7 +87,7 @@ const PostScreen = ({ route, navigation }) => {
 
   const handleOpenBottomSheet = () => {
     showBottomSheet(
-      <>
+      <View style={{ backgroundColor: theme.cardBackground }}>
         <TouchableOpacity
           onPress={() => {
             handleSavePost(!isSaved);
@@ -94,7 +101,7 @@ const PostScreen = ({ route, navigation }) => {
               color={isSaved ? theme.primary : theme.text}
             />
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {isSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
+              {isSaved ? t('post.unsave') : t('post.save')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -108,7 +115,7 @@ const PostScreen = ({ route, navigation }) => {
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>Chia sẻ</Text>
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
         {isCurrentUser && (
@@ -116,7 +123,7 @@ const PostScreen = ({ route, navigation }) => {
             <View className="flex-row items-center">
               <Ionicons name="lock-closed-outline" size={23} />
               <Text style={{ padding: 12, fontSize: 17 }}>
-                Cài đặt quyền riêng tư
+                {t('post.privacy')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -131,7 +138,7 @@ const PostScreen = ({ route, navigation }) => {
             <View className="flex-row items-center">
               <Ionicons name="create-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                Chỉnh sửa bài đăng
+                {t('post.edit')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -146,7 +153,7 @@ const PostScreen = ({ route, navigation }) => {
               style={{ padding: 12, fontSize: 17 }}
               className="text-red-500"
             >
-              Báo cáo
+              {t('post.report')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -158,12 +165,12 @@ const PostScreen = ({ route, navigation }) => {
                 style={{ padding: 12, fontSize: 17 }}
                 className="text-red-500"
               >
-                Xóa bài viết
+                {t('post.delete')}
               </Text>
             </View>
           </TouchableOpacity>
         )}
-      </>
+      </View>
     );
   };
 
@@ -179,11 +186,11 @@ const PostScreen = ({ route, navigation }) => {
 
   const handleDeletePost = async () => {
     Alert.alert(
-      "Xóa bài viết này?",
-      "Bạn có thể chỉnh sửa bài viết này thay vì xóa nó",
+      t('post.deleteConfirmTitle'),
+      t('post.deleteConfirmBody'),
       [
         {
-          text: "Xóa",
+          text: t('post.deleteAction'),
           style: "destructive",
           onPress: async () => {
             await deletePost(post.id);
@@ -198,7 +205,7 @@ const PostScreen = ({ route, navigation }) => {
           },
         },
         {
-          text: "Chỉnh sửa",
+          text: t('post.editAction'),
           style: "default",
           onPress: () => {
             navigation.navigate("EditPostScreen", { postId: post.id });
@@ -206,7 +213,7 @@ const PostScreen = ({ route, navigation }) => {
           },
         },
         {
-          text: "Hủy",
+          text: t('settings.cancel'),
           style: "cancel",
         },
       ]
@@ -448,13 +455,13 @@ const PostScreen = ({ route, navigation }) => {
     try {
       await reportUser({ topic_id: post.id, reason });
       Alert.alert(
-        "Cảm ơn",
-        "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất."
+        t('post.reportSuccessTitle'),
+        t('post.reportSuccessBody')
       );
     } catch (e) {
       Alert.alert(
-        "Lỗi",
-        e.response?.data?.message || e.message || "Không thể gửi báo cáo"
+        t('profile.errorTitle'),
+        e.response?.data?.message || e.message || t('post.reportError')
       );
     }
   };
@@ -610,7 +617,7 @@ const PostScreen = ({ route, navigation }) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ["Hủy", "Chỉnh sửa bình luận", "Xóa bình luận"],
+          options: [t('settings.cancel'), t('post.editComment'), t('post.deleteComment')],
           destructiveButtonIndex: 2,
           cancelButtonIndex: 0,
         },
@@ -632,15 +639,15 @@ const PostScreen = ({ route, navigation }) => {
       );
     } else {
       Alert.alert(
-        "Tùy chọn",
-        "Chọn hành động",
+        t('post.optionsTitle'),
+        t('post.selectAction'),
         [
           {
-            text: "Hủy",
+            text: t('settings.cancel'),
             style: "cancel",
           },
           {
-            text: "Chỉnh sửa bình luận",
+            text: t('post.editComment'),
             onPress: () => {
               setEditingCommentId(commentId);
               setEditingCommentText(comment.content || "");
@@ -652,7 +659,7 @@ const PostScreen = ({ route, navigation }) => {
             },
           },
           {
-            text: "Xóa bình luận",
+            text: t('post.deleteComment'),
             style: "destructive",
             onPress: () => handleDeleteComment(commentId),
           },
@@ -663,13 +670,13 @@ const PostScreen = ({ route, navigation }) => {
   };
 
   const handleDeleteComment = async (commentId) => {
-    Alert.alert("Xóa bình luận", "Bạn có chắc chắn muốn xóa bình luận này?", [
+    Alert.alert(t('post.deleteComment'), t('post.deleteCommentConfirm'), [
       {
-        text: "Hủy",
+        text: t('settings.cancel'),
         style: "cancel",
       },
       {
-        text: "Xóa",
+        text: t('post.deleteAction'),
         style: "destructive",
         onPress: async () => {
           try {
@@ -727,7 +734,7 @@ const PostScreen = ({ route, navigation }) => {
             }
           } catch (error) {
             console.error("Error deleting comment:", error);
-            Alert.alert("Lỗi", "Không thể xóa bình luận. Vui lòng thử lại.");
+            Alert.alert(t('profile.errorTitle'), t('post.deleteCommentError'));
           }
         },
       },
@@ -797,7 +804,7 @@ const PostScreen = ({ route, navigation }) => {
       }
     } catch (error) {
       console.error("Error updating comment:", error);
-      Alert.alert("Lỗi", "Không thể chỉnh sửa bình luận. Vui lòng thử lại.");
+      Alert.alert(t('profile.errorTitle'), t('post.editCommentError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -880,7 +887,7 @@ const PostScreen = ({ route, navigation }) => {
                   }
                 >
                   <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                    {author.profile_name || author.username || "Ẩn danh"}
+                    {author.profile_name || author.username || t('post.anonymous')}
                     {author.verified && (
                       <View>
                         <Verified
@@ -906,11 +913,11 @@ const PostScreen = ({ route, navigation }) => {
                     }}
                   >
                     <Text style={{ fontSize: 12, color: theme.subText }}>
-                      Bình luận mà{" "}
+                      {t('post.replyDeletedPrefix')}{" "}
                       <Text style={{ fontWeight: "600", color: theme.text }}>
-                        {author.profile_name || author.username || "Ẩn danh"}
+                        {author.profile_name || author.username || t('post.anonymous')}
                       </Text>{" "}
-                      đang phản hồi đã bị xóa
+                      {t('post.replyDeletedSuffix')}
                     </Text>
                   </View>
                 )}
@@ -924,7 +931,7 @@ const PostScreen = ({ route, navigation }) => {
                 </Text>
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at || ""} ·
+                    {comment.created_at ? formatTime(comment.created_at) : ""} ·
                   </Text>
                   <TouchableOpacity
                     onPress={() =>
@@ -937,7 +944,7 @@ const PostScreen = ({ route, navigation }) => {
                   >
                     <Text style={{ color: theme.subText, fontWeight: "bold", fontSize: 12 }}>
                       {" "}
-                      Trả lời
+                      {t('post.reply')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1062,9 +1069,9 @@ const PostScreen = ({ route, navigation }) => {
             />
             {/* comment section */}
             <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
-              <Text style={{ fontWeight: "bold", fontSize: 20, marginVertical: 16, color: theme.text }}>Bình luận</Text>
+              <Text style={{ fontWeight: "bold", fontSize: 20, marginVertical: 16, color: theme.text }}>{t('post.commentsTitle')}</Text>
               {comments.length === 0 ? (
-                <Text style={{ color: theme.subText }}>Chưa có bình luận nào</Text>
+                <Text style={{ color: theme.subText }}>{t('post.noComments')}</Text>
               ) : (
                 comments.map((comment) => (
                   <Comment
@@ -1090,8 +1097,8 @@ const PostScreen = ({ route, navigation }) => {
             >
               <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }}>
                 {editingCommentId
-                  ? "Đang chỉnh sửa bình luận..."
-                  : `Đang trả lời bình luận của ${replyingTo}...`}
+                  ? t('post.editingComment')
+                  : t('post.replyingTo', { username: replyingTo })}
               </Text>
               <TouchableOpacity
                 onPress={() => {
@@ -1116,7 +1123,7 @@ const PostScreen = ({ route, navigation }) => {
           <CommentBar
             value={commentText}
             onChangeText={setCommentText}
-            placeholderText="Viết bình luận..."
+            placeholderText={t('post.commentPlaceholder')}
             onSubmit={onSubmit}
             ref={commentInputRef}
             isSubmitting={isSubmitting}

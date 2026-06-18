@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform } from "react-native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, DeviceEventEmitter } from "react-native";
+import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
@@ -15,9 +15,134 @@ import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import TabBarBadge from "../../components/TabBarBadge";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
+
+const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
+  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const onLayout = (event) => {
+    const { width } = event.nativeEvent.layout;
+    if (width) {
+      setTabBarWidth(width);
+    }
+  };
+
+  const getRouteIndex = (routeName) => {
+    switch (routeName) {
+      case "Home": return 0;
+      case "Forum": return 1;
+      case "Create": return 2;
+      case "Chat": return 3;
+      case "Notifications": return 4;
+      default: return 0;
+    }
+  };
+
+  const activeIndex = getRouteIndex(currentRoute);
+  const usableWidth = tabBarWidth - 16;
+  const buttonWidth = usableWidth / 5;
+
+  const getIndicatorWidth = (index, bWidth) => {
+    return bWidth;
+  };
+
+  const getIndicatorLeft = (index, bWidth) => {
+    return 8 + index * bWidth;
+  };
+
+  const currentIndicatorWidth = getIndicatorWidth(activeIndex, buttonWidth);
+  const currentIndicatorLeft = getIndicatorLeft(activeIndex, buttonWidth);
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: currentIndicatorLeft,
+      useNativeDriver: true,
+      stiffness: 140,
+      damping: 14,
+      mass: 1.2,
+    }).start();
+  }, [currentIndicatorLeft]);
+
+  const opacity = activeIndex === 2 ? 0 : 1;
+  return (
+    <View
+      onLayout={onLayout}
+      style={{
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 26,
+        overflow: "hidden",
+        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+        borderWidth: 1,
+        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+      }}
+    >
+      {/* Chromatic Aberration - Red channel shift (left offset) */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: currentIndicatorWidth,
+          height: 52,
+          borderRadius: 26,
+          top: 0,
+          left: -0.8,
+          opacity: opacity * 0.35,
+          transform: [{ translateX: slideAnim }],
+          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+        }}
+      />
+      {/* Chromatic Aberration - Blue channel shift (right offset) */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: currentIndicatorWidth,
+          height: 52,
+          borderRadius: 26,
+          top: 0,
+          left: 0.8,
+          opacity: opacity * 0.35,
+          transform: [{ translateX: slideAnim }],
+          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+        }}
+      />
+      {/* Main Glass Indicator (neutral white/dark) */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: currentIndicatorWidth,
+          height: 52,
+          borderRadius: 26,
+          top: 0,
+          left: 0,
+          opacity,
+          transform: [{ translateX: slideAnim }],
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+          shadowColor: isDarkMode ? "#fff" : "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDarkMode ? 0.3 : 0.15,
+          shadowRadius: 6,
+          elevation: 3,
+          overflow: "hidden",
+        }}
+      >
+        <LinearGradient
+          colors={[
+            isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+            isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+            "transparent"
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      </Animated.View>
+    </View>
+  );
+};
 
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = React.useState(false);
@@ -27,7 +152,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const { t } = useTranslation();
 
   // Function to trigger scroll to top or reload in HomeScreen
   const triggerHomeScrollOrReload = () => {
@@ -59,6 +185,28 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return unsubscribe;
   }, [stackNavigation]);
 
+  const tabBarTranslateY = useRef(new Animated.Value(0)).current;
+
+  // Listen for scroll events to auto hide/show tab bar
+  useEffect(() => {
+    let isVisible = true;
+    const subscription = DeviceEventEmitter.addListener("SET_TABBAR_VISIBLE", (visible) => {
+      if (visible === isVisible) return;
+      isVisible = visible;
+      Animated.timing(tabBarTranslateY, {
+        toValue: visible ? 0 : 100, // Translate down by 100px to hide
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    // Reset tab bar visibility to true when switching tabs
+    DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+  }, [currentRoute]);
+
   return (
     <SideMenu
       menu={<Sidebar />}
@@ -72,6 +220,20 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
+          tabBar={(props) => (
+            <Animated.View
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                transform: [{ translateY: tabBarTranslateY }],
+                zIndex: 99,
+              }}
+            >
+              <BottomTabBar {...props} />
+            </Animated.View>
+          )}
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
@@ -96,15 +258,71 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 </View>
               );
             },
+            tabBarShowLabel: !hideTabLabels,
             tabBarActiveTintColor: theme.primary,
             tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
-            tabBarStyle: {
-              backgroundColor: theme.tabBarBackground,
-              borderTopColor: theme.border,
+            tabBarButton: (props) => {
+              if (route.name === "Create") {
+                return props.children;
+              }
+              const { children, style, onPress, onLongPress } = props;
+              return (
+                <TouchableOpacity
+                  onPress={onPress}
+                  onLongPress={onLongPress}
+                  style={[
+                    style,
+                    {
+                      justifyContent: "center",
+                      alignItems: "center",
+                    },
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 16,
+                      paddingVertical: 3,
+                      paddingHorizontal: 10,
+                      minWidth: 46,
+                    }}
+                  >
+                    {children}
+                  </View>
+                </TouchableOpacity>
+              );
             },
+            tabBarStyle: {
+              backgroundColor: 'transparent',
+              borderTopWidth: 0,
+              position: 'absolute',
+              bottom: Platform.OS === 'ios' ? 12 : 5,
+              left: 95,
+              right: 95,
+              elevation: 10,
+              borderRadius: 26,
+              height: 52,
+              shadowColor: "#000",
+              shadowOpacity: 0.12,
+              shadowOffset: { width: 0, height: 4 },
+              shadowRadius: 12,
+              paddingBottom: 0,
+              paddingHorizontal: 8,
+            },
+            tabBarBackground: () => (
+              <TabBarBackgroundComponent
+                currentRoute={currentRoute}
+                isDarkMode={isDarkMode}
+                hideTabLabels={hideTabLabels}
+                theme={theme}
+              />
+            ),
             tabBarLabelStyle: {
-              fontSize: 10,
+              fontSize: 9, // Font size for labels
               fontWeight: "bold",
+              marginBottom: 3, // Space between icon and label
             },
             headerShadowVisible: false,
             headerTitleAlign: "center",
@@ -127,7 +345,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           <Tab.Screen
             name="Home"
             options={{
-              title: "Trang chủ",
+              title: t('navigation.home'),
               headerShown: true,
               headerBackButtonMenuEnabled: false,
               headerTitle: () => (
@@ -170,7 +388,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           <Tab.Screen
             name="Forum"
             component={MenuScreen}
-            options={{ title: "Diễn đàn", headerShown: false }}
+            options={{ title: t('navigation.forum'), headerShown: false }}
           />
           <Tab.Screen
             name="Create"
@@ -192,14 +410,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
                   }}
                 />
               ),
-              title: "Tạo",
+              title: t('navigation.create'),
             }}
           />
           <Tab.Screen
             name="Chat"
             component={ChatScreen}
             options={{
-              title: "Chat",
+              title: t('navigation.chat'),
               headerShown: false,
             }}
           />
@@ -207,7 +425,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             name="Notifications"
             component={NotificationScreen}
             options={{
-              title: "Thông báo",
+              title: t('navigation.notifications'),
               headerShown: false,
             }}
           />

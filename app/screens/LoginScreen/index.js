@@ -20,6 +20,8 @@ import Icon from "react-native-vector-icons/Ionicons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { useTheme } from "../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -27,7 +29,8 @@ const LoginScreen = ({ navigation }) => {
   const { signIn } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
+  const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
 
@@ -40,7 +43,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Vui lòng điền đầy đủ thông tin");
+      Alert.alert(t("common.error"), t("auth.fillAllFields"));
       return;
     }
 
@@ -54,8 +57,8 @@ const LoginScreen = ({ navigation }) => {
     } catch (error) {
       // Show an error message to the user
       Alert.alert(
-        "Đăng nhập thất bại",
-        error.message || "Đã xảy ra lỗi. Vui lòng thử lại."
+        t("auth.loginError"),
+        error.message || t("common.error")
       );
     } finally {
       setLoading(false); // Ensure loading stops even if there's an error
@@ -104,7 +107,7 @@ const LoginScreen = ({ navigation }) => {
           "Backend response missing token or user data:",
           response.data
         );
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("auth.invalidServerResponse"));
       }
     } catch (error) {
       console.error("Google OAuth login failed - Full error:", {
@@ -121,9 +124,9 @@ const LoginScreen = ({ navigation }) => {
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Đã xảy ra lỗi khi đăng nhập với Google. Vui lòng thử lại.";
+        t("auth.googleLoginError");
 
-      Alert.alert("Đăng nhập thất bại", errorMessage);
+      Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -173,7 +176,7 @@ const LoginScreen = ({ navigation }) => {
           "Backend response missing token or user data:",
           response.data
         );
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("auth.invalidServerResponse"));
       }
     } catch (error) {
       console.error("Facebook OAuth login failed - Full error:", {
@@ -190,9 +193,9 @@ const LoginScreen = ({ navigation }) => {
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
-        "Đã xảy ra lỗi khi đăng nhập với Facebook. Vui lòng thử lại.";
+        t("auth.facebookLoginError");
 
-      Alert.alert("Đăng nhập thất bại", errorMessage);
+      Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false);
     }
@@ -221,7 +224,7 @@ const LoginScreen = ({ navigation }) => {
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
-        throw new Error("Phản hồi từ server không hợp lệ");
+        throw new Error(t("auth.invalidServerResponse"));
       }
     } catch (error) {
       if (error.code === "ERR_REQUEST_CANCELED") {
@@ -231,8 +234,8 @@ const LoginScreen = ({ navigation }) => {
           error.response?.data?.message ||
           error.response?.data?.error ||
           error.message ||
-          "Đã xảy ra lỗi khi đăng nhập với Apple. Vui lòng thử lại.";
-        Alert.alert("Đăng nhập thất bại", errorMessage);
+          t("auth.appleLoginError");
+        Alert.alert(t("auth.loginError"), errorMessage);
       }
     } finally {
       setLoading(false);
@@ -241,9 +244,9 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <>
-      <ProgressHUD loadText="Đang đăng nhập..." visible={loading} />
+      <ProgressHUD loadText={t("auth.loggingIn")} visible={loading} />
       <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
           <TouchableOpacity
             className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
             onPress={() => {
@@ -258,19 +261,19 @@ const LoginScreen = ({ navigation }) => {
           </TouchableOpacity>
           <ScrollView style={styles.content}>
             <View style={styles.header}>
-              <Text style={styles.title}>Đăng nhập</Text>
-              <Text style={styles.subtitle}>
-                Chào mừng bạn trở lại ứng dụng
+              <Text style={[styles.title, { color: theme.text }]}>{t("auth.login")}</Text>
+              <Text style={[styles.subtitle, { color: theme.subText }]}>
+                {t("auth.welcome")}
               </Text>
             </View>
 
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Tên người dùng hoặc email</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("auth.usernameOrEmail")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                   placeholder="hello@example.com"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={theme.subText}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -279,12 +282,12 @@ const LoginScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Mật khẩu</Text>
+                <Text style={[styles.label, { color: theme.text }]}>{t("auth.password")}</Text>
                 <View style={styles.passwordContainer}>
                   <TextInput
-                    style={[styles.input, styles.passwordInput]}
+                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
                     placeholder="••••••••••••"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.subText}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -296,7 +299,7 @@ const LoginScreen = ({ navigation }) => {
                     <Icon
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
                       size={24}
-                      color="#666"
+                      color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
@@ -304,7 +307,7 @@ const LoginScreen = ({ navigation }) => {
                   style={styles.forgotPassword}
                   onPress={() => navigation.navigate("ForgotPassword")}
                 >
-                  <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+                  <Text style={styles.forgotPasswordText}>{t("auth.forgotPasswordLink")}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -312,7 +315,7 @@ const LoginScreen = ({ navigation }) => {
                 style={styles.loginButton}
                 onPress={handleLogin}
               >
-                <Text style={styles.loginButtonText}>Đăng nhập</Text>
+                <Text style={styles.loginButtonText}>{t("auth.login")}</Text>
               </TouchableOpacity>
 
               <View
@@ -322,39 +325,39 @@ const LoginScreen = ({ navigation }) => {
                   paddingVertical: 16,
                 }}
               >
-                <View style={styles.line} />
-                <Text style={styles.orText}>hoặc đăng nhập bằng</Text>
-                <View style={styles.line} />
+                <View style={[styles.line, { backgroundColor: theme.border, borderColor: theme.border }]} />
+                <Text style={[styles.orText, { color: theme.subText }]}>{t("auth.orLoginWith")}</Text>
+                <View style={[styles.line, { backgroundColor: theme.border, borderColor: theme.border }]} />
               </View>
 
               {isAppleAuthAvailable && (
                 <TouchableOpacity
-                  style={styles.appleButton}
+                  style={[styles.appleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                   onPress={handleAppleLogin}
                 >
-                  <Icon name="logo-apple" size={24} color="#000" />
-                  <Text style={styles.appleButtonText}>Tiếp tục với Apple</Text>
+                  <Icon name="logo-apple" size={24} color={theme.text} />
+                  <Text style={[styles.appleButtonText, { color: theme.text }]}>{t("auth.continueWithApple")}</Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.googleButton}
+                style={[styles.googleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleGoogleLogin}
               >
                 <Image
                   source={require("../../assets/google.png")}
                   style={{ width: 24, height: 24 }}
                 />
-                <Text style={styles.googleButtonText}>Tiếp tục với Google</Text>
+                <Text style={[styles.googleButtonText, { color: theme.text }]}>{t("auth.continueWithGoogle")}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.facebookButton}
+                style={[styles.facebookButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 onPress={handleFacebookLogin}
               >
                 <Icon name="logo-facebook" size={24} color="#1877F2" />
-                <Text style={styles.facebookButtonText}>
-                  Tiếp tục với Facebook
+                <Text style={[styles.facebookButtonText, { color: theme.text }]}>
+                  {t("auth.continueWithFacebook")}
                 </Text>
               </TouchableOpacity>
 
@@ -364,7 +367,7 @@ const LoginScreen = ({ navigation }) => {
                 }}
               >
                 <Text className="mt-1 text-center text-base text-[#319527] font-semibold">
-                  Tạo tài khoản mới
+                  {t("auth.createAccount")}
                 </Text>
               </TouchableOpacity>
             </View>

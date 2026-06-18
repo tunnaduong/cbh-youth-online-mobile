@@ -15,6 +15,9 @@ import FastImage from "react-native-fast-image";
 import Toast from "react-native-toast-message";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
+import dayjs from "dayjs";
+import formatTime from "../../../utils/formatTime";
 
 const { width } = Dimensions.get("window");
 const STORY_SIZE = (width - 48) / 3; // 3 columns with padding
@@ -26,6 +29,25 @@ const ArchiveScreen = ({ route, navigation }) => {
   const [selectedStories, setSelectedStories] = useState(null);
   const storyRef = React.useRef(null);
   const username = route.params?.username || currentUsername;
+  const { t } = useTranslation();
+
+  const formatDateHeader = (dateStr) => {
+    if (!dateStr) return "";
+    const d = dayjs(dateStr);
+    if (!d.isValid()) return dateStr;
+
+    const today = dayjs().startOf("day");
+    const yesterday = dayjs().subtract(1, "day").startOf("day");
+    const itemDate = d.startOf("day");
+
+    if (itemDate.isSame(today)) {
+      return t("chatConversation.today");
+    } else if (itemDate.isSame(yesterday)) {
+      return t("chatConversation.yesterday");
+    } else {
+      return d.format("DD/MM/YYYY");
+    }
+  };
 
   useEffect(() => {
     fetchArchive();
@@ -42,8 +64,8 @@ const ArchiveScreen = ({ route, navigation }) => {
       console.error("Error fetching archive:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải kho lưu trữ.",
+        text1: t('common.error'),
+        text2: t('archive.loadError'),
       });
     } finally {
       setLoading(false);
@@ -54,7 +76,7 @@ const ArchiveScreen = ({ route, navigation }) => {
     return {
       uid: "archive",
       id: "archive",
-      name: "Kho lưu trữ",
+      name: t('archive.title'),
       avatarSource: {
         uri: `https://api.chuyenbienhoa.com/users/${username}/avatar`,
       },
@@ -65,7 +87,7 @@ const ArchiveScreen = ({ route, navigation }) => {
           uri: `https://api.chuyenbienhoa.com${story.media_url}`,
         },
         duration: 10,
-        date: story.created_at_human,
+        date: formatTime(story.created_at || story.created_at_human),
         renderFooter: () => (
           <View
             style={{
@@ -100,7 +122,7 @@ const ArchiveScreen = ({ route, navigation }) => {
             >
               <Ionicons name="eye" size={20} color="#fff" />
               <Text style={{ color: "white", marginLeft: 8, fontWeight: 'bold' }}>
-                {story.viewers_count} người xem
+                {t('archive.viewersCount', { count: story.viewers_count })}
               </Text>
             </TouchableOpacity>
 
@@ -165,7 +187,7 @@ const ArchiveScreen = ({ route, navigation }) => {
 
     return (
       <View style={styles.dateSection}>
-        <Text style={styles.dateTitle}>{dateGroup.date_human}</Text>
+        <Text style={styles.dateTitle}>{formatDateHeader(dateGroup.date)}</Text>
         <FlatList
           data={stories}
           renderItem={renderStoryItem}
@@ -184,7 +206,7 @@ const ArchiveScreen = ({ route, navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#319527" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Kho lưu trữ</Text>
+        <Text style={styles.headerTitle}>{t('archive.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -192,7 +214,7 @@ const ArchiveScreen = ({ route, navigation }) => {
       <View style={styles.privacyNotice}>
         <Ionicons name="lock-closed-outline" size={16} color="#666" />
         <Text style={styles.privacyText}>
-          Tin đã lưu trữ sẽ chỉ hiển thị với mình bạn.
+          {t('archive.privacyNotice')}
         </Text>
       </View>
 
@@ -203,7 +225,7 @@ const ArchiveScreen = ({ route, navigation }) => {
       ) : archiveData.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="archive-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>Chưa có story nào</Text>
+          <Text style={styles.emptyText}>{t('archive.empty')}</Text>
         </View>
       ) : (
         <FlatList
@@ -232,6 +254,9 @@ const ArchiveScreen = ({ route, navigation }) => {
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           onHide={() => setSelectedStories(null)}
+          containerStyle={{
+            height: Dimensions.get("window").height,
+          }}
         />
       )}
     </SafeAreaView>

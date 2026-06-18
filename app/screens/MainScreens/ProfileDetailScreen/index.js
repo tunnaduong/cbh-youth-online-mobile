@@ -18,6 +18,7 @@ import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const ProfileDetailScreen = ({ navigation, route }) => {
   const {
@@ -33,6 +34,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const isCurrentUser = username === currentUsername;
   const insets = useSafeAreaInsets();
   const isBlocked = blockedUsers?.includes(username);
+  const { t } = useTranslation();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -53,8 +55,8 @@ const ProfileDetailScreen = ({ navigation, route }) => {
       console.error("Error fetching profile:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải thông tin cá nhân",
+        text1: t('profile.errorTitle'),
+        text2: t('profile.errorLoading'),
       });
     } finally {
       setLoading(false);
@@ -73,7 +75,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   }
 
   const formatDate = (dateString) => {
-    if (!dateString) return "Chưa cập nhật";
+    if (!dateString) return t('profile.notUpdated');
     const date = new Date(dateString);
     return date.toLocaleDateString("vi-VN", {
       day: "numeric",
@@ -89,29 +91,29 @@ const ProfileDetailScreen = ({ navigation, route }) => {
       </View>
       <View style={styles.infoContent}>
         <Text style={[styles.infoLabel, { color: theme.subText }]}>{label}</Text>
-        <Text style={[styles.infoValue, { color: theme.text }]}>{value || "Chưa cập nhật"}</Text>
+        <Text style={[styles.infoValue, { color: theme.text }]}>{value || t('profile.notUpdated')}</Text>
       </View>
     </View>
   );
 
   const handleBlockUser = () => {
     Alert.alert(
-      "Chặn người dùng",
-      `Bạn có chắc chắn muốn chặn ${username}? Bạn sẽ không còn nhìn thấy nội dung từ người này.`,
+      t('profile.blockTitle'),
+      t('profile.blockConfirm', { username }),
       [
         {
-          text: "Hủy",
+          text: t('profile.cancel'),
           style: "cancel",
         },
         {
-          text: "Chặn",
+          text: t('profile.blockAction'),
           style: "destructive",
           onPress: async () => {
             await blockUser(username);
             Toast.show({
               type: "success",
-              text1: "Đã chặn người dùng",
-              text2: "Bạn sẽ không còn thấy nội dung từ người này.",
+              text1: t('profile.blockSuccessTitle'),
+              text2: t('profile.blockSuccessMessage'),
             });
             navigation.goBack();
           },
@@ -122,21 +124,21 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 
   const handleUnblockUser = () => {
     Alert.alert(
-      "Bỏ chặn người dùng",
-      `Bạn có chắc chắn muốn bỏ chặn ${username}?`,
+      t('profile.unblockTitle'),
+      t('profile.unblockConfirm', { username }),
       [
         {
-          text: "Hủy",
+          text: t('profile.cancel'),
           style: "cancel",
         },
         {
-          text: "Bỏ chặn",
+          text: t('profile.unblockAction'),
           onPress: async () => {
             await unblockUser(username);
             Toast.show({
               type: "success",
-              text1: "Đã bỏ chặn",
-              text2: "Bạn sẽ lại thấy nội dung từ người này.",
+              text1: t('profile.unblockSuccessTitle'),
+              text2: t('profile.unblockSuccessMessage'),
             });
           },
         },
@@ -151,22 +153,22 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     // For now, let's use a Toast to simulate reporting as per requirement "Blocking should also notify...".
     // But since this is a separate "Report" action:
     Alert.alert(
-      "Báo cáo người dùng",
-      "Bạn muốn báo cáo người dùng này vì nội dung không phù hợp?",
+      t('profile.reportTitle'),
+      t('profile.reportConfirm'),
       [
         {
-          text: "Hủy",
+          text: t('profile.cancel'),
           style: "cancel",
         },
         {
-          text: "Báo cáo",
+          text: t('profile.reportAction'),
           onPress: () => {
             // Simulate report API call
             console.log(`[Safety] User reported: ${username}`);
             Toast.show({
               type: "success",
-              text1: "Đã gửi báo cáo",
-              text2: "Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét.",
+              text1: t('profile.reportSuccessTitle'),
+              text2: t('profile.reportSuccessMessage'),
             });
           },
         },
@@ -176,25 +178,25 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 
   const showOptions = () => {
     Alert.alert(
-      "Tùy chọn",
-      `Chọn hành động đối với ${username}`,
+      t('profile.optionsTitle'),
+      t('profile.optionsMessage', { username }),
       [
         {
-          text: "Báo cáo người dùng",
+          text: t('profile.reportTitle'),
           onPress: handleReportUser,
         },
         !isBlocked
           ? {
-            text: "Chặn người dùng",
+            text: t('profile.blockTitle'),
             onPress: handleBlockUser,
             style: "destructive",
           }
           : {
-            text: "Bỏ chặn người dùng",
+            text: t('profile.unblockTitle'),
             onPress: handleUnblockUser,
           },
         {
-          text: "Hủy",
+          text: t('profile.cancel'),
           style: "cancel",
         },
       ].filter(Boolean)
@@ -209,7 +211,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Thông tin cá nhân</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('profile.title')}</Text>
         {isCurrentUser ? (
           <TouchableOpacity
             onPress={() => navigation.navigate("EditProfileScreen")}
@@ -247,22 +249,22 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         <View style={styles.infoSection}>
           {renderInfoItem(
             "calendar-outline",
-            "Ngày sinh",
+            t('profile.birthday'),
             formatDate(profileData?.birthday_raw)
           )}
-          {renderInfoItem("location-outline", "Địa chỉ", profileData?.location)}
-          {renderInfoItem("school-outline", "Lớp", profileData?.class_name)}
+          {renderInfoItem("location-outline", t('profile.address'), profileData?.location)}
+          {renderInfoItem("school-outline", t('profile.class'), profileData?.class_name)}
           {renderInfoItem(
             "person-outline",
-            "Giới tính",
+            t('profile.gender'),
             profileData?.gender
               ? profileData.gender === "Male"
-                ? "Nam"
-                : "Nữ"
-              : "Chưa cập nhật"
+                ? t('profile.male')
+                : t('profile.female')
+              : t('profile.notUpdated')
           )}
-          {renderInfoItem("mail-outline", "Email", profileData?.email)}
-          {renderInfoItem("time-outline", "Tham gia", profileData?.joined_at)}
+          {renderInfoItem("mail-outline", t('profile.email'), profileData?.email)}
+          {renderInfoItem("time-outline", t('profile.joined'), profileData?.joined_at)}
         </View>
       </ScrollView>
     </SafeAreaView>

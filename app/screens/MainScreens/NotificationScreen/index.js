@@ -11,6 +11,7 @@ import {
   StatusBar,
   RefreshControl,
   Animated,
+  DeviceEventEmitter,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
@@ -26,27 +27,28 @@ import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { useFocusEffect } from "@react-navigation/native";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 // Helper function to format notification message based on type and data
-const formatNotificationMessage = (notification) => {
+const formatNotificationMessage = (notification, t) => {
   const { type, data, actor } = notification;
 
   // System messages don't have an actor
   if (type === "system_message") {
-    return data?.message || "Thông báo mới";
+    return data?.message || t('notifications.newNotification');
   }
 
   if (!actor) {
     // Handle other notifications without actor
     switch (type) {
       case "topic_pinned":
-        return `đã ghim bài đăng "${data?.topic_title || ""}" của bạn`;
+        return `${t('notifications.pinnedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
       case "topic_moved":
-        return `đã chuyển bài đăng "${data?.topic_title || ""}" của bạn`;
+        return `${t('notifications.movedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
       case "topic_closed":
-        return `đã đóng bài đăng "${data?.topic_title || ""}" của bạn`;
+        return `${t('notifications.closedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
       default:
-        return "Thông báo mới";
+        return t('notifications.newNotification');
     }
   }
 
@@ -54,34 +56,32 @@ const formatNotificationMessage = (notification) => {
 
   switch (type) {
     case "topic_liked":
-      return `thích bài đăng "${data?.topic_title || ""}" của bạn`;
+      return `${t('notifications.likedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
     case "topic_commented":
-      return `đã bình luận trong bài đăng "${data?.topic_title || ""}" của bạn`;
+      return `${t('notifications.commentedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
     case "comment_liked":
-      return `đã thích bình luận của bạn`;
+      return t('notifications.likedComment');
     case "comment_replied":
-      return `đã trả lời bình luận của bạn`;
+      return t('notifications.repliedComment');
     case "mentioned":
-      return `nhắc đến bạn trong một bình luận`;
+      return t('notifications.mentionedComment');
     case "story_reacted":
-      return `đã thả cảm xúc ${data?.reaction_emoji || "👍"} vào tin của bạn`;
+      return `${t('notifications.reactedStory')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourStory')}`;
     case "story_replied":
-      return `đã trả lời tin của bạn`;
+      return t('notifications.repliedStory');
     // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
-      return `thích bài đăng "${data?.post_title || data?.topic_title || ""
-        }" của bạn`;
+      return `${t('notifications.likedPost')} "${data?.post_title || data?.topic_title || ""}" ${t('notifications.ofYours')}`;
     case "App\\Notifications\\PostCommented":
-      return `đã bình luận trong bài đăng "${data?.post_title || data?.topic_title || ""
-        }" của bạn`;
+      return `${t('notifications.commentedPost')} "${data?.post_title || data?.topic_title || ""}" ${t('notifications.ofYours')}`;
     case "App\\Notifications\\UserFollowed":
-      return "đã theo dõi bạn";
+      return t('notifications.followedYou');
     case "App\\Notifications\\UserMentioned":
-      return `nhắc đến bạn trong một bình luận`;
+      return t('notifications.mentionedComment');
     case "App\\Notifications\\CommentReplied":
-      return `đã trả lời bình luận của bạn`;
+      return t('notifications.repliedComment');
     default:
-      return "đã tương tác với bạn";
+      return t('notifications.interactedWithYou');
   }
 };
 
@@ -96,6 +96,7 @@ export default function NotificationScreen({ navigation }) {
   const [hasMore, setHasMore] = useState(true);
   const insets = useSafeAreaInsets();
   const lottieRef = useRef(null);
+  const { t } = useTranslation();
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
@@ -132,18 +133,19 @@ export default function NotificationScreen({ navigation }) {
             actor: notif.actor,
             user: {
               name: isSystemMessage
-                ? "Hệ thống"
+                ? t('notifications.system')
                 : notif.actor?.profile_name ||
                 notif.actor?.username ||
-                "Người dùng",
+                t('notifications.user'),
               avatar: isSystemMessage
                 ? "https://api.chuyenbienhoa.com/v1.0/users/system/avatar" // Default system avatar
                 : notif.actor?.avatar_url ||
                 `https://api.chuyenbienhoa.com/v1.0/users/${notif.actor?.username}/avatar`,
             },
-            content: formatNotificationMessage(notif),
+            content: formatNotificationMessage(notif, t),
             time: formatTime(notif.created_at),
             read: notif.is_read,
+            raw: notif,
           };
         });
 
@@ -201,7 +203,22 @@ export default function NotificationScreen({ navigation }) {
     }, [refreshNotificationCount])
   );
 
+  const lastScrollYRef = useRef(0);
+
   const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+
+    // Auto hide bottom tab bar
+    const diff = offsetY - lastScrollYRef.current;
+    if (offsetY < 50) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    } else if (diff > 15) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
+    } else if (diff < -10) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    }
+    lastScrollYRef.current = offsetY;
+
     if (!refreshing) {
       lottieRef.current?.play();
     }
@@ -277,6 +294,11 @@ export default function NotificationScreen({ navigation }) {
 
   const renderItem = ({ item }) => {
     const isSystemMessage = item.type === "system_message" || !item.actor;
+    const userName = isSystemMessage
+      ? t('notifications.system')
+      : item.actor?.profile_name || item.actor?.username || t('notifications.user');
+    const displayContent = formatNotificationMessage(item.raw || item, t);
+    const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
     return (
       <TouchableOpacity
@@ -334,10 +356,10 @@ export default function NotificationScreen({ navigation }) {
         <View style={styles.content}>
           <Text style={[styles.message, { color: theme.text }]}>
             {isSystemMessage ? (
-              item.content
+              displayContent
             ) : (
               <>
-                <Text style={[styles.name, { color: theme.text }]}>{item.user.name}</Text> {item.content}
+                <Text style={[styles.name, { color: theme.text }]}>{userName}</Text> {displayContent}
               </>
             )}
           </Text>
@@ -346,7 +368,7 @@ export default function NotificationScreen({ navigation }) {
               {item.data.message_excerpt}
             </Text>
           )}
-          <Text style={[styles.time, { color: theme.subText }]}>{item.time}</Text>
+          <Text style={[styles.time, { color: theme.subText }]}>{displayTime}</Text>
         </View>
         <TouchableOpacity
           style={styles.moreButton}
@@ -388,7 +410,7 @@ export default function NotificationScreen({ navigation }) {
           >
             <Ionicons name="checkmark-outline" size={22} color={theme.primary} />
             <Text style={[styles.actionText, { color: theme.text }]}>
-              Đánh dấu là đã đọc
+              {t('notifications.markAsRead')}
             </Text>
           </TouchableOpacity>
 
@@ -399,7 +421,7 @@ export default function NotificationScreen({ navigation }) {
               color="#FF3B30"
             />
             <Text style={[styles.actionText, { color: theme.text }]}>
-              Tắt thông báo từ người này
+              {t('notifications.muteUser')}
             </Text>
           </TouchableOpacity>
 
@@ -422,7 +444,7 @@ export default function NotificationScreen({ navigation }) {
           >
             <Ionicons name="trash-outline" size={22} color="#FF3B30" />
             <Text style={[styles.actionText, { color: "#FF3B30" }]}>
-              Xóa thông báo
+              {t('notifications.delete')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -434,11 +456,12 @@ export default function NotificationScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-        <Text style={styles.headerTitle}>Thông báo</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
         <TouchableOpacity
           style={[
             styles.readAllButton,
-            unreadCount === 0 && styles.readAllButtonDisabled,
+            { backgroundColor: theme.primary },
+            unreadCount === 0 && (isDarkMode ? { backgroundColor: "#2e2e2e", elevation: 0, shadowOpacity: 0 } : styles.readAllButtonDisabled),
           ]}
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
@@ -446,10 +469,11 @@ export default function NotificationScreen({ navigation }) {
           <Text
             style={[
               styles.readAllText,
-              unreadCount === 0 && styles.readAllTextDisabled,
+              { color: "#fff" },
+              unreadCount === 0 && (isDarkMode ? { color: "#666" } : styles.readAllTextDisabled),
             ]}
           >
-            Đọc tất cả ({unreadCount})
+            {t('notifications.readAll')} ({unreadCount})
           </Text>
         </TouchableOpacity>
       </View>
@@ -464,16 +488,24 @@ export default function NotificationScreen({ navigation }) {
         <FlatList
           onScroll={handleScroll}
           data={notifications}
+          extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={{
-            paddingBottom: 80,
+            paddingBottom: 110,
             backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,
           }}
           ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: theme.border }]} />}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={onRefresh} 
+              tintColor="transparent"
+              colors={["transparent"]}
+              progressBackgroundColor="transparent"
+              style={{ backgroundColor: "transparent" }}
+            />
           }
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
@@ -483,7 +515,7 @@ export default function NotificationScreen({ navigation }) {
                 source={require("../../../assets/sad_frog.png")}
                 style={styles.emptyImage}
               />
-              <Text style={[styles.emptyText, { color: theme.subText }]}>Chưa có thông báo nào...</Text>
+              <Text style={[styles.emptyText, { color: theme.subText }]}>{t('notifications.empty')}</Text>
             </View>
           }
         />

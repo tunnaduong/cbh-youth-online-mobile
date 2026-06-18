@@ -13,6 +13,7 @@ import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "react-native-fast-image";
+import { useTranslation } from "react-i18next";
 
 const PostItem = ({ item, navigation }) => {
   return (
@@ -56,6 +57,7 @@ const LikedPostsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
+  const { t } = useTranslation();
 
   const fetchLikedPosts = async () => {
     try {
@@ -65,8 +67,8 @@ const LikedPostsScreen = ({ navigation }) => {
         console.log("Invalid response structure:", response);
         Toast.show({
           type: "error",
-          text1: "Đã có lỗi xảy ra",
-          text2: "Không thể tải bài viết đã thích. Vui lòng thử lại sau.",
+          text1: t('common.error'),
+          text2: t('likedPosts.loadError'),
           autoHide: true,
           visibilityTime: 5000,
           topOffset: 60,
@@ -84,8 +86,8 @@ const LikedPostsScreen = ({ navigation }) => {
       console.log("Error fetching liked posts:", error);
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
-        text2: "Không thể tải bài viết đã thích. Vui lòng thử lại sau.",
+        text1: t('common.error'),
+        text2: t('likedPosts.loadError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -115,7 +117,7 @@ const LikedPostsScreen = ({ navigation }) => {
     return (
       <View className="flex-1 items-center justify-center bg-white">
         <Text className="text-gray-500 mb-4">
-          Vui lòng đăng nhập để xem bài viết đã thích
+          {t('likedPosts.loginPrompt')}
         </Text>
       </View>
     );
@@ -130,7 +132,7 @@ const LikedPostsScreen = ({ navigation }) => {
           loop
           autoPlay
         />
-        <Text className="mt-4">Đang tải bài viết đã thích...</Text>
+        <Text className="mt-4">{t('likedPosts.loading')}</Text>
       </View>
     );
   }
@@ -143,7 +145,7 @@ const LikedPostsScreen = ({ navigation }) => {
         resizeMode={FastImage.resizeMode.contain}
       />
       <Text className="text-gray-500 text-center mt-4">
-        Bạn chưa thích bài viết nào
+        {t('likedPosts.empty')}
       </Text>
     </View>
   );
@@ -182,7 +184,7 @@ const LikedPostsScreen = ({ navigation }) => {
           }}
           numberOfLines={1}
         >
-          Bài viết đã thích
+          {t('likedPosts.title')}
         </Text>
       </View>
 
@@ -193,7 +195,14 @@ const LikedPostsScreen = ({ navigation }) => {
           <PostItem item={item} navigation={navigation} />
         )}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+          />
         }
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{

@@ -20,10 +20,13 @@ import { searchQuery } from "../../../services/api/Api";
 import FastImage from "react-native-fast-image";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
 
 export default function SearchScreen({ navigation }) {
   const inset = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
@@ -120,7 +123,7 @@ export default function SearchScreen({ navigation }) {
         </Text>
         <View style={styles.postMeta}>
           <Text style={[styles.postAuthor, { color: theme.subText }]}>
-            {post.author.profile_name} • {post.created_at}
+            {post.author.profile_name} • {post.created_at ? formatTime(post.created_at) : ""}
           </Text>
         </View>
       </View>
@@ -144,7 +147,7 @@ export default function SearchScreen({ navigation }) {
             activeFilter === "all" && styles.activeFilterText,
           ]}
         >
-          Tất cả
+          {t('search.all')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -162,7 +165,7 @@ export default function SearchScreen({ navigation }) {
             activeFilter === "user" && styles.activeFilterText,
           ]}
         >
-          Người dùng
+          {t('search.users')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -180,7 +183,7 @@ export default function SearchScreen({ navigation }) {
             activeFilter === "post" && styles.activeFilterText,
           ]}
         >
-          Bài viết
+          {t('search.posts')}
         </Text>
       </TouchableOpacity>
     </View>
@@ -202,7 +205,7 @@ export default function SearchScreen({ navigation }) {
             <View style={[styles.searchInputContainer, { backgroundColor: isDarkMode ? "#374151" : "#DFDEDD" }]}>
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
-                placeholder="Tìm kiếm trên CYO"
+                placeholder={t('search.placeholder')}
                 placeholderTextColor={theme.subText}
                 onChangeText={setQuery}
                 value={query}
@@ -230,13 +233,13 @@ export default function SearchScreen({ navigation }) {
                 style={styles.image}
               />
               <Text style={[styles.searchPlaceholder, { color: theme.subText }]}>
-                Thử bắt đầu bằng cách tìm kiếm người dùng, bài viết, loa lớn...
+                {t('search.hint')}
               </Text>
             </View>
           ) : loading ? (
             <View style={styles.centerContainer}>
               <CustomLoading />
-              <Text style={[styles.loadingText, { color: theme.subText }]}>Đang tìm kiếm...</Text>
+              <Text style={[styles.loadingText, { color: theme.subText }]}>{t('search.searching')}</Text>
             </View>
           ) : hasSearched &&
             !results.users?.length &&
@@ -247,7 +250,7 @@ export default function SearchScreen({ navigation }) {
                 style={styles.noResultsImage}
               />
               <Text style={[styles.noResultsText, { color: theme.subText }]}>
-                Không tìm thấy kết quả nào cho "{query}"
+                {t('search.noResults', { query })}
               </Text>
             </View>
           ) : (
@@ -256,7 +259,7 @@ export default function SearchScreen({ navigation }) {
                 (activeFilter === "all" && results.users?.length > 0)) && (
                   <View style={styles.section}>
                     <Text style={[styles.sectionTitle, { color: theme.primary }]}>
-                      Người dùng{" "}
+                      {t('search.users')}{" "}
                       {results.users?.length > 0 && `(${results.users.length})`}
                     </Text>
                     {results.users?.length > 0
@@ -268,7 +271,7 @@ export default function SearchScreen({ navigation }) {
                             style={styles.sectionNoResultsImage}
                           />
                           <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
-                            Không tìm thấy người dùng nào cho "{query}"
+                            {t('search.noUsersForQuery', { query })}
                           </Text>
                         </View>
                       )}
@@ -280,7 +283,7 @@ export default function SearchScreen({ navigation }) {
                     (activeFilter === "all" && results.posts?.length > 0)) && (
                       <>
                         <Text style={[styles.sectionTitle, { color: theme.primary }]}>
-                          Bài viết{" "}
+                          {t('search.posts')}{" "}
                           {results.posts?.length > 0 &&
                             `(${results.posts.length})`}
                         </Text>
@@ -293,7 +296,7 @@ export default function SearchScreen({ navigation }) {
                                 style={styles.sectionNoResultsImage}
                               />
                               <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
-                                Không tìm thấy bài viết nào cho "{query}"
+                                {t('search.noPostsForQuery', { query })}
                               </Text>
                             </View>
                           )}
@@ -310,7 +313,7 @@ export default function SearchScreen({ navigation }) {
                       style={styles.noResultsImage}
                     />
                     <Text style={[styles.noResultsText, { color: theme.subText }]}>
-                      Không tìm thấy kết quả nào cho "{query}"
+                      {t('search.noResults', { query })}
                     </Text>
                   </View>
                 )}

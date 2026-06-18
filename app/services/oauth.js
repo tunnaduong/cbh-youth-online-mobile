@@ -1,6 +1,7 @@
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { Linking } from "react-native";
+import i18n from "../i18n";
 
 // Complete the auth session for proper cleanup
 WebBrowser.maybeCompleteAuthSession();
@@ -21,7 +22,7 @@ let activeFacebookAuthSession = false;
 export const loginWithGoogle = async () => {
   // Prevent multiple simultaneous calls
   if (activeGoogleAuthSession) {
-    throw new Error("Đang xử lý đăng nhập với Google. Vui lòng đợi...");
+    throw new Error(i18n.t("auth.googleProcessing"));
   }
 
   activeGoogleAuthSession = true;
@@ -126,7 +127,7 @@ export const loginWithGoogle = async () => {
       // Clean up listener
       deepLinkListener.remove();
       throw new Error(
-        "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau."
+        i18n.t("auth.sessionInProgress")
       );
     }
 
@@ -238,7 +239,7 @@ export const loginWithGoogle = async () => {
                 exchangeError.code === "state_mismatch"
               ) {
                 throw new Error(
-                  "Không thể xác thực đăng nhập. Vui lòng thử lại. (State verification failed)"
+                  i18n.t("auth.stateFailed")
                 );
               }
               throw exchangeError;
@@ -293,7 +294,7 @@ export const loginWithGoogle = async () => {
       console.log("1. Redirect URI not configured in Google Cloud Console");
       console.log("2. User closed the browser/webview");
       throw new Error(
-        "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau."
+        i18n.t("auth.loginCancelled")
       );
     }
 
@@ -362,7 +363,7 @@ export const loginWithGoogle = async () => {
       const { accessToken, idToken } = tokenResult;
 
       if (!accessToken) {
-        throw new Error("Không thể lấy access token từ Google");
+        throw new Error(i18n.t("auth.googleTokenError"));
       }
 
       // Get user info from Google
@@ -376,7 +377,7 @@ export const loginWithGoogle = async () => {
       );
 
       if (!userInfoResponse.ok) {
-        throw new Error("Không thể lấy thông tin người dùng từ Google");
+        throw new Error(i18n.t("auth.googleUserInfoError"));
       }
 
       const userInfo = await userInfoResponse.json();
@@ -404,7 +405,7 @@ export const loginWithGoogle = async () => {
         errorCode: result.errorCode,
         error: result.error,
       });
-      throw new Error("Đăng nhập với Google thất bại hoặc bị hủy");
+      throw new Error(i18n.t("auth.googleFailed"));
     }
   } catch (error) {
     throw error;
@@ -418,7 +419,7 @@ export const loginWithGoogle = async () => {
 export const loginWithFacebook = async () => {
   // Prevent multiple simultaneous calls
   if (activeFacebookAuthSession) {
-    throw new Error("Đang xử lý đăng nhập với Facebook. Vui lòng đợi...");
+    throw new Error(i18n.t("auth.facebookProcessing"));
   }
 
   activeFacebookAuthSession = true;
@@ -512,7 +513,7 @@ export const loginWithFacebook = async () => {
       // Clean up listener
       deepLinkListener.remove();
       throw new Error(
-        "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau."
+        i18n.t("auth.sessionInProgress")
       );
     }
 
@@ -578,7 +579,7 @@ export const loginWithFacebook = async () => {
                 exchangeError.code === "state_mismatch"
               ) {
                 throw new Error(
-                  "Không thể xác thực đăng nhập. Vui lòng thử lại. (State verification failed)"
+                  i18n.t("auth.stateFailed")
                 );
               }
               throw exchangeError;
@@ -620,7 +621,7 @@ export const loginWithFacebook = async () => {
       deepLinkListener.remove();
 
       throw new Error(
-        "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau."
+        i18n.t("auth.loginCancelled")
       );
     }
 
@@ -677,7 +678,7 @@ export const loginWithFacebook = async () => {
       const { accessToken } = tokenResult;
 
       if (!accessToken) {
-        throw new Error("Không thể lấy access token từ Facebook");
+        throw new Error(i18n.t("auth.facebookTokenError"));
       }
 
       // Get user info from Facebook Graph API
@@ -686,7 +687,7 @@ export const loginWithFacebook = async () => {
       );
 
       if (!userInfoResponse.ok) {
-        throw new Error("Không thể lấy thông tin người dùng từ Facebook");
+        throw new Error(i18n.t("auth.facebookUserInfoError"));
       }
 
       const userInfo = await userInfoResponse.json();
@@ -694,7 +695,7 @@ export const loginWithFacebook = async () => {
       if (userInfo.error) {
         throw new Error(
           userInfo.error.message ||
-            "Không thể lấy thông tin người dùng từ Facebook"
+            i18n.t("auth.facebookUserInfoError")
         );
       }
 
@@ -705,7 +706,7 @@ export const loginWithFacebook = async () => {
         profile: userInfo,
       };
     } else {
-      throw new Error("Đăng nhập với Facebook thất bại hoặc bị hủy");
+      throw new Error(i18n.t("auth.facebookFailed"));
     }
   } catch (error) {
     throw error;

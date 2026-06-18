@@ -36,6 +36,7 @@ import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const ProfileScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -51,6 +52,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const [activeTab, setActiveTab] = useState("posts");
   const [followed, setFollowed] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const { t } = useTranslation();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -178,23 +180,23 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const confirmBlock = () => {
     Alert.alert(
-      "Chặn người dùng?",
-      "Bạn sẽ không còn thấy bài viết của người này nữa.",
+      t('home.blockPerson'),
+      t('profile.blockConfirm', { username: userData.profile.profile_name }),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t('profile.cancel'), style: "cancel" },
         {
-          text: "Chặn",
+          text: t('profile.blockAction'),
           style: "destructive",
           onPress: async () => {
             try {
               await blockUser(userData.id);
               await blockUserInContext(userData.username);
-              Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
-                { text: "OK", onPress: () => navigation.goBack() }
+              Alert.alert(t('profile.blockSuccessTitle'), t('profile.blockSuccessMessage'), [
+                { text: t('common.ok'), onPress: () => navigation.goBack() }
               ]);
             } catch (e) {
-              const errorMessage = e.response?.data?.message || e.message || "Không thể chặn người dùng này";
-              Alert.alert("Lỗi", errorMessage);
+              const errorMessage = e.response?.data?.message || e.message || t('profile.blockError');
+              Alert.alert(t('profile.errorTitle'), errorMessage);
             }
           }
         }
@@ -203,7 +205,7 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   const showOptions = () => {
-    const options = ["Báo cáo", "Chặn người dùng", "Hủy"];
+    const options = [t('home.reportStory'), t('home.blockPerson'), t('settings.cancel')];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
 
@@ -222,12 +224,12 @@ const ProfileScreen = ({ route, navigation }) => {
       );
     } else {
       Alert.alert(
-        "Tùy chọn",
+        t('profile.optionsTitle'),
         null,
         [
-          { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
-          { text: "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
-          { text: "Hủy", style: "cancel" },
+          { text: t('home.reportStory'), onPress: () => setReportModalVisible(true) },
+          { text: t('home.blockPerson'), onPress: confirmBlock, style: "destructive" },
+          { text: t('settings.cancel'), style: "cancel" },
         ]
       );
     }
@@ -236,10 +238,10 @@ const ProfileScreen = ({ route, navigation }) => {
   const handleReportSubmit = async (reason) => {
     try {
       await reportUser({ reported_user_id: userData.id, reason });
-      Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
+      Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
-      const errorMessage = e.response?.data?.message || e.message || "Không thể gửi báo cáo";
-      Alert.alert("Lỗi", errorMessage);
+      const errorMessage = e.response?.data?.message || e.message || t('post.reportError');
+      Alert.alert(t('profile.errorTitle'), errorMessage);
     }
   };
 
@@ -337,7 +339,7 @@ const ProfileScreen = ({ route, navigation }) => {
               user.isFollowed ? { color: theme.text } : { color: "#FFF" },
             ]}
           >
-            {user.isFollowed ? "Đang theo dõi" : "Theo dõi"}
+            {user.isFollowed ? t('follow.following') : t('follow.followAction')}
           </Text>
         </TouchableOpacity>
       )}
@@ -362,7 +364,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   }}
                 />
                 <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
-                  Chưa có bài viết nào...
+                  {t('profile.emptyPosts')}
                 </Text>
               </View>
             ) : (
@@ -395,7 +397,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   }}
                 />
                 <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
-                  Chưa theo dõi ai cả...
+                  {t('profile.emptyFollowing')}
                 </Text>
               </View>
             ) : (
@@ -419,7 +421,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   }}
                 />
                 <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
-                  Chưa có người theo dõi nào...
+                  {t('profile.emptyFollowers')}
                 </Text>
               </View>
             ) : (
@@ -448,7 +450,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <Ionicons name="arrow-back" size={24} color={theme.primary} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-            {isCurrentUser ? "Trang cá nhân" : userData?.profile.profile_name}
+            {isCurrentUser ? t('profile.title') : userData?.profile.profile_name}
           </Text>
           {isCurrentUser ? (
             <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
@@ -484,6 +486,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <RefreshControl
               tintColor="transparent"
               colors={["transparent"]}
+              progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
               refreshing={refreshing}
               onRefresh={handleRefresh}
@@ -552,7 +555,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 style={{ backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999, marginHorizontal: 16 }}
               >
                 <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
-                  Chỉnh sửa trang cá nhân
+                  {t('follow.editProfile')}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -564,7 +567,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   >
                     <Ionicons name="add-circle-outline" size={20} color={"white"} />
                     <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: "white" }}>
-                      Theo dõi
+                      {t('follow.followAction')}
                     </Text>
                   </TouchableOpacity>
                 ) : (
@@ -573,7 +576,7 @@ const ProfileScreen = ({ route, navigation }) => {
                     style={{ backgroundColor: "transparent", height: 44, borderWidth: 1.5, borderColor: theme.primary, borderRadius: 999, justifyContent: "center", alignItems: "center", flex: 1 }}
                   >
                     <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
-                      Đã theo dõi
+                      {t('follow.following')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -598,7 +601,7 @@ const ProfileScreen = ({ route, navigation }) => {
                     color={theme.text}
                   />
                   <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: theme.text }}>
-                    Nhắn tin
+                    {t('follow.message')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -606,7 +609,7 @@ const ProfileScreen = ({ route, navigation }) => {
           </View>
 
           <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: isDarkMode ? "#1f2937" : "#f5f5f5", padding: 16, borderRadius: 12 }}>
-            <Text style={{ fontWeight: "600", fontSize: 18, color: theme.text }}>Thông tin cá nhân</Text>
+            <Text style={{ fontWeight: "600", fontSize: 18, color: theme.text }}>{t('profile.title')}</Text>
             {userData?.profile?.bio && (
               <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8, marginBottom: 12 }}>
                 {userData?.profile?.bio}
@@ -616,7 +619,7 @@ const ProfileScreen = ({ route, navigation }) => {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Ionicons name="school-outline" size={16} color={theme.subText} />
                 <Text style={{ fontSize: 14, color: theme.text }}>
-                  {userData?.profile?.class_name ? `Lớp ${userData?.profile?.class_name}` : "Lớp chưa cập nhật"}
+                  {userData?.profile?.class_name ? t('profile.classPrefix', { className: userData.profile.class_name }) : t('profile.classFallback')}
                 </Text>
               </View>
               {userData?.profile?.location && (
@@ -629,7 +632,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Ionicons name="gift-outline" size={16} color={theme.subText} />
                   <Text style={{ fontSize: 14, color: theme.text }}>
-                    Sinh vào {userData?.profile?.birthday}
+                    {t('profile.birthdayPrefix')} {userData?.profile?.birthday}
                   </Text>
                 </View>
               )}
@@ -637,7 +640,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <Ionicons name="calendar-outline" size={16} color={theme.subText} />
                   <Text style={{ fontSize: 14, color: theme.text }}>
-                    Đã tham gia {userData?.profile?.joined_at}
+                    {t('profile.joinedPrefix')} {userData?.profile?.joined_at}
                   </Text>
                 </View>
               )}
@@ -650,7 +653,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 })
               }
             >
-              <Text style={{ color: theme.primary }}>Xem chi tiết</Text>
+              <Text style={{ color: theme.primary }}>{t('profile.viewDetail')}</Text>
               <View
                 style={{
                   height: 1,
@@ -680,7 +683,7 @@ const ProfileScreen = ({ route, navigation }) => {
               ]}
               onPress={() => setActiveTab("posts")}
             >
-              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Bài viết</Text>
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.postsTab')}</Text>
               <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.posts}
               </Text>
@@ -693,7 +696,7 @@ const ProfileScreen = ({ route, navigation }) => {
               ]}
               onPress={() => setActiveTab("following")}
             >
-              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Đang t.dõi</Text>
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.followingTab')}</Text>
               <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.following}
               </Text>
@@ -706,21 +709,21 @@ const ProfileScreen = ({ route, navigation }) => {
               ]}
               onPress={() => setActiveTab("followers")}
             >
-              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Người t.dõi</Text>
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.followersTab')}</Text>
               <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.followers}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}>
-              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Thích</Text>
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.likesTab')}</Text>
               <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.total_likes_count}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}>
-              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>Điểm</Text>
+              <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.pointsTab')}</Text>
               <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.activity_points}
               </Text>
@@ -740,13 +743,13 @@ const ProfileScreen = ({ route, navigation }) => {
 
           {isCurrentUser && (
             <View style={[styles.section, { borderTopColor: theme.border }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Hoạt động của bạn</Text>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('profile.yourActivity')}</Text>
               <TouchableOpacity
                 onPress={() => navigation.navigate("SavedPostsScreen")}
                 style={[styles.option, { borderBottomColor: theme.border }]}
               >
                 <Ionicons name="bookmark-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>Bài viết đã lưu</Text>
+                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.savedPosts')}</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}
@@ -759,7 +762,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 style={[styles.option, { borderBottomColor: theme.border }]}
               >
                 <Ionicons name="heart-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>Bài viết đã thích</Text>
+                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.likedPosts')}</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}
@@ -772,7 +775,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 style={[styles.option, { borderBottomColor: theme.border }]}
               >
                 <Ionicons name="time-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>Lịch sử hoạt động</Text>
+                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.activityHistory')}</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}
@@ -787,7 +790,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 style={[styles.option, { borderBottomColor: theme.border }]}
               >
                 <Ionicons name="archive-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>Kho lưu trữ</Text>
+                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.archive')}</Text>
                 <Ionicons
                   name="chevron-forward"
                   size={22}

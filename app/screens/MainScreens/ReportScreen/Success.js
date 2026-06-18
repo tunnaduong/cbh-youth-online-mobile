@@ -12,10 +12,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CommonActions } from "@react-navigation/native";
 import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 export default function Success({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   const handleReturnHome = () => {
     navigation.dispatch(
@@ -30,13 +32,13 @@ export default function Success({ navigation }) {
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
-      <ReportHeader navigation={navigation} title="Tạo báo cáo" />
+      <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
       <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Báo cáo vi phạm</Text>
+          <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
           <Text style={styles.headerSubtitle}>
-            THPT Chuyên Biên Hòa - Hà Nam
+            {t('report.schoolName')}
           </Text>
         </View>
         <View style={styles.warningIcon}>
@@ -51,7 +53,7 @@ export default function Success({ navigation }) {
             <Ionicons name="checkmark" size={20} color="#fff" />
           </View>
           <Text style={[styles.stepText, { color: theme.primary }]}>
-            Chọn đối tượng
+            {t('report.step1')}
           </Text>
         </View>
         <View style={[styles.stepLine, { backgroundColor: theme.primary }]} />
@@ -60,7 +62,7 @@ export default function Success({ navigation }) {
             <Ionicons name="checkmark" size={20} color="#fff" />
           </View>
           <Text style={[styles.stepText, { color: theme.primary }]}>
-            Chi tiết vi phạm
+            {t('report.step2')}
           </Text>
         </View>
         <View style={[styles.stepLine, { backgroundColor: theme.primary }]} />
@@ -69,7 +71,7 @@ export default function Success({ navigation }) {
             <Ionicons name="checkmark" size={20} color="#fff" />
           </View>
           <Text style={[styles.stepText, { color: theme.primary }]}>
-            Xác nhận
+            {t('report.step3')}
           </Text>
         </View>
       </View>
@@ -89,13 +91,13 @@ export default function Success({ navigation }) {
           <View style={[styles.checkCircle, { backgroundColor: theme.primary }]}>
             <Ionicons name="checkmark" size={50} color="#fff" />
           </View>
-          <Text style={[styles.successText, { color: theme.text }]}>Gửi báo cáo thành công!</Text>
+          <Text style={[styles.successText, { color: theme.text }]}>{t('report.submitSuccess')}</Text>
         </View>
       </View>
 
       {/* Return Button */}
       <TouchableOpacity style={[styles.returnButton, { backgroundColor: theme.primary }]} onPress={handleReturnHome}>
-        <Text style={styles.returnButtonText}>Quay về trang chủ</Text>
+        <Text style={styles.returnButtonText}>{t('report.backToHome')}</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );

@@ -27,27 +27,30 @@ import Toast from "react-native-toast-message";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
+import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
 import Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { StatusBar } from "react-native";
+import { useTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 
-dayjs.locale("vi");
+dayjs.locale(i18n.language || "vi");
 
 const CONVERSATION_CACHE_KEY = "conversation_";
 const CONVERSATION_TIMESTAMP_KEY = "conversation_timestamp_";
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
-const formatMessageTime = (timestamp) => {
+const formatMessageTime = (timestamp, t) => {
   const messageTime = dayjs(timestamp);
   const hours = parseInt(messageTime.format("H"));
-  const period = hours < 12 ? "SA" : "CH";
+  const period = hours < 12 ? t("chatConversation.am") : t("chatConversation.pm");
   return `${messageTime.format("hh:mm")} ${period}`;
 };
 
-const injectTimeHeaders = (messages) => {
+const injectTimeHeaders = (messages, t) => {
   const result = [];
   let currentDate = null;
 
@@ -65,9 +68,9 @@ const injectTimeHeaders = (messages) => {
 
       let dateText;
       if (isToday) {
-        dateText = "Hôm nay";
+        dateText = t("chatConversation.today");
       } else if (isYesterday) {
-        dateText = "Hôm qua";
+        dateText = t("chatConversation.yesterday");
       } else {
         dateText = currDate.format("DD/MM/YYYY");
       }
@@ -108,6 +111,10 @@ const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    dayjs.locale(i18n.language || "vi");
+  }, [i18n.language]);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -121,6 +128,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const { t } = useTranslation();
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -130,22 +138,22 @@ const ConversationScreen = ({ navigation, route }) => {
   const confirmBlock = () => {
     if (!otherUser) return;
     Alert.alert(
-      "Chặn người dùng?",
-      "Bạn sẽ không nhận được tin nhắn từ người này nữa.",
+      t("chatConversation.blockTitle"),
+      t("chatConversation.blockBody"),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
-          text: "Chặn",
+          text: t("chatConversation.blockAction"),
           style: "destructive",
           onPress: async () => {
             try {
               await blockUser(otherUser.id);
-              Alert.alert("Đã chặn", "Người dùng đã bị chặn thành công.", [
-                { text: "OK", onPress: () => navigation.goBack() } // Go back to list
+              Alert.alert(t("chatConversation.blockedTitle"), t("chatConversation.blockedBody"), [
+                { text: t("common.ok"), onPress: () => navigation.goBack() }
               ]);
             } catch (e) {
-              const errorMessage = e.response?.data?.message || e.message || "Không thể chặn người dùng";
-              Alert.alert("Lỗi", errorMessage);
+              const errorMessage = e.response?.data?.message || e.message || t("chatConversation.blockError");
+              Alert.alert(t("common.error"), errorMessage);
             }
           }
         }
@@ -164,25 +172,25 @@ const ConversationScreen = ({ navigation, route }) => {
       if (!otherUser && !isNewConversation) {
         // Maybe report the group? But API needs reported_user_id (currently).
         // We'll report the conversation ID in 'reason' or separate field if extended (not asking to extend generic report).
-        alert("Chức năng báo cáo nhóm chưa khả dụng.");
+        alert(t("chatConversation.groupReportUnavailable"));
         return;
       }
 
       const targetId = otherUser?.id || selectedUser?.id;
       if (targetId) {
         await reportUser({ reported_user_id: targetId, reason });
-        Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi.");
+        Alert.alert(t("chatConversation.thanksTitle"), t("chatConversation.reportSent"));
       } else {
-        Alert.alert("Lỗi", "Không thể xác định người dùng để báo cáo.");
+        Alert.alert(t("common.error"), t("chatConversation.reportTargetError"));
       }
     } catch (e) {
-      const errorMessage = e.response?.data?.message || e.message || "Không thể gửi báo cáo";
-      Alert.alert("Lỗi", errorMessage);
+      const errorMessage = e.response?.data?.message || e.message || t("chatConversation.reportError");
+      Alert.alert(t("common.error"), errorMessage);
     }
   };
 
   const showOptions = () => {
-    const options = ["Báo cáo", "Chặn người dùng", "Hủy"];
+    const options = [t("chatConversation.report"), t("chatConversation.blockUser"), t("common.cancel")];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
 
@@ -193,9 +201,9 @@ const ConversationScreen = ({ navigation, route }) => {
       // I will just show 'Report' if I can report group, else nothing specific for now blocks unless user asked for group blocking.
       // User asked "user can report ... from chat".
       // Use limited options
-      Alert.alert("Tùy chọn", null, [
-        { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
-        { text: "Hủy", style: "cancel" }
+      Alert.alert(t("chatConversation.optionsTitle"), null, [
+        { text: t("chatConversation.report"), onPress: () => setReportModalVisible(true) },
+        { text: t("common.cancel"), style: "cancel" }
       ]);
       return;
     }
@@ -214,12 +222,12 @@ const ConversationScreen = ({ navigation, route }) => {
       );
     } else {
       Alert.alert(
-        "Tùy chọn",
+        t("chatConversation.optionsTitle"),
         null,
         [
-          { text: "Báo cáo", onPress: () => setReportModalVisible(true) },
-          { text: "Chặn người dùng", onPress: confirmBlock, style: "destructive" },
-          { text: "Hủy", style: "cancel" },
+          { text: t("chatConversation.report"), onPress: () => setReportModalVisible(true) },
+          { text: t("chatConversation.blockUser"), onPress: confirmBlock, style: "destructive" },
+          { text: t("common.cancel"), style: "cancel" },
         ]
       );
     }
@@ -235,7 +243,7 @@ const ConversationScreen = ({ navigation, route }) => {
     // Special case for "Tán gẫu linh tinh" group
     if (
       currentConversation?.type === "group" &&
-      currentConversation?.name === "Tán gẫu linh tinh"
+      (currentConversation?.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh" || currentConversation?.name === t("chatConversation.casualGroupName"))
     ) {
       return "local:chat.jpg";
     }
@@ -274,7 +282,7 @@ const ConversationScreen = ({ navigation, route }) => {
       if (now - cachedTimestamp < CACHE_EXPIRY) {
         // Cache is still valid
         const parsedData = JSON.parse(cachedData);
-        const transformed = injectTimeHeaders(parsedData);
+        const transformed = injectTimeHeaders(parsedData, t);
         setMessages(transformed);
         setPage(2); // Set page to 2 since we loaded the first page from cache
 
@@ -311,7 +319,7 @@ const ConversationScreen = ({ navigation, route }) => {
         storage.set(getTimestampKey(cacheId), Date.now());
       }
 
-      const transformed = injectTimeHeaders(newMessages);
+      const transformed = injectTimeHeaders(newMessages, t);
 
       if (!isBackground) {
         setMessages(transformed);
@@ -351,8 +359,8 @@ const ConversationScreen = ({ navigation, route }) => {
       console.error("Error picking image:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể chọn ảnh. Vui lòng thử lại.",
+        text1: t("common.error"),
+        text2: t("chatConversation.sendImageError"),
       });
     }
   };
@@ -385,7 +393,7 @@ const ConversationScreen = ({ navigation, route }) => {
         type: "image",
         file_url: imageUri, // Use local URI temporarily
         created_at: now,
-        created_at_human: formatMessageTime(now),
+        created_at_human: formatMessageTime(now, t),
         is_myself: true,
         read_at: null,
         sender: {
@@ -413,9 +421,9 @@ const ConversationScreen = ({ navigation, route }) => {
 
           let dateText;
           if (isToday) {
-            dateText = "Hôm nay";
+            dateText = t("chatConversation.today");
           } else if (isYesterday) {
-            dateText = "Hôm qua";
+            dateText = t("chatConversation.yesterday");
           } else {
             dateText = currDate.format("DD/MM/YYYY");
           }
@@ -435,7 +443,7 @@ const ConversationScreen = ({ navigation, route }) => {
             messagesToAdd.push({
               id: `time-${tempId}`,
               type: "time",
-              time: formatMessageTime(now),
+              time: formatMessageTime(now, t),
             });
           }
         }
@@ -519,9 +527,9 @@ const ConversationScreen = ({ navigation, route }) => {
 
           let dateText;
           if (isToday) {
-            dateText = "Hôm nay";
+            dateText = t("chatConversation.today");
           } else if (isYesterday) {
-            dateText = "Hôm qua";
+            dateText = t("chatConversation.yesterday");
           } else {
             dateText = currDate.format("DD/MM/YYYY");
           }
@@ -541,7 +549,7 @@ const ConversationScreen = ({ navigation, route }) => {
             messagesToAdd.push({
               id: `time-${response.data.id}`,
               type: "time",
-              time: formatMessageTime(response.data.created_at),
+              time: formatMessageTime(response.data.created_at, t),
             });
           }
         }
@@ -576,8 +584,8 @@ const ConversationScreen = ({ navigation, route }) => {
 
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể gửi ảnh. Vui lòng thử lại sau.",
+        text1: t("common.error"),
+        text2: t("chatConversation.sendImageError"),
       });
     } finally {
       setSending(false);
@@ -602,7 +610,7 @@ const ConversationScreen = ({ navigation, route }) => {
         id: tempId,
         content: trimmedMessage,
         created_at: now,
-        created_at_human: formatMessageTime(now),
+        created_at_human: formatMessageTime(now, t),
         is_myself: true,
         type: "message",
         read_at: null,
@@ -638,9 +646,9 @@ const ConversationScreen = ({ navigation, route }) => {
 
           let dateText;
           if (isToday) {
-            dateText = "Hôm nay";
+            dateText = t("chatConversation.today");
           } else if (isYesterday) {
-            dateText = "Hôm qua";
+            dateText = t("chatConversation.yesterday");
           } else {
             dateText = currDate.format("DD/MM/YYYY");
           }
@@ -660,7 +668,7 @@ const ConversationScreen = ({ navigation, route }) => {
             messagesToAdd.push({
               id: `time-${tempId}`,
               type: "time",
-              time: formatMessageTime(now),
+              time: formatMessageTime(now, t),
             });
           }
         }
@@ -775,9 +783,9 @@ const ConversationScreen = ({ navigation, route }) => {
 
           let dateText;
           if (isToday) {
-            dateText = "Hôm nay";
+            dateText = t("chatConversation.today");
           } else if (isYesterday) {
-            dateText = "Hôm qua";
+            dateText = t("chatConversation.yesterday");
           } else {
             dateText = currDate.format("DD/MM/YYYY");
           }
@@ -797,7 +805,7 @@ const ConversationScreen = ({ navigation, route }) => {
             messagesToAdd.push({
               id: `time-${response.data.id}`,
               type: "time",
-              time: formatMessageTime(response.data.created_at),
+              time: formatMessageTime(response.data.created_at, t),
             });
           }
         }
@@ -848,8 +856,8 @@ const ConversationScreen = ({ navigation, route }) => {
 
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
+        text1: t("common.error"),
+        text2: t("chatConversation.sendMessageError"),
       });
     } finally {
       setSending(false);
@@ -946,15 +954,15 @@ const ConversationScreen = ({ navigation, route }) => {
             <Ionicons name="arrow-back" size={14} color="#666" />
             <Text style={styles.storyReplyText}>
               {item.is_myself
-                ? `Bạn đã trả lời tin của ${storyOwnerName || "người dùng"}`
-                : `${item.sender?.profile_name || item.sender?.username || "Người dùng"} đã trả lời tin của bạn`}
+                ? t("chatConversation.storyReply.you", { owner: storyOwnerName || t("chatConversation.anonymous") })
+                : t("chatConversation.storyReply.other", { sender: item.sender?.profile_name || item.sender?.username || t("chatConversation.anonymous") })}
             </Text>
           </View>
         )}
         {/* Show sender name for group chats when sender changes */}
         {isGroupChat && !item.is_myself && senderChanged && (
           <Text style={[styles.senderName, { color: theme.subText }]}>
-            {item.sender?.profile_name || item.sender?.username || "Ẩn danh"}
+            {item.sender?.profile_name || item.sender?.username || t("chatConversation.anonymous")}
           </Text>
         )}
         <View
@@ -1023,7 +1031,7 @@ const ConversationScreen = ({ navigation, route }) => {
             ]}
           >
             <Text style={[styles.messageTime, { color: theme.subText }]}>
-              {formatMessageTime(item.created_at)}
+              {formatMessageTime(item.created_at, t)}
             </Text>
             {item.is_myself && (
               <View style={styles.readStatus}>
@@ -1090,7 +1098,9 @@ const ConversationScreen = ({ navigation, route }) => {
             {isNewConversation
               ? selectedUser.profile_name
               : currentConversation?.type === "group"
-                ? currentConversation?.name || "Unnamed Group"
+                ? currentConversation?.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh"
+                  ? t("chatConversation.casualGroupName")
+                  : currentConversation?.name || t("chatConversation.casualGroupName")
                 : currentConversation?.participants[0]?.profile_name}
           </Text>
         </TouchableOpacity>
@@ -1131,7 +1141,7 @@ const ConversationScreen = ({ navigation, route }) => {
             <TextInput
               ref={inputRef}
               style={[styles.input, { backgroundColor: isDarkMode ? "#1f2937" : "#f5f5f5", color: theme.text }]}
-              placeholder="Nội dung tin nhắn"
+              placeholder={t("chat.typeMessage")}
               placeholderTextColor={theme.subText}
               value={message}
               onChangeText={setMessage}

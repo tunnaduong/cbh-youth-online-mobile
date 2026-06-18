@@ -13,11 +13,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { getStoryViewers } from "../../../services/api/Api";
 import FastImage from "react-native-fast-image";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 
 const StoryViewersScreen = ({ route, navigation }) => {
   const { storyId } = route.params;
   const [viewers, setViewers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchViewers();
@@ -34,8 +36,8 @@ const StoryViewersScreen = ({ route, navigation }) => {
       console.error("Error fetching viewers:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: "Không thể tải danh sách người xem.",
+        text1: t('common.error'),
+        text2: t('storyViewers.loadError'),
       });
     } finally {
       setLoading(false);
@@ -106,7 +108,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#319527" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Người xem</Text>
+        <Text style={styles.headerTitle}>{t('storyViewers.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -117,7 +119,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
       ) : viewers.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="eye-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>Chưa có người xem</Text>
+          <Text style={styles.emptyText}>{t('storyViewers.empty')}</Text>
         </View>
       ) : (
         <FlatList

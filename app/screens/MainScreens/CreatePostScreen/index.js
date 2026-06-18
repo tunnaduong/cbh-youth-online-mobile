@@ -15,6 +15,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
+import { getCategoryName } from "../../../utils/forumUtils";
 import {
   createPost,
   getSubforums,
@@ -29,6 +30,7 @@ import * as DocumentPicker from "expo-document-picker";
 import FastImage from "react-native-fast-image";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const CreatePostScreen = ({ navigation }) => {
   const [postContent, setPostContent] = useState("");
@@ -36,13 +38,14 @@ const CreatePostScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const view = [
-    { label: "Công khai", value: "public", icon: "earth" },
-    { label: "Chỉ người theo dõi", value: "followers", icon: "people" },
-    { label: "Riêng tư", value: "private", icon: "lock-closed" },
+    { label: t('createPost.privacyPublic'), value: "public", icon: "earth" },
+    { label: t('createPost.privacyFollowers'), value: "followers", icon: "people" },
+    { label: t('createPost.privacyPrivate'), value: "private", icon: "lock-closed" },
   ];
   const [viewSelected, setViewSelected] = useState(view[0]);
   const [loading, setLoading] = useState(false);
@@ -85,9 +88,13 @@ const CreatePostScreen = ({ navigation }) => {
 
   useEffect(() => {
     getSubforums().then((res) => {
-      setSubforums(res.data);
+      const translated = res.data.map((item) => ({
+        ...item,
+        label: getCategoryName(item.label, t),
+      }));
+      setSubforums(translated);
     });
-  }, []);
+  }, [t]);
 
   const pickImage = async () => {
     try {
@@ -107,8 +114,8 @@ const CreatePostScreen = ({ navigation }) => {
       console.log("Error picking image:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi chọn ảnh",
-        text2: "Vui lòng thử lại.",
+        text1: t('createPost.pickImageError'),
+        text2: t('createPost.retry'),
         autoHide: true,
         visibilityTime: 3000,
         topOffset: 60,
@@ -130,8 +137,8 @@ const CreatePostScreen = ({ navigation }) => {
       console.log("Error picking document:", error);
       Toast.show({
         type: "error",
-        text1: "Lỗi chọn tài liệu",
-        text2: "Vui lòng thử lại.",
+        text1: t('createPost.pickDocumentError'),
+        text2: t('createPost.retry'),
         autoHide: true,
         visibilityTime: 3000,
         topOffset: 60,
@@ -155,8 +162,8 @@ const CreatePostScreen = ({ navigation }) => {
     if (title.trim() === "" || postContent.trim() === "") {
       Toast.show({
         type: "error",
-        text1: "Chưa thể đăng bài viết",
-        text2: "Vui lòng nhập tiêu đề và nội dung bài viết.",
+        text1: t('createPost.cannotPost'),
+        text2: t('createPost.missingFields'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -242,8 +249,8 @@ const CreatePostScreen = ({ navigation }) => {
         // If navigation is not available, at least update the feed
         Toast.show({
           type: "success",
-          text1: "Đăng bài viết thành công",
-          text2: "Đang tải lại trang...",
+          text1: t('createPost.postedSuccess'),
+          text2: t('createPost.reloading'),
           autoHide: true,
           visibilityTime: 2000,
           topOffset: 60,
@@ -255,8 +262,8 @@ const CreatePostScreen = ({ navigation }) => {
       console.log("Error creating post:", error);
       Toast.show({
         type: "error",
-        text1: "Chưa thể đăng bài viết",
-        text2: error?.response?.data?.message || "Vui lòng thử lại sau.",
+        text1: t('createPost.cannotPost'),
+        text2: error?.response?.data?.message || t('createPost.tryAgainLater'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -269,7 +276,7 @@ const CreatePostScreen = ({ navigation }) => {
   return (
     <>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <ProgressHUD loadText="Đang đăng..." visible={loading} />
+      <ProgressHUD loadText={t('createPost.posting')} visible={loading} />
       <View
         style={[
           {
@@ -297,7 +304,7 @@ const CreatePostScreen = ({ navigation }) => {
             color: theme.primary,
           }}
         >
-          Tạo bài viết
+          {t('createPost.title')}
         </Text>
         <TouchableOpacity
           style={[
@@ -320,7 +327,7 @@ const CreatePostScreen = ({ navigation }) => {
               fontWeight: "600",
             }}
           >
-            Đăng
+            {t('createPost.publish')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -358,7 +365,7 @@ const CreatePostScreen = ({ navigation }) => {
 
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '500', fontSize: 18, color: theme.text }} numberOfLines={1}>
-              {isAnonymous ? "Người dùng ẩn danh" : profileName}
+              {isAnonymous ? t('createPost.anonymousUser') : profileName}
               {userInfo.verified && !isAnonymous && (
                 <View>
                   <Verified
@@ -372,7 +379,7 @@ const CreatePostScreen = ({ navigation }) => {
             </Text>
             <Dropdown
               options={isAnonymous ? view.filter(v => v.value !== 'followers') : view}
-              placeholder={"Công khai"}
+              placeholder={t('createPost.privacyPublic')}
               selectedValue={viewSelected}
               onValueChange={setViewSelected}
               style={{
@@ -402,7 +409,7 @@ const CreatePostScreen = ({ navigation }) => {
         <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? "#1f2937" : "#fafafa", borderColor: theme.border }]}>
           <TextInput
             style={[styles.titleInput, { color: theme.text }]}
-            placeholder="Chủ đề bạn muốn chia sẻ là gì?"
+            placeholder={t('createPost.placeholderTitle')}
             placeholderTextColor={theme.subText}
             value={title}
             onChangeText={setTitle}
@@ -417,7 +424,7 @@ const CreatePostScreen = ({ navigation }) => {
           ></View>
           <TextInput
             style={[styles.contentInput, { color: theme.text }]}
-            placeholder="Bạn đang nghĩ gì?"
+            placeholder={t('createPost.placeholderContent')}
             placeholderTextColor={theme.subText}
             value={postContent}
             onChangeText={setPostContent}
@@ -434,8 +441,8 @@ const CreatePostScreen = ({ navigation }) => {
           ></View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}>
             <View>
-              <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.text, marginBottom: 5 }}>Đăng ẩn danh</Text>
-              <Text style={{ color: theme.subText, fontSize: 12 }}>Người kiểm duyệt vẫn sẽ thấy thông tin của bạn</Text>
+              <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.text, marginBottom: 5 }}>{t('createPost.anonymous')}</Text>
+              <Text style={{ color: theme.subText, fontSize: 12 }}>{t('createPost.anonymousDesc')}</Text>
             </View>
             <Switch
               trackColor={{ false: '#767577', true: theme.primary }}
@@ -448,7 +455,7 @@ const CreatePostScreen = ({ navigation }) => {
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
           <Dropdown
             options={subforums}
-            placeholder={"Chọn chuyên mục cho bài viết này"}
+            placeholder={t('createPost.placeholderCategory')}
             selectedValue={selected}
             onValueChange={setSelected}
           />
@@ -458,14 +465,14 @@ const CreatePostScreen = ({ navigation }) => {
               style={{ flexDirection: 'row', alignItems: 'center', height: 40, gap: 8, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12 }}
             >
               <Ionicons name="logo-markdown" size={15} color={theme.text} />
-              <Text style={{ color: theme.text }}>Hỗ trợ Markdown</Text>
+              <Text style={{ color: theme.text }}>{t('createPost.markdown')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigateToHelp(173336279)}
               style={{ flexDirection: 'row', alignItems: 'center', height: 40, justifyContent: 'center', gap: 4, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingHorizontal: 12 }}
             >
               <Ionicons name="warning" size={18} color={theme.text} />
-              <Text style={{ color: theme.text }}>Quy tắc</Text>
+              <Text style={{ color: theme.text }}>{t('createPost.rules')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -557,7 +564,7 @@ const CreatePostScreen = ({ navigation }) => {
                     color={theme.primary}
                     style={{ marginTop: -5 }}
                   />
-                  <Text style={{ color: theme.primary }}>Thêm ảnh</Text>
+                  <Text style={{ color: theme.primary }}>{t('createPost.addImage')}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -584,7 +591,7 @@ const CreatePostScreen = ({ navigation }) => {
                   size={30}
                   color={theme.primary}
                 />
-                <Text style={{ color: theme.primary, marginTop: 4 }}>Thêm ảnh</Text>
+                <Text style={{ color: theme.primary, marginTop: 4 }}>{t('createPost.addImage')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -604,7 +611,7 @@ const CreatePostScreen = ({ navigation }) => {
                   size={30}
                   color={theme.primary}
                 />
-                <Text style={{ color: theme.primary, marginTop: 4 }}>Thêm tài liệu</Text>
+                <Text style={{ color: theme.primary, marginTop: 4 }}>{t('createPost.addDocument')}</Text>
               </TouchableOpacity>
             </View>
           )}

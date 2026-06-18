@@ -29,6 +29,8 @@ import { FeedContext } from "../contexts/FeedContext";
 import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
+import { useTranslation } from "react-i18next";
+import formatTime from "../utils/formatTime";
 
 const PostItem = ({
   navigation,
@@ -51,6 +53,7 @@ const PostItem = ({
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const isCurrentUser = item?.author?.username === username;
 
   // Use external state if provided (for single view), otherwise use item props
@@ -73,11 +76,11 @@ const PostItem = ({
 
   const handleDeletePost = async () => {
     Alert.alert(
-      "Xóa bài viết này?",
-      "Bạn có thể chỉnh sửa bài viết này thay vì xóa nó",
+      t('post.deleteConfirmTitle'),
+      t('post.deleteConfirmBody'),
       [
         {
-          text: "Xóa",
+          text: t('post.deleteAction'),
           style: "destructive",
           onPress: async () => {
             await deletePost(item.id);
@@ -96,7 +99,7 @@ const PostItem = ({
           },
         },
         {
-          text: "Chỉnh sửa",
+          text: t('post.editAction'),
           style: "default",
           onPress: () => {
             if (navigation) {
@@ -106,7 +109,7 @@ const PostItem = ({
           },
         },
         {
-          text: "Hủy",
+          text: t('settings.cancel'),
           style: "cancel",
         },
       ]
@@ -116,9 +119,9 @@ const PostItem = ({
   const handleReportSubmit = async (reason) => {
     try {
       await reportUser({ topic_id: item.id, reason });
-      Alert.alert("Cảm ơn", "Báo cáo của bạn đã được gửi. Chúng tôi sẽ xem xét trong thời gian sớm nhất.");
+      Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
-      Alert.alert("Lỗi", e.response?.data?.message || e.message || "Không thể gửi báo cáo");
+      Alert.alert(t('profile.errorTitle'), e.response?.data?.message || e.message || t('post.reportError'));
     }
   };
 
@@ -138,7 +141,7 @@ const PostItem = ({
               color={currentSaved ? theme.primary : theme.text}
             />
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {currentSaved ? "Bỏ lưu bài viết" : "Lưu bài viết"}
+              {currentSaved ? t('post.unsave') : t('post.save')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -152,7 +155,7 @@ const PostItem = ({
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>Chia sẻ</Text>
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
         {isCurrentUser && (
@@ -160,7 +163,7 @@ const PostItem = ({
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                Cài đặt quyền riêng tư
+                {t('post.privacy')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -175,7 +178,7 @@ const PostItem = ({
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="create-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                Chỉnh sửa bài đăng
+                {t('post.edit')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -191,7 +194,7 @@ const PostItem = ({
             <Text
               style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
             >
-              Báo cáo vi phạm
+              {t('post.report')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -202,7 +205,7 @@ const PostItem = ({
               <Text
                 style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
               >
-                Xóa bài viết
+                {t('post.delete')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -491,7 +494,7 @@ const PostItem = ({
                 <Ionicons name="document-text" size={30} color={theme.primary} />
                 <View style={{ marginLeft: 10, flex: 1 }}>
                   <Text style={{ fontWeight: '500', fontSize: 15, color: theme.text }} numberOfLines={1}>{fileName}</Text>
-                  <Text style={{ fontSize: 12, color: theme.subText }}>Nhấn để xem tài liệu</Text>
+                  <Text style={{ fontSize: 12, color: theme.subText }}>{t('post.tapToViewDoc')}</Text>
                 </View>
                 <Ionicons name="download-outline" size={24} color={theme.subText} />
               </TouchableOpacity>
@@ -547,7 +550,7 @@ const PostItem = ({
           )}
         </View>
         <Text style={{ fontWeight: "bold", color: theme.primary, marginLeft: 8, flexShrink: 1 }}>
-          {item.anonymous ? "Người dùng ẩn danh" : (item?.author?.profile_name || item?.author?.username || "")}
+          {item.anonymous ? t('post.anonymousUser') : (item?.author?.profile_name || item?.author?.username || "")}
           {item?.author?.verified && !item.anonymous && (
             <View>
               <Verified
@@ -559,7 +562,7 @@ const PostItem = ({
             </View>
           )}
         </Text>
-        <Text style={{ color: theme.subText }}> · {item.time || item.created_at_human || item.created_at}</Text>
+        <Text style={{ color: theme.subText }}> · {formatTime(item.created_at || item.time || item.created_at_human)}</Text>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
         <View style={{ gap: 12, flexDirection: "row", alignItems: "center", flex: 1 }}>

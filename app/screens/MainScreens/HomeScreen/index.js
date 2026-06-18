@@ -27,7 +27,9 @@ import {
   TouchableHighlight,
   Platform,
   AppState,
+  Dimensions,
   Alert,
+  DeviceEventEmitter,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -58,12 +60,14 @@ import FastImage from "react-native-fast-image";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import KeyboardSpacer from "react-native-keyboard-spacer";
 import ActionSheet from "react-native-actions-sheet";
+import { useTranslation } from "react-i18next";
 
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
-  const viewedPosts = React.useRef(new Set());
+  const viewedPosts = useRef(new Set());
   const flatListRef = React.useRef(null);
   const { feed, setFeed } = useContext(FeedContext);
   const lottieRef = useRef(null);
@@ -93,6 +97,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const scrollPositionRef = useRef(0);
+  const lastScrollYRef = useRef(0);
   const isScrollingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
@@ -147,8 +152,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       console.log("Error fetching newsfeed:", error);
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
-        text2: "Không thể tải bảng tin. Vui lòng thử lại sau.",
+        text1: t('common.error'),
+        text2: t('home.loadingError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -314,15 +319,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       await reportUser({ story_id: currentStory, reported_user_id: currentStoryUser.uid || currentStoryUser.id, reason });
       Toast.show({
         type: "success",
-        text1: "Đã gửi báo cáo",
-        text2: "Cảm ơn bạn đã báo cáo nội dung này.",
+        text1: t('home.reportSentTitle'),
+        text2: t('home.reportSentBody'),
         topOffset: 60,
       });
     } catch (e) {
       Toast.show({
         type: "error",
-        text1: "Lỗi",
-        text2: e.message || "Không thể gửi báo cáo",
+        text1: t('common.error'),
+        text2: e.message || t('post.reportError'),
         topOffset: 60,
       });
     }
@@ -383,9 +388,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>Nhận tin của người này</Text>
+              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.receiveStory')}</Text>
               <Text style={{ color: theme.subText, fontSize: 13 }}>
-                Bật hoặc tắt tin mới của người này
+                {t('home.turnOnOffStory')}
               </Text>
             </View>
           </View>
@@ -395,10 +400,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               actionSheetRef.current?.hide();
               Toast.show({
                 type: "info",
-                text1: value ? "Đã bật thông báo" : "Đã tắt thông báo",
+                text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
                 text2: value
-                  ? "Bạn sẽ nhận được thông báo từ người này"
-                  : "Bạn sẽ không nhận được thông báo từ người này",
+                  ? t('home.receiveNotifications')
+                  : t('home.stopNotifications'),
               });
             }}
             trackColor={{ false: "#767577", true: theme.primary }}
@@ -410,8 +415,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             actionSheetRef.current?.hide();
             Toast.show({
               type: "info",
-              text1: "Chia sẻ",
-              text2: "Đã sao chép liên kết.",
+              text1: t('home.share'),
+              text2: t('home.linkCopied'),
             });
           }}
         >
@@ -434,7 +439,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="link-outline" size={23} color={theme.subText} />
             </View>
             <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              Sao chép liên kết để chia sẻ
+              {t('home.copyLinkShare')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -464,9 +469,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="warning-outline" size={23} color={theme.subText} />
             </View>
             <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>Báo cáo tin</Text>
+              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
               <Text style={{ color: theme.subText, fontSize: 13 }}>
-                Tin này chứa nội dung không phù hợp
+                {t('home.reportStoryDesc')}
               </Text>
             </View>
             <View style={{ marginLeft: "auto" }}>
@@ -484,8 +489,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             actionSheetRef.current?.hide();
             Toast.show({
               type: "info",
-              text1: "Bỏ theo dõi",
-              text2: "Bạn đã bỏ theo dõi người này.",
+              text1: t('home.unfollowPerson'),
+              text2: t('home.unfollowed'),
             });
           }}
         >
@@ -506,7 +511,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="close-outline" size={23} color={theme.text} />
             </View>
             <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              Bỏ theo dõi người này
+              {t('home.unfollowPerson')}
             </Text>
           </View>
 
@@ -515,10 +520,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         <TouchableOpacity
           onPress={() => {
             actionSheetRef.current?.hide();
-            Alert.alert("Chặn người dùng?", "Bạn sẽ không thấy tin của người này nữa.", [
-              { text: "Hủy", style: "cancel" },
+            Alert.alert(t('home.blockedTitle'), t('home.blockedBody'), [
+              { text: t('settings.cancel'), style: "cancel" },
               {
-                text: "Chặn", style: "destructive", onPress: async () => {
+                text: t('home.blockPerson'), style: "destructive", onPress: async () => {
                   // Use ref for immediate access to freshness
                   const userToBlockRef = currentStoryUserRef.current;
                   console.log("Blocking user (ref)...", userToBlockRef);
@@ -544,17 +549,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       // Force a small delay to ensure modal close animation doesn't conflict with Alert
                       dismissStoryModal();
                       setTimeout(() => {
-                        Alert.alert("Thành công", "Đã chặn người dùng");
+                        Alert.alert(t('home.blockedSuccessTitle'), t('home.blockedSuccessMessage'));
                       }, 500);
 
                       fetchStories();
                     } else {
                       console.error("No user found to block");
-                      Alert.alert("Lỗi", "Không tìm thấy thông tin người dùng");
+                      Alert.alert(t('home.blockedErrorTitle'), t('home.blockedErrorMessage'));
                     }
                   } catch (e) {
                     console.error("Block error:", e);
-                    Alert.alert("Lỗi", e.message || "Có lỗi xảy ra");
+                    Alert.alert(t('common.error'), e.message || t('common.unknownError'));
                   }
                 }
               }
@@ -578,7 +583,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <Ionicons name="ban-outline" size={23} color="#ef4444" />
             </View>
             <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
-              Chặn người này
+              {t('home.blockPerson')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -636,9 +641,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             onDismissStory={dismissStoryModal}
           />
         ),
-        date: story.created_at
-          ? formatTime(story.created_at)
-          : story.created_at_human,
+        date: formatTime(story.created_at || story.created_at_human),
+        created_at: story.created_at,
+        created_at_human: story.created_at_human,
         onStoryItemPress: () => {
           setCurrentStory(story.id);
           setCurrentStoryUser({ id: user.id, username: user.username });
@@ -668,7 +673,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           alignItems: "center",
         }}
       >
-        <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
+          <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
         <Text
           style={{
             marginLeft: 10,
@@ -677,7 +682,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             flex: 1,
           }}
         >
-          Vui lòng xác minh địa chỉ email để sử dụng đầy đủ các tính năng
+          {t('home.verifyEmail')}
         </Text>
         <Ionicons name="chevron-forward-outline" size={18} color={isDarkMode ? "#FFC107" : "#856404"} />
       </TouchableOpacity>
@@ -736,7 +741,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   textAlign: "center",
                   color: theme.text
                 }}>
-                  Tạo tin
+                  {t('home.createStory')}
                 </Text>
               </View>
               <View style={{
@@ -822,6 +827,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
     isScrollingRef.current = false;
+
+    // Auto hide bottom tab bar
+    const diff = offsetY - lastScrollYRef.current;
+    if (offsetY < 50) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    } else if (diff > 15) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
+    } else if (diff < -10) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    }
+    lastScrollYRef.current = offsetY;
 
     // If scrolled to top during manual scroll, reset processing flag
     if (offsetY <= 10 && isProcessingRef.current && !refreshing) {
@@ -935,9 +951,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       await resendVerificationEmail();
       Toast.show({
         type: "success",
-        text1: "Thành công",
+        text1: t('home.resendVerificationSuccess'),
         text2:
-          "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.",
+          t('home.resendVerificationSuccessBody'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -946,10 +962,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Đã có lỗi xảy ra",
+        text1: t('common.error'),
         text2:
           error.message ||
-          "Không thể gửi email xác minh. Vui lòng thử lại sau.",
+          t('home.resendVerificationError'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -1016,7 +1032,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       flex: 1,
                     }}
                   >
-                    Xác minh Email
+                    {t('home.verifyEmail')}
                   </Text>
                   <TouchableOpacity
                     onPress={() => setVerificationModalVisible(false)}
@@ -1034,8 +1050,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     lineHeight: 22,
                   }}
                 >
-                  Để sử dụng đầy đủ các tính năng như tạo bài viết, bạn cần xác
-                  minh địa chỉ email của mình.
+                  {t('home.useFullFeatures')}
                 </Text>
 
                 {userInfo?.email && (
@@ -1054,7 +1069,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                         marginBottom: 4,
                       }}
                     >
-                      Email của bạn:
+                      {t('home.yourEmail')}:
                     </Text>
                     <Text
                       style={{
@@ -1090,7 +1105,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                         fontWeight: "600",
                       }}
                     >
-                      Gửi lại email xác minh
+                      {t('home.resendVerificationEmail')}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -1109,7 +1124,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       fontSize: 15,
                     }}
                   >
-                    Đóng
+                    {t('common.close')}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1197,13 +1212,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const filteredStories = useMemo(() => {
     if (!userStories) return [];
-    if (blockedUsers && blockedUsers.length > 0) {
-      return userStories.filter(
-        (user) => !blockedUsers.includes(user.id) // user.id here maps to username based on transformStoriesData
-      );
-    }
-    return userStories;
-  }, [userStories, blockedUsers]);
+    const filtered = blockedUsers && blockedUsers.length > 0
+      ? userStories.filter((user) => !blockedUsers.includes(user.id))
+      : userStories;
+
+    return filtered.map((user) => ({
+      ...user,
+      stories: user.stories.map((story) => ({
+        ...story,
+        date: formatTime(story.created_at || story.created_at_human || ""),
+      })),
+    }));
+  }, [userStories, blockedUsers, t]);
 
   const ReplyBar = ({
     storyId,
@@ -1233,8 +1253,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           console.error("Error reacting to story:", error);
           Toast.show({
             type: "error",
-            text1: "Lỗi",
-            text2: "Không thể thả cảm xúc. Vui lòng thử lại.",
+            text1: t('common.error'),
+            text2: t('home.reactionError'),
           });
         }
       }
@@ -1253,8 +1273,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         setReplyText("");
         Toast.show({
           type: "success",
-          text1: "Đã gửi",
-          text2: "Tin nhắn đã được gửi đến người dùng.",
+          text1: t('home.replySent'),
+          text2: t('home.replySentBody'),
         });
 
         // Optionally navigate to conversation after sending reply
@@ -1269,7 +1289,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         console.error("Error replying to story:", error);
 
         // Extract error message from API response
-        let errorMessage = "Không thể gửi tin nhắn. Vui lòng thử lại.";
+        let errorMessage = t('home.replySendError');
 
         if (error.response?.data) {
           // Handle different error response formats
@@ -1294,7 +1314,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
         Toast.show({
           type: "error",
-          text1: "Lỗi",
+          text1: t('common.error'),
           text2: errorMessage,
           visibilityTime: 4000,
         });
@@ -1329,7 +1349,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             >
               <Ionicons name="eye-outline" size={20} color="#fff" />
               <Text style={styles.viewCountText}>
-                {viewersCount === 0 ? 0 : viewersCount - 1} {"lượt xem"}
+                {t('home.views', { count: viewersCount === 0 ? 0 : viewersCount - 1 })}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1359,7 +1379,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           </View>
           <View style={styles.replyBar}>
             <TextInput
-              placeholder="Chia sẻ cảm nghĩ của bạn..."
+              placeholder={t('chat.typeMessage')}
               placeholderTextColor={theme.subText}
               style={[styles.input, { backgroundColor: isDarkMode ? "#374151" : "#666666", color: isDarkMode ? theme.text : "#FFFFFF" }]}
               value={replyText}
@@ -1403,7 +1423,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         <RefreshControl
           tintColor="transparent"
           colors={["transparent"]}
+          progressBackgroundColor="transparent"
           style={{ backgroundColor: "transparent" }}
+          progressViewOffset={-1000}
           refreshing={refreshing}
           onRefresh={() => {
             if (!isProcessingRef.current) {
@@ -1422,7 +1444,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         loop
         autoPlay
       />
-      <Text style={{ marginTop: 15, color: theme.text }}>Đang tải bảng tin...</Text>
+      <Text style={{ marginTop: 15, color: theme.text }}>{t('home.loadingFeed')}</Text>
     </ScrollView>
   ) : (
     <>
@@ -1458,9 +1480,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={filteredFeed}
+          extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           contentContainerStyle={{
-            paddingBottom: 30,
+            paddingBottom: 110,
             backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (
@@ -1480,7 +1503,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             <RefreshControl
               tintColor="transparent"
               colors={["transparent"]}
+              progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
+              progressViewOffset={-1000}
               refreshing={refreshing}
               onRefresh={() => {
                 // When user pulls to refresh, also prevent multiple calls
@@ -1542,7 +1567,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }}
           toast={<Toast topOffset={60} />}
           containerStyle={{
-            transform: [{ translateY: Platform.OS === "android" ? -69 : -15 }],
+            height: Dimensions.get("window").height,
           }}
         />
         <ResendVerificationModal />

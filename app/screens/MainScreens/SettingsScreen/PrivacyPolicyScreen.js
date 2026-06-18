@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const Section = ({ title, children, theme, isDarkMode }) => (
   <View style={[styles.section, { backgroundColor: isDarkMode ? "#1f2937" : "#F2F9F2" }]}>
@@ -22,6 +23,7 @@ const Section = ({ title, children, theme, isDarkMode }) => (
 export default function PrivacyPolicyScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
@@ -31,162 +33,139 @@ export default function PrivacyPolicyScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Chính sách bảo mật</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t("privacy.headerTitle")}</Text>
         <View style={{ width: 24, height: 24 }}></View>
       </View>
 
       <ScrollView style={styles.content}>
         <Text style={[styles.introText, { color: theme.text }]}>
-          Diễn đàn học sinh Chuyên Biên Hòa cam kết bảo vệ quyền riêng tư và
-          thông tin cá nhân của tất cả thành viên tham gia. Chính sách bảo mật
-          này nhằm giải thích rõ cách chúng tôi thu thập, sử dụng, lưu trữ và
-          bảo vệ dữ liệu của bạn khi truy cập và sử dụng diễn đàn.
+          {t("privacy.intro")}
         </Text>
 
-        <Section title="1. Thông tin chúng tôi thu thập" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s1Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Khi bạn sử dụng diễn đàn, chúng tôi có thể thu thập các loại thông
-            tin sau:
+            {t("privacy.s1Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Thông tin tài khoản: bao gồm tên đăng nhập, mật khẩu, địa chỉ
-            email, số điện thoại (nếu bạn cung cấp).
+            {t("privacy.s1Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Thông tin cá nhân: như họ tên, trường lớp, năm học, ảnh đại diện
-            hoặc các dữ liệu mà bạn chủ động chia sẻ trong hồ sơ cá nhân.
+            {t("privacy.s1Text3")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Dữ liệu hoạt động: lịch sử bài viết, bình luận, lượt thích, báo
-            cáo vi phạm, tin nhắn riêng tư giữa các thành viên.
+            {t("privacy.s1Text4")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Thông tin kỹ thuật: địa chỉ IP, loại thiết bị, hệ điều hành,
-            trình duyệt, cookies và dữ liệu nhật ký truy cập.
+            {t("privacy.s1Text5")}
           </Text>
         </Section>
 
-        <Section title="2. Mục đích sử dụng thông tin" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s2Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Thông tin cá nhân của bạn được sử dụng cho các mục đích sau:
+            {t("privacy.s2Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Cung cấp và duy trì dịch vụ của diễn đàn.
+            {t("privacy.s2Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Hỗ trợ xác minh danh tính, quản lý tài khoản, khôi phục mật khẩu.
+            {t("privacy.s2Text3")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Cải thiện trải nghiệm người dùng, đề xuất nội dung phù hợp.
+            {t("privacy.s2Text4")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Duy trì an ninh, phát hiện và ngăn chặn hành vi gian lận, spam hoặc
-            vi phạm quy định.
+            {t("privacy.s2Text5")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Liên hệ khi cần thiết (thông báo hệ thống, phản hồi yêu cầu hỗ
-            trợ, cập nhật quy định).
+            {t("privacy.s2Text6")}
           </Text>
         </Section>
 
-        <Section title="3. Chia sẻ thông tin" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s3Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Chúng tôi không bán hoặc trao đổi thông tin cá nhân của bạn cho bên
-            thứ ba vì mục đích thương mại. Tuy nhiên, thông tin có thể được chia
-            sẻ trong các trường hợp sau:
+            {t("privacy.s3Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Theo yêu cầu pháp luật, cơ quan chức năng, hoặc khi có lệnh từ cơ
-            quan có thẩm quyền.
+            {t("privacy.s3Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Khi cần bảo vệ quyền lợi hợp pháp của Diễn đàn, thành viên khác
-            hoặc cộng đồng.
+            {t("privacy.s3Text3")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Với các đối tác kỹ thuật (ví dụ: dịch vụ lưu trữ, bảo mật, phân
-            tích dữ liệu) nhằm duy trì hoạt động của diễn đàn.
+            {t("privacy.s3Text4")}
           </Text>
         </Section>
 
-        <Section title="4. Lưu trữ và bảo mật thông tin" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s4Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Dữ liệu của bạn được lưu trữ trên hệ thống máy chủ có các biện
-            pháp bảo mật kỹ thuật như tường lửa, mã hóa và kiểm soát truy cập.
+            {t("privacy.s4Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Mật khẩu của bạn được lưu trữ dưới dạng mã hóa, không ai – kể cả
-            quản trị viên – có thể xem trực tiếp.
+            {t("privacy.s4Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Mặc dù chúng tôi nỗ lực bảo mật, nhưng không có hệ thống nào an
-            toàn tuyệt đối. Người dùng cần tự bảo vệ thông tin tài khoản của mình
-            bằng cách giữ kín mật khẩu và thoát khỏi tài khoản sau khi sử dụng.
+            {t("privacy.s4Text3")}
           </Text>
         </Section>
 
-        <Section title="5. Quyền của người dùng" theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>Bạn có quyền:</Text>
+        <Section title={t("privacy.s5Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Xem, chỉnh sửa, cập nhật thông tin cá nhân trong hồ sơ.
+            {t("privacy.s5Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Yêu cầu xóa tài khoản hoặc dữ liệu cá nhân khỏi hệ thống (trừ các
-            dữ liệu cần lưu giữ để tuân thủ pháp luật hoặc xử lý tranh chấp).
+            {t("privacy.s5Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Quyết định mức độ công khai thông tin trên diễn đàn (ví dụ: ai có
-            thể xem hồ sơ, bài viết, tin nhắn).
-          </Text>
-        </Section>
-
-        <Section title="6. Cookie và công nghệ theo dõi" theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Diễn đàn có thể sử dụng cookie để lưu thông tin đăng nhập, ghi nhớ
-            tùy chọn và phân tích hành vi người dùng.
+            {t("privacy.s5Text3")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bạn có thể tắt cookie trong trình duyệt, nhưng điều này có thể làm
-            giảm trải nghiệm sử dụng.
+            {t("privacy.s5Text4")}
           </Text>
         </Section>
 
-        <Section title="7. Chính sách dành cho trẻ vị thành niên" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s6Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Diễn đàn hướng đến học sinh trung học phổ thông, vì vậy chúng tôi
-            đặc biệt lưu ý đến quyền riêng tư của người dưới 18 tuổi.
+            {t("privacy.s6Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Phụ huynh hoặc giáo viên có thể liên hệ để yêu cầu hỗ trợ quản lý
-            tài khoản học sinh nếu cần.
+            {t("privacy.s6Text2")}
           </Text>
         </Section>
 
-        <Section title="8. Thay đổi chính sách" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s7Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Chính sách này có thể được cập nhật bất kỳ lúc nào nhằm phù hợp
-            với sự thay đổi của pháp luật, công nghệ hoặc hoạt động của diễn đàn.
+            {t("privacy.s7Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Mọi thay đổi quan trọng sẽ được thông báo trên trang chủ hoặc qua
-            email trước khi áp dụng.
-          </Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Khi tiếp tục sử dụng diễn đàn sau khi chính sách được cập nhật, bạn
-            được coi là đã đồng ý với các điều khoản mới.
+            {t("privacy.s7Text2")}
           </Text>
         </Section>
 
-        <Section title="9. Liên hệ" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s8Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Nếu có thắc mắc hoặc yêu cầu liên quan đến quyền riêng tư, vui lòng
-            liên hệ:
+            {t("privacy.s8Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Ban quản trị Diễn đàn học sinh Chuyên Biên Hòa
+            {t("privacy.s8Text2")}
           </Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>Email: hotro@chuyenbienhoa.com</Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>Hotline: 0365520031</Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("privacy.s8Text3")}
+          </Text>
+        </Section>
+
+        <Section title={t("privacy.s9Title")} theme={theme} isDarkMode={isDarkMode}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("privacy.s9Text1")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("privacy.s9Text2")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("privacy.s9Email")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("privacy.s9Phone")}
+          </Text>
         </Section>
       </ScrollView>
     </SafeAreaView>

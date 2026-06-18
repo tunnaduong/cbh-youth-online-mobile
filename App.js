@@ -1,8 +1,13 @@
 import React, { useContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, StatusBar } from "react-native";
+import { View, Text, Platform, StatusBar, Alert } from "react-native";
+import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
+
+if (Platform.OS === "android") {
+  Alert.alert = CustomAlert.alert;
+}
 import { useStatusBar } from "./app/contexts/StatusBarContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
@@ -49,12 +54,14 @@ import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const Stack = createStackNavigator();
 
 // Main App component
 const App = () => {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
@@ -62,6 +69,10 @@ const App = () => {
   const handleSplashFinish = () => {
     setShowSplash(false);
   };
+
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
 
   if (isLoading) {
     return (
@@ -75,13 +86,9 @@ const App = () => {
           loop
           autoPlay
         />
-        <Text style={{ color: theme.text }}>Đang tải...</Text>
+        <Text style={{ color: theme.text }}>{t('home.loading')}</Text>
       </View>
     );
-  }
-
-  if (showSplash) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
   return (
@@ -136,7 +143,7 @@ const App = () => {
               <Stack.Screen
                 name="PostScreen"
                 options={{
-                  title: "Chi tiết bài viết",
+                  title: t('post.details'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
@@ -185,8 +192,7 @@ const App = () => {
                 options={{
                   title: "Chỉnh sửa trang cá nhân",
                   headerShown: false,
-                  presentation:
-                    Platform.OS === "android" ? "transparentModal" : "modal",
+                  presentation: "modal",
                   gestureEnabled: true,
                   animation: "slide_from_bottom",
                 }}
@@ -314,7 +320,7 @@ const App = () => {
                 name="ExploreScreen"
                 component={ExploreScreen}
                 options={{
-                  title: "Khám phá",
+                  title: t('home.explore'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
@@ -385,13 +391,14 @@ const App = () => {
           )}
         </Stack.Navigator>
       </NavigationContainer>
+      <CustomAlertProvider />
     </>
   );
 };
 
 export default () => (
   <TailwindProvider>
-    <GestureHandlerRootView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <MultiContextProvider>
         <SafeAreaProvider>
           <KeyboardProvider>
