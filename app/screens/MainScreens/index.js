@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -16,9 +16,99 @@ import TabBarBadge from "../../components/TabBarBadge";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
+
+const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
+  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 90);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+
+  const onLayout = (event) => {
+    const { width } = event.nativeEvent.layout;
+    if (width) {
+      setTabBarWidth(width);
+    }
+  };
+
+  const getRouteIndex = (routeName) => {
+    switch (routeName) {
+      case "Home": return 0;
+      case "Forum": return 1;
+      case "Create": return 2;
+      case "Chat": return 3;
+      case "Notifications": return 4;
+      default: return 0;
+    }
+  };
+
+  const activeIndex = getRouteIndex(currentRoute);
+  const usableWidth = tabBarWidth - 20;
+  const buttonWidth = usableWidth / 5;
+  const indicatorWidth = 55;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: activeIndex * buttonWidth,
+      useNativeDriver: true,
+      tension: 60,
+      friction: 10,
+    }).start();
+  }, [activeIndex, buttonWidth]);
+
+  const opacity = activeIndex === 2 ? 0 : 1;
+
+  return (
+    <View
+      onLayout={onLayout}
+      style={{
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 30,
+        overflow: "hidden",
+        backgroundColor: isDarkMode ? "rgba(0,0,0,0.74)" : "rgba(255,255,255,0.74)",
+      }}
+    >
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: indicatorWidth,
+          height: hideTabLabels ? 42 : 50,
+          borderRadius: 20,
+          top: hideTabLabels ? 9 : 5,
+          left: 10 + (buttonWidth - indicatorWidth) / 2,
+          opacity,
+          transform: [{ translateX: slideAnim }],
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.05)",
+          borderWidth: 1,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.08)",
+          shadowColor: isDarkMode ? "#fff" : "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDarkMode ? 0.25 : 0.12,
+          shadowRadius: 5,
+          elevation: 2,
+          overflow: "hidden",
+        }}
+      >
+        <LinearGradient
+          colors={["rgba(255, 255, 255, 0.35)", "rgba(255, 255, 255, 0.05)", "transparent"]}
+          locations={[0, 0.45, 1]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View
+          style={{
+            position: "absolute",
+            top: 1,
+            left: 3,
+            right: 3,
+            height: 1,
+            backgroundColor: "rgba(255, 255, 255, 0.4)",
+          }}
+        />
+      </Animated.View>
+    </View>
+  );
+};
 
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = React.useState(false);
@@ -105,8 +195,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               if (route.name === "Create") {
                 return props.children;
               }
-              const { children, style, onPress, onLongPress, accessibilityState } = props;
-              const isSelected = accessibilityState?.selected;
+              const { children, style, onPress, onLongPress } = props;
               return (
                 <TouchableOpacity
                   onPress={onPress}
@@ -121,26 +210,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
                   activeOpacity={0.8}
                 >
                   <View
-                    style={[
-                      {
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderRadius: 20,
-                        paddingVertical: 5,
-                        paddingHorizontal: 12,
-                        minWidth: 55,
-                      },
-                      isSelected && {
-                        backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.05)",
-                        borderWidth: 1,
-                        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.06)",
-                        shadowColor: isDarkMode ? "#fff" : "#000",
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: isDarkMode ? 0.15 : 0.08,
-                        shadowRadius: 3,
-                        elevation: 1,
-                      },
-                    ]}
+                    style={{
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 20,
+                      paddingVertical: 5,
+                      paddingHorizontal: 12,
+                      minWidth: 55,
+                    }}
                   >
                     {children}
                   </View>
@@ -165,13 +242,11 @@ export default function MainScreens({ navigation: stackNavigation }) {
               paddingHorizontal: 10,
             },
             tabBarBackground: () => (
-              <View
-                style={{
-                  ...StyleSheet.absoluteFillObject,
-                  borderRadius: 30,
-                  overflow: 'hidden',
-                  backgroundColor: isDarkMode ? 'rgba(0,0,0,0.74)' : 'rgba(255,255,255,0.74)',
-                }}
+              <TabBarBackgroundComponent
+                currentRoute={currentRoute}
+                isDarkMode={isDarkMode}
+                hideTabLabels={hideTabLabels}
+                theme={theme}
               />
             ),
             tabBarLabelStyle: {
