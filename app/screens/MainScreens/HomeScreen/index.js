@@ -1424,6 +1424,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           colors={["transparent"]}
           progressBackgroundColor="transparent"
           style={{ backgroundColor: "transparent" }}
+          progressViewOffset={-1000}
           refreshing={refreshing}
           onRefresh={() => {
             if (!isProcessingRef.current) {
@@ -1503,6 +1504,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               colors={["transparent"]}
               progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
+              progressViewOffset={-1000}
               refreshing={refreshing}
               onRefresh={() => {
                 // When user pulls to refresh, also prevent multiple calls
