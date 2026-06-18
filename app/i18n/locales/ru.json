@@ -577,6 +577,9 @@
     "cancel": "Отмена",
     "ranking": "Таблица лидеров",
     "points": "{{count}} очков",
+    "points_0": "{{count}} очко",
+    "points_1": "{{count}} очка",
+    "points_2": "{{count}} очков",
     "emptyPosts": "Постов пока нет",
     "emptyFollowing": "Никого не читает",
     "emptyFollowers": "Нет подписчиков",
@@ -720,7 +723,10 @@
     "loadError": "Не удалось загрузить архив.",
     "privacyNotice": "Сохранённые истории будут видны только вам.",
     "empty": "Пока нет историй",
-    "viewersCount": "{{count}} просмотров"
+    "viewersCount": "{{count}} просмотров",
+    "viewersCount_0": "{{count}} просмотр",
+    "viewersCount_1": "{{count}} просмотра",
+    "viewersCount_2": "{{count}} просмотров"
   },
   "dropdown": {
     "selectOption": "Выберите опцию"
@@ -853,6 +859,7 @@
     "text": "Текст",
     "pickFromGallery": "Выбрать фото из галереи",
     "backgroundChanged": "Фон: {{name}}",
+    "selectBackground": "Выберите фон",
     "gradients": {
       "sunset": "Закат",
       "royalIndigo": "Королевский индиго",

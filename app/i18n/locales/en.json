@@ -847,6 +847,7 @@
     "text": "Text",
     "pickFromGallery": "Select photo from library",
     "backgroundChanged": "Background: {{name}}",
+    "selectBackground": "Select Background",
     "gradients": {
       "sunset": "Sunset",
       "royalIndigo": "Royal Indigo",

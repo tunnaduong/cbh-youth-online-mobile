@@ -841,6 +841,7 @@
     "text": "Văn bản",
     "pickFromGallery": "Chọn ảnh từ thư viện",
     "backgroundChanged": "Màu nền: {{name}}",
+    "selectBackground": "Chọn hình nền",
     "gradients": {
       "sunset": "Hoàng hôn",
       "royalIndigo": "Huyền bí",

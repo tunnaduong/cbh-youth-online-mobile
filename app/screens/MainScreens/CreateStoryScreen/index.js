@@ -320,6 +320,7 @@ const CreateStoryScreen = ({ navigation }) => {
   const [savedDrawingData, setSavedDrawingData] = useState(null);
   const [isTextOnly, setIsTextOnly] = useState(false);
   const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]); // Default gradient colors
+  const [androidColorsModalVisible, setAndroidColorsModalVisible] = useState(false);
   const drawingRef = useRef(null);
   const insets = useSafeAreaInsets();
   const [isCameraMode, setIsCameraMode] = useState(false);
@@ -340,20 +341,34 @@ const CreateStoryScreen = ({ navigation }) => {
     setTextBackground(GRADIENTS[randomIndex].colors);
   };
 
-  const cycleGradient = () => {
-    const currentIndex = GRADIENTS.findIndex(
-      (g) => JSON.stringify(g.colors) === JSON.stringify(textBackground)
-    );
-    const nextIndex = (currentIndex + 1) % GRADIENTS.length;
-    const nextGradient = GRADIENTS[nextIndex];
-    setTextBackground(nextGradient.colors);
-
-    Toast.show({
-      type: "info",
-      text1: t("story.backgroundChanged", { name: t(`story.gradients.${nextGradient.nameKey}`) }),
-      position: "bottom",
-      visibilityTime: 1500,
-    });
+  const handleColorButtonPress = () => {
+    if (Platform.OS === "ios") {
+      const options = GRADIENTS.map((g) => t(`story.gradients.${g.nameKey}`));
+      options.push(t("common.cancel"));
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options,
+          cancelButtonIndex: GRADIENTS.length,
+          title: t("story.selectBackground"),
+        },
+        (buttonIndex) => {
+          if (buttonIndex < GRADIENTS.length) {
+            const selected = GRADIENTS[buttonIndex];
+            setTextBackground(selected.colors);
+            Toast.show({
+              type: "info",
+              text1: t("story.backgroundChanged", {
+                name: t(`story.gradients.${selected.nameKey}`),
+              }),
+              position: "bottom",
+              visibilityTime: 1500,
+            });
+          }
+        }
+      );
+    } else {
+      setAndroidColorsModalVisible(true);
+    }
   };
 
   const onViewLayout = useCallback(() => {
@@ -691,7 +706,77 @@ const CreateStoryScreen = ({ navigation }) => {
       </TouchableOpacity>
     </View>
   );
+  const AndroidColorSelectModal = () => {
+    return (
+      <Modal
+        visible={androidColorsModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAndroidColorsModalVisible(false)}
+      >
+        <View style={styles.androidOverlay}>
+          <View style={[styles.androidDialog, { backgroundColor: "#2b2d31" }]}>
+            <Text style={[styles.androidTitle, { color: "#fff" }]}>
+              {t("story.selectBackground")}
+            </Text>
+            
+            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
+              {GRADIENTS.map((item) => {
+                const isSelected = JSON.stringify(item.colors) === JSON.stringify(textBackground);
+                
+                return (
+                  <TouchableOpacity
+                    key={item.nameKey}
+                    style={styles.androidOptionRow}
+                    onPress={() => {
+                      setTextBackground(item.colors);
+                      setAndroidColorsModalVisible(false);
+                      Toast.show({
+                        type: "info",
+                        text1: t("story.backgroundChanged", { name: t(`story.gradients.${item.nameKey}`) }),
+                        position: "bottom",
+                        visibilityTime: 1500,
+                      });
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      styles.androidRadioOuter,
+                      { borderColor: isSelected ? "#319527" : "#aaa" }
+                    ]}>
+                      {isSelected && (
+                        <View style={[styles.androidRadioInner, { backgroundColor: "#319527" }]} />
+                      )}
+                    </View>
+                    <Text style={[
+                      styles.androidOptionText,
+                      { 
+                        color: "#fff",
+                        fontWeight: isSelected ? "bold" : "normal"
+                      }
+                    ]}>
+                      {t(`story.gradients.${item.nameKey}`)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
 
+            <View style={styles.androidActions}>
+              <TouchableOpacity
+                onPress={() => setAndroidColorsModalVisible(false)}
+                style={styles.androidCancelButton}
+              >
+                <Text style={{ color: "#319527", fontWeight: "600", fontSize: 14 }}>
+                  {t("common.cancel")}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
   const saveDrawing = async () => {
     try {
       const currentDrawingData = drawingRef.current?.getDrawingData?.();
@@ -885,6 +970,7 @@ const CreateStoryScreen = ({ navigation }) => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
+      <AndroidColorSelectModal />
       <View style={{ flex: 1, backgroundColor: "#000" }}>
         {/* Header */}
         {!isCameraMode && (
@@ -1016,7 +1102,15 @@ const CreateStoryScreen = ({ navigation }) => {
                 </>
               ) : (
                 <>
-                  <View style={styles.toolsContainer}>
+                  {isEditing && (
+                    <TextInputArea
+                      text={text}
+                      setText={handleTextChange}
+                      isTextOnly={isTextOnly}
+                      placeholder={textInputPlaceholder}
+                    />
+                  )}
+                  <View style={[styles.toolsContainer, { zIndex: 10000 }]}>
                     <TouchableOpacity
                       style={[
                         styles.toolButton,
@@ -1026,19 +1120,11 @@ const CreateStoryScreen = ({ navigation }) => {
                           borderColor: "rgba(255,255,255,0.4)",
                         },
                       ]}
-                      onPress={cycleGradient}
+                      onPress={handleColorButtonPress}
                     >
                       <Ionicons name="color-palette-outline" size={24} color="#fff" />
                     </TouchableOpacity>
                   </View>
-                  {isEditing && (
-                    <TextInputArea
-                      text={text}
-                      setText={handleTextChange}
-                      isTextOnly={isTextOnly}
-                      placeholder={textInputPlaceholder}
-                    />
-                  )}
                 </>
               )}
             </View>
@@ -1380,6 +1466,63 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
     includeFontPadding: false,
+  },
+  androidOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  androidDialog: {
+    width: "100%",
+    maxWidth: 320,
+    borderRadius: 28,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 24,
+  },
+  androidTitle: {
+    fontSize: 24,
+    fontWeight: "500",
+    marginBottom: 16,
+    lineHeight: 32,
+  },
+  androidOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+  },
+  androidRadioOuter: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  androidRadioInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  androidOptionText: {
+    fontSize: 16,
+    includeFontPadding: false,
+    textAlignVertical: "center",
+  },
+  androidActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: 16,
+  },
+  androidCancelButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
 });
 

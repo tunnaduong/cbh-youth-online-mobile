@@ -22,7 +22,7 @@ const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
-  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 150);
+  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 170);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -48,15 +48,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   const buttonWidth = usableWidth / 5;
 
   const getIndicatorWidth = (index, bWidth) => {
-    if (index === 0 || index === 4) {
-      return bWidth + 8;
-    }
     return bWidth;
   };
 
   const getIndicatorLeft = (index, bWidth) => {
-    if (index === 0) return 0;
-    if (index === 4) return 8 + 4 * bWidth;
     return 8 + index * bWidth;
   };
 
@@ -305,8 +300,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 12 : 5,
-              left: 75,
-              right: 75,
+              left: 85,
+              right: 85,
               elevation: 10,
               borderRadius: 26,
               height: 52,
