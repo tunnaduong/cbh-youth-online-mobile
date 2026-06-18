@@ -25,6 +25,7 @@ import {
   ActionSheetIOS,
   Alert,
   StatusBar,
+  Modal,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
