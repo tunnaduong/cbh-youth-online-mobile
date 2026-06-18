@@ -22,7 +22,7 @@ const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
-  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 110);
+  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 150);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -46,17 +46,32 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   const activeIndex = getRouteIndex(currentRoute);
   const usableWidth = tabBarWidth - 16;
   const buttonWidth = usableWidth / 5;
-  const indicatorWidth = buttonWidth;
+
+  const getIndicatorWidth = (index, bWidth) => {
+    if (index === 0 || index === 4) {
+      return bWidth + 8;
+    }
+    return bWidth;
+  };
+
+  const getIndicatorLeft = (index, bWidth) => {
+    if (index === 0) return 0;
+    if (index === 4) return 8 + 4 * bWidth;
+    return 8 + index * bWidth;
+  };
+
+  const currentIndicatorWidth = getIndicatorWidth(activeIndex, buttonWidth);
+  const currentIndicatorLeft = getIndicatorLeft(activeIndex, buttonWidth);
 
   useEffect(() => {
     Animated.spring(slideAnim, {
-      toValue: activeIndex * buttonWidth,
+      toValue: currentIndicatorLeft,
       useNativeDriver: true,
       stiffness: 140,
       damping: 14,
       mass: 1.2,
     }).start();
-  }, [activeIndex, buttonWidth]);
+  }, [currentIndicatorLeft]);
 
   const opacity = activeIndex === 2 ? 0 : 1;
 
@@ -76,11 +91,11 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       <Animated.View
         style={{
           position: "absolute",
-          width: indicatorWidth,
+          width: currentIndicatorWidth,
           height: 52,
           borderRadius: 26,
           top: 0,
-          left: 7.2,
+          left: -0.8,
           opacity: opacity * 0.35,
           transform: [{ translateX: slideAnim }],
           backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
@@ -90,11 +105,11 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       <Animated.View
         style={{
           position: "absolute",
-          width: indicatorWidth,
+          width: currentIndicatorWidth,
           height: 52,
           borderRadius: 26,
           top: 0,
-          left: 8.8,
+          left: 0.8,
           opacity: opacity * 0.35,
           transform: [{ translateX: slideAnim }],
           backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
@@ -104,11 +119,11 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       <Animated.View
         style={{
           position: "absolute",
-          width: indicatorWidth,
+          width: currentIndicatorWidth,
           height: 52,
           borderRadius: 26,
           top: 0,
-          left: 8,
+          left: 0,
           opacity,
           transform: [{ translateX: slideAnim }],
           backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
@@ -290,8 +305,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               borderTopWidth: 0,
               position: 'absolute',
               bottom: Platform.OS === 'ios' ? 12 : 5,
-              left: 55,
-              right: 55,
+              left: 75,
+              right: 75,
               elevation: 10,
               borderRadius: 26,
               height: 52,

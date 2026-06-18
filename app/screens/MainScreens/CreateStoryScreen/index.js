@@ -51,6 +51,16 @@ import KeyboardSpacer from "react-native-keyboard-spacer";
 
 const { width, height } = Dimensions.get("window");
 
+const GRADIENTS = [
+  { colors: ["#FF6B6B", "#4ECDC4"], nameKey: "sunset" },
+  { colors: ["#8E2DE2", "#4A00E0"], nameKey: "royalIndigo" },
+  { colors: ["#FF416C", "#FF4B2B"], nameKey: "crimsonAlert" },
+  { colors: ["#11998E", "#38EF7D"], nameKey: "emeraldAurora" },
+  { colors: ["#0F2027", "#203A43", "#2C5364"], nameKey: "obsidianNight" },
+  { colors: ["#F9D423", "#FF4E50"], nameKey: "goldenHour" },
+  { colors: ["#00c6ff", "#0072ff"], nameKey: "skyBlue" },
+];
+
 const DrawingCanvas = React.forwardRef(
   (
     {
@@ -320,25 +330,30 @@ const CreateStoryScreen = ({ navigation }) => {
   const imageWithOverlaysRef = useRef(null);
   const [viewReady, setViewReady] = useState(false);
 
-  const gradientBackgrounds = [
-    ["#FF6B6B", "#4ECDC4"],
-    ["#A8E6CF", "#DCEDC1"],
-    ["#FFD93D", "#FF6B6B"],
-    ["#6C5B7B", "#C06C84"],
-    ["#355C7D", "#6C5B7B"],
-  ];
-
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
     setIsTextOnly(true);
     setIsEditing(true);
     setText("");
     // Randomly select a gradient background
-    const randomGradient =
-      gradientBackgrounds[
-        Math.floor(Math.random() * gradientBackgrounds.length)
-      ];
-    setTextBackground(randomGradient);
+    const randomIndex = Math.floor(Math.random() * GRADIENTS.length);
+    setTextBackground(GRADIENTS[randomIndex].colors);
+  };
+
+  const cycleGradient = () => {
+    const currentIndex = GRADIENTS.findIndex(
+      (g) => JSON.stringify(g.colors) === JSON.stringify(textBackground)
+    );
+    const nextIndex = (currentIndex + 1) % GRADIENTS.length;
+    const nextGradient = GRADIENTS[nextIndex];
+    setTextBackground(nextGradient.colors);
+
+    Toast.show({
+      type: "info",
+      text1: t("story.backgroundChanged", { name: t(`story.gradients.${nextGradient.nameKey}`) }),
+      position: "bottom",
+      visibilityTime: 1500,
+    });
   };
 
   const onViewLayout = useCallback(() => {
@@ -505,7 +520,7 @@ const CreateStoryScreen = ({ navigation }) => {
       t("story.exitConfirm"),
       t("story.exitConfirmDesc"),
       [
-        { text: "Hủy", style: "cancel" },
+        { text: t("common.cancel"), style: "cancel" },
         {
           text: t("story.exit"),
           onPress: () => {
@@ -587,7 +602,7 @@ const CreateStoryScreen = ({ navigation }) => {
     return (
       <View style={styles.brushSizeSlider}>
         <Text style={styles.brushSizeLabel}>
-          Kích thước bút: {sliderValue}px
+          {t("story.brushSize", { size: sliderValue })}
         </Text>
         <Slider
           style={styles.slider}
@@ -667,8 +682,8 @@ const CreateStoryScreen = ({ navigation }) => {
         onPress={() =>
           Toast.show({
             type: "info",
-            text1: "Tính năng đang phát triển",
-            text2: "Hãy cùng chờ đón tính năng này nhé",
+            text1: t("story.featureInDevelopment"),
+            text2: t("story.stayTuned"),
           })
         }
       >
@@ -807,7 +822,7 @@ const CreateStoryScreen = ({ navigation }) => {
       return (
         <View style={styles.centerContainer}>
           <Text style={styles.whiteText}>
-            Đang yêu cầu quyền truy cập camera...
+            {t("story.requestingCameraPermission")}
           </Text>
         </View>
       );
@@ -816,7 +831,7 @@ const CreateStoryScreen = ({ navigation }) => {
     if (!permission.granted) {
       return (
         <View style={styles.centerContainer}>
-          <Text style={styles.whiteText}>Không có quyền truy cập camera.</Text>
+          <Text style={styles.whiteText}>{t("story.noCameraPermission")}</Text>
           <TouchableOpacity
             style={styles.permissionButton}
             onPress={() => {
@@ -827,7 +842,7 @@ const CreateStoryScreen = ({ navigation }) => {
               }
             }}
           >
-            <Text style={styles.permissionButtonText}>Mở Cài đặt</Text>
+            <Text style={styles.permissionButtonText}>{t("story.openSettings")}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -1000,14 +1015,31 @@ const CreateStoryScreen = ({ navigation }) => {
                   )}
                 </>
               ) : (
-                isEditing && (
-                  <TextInputArea
-                    text={text}
-                    setText={handleTextChange}
-                    isTextOnly={isTextOnly}
-                    placeholder={textInputPlaceholder}
-                  />
-                )
+                <>
+                  <View style={styles.toolsContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.toolButton,
+                        {
+                          backgroundColor: "rgba(0,0,0,0.6)",
+                          borderWidth: 1,
+                          borderColor: "rgba(255,255,255,0.4)",
+                        },
+                      ]}
+                      onPress={cycleGradient}
+                    >
+                      <Ionicons name="color-palette-outline" size={24} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                  {isEditing && (
+                    <TextInputArea
+                      text={text}
+                      setText={handleTextChange}
+                      isTextOnly={isTextOnly}
+                      placeholder={textInputPlaceholder}
+                    />
+                  )}
+                </>
               )}
             </View>
           ) : (
@@ -1025,7 +1057,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       style={{ marginBottom: 3 }}
                     />
                     <Text className="text-white text-md font-semibold">
-                      Chụp ảnh
+                      {t("story.takePhoto")}
                     </Text>
                   </View>
                 </TouchableHighlight>
@@ -1041,7 +1073,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       style={{ marginBottom: 3 }}
                     />
                     <Text className="text-white text-md font-semibold">
-                      Văn bản
+                      {t("story.text")}
                     </Text>
                   </View>
                 </TouchableHighlight>
@@ -1050,7 +1082,7 @@ const CreateStoryScreen = ({ navigation }) => {
                 <View style={styles.imagePickerContent}>
                   <Ionicons name="image" size={40} color="#fff" />
                   <Text style={styles.imagePickerText}>
-                    Chọn ảnh từ thư viện
+                    {t("story.pickFromGallery")}
                   </Text>
                 </View>
               </TouchableOpacity>

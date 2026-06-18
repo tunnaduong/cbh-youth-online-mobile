@@ -843,7 +843,25 @@
     "draw": "Рисовать",
     "textContent": "Текстовая история",
     "edit": "Редактировать",
-    "createStory": "Создать историю"
+    "createStory": "Создать историю",
+    "brushSize": "Размер кисти: {{size}}px",
+    "featureInDevelopment": "Функция в разработке",
+    "stayTuned": "Следите за обновлениями",
+    "requestingCameraPermission": "Запрос разрешения на камеру...",
+    "openSettings": "Открыть настройки",
+    "takePhoto": "Сделать фото",
+    "text": "Текст",
+    "pickFromGallery": "Выбрать фото из галереи",
+    "backgroundChanged": "Фон: {{name}}",
+    "gradients": {
+      "sunset": "Закат",
+      "royalIndigo": "Королевский индиго",
+      "crimsonAlert": "Алый рассвет",
+      "emeraldAurora": "Изумрудное сияние",
+      "obsidianNight": "Обсидиановая ночь",
+      "goldenHour": "Золотой час",
+      "skyBlue": "Небесно-голубой"
+    }
   },
   "terms": {
     "headerTitle": "Условия использования",

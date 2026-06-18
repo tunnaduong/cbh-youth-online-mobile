@@ -837,7 +837,25 @@
     "draw": "Draw",
     "textContent": "Text story",
     "edit": "Edit",
-    "createStory": "Create story"
+    "createStory": "Create story",
+    "brushSize": "Brush size: {{size}}px",
+    "featureInDevelopment": "Feature in development",
+    "stayTuned": "Please stay tuned for this feature",
+    "requestingCameraPermission": "Requesting camera permission...",
+    "openSettings": "Open Settings",
+    "takePhoto": "Take Photo",
+    "text": "Text",
+    "pickFromGallery": "Select photo from library",
+    "backgroundChanged": "Background: {{name}}",
+    "gradients": {
+      "sunset": "Sunset",
+      "royalIndigo": "Royal Indigo",
+      "crimsonAlert": "Crimson Alert",
+      "emeraldAurora": "Emerald Aurora",
+      "obsidianNight": "Obsidian Night",
+      "goldenHour": "Golden Hour",
+      "skyBlue": "Sky Blue"
+    }
   },
   "terms": {
     "headerTitle": "Terms of Service",

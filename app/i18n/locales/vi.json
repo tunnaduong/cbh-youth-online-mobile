@@ -831,7 +831,25 @@
     "draw": "Vẽ",
     "textContent": "Tin văn bản",
     "edit": "Chỉnh sửa",
-    "createStory": "Tạo tin"
+    "createStory": "Tạo tin",
+    "brushSize": "Kích thước bút: {{size}}px",
+    "featureInDevelopment": "Tính năng đang phát triển",
+    "stayTuned": "Hãy cùng chờ đón tính năng này nhé",
+    "requestingCameraPermission": "Đang yêu cầu quyền truy cập camera...",
+    "openSettings": "Mở Cài đặt",
+    "takePhoto": "Chụp ảnh",
+    "text": "Văn bản",
+    "pickFromGallery": "Chọn ảnh từ thư viện",
+    "backgroundChanged": "Màu nền: {{name}}",
+    "gradients": {
+      "sunset": "Hoàng hôn",
+      "royalIndigo": "Huyền bí",
+      "crimsonAlert": "San hô",
+      "emeraldAurora": "Bình minh",
+      "obsidianNight": "Bóng đêm",
+      "goldenHour": "Nắng vàng",
+      "skyBlue": "Xanh trời"
+    }
   },
   "terms": {
     "headerTitle": "Điều khoản sử dụng",
