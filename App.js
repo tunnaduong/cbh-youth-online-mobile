@@ -70,6 +70,10 @@ const App = () => {
     setShowSplash(false);
   };
 
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
@@ -85,10 +89,6 @@ const App = () => {
         <Text style={{ color: theme.text }}>{t('home.loading')}</Text>
       </View>
     );
-  }
-
-  if (showSplash) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
   return (

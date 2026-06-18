@@ -525,6 +525,11 @@ const CreateStoryScreen = ({ navigation }) => {
 
         // For both image stories and text-only stories, capture the view
         if (selectedImage || isTextOnly) {
+          // Dismiss keyboard and stop editing first so that overlays are properly rendered in their final state
+          Keyboard.dismiss();
+          setIsEditing(false);
+          await new Promise((resolve) => setTimeout(resolve, 150));
+
           finalImageUri = await captureImageWithOverlays();
           if (!finalImageUri) {
             throw new Error("Failed to capture story content");
@@ -903,7 +908,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                     >
-                      {text && <TextOnlyContent text={text} />}
+                      {text && !isEditing && <TextOnlyContent text={text} />}
                     </LinearGradient>
                   ) : (
                     <>

@@ -417,7 +417,7 @@ index 32010ab..0ba2a35 100644
 -export default memo( StoryHeader );
 +export default memo(StoryHeader);
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
-index 9fa47d8..3973562 100644
+index 9fa47d8..1c62b34 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
 @@ -1,6 +1,6 @@
@@ -429,7 +429,7 @@ index 9fa47d8..3973562 100644
  } from 'react-native-reanimated';
  import StoryAnimation from '../Animation';
  import ListStyles from './List.styles';
-@@ -26,6 +26,24 @@ const StoryList: FC<StoryListProps> = ( {
+@@ -26,15 +26,32 @@ const StoryList: FC<StoryListProps> = ( {
      () => stories.findIndex( ( item ) => item.id === activeStory.value ),
    );
  
@@ -454,7 +454,18 @@ index 9fa47d8..3973562 100644
    const animatedStyles = useAnimatedStyle( () => ( { height: imageHeight.value } ) );
    const contentStyles = useAnimatedStyle( () => ( {
      opacity: withTiming( hideElements.value ? 0 : 1 ),
-@@ -79,7 +97,7 @@ const StoryList: FC<StoryListProps> = ( {
+   } ) );
+ 
+   const onImageLayout = ( height: number ) => {
+-
+-    imageHeight.value = height;
+-
++    // Keep it at full HEIGHT to prevent container resizing and shaking
++    imageHeight.value = HEIGHT;
+   };
+ 
+   const lastSeenIndex = stories.findIndex(
+@@ -79,7 +96,7 @@ const StoryList: FC<StoryListProps> = ( {
                progressActiveColor={progressActiveColor}
                progressContainerStyle={progressContainerStyle}
              />
