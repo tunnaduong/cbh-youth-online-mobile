@@ -224,7 +224,7 @@ const ProfileScreen = ({ route, navigation }) => {
       );
     } else {
       Alert.alert(
-        t('profile.optionsTitle') || "Tùy chọn",
+        t('profile.optionsTitle'),
         null,
         [
           { text: t('home.reportStory'), onPress: () => setReportModalVisible(true) },
@@ -619,7 +619,7 @@ const ProfileScreen = ({ route, navigation }) => {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Ionicons name="school-outline" size={16} color={theme.subText} />
                 <Text style={{ fontSize: 14, color: theme.text }}>
-                  {userData?.profile?.class_name ? `Lớp ${userData?.profile?.class_name}` : t('profile.classFallback')}
+                  {userData?.profile?.class_name ? t('profile.classPrefix', { className: userData.profile.class_name }) : t('profile.classFallback')}
                 </Text>
               </View>
               {userData?.profile?.location && (

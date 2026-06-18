@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const { width } = Dimensions.get("window");
 const cardSize = (width - 48) / 3; // 4 columns with padding
@@ -21,32 +22,32 @@ const cardSize = (width - 48) / 3; // 4 columns with padding
 const featureCards = [
   {
     id: 1,
-    title: "Tài liệu ôn thi",
+    key: "examDocuments",
     icon: "book-outline",
   },
   {
     id: 2,
-    title: "Tra cứu điểm thi",
+    key: "scoreLookup",
     icon: "search-outline",
   },
   {
     id: 3,
-    title: "Tìm trường ĐH-CĐ",
+    key: "findUniversities",
     icon: "location-outline",
   },
   {
     id: 4,
-    title: "In ấn tài liệu",
+    key: "printing",
     icon: "print-outline",
   },
   {
     id: 5,
-    title: "Đố vui",
+    key: "trivia",
     icon: "help-circle-outline",
   },
   {
     id: 6,
-    title: "Game",
+    key: "game",
     icon: "game-controller-outline",
   },
 ];
@@ -54,11 +55,12 @@ const featureCards = [
 const ExploreScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   const handleCardPress = (card) => {
     Toast.show({
       type: "info",
-      text1: "Tính năng đang được phát triển",
+      text1: t("exploreScreen.underDevelopment"),
     });
   };
 
@@ -73,8 +75,8 @@ const ExploreScreen = ({ navigation }) => {
         {/* Top Section with Greeting and Image */}
         <View style={styles.topSection}>
           <View style={styles.greetingContainer}>
-            <Text style={[styles.greetingText, { color: theme.text }]}>Chào bạn, hôm nay bạn muốn </Text>
-            <Text style={styles.highlightText}>làm gì...?</Text>
+            <Text style={[styles.greetingText, { color: theme.text }]}>{t("exploreScreen.greeting")}</Text>
+            <Text style={styles.highlightText}>{t("exploreScreen.question")}</Text>
           </View>
           <View style={styles.imageContainer}>
             <Image
@@ -104,7 +106,7 @@ const ExploreScreen = ({ navigation }) => {
                   />
                 </View>
                 <Text style={[styles.cardText, { color: theme.text }]} numberOfLines={2}>
-                  {card.title}
+                  {t(`exploreScreen.${card.key}`)}
                 </Text>
               </TouchableOpacity>
             ))}

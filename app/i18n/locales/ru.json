@@ -509,6 +509,7 @@
     "emptyFollowing": "Никого не читает",
     "emptyFollowers": "Нет подписчиков",
     "classFallback": "Класс не указан",
+    "classPrefix": "Класс {{className}}",
     "birthdayPrefix": "Родился(-ась)",
     "joinedPrefix": "Присоединился(-ась)",
     "viewDetail": "Подробнее",
@@ -540,7 +541,8 @@
     "successTitle": "Успешно",
     "successMessage": "Профиль успешно обновлен",
     "errorUpdate": "Не удалось обновить профиль",
-    "coverDev": "Функция фото обложки в разработке"
+    "coverDev": "Функция фото обложки в разработке",
+    "birthdayFormat": "{{day}}.{{month}}.{{year}}"
   },
   "settings": {
     "title": "Настройки",
@@ -587,6 +589,7 @@
     "deleteAccountDesc": "Это действие нельзя отменить. Все ваши данные будут удалены навсегда. Введите пароль и фразу \"DELETE ACCOUNT\", чтобы подтвердить.",
     "passwordPlaceholder": "Введите пароль",
     "confirmDeletePlaceholder": "Введите 'DELETE ACCOUNT'",
+    "deleteConfirmPhrase": "DELETE ACCOUNT",
     "deleteForever": "Удалить навсегда",
     "cancel": "Отмена",
     "changeUsernameTitle": "Изменить имя пользователя",
@@ -853,5 +856,16 @@
     "s9Text2": "Администрация форума учащихся Chuyên Biên Hòa",
     "s9Email": "Email: hotro@chuyenbienhoa.com",
     "s9Phone": "Горячая линия: 0365520031"
+  },
+  "exploreScreen": {
+    "examDocuments": "Материалы для экзаменов",
+    "scoreLookup": "Результаты экзаменов",
+    "findUniversities": "Поиск вузов",
+    "printing": "Печать документов",
+    "trivia": "Викторина",
+    "game": "Игра",
+    "underDevelopment": "Функция находится в разработке",
+    "greeting": "Привет, что ты хочешь ",
+    "question": "делать сегодня...?"
   }
 }

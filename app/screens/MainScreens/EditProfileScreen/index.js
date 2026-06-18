@@ -228,13 +228,7 @@ const EditProfileScreen = ({ navigation }) => {
     const day = date.getDate();
     const month = date.getMonth() + 1;
     const year = date.getFullYear();
-    if (i18n.language === "vi") {
-      return `${day} Tháng ${month} ${year}`;
-    } else if (i18n.language === "ru") {
-      return `${day}.${month}.${year}`;
-    } else {
-      return `${month}/${day}/${year}`;
-    }
+    return t('editProfile.birthdayFormat', { day, month, year });
   };
 
   if (loadingFirst) {

@@ -126,7 +126,7 @@ export default function SecurityScreen({ navigation }) {
   };
 
   const onConfirmDelete = async () => {
-    if (confirmText !== "XOÁ TÀI KHOẢN") {
+    if (confirmText !== t('security.deleteConfirmPhrase')) {
       Alert.alert(t('common.error'), t('security.invalidConfirmText'));
       return;
     }
@@ -409,10 +409,10 @@ export default function SecurityScreen({ navigation }) {
                 style={[
                   styles.button,
                   styles.buttonDelete,
-                  (confirmText !== "XOÁ TÀI KHOẢN" || !password) && styles.buttonDisabled,
+                  (confirmText !== t('security.deleteConfirmPhrase') || !password) && styles.buttonDisabled,
                 ]}
                 onPress={onConfirmDelete}
-                disabled={loading || confirmText !== "XOÁ TÀI KHOẢN" || !password}
+                disabled={loading || confirmText !== t('security.deleteConfirmPhrase') || !password}
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" size="small" />

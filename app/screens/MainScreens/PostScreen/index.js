@@ -460,7 +460,6 @@ const PostScreen = ({ route, navigation }) => {
       );
     } catch (e) {
       Alert.alert(
-        t('profile.errorTitle') || "Lỗi",
         t('profile.errorTitle'),
         e.response?.data?.message || e.message || t('post.reportError')
       );

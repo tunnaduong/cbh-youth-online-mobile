@@ -509,6 +509,7 @@
     "emptyFollowing": "Chưa theo dõi ai",
     "emptyFollowers": "Chưa có người theo dõi",
     "classFallback": "Chưa cập nhật lớp",
+    "classPrefix": "Lớp {{className}}",
     "birthdayPrefix": "Sinh ngày",
     "joinedPrefix": "Tham gia ngày",
     "viewDetail": "Chi tiết",
@@ -540,7 +541,8 @@
     "successTitle": "Thành công",
     "successMessage": "Cập nhật thông tin thành công",
     "errorUpdate": "Không thể cập nhật thông tin",
-    "coverDev": "Tính năng ảnh bìa đang phát triển"
+    "coverDev": "Tính năng ảnh bìa đang phát triển",
+    "birthdayFormat": "{{day}} Tháng {{month}} {{year}}"
   },
   "settings": {
     "title": "Cài đặt",
@@ -587,6 +589,7 @@
     "deleteAccountDesc": "Hành động này không thể hoàn tác. Tất cả dữ liệu của bạn sẽ bị xóa vĩnh viễn. Nhập mật khẩu và dòng chữ \"XOÁ TÀI KHOẢN\" để xác nhận.",
     "passwordPlaceholder": "Nhập mật khẩu của bạn",
     "confirmDeletePlaceholder": "Nhập 'XOÁ TÀI KHOẢN'",
+    "deleteConfirmPhrase": "XOÁ TÀI KHOẢN",
     "deleteForever": "Xóa vĩnh viễn",
     "cancel": "Hủy",
     "changeUsernameTitle": "Đổi tên đăng nhập",
@@ -853,5 +856,16 @@
     "s9Text2": "Ban quản trị Diễn đàn học sinh Chuyên Biên Hòa",
     "s9Email": "Email: hotro@chuyenbienhoa.com",
     "s9Phone": "Hotline: 0365520031"
+  },
+  "exploreScreen": {
+    "examDocuments": "Tài liệu ôn thi",
+    "scoreLookup": "Tra cứu điểm thi",
+    "findUniversities": "Tìm trường ĐH-CĐ",
+    "printing": "In ấn tài liệu",
+    "trivia": "Đố vui",
+    "game": "Game",
+    "underDevelopment": "Tính năng đang được phát triển",
+    "greeting": "Chào bạn, hôm nay bạn muốn ",
+    "question": "làm gì...?"
   }
 }

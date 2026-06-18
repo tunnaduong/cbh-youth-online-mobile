@@ -509,6 +509,7 @@
     "emptyFollowing": "Not following anyone yet",
     "emptyFollowers": "No followers yet",
     "classFallback": "Class not updated",
+    "classPrefix": "Class {{className}}",
     "birthdayPrefix": "Born on",
     "joinedPrefix": "Joined on",
     "viewDetail": "Details",
@@ -540,7 +541,8 @@
     "successTitle": "Success",
     "successMessage": "Profile updated successfully",
     "errorUpdate": "Could not update profile",
-    "coverDev": "Cover photo feature is under development"
+    "coverDev": "Cover photo feature is under development",
+    "birthdayFormat": "{{month}}/{{day}}/{{year}}"
   },
   "settings": {
     "title": "Settings",
@@ -587,6 +589,7 @@
     "deleteAccountDesc": "This action cannot be undone. All your data will be deleted permanently. Enter your password and the phrase \"DELETE ACCOUNT\" to confirm.",
     "passwordPlaceholder": "Enter your password",
     "confirmDeletePlaceholder": "Type 'DELETE ACCOUNT'",
+    "deleteConfirmPhrase": "DELETE ACCOUNT",
     "deleteForever": "Delete permanently",
     "cancel": "Cancel",
     "changeUsernameTitle": "Change username",
@@ -853,5 +856,16 @@
     "s9Text2": "Chuyên Biên Hòa Student Forum Administration",
     "s9Email": "Email: hotro@chuyenbienhoa.com",
     "s9Phone": "Hotline: 0365520031"
+  },
+  "exploreScreen": {
+    "examDocuments": "Exam Prep Docs",
+    "scoreLookup": "Score Lookup",
+    "findUniversities": "Find Uni-College",
+    "printing": "Print Docs",
+    "trivia": "Trivia Quiz",
+    "game": "Game",
+    "underDevelopment": "Feature under development",
+    "greeting": "Hello, what do you want to ",
+    "question": "do today...?"
   }
 }
