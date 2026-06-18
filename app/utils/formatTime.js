@@ -4,6 +4,45 @@ import i18n from "../i18n";
 
 dayjs.extend(relativeTime);
 
+const getTranslation = (unit, count) => {
+  const lang = i18n.language?.split("-")[0] || "vi";
+
+  if (lang === "vi") {
+    return i18n.t(`time.${unit}Ago`, { count });
+  }
+
+  if (lang === "en") {
+    if (count === 1) {
+      const singularUnits = {
+        minutes: "time.minuteAgo",
+        hours: "time.hourAgo",
+        days: "time.dayAgo",
+        weeks: "time.weekAgo",
+        months: "time.monthAgo",
+        years: "time.yearAgo",
+      };
+      return i18n.t(singularUnits[unit] || `time.${unit}Ago`, { count });
+    }
+    return i18n.t(`time.${unit}Ago`, { count });
+  }
+
+  if (lang === "ru") {
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    let form = "many"; // default: минут, часов, дней, лет
+
+    if (mod10 === 1 && mod100 !== 11) {
+      form = "one"; // минуту, час, день, год
+    } else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+      form = "few"; // минуты, часа, дня, года
+    }
+
+    return i18n.t(`time.${unit}Ago_${form}`, { count });
+  }
+
+  return i18n.t(`time.${unit}Ago`, { count });
+};
+
 const formatTime = (dateString) => {
   if (!dateString) return i18n.t("time.justNow");
 
@@ -26,34 +65,34 @@ const formatTime = (dateString) => {
 
     const diffInMinutes = now.diff(date, "minute");
     if (diffInMinutes < 60) {
-      return i18n.t("time.minutesAgo", { count: diffInMinutes });
+      return getTranslation("minutes", diffInMinutes);
     }
 
     const diffInHours = now.diff(date, "hour");
     if (diffInHours < 24) {
-      return i18n.t("time.hoursAgo", { count: diffInHours });
+      return getTranslation("hours", diffInHours);
     }
 
     const diffInDays = now.diff(date, "day");
     if (diffInDays < 7) {
-      return i18n.t("time.daysAgo", { count: diffInDays });
+      return getTranslation("days", diffInDays);
     }
 
     const diffInWeeks = now.diff(date, "week");
     if (diffInWeeks < 4) {
-      return i18n.t("time.weeksAgo", { count: diffInWeeks });
+      return getTranslation("weeks", diffInWeeks);
     }
 
     const diffInMonths = now.diff(date, "month");
     if (diffInMonths < 1) {
-      return i18n.t("time.weeksAgo", { count: diffInWeeks });
+      return getTranslation("weeks", diffInWeeks);
     }
     if (diffInMonths < 12) {
-      return i18n.t("time.monthsAgo", { count: diffInMonths });
+      return getTranslation("months", diffInMonths);
     }
 
     const diffInYears = now.diff(date, "year");
-    return i18n.t("time.yearsAgo", { count: diffInYears });
+    return getTranslation("years", diffInYears);
   }
 
   // Parse and translate Vietnamese relative time strings
@@ -75,17 +114,17 @@ const formatTime = (dateString) => {
 
     switch (unit) {
       case "phút":
-        return i18n.t("time.minutesAgo", { count });
+        return getTranslation("minutes", count);
       case "giờ":
-        return i18n.t("time.hoursAgo", { count });
+        return getTranslation("hours", count);
       case "ngày":
-        return i18n.t("time.daysAgo", { count });
+        return getTranslation("days", count);
       case "tuần":
-        return i18n.t("time.weeksAgo", { count });
+        return getTranslation("weeks", count);
       case "tháng":
-        return i18n.t("time.monthsAgo", { count });
+        return getTranslation("months", count);
       case "năm":
-        return i18n.t("time.yearsAgo", { count });
+        return getTranslation("years", count);
       default:
         break;
     }

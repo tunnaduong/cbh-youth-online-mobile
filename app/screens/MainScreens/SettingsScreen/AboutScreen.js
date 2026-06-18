@@ -141,6 +141,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
   },
   content: {
     flex: 1,

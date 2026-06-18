@@ -22,7 +22,7 @@ const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
-  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 90);
+  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 110);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -44,9 +44,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   };
 
   const activeIndex = getRouteIndex(currentRoute);
-  const usableWidth = tabBarWidth - 20;
+  const usableWidth = tabBarWidth - 16;
   const buttonWidth = usableWidth / 5;
-  const indicatorWidth = 55;
+  const indicatorWidth = 46;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -64,45 +64,65 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       onLayout={onLayout}
       style={{
         ...StyleSheet.absoluteFillObject,
-        borderRadius: 30,
+        borderRadius: 26,
         overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(0,0,0,0.74)" : "rgba(255,255,255,0.74)",
+        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+        borderWidth: 1,
+        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
       }}
     >
       <Animated.View
         style={{
           position: "absolute",
           width: indicatorWidth,
-          height: hideTabLabels ? 42 : 50,
-          borderRadius: 20,
-          top: hideTabLabels ? 9 : 5,
-          left: 10 + (buttonWidth - indicatorWidth) / 2,
+          height: hideTabLabels ? 34 : 40,
+          borderRadius: 18,
+          top: hideTabLabels ? 9 : 6,
+          left: 8 + (buttonWidth - indicatorWidth) / 2,
           opacity,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.03)",
-          borderWidth: 1,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.04)",
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.45)",
+          borderWidth: 1.5,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.25)" : "rgba(255, 255, 255, 0.7)",
           shadowColor: isDarkMode ? "#fff" : "#000",
           shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDarkMode ? 0.25 : 0.12,
-          shadowRadius: 5,
-          elevation: 2,
+          shadowOpacity: isDarkMode ? 0.3 : 0.15,
+          shadowRadius: 6,
+          elevation: 3,
           overflow: "hidden",
         }}
       >
         <LinearGradient
-          colors={["rgba(255, 255, 255, 0.18)", "rgba(255, 255, 255, 0.02)", "transparent"]}
-          locations={[0, 0.45, 1]}
+          colors={[
+            "rgba(255, 255, 255, 0.5)", 
+            "rgba(255, 255, 255, 0.15)", 
+            "rgba(255, 255, 255, 0.02)", 
+            "transparent"
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
         />
         <View
           style={{
             position: "absolute",
-            top: 1,
-            left: 3,
-            right: 3,
+            top: 0.5,
+            left: 2,
+            right: 2,
             height: 1,
-            backgroundColor: "rgba(255, 255, 255, 0.25)",
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            borderRadius: 1,
+          }}
+        />
+        <View
+          style={{
+            position: "absolute",
+            bottom: 0.5,
+            left: 2,
+            right: 2,
+            height: 1,
+            backgroundColor: isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(0, 0, 0, 0.1)",
+            borderRadius: 1,
           }}
         />
       </Animated.View>
@@ -249,10 +269,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
                     style={{
                       alignItems: "center",
                       justifyContent: "center",
-                      borderRadius: 20,
-                      paddingVertical: 5,
-                      paddingHorizontal: 12,
-                      minWidth: 55,
+                      borderRadius: 16,
+                      paddingVertical: 3,
+                      paddingHorizontal: 10,
+                      minWidth: 46,
                     }}
                   >
                     {children}
@@ -264,18 +284,18 @@ export default function MainScreens({ navigation: stackNavigation }) {
               backgroundColor: 'transparent',
               borderTopWidth: 0,
               position: 'absolute',
-              bottom: Platform.OS === 'ios' ? 15 : 5,
-              left: 45,
-              right: 45,
+              bottom: Platform.OS === 'ios' ? 12 : 5,
+              left: 55,
+              right: 55,
               elevation: 10,
-              borderRadius: 30,
-              height: 60,
+              borderRadius: 26,
+              height: 52,
               shadowColor: "#000",
-              shadowOpacity: 0.15,
-              shadowOffset: { width: 0, height: 5 },
-              shadowRadius: 15,
+              shadowOpacity: 0.12,
+              shadowOffset: { width: 0, height: 4 },
+              shadowRadius: 12,
               paddingBottom: 0,
-              paddingHorizontal: 10,
+              paddingHorizontal: 8,
             },
             tabBarBackground: () => (
               <TabBarBackgroundComponent
@@ -286,9 +306,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
               />
             ),
             tabBarLabelStyle: {
-              fontSize: 10, // Font size for labels
+              fontSize: 9, // Font size for labels
               fontWeight: "bold",
-              marginBottom: 5, // Space between icon and label
+              marginBottom: 3, // Space between icon and label
             },
             headerShadowVisible: false,
             headerTitleAlign: "center",

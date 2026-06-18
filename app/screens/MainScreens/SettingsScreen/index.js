@@ -336,10 +336,12 @@ const styles = StyleSheet.create({
   settingItemLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   settingItemText: {
     fontSize: 16,
     marginLeft: 12,
+    flexShrink: 1,
   },
   settingItemRight: {
     flexDirection: "row",

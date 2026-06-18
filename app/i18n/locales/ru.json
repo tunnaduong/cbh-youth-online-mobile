@@ -1,12 +1,24 @@
 {
   "time": {
     "justNow": "Только что",
-    "minutesAgo": "{{count}} минут назад",
-    "hoursAgo": "{{count}} часов назад",
-    "daysAgo": "{{count}} дней назад",
-    "weeksAgo": "{{count}} недель назад",
-    "monthsAgo": "{{count}} месяцев назад",
-    "yearsAgo": "{{count}} лет назад"
+    "minutesAgo_one": "{{count}} минуту назад",
+    "minutesAgo_few": "{{count}} минуты назад",
+    "minutesAgo_many": "{{count}} минут назад",
+    "hoursAgo_one": "{{count}} час назад",
+    "hoursAgo_few": "{{count}} часа назад",
+    "hoursAgo_many": "{{count}} часов назад",
+    "daysAgo_one": "{{count}} день назад",
+    "daysAgo_few": "{{count}} дня назад",
+    "daysAgo_many": "{{count}} дней назад",
+    "weeksAgo_one": "{{count}} неделю назад",
+    "weeksAgo_few": "{{count}} недели назад",
+    "weeksAgo_many": "{{count}} недель назад",
+    "monthsAgo_one": "{{count}} месяц назад",
+    "monthsAgo_few": "{{count}} месяца назад",
+    "monthsAgo_many": "{{count}} месяцев назад",
+    "yearsAgo_one": "{{count}} год назад",
+    "yearsAgo_few": "{{count}} года назад",
+    "yearsAgo_many": "{{count}} лет назад"
   },
   "activity": {
     "unknown": "имел активность",
@@ -373,7 +385,7 @@
   },
   "about": {
     "title": "О приложении",
-    "schoolName": "Chuyên Biên Hòa",
+    "schoolName": "Chuyên Biên Hòa High School",
     "schoolDesc1": "Chuyên Biên Hòa, провинция Ниньбинь, с более чем 60-летней историей развития, является лидером в подготовке сильных учеников и всестороннем развитии.",
     "schoolDesc2": "Школа гордится множеством наград, выдающимися достижениями и современной образовательной моделью, интегрирующей навыки жизни.",
     "historyTitle": "История и достижения",
