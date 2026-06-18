@@ -235,6 +235,9 @@ const EditProfileScreen = ({ navigation }) => {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <CustomLoading />
+        <Text style={[styles.loadingText, { color: theme.subText }]}>
+          {t("home.loading")}
+        </Text>
       </SafeAreaView>
     );
   }
@@ -508,6 +511,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
 
