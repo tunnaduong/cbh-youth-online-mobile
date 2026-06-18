@@ -277,6 +277,23 @@ index 0000000..bdfecc6
 + 
 +-export default memo( ProgressItem );
 ++export default memo(ProgressItem);
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
+index 9419aa6..7098ccd 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
+@@ -1,10 +1,10 @@
+-import { StyleSheet } from 'react-native';
++import { StyleSheet, Platform } from 'react-native';
+ 
+ export default StyleSheet.create( {
+   container: {
+     position: 'absolute',
+     left: 16,
+-    top: 32,
++    top: Platform.OS === 'ios' ? 60 : 32,
+   },
+   containerFlex: {
+     flexDirection: 'row',
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
 index 32010ab..0ba2a35 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
@@ -508,6 +525,22 @@ index dd93855..bede20e 100644
      </Modal>
    );
  
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
+index a265a10..37b7693 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
+@@ -1,9 +1,9 @@
+-import { StyleSheet } from 'react-native';
++import { StyleSheet, Platform } from 'react-native';
+ 
+ export default StyleSheet.create( {
+   container: {
+     position: 'absolute',
+-    top: 16,
++    top: Platform.OS === 'ios' ? 44 : 16,
+     left: 16,
+     height: 2,
+     flexDirection: 'row',
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/componentsDTO.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/componentsDTO.ts
 index c1a2ad0..491afd7 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/core/dto/componentsDTO.ts

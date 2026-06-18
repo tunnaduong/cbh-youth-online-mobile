@@ -399,7 +399,7 @@ const App = () => {
 
 export default () => (
   <TailwindProvider>
-    <GestureHandlerRootView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <MultiContextProvider>
         <SafeAreaProvider>
           <KeyboardProvider>

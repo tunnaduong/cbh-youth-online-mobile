@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
+import { LiquidGlassView } from "@callstack/liquid-glass";
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
@@ -69,15 +70,17 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   }, [currentIndicatorLeft]);
 
   const opacity = activeIndex === 2 ? 0 : 1;
+  const isIOS = Platform.OS === "ios";
 
   return (
-    <View
+    <LiquidGlassView
+      effect={isIOS ? "regular" : "none"}
       onLayout={onLayout}
       style={{
         ...StyleSheet.absoluteFillObject,
         borderRadius: 26,
         overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+        backgroundColor: isIOS ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)"),
         borderWidth: 1,
         borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
       }}
@@ -141,7 +144,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={StyleSheet.absoluteFillObject}
         />
       </Animated.View>
-    </View>
+    </LiquidGlassView>
   );
 };
 
