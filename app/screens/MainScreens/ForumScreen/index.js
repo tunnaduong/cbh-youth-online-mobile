@@ -58,7 +58,21 @@ const getCategoryName = (name, t) => {
     "tâm sự": "confessions",
     "chuyện của trường": "schoolStories",
     "hoạt động ngoại khóa": "extracurricular",
-    "hỗ trợ kỹ thuật": "technicalSupport"
+    "hỗ trợ kỹ thuật": "technicalSupport",
+    "giải trí - xã hội": "entertainmentSocial",
+    "giải trí xã hội": "entertainmentSocial",
+    "góc kỹ năng sống": "lifeSkillsCorner",
+    "giao lưu": "socialExchange",
+    "mua bán và trao đổi": "tradeExchange",
+    "mua bán & trao đổi": "tradeExchange",
+    "góp ý và báo lỗi": "feedbackBugReport",
+    "góp ý & báo lỗi": "feedbackBugReport",
+    "tin tức trên quản trị": "adminNews",
+    "kỹ năng sống": "lifeSkills",
+    "giao lưu kết bạn": "socializing",
+    "mua bán": "buySell",
+    "báo cáo lỗi": "bugReports",
+    "đóng góp ý kiến": "suggestions"
   };
   const key = keyMap[normalized];
   if (key) {

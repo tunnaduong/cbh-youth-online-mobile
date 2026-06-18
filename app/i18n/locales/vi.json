@@ -162,7 +162,30 @@
     "schoolStories": "Chuyện của trường",
     "extracurricular": "Hoạt động ngoại khóa",
     "technicalSupport": "Hỗ trợ kỹ thuật",
-    "generalAnnouncements": "Thông báo chung"
+    "generalAnnouncements": "Thông báo chung",
+    "entertainmentSocial": "Giải trí - Xã hội",
+    "lifeSkillsCorner": "Góc kỹ năng sống",
+    "socialExchange": "Giao lưu",
+    "tradeExchange": "Mua bán và trao đổi",
+    "feedbackBugReport": "Góp ý và báo lỗi",
+    "adminNews": "Tin tức trên quản trị",
+    "lifeSkills": "Kỹ năng sống",
+    "socializing": "Giao lưu kết bạn",
+    "buySell": "Mua bán",
+    "bugReports": "Báo cáo lỗi",
+    "suggestions": "Đóng góp ý kiến"
+  },
+  "forumCategoryDescriptions": {
+    "announcementsDesc": "Thông báo từ ban quản trị",
+    "rulesDesc": "Nội quy và hướng dẫn sử dụng diễn đàn",
+    "academicDesc": "Thảo luận và chia sẻ tài liệu học tập",
+    "generalDesc": "Thảo luận chung các chủ đề",
+    "casualDesc": "Trò chuyện, tán gẫu linh tinh",
+    "feedbackDesc": "Đóng góp ý kiến xây dựng diễn đàn",
+    "lifeSkillsDesc": "Chia sẻ kinh nghiệm, kỹ năng sống",
+    "socialExchangeDesc": "Giao lưu, kết bạn bốn phương",
+    "tradeExchangeDesc": "Mua bán, trao đổi đồ dùng, sách vở",
+    "entertainmentDesc": "Thảo luận, giải trí xã hội"
   },
   "forum": {
     "title": "Diễn đàn",

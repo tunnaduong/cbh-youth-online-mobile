@@ -56,7 +56,21 @@ const getCategoryName = (name, t) => {
     "tâm sự": "confessions",
     "chuyện của trường": "schoolStories",
     "hoạt động ngoại khóa": "extracurricular",
-    "hỗ trợ kỹ thuật": "technicalSupport"
+    "hỗ trợ kỹ thuật": "technicalSupport",
+    "giải trí - xã hội": "entertainmentSocial",
+    "giải trí xã hội": "entertainmentSocial",
+    "góc kỹ năng sống": "lifeSkillsCorner",
+    "giao lưu": "socialExchange",
+    "mua bán và trao đổi": "tradeExchange",
+    "mua bán & trao đổi": "tradeExchange",
+    "góp ý và báo lỗi": "feedbackBugReport",
+    "góp ý & báo lỗi": "feedbackBugReport",
+    "tin tức trên quản trị": "adminNews",
+    "kỹ năng sống": "lifeSkills",
+    "giao lưu kết bạn": "socializing",
+    "mua bán": "buySell",
+    "báo cáo lỗi": "bugReports",
+    "đóng góp ý kiến": "suggestions"
   };
   const key = keyMap[normalized];
   if (key) {
@@ -66,6 +80,43 @@ const getCategoryName = (name, t) => {
     }
   }
   return name;
+};
+
+const getCategoryDescription = (desc, t) => {
+  if (!desc) return desc;
+  const normalized = desc.trim().toLowerCase().replace(/\s+/g, " ");
+  const descMap = {
+    "thông báo từ ban quản trị": "announcementsDesc",
+    "thông báo từ ban quản trị.": "announcementsDesc",
+    "thông báo từ quản trị viên": "announcementsDesc",
+    "thông báo từ ban quản trị trường": "announcementsDesc",
+    "nội quy diễn đàn": "rulesDesc",
+    "nội quy và hướng dẫn sử dụng diễn đàn": "rulesDesc",
+    "nội quy và hướng dẫn sử dụng": "rulesDesc",
+    "thảo luận và chia sẻ tài liệu học tập": "academicDesc",
+    "chia sẻ tài liệu học tập": "academicDesc",
+    "thảo luận học tập": "academicDesc",
+    "thảo luận chung các chủ đề": "generalDesc",
+    "thảo luận các chủ đề chung": "generalDesc",
+    "trò chuyện, tán gẫu linh tinh": "casualDesc",
+    "tán gẫu, trò chuyện tự do": "casualDesc",
+    "trò chuyện tự do": "casualDesc",
+    "đóng góp ý kiến xây dựng diễn đàn": "feedbackDesc",
+    "góp ý xây dựng diễn đàn": "feedbackDesc",
+    "báo cáo lỗi và góp ý": "feedbackDesc",
+    "chia sẻ kinh nghiệm, kỹ năng sống": "lifeSkillsDesc",
+    "giao lưu, kết bạn bốn phương": "socialExchangeDesc",
+    "mua bán, trao đổi đồ dùng, sách vở": "tradeExchangeDesc",
+    "thảo luận, giải trí xã hội": "entertainmentDesc"
+  };
+  const key = descMap[normalized];
+  if (key) {
+    const translated = t(`forumCategoryDescriptions.${key}`);
+    if (translated !== `forumCategoryDescriptions.${key}`) {
+      return translated;
+    }
+  }
+  return desc;
 };
 
 const CategoryScreen = ({ navigation, route }) => {
@@ -323,7 +374,7 @@ const CategoryScreen = ({ navigation, route }) => {
                 {getCategoryName(forumData.subforum.name, t)}
               </Text>
               <Text style={{ color: theme.subText, lineHeight: 24 }}>
-                {forumData.subforum.description}
+                {getCategoryDescription(forumData.subforum.description, t)}
               </Text>
             </View>
           </ImageBackground>
