@@ -277,6 +277,18 @@ index 0000000..bdfecc6
 + 
 +-export default memo( ProgressItem );
 ++export default memo(ProgressItem);
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Animation/Animation.styles.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Animation/Animation.styles.ts
+index da69701..aabf23c 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Animation/Animation.styles.ts
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Animation/Animation.styles.ts
+@@ -8,6 +8,6 @@ export default StyleSheet.create( {
+     left: 0,
+   },
+   cube: {
+-    justifyContent: 'center',
++    justifyContent: 'flex-start',
+   },
+ } );
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
 index 9419aa6..7098ccd 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
