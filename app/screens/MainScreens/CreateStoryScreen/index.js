@@ -305,6 +305,129 @@ const TextOnlyContent = memo(({ text }) => (
   </View>
 ));
 
+const DRAWING_COLORS = [
+  "#FFFFFF",
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+  "#FFFF00",
+  "#FF00FF",
+  "#00FFFF",
+];
+
+const ColorPicker = ({ strokeColor, setStrokeColor }) => (
+  <View style={styles.colorPicker} pointerEvents="box-none">
+    {DRAWING_COLORS.map((color) => (
+      <TouchableOpacity
+        key={color}
+        style={[
+          styles.colorButton,
+          { backgroundColor: color },
+          strokeColor === color && styles.selectedColor,
+        ]}
+        onPress={() => setStrokeColor(color)}
+      />
+    ))}
+  </View>
+);
+
+const BrushSizePicker = ({ strokeWidth, setStrokeWidth, showBrushSize, t }) => {
+  const [sliderValue, setSliderValue] = useState(strokeWidth);
+  React.useEffect(() => { setSliderValue(strokeWidth); }, [strokeWidth]);
+  if (!showBrushSize) return null;
+  return (
+    <View style={styles.brushSizeSlider}>
+      <Text style={styles.brushSizeLabel}>{t("story.brushSize", { size: sliderValue })}</Text>
+      <Slider
+        style={styles.slider}
+        minimumValue={2}
+        maximumValue={20}
+        value={sliderValue}
+        step={1}
+        onValueChange={setSliderValue}
+        onSlidingComplete={setStrokeWidth}
+        minimumTrackTintColor="#FFFFFF"
+        maximumTrackTintColor="rgba(255,255,255,0.3)"
+        thumbStyle={styles.sliderThumb}
+      />
+    </View>
+  );
+};
+
+const DrawingTools = ({ drawingRef, isEraser, setIsEraser, showBrushSize, setShowBrushSize }) => (
+  <View style={styles.drawingTools}>
+    <TouchableOpacity style={[styles.toolButton, !isEraser && styles.activeToolButton]} onPress={() => setIsEraser(false)}>
+      <Ionicons name="brush" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={[styles.toolButton, isEraser && styles.activeToolButton]} onPress={() => setIsEraser(true)}>
+      <Image source={require("../../../assets/eraser.png")} style={{ width: 24, height: 24 }} />
+    </TouchableOpacity>
+    <TouchableOpacity style={[styles.toolButton, showBrushSize && styles.activeToolButton]} onPress={() => setShowBrushSize(!showBrushSize)}>
+      <Ionicons name="resize" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.toolButton} onPress={() => drawingRef.current?.handleUndo()}>
+      <Ionicons name="arrow-undo" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.toolButton} onPress={() => drawingRef.current?.handleClear()}>
+      <Ionicons name="trash" size={24} color="#fff" />
+    </TouchableOpacity>
+  </View>
+);
+
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, t }) => (
+  <View style={styles.toolsContainer}>
+    <TouchableOpacity style={styles.toolButton} onPress={() => setIsEditing(!isEditing)}>
+      <Ionicons name="text" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
+      <Ionicons name="image" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={[styles.toolButton, isDrawing && styles.activeToolButton]} onPress={() => setIsDrawing(!isDrawing)}>
+      <Ionicons name="brush" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.toolButton}
+      onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+    >
+      <Ionicons name="musical-notes" size={24} color="#fff" />
+    </TouchableOpacity>
+  </View>
+);
+
+const CameraUI = ({ permission, cameraRef, cameraType, handleCloseCamera, handleCameraFlip, handleTakePhoto, t }) => {
+  if (!permission) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.whiteText}>{t("story.requestingCameraPermission")}</Text>
+      </View>
+    );
+  }
+  if (!permission.granted) {
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={styles.whiteText}>{t("story.noCameraPermission")}</Text>
+        <TouchableOpacity
+          style={styles.permissionButton}
+          onPress={() => { if (Platform.OS === "ios") { Linking.openURL("app-settings:"); } else { Linking.openSettings(); } }}
+        >
+          <Text style={styles.permissionButtonText}>{t("story.openSettings")}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <StableCameraView
+        cameraRef={cameraRef}
+        cameraType={cameraType}
+        onClose={handleCloseCamera}
+        onCameraFlip={handleCameraFlip}
+        onTakePhoto={handleTakePhoto}
+      />
+    </View>
+  );
+};
+
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const [selectedImage, setSelectedImage] = useState(null);
@@ -322,7 +445,7 @@ const CreateStoryScreen = ({ navigation }) => {
   const [savedDrawingData, setSavedDrawingData] = useState(null);
   const [isTextOnly, setIsTextOnly] = useState(false);
   const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]); // Default gradient colors
-  const [androidColorsModalVisible, setAndroidColorsModalVisible] = useState(false);
+
   const drawingRef = useRef(null);
   const insets = useSafeAreaInsets();
   const [isCameraMode, setIsCameraMode] = useState(false);
@@ -343,34 +466,12 @@ const CreateStoryScreen = ({ navigation }) => {
     setTextBackground(GRADIENTS[randomIndex].colors);
   };
 
-  const handleColorButtonPress = () => {
-    if (Platform.OS === "ios") {
-      const options = GRADIENTS.map((g) => t(`story.gradients.${g.nameKey}`));
-      options.push(t("common.cancel"));
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex: GRADIENTS.length,
-          title: t("story.selectBackground"),
-        },
-        (buttonIndex) => {
-          if (buttonIndex < GRADIENTS.length) {
-            const selected = GRADIENTS[buttonIndex];
-            setTextBackground(selected.colors);
-            Toast.show({
-              type: "info",
-              text1: t("story.backgroundChanged", {
-                name: t(`story.gradients.${selected.nameKey}`),
-              }),
-              position: "bottom",
-              visibilityTime: 1500,
-            });
-          }
-        }
-      );
-    } else {
-      setAndroidColorsModalVisible(true);
-    }
+  const cycleGradient = () => {
+    const currentIndex = GRADIENTS.findIndex(
+      (g) => JSON.stringify(g.colors) === JSON.stringify(textBackground)
+    );
+    const nextIndex = (currentIndex + 1) % GRADIENTS.length;
+    setTextBackground(GRADIENTS[nextIndex].colors);
   };
 
   const onViewLayout = useCallback(() => {
@@ -578,136 +679,7 @@ const CreateStoryScreen = ({ navigation }) => {
     }
   };
 
-  const colors = [
-    "#FFFFFF",
-    "#FF0000",
-    "#00FF00",
-    "#0000FF",
-    "#FFFF00",
-    "#FF00FF",
-    "#00FFFF",
-  ];
 
-  const ColorPicker = () => {
-    return (
-      <View style={styles.colorPicker} pointerEvents="box-none">
-        {colors.map((color) => (
-          <TouchableOpacity
-            key={color}
-            style={[
-              styles.colorButton,
-              { backgroundColor: color },
-              strokeColor === color && styles.selectedColor,
-            ]}
-            onPress={() => setStrokeColor(color)}
-          />
-        ))}
-      </View>
-    );
-  };
-
-  const BrushSizePicker = React.memo(() => {
-    const [sliderValue, setSliderValue] = useState(strokeWidth);
-
-    // Sync slider value when strokeWidth changes from external sources
-    React.useEffect(() => {
-      setSliderValue(strokeWidth);
-    }, [strokeWidth]);
-
-    if (!showBrushSize) return null;
-
-    return (
-      <View style={styles.brushSizeSlider}>
-        <Text style={styles.brushSizeLabel}>
-          {t("story.brushSize", { size: sliderValue })}
-        </Text>
-        <Slider
-          style={styles.slider}
-          minimumValue={2}
-          maximumValue={20}
-          value={sliderValue}
-          step={1}
-          onValueChange={setSliderValue}
-          onSlidingComplete={setStrokeWidth}
-          minimumTrackTintColor="#FFFFFF"
-          maximumTrackTintColor="rgba(255,255,255,0.3)"
-          thumbStyle={styles.sliderThumb}
-        />
-      </View>
-    );
-  });
-
-  const DrawingTools = ({ drawingRef }) => {
-    return (
-      <View style={styles.drawingTools}>
-        <TouchableOpacity
-          style={[styles.toolButton, !isEraser && styles.activeToolButton]}
-          onPress={() => setIsEraser(false)}
-        >
-          <Ionicons name="brush" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toolButton, isEraser && styles.activeToolButton]}
-          onPress={() => setIsEraser(true)}
-        >
-          <Image
-            source={require("../../../assets/eraser.png")}
-            style={{ width: 24, height: 24 }}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toolButton, showBrushSize && styles.activeToolButton]}
-          onPress={() => setShowBrushSize(!showBrushSize)}
-        >
-          <Ionicons name="resize" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.toolButton}
-          onPress={() => drawingRef.current?.handleUndo()}
-        >
-          <Ionicons name="arrow-undo" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.toolButton}
-          onPress={() => drawingRef.current?.handleClear()}
-        >
-          <Ionicons name="trash" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
-  const ToolsBar = () => (
-    <View style={styles.toolsContainer}>
-      <TouchableOpacity
-        style={styles.toolButton}
-        onPress={() => setIsEditing(!isEditing)}
-      >
-        <Ionicons name="text" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
-        <Ionicons name="image" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.toolButton, isDrawing && styles.activeToolButton]}
-        onPress={() => setIsDrawing(!isDrawing)}
-      >
-        <Ionicons name="brush" size={24} color="#fff" />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.toolButton}
-        onPress={() =>
-          Toast.show({
-            type: "info",
-            text1: t("story.featureInDevelopment"),
-            text2: t("story.stayTuned"),
-          })
-        }
-      >
-        <Ionicons name="musical-notes" size={24} color="#fff" />
-      </TouchableOpacity>
-    </View>
-  );
 
   const saveDrawing = async () => {
     try {
@@ -834,49 +806,7 @@ const CreateStoryScreen = ({ navigation }) => {
     }
   }, [isDrawing, isTextOnly, selectedImage]);
 
-  const CameraUI = () => {
-    if (!permission) {
-      return (
-        <View style={styles.centerContainer}>
-          <Text style={styles.whiteText}>
-            {t("story.requestingCameraPermission")}
-          </Text>
-        </View>
-      );
-    }
 
-    if (!permission.granted) {
-      return (
-        <View style={styles.centerContainer}>
-          <Text style={styles.whiteText}>{t("story.noCameraPermission")}</Text>
-          <TouchableOpacity
-            style={styles.permissionButton}
-            onPress={() => {
-              if (Platform.OS === "ios") {
-                Linking.openURL("app-settings:");
-              } else {
-                Linking.openSettings();
-              }
-            }}
-          >
-            <Text style={styles.permissionButtonText}>{t("story.openSettings")}</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    return (
-      <View style={StyleSheet.absoluteFill}>
-        <StableCameraView
-          cameraRef={cameraRef}
-          cameraType={cameraType}
-          onClose={handleCloseCamera}
-          onCameraFlip={handleCameraFlip}
-          onTakePhoto={handleTakePhoto}
-        />
-      </View>
-    );
-  };
 
   // Update the header right button to show loading state
   const headerRightButton = (
@@ -902,73 +832,7 @@ const CreateStoryScreen = ({ navigation }) => {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle="light-content" />
-      <Modal
-        visible={androidColorsModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAndroidColorsModalVisible(false)}
-      >
-        <View style={styles.androidOverlay}>
-          <View style={[styles.androidDialog, { backgroundColor: "#2b2d31" }]}>
-            <Text style={[styles.androidTitle, { color: "#fff" }]}>
-              {t("story.selectBackground")}
-            </Text>
-            
-            <ScrollView style={{ maxHeight: 300 }} showsVerticalScrollIndicator={false}>
-              {GRADIENTS.map((item) => {
-                const isSelected = JSON.stringify(item.colors) === JSON.stringify(textBackground);
-                
-                return (
-                  <TouchableOpacity
-                    key={item.nameKey}
-                    style={styles.androidOptionRow}
-                    onPress={() => {
-                      setTextBackground(item.colors);
-                      setAndroidColorsModalVisible(false);
-                      Toast.show({
-                        type: "info",
-                        text1: t("story.backgroundChanged", { name: t(`story.gradients.${item.nameKey}`) }),
-                        position: "bottom",
-                        visibilityTime: 1500,
-                      });
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[
-                      styles.androidRadioOuter,
-                      { borderColor: isSelected ? "#319527" : "#aaa" }
-                    ]}>
-                      {isSelected && (
-                        <View style={[styles.androidRadioInner, { backgroundColor: "#319527" }]} />
-                      )}
-                    </View>
-                    <Text style={[
-                      styles.androidOptionText,
-                      { 
-                        color: "#fff",
-                        fontWeight: isSelected ? "bold" : "normal"
-                      }
-                    ]}>
-                      {t(`story.gradients.${item.nameKey}`)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
 
-            <View style={styles.androidActions}>
-              <TouchableOpacity
-                onPress={() => setAndroidColorsModalVisible(false)}
-                style={styles.androidCancelButton}
-              >
-                <Text style={{ color: "#319527", fontWeight: "600", fontSize: 14 }}>
-                  {t("common.cancel")}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
       <View style={{ flex: 1, backgroundColor: "#000" }}>
         {/* Header */}
         {!isCameraMode && (
@@ -1007,7 +871,15 @@ const CreateStoryScreen = ({ navigation }) => {
         {/* Main Content */}
         <View style={{ flex: 1 }}>
           {isCameraMode ? (
-            <CameraUI />
+            <CameraUI
+              permission={permission}
+              cameraRef={cameraRef}
+              cameraType={cameraType}
+              handleCloseCamera={handleCloseCamera}
+              handleCameraFlip={handleCameraFlip}
+              handleTakePhoto={handleTakePhoto}
+              t={t}
+            />
           ) : selectedImage || isTextOnly ? (
             <View style={{ flex: 1 }}>
               <View style={styles.aspectRatioContainer}>
@@ -1082,13 +954,13 @@ const CreateStoryScreen = ({ navigation }) => {
               {/* UI Controls - Not Captured */}
               {isDrawing ? (
                 <View style={styles.overlayTools} pointerEvents="box-none">
-                  <ColorPicker />
-                  <BrushSizePicker />
-                  <DrawingTools drawingRef={drawingRef} />
+                  <ColorPicker strokeColor={strokeColor} setStrokeColor={setStrokeColor} />
+                  <BrushSizePicker strokeWidth={strokeWidth} setStrokeWidth={setStrokeWidth} showBrushSize={showBrushSize} t={t} />
+                  <DrawingTools drawingRef={drawingRef} isEraser={isEraser} setIsEraser={setIsEraser} showBrushSize={showBrushSize} setShowBrushSize={setShowBrushSize} />
                 </View>
               ) : !isTextOnly ? (
                 <>
-                  <ToolsBar />
+                  <ToolsBar isEditing={isEditing} setIsEditing={setIsEditing} isDrawing={isDrawing} setIsDrawing={setIsDrawing} pickImage={pickImage} t={t} />
                   {isEditing && (
                     <TextInputArea
                       text={text}
@@ -1118,7 +990,7 @@ const CreateStoryScreen = ({ navigation }) => {
                           borderColor: "rgba(255,255,255,0.4)",
                         },
                       ]}
-                      onPress={handleColorButtonPress}
+                      onPress={cycleGradient}
                     >
                       <Ionicons name="color-palette-outline" size={24} color="#fff" />
                     </TouchableOpacity>
