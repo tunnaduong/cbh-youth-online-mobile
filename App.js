@@ -1,8 +1,13 @@
 import React, { useContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, StatusBar } from "react-native";
+import { View, Text, Platform, StatusBar, Alert } from "react-native";
+import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
+
+if (Platform.OS === "android") {
+  Alert.alert = CustomAlert.alert;
+}
 import { useStatusBar } from "./app/contexts/StatusBarContext";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
@@ -387,6 +392,7 @@ const App = () => {
           )}
         </Stack.Navigator>
       </NavigationContainer>
+      <CustomAlertProvider />
     </>
   );
 };
