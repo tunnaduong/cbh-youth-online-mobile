@@ -6,9 +6,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  SafeAreaView,
   StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getMemberRanking } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import FastImage from "react-native-fast-image";
@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 export default function MemberRankingScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [rankingData, setRankingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -175,7 +176,7 @@ export default function MemberRankingScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
@@ -205,7 +206,7 @@ export default function MemberRankingScreen({ navigation }) {
           />
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
