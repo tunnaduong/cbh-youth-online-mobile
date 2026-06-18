@@ -27,6 +27,7 @@ import {
   TouchableHighlight,
   Platform,
   AppState,
+  Dimensions,
   Alert,
   DeviceEventEmitter,
 } from "react-native";
@@ -1566,7 +1567,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }}
           toast={<Toast topOffset={60} />}
           containerStyle={{
-            transform: [{ translateY: Platform.OS === "android" ? -69 : -15 }],
+            height: Dimensions.get("window").height,
           }}
         />
         <ResendVerificationModal />

@@ -254,6 +254,9 @@ const ArchiveScreen = ({ route, navigation }) => {
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           onHide={() => setSelectedStories(null)}
+          containerStyle={{
+            height: Dimensions.get("window").height,
+          }}
         />
       )}
     </SafeAreaView>
