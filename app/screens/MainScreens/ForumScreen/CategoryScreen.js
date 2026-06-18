@@ -26,17 +26,6 @@ import formatTime from "../../../utils/formatTime";
 
 import { getCategoryName, getCategoryDescription } from "../../../utils/forumUtils";
 
-  };
-  const key = descMap[normalized];
-  if (key) {
-    const translated = t(`forumCategoryDescriptions.${key}`);
-    if (translated !== `forumCategoryDescriptions.${key}`) {
-      return translated;
-    }
-  }
-  return desc;
-};
-
 const CategoryScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
