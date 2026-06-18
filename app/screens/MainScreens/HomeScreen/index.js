@@ -28,6 +28,7 @@ import {
   Platform,
   AppState,
   Alert,
+  DeviceEventEmitter,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -95,6 +96,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const scrollPositionRef = useRef(0);
+  const lastScrollYRef = useRef(0);
   const isScrollingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
@@ -824,6 +826,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
     isScrollingRef.current = false;
+
+    // Auto hide bottom tab bar
+    const diff = offsetY - lastScrollYRef.current;
+    if (offsetY < 50) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    } else if (diff > 15) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
+    } else if (diff < -10) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    }
+    lastScrollYRef.current = offsetY;
 
     // If scrolled to top during manual scroll, reset processing flag
     if (offsetY <= 10 && isProcessingRef.current && !refreshing) {

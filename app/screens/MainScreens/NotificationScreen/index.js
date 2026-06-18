@@ -11,6 +11,7 @@ import {
   StatusBar,
   RefreshControl,
   Animated,
+  DeviceEventEmitter,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
@@ -202,7 +203,22 @@ export default function NotificationScreen({ navigation }) {
     }, [refreshNotificationCount])
   );
 
+  const lastScrollYRef = useRef(0);
+
   const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+
+    // Auto hide bottom tab bar
+    const diff = offsetY - lastScrollYRef.current;
+    if (offsetY < 50) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    } else if (diff > 15) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
+    } else if (diff < -10) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    }
+    lastScrollYRef.current = offsetY;
+
     if (!refreshing) {
       lottieRef.current?.play();
     }

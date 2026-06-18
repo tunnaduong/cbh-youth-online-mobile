@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated } from "react-native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, DeviceEventEmitter } from "react-native";
+import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
@@ -79,9 +79,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           left: 10 + (buttonWidth - indicatorWidth) / 2,
           opacity,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.05)",
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.03)",
           borderWidth: 1,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.25)" : "rgba(0, 0, 0, 0.08)",
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.04)",
           shadowColor: isDarkMode ? "#fff" : "#000",
           shadowOffset: { width: 0, height: 2 },
           shadowOpacity: isDarkMode ? 0.25 : 0.12,
@@ -91,7 +91,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         }}
       >
         <LinearGradient
-          colors={["rgba(255, 255, 255, 0.35)", "rgba(255, 255, 255, 0.05)", "transparent"]}
+          colors={["rgba(255, 255, 255, 0.18)", "rgba(255, 255, 255, 0.02)", "transparent"]}
           locations={[0, 0.45, 1]}
           style={StyleSheet.absoluteFillObject}
         />
@@ -102,7 +102,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             left: 3,
             right: 3,
             height: 1,
-            backgroundColor: "rgba(255, 255, 255, 0.4)",
+            backgroundColor: "rgba(255, 255, 255, 0.25)",
           }}
         />
       </Animated.View>
@@ -151,6 +151,28 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return unsubscribe;
   }, [stackNavigation]);
 
+  const tabBarTranslateY = useRef(new Animated.Value(0)).current;
+
+  // Listen for scroll events to auto hide/show tab bar
+  useEffect(() => {
+    let isVisible = true;
+    const subscription = DeviceEventEmitter.addListener("SET_TABBAR_VISIBLE", (visible) => {
+      if (visible === isVisible) return;
+      isVisible = visible;
+      Animated.timing(tabBarTranslateY, {
+        toValue: visible ? 0 : 100, // Translate down by 100px to hide
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    });
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    // Reset tab bar visibility to true when switching tabs
+    DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+  }, [currentRoute]);
+
   return (
     <SideMenu
       menu={<Sidebar />}
@@ -164,6 +186,20 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
+          tabBar={(props) => (
+            <Animated.View
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                transform: [{ translateY: tabBarTranslateY }],
+                zIndex: 99,
+              }}
+            >
+              <BottomTabBar {...props} />
+            </Animated.View>
+          )}
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
