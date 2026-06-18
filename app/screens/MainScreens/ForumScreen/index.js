@@ -24,96 +24,10 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+import { getCategoryName } from "../../../utils/forumUtils";
 
 const { width } = Dimensions.get("window");
 
-const getCategoryName = (name, t) => {
-  if (!name) return name;
-  const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
-  const keyMap = {
-    "thông báo": "announcements",
-    "thông báo chung": "generalAnnouncements",
-    "chung": "general",
-    "đoàn - hội": "unionAssociation",
-    "đoàn-hội": "unionAssociation",
-    "học tập": "academics",
-    "sự kiện": "events",
-    "câu lạc bộ": "clubs",
-    "góc chia sẻ": "sharingCorner",
-    "tán gẫu": "casual",
-    "tán gẫu linh tinh": "casual",
-    "hỏi đáp": "qa",
-    "góp ý": "feedback",
-    "ý kiến & đóng góp": "feedback",
-    "ý kiến đóng góp": "feedback",
-    "thảo luận": "discussion",
-    "báo cáo": "reports",
-    "phản hồi về diễn đàn": "forumFeedback",
-    "phản hồi diễn đàn": "forumFeedback",
-    "nội quy": "rules",
-    "nội quy diễn đàn": "forumRules",
-    "tin tức": "news",
-    "giải trí": "entertainment",
-    "tài liệu": "documents",
-    "tài liệu học tập": "academicDocuments",
-    "tâm sự": "confessions",
-    "chuyện của trường": "schoolStories",
-    "hoạt động ngoại khóa": "extracurricular",
-    "hỗ trợ kỹ thuật": "technicalSupport",
-    "giải trí - xã hội": "entertainmentSocial",
-    "giải trí xã hội": "entertainmentSocial",
-    "góc kỹ năng sống": "lifeSkillsCorner",
-    "giao lưu": "socialExchange",
-    "mua bán và trao đổi": "tradeExchange",
-    "mua bán & trao đổi": "tradeExchange",
-    "góp ý và báo lỗi": "feedbackBugReport",
-    "góp ý & báo lỗi": "feedbackBugReport",
-    "tin tức trên quản trị": "adminNews",
-    "kỹ năng sống": "lifeSkills",
-    "giao lưu kết bạn": "socializing",
-    "mua bán": "buySell",
-    "báo cáo lỗi": "bugReports",
-    "đóng góp ý kiến": "suggestions",
-    "tin tức từ ban quản trị": "newsFromAdmin",
-    "quy định và hướng dẫn": "regulationsGuidelines",
-    "tin tức đoàn": "unionNews",
-    "trung học phổ thông": "highSchool",
-    "trung học cơ sở": "middleSchool",
-    "tiếng anh": "english",
-    "ebook - giáo trình": "ebookTextbooks",
-    "học ngoại ngữ": "learnLanguages",
-    "văn học - nghệ thuật": "literatureArts",
-    "âm nhạc": "music",
-    "hình ảnh đẹp": "beautifulImages",
-    "thư giãn - đố vui": "relaxationPuzzles",
-    "thế giới game": "gamingWorld",
-    "kiến thức thú vị": "interestingKnowledge",
-    "chuyện showbiz": "showbizStories",
-    "sự kiện trường tổ chức": "schoolEvents",
-    "tình nguyện và cộng đồng": "volunteerCommunity",
-    "thể thao và sức khỏe": "sportsHealth",
-    "kỹ năng mềm": "softSkills",
-    "hướng nghiệp": "careerOrientation",
-    "sức khỏe và tâm lý": "healthPsychology",
-    "ký túc xá & đời sống học sinh": "dormLife",
-    "ký túc xá và đời sống học sinh": "dormLife",
-    "kết nối cựu học sinh": "alumniConnection",
-    "góc tâm sự": "confessionsCorner",
-    "tìm đồ thất lạc": "lostAndFound",
-    "mua bán sách cũ": "oldBooksTrade",
-    "đồ dùng học tập": "schoolSupplies",
-    "trao đổi vật dụng cá nhân": "personalItemsExchange",
-    "báo lỗi kỹ thuật": "technicalBugReport"
-  };
-  const key = keyMap[normalized];
-  if (key) {
-    const translated = t(`forumCategories.${key}`);
-    if (translated !== `forumCategories.${key}`) {
-      return translated;
-    }
-  }
-  return name;
-};
 
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <View style={[styles.sectionBox, { borderColor: theme.primary, backgroundColor: theme.cardBackground, shadowColor: isDarkMode ? "#000" : theme.primary }]}>

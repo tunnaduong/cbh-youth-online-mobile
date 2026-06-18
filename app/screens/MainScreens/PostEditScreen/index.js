@@ -14,6 +14,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
+import { getCategoryName } from "../../../utils/forumUtils";
 import {
   updatePost,
   getSubforums,
@@ -58,7 +59,11 @@ const PostEditScreen = ({ navigation, route }) => {
           getPost(route.params.postId),
         ]);
 
-        setSubforums(subforumsRes.data);
+        const translatedSubforums = subforumsRes.data.map(item => ({
+          ...item,
+          label: getCategoryName(item.label, t)
+        }));
+        setSubforums(translatedSubforums);
         const post = postRes.data;
         setInitialPost(post);
 
@@ -70,7 +75,7 @@ const PostEditScreen = ({ navigation, route }) => {
         );
         if (post.subforum_id) {
           setSelected(
-            subforumsRes.data.find((s) => s.value === post.subforum_id)
+            translatedSubforums.find((s) => s.value === post.subforum_id)
           );
         }
         if (post.cdn_image_id) {

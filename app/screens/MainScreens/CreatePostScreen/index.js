@@ -15,6 +15,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
+import { getCategoryName } from "../../../utils/forumUtils";
 import {
   createPost,
   getSubforums,
@@ -87,9 +88,13 @@ const CreatePostScreen = ({ navigation }) => {
 
   useEffect(() => {
     getSubforums().then((res) => {
-      setSubforums(res.data);
+      const translated = res.data.map((item) => ({
+        ...item,
+        label: getCategoryName(item.label, t),
+      }));
+      setSubforums(translated);
     });
-  }, []);
+  }, [t]);
 
   const pickImage = async () => {
     try {

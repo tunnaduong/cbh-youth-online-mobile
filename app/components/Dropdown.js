@@ -9,6 +9,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  ScrollView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
@@ -72,7 +73,10 @@ const Dropdown = ({
           <View style={[styles.androidDialog, { backgroundColor: isDarkMode ? "#2b2d31" : "#ffffff" }]}>
             <Text style={[styles.androidTitle, { color: theme.text }]}>{dialogTitle}</Text>
             
-            <View style={styles.androidOptionsContainer}>
+            <ScrollView
+              style={styles.androidOptionsContainer}
+              showsVerticalScrollIndicator={true}
+            >
               {options.map((item) => {
                 const isSelected = selectedValue?.value === item.value;
                 // Strip emoji flags from labels for Android native feel
@@ -105,7 +109,7 @@ const Dropdown = ({
                   </TouchableOpacity>
                 );
               })}
-            </View>
+            </ScrollView>
 
             <View style={styles.androidActions}>
               <TouchableOpacity
@@ -290,6 +294,7 @@ const styles = StyleSheet.create({
   },
   androidOptionsContainer: {
     marginVertical: 8,
+    maxHeight: 280,
   },
   androidOptionRow: {
     flexDirection: "row",
@@ -311,6 +316,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   androidOptionText: {
+    flex: 1,
     fontSize: 16,
     includeFontPadding: false,
     textAlignVertical: "center",
