@@ -52,8 +52,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     Animated.spring(slideAnim, {
       toValue: activeIndex * buttonWidth,
       useNativeDriver: true,
-      tension: 60,
-      friction: 10,
+      stiffness: 140,
+      damping: 14,
+      mass: 1.2,
     }).start();
   }, [activeIndex, buttonWidth]);
 
@@ -71,6 +72,35 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
       }}
     >
+      {/* Chromatic Aberration - Red channel shift (left offset) */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: indicatorWidth,
+          height: 52,
+          borderRadius: 26,
+          top: 0,
+          left: 7.2,
+          opacity: opacity * 0.35,
+          transform: [{ translateX: slideAnim }],
+          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+        }}
+      />
+      {/* Chromatic Aberration - Blue channel shift (right offset) */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          width: indicatorWidth,
+          height: 52,
+          borderRadius: 26,
+          top: 0,
+          left: 8.8,
+          opacity: opacity * 0.35,
+          transform: [{ translateX: slideAnim }],
+          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+        }}
+      />
+      {/* Main Glass Indicator (neutral white/dark) */}
       <Animated.View
         style={{
           position: "absolute",
