@@ -11,6 +11,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const Section = ({ title, children, theme, isDarkMode }) => (
   <View style={[styles.section, { backgroundColor: isDarkMode ? "#1f2937" : "#F2F9F2" }]}>
@@ -22,6 +23,7 @@ const Section = ({ title, children, theme, isDarkMode }) => (
 export default function TermsOfServiceScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
@@ -31,130 +33,115 @@ export default function TermsOfServiceScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>Điều khoản sử dụng</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t("terms.headerTitle")}</Text>
         <View style={{ width: 24, height: 24 }}></View>
       </View>
 
       <ScrollView style={styles.content}>
         <Text style={[styles.introText, { color: theme.text }]}>
-          Chào mừng bạn đến với Diễn đàn học sinh Chuyên Biên Hòa. Khi truy cập
-          và sử dụng diễn đàn, bạn đồng ý tuân thủ các điều khoản dưới đây. Xin
-          vui lòng đọc kỹ trước khi sử dụng dịch vụ.
+          {t("terms.intro")}
         </Text>
 
-        <Section title="1. Chấp nhận điều khoản" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("terms.s1Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Việc đăng ký tài khoản hoặc sử dụng diễn đàn đồng nghĩa với việc bạn
-            đã đọc, hiểu và đồng ý tuân thủ Điều khoản này.
+            {t("terms.s1Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Nếu bạn không đồng ý, vui lòng không sử dụng diễn đàn.
-          </Text>
-        </Section>
-
-        <Section title="2. Đăng ký và sử dụng tài khoản" theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bạn cần cung cấp thông tin chính xác khi đăng ký tài khoản.
-          </Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bạn chịu trách nhiệm bảo mật mật khẩu và hoạt động trên tài khoản
-            của mình.
-          </Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Không được sử dụng tài khoản của người khác hoặc chia sẻ tài khoản
-            cho nhiều người.
+            {t("terms.s1Text2")}
           </Text>
         </Section>
 
-        <Section title="3. Nội dung do thành viên đăng tải" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("terms.s2Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bạn giữ quyền sở hữu đối với nội dung mình tạo (bài viết, bình
-            luận, hình ảnh, tài liệu).
+            {t("terms.s2Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bằng việc đăng tải, bạn đồng ý cho phép diễn đàn lưu trữ, hiển thị
-            và chia sẻ nội dung này trong phạm vi cộng đồng.
+            {t("terms.s2Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bạn không được đăng tải nội dung vi phạm pháp luật, nội dung phản
-            cảm, bạo lực, thù ghét, quấy rối, hoặc vi phạm bản quyền.
+            {t("terms.s2Text3")}
           </Text>
         </Section>
 
-        <Section title="4. Quy tắc ứng xử" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("terms.s3Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Tôn trọng thành viên khác, không công kích cá nhân, không gây chia
-            rẽ.
+            {t("terms.s3Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Không spam, quảng cáo, hoặc phát tán virus, mã độc.
+            {t("terms.s3Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Không mạo danh giáo viên, học sinh khác hoặc Ban quản trị.
-          </Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Thảo luận, chia sẻ mang tính xây dựng, phù hợp với văn hóa học
-            đường.
+            {t("terms.s3Text3")}
           </Text>
         </Section>
 
-        <Section title="5. Quyền và trách nhiệm của diễn đàn" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("terms.s4Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Ban quản trị có quyền kiểm duyệt, chỉnh sửa, xóa bài viết, khóa
-            hoặc xóa tài khoản nếu phát hiện vi phạm.
+            {t("terms.s4Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Diễn đàn không chịu trách nhiệm đối với nội dung do thành viên đăng
-            tải, nhưng sẽ phối hợp xử lý nếu có khiếu nại.
+            {t("terms.s4Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Chúng tôi có thể tạm ngưng hoặc chấm dứt dịch vụ bất kỳ lúc nào vì
-            lý do bảo trì, kỹ thuật hoặc pháp luật.
-          </Text>
-        </Section>
-
-        <Section title="6. Bảo mật và quyền riêng tư" theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Việc thu thập và sử dụng dữ liệu cá nhân của bạn được quy định tại
-            Chính sách bảo mật.
+            {t("terms.s4Text3")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Khi sử dụng diễn đàn, bạn đồng ý rằng dữ liệu có thể được xử lý theo
-            chính sách đó.
+            {t("terms.s4Text4")}
           </Text>
         </Section>
 
-        <Section title="7. Trách nhiệm pháp lý" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("terms.s5Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bạn tự chịu trách nhiệm về nội dung mình đăng và hành vi của mình
-            trên diễn đàn.
+            {t("terms.s5Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Bạn đồng ý bồi thường cho diễn đàn và các bên liên quan nếu hành vi
-            của bạn gây thiệt hại, vi phạm pháp luật hoặc quyền lợi người khác.
-          </Text>
-        </Section>
-
-        <Section title="8. Sửa đổi điều khoản" theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Điều khoản này có thể được thay đổi, cập nhật bất kỳ lúc nào.
+            {t("terms.s5Text2")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            • Thông báo sẽ được đăng công khai, và việc tiếp tục sử dụng diễn đàn
-            đồng nghĩa với việc bạn chấp nhận điều khoản mới.
+            {t("terms.s5Text3")}
           </Text>
         </Section>
 
-        <Section title="9. Liên hệ" theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("terms.s6Title")} theme={theme} isDarkMode={isDarkMode}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Nếu có câu hỏi hoặc yêu cầu liên quan đến Điều khoản sử dụng, vui
-            lòng liên hệ:
+            {t("terms.s6Text1")}
           </Text>
           <Text style={[styles.sectionText, { color: theme.text }]}>
-            Ban quản trị Diễn đàn học sinh Chuyên Biên Hòa
+            {t("terms.s6Text2")}
           </Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>Email: hotro@chuyenbienhoa.com</Text>
-          <Text style={[styles.sectionText, { color: theme.text }]}>Hotline: 0365520031</Text>
+        </Section>
+
+        <Section title={t("terms.s7Title")} theme={theme} isDarkMode={isDarkMode}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s7Text1")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s7Text2")}
+          </Text>
+        </Section>
+
+        <Section title={t("terms.s8Title")} theme={theme} isDarkMode={isDarkMode}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s8Text1")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s8Text2")}
+          </Text>
+        </Section>
+
+        <Section title={t("terms.s9Title")} theme={theme} isDarkMode={isDarkMode}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s9Text1")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s9Text2")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s9Email")}
+          </Text>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
+            {t("terms.s9Phone")}
+          </Text>
         </Section>
       </ScrollView>
     </SafeAreaView>

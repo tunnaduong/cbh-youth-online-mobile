@@ -16,6 +16,8 @@ import Toast from "react-native-toast-message";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
+import dayjs from "dayjs";
+import formatTime from "../../../utils/formatTime";
 
 const { width } = Dimensions.get("window");
 const STORY_SIZE = (width - 48) / 3; // 3 columns with padding
@@ -28,6 +30,24 @@ const ArchiveScreen = ({ route, navigation }) => {
   const storyRef = React.useRef(null);
   const username = route.params?.username || currentUsername;
   const { t } = useTranslation();
+
+  const formatDateHeader = (dateStr) => {
+    if (!dateStr) return "";
+    const d = dayjs(dateStr);
+    if (!d.isValid()) return dateStr;
+
+    const today = dayjs().startOf("day");
+    const yesterday = dayjs().subtract(1, "day").startOf("day");
+    const itemDate = d.startOf("day");
+
+    if (itemDate.isSame(today)) {
+      return t("chatConversation.today");
+    } else if (itemDate.isSame(yesterday)) {
+      return t("chatConversation.yesterday");
+    } else {
+      return d.format("DD/MM/YYYY");
+    }
+  };
 
   useEffect(() => {
     fetchArchive();
@@ -67,7 +87,7 @@ const ArchiveScreen = ({ route, navigation }) => {
           uri: `https://api.chuyenbienhoa.com${story.media_url}`,
         },
         duration: 10,
-        date: story.created_at_human,
+        date: story.created_at ? formatTime(story.created_at) : story.created_at_human,
         renderFooter: () => (
           <View
             style={{
@@ -167,7 +187,7 @@ const ArchiveScreen = ({ route, navigation }) => {
 
     return (
       <View style={styles.dateSection}>
-        <Text style={styles.dateTitle}>{dateGroup.date_human}</Text>
+        <Text style={styles.dateTitle}>{formatDateHeader(dateGroup.date)}</Text>
         <FlatList
           data={stories}
           renderItem={renderStoryItem}

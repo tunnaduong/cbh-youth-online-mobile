@@ -27,6 +27,7 @@ import Toast from "react-native-toast-message";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
+import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
@@ -110,6 +111,10 @@ const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    dayjs.locale(i18n.language || "vi");
+  }, [i18n.language]);
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);

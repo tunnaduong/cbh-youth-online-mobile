@@ -16,8 +16,9 @@ import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "react-native-fast-image";
 import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
 
-const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
+const SavedPostItem = ({ item, navigation, onOptionsPress, t }) => (
   <TouchableOpacity
     onPress={() => navigation.navigate("PostScreen", { postId: item.topic.id })}
     className="flex-row p-4 border-b border-gray-100"
@@ -40,7 +41,7 @@ const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
         {item.topic.image_urls.length > 0 && (
           <>
             <Text className="text-gray-500 text-[13px]">
-              Đăng {item.topic.image_urls?.length || 1} ảnh
+              {t("savedPosts.postedPhotos", { count: item.topic.image_urls?.length || 1 })}
             </Text>
             <Text className="text-gray-500 text-[13px] mx-1">•</Text>
           </>
@@ -50,7 +51,7 @@ const SavedPostItem = ({ item, navigation, onOptionsPress }) => (
         </Text>
       </View>
       <Text className="text-gray-500 text-[13px] mt-0.5">
-        Lưu {item.created_at}
+        {t("savedPosts.savedTime", { time: item.created_at ? formatTime(item.created_at) : "" })}
       </Text>
     </View>
     <TouchableOpacity
@@ -121,7 +122,7 @@ const SavedPostsScreen = ({ navigation }) => {
 
   const ListHeader = () => (
     <View className="px-4 py-3 border-b border-gray-100">
-      <Text className="text-[17px] font-medium">Đã lưu gần đây</Text>
+      <Text className="text-[17px] font-medium">{t("savedPosts.recentlySaved")}</Text>
     </View>
   );
 
@@ -204,12 +205,14 @@ const SavedPostsScreen = ({ navigation }) => {
 
       <FlatList
         data={savedPosts}
+        extraData={t}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <SavedPostItem
             item={item}
             navigation={navigation}
             onOptionsPress={handleOptionsPress}
+            t={t}
           />
         )}
         ListHeaderComponent={ListHeader}

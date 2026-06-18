@@ -472,6 +472,7 @@ export default function NotificationScreen({ navigation }) {
         <FlatList
           onScroll={handleScroll}
           data={notifications}
+          extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={{

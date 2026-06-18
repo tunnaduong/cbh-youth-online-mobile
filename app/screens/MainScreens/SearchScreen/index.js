@@ -21,6 +21,7 @@ import FastImage from "react-native-fast-image";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
 
 export default function SearchScreen({ navigation }) {
   const inset = useSafeAreaInsets();
@@ -122,7 +123,7 @@ export default function SearchScreen({ navigation }) {
         </Text>
         <View style={styles.postMeta}>
           <Text style={[styles.postAuthor, { color: theme.subText }]}>
-            {post.author.profile_name} • {post.created_at}
+            {post.author.profile_name} • {post.created_at ? formatTime(post.created_at) : ""}
           </Text>
         </View>
       </View>

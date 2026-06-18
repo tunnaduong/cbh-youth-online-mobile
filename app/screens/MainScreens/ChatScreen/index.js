@@ -218,6 +218,7 @@ export default function ChatScreen({ navigation }) {
 
       <FlatList
         data={filteredConversations}
+        extraData={{ t, theme, isDarkMode }}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         contentContainerStyle={{

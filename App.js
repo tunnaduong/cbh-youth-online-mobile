@@ -138,7 +138,7 @@ const App = () => {
               <Stack.Screen
                 name="PostScreen"
                 options={{
-                  title: "Chi tiết bài viết",
+                  title: t('post.details'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
@@ -316,7 +316,7 @@ const App = () => {
                 name="ExploreScreen"
                 component={ExploreScreen}
                 options={{
-                  title: "Khám phá",
+                  title: t('home.explore'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
