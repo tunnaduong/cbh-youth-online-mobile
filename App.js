@@ -192,8 +192,7 @@ const App = () => {
                 options={{
                   title: "Chỉnh sửa trang cá nhân",
                   headerShown: false,
-                  presentation:
-                    Platform.OS === "android" ? "transparentModal" : "modal",
+                  presentation: "modal",
                   gestureEnabled: true,
                   animation: "slide_from_bottom",
                 }}
