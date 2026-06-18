@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text } from "react-native";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -28,7 +28,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, hideTabLabels } = useTheme();
   const { t } = useTranslation();
 
   // Function to trigger scroll to top or reload in HomeScreen
@@ -98,9 +98,55 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 </View>
               );
             },
-            tabBarShowLabel: true,
+            tabBarShowLabel: !hideTabLabels,
             tabBarActiveTintColor: theme.primary,
             tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
+            tabBarButton: (props) => {
+              if (route.name === "Create") {
+                return props.children;
+              }
+              const { children, style, onPress, onLongPress, accessibilityState } = props;
+              const isSelected = accessibilityState?.selected;
+              return (
+                <TouchableOpacity
+                  onPress={onPress}
+                  onLongPress={onLongPress}
+                  style={[
+                    style,
+                    {
+                      justifyContent: "center",
+                      alignItems: "center",
+                    },
+                  ]}
+                  activeOpacity={0.8}
+                >
+                  <View
+                    style={[
+                      {
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 20,
+                        paddingVertical: 5,
+                        paddingHorizontal: 12,
+                        minWidth: 55,
+                      },
+                      isSelected && {
+                        backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.05)",
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.16)" : "rgba(0, 0, 0, 0.06)",
+                        shadowColor: isDarkMode ? "#fff" : "#000",
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isDarkMode ? 0.15 : 0.08,
+                        shadowRadius: 3,
+                        elevation: 1,
+                      },
+                    ]}
+                  >
+                    {children}
+                  </View>
+                </TouchableOpacity>
+              );
+            },
             tabBarStyle: {
               backgroundColor: 'transparent',
               borderTopWidth: 0,
