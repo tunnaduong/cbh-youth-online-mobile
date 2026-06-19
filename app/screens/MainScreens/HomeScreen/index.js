@@ -599,6 +599,25 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         console.log("Stories fetched:", response.data.data?.length);
         const formattedStories = transformStoriesData(response);
         setUserStories(formattedStories);
+
+        // Async prefetch story images to speed up story loading
+        try {
+          const prefetchUrls = [];
+          formattedStories.forEach((user) => {
+            user.stories?.forEach((story) => {
+              if (story.source?.uri) {
+                prefetchUrls.push(story.source.uri);
+              }
+            });
+          });
+          if (prefetchUrls.length > 0) {
+            Promise.all(prefetchUrls.map((uri) => Image.prefetch(uri))).catch((err) =>
+              console.log("Error prefetching story images:", err)
+            );
+          }
+        } catch (prefetchErr) {
+          console.log("Failed to prefetch stories:", prefetchErr);
+        }
       }
     } catch (error) {
       console.error("Error fetching stories:", error);
