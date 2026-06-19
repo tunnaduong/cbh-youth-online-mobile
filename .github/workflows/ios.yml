@@ -1,4 +1,4 @@
-name: Build iOS Signed IPA
+Name: Build iOS Signed IPA
 
 on:
   push:
@@ -15,11 +15,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Forcing Xcode 16 standard version
+      # FIX 1: Corrected Xcode 16 version string
       - name: Set up Xcode version
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.0' 
+          xcode-version: '16.0' 
 
       # Forcing Node.js setup
       - name: Setup Node.js
@@ -28,7 +28,6 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      # FIX LỖI IMPORT KEYCHAIN TẠI BƯỚC NÀY
       - name: Install Apple Certificate and Provisioning Profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
@@ -39,16 +38,20 @@ jobs:
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
 
-          # Giải mã dữ liệu từ Secrets (Tạo từ Linux của bạn)
+          # Giải mã dữ liệu từ Secrets
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
           echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
 
-          # Tạo keychain tạm thời (Sử dụng mật khẩu cố định thay vì để trống)
+          # Tạo keychain tạm thời
           security create-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
 
-          # SỬA LỖI: Cấu trúc lại thứ tự flag của lệnh security import chuẩn Apple
+          # FIX 2: Thêm keychain vào danh sách tìm kiếm hệ thống để xcodebuild có thể thấy Cert
+          security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s $KEYCHAIN_PATH
+
+          # Import Certificate
           security import $CERTIFICATE_PATH \
             -k $KEYCHAIN_PATH \
             -P "$P12_PASSWORD" \
@@ -56,7 +59,7 @@ jobs:
             -f pkcs12 \
             -A
 
-          # Cấp quyền phân vùng để tránh bị hiện popup GUI hỏi mật khẩu khi build mã nguồn
+          # Cấp quyền phân vùng tránh popup GUI
           security set-key-partition-list -S apple-tool:,apple: -s -k "github-actions-pwd" $KEYCHAIN_PATH
 
           # Đưa Provisioning Profile vào đúng thư mục Xcode
@@ -78,12 +81,6 @@ jobs:
           echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
           echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
           echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
-
-          echo "Successfully extracted signing info:"
-          echo "Team ID: $TEAM_ID"
-          echo "UUID: $UUID"
-          echo "Profile Name: $PROFILE_NAME"
-          echo "Bundle ID: $BUNDLE_ID"
 
       - name: Install dependencies
         run: npm ci
@@ -111,6 +108,7 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
+      # FIX 3: Bổ sung CODE_SIGN_IDENTITY để xcodebuild map chính xác với profile Development
       - name: Build iOS Archive
         run: |
           cd ios
@@ -124,13 +122,14 @@ jobs:
             PROVISIONING_PROFILE="${{ env.PROVISIONING_PROFILE_UUID }}" \
             PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}" \
             CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_IDENTITY="Apple Development" \
             | xcbeautify --quiet --renderer github-actions
 
       - name: Export IPA
         run: |
           cat <<EOF > $RUNNER_TEMP/ExportOptions.plist
           <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.tsv">
           <plist version="1.0">
           <dict>
               <key>method</key>
@@ -165,3 +164,4 @@ jobs:
           name: app-release-signed-ipa
           path: ${{ runner.temp }}/*-signed.ipa
           retention-days: 7
+          
