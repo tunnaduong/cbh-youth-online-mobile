@@ -14,6 +14,7 @@ const getTranslation = (unit, count) => {
   if (lang === "en") {
     if (count === 1) {
       const singularUnits = {
+        seconds: "time.secondAgo",
         minutes: "time.minuteAgo",
         hours: "time.hourAgo",
         days: "time.dayAgo",
@@ -29,12 +30,12 @@ const getTranslation = (unit, count) => {
   if (lang === "ru") {
     const mod10 = count % 10;
     const mod100 = count % 100;
-    let form = "many"; // default: минут, часов, дней, лет
+    let form = "many"; // default: секунд, минут, часов, дней, лет
 
     if (mod10 === 1 && mod100 !== 11) {
-      form = "one"; // минуту, час, день, год
+      form = "one"; // секунду, минуту, час, день, год
     } else if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
-      form = "few"; // минуты, часа, дня, года
+      form = "few"; // секунды, минуты, часа, дня, года
     }
 
     return i18n.t(`time.${unit}Ago_${form}`, { count });
@@ -101,18 +102,22 @@ const formatTime = (dateString) => {
   if (
     cleaned === "vừa xong" ||
     cleaned === "vừa đăng" ||
+    cleaned === "vài giây trước" ||
     cleaned.includes("vừa xong") ||
-    cleaned.includes("vừa đăng")
+    cleaned.includes("vừa đăng") ||
+    cleaned.includes("vài giây trước")
   ) {
     return i18n.t("time.justNow");
   }
 
-  const match = cleaned.match(/^(\d+)\s+(phút|giờ|ngày|tuần|tháng|năm)\s+trước$/);
+  const match = cleaned.match(/^(\d+)\s+(giây|phút|giờ|ngày|tuần|tháng|năm)\s+trước$/);
   if (match) {
     const count = parseInt(match[1], 10);
     const unit = match[2];
 
     switch (unit) {
+      case "giây":
+        return getTranslation("seconds", count);
       case "phút":
         return getTranslation("minutes", count);
       case "giờ":

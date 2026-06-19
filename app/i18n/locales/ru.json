@@ -1,6 +1,9 @@
 {
   "time": {
     "justNow": "Только что",
+    "secondsAgo_one": "{{count}} секунду назад",
+    "secondsAgo_few": "{{count}} секунды назад",
+    "secondsAgo_many": "{{count}} секунд назад",
     "minutesAgo_one": "{{count}} минуту назад",
     "minutesAgo_few": "{{count}} минуты назад",
     "minutesAgo_many": "{{count}} минут назад",
@@ -119,9 +122,14 @@
     "replySent": "Отправлено",
     "replySentBody": "Сообщение отправлено пользователю.",
     "replySendError": "Не удалось отправить сообщение. Попробуйте снова.",
+    "views": "{{count}} просмотров",
     "views_0": "{{count}} просмотр",
     "views_1": "{{count}} просмотра",
-    "views_2": "{{count}} просмотров"
+    "views_2": "{{count}} просмотров",
+    "views_one": "{{count}} просмотр",
+    "views_few": "{{count}} просмотра",
+    "views_many": "{{count}} просмотров",
+    "views_other": "{{count}} просмотров"
   },
   "chat": {
     "title": "Сообщения",

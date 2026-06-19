@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   Dimensions,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -230,14 +231,23 @@ const CustomTabBarButton = ({ onPress }) => {
       )}
       <Pressable style={[styles.buttonContainer, { top: hideTabLabels ? -15 : -21 }]} onPress={handlePress}>
         <Animated.View
-          style={[styles.iconContainer, { transform: [{ rotate }], backgroundColor: theme.cardBackground }]}
+          style={[styles.iconContainer, { transform: [{ rotate }] }]}
         >
-          <Ionicons
-            name="add-circle"
-            size={52}
-            color={theme.primary}
-            style={styles.icon}
-          />
+          <View style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: theme.cardBackground,
+            justifyContent: "center",
+            alignItems: "center",
+          }}>
+            <Ionicons
+              name="add-circle"
+              size={52}
+              color={theme.primary}
+              style={styles.icon}
+            />
+          </View>
         </Animated.View>
         {!hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>{t('navigation.create')}</Text>}
       </Pressable>

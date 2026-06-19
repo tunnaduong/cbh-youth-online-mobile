@@ -1,6 +1,8 @@
 {
   "time": {
     "justNow": "Just now",
+    "secondAgo": "{{count}} second ago",
+    "secondsAgo": "{{count}} seconds ago",
     "minuteAgo": "{{count}} minute ago",
     "minutesAgo": "{{count}} minutes ago",
     "hourAgo": "{{count}} hour ago",
@@ -113,8 +115,11 @@
     "replySent": "Sent",
     "replySentBody": "Message has been sent to the user.",
     "replySendError": "Could not send message. Please try again.",
-    "views": "{{count}} view",
-    "views_plural": "{{count}} views"
+    "views": "{{count}} views",
+    "views_singular": "{{count}} view",
+    "views_plural": "{{count}} views",
+    "views_one": "{{count}} view",
+    "views_other": "{{count}} views"
   },
   "chat": {
     "title": "Messages",

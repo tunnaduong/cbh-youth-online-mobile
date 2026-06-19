@@ -14,12 +14,17 @@ import { getStoryViewers } from "../../../services/api/Api";
 import FastImage from "react-native-fast-image";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
+import formatTime from "../../../utils/formatTime";
+import { useTheme } from "../../../contexts/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const StoryViewersScreen = ({ route, navigation }) => {
   const { storyId } = route.params;
   const [viewers, setViewers] = useState([]);
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
+  const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     fetchViewers();
@@ -76,7 +81,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
 
     return (
       <TouchableOpacity
-        style={styles.viewerItem}
+        style={[styles.viewerItem, { borderBottomColor: theme.border }]}
         onPress={() => {
           navigation.navigate("ProfileScreen", {
             username: item.username,
@@ -88,38 +93,40 @@ const StoryViewersScreen = ({ route, navigation }) => {
           style={styles.avatar}
         />
         <View style={styles.viewerInfo}>
-          <Text style={styles.viewerName}>{item.profile_name}</Text>
+          <Text style={[styles.viewerName, { color: theme.text }]}>{item.profile_name}</Text>
           {reactionDisplay ? (
             <View style={styles.reactionsContainer}>
-              <Text style={styles.reactionsText}>{reactionDisplay}</Text>
+              <Text style={[styles.reactionsText, { color: theme.subText }]}>{reactionDisplay}</Text>
             </View>
           ) : null}
         </View>
-        {item.viewed_at_human && (
-          <Text style={styles.viewedAt}>{item.viewed_at_human}</Text>
+        {(item.viewed_at || item.viewed_at_human) && (
+          <Text style={[styles.viewedAt, { color: theme.subText }]}>
+            {formatTime(item.viewed_at || item.viewed_at_human)}
+          </Text>
         )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#319527" />
+          <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('storyViewers.title')}</Text>
+        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('storyViewers.title')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#319527" />
+          <ActivityIndicator size="large" color={theme.primary} />
         </View>
       ) : viewers.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="eye-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>{t('storyViewers.empty')}</Text>
+          <Ionicons name="eye-outline" size={64} color={theme.subText} />
+          <Text style={[styles.emptyText, { color: theme.subText }]}>{t('storyViewers.empty')}</Text>
         </View>
       ) : (
         <FlatList
@@ -129,7 +136,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
           contentContainerStyle={styles.listContent}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
