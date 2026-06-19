@@ -18,6 +18,19 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 
+let LiquidGlassView = null;
+let isLiquidGlassSupported = false;
+
+if (Platform.OS === 'ios') {
+  try {
+    const LiquidGlass = require('@callstack/liquid-glass');
+    LiquidGlassView = LiquidGlass.LiquidGlassView;
+    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
+  } catch (error) {
+    console.warn("Failed to load @callstack/liquid-glass:", error);
+  }
+}
+
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
@@ -69,6 +82,84 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   }, [currentIndicatorLeft]);
 
   const opacity = activeIndex === 2 ? 0 : 1;
+  const isIOS = Platform.OS === "ios";
+
+  if (isIOS && isLiquidGlassSupported && LiquidGlassView) {
+    return (
+      <LiquidGlassView
+        effect="regular"
+        onLayout={onLayout}
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 26,
+          overflow: "hidden",
+          backgroundColor: "transparent",
+          borderWidth: 1,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        {/* Chromatic Aberration - Red channel shift (left offset) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: -0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+          }}
+        />
+        {/* Chromatic Aberration - Blue channel shift (right offset) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+          }}
+        />
+        {/* Main Glass Indicator (neutral white/dark) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0,
+            opacity,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+            shadowColor: isDarkMode ? "#fff" : "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isDarkMode ? 0.3 : 0.15,
+            shadowRadius: 6,
+            elevation: 3,
+            overflow: "hidden",
+          }}
+        >
+          <LinearGradient
+            colors={[
+              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+              "transparent"
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      </LiquidGlassView>
+    );
+  }
 
   return (
     <View

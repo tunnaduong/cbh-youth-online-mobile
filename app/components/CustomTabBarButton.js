@@ -21,6 +21,19 @@ import { useTranslation } from "react-i18next";
 
 const { width, height } = Dimensions.get("window");
 
+let LiquidGlassView = null;
+let isLiquidGlassSupported = false;
+
+if (Platform.OS === 'ios') {
+  try {
+    const LiquidGlass = require('@callstack/liquid-glass');
+    LiquidGlassView = LiquidGlass.LiquidGlassView;
+    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
+  } catch (error) {
+    console.warn("Failed to load @callstack/liquid-glass:", error);
+  }
+}
+
 const CustomTabBarButton = ({ onPress }) => {
   const rotation = useRef(new Animated.Value(0)).current;
   const button1Anim = useRef(new Animated.Value(0)).current;
@@ -233,21 +246,41 @@ const CustomTabBarButton = ({ onPress }) => {
         <Animated.View
           style={[styles.iconContainer, { transform: [{ rotate }] }]}
         >
-          <View style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            backgroundColor: theme.cardBackground,
-            justifyContent: "center",
-            alignItems: "center",
-          }}>
-            <Ionicons
-              name="add-circle"
-              size={52}
-              color={theme.primary}
-              style={styles.icon}
-            />
-          </View>
+          {Platform.OS === 'ios' && isLiquidGlassSupported && LiquidGlassView ? (
+            <LiquidGlassView
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              effect="clear"
+            >
+              <Ionicons
+                name="add-circle"
+                size={52}
+                color={theme.primary}
+                style={styles.icon}
+              />
+            </LiquidGlassView>
+          ) : (
+            <View style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: theme.cardBackground,
+              justifyContent: "center",
+              alignItems: "center",
+            }}>
+              <Ionicons
+                name="add-circle"
+                size={52}
+                color={theme.primary}
+                style={styles.icon}
+              />
+            </View>
+          )}
         </Animated.View>
         {!hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>{t('navigation.create')}</Text>}
       </Pressable>
