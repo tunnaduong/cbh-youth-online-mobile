@@ -15,9 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "icon": {
-        "dark": "./app/assets/2026-ios.png",
-        "light": "./app/assets/2026-ios.png",
-        "tinted": "./app/assets/2026-ios.png"
+        "dark": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
+        "light": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
+        "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
       "infoPlist": {
@@ -41,8 +41,9 @@
         }
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./app/assets/2026-android.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./app/assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff",
+        "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth"
     },
