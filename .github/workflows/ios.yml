@@ -46,9 +46,15 @@ jobs:
           echo "APP_NAME=$WORKSPACE_NAME" >> $GITHUB_ENV
           echo "Detected App Name: $WORKSPACE_NAME"
 
+      - name: Install xcbeautify
+        run: brew install xcbeautify
+
       - name: Build Unsigned iOS Archive
         run: |
           cd ios
+          
+          # Đảm bảo bắt đúng exit code của xcodebuild khi dùng pipe
+          set -o pipefail
           
           xcodebuild clean archive \
             -workspace "${{ env.APP_NAME }}.xcworkspace" \
@@ -58,7 +64,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER=""
+            PROVISIONING_PROFILE_SPECIFIER="" | xcbeautify --quiet --renderer github-actions
 
       - name: Package .xcarchive into Unsigned .ipa
         run: |
