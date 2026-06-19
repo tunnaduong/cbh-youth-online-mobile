@@ -18,6 +18,19 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 
+let LiquidGlassView = null;
+let isLiquidGlassSupported = false;
+
+if (Platform.OS === 'ios') {
+  try {
+    const LiquidGlass = require('@callstack/liquid-glass');
+    LiquidGlassView = LiquidGlass.LiquidGlassView;
+    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
+  } catch (error) {
+    console.warn("Failed to load @callstack/liquid-glass:", error);
+  }
+}
+
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
@@ -69,18 +82,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   }, [currentIndicatorLeft]);
 
   const opacity = activeIndex === 2 ? 0 : 1;
-  return (
-    <View
-      onLayout={onLayout}
-      style={{
-        ...StyleSheet.absoluteFillObject,
-        borderRadius: 26,
-        overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
-        borderWidth: 1,
-        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-      }}
-    >
+  const isIOSGlass = Platform.OS === 'ios' && isLiquidGlassSupported && LiquidGlassView;
+
+  const innerContent = (
+    <>
       {/* Chromatic Aberration - Red channel shift (left offset) */}
       <Animated.View
         style={{
@@ -140,6 +145,41 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={StyleSheet.absoluteFillObject}
         />
       </Animated.View>
+    </>
+  );
+
+  if (isIOSGlass) {
+    return (
+      <LiquidGlassView
+        onLayout={onLayout}
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 26,
+          overflow: "hidden",
+          borderWidth: 1,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+        }}
+        effect="regular"
+        colorScheme={isDarkMode ? "dark" : "light"}
+      >
+        {innerContent}
+      </LiquidGlassView>
+    );
+  }
+
+  return (
+    <View
+      onLayout={onLayout}
+      style={{
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 26,
+        overflow: "hidden",
+        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+        borderWidth: 1,
+        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+      }}
+    >
+      {innerContent}
     </View>
   );
 };
