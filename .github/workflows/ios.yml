@@ -63,6 +63,28 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
+          # Trích xuất thông tin từ Provisioning Profile
+          security cms -D -i $PP_PATH > $RUNNER_TEMP/profile.plist
+          TEAM_ID=$(plutil -extract TeamIdentifier.0 raw $RUNNER_TEMP/profile.plist || plutil -extract Entitlements.com.apple.developer.team-identifier raw $RUNNER_TEMP/profile.plist)
+          UUID=$(plutil -extract UUID raw $RUNNER_TEMP/profile.plist)
+          PROFILE_NAME=$(plutil -extract Name raw $RUNNER_TEMP/profile.plist)
+          FULL_APP_ID=$(plutil -extract Entitlements.application-identifier raw $RUNNER_TEMP/profile.plist)
+          BUNDLE_ID="${FULL_APP_ID#*.}"
+          if [ "$BUNDLE_ID" = "*" ]; then
+            BUNDLE_ID="com.fatties.youth"
+          fi
+
+          echo "DEVELOPMENT_TEAM=$TEAM_ID" >> $GITHUB_ENV
+          echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
+          echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
+          echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
+
+          echo "Successfully extracted signing info:"
+          echo "Team ID: $TEAM_ID"
+          echo "UUID: $UUID"
+          echo "Profile Name: $PROFILE_NAME"
+          echo "Bundle ID: $BUNDLE_ID"
+
       - name: Install dependencies
         run: npm ci
 
@@ -97,7 +119,12 @@ jobs:
             -workspace "${{ env.APP_NAME }}.xcworkspace" \
             -scheme "${{ env.APP_NAME }}" \
             -configuration Release \
-            -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" | xcbeautify --quiet --renderer github-actions
+            -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
+            DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
+            PROVISIONING_PROFILE="${{ env.PROVISIONING_PROFILE_UUID }}" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}" \
+            CODE_SIGN_STYLE="Manual" \
+            | xcbeautify --quiet --renderer github-actions
 
       - name: Export IPA
         run: |
@@ -113,7 +140,14 @@ jobs:
               <key>destination</key>
               <string>export</string>
               <key>signingStyle</key>
-              <string>automatic</string>
+              <string>manual</string>
+              <key>teamID</key>
+              <string>${{ env.DEVELOPMENT_TEAM }}</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${{ env.BUNDLE_ID }}</key>
+                  <string>${{ env.PROVISIONING_PROFILE_NAME }}</string>
+              </dict>
           </dict>
           </plist>
           EOF
