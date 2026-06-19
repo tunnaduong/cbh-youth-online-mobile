@@ -16,6 +16,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const StoryViewersScreen = ({ route, navigation }) => {
   const { storyId } = route.params;
@@ -23,6 +24,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     fetchViewers();
@@ -108,7 +110,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
@@ -134,7 +136,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
           contentContainerStyle={styles.listContent}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
