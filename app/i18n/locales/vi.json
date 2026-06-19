@@ -1,6 +1,7 @@
 {
   "time": {
     "justNow": "Vừa xong",
+    "secondsAgo": "{{count}} giây trước",
     "minutesAgo": "{{count}} phút trước",
     "hoursAgo": "{{count}} giờ trước",
     "daysAgo": "{{count}} ngày trước",

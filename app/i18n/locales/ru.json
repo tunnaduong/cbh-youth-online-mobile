@@ -1,6 +1,9 @@
 {
   "time": {
     "justNow": "Только что",
+    "secondsAgo_one": "{{count}} секунду назад",
+    "secondsAgo_few": "{{count}} секунды назад",
+    "secondsAgo_many": "{{count}} секунд назад",
     "minutesAgo_one": "{{count}} минуту назад",
     "minutesAgo_few": "{{count}} минуты назад",
     "minutesAgo_many": "{{count}} минут назад",

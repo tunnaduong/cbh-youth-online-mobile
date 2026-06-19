@@ -206,12 +206,11 @@ const Sidebar = () => {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <SafeAreaView style={{ flex: 1, marginTop: Platform.OS === "android" ? 0 : 44 }}>
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: 40 }}
-          showsVerticalScrollIndicator={false}
-        >
+    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
+        showsVerticalScrollIndicator={false}
+      >
           <TouchableOpacity
             style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 16, gap: 8 }}
             onPress={() => navigation.navigate("ProfileScreen", { username })}
@@ -464,7 +463,6 @@ const Sidebar = () => {
             />
           </List.Section>
         </ScrollView>
-      </SafeAreaView>
     </View>
   );
 };

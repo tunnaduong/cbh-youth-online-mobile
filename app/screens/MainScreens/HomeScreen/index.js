@@ -1221,9 +1221,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       stories: user.stories.map((story) => ({
         ...story,
         date: formatTime(story.created_at || story.created_at_human || ""),
+        renderFooter: () => (
+          <ReplyBar
+            storyId={story.storyId}
+            userId={story.userId}
+            username={story.username}
+            navigation={navigation}
+            viewersCount={story.viewers_count || 0}
+            onDismissStory={dismissStoryModal}
+          />
+        ),
       })),
     }));
-  }, [userStories, blockedUsers, t]);
+  }, [userStories, blockedUsers, t, navigation]);
 
   const ReplyBar = ({
     storyId,
@@ -1233,6 +1243,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     viewersCount = 0,
     onDismissStory,
   }) => {
+    const { t } = useTranslation();
+    const { theme, isDarkMode } = useTheme();
     const [floatingEmojis, setFloatingEmojis] = useState([]);
     const [replyText, setReplyText] = useState("");
     const [isSending, setIsSending] = useState(false);
@@ -1380,8 +1392,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           <View style={styles.replyBar}>
             <TextInput
               placeholder={t('chat.typeMessage')}
-              placeholderTextColor={theme.subText}
-              style={[styles.input, { backgroundColor: isDarkMode ? "#374151" : "#666666", color: isDarkMode ? theme.text : "#FFFFFF" }]}
+              placeholderTextColor="rgba(255, 255, 255, 0.6)"
+              style={[
+                styles.input,
+                {
+                  backgroundColor: "rgba(255, 255, 255, 0.15)",
+                  color: "#ffffff",
+                  borderWidth: 1,
+                  borderColor: "rgba(255, 255, 255, 0.2)",
+                },
+              ]}
               value={replyText}
               onChangeText={setReplyText}
               onFocus={() => storyRef?.current.pause()}
