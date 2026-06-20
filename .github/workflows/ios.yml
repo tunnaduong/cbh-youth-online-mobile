@@ -180,7 +180,7 @@ jobs:
           path: ${{ runner.temp }}/*-signed.ipa
           retention-days: 7
 
-      # Tự động sinh file manifest, bọc trang đệm HTML và tạo link cài đặt trực tiếp
+      # Tự động sinh file manifest, bọc trang đệm HTML chuẩn định dạng và tạo link cài đặt trực tiếp
       - name: Generate and Host OTA Manifest
         id: ota_host
         run: |
@@ -266,16 +266,19 @@ jobs:
           </html>
           EOF
 
-          # Upload file HTML này lên paste service để nhận link HTTPS sạch dạng tĩnh
-          REDIRECT_PAGE_URL=$(curl -s --data-binary "@$RUNNER_TEMP/install.html" https://paste.c-net.org/ | tr -d '\r\n[:space:]')
+          # Upload file HTML lên dịch vụ kvdb.io kèm Header ép kiểu text/html để Safari render giao diện web
+          RANDOM_KEY=$(openssl rand -hex 8)
+          curl -s -X POST -H "Content-Type: text/html" --data-binary "@$RUNNER_TEMP/install.html" "https://kvdb.io/4K6XmQp1Dpx97WksY7b8nK/$RANDOM_KEY"
+          
+          REDIRECT_PAGE_URL="https://kvdb.io/4K6XmQp1Dpx97WksY7b8nK/$RANDOM_KEY"
           
           if [ -z "$REDIRECT_PAGE_URL" ] || [[ "$REDIRECT_PAGE_URL" != http* ]]; then
-            echo "Thử server dự phòng html qua ix.io..."
-            REDIRECT_PAGE_URL=$(curl -s -F 'f:1=@'$RUNNER_TEMP/install.html ix.io | tr -d '\r\n[:space:]')
+             echo "Thử phương án dự phòng bằng file.io nếu dịch vụ kvdb nghẽn..."
+             REDIRECT_PAGE_URL=$(curl -s -F "file=@$RUNNER_TEMP/install.html" -F "expiry=1d" https://file.io | python3 -c "import sys, json; print(json.load(sys.stdin).get('link',''))" | tr -d '\r\n[:space:]')
           fi
 
           if [ -z "$REDIRECT_PAGE_URL" ] || [[ "$REDIRECT_PAGE_URL" != http* ]]; then
-            echo "Lỗi: Không thể host trang đệm install.html"
+            echo "Lỗi: Tất cả các dịch vụ khởi tạo trang đệm tĩnh đều thất bại."
             exit 1
           fi
 
@@ -312,7 +315,7 @@ jobs:
             
             ![Scan to Install](${{ env.OTA_QR_URL }})
             
-            *Chú ý: Cả đường dẫn và mã QR đều sử dụng link HTTPS chuẩn nên nút bấm sẽ sáng bình thường. Vui lòng đảm bảo bạn mở trang đệm bằng Safari nếu iOS không hiển thị pop-up cài đặt.*
+            *Chú ý: Cả đường dẫn và mã QR đều sử dụng link HTTPS chuẩn nên nút bấm sẽ sáng xanh bình thường. Vui lòng đảm bảo bạn mở trang đệm bằng Safari nếu iOS không hiển thị pop-up cài đặt.*
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
