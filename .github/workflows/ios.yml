@@ -28,6 +28,11 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Configure Node path for Xcode build phases
+        run: |
+          sudo ln -sf $(which node) /usr/local/bin/node
+          echo "export NODE_BINARY=$(which node)" > ios/.xcode.env.local
+
       - name: Install Apple Certificate and Provisioning Profile
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}

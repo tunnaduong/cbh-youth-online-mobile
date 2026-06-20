@@ -110,6 +110,98 @@ index 2cfc99b..e59f43b 100644
 -#endif
 -
  @end
+diff --git a/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewContainerNativeComponent.ts b/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewContainerNativeComponent.ts
+index 40dae13..f074a4b 100644
+--- a/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewContainerNativeComponent.ts
++++ b/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewContainerNativeComponent.ts
+@@ -1,15 +1,15 @@
+ import {
+   codegenNativeComponent,
+   type ViewProps,
+-  type CodegenTypes,
+ } from 'react-native';
++import type { Float } from 'react-native/Libraries/Types/CodegenTypes';
+ 
+ export interface NativeProps extends ViewProps {
+   /**
+    * The distance between elements at which they begin to merge.
+    * Defaults to 0.
+    */
+-  spacing?: CodegenTypes.Float;
++  spacing?: Float;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('LiquidGlassContainerView');
+diff --git a/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewNativeComponent.ts b/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewNativeComponent.ts
+index 4e87aae..fa4e8bc 100644
+--- a/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewNativeComponent.ts
++++ b/node_modules/@callstack/liquid-glass/lib/module/LiquidGlassViewNativeComponent.ts
+@@ -2,17 +2,17 @@ import {
+   codegenNativeComponent,
+   type ViewProps,
+   type ColorValue,
+-  type CodegenTypes,
+ } from 'react-native';
++import type { Float, WithDefault } from 'react-native/Libraries/Types/CodegenTypes';
+ 
+ export interface NativeProps extends ViewProps {
+   interactive?: boolean;
+-  effect?: CodegenTypes.WithDefault<'clear' | 'regular' | 'none', 'regular'>;
+-  animated?: CodegenTypes.WithDefault<boolean, true>;
+-  animationDuration?: CodegenTypes.WithDefault<CodegenTypes.Float, 0>;
+-  hasAnimationDuration?: CodegenTypes.WithDefault<boolean, false>;
++  effect?: WithDefault<'clear' | 'regular' | 'none', 'regular'>;
++  animated?: WithDefault<boolean, true>;
++  animationDuration?: WithDefault<Float, 0>;
++  hasAnimationDuration?: WithDefault<boolean, false>;
+   tintColor?: ColorValue;
+-  colorScheme?: CodegenTypes.WithDefault<'light' | 'dark' | 'system', 'system'>;
++  colorScheme?: WithDefault<'light' | 'dark' | 'system', 'system'>;
+ }
+ 
+ export default codegenNativeComponent<NativeProps>('LiquidGlassView');
+diff --git a/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewContainerNativeComponent.d.ts b/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewContainerNativeComponent.d.ts
+index f96c2e2..4149028 100644
+--- a/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewContainerNativeComponent.d.ts
++++ b/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewContainerNativeComponent.d.ts
+@@ -1,10 +1,11 @@
+-import { type ViewProps, type CodegenTypes } from 'react-native';
++import { type ViewProps } from 'react-native';
++import type { Float } from 'react-native/Libraries/Types/CodegenTypes';
+ export interface NativeProps extends ViewProps {
+     /**
+      * The distance between elements at which they begin to merge.
+      * Defaults to 0.
+      */
+-    spacing?: CodegenTypes.Float;
++    spacing?: Float;
+ }
+ declare const _default: import("react-native/types_generated/Libraries/Utilities/codegenNativeComponent").NativeComponentType<NativeProps>;
+ export default _default;
+diff --git a/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewNativeComponent.d.ts b/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewNativeComponent.d.ts
+index 5a27de6..922da4d 100644
+--- a/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewNativeComponent.d.ts
++++ b/node_modules/@callstack/liquid-glass/lib/typescript/src/LiquidGlassViewNativeComponent.d.ts
+@@ -1,12 +1,13 @@
+-import { type ViewProps, type ColorValue, type CodegenTypes } from 'react-native';
++import { type ViewProps, type ColorValue } from 'react-native';
++import type { Float, WithDefault } from 'react-native/Libraries/Types/CodegenTypes';
+ export interface NativeProps extends ViewProps {
+     interactive?: boolean;
+-    effect?: CodegenTypes.WithDefault<'clear' | 'regular' | 'none', 'regular'>;
+-    animated?: CodegenTypes.WithDefault<boolean, true>;
+-    animationDuration?: CodegenTypes.WithDefault<CodegenTypes.Float, 0>;
+-    hasAnimationDuration?: CodegenTypes.WithDefault<boolean, false>;
++    effect?: WithDefault<'clear' | 'regular' | 'none', 'regular'>;
++    animated?: WithDefault<boolean, true>;
++    animationDuration?: WithDefault<Float, 0>;
++    hasAnimationDuration?: WithDefault<boolean, false>;
+     tintColor?: ColorValue;
+-    colorScheme?: CodegenTypes.WithDefault<'light' | 'dark' | 'system', 'system'>;
++    colorScheme?: WithDefault<'light' | 'dark' | 'system', 'system'>;
+ }
+ declare const _default: import("react-native/types_generated/Libraries/Utilities/codegenNativeComponent").NativeComponentType<NativeProps>;
+ export default _default;
 diff --git a/node_modules/@callstack/liquid-glass/src/LiquidGlassViewContainerNativeComponent.ts b/node_modules/@callstack/liquid-glass/src/LiquidGlassViewContainerNativeComponent.ts
 index 40dae13..f074a4b 100644
 --- a/node_modules/@callstack/liquid-glass/src/LiquidGlassViewContainerNativeComponent.ts
