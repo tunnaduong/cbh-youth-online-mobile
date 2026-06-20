@@ -192,6 +192,8 @@ const CustomTabBarButton = ({ onPress }) => {
         {isIosReal ? (
           <LiquidGlassView
             effect="regular"
+            colorScheme={isDarkMode ? 'dark' : 'light'}
+            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
             style={[
               styles.additionalButtonGlass,
               {

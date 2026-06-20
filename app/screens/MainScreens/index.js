@@ -433,6 +433,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
           <LiquidGlassContainerView spacing={12} style={styles.iosTabBarContainer}>
             <LiquidGlassView
               effect="regular"
+              colorScheme={isDarkMode ? 'dark' : 'light'}
+              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
               onLayout={onLeftPillLayout}
               style={[
                 styles.iosLeftPill,
@@ -444,6 +446,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             >
               <AnimatedLiquidGlassView
                 effect="clear"
+                colorScheme={isDarkMode ? 'dark' : 'light'}
                 style={{
                   position: "absolute",
                   width: currentIndicatorWidth,
@@ -460,6 +463,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
             <LiquidGlassView
               effect="clear"
+              colorScheme={isDarkMode ? 'dark' : 'light'}
+              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
               style={styles.iosRightPill}
             >
               <CustomTabBarButton
