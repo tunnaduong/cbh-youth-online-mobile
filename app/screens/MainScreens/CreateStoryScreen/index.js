@@ -49,6 +49,7 @@ import { createStory } from "../../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import KeyboardSpacer from "react-native-keyboard-spacer";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -430,6 +431,7 @@ const CameraUI = ({ permission, cameraRef, cameraType, handleCloseCamera, handle
 
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
+  const { theme, isDarkMode } = useTheme();
   const [selectedImage, setSelectedImage] = useState(null);
   const [text, setText] = useState("");
   const [textPosition, setTextPosition] = useState({
@@ -821,13 +823,14 @@ const CreateStoryScreen = ({ navigation }) => {
       disabled={(!selectedImage && !isTextOnly) || isUploading}
     >
       <Text
-        className={`text-base font-semibold ${
-          selectedImage || isTextOnly
+        style={{
+          color: selectedImage || isTextOnly
             ? isUploading
-              ? "text-[#319527]/50"
-              : "text-[#319527]"
-            : "text-[#319527]/50"
-        }`}
+              ? `${theme.primary}80`
+              : theme.primary
+            : `${theme.primary}80`,
+        }}
+        className="text-base font-semibold"
       >
         {isDrawing ? t("story.done") : isUploading ? t("story.posting") : t("story.share")}
       </Text>
@@ -836,9 +839,9 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isCameraMode || isDarkMode ? "light-content" : "dark-content"} />
 
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {/* Header */}
         {!isCameraMode && (
           <View
@@ -857,10 +860,10 @@ const CreateStoryScreen = ({ navigation }) => {
                     : "arrow-back"
                 }
                 size={28}
-                color="#fff"
+                color={theme.text}
               />
             </TouchableOpacity>
-            <Text className="text-white text-lg font-semibold">
+            <Text style={{ color: theme.text }} className="text-lg font-semibold">
               {isDrawing
                 ? t("story.draw")
                 : isTextOnly
@@ -1008,41 +1011,43 @@ const CreateStoryScreen = ({ navigation }) => {
               <View className="flex-row items-center justify-center py-5 gap-4 mx-2">
                 <TouchableHighlight
                   onPress={handleCameraPress}
-                  className="flex-1"
+                  className="flex-1 rounded-xl"
+                  underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
                 >
-                  <View className="items-center justify-center h-[100px] rounded-xl bg-neutral-900 border-2 border-neutral-800">
+                  <View style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} className="items-center justify-center h-[100px] rounded-xl border-2">
                     <Ionicons
                       name="camera-outline"
                       size={40}
-                      color="#fff"
+                      color={theme.text}
                       style={{ marginBottom: 3 }}
                     />
-                    <Text className="text-white text-md font-semibold">
+                    <Text style={{ color: theme.text }} className="text-md font-semibold">
                       {t("story.takePhoto")}
                     </Text>
                   </View>
                 </TouchableHighlight>
                 <TouchableHighlight
                   onPress={handleTextOnlyStory}
-                  className="flex-1"
+                  className="flex-1 rounded-xl"
+                  underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
                 >
-                  <View className="items-center justify-center h-[100px] rounded-xl bg-neutral-900 border-2 border-neutral-800">
+                  <View style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} className="items-center justify-center h-[100px] rounded-xl border-2">
                     <Ionicons
                       name="text-outline"
                       size={40}
-                      color="#fff"
+                      color={theme.text}
                       style={{ marginBottom: 3 }}
                     />
-                    <Text className="text-white text-md font-semibold">
+                    <Text style={{ color: theme.text }} className="text-md font-semibold">
                       {t("story.text")}
                     </Text>
                   </View>
                 </TouchableHighlight>
               </View>
-              <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.background }]} onPress={pickImage}>
                 <View style={styles.imagePickerContent}>
-                  <Ionicons name="image" size={40} color="#fff" />
-                  <Text style={styles.imagePickerText}>
+                  <Ionicons name="image" size={40} color={theme.text} />
+                  <Text style={[styles.imagePickerText, { color: theme.text }]}>
                     {t("story.pickFromGallery")}
                   </Text>
                 </View>
