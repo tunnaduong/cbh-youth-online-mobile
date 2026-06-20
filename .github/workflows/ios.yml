@@ -23,7 +23,7 @@ jobs:
         with:
           xcode-version: '26.0' 
 
-       Tar: Setup Node.js
+      # Sửa lỗi dòng 17: Đã dọn sạch ký tự rác thừa
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -168,7 +168,6 @@ jobs:
       - name: Generate OTA Files
         id: ota_process
         run: |
-          # Định nghĩa URL cố định của IPA và HTML trên khu vực Release của GitHub
           IPA_DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/dhphuc-ios/${{ env.APP_NAME }}-signed.ipa"
           GITHUB_HTML_URL="https://github.com/${{ github.repository }}/releases/download/dhphuc-ios/install.html"
           
@@ -203,7 +202,7 @@ jobs:
           </plist>
           EOF
 
-          # Đẩy manifest.plist lên paste service (Lưu ý: itms bắt buộc đọc từ raw link không redirect)
+          # Đẩy manifest.plist lên paste service để tránh dính lỗi redirect của AWS từ link GitHub Asset
           RAW_PLIST_URL=$(curl -s --data-binary "@$RUNNER_TEMP/manifest.plist" https://paste.c-net.org/ | tr -d '\r\n[:space:]')
           if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
             RAW_PLIST_URL=$(curl -s -F 'f:1=@'$RUNNER_TEMP/manifest.plist ix.io | tr -d '\r\n[:space:]')
@@ -212,7 +211,7 @@ jobs:
           echo "Manifest RAW URL: $RAW_PLIST_URL"
           OTA_INSTALL_URL="itms-services://?action=download-manifest&url=$RAW_PLIST_URL"
           
-          # 2. Tạo file install.html - Sẽ được upload thẳng lên GitHub Release cùng với file IPA
+          # 2. Tạo file install.html - Sẽ được upload lên GitHub Release cùng với file IPA
           cat <<EOF > $RUNNER_TEMP/install.html
           <!DOCTYPE html>
           <html>
@@ -241,15 +240,14 @@ jobs:
           </html>
           EOF
 
-          # Lưu các thông tin đường dẫn ra môi trường GitHub Biến
           echo "FINAL_HTTPS_LINK=$GITHUB_HTML_URL" >> $GITHUB_ENV
           
-          # Mã hóa link HTML chính chủ của GitHub để sinh mã QR
+          # Mã hóa link HTML chính chủ của GitHub để tạo QR Code an toàn
           ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$GITHUB_HTML_URL'''))")
           QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$ENCODED_URL"
           echo "OTA_QR_URL=$QR_IMAGE_URL" >> $GITHUB_ENV
 
-      # Đẩy cả file IPA và file install.html lên GitHub Releases
+      # Đẩy cả file IPA và file install.html lên cùng một GitHub Release
       - name: Create or Update Pre-release
         uses: ncipollo/release-action@v1
         with:
