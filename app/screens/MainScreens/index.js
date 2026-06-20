@@ -331,7 +331,7 @@ const CustomTabBar = ({
         : (isDarkMode ? "#A0A0A0" : "gray");
 
       const textColor = isFocused
-        ? (Platform.OS === 'android' ? theme.text : theme.primary)
+        ? (Platform.OS === 'android' && !isDarkMode ? theme.text : theme.primary)
         : (isDarkMode ? "#A0A0A0" : "gray");
 
       return (
