@@ -12,6 +12,7 @@ import {
   TouchableWithoutFeedback,
   Dimensions,
   Platform,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -21,6 +22,18 @@ import { useTranslation } from "react-i18next";
 
 const { width, height } = Dimensions.get("window");
 
+let LiquidGlassView = null;
+let isLiquidGlassSupported = false;
+
+if (Platform.OS === 'ios') {
+  try {
+    const LiquidGlass = require('@callstack/liquid-glass');
+    LiquidGlassView = LiquidGlass.LiquidGlassView;
+    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
+  } catch (error) {
+    console.warn("Failed to load @callstack/liquid-glass:", error);
+  }
+}
 
 const CustomTabBarButton = ({ onPress }) => {
   const rotation = useRef(new Animated.Value(0)).current;
@@ -156,99 +169,107 @@ const CustomTabBarButton = ({ onPress }) => {
     opacity: button3Anim,
   };
 
+  const renderSubButton = (buttonAnimStyle, onPress, icon, labelKey) => {
+    const isIosReal = Platform.OS === 'ios' && isLiquidGlassSupported && LiquidGlassView;
+    const content = (
+      <TouchableOpacity
+        style={styles.additionalButtonTouch}
+        onPress={() => {
+          onPress();
+          handleDismiss();
+        }}
+        activeOpacity={0.8}
+      >
+        <Ionicons name={icon} size={28} color={theme.primary} />
+        <Text style={[styles.buttonText, { color: theme.primary }]} numberOfLines={1}>
+          {t(labelKey)}
+        </Text>
+      </TouchableOpacity>
+    );
+
+    return (
+      <Animated.View style={[styles.additionalButtonContainer, buttonAnimStyle]}>
+        {isIosReal ? (
+          <LiquidGlassView
+            effect="regular"
+            style={[
+              styles.additionalButtonGlass,
+              {
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
+          >
+            {content}
+          </LiquidGlassView>
+        ) : (
+          <View
+            style={[
+              styles.additionalButtonAndroid,
+              {
+                backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.74)" : "rgba(255, 255, 255, 0.74)",
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
+          >
+            {content}
+          </View>
+        )}
+      </Animated.View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {showButtons && (
+      <Modal
+        visible={showButtons}
+        transparent={true}
+        animationType="none"
+        onRequestClose={handleDismiss}
+      >
         <TouchableWithoutFeedback onPress={handleDismiss}>
-          <View style={styles.dismissOverlay} />
+          <View style={StyleSheet.absoluteFillObject} />
         </TouchableWithoutFeedback>
-      )}
 
-      {showButtons && (
-        <View style={styles.overlay}>
-          <Animated.View style={[styles.additionalButton, button3Style, Platform.OS === 'ios' ? { right: -40 } : {}, { backgroundColor: theme.cardBackground }]}>
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onPress={() => {
-                navigation.navigate("CreatePostScreen");
-                handleDismiss();
-              }}
-            >
-              <Ionicons name="create-outline" size={35} color={theme.primary} />
-              <Text style={[styles.buttonText, { color: theme.primary }]}>{t('createActions.post')}</Text>
-            </TouchableOpacity>
-          </Animated.View>
-          <Animated.View style={[styles.additionalButton, button1Style, Platform.OS === 'ios' ? { right: -40 } : {}, { backgroundColor: theme.cardBackground }]}>
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onPress={() => {
-                Toast.show({
-                  type: "info",
-                  text1: t('createActions.development'),
-                });
-                handleDismiss();
-              }}
-            >
-              <Ionicons name="mic-outline" size={35} color={theme.primary} />
-              <Text
-                style={[
-                  styles.buttonText,
-                  { textAlign: "left", marginLeft: 10, color: theme.primary },
-                ]}
-              >
-                {t('createActions.recording')}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-          <Animated.View style={[styles.additionalButton, button2Style, Platform.OS === 'ios' ? { right: -40 } : {}, { backgroundColor: theme.cardBackground }]}>
-            <TouchableOpacity
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              onPress={() => {
-                navigation.navigate("ReportScreen");
-                handleDismiss();
-              }}
-            >
-              <Ionicons
-                name="document-text-outline"
-                size={35}
-                color={theme.primary}
-              />
-              <Text style={[styles.buttonText, { color: theme.primary }]}>{t('createActions.report')}</Text>
-            </TouchableOpacity>
-          </Animated.View>
+        <View
+          style={{
+            position: "absolute",
+            bottom: Platform.OS === 'ios' ? 24 : 12,
+            right: 20,
+            width: 56,
+            height: 56,
+          }}
+          pointerEvents="box-none"
+        >
+          {renderSubButton(button3Style, () => navigation.navigate("CreatePostScreen"), "create-outline", "createActions.post")}
+          {renderSubButton(button1Style, () => {
+            Toast.show({
+              type: "info",
+              text1: t('createActions.development'),
+            });
+          }, "mic-outline", "createActions.recording")}
+          {renderSubButton(button2Style, () => navigation.navigate("ReportScreen"), "document-text-outline", "createActions.report")}
         </View>
-      )}
+      </Modal>
+
       <Pressable style={[styles.buttonContainer, Platform.OS === 'ios' ? { top: 0 } : { top: hideTabLabels ? -15 : -21 }]} onPress={handlePress}>
         <Animated.View
           style={[styles.iconContainer, { transform: [{ rotate }] }]}
         >
-            <View style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: Platform.OS === 'ios' ? 'transparent' : theme.cardBackground,
-              justifyContent: "center",
-              alignItems: "center",
-            }}>
-              <Ionicons
-                name="add-circle"
-                size={52}
-                color={theme.primary}
-                style={styles.icon}
-              />
-            </View>
+          <View style={{
+            width: 56,
+            height: 56,
+            borderRadius: 28,
+            backgroundColor: "transparent",
+            justifyContent: "center",
+            alignItems: "center",
+          }}>
+            <Ionicons
+              name="add-circle"
+              size={52}
+              color={theme.primary}
+              style={styles.icon}
+            />
+          </View>
         </Animated.View>
         {Platform.OS !== 'ios' && !hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>{t('navigation.create')}</Text>}
       </Pressable>
@@ -259,20 +280,6 @@ const CustomTabBarButton = ({ onPress }) => {
 const styles = StyleSheet.create({
   container: {
     alignItems: "center",
-  },
-  dismissOverlay: {
-    position: "absolute",
-    top: -height,
-    left: -width / 2,
-    width: width * 2,
-    height: height * 2,
-    backgroundColor: "transparent",
-    zIndex: 1,
-  },
-  overlay: {
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 2,
   },
   buttonContainer: {
     alignItems: "center",
@@ -294,25 +301,45 @@ const styles = StyleSheet.create({
     fontSize: 9,
     marginTop: 3,
   },
-  additionalButton: {
+  additionalButtonContainer: {
     position: "absolute",
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 40,
-    padding: 10,
-    marginHorizontal: 10,
     width: 155,
+    height: 50,
+    left: -49.5,
+  },
+  additionalButtonGlass: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 25,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+  additionalButtonAndroid: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 25,
+    overflow: "hidden",
+    borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 3,
   },
+  additionalButtonTouch: {
+    width: "100%",
+    height: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    justifyContent: "center",
+  },
   buttonText: {
     marginLeft: 5,
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: "600",
     textAlign: "center",
-    width: 90,
+    width: 95,
   },
 });
 

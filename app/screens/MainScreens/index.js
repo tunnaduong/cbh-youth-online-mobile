@@ -300,7 +300,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return () => subscription.remove();
   }, []);
 
-  const IosTabBar = ({ state, descriptors, navigation }) => {
+  const CustomTabBar = ({ state, descriptors, navigation }) => {
     const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
     const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -331,8 +331,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
     const usableWidth = tabBarWidth - 16;
     const buttonWidth = usableWidth / 4;
-    const currentIndicatorWidth = buttonWidth;
-    const currentIndicatorLeft = 8 + (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
+    const currentIndicatorWidth = buttonWidth - 8;
+    const currentIndicatorLeft = 8 + 4 + (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
     useEffect(() => {
       Animated.spring(slideAnim, {
@@ -447,9 +447,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 style={{
                   position: "absolute",
                   width: currentIndicatorWidth,
-                  height: 52,
-                  borderRadius: 26,
-                  top: 0,
+                  height: 44,
+                  borderRadius: 22,
+                  top: 3,
                   left: 0,
                   opacity,
                   transform: [{ translateX: slideAnim }],
@@ -495,19 +495,65 @@ export default function MainScreens({ navigation: stackNavigation }) {
               }
             ]}
           >
+            {/* Chromatic Aberration - Red channel shift */}
             <Animated.View
               style={{
                 position: "absolute",
                 width: currentIndicatorWidth,
-                height: 52,
-                borderRadius: 26,
-                top: 0,
+                height: 44,
+                borderRadius: 22,
+                top: 3,
+                left: -0.8,
+                opacity: opacity * 0.35,
+                transform: [{ translateX: slideAnim }],
+                backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+              }}
+            />
+            {/* Chromatic Aberration - Blue channel shift */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: currentIndicatorWidth,
+                height: 44,
+                borderRadius: 22,
+                top: 3,
+                left: 0.8,
+                opacity: opacity * 0.35,
+                transform: [{ translateX: slideAnim }],
+                backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+              }}
+            />
+            {/* Main Glass Indicator */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: currentIndicatorWidth,
+                height: 44,
+                borderRadius: 22,
+                top: 3,
                 left: 0,
                 opacity,
                 transform: [{ translateX: slideAnim }],
-                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.5)",
+                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                shadowColor: isDarkMode ? "#fff" : "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                shadowRadius: 6,
+                elevation: 3,
+                overflow: "hidden",
               }}
-            />
+            >
+              <LinearGradient
+                colors={[
+                  isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                  isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                  "transparent"
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </Animated.View>
             {renderButtons()}
           </View>
 
@@ -516,6 +562,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               styles.iosRightPill,
               {
                 backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
               }
             ]}
           >
@@ -542,9 +590,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
         <Tab.Navigator
           ref={tabNavigatorRef}
           tabBar={(props) => {
-            if (Platform.OS === 'ios') {
-              return <IosTabBar {...props} />;
-            }
             return (
               <Animated.View
                 style={{
@@ -556,7 +601,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                   zIndex: 99,
                 }}
               >
-                <BottomTabBar {...props} />
+                <CustomTabBar {...props} />
               </Animated.View>
             );
           }}
