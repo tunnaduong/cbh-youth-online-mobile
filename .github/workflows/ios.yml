@@ -180,14 +180,14 @@ jobs:
           path: ${{ runner.temp }}/*-signed.ipa
           retention-days: 7
 
-      # Tự động sinh file manifest và tạo link cài đặt trực tiếp
+      # Tự động sinh file manifest, bọc trang đệm HTML và tạo link cài đặt trực tiếp
       - name: Generate and Host OTA Manifest
         id: ota_host
         run: |
           # Đường dẫn tải IPA cố định từ khu vực Release Asset của GitHub
           IPA_DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/dhphuc-ios/${{ env.APP_NAME }}-signed.ipa"
           
-          # Cấu trúc tệp cấu hình cài đặt mạng không dây của Apple
+          # 1. Tạo file manifest.plist cấu hình OTA cho iOS
           cat <<EOF > $RUNNER_TEMP/manifest.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -218,27 +218,72 @@ jobs:
           </plist>
           EOF
 
-          # Upload file plist lên dịch vụ raw text tĩnh công khai
+          # Upload file plist lên dịch vụ raw text
           RAW_PLIST_URL=$(curl -s --data-binary "@$RUNNER_TEMP/manifest.plist" https://paste.c-net.org/ | tr -d '\r\n[:space:]')
           
           if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
-            echo "Lỗi: Không thể lấy URL manifest hợp lệ từ paste.c-net.org. Thử server dự phòng..."
+            echo "Thử server dự phòng ix.io cho manifest..."
             RAW_PLIST_URL=$(curl -s -F 'f:1=@'$RUNNER_TEMP/manifest.plist ix.io | tr -d '\r\n[:space:]')
           fi
           
           if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
-            echo "Lỗi: Tất cả các dịch vụ lưu trữ manifest tạm thời đều thất bại."
+            echo "Lỗi: Không thể host manifest.plist"
             exit 1
           fi
           
-          echo "Manifest RAW URL hợp lệ: $RAW_PLIST_URL"
+          echo "Manifest RAW URL: $RAW_PLIST_URL"
           
-          # Cú pháp kích hoạt trình tải iOS OTA dịch vụ itms
+          # Cú pháp kích hoạt trình cài đặt của hệ điều hành iOS
           OTA_INSTALL_URL="itms-services://?action=download-manifest&url=$RAW_PLIST_URL"
-          echo "OTA_LINK=$OTA_INSTALL_URL" >> $GITHUB_ENV
           
-          # URL Encode dùng Python3 cho mã QR đề phòng trường hợp muốn quét từ PC
-          ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$OTA_INSTALL_URL'''))")
+          # 2. Tạo file HTML đệm để tự động chuyển hướng và ép gọi lệnh cài đặt hệ thống
+          cat <<EOF > $RUNNER_TEMP/install.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Cài đặt ứng dụng iOS</title>
+              <style>
+                  body { font-family: -apple-system, sans-serif; text-align: center; padding-top: 60px; color: #333; background-color: #f5f5f7; }
+                  .container { max-width: 90%; margin: 0 auto; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+                  .btn { display: inline-block; padding: 14px 28px; background: #007aff; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 25px; box-shadow: 0 2px 5px rgba(0,122,255,0.3); }
+                  p { font-size: 15px; color: #666; line-height: 1.5; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h2>Đang mở trình cài đặt iOS...</h2>
+                  <p>Hệ thống sẽ tự động hiện pop-up hỏi <b>"Bạn có muốn cài đặt không?"</b> trong vài giây.</p>
+                  <p>Nếu không thấy pop-up hiện lên, vui lòng bấm vào nút lớn màu xanh dưới đây để kích hoạt thủ công (Bắt buộc chạy bằng trình duyệt Safari).</p>
+                  <a href="$OTA_INSTALL_URL" class="btn">Bấm vào đây để cài đặt</a>
+              </div>
+              <script>
+                  // Kích hoạt ngay lập tức lệnh gọi trình cài đặt gốc khi load trang đệm
+                  window.location.href = "$OTA_INSTALL_URL";
+              </script>
+          </body>
+          </html>
+          EOF
+
+          # Upload file HTML này lên paste service để nhận link HTTPS sạch dạng tĩnh
+          REDIRECT_PAGE_URL=$(curl -s --data-binary "@$RUNNER_TEMP/install.html" https://paste.c-net.org/ | tr -d '\r\n[:space:]')
+          
+          if [ -z "$REDIRECT_PAGE_URL" ] || [[ "$REDIRECT_PAGE_URL" != http* ]]; then
+            echo "Thử server dự phòng html qua ix.io..."
+            REDIRECT_PAGE_URL=$(curl -s -F 'f:1=@'$RUNNER_TEMP/install.html ix.io | tr -d '\r\n[:space:]')
+          fi
+
+          if [ -z "$REDIRECT_PAGE_URL" ] || [[ "$REDIRECT_PAGE_URL" != http* ]]; then
+            echo "Lỗi: Không thể host trang đệm install.html"
+            exit 1
+          fi
+
+          echo "Redirect Page HTTPS URL: $REDIRECT_PAGE_URL"
+          echo "FINAL_HTTPS_LINK=$REDIRECT_PAGE_URL" >> $GITHUB_ENV
+          
+          # Mã hóa URL bằng Python3 để chèn an toàn tuyệt đối vào API tạo QR
+          ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$REDIRECT_PAGE_URL'''))")
           QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$ENCODED_URL"
           echo "OTA_QR_URL=$QR_IMAGE_URL" >> $GITHUB_ENV
 
@@ -255,19 +300,19 @@ jobs:
             - **Commit SHA:** `${{ github.sha }}`
             - **Branch:** `${{ github.ref_name }}`
             
-            ### 🔗 Direct OTA Install (For Safari on iPhone)
-            Nếu bạn đang mở trang này bằng Safari trên iPhone, hãy nhấn trực tiếp vào đường dẫn dưới đây để cài đặt ứng dụng:
+            ### 🔗 Direct OTA Install (Dành cho Safari trên iPhone)
+            Nếu bạn đang mở trang GitHub này bằng iPhone, chỉ cần nhấn trực tiếp vào liên kết bên dưới để tiến hành cài đặt ứng dụng:
             
-            👉 **[BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT TRỰC TIẾP](${{ env.OTA_LINK }})**
+            👉 **[BẤM VÀO ĐÂY ĐỂ ĐẾN TRANG CÀI ĐẶT TRỰC TIẾP](${{ env.FINAL_HTTPS_LINK }})**
             
             ---
             
-            ### 📲 Scan QR Code to Install (For PC/Other Devices)
-            Nếu đang dùng máy tính, bạn có thể đưa camera iPhone lên quét mã này để cài đặt nhanh qua OTA:
+            ### 📲 Scan QR Code to Install (Quét qua thiết bị khác)
+            Nếu đang mở trang này trên PC, hãy bật ứng dụng Camera trên iPhone để quét mã dưới đây nhằm truy cập trang kích hoạt cài đặt:
             
             ![Scan to Install](${{ env.OTA_QR_URL }})
             
-            *Lưu ý: Thiết bị của bạn cần phải có UDID nằm trong Provisioning Profile đã dùng để sign, hoặc máy đã cài đặt môi trường hỗ trợ bỏ qua sign (TrollStore).*
+            *Chú ý: Cả đường dẫn và mã QR đều sử dụng link HTTPS chuẩn nên nút bấm sẽ sáng bình thường. Vui lòng đảm bảo bạn mở trang đệm bằng Safari nếu iOS không hiển thị pop-up cài đặt.*
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
