@@ -124,7 +124,6 @@ jobs:
             -scheme "${{ env.APP_NAME }}" \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
-            -allowProvisioningUpdates \
             DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="Apple Development" \
