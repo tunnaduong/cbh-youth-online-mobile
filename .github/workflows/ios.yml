@@ -180,7 +180,7 @@ jobs:
           path: ${{ runner.temp }}/*-signed.ipa
           retention-days: 7
 
-      # Tự động sinh file manifest và sinh mã QR tải trực tiếp qua OTA 
+      # Tự động sinh file manifest và tạo link cài đặt trực tiếp
       - name: Generate and Host OTA Manifest
         id: ota_host
         run: |
@@ -218,7 +218,7 @@ jobs:
           </plist>
           EOF
 
-          # Upload file plist lên dịch vụ raw text (Sử dụng thêm phương án bọc trọc đầu/cuối chuỗi trắng)
+          # Upload file plist lên dịch vụ raw text tĩnh công khai
           RAW_PLIST_URL=$(curl -s --data-binary "@$RUNNER_TEMP/manifest.plist" https://paste.c-net.org/ | tr -d '\r\n[:space:]')
           
           if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
@@ -235,11 +235,10 @@ jobs:
           
           # Cú pháp kích hoạt trình tải iOS OTA dịch vụ itms
           OTA_INSTALL_URL="itms-services://?action=download-manifest&url=$RAW_PLIST_URL"
+          echo "OTA_LINK=$OTA_INSTALL_URL" >> $GITHUB_ENV
           
-          # Dùng Python3 có sẵn để URL Encode thay thế hoàn toàn cho jq nhằm tránh lỗi 'Invalid numeric literal'
+          # URL Encode dùng Python3 cho mã QR đề phòng trường hợp muốn quét từ PC
           ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$OTA_INSTALL_URL'''))")
-          
-          # Sinh ảnh mã QR từ URL cài đặt 
           QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$ENCODED_URL"
           echo "OTA_QR_URL=$QR_IMAGE_URL" >> $GITHUB_ENV
 
@@ -256,12 +255,19 @@ jobs:
             - **Commit SHA:** `${{ github.sha }}`
             - **Branch:** `${{ github.ref_name }}`
             
-            ### 📲 Scan QR to Install Directly (OTA)
-            Mở ứng dụng Camera trên iPhone của bạn để quét mã này và tiến hành cài đặt ứng dụng trực tiếp qua OTA:
+            ### 🔗 Direct OTA Install (For Safari on iPhone)
+            Nếu bạn đang mở trang này bằng Safari trên iPhone, hãy nhấn trực tiếp vào đường dẫn dưới đây để cài đặt ứng dụng:
+            
+            👉 **[BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT TRỰC TIẾP](${{ env.OTA_LINK }})**
+            
+            ---
+            
+            ### 📲 Scan QR Code to Install (For PC/Other Devices)
+            Nếu đang dùng máy tính, bạn có thể đưa camera iPhone lên quét mã này để cài đặt nhanh qua OTA:
             
             ![Scan to Install](${{ env.OTA_QR_URL }})
             
-            *Lưu ý: Thiết bị nhận cần phải được nạp sẵn UDID vào Provisioning Profile (Ad-hoc / Dev Cert) hoặc cài qua các công cụ hỗ trợ bypass sign như TrollStore.*
+            *Lưu ý: Thiết bị của bạn cần phải có UDID nằm trong Provisioning Profile đã dùng để sign, hoặc máy đã cài đặt môi trường hỗ trợ bỏ qua sign (TrollStore).*
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
