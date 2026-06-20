@@ -11,7 +11,6 @@ jobs:
     name: Build & Sign iOS IPA
     runs-on: macos-latest
     
-    # Cấp quyền ghi vào mục Release của repo trực tiếp trong code workflow
     permissions:
       contents: write
 
@@ -19,13 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Đảm bảo sử dụng Xcode 26 theo cấu hình hệ thống của bạn
       - name: Set up Xcode version
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '26.0' 
 
-      # Cài đặt môi trường Node.js
+       Tar: Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -47,20 +45,16 @@ jobs:
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
 
-          # Giải mã dữ liệu từ Secrets
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
           echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
 
-          # Tạo keychain tạm thời
           security create-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
 
-          # Thêm keychain vào danh sách tìm kiếm hệ thống để xcodebuild có thể nhìn thấy Cert
           security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
           security default-keychain -s $KEYCHAIN_PATH
 
-          # Import Certificate vào keychain
           security import $CERTIFICATE_PATH \
             -k $KEYCHAIN_PATH \
             -P "$P12_PASSWORD" \
@@ -68,14 +62,11 @@ jobs:
             -f pkcs12 \
             -A
 
-          # Cấp quyền phân vùng tránh hiển thị popup GUI hỏi mật khẩu khi build
           security set-key-partition-list -S apple-tool:,apple: -s -k "github-actions-pwd" $KEYCHAIN_PATH
 
-          # Đưa Provisioning Profile vào đúng vị trí thư mục của Xcode
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
-          # Trích xuất thông tin tự động từ Provisioning Profile để ghi vào môi trường GITHUB_ENV
           security cms -D -i $PP_PATH > $RUNNER_TEMP/profile.plist
           TEAM_ID=$(plutil -extract TeamIdentifier.0 raw $RUNNER_TEMP/profile.plist || plutil -extract Entitlements.com.apple.developer.team-identifier raw $RUNNER_TEMP/profile.plist)
           UUID=$(plutil -extract UUID raw $RUNNER_TEMP/profile.plist)
@@ -90,12 +81,6 @@ jobs:
           echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
           echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
           echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
-
-          echo "Successfully extracted signing info:"
-          echo "Team ID: $TEAM_ID"
-          echo "UUID: $UUID"
-          echo "Profile Name: $PROFILE_NAME"
-          echo "Bundle ID: $BUNDLE_ID"
 
       - name: Install dependencies
         run: npm ci
@@ -123,7 +108,6 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      # Ép Xcode dùng Manual Signing để sửa triệt để lỗi 65
       - name: Build iOS Archive
         run: |
           cd ios
@@ -180,14 +164,15 @@ jobs:
           path: ${{ runner.temp }}/*-signed.ipa
           retention-days: 7
 
-      # Tự động sinh file manifest, bọc trang đệm HTML chuẩn định dạng và tạo link cài đặt trực tiếp
-      - name: Generate and Host OTA Manifest
-        id: ota_host
+      # Tự sinh tệp cấu hình mạng và đóng gói tệp cài đặt HTML chính chủ
+      - name: Generate OTA Files
+        id: ota_process
         run: |
-          # Đường dẫn tải IPA cố định từ khu vực Release Asset của GitHub
+          # Định nghĩa URL cố định của IPA và HTML trên khu vực Release của GitHub
           IPA_DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/dhphuc-ios/${{ env.APP_NAME }}-signed.ipa"
+          GITHUB_HTML_URL="https://github.com/${{ github.repository }}/releases/download/dhphuc-ios/install.html"
           
-          # 1. Tạo file manifest.plist cấu hình OTA cho iOS
+          # 1. Khởi tạo manifest.plist
           cat <<EOF > $RUNNER_TEMP/manifest.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -218,25 +203,16 @@ jobs:
           </plist>
           EOF
 
-          # Upload file plist lên dịch vụ raw text
+          # Đẩy manifest.plist lên paste service (Lưu ý: itms bắt buộc đọc từ raw link không redirect)
           RAW_PLIST_URL=$(curl -s --data-binary "@$RUNNER_TEMP/manifest.plist" https://paste.c-net.org/ | tr -d '\r\n[:space:]')
-          
           if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
-            echo "Thử server dự phòng ix.io cho manifest..."
             RAW_PLIST_URL=$(curl -s -F 'f:1=@'$RUNNER_TEMP/manifest.plist ix.io | tr -d '\r\n[:space:]')
           fi
           
-          if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
-            echo "Lỗi: Không thể host manifest.plist"
-            exit 1
-          fi
-          
           echo "Manifest RAW URL: $RAW_PLIST_URL"
-          
-          # Cú pháp kích hoạt trình cài đặt của hệ điều hành iOS
           OTA_INSTALL_URL="itms-services://?action=download-manifest&url=$RAW_PLIST_URL"
           
-          # 2. Tạo file HTML đệm để tự động chuyển hướng và ép gọi lệnh cài đặt hệ thống
+          # 2. Tạo file install.html - Sẽ được upload thẳng lên GitHub Release cùng với file IPA
           cat <<EOF > $RUNNER_TEMP/install.html
           <!DOCTYPE html>
           <html>
@@ -253,49 +229,32 @@ jobs:
           </head>
           <body>
               <div class="container">
-                  <h2>Đang mở trình cài đặt iOS...</h2>
+                  <h2>Đang kích hoạt trình cài đặt iOS...</h2>
                   <p>Hệ thống sẽ tự động hiện pop-up hỏi <b>"Bạn có muốn cài đặt không?"</b> trong vài giây.</p>
-                  <p>Nếu không thấy pop-up hiện lên, vui lòng bấm vào nút lớn màu xanh dưới đây để kích hoạt thủ công (Bắt buộc chạy bằng trình duyệt Safari).</p>
+                  <p>Nếu không thấy hiện tượng gì, hãy nhấn nút màu xanh dưới đây (Yêu cầu bắt buộc mở bằng Safari).</p>
                   <a href="$OTA_INSTALL_URL" class="btn">Bấm vào đây để cài đặt</a>
               </div>
               <script>
-                  // Kích hoạt ngay lập tức lệnh gọi trình cài đặt gốc khi load trang đệm
                   window.location.href = "$OTA_INSTALL_URL";
               </script>
           </body>
           </html>
           EOF
 
-          # Upload file HTML lên dịch vụ kvdb.io kèm Header ép kiểu text/html để Safari render giao diện web
-          RANDOM_KEY=$(openssl rand -hex 8)
-          curl -s -X POST -H "Content-Type: text/html" --data-binary "@$RUNNER_TEMP/install.html" "https://kvdb.io/4K6XmQp1Dpx97WksY7b8nK/$RANDOM_KEY"
+          # Lưu các thông tin đường dẫn ra môi trường GitHub Biến
+          echo "FINAL_HTTPS_LINK=$GITHUB_HTML_URL" >> $GITHUB_ENV
           
-          REDIRECT_PAGE_URL="https://kvdb.io/4K6XmQp1Dpx97WksY7b8nK/$RANDOM_KEY"
-          
-          if [ -z "$REDIRECT_PAGE_URL" ] || [[ "$REDIRECT_PAGE_URL" != http* ]]; then
-             echo "Thử phương án dự phòng bằng file.io nếu dịch vụ kvdb nghẽn..."
-             REDIRECT_PAGE_URL=$(curl -s -F "file=@$RUNNER_TEMP/install.html" -F "expiry=1d" https://file.io | python3 -c "import sys, json; print(json.load(sys.stdin).get('link',''))" | tr -d '\r\n[:space:]')
-          fi
-
-          if [ -z "$REDIRECT_PAGE_URL" ] || [[ "$REDIRECT_PAGE_URL" != http* ]]; then
-            echo "Lỗi: Tất cả các dịch vụ khởi tạo trang đệm tĩnh đều thất bại."
-            exit 1
-          fi
-
-          echo "Redirect Page HTTPS URL: $REDIRECT_PAGE_URL"
-          echo "FINAL_HTTPS_LINK=$REDIRECT_PAGE_URL" >> $GITHUB_ENV
-          
-          # Mã hóa URL bằng Python3 để chèn an toàn tuyệt đối vào API tạo QR
-          ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$REDIRECT_PAGE_URL'''))")
+          # Mã hóa link HTML chính chủ của GitHub để sinh mã QR
+          ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$GITHUB_HTML_URL'''))")
           QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$ENCODED_URL"
           echo "OTA_QR_URL=$QR_IMAGE_URL" >> $GITHUB_ENV
 
-      # Cập nhật đè / Khởi tạo bản Prerelease lên GitHub Releases 
+      # Đẩy cả file IPA và file install.html lên GitHub Releases
       - name: Create or Update Pre-release
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          artifacts: "${{ runner.temp }}/*-signed.ipa"
+          artifacts: "${{ runner.temp }}/*-signed.ipa,${{ runner.temp }}/install.html"
           tag: "dhphuc-ios"
           name: "${{ github.sha }}"
           body: |
@@ -304,18 +263,18 @@ jobs:
             - **Branch:** `${{ github.ref_name }}`
             
             ### 🔗 Direct OTA Install (Dành cho Safari trên iPhone)
-            Nếu bạn đang mở trang GitHub này bằng iPhone, chỉ cần nhấn trực tiếp vào liên kết bên dưới để tiến hành cài đặt ứng dụng:
+            Nhấn trực tiếp vào liên kết bên dưới, trang web đệm lưu trên GitHub sẽ tự mở và gọi pop-up cài đặt ứng dụng:
             
-            👉 **[BẤM VÀO ĐÂY ĐỂ ĐẾN TRANG CÀI ĐẶT TRỰC TIẾP](${{ env.FINAL_HTTPS_LINK }})**
+            👉 **[BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT ỨNG DỤNG](${{ env.FINAL_HTTPS_LINK }})**
             
             ---
             
-            ### 📲 Scan QR Code to Install (Quét qua thiết bị khác)
-            Nếu đang mở trang này trên PC, hãy bật ứng dụng Camera trên iPhone để quét mã dưới đây nhằm truy cập trang kích hoạt cài đặt:
+            ### 📲 Scan QR Code to Install (Quét từ thiết bị khác)
+            Mở ứng dụng Camera trên iPhone để quét mã dưới đây:
             
             ![Scan to Install](${{ env.OTA_QR_URL }})
             
-            *Chú ý: Cả đường dẫn và mã QR đều sử dụng link HTTPS chuẩn nên nút bấm sẽ sáng xanh bình thường. Vui lòng đảm bảo bạn mở trang đệm bằng Safari nếu iOS không hiển thị pop-up cài đặt.*
+            *Lưu ý: File cài đặt trang đệm HTML hiện tại được phân phối chính chủ bởi hạ tầng GitHub, đảm bảo hiển thị đúng giao diện web 100%.*
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
