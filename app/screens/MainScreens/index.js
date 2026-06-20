@@ -19,13 +19,19 @@ import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 
 let LiquidGlassView = null;
+let LiquidGlassContainerView = null;
 let isLiquidGlassSupported = false;
+let AnimatedLiquidGlassView = null;
 
 if (Platform.OS === 'ios') {
   try {
     const LiquidGlass = require('@callstack/liquid-glass');
     LiquidGlassView = LiquidGlass.LiquidGlassView;
+    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
     isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
+    if (LiquidGlassView) {
+      AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
+    }
   } catch (error) {
     console.warn("Failed to load @callstack/liquid-glass:", error);
   }
@@ -340,137 +346,130 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
     const opacity = activeRouteName === "Create" ? 0 : 1;
 
-    const renderLeftPillContent = () => (
-      <>
-        {/* Sliding indicators */}
+    const renderButtons = () => {
+      return leftRoutes.map(({ route, index, descriptor }) => {
+        const isFocused = state.routes[state.index].key === route.key;
+        const { options } = descriptor;
+
+        const onPress = () => {
+          if (route.name === "Home" && isFocused) {
+            triggerHomeScrollOrReload();
+            return;
+          }
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name, route.params);
+          }
+        };
+
+        let iconName;
+        let badgeCount = null;
+        if (route.name === "Home") {
+          iconName = isFocused ? "home" : "home-outline";
+        } else if (route.name === "Forum") {
+          iconName = isFocused ? "people" : "people-outline";
+        } else if (route.name === "Chat") {
+          iconName = isFocused ? "chatbubble" : "chatbubble-outline";
+          badgeCount = chatUnreadCount;
+        } else if (route.name === "Notifications") {
+          iconName = isFocused ? "notifications" : "notifications-outline";
+          badgeCount = notificationUnreadCount;
+        }
+
+        const tintColor = isFocused
+          ? theme.primary
+          : (isDarkMode ? "#A0A0A0" : "gray");
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            onPress={onPress}
+            style={styles.iosTabButton}
+            activeOpacity={0.8}
+          >
+            <View style={styles.iosTabButtonInner}>
+              <View style={{ position: "relative" }}>
+                <Ionicons name={iconName} size={24} color={tintColor} />
+                {badgeCount !== null && <TabBarBadge count={badgeCount} />}
+              </View>
+              {!hideTabLabels && (
+                <Text
+                  style={[
+                    styles.iosTabLabel,
+                    {
+                      color: tintColor,
+                      fontWeight: "bold",
+                    }
+                  ]}
+                  numberOfLines={1}
+                >
+                  {options.title || route.name}
+                </Text>
+              )}
+            </View>
+          </TouchableOpacity>
+        );
+      });
+    };
+
+    if (isLiquidGlassSupported && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView) {
+      return (
         <Animated.View
+          onLayout={onContainerLayout}
           style={{
             position: "absolute",
-            width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
-            top: 0,
-            left: -0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
-          }}
-        />
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
-            top: 0,
-            left: 0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
-          }}
-        />
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
-            top: 0,
+            bottom: 0,
             left: 0,
-            opacity,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-            shadowColor: isDarkMode ? "#fff" : "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isDarkMode ? 0.3 : 0.15,
-            shadowRadius: 6,
-            elevation: 3,
-            overflow: "hidden",
+            right: 0,
+            transform: [{ translateY: tabBarTranslateY }],
+            zIndex: 99,
           }}
         >
-          <LinearGradient
-            colors={[
-              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-              "transparent"
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </Animated.View>
-
-        {/* Buttons */}
-        {leftRoutes.map(({ route, index, descriptor }) => {
-          const isFocused = state.routes[state.index].key === route.key;
-          const { options } = descriptor;
-
-          const onPress = () => {
-            if (route.name === "Home" && isFocused) {
-              triggerHomeScrollOrReload();
-              return;
-            }
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name, route.params);
-            }
-          };
-
-          let iconName;
-          let badgeCount = null;
-          if (route.name === "Home") {
-            iconName = isFocused ? "home" : "home-outline";
-          } else if (route.name === "Forum") {
-            iconName = isFocused ? "people" : "people-outline";
-          } else if (route.name === "Chat") {
-            iconName = isFocused ? "chatbubble" : "chatbubble-outline";
-            badgeCount = chatUnreadCount;
-          } else if (route.name === "Notifications") {
-            iconName = isFocused ? "notifications" : "notifications-outline";
-            badgeCount = notificationUnreadCount;
-          }
-
-          const tintColor = isFocused
-            ? theme.primary
-            : (isDarkMode ? "#A0A0A0" : "gray");
-
-          return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={onPress}
-              style={styles.iosTabButton}
-              activeOpacity={0.8}
+          <LiquidGlassContainerView spacing={12} style={styles.iosTabBarContainer}>
+            <LiquidGlassView
+              effect="regular"
+              onLayout={onLeftPillLayout}
+              style={[
+                styles.iosLeftPill,
+                {
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                }
+              ]}
             >
-              <View style={styles.iosTabButtonInner}>
-                <View style={{ position: "relative" }}>
-                  <Ionicons name={iconName} size={24} color={tintColor} />
-                  {badgeCount !== null && <TabBarBadge count={badgeCount} />}
-                </View>
-                {!hideTabLabels && (
-                  <Text
-                    style={[
-                      styles.iosTabLabel,
-                      {
-                        color: tintColor,
-                        fontWeight: "bold",
-                      }
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {options.title || route.name}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </>
-    );
+              <AnimatedLiquidGlassView
+                effect="clear"
+                style={{
+                  position: "absolute",
+                  width: currentIndicatorWidth,
+                  height: 52,
+                  borderRadius: 26,
+                  top: 0,
+                  left: 0,
+                  opacity,
+                  transform: [{ translateX: slideAnim }],
+                }}
+              />
+              {renderButtons()}
+            </LiquidGlassView>
+
+            <LiquidGlassView
+              effect="clear"
+              style={styles.iosRightPill}
+            >
+              <CustomTabBarButton
+                onPress={() => {}}
+              />
+            </LiquidGlassView>
+          </LiquidGlassContainerView>
+        </Animated.View>
+      );
+    }
 
     return (
       <Animated.View
@@ -485,37 +484,41 @@ export default function MainScreens({ navigation: stackNavigation }) {
         }}
       >
         <View style={styles.iosTabBarContainer}>
-          {isLiquidGlassSupported && LiquidGlassView ? (
-            <LiquidGlassView
-              effect="regular"
-              onLayout={onLeftPillLayout}
-              style={[
-                styles.iosLeftPill,
-                {
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                }
-              ]}
-            >
-              {renderLeftPillContent()}
-            </LiquidGlassView>
-          ) : (
-            <View
-              onLayout={onLeftPillLayout}
-              style={[
-                styles.iosLeftPill,
-                {
-                  backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                }
-              ]}
-            >
-              {renderLeftPillContent()}
-            </View>
-          )}
+          <View
+            onLayout={onLeftPillLayout}
+            style={[
+              styles.iosLeftPill,
+              {
+                backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
+          >
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: currentIndicatorWidth,
+                height: 52,
+                borderRadius: 26,
+                top: 0,
+                left: 0,
+                opacity,
+                transform: [{ translateX: slideAnim }],
+                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.5)",
+              }}
+            />
+            {renderButtons()}
+          </View>
 
-          <View style={styles.iosRightPill}>
+          <View
+            style={[
+              styles.iosRightPill,
+              {
+                backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+              }
+            ]}
+          >
             <CustomTabBarButton
               onPress={() => {}}
             />
