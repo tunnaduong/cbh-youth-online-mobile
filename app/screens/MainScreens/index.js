@@ -326,12 +326,8 @@ const CustomTabBar = ({
         badgeCount = notificationUnreadCount;
       }
 
-      const iconColor = isFocused
+      const tintColor = isFocused
         ? theme.primary
-        : (isDarkMode ? "#A0A0A0" : "gray");
-
-      const textColor = isFocused
-        ? (Platform.OS === 'android' && !isDarkMode ? theme.text : theme.primary)
         : (isDarkMode ? "#A0A0A0" : "gray");
 
       return (
@@ -343,7 +339,7 @@ const CustomTabBar = ({
         >
           <View style={styles.iosTabButtonInner}>
             <View style={{ position: "relative" }}>
-              <Ionicons name={iconName} size={24} color={iconColor} />
+              <Ionicons name={iconName} size={24} color={tintColor} />
               {badgeCount !== null && <TabBarBadge count={badgeCount} />}
             </View>
             {!hideTabLabels && (
@@ -351,7 +347,7 @@ const CustomTabBar = ({
                 style={[
                   styles.iosTabLabel,
                   {
-                    color: textColor,
+                    color: tintColor,
                     fontWeight: isFocused ? "bold" : "normal",
                   },
                 ]}
