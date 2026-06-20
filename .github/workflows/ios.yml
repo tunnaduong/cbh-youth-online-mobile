@@ -218,21 +218,29 @@ jobs:
           </plist>
           EOF
 
-          # Upload file plist lên dịch vụ raw text an toàn không dính redirect
-          RAW_PLIST_URL=$(curl -s --data-binary "@$RUNNER_TEMP/manifest.plist" https://paste.c-net.org/)
+          # Upload file plist lên dịch vụ raw text (Sử dụng thêm phương án bọc trọc đầu/cuối chuỗi trắng)
+          RAW_PLIST_URL=$(curl -s --data-binary "@$RUNNER_TEMP/manifest.plist" https://paste.c-net.org/ | tr -d '\r\n[:space:]')
           
-          if [ -z "$RAW_PLIST_URL" ]; then
-            echo "Lỗi: Không thể khởi tạo dịch vụ lưu trữ manifest tạm thời."
+          if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
+            echo "Lỗi: Không thể lấy URL manifest hợp lệ từ paste.c-net.org. Thử server dự phòng..."
+            RAW_PLIST_URL=$(curl -s -F 'f:1=@'$RUNNER_TEMP/manifest.plist ix.io | tr -d '\r\n[:space:]')
+          fi
+          
+          if [ -z "$RAW_PLIST_URL" ] || [[ "$RAW_PLIST_URL" != http* ]]; then
+            echo "Lỗi: Tất cả các dịch vụ lưu trữ manifest tạm thời đều thất bại."
             exit 1
           fi
           
-          echo "Manifest RAW URL: $RAW_PLIST_URL"
+          echo "Manifest RAW URL hợp lệ: $RAW_PLIST_URL"
           
           # Cú pháp kích hoạt trình tải iOS OTA dịch vụ itms
           OTA_INSTALL_URL="itms-services://?action=download-manifest&url=$RAW_PLIST_URL"
           
+          # Dùng Python3 có sẵn để URL Encode thay thế hoàn toàn cho jq nhằm tránh lỗi 'Invalid numeric literal'
+          ENCODED_URL=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$OTA_INSTALL_URL'''))")
+          
           # Sinh ảnh mã QR từ URL cài đặt 
-          QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$(echo -n $OTA_INSTALL_URL | jq -rr @uri)"
+          QR_IMAGE_URL="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=$ENCODED_URL"
           echo "OTA_QR_URL=$QR_IMAGE_URL" >> $GITHUB_ENV
 
       # Cập nhật đè / Khởi tạo bản Prerelease lên GitHub Releases 
@@ -249,11 +257,11 @@ jobs:
             - **Branch:** `${{ github.ref_name }}`
             
             ### 📲 Scan QR to Install Directly (OTA)
-            Mở ứng dụng Camera trên iPhone của bạn để quét mã này và tiến hành cài đặt ứng dụng trực tiếp:
+            Mở ứng dụng Camera trên iPhone của bạn để quét mã này và tiến hành cài đặt ứng dụng trực tiếp qua OTA:
             
             ![Scan to Install](${{ env.OTA_QR_URL }})
             
-            *Lưu ý: Thiết bị nhận cần phải được nạp sẵn UDID vào Provisioning Profile (Ad-hoc / Dev Cert) hoặc cài qua các công cụ hỗ trợ bỏ qua sign như TrollStore.*
+            *Lưu ý: Thiết bị nhận cần phải được nạp sẵn UDID vào Provisioning Profile (Ad-hoc / Dev Cert) hoặc cài qua các công cụ hỗ trợ bypass sign như TrollStore.*
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
