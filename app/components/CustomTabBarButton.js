@@ -170,7 +170,7 @@ const CustomTabBarButton = ({ onPress }) => {
   };
 
   const renderSubButton = (buttonAnimStyle, onPress, icon, labelKey) => {
-    const isIosReal = Platform.OS === 'ios' && isLiquidGlassSupported && LiquidGlassView;
+    const isIosReal = Platform.OS === 'ios' && LiquidGlassView;
     const content = (
       <TouchableOpacity
         style={styles.additionalButtonTouch}

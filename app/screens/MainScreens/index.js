@@ -90,7 +90,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   const opacity = activeIndex === 2 ? 0 : 1;
   const isIOS = Platform.OS === "ios";
 
-  if (isIOS && isLiquidGlassSupported && LiquidGlassView) {
+  if (isIOS && LiquidGlassView) {
     return (
       <LiquidGlassView
         effect="regular"
@@ -188,9 +188,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           borderRadius: 26,
           top: 0,
           left: -0.8,
-          opacity: opacity * 0.35,
+          opacity: opacity * 0.15,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
         }}
       />
       {/* Chromatic Aberration - Blue channel shift (right offset) */}
@@ -202,9 +202,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           borderRadius: 26,
           top: 0,
           left: 0.8,
-          opacity: opacity * 0.35,
+          opacity: opacity * 0.15,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
         }}
       />
       {/* Main Glass Indicator (neutral white/dark) */}
@@ -326,8 +326,12 @@ const CustomTabBar = ({
         badgeCount = notificationUnreadCount;
       }
 
-      const tintColor = isFocused
+      const iconColor = isFocused
         ? theme.primary
+        : (isDarkMode ? "#A0A0A0" : "gray");
+
+      const textColor = isFocused
+        ? (Platform.OS === 'android' ? theme.text : theme.primary)
         : (isDarkMode ? "#A0A0A0" : "gray");
 
       return (
@@ -339,7 +343,7 @@ const CustomTabBar = ({
         >
           <View style={styles.iosTabButtonInner}>
             <View style={{ position: "relative" }}>
-              <Ionicons name={iconName} size={24} color={tintColor} />
+              <Ionicons name={iconName} size={24} color={iconColor} />
               {badgeCount !== null && <TabBarBadge count={badgeCount} />}
             </View>
             {!hideTabLabels && (
@@ -347,7 +351,7 @@ const CustomTabBar = ({
                 style={[
                   styles.iosTabLabel,
                   {
-                    color: tintColor,
+                    color: textColor,
                     fontWeight: isFocused ? "bold" : "normal",
                   },
                 ]}
@@ -361,7 +365,7 @@ const CustomTabBar = ({
     });
   };
 
-  if (isLiquidGlassSupported && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView) {
+  if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView) {
     return (
       <Animated.View
         style={{
@@ -390,6 +394,7 @@ const CustomTabBar = ({
             <AnimatedLiquidGlassView
               effect="clear"
               colorScheme={isDarkMode ? 'dark' : 'light'}
+              tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.65)"}
               style={{
                 position: "absolute",
                 width: currentIndicatorWidth,
@@ -399,6 +404,9 @@ const CustomTabBar = ({
                 left: 0,
                 opacity,
                 transform: [{ translateX: slideAnim }],
+                borderWidth: isDarkMode ? 0 : 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                backgroundColor: isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.6)",
               }}
             />
             {renderButtons()}
@@ -451,9 +459,9 @@ const CustomTabBar = ({
               borderRadius: 22,
               top: 3,
               left: -0.8,
-              opacity: opacity * 0.35,
+              opacity: opacity * 0.15,
               transform: [{ translateX: slideAnim }],
-              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
             }}
           />
           {/* Chromatic Aberration - Blue channel shift */}
@@ -465,9 +473,9 @@ const CustomTabBar = ({
               borderRadius: 22,
               top: 3,
               left: 0.8,
-              opacity: opacity * 0.35,
+              opacity: opacity * 0.15,
               transform: [{ translateX: slideAnim }],
-              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
             }}
           />
           {/* Main Glass Indicator */}
