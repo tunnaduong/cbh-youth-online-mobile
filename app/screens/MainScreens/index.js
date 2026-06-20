@@ -294,10 +294,236 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return () => subscription.remove();
   }, []);
 
-  useEffect(() => {
-    // Reset tab bar visibility to true when switching tabs
-    DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-  }, [currentRoute]);
+  const IosTabBar = ({ state, descriptors, navigation }) => {
+    const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
+    const slideAnim = useRef(new Animated.Value(0)).current;
+
+    const onLeftPillLayout = (event) => {
+      const { width } = event.nativeEvent.layout;
+      if (width) {
+        setTabBarWidth(width);
+      }
+    };
+
+    const onContainerLayout = (event) => {
+      const { height } = event.nativeEvent.layout;
+      if (height) {
+        tabBarHeightRef.current = height;
+      }
+    };
+
+    const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
+    const leftRoutes = leftRouteNames.map(name => {
+      const route = state.routes.find(r => r.name === name);
+      const index = state.routes.indexOf(route);
+      const descriptor = descriptors[route.key];
+      return { route, index, descriptor };
+    });
+
+    const activeRouteName = state.routes[state.index].name;
+    const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
+
+    const usableWidth = tabBarWidth - 16;
+    const buttonWidth = usableWidth / 4;
+    const currentIndicatorWidth = buttonWidth;
+    const currentIndicatorLeft = 8 + (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
+
+    useEffect(() => {
+      Animated.spring(slideAnim, {
+        toValue: currentIndicatorLeft,
+        useNativeDriver: true,
+        stiffness: 140,
+        damping: 14,
+        mass: 1.2,
+      }).start();
+    }, [currentIndicatorLeft]);
+
+    const opacity = activeRouteName === "Create" ? 0 : 1;
+
+    const renderLeftPillContent = () => (
+      <>
+        {/* Sliding indicators */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: -0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+          }}
+        />
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+          }}
+        />
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0,
+            opacity,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+            shadowColor: isDarkMode ? "#fff" : "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isDarkMode ? 0.3 : 0.15,
+            shadowRadius: 6,
+            elevation: 3,
+            overflow: "hidden",
+          }}
+        >
+          <LinearGradient
+            colors={[
+              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+              "transparent"
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+
+        {/* Buttons */}
+        {leftRoutes.map(({ route, index, descriptor }) => {
+          const isFocused = state.routes[state.index].key === route.key;
+          const { options } = descriptor;
+
+          const onPress = () => {
+            if (route.name === "Home" && isFocused) {
+              triggerHomeScrollOrReload();
+              return;
+            }
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name, route.params);
+            }
+          };
+
+          let iconName;
+          let badgeCount = null;
+          if (route.name === "Home") {
+            iconName = isFocused ? "home" : "home-outline";
+          } else if (route.name === "Forum") {
+            iconName = isFocused ? "people" : "people-outline";
+          } else if (route.name === "Chat") {
+            iconName = isFocused ? "chatbubble" : "chatbubble-outline";
+            badgeCount = chatUnreadCount;
+          } else if (route.name === "Notifications") {
+            iconName = isFocused ? "notifications" : "notifications-outline";
+            badgeCount = notificationUnreadCount;
+          }
+
+          const tintColor = isFocused
+            ? theme.primary
+            : (isDarkMode ? "#A0A0A0" : "gray");
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              style={styles.iosTabButton}
+              activeOpacity={0.8}
+            >
+              <View style={styles.iosTabButtonInner}>
+                <View style={{ position: "relative" }}>
+                  <Ionicons name={iconName} size={24} color={tintColor} />
+                  {badgeCount !== null && <TabBarBadge count={badgeCount} />}
+                </View>
+                {!hideTabLabels && (
+                  <Text
+                    style={[
+                      styles.iosTabLabel,
+                      {
+                        color: tintColor,
+                        fontWeight: "bold",
+                      }
+                    ]}
+                    numberOfLines={1}
+                  >
+                    {options.title || route.name}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </>
+    );
+
+    return (
+      <Animated.View
+        onLayout={onContainerLayout}
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          transform: [{ translateY: tabBarTranslateY }],
+          zIndex: 99,
+        }}
+      >
+        <View style={styles.iosTabBarContainer}>
+          {isLiquidGlassSupported && LiquidGlassView ? (
+            <LiquidGlassView
+              effect="regular"
+              onLayout={onLeftPillLayout}
+              style={[
+                styles.iosLeftPill,
+                {
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                }
+              ]}
+            >
+              {renderLeftPillContent()}
+            </LiquidGlassView>
+          ) : (
+            <View
+              onLayout={onLeftPillLayout}
+              style={[
+                styles.iosLeftPill,
+                {
+                  backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                }
+              ]}
+            >
+              {renderLeftPillContent()}
+            </View>
+          )}
+
+          <View style={styles.iosRightPill}>
+            <CustomTabBarButton
+              onPress={() => {}}
+            />
+          </View>
+        </View>
+      </Animated.View>
+    );
+  };
 
   return (
     <SideMenu
@@ -312,20 +538,25 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
-          tabBar={(props) => (
-            <Animated.View
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                transform: [{ translateY: tabBarTranslateY }],
-                zIndex: 99,
-              }}
-            >
-              <BottomTabBar {...props} />
-            </Animated.View>
-          )}
+          tabBar={(props) => {
+            if (Platform.OS === 'ios') {
+              return <IosTabBar {...props} />;
+            }
+            return (
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  transform: [{ translateY: tabBarTranslateY }],
+                  zIndex: 99,
+                }}
+              >
+                <BottomTabBar {...props} />
+              </Animated.View>
+            );
+          }}
           screenOptions={({ route }) => ({
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
@@ -526,3 +757,55 @@ export default function MainScreens({ navigation: stackNavigation }) {
     </SideMenu>
   );
 }
+
+const styles = StyleSheet.create({
+  iosTabBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 12,
+    left: 20,
+    right: 20,
+    backgroundColor: 'transparent',
+    zIndex: 99,
+  },
+  iosLeftPill: {
+    flex: 1,
+    height: 52,
+    borderRadius: 26,
+    position: 'relative',
+    marginRight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    backgroundColor: 'transparent',
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+  },
+  iosTabButton: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iosTabButtonInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iosTabLabel: {
+    fontSize: 9,
+    marginTop: 2,
+  },
+  iosRightPill: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+});

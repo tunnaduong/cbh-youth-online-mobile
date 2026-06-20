@@ -178,7 +178,7 @@ const CustomTabBarButton = ({ onPress }) => {
 
       {showButtons && (
         <View style={styles.overlay}>
-          <Animated.View style={[styles.additionalButton, button3Style, { backgroundColor: theme.cardBackground }]}>
+          <Animated.View style={[styles.additionalButton, button3Style, Platform.OS === 'ios' ? { right: -40 } : {}, { backgroundColor: theme.cardBackground }]}>
             <TouchableOpacity
               style={{
                 flexDirection: "row",
@@ -194,7 +194,7 @@ const CustomTabBarButton = ({ onPress }) => {
               <Text style={[styles.buttonText, { color: theme.primary }]}>{t('createActions.post')}</Text>
             </TouchableOpacity>
           </Animated.View>
-          <Animated.View style={[styles.additionalButton, button1Style, { backgroundColor: theme.cardBackground }]}>
+          <Animated.View style={[styles.additionalButton, button1Style, Platform.OS === 'ios' ? { right: -40 } : {}, { backgroundColor: theme.cardBackground }]}>
             <TouchableOpacity
               style={{
                 flexDirection: "row",
@@ -220,7 +220,7 @@ const CustomTabBarButton = ({ onPress }) => {
               </Text>
             </TouchableOpacity>
           </Animated.View>
-          <Animated.View style={[styles.additionalButton, button2Style, { backgroundColor: theme.cardBackground }]}>
+          <Animated.View style={[styles.additionalButton, button2Style, Platform.OS === 'ios' ? { right: -40 } : {}, { backgroundColor: theme.cardBackground }]}>
             <TouchableOpacity
               style={{
                 flexDirection: "row",
@@ -242,7 +242,7 @@ const CustomTabBarButton = ({ onPress }) => {
           </Animated.View>
         </View>
       )}
-      <Pressable style={[styles.buttonContainer, { top: hideTabLabels ? -15 : -21 }]} onPress={handlePress}>
+      <Pressable style={[styles.buttonContainer, Platform.OS === 'ios' ? { top: 0 } : { top: hideTabLabels ? -15 : -21 }]} onPress={handlePress}>
         <Animated.View
           style={[styles.iconContainer, { transform: [{ rotate }] }]}
         >
@@ -282,7 +282,7 @@ const CustomTabBarButton = ({ onPress }) => {
             </View>
           )}
         </Animated.View>
-        {!hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>{t('navigation.create')}</Text>}
+        {Platform.OS !== 'ios' && !hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>{t('navigation.create')}</Text>}
       </Pressable>
     </View>
   );
