@@ -226,6 +226,7 @@ const CustomTabBarButton = ({ onPress }) => {
         visible={showButtons}
         transparent={true}
         animationType="none"
+        statusBarTranslucent={true}
         onRequestClose={handleDismiss}
       >
         <TouchableWithoutFeedback onPress={handleDismiss}>
@@ -253,7 +254,7 @@ const CustomTabBarButton = ({ onPress }) => {
         </View>
       </Modal>
 
-      <Pressable style={[styles.buttonContainer, Platform.OS === 'ios' ? { top: 0 } : { top: hideTabLabels ? -15 : -21 }]} onPress={handlePress}>
+      <Pressable style={styles.buttonContainer} onPress={handlePress}>
         <Animated.View
           style={[styles.iconContainer, { transform: [{ rotate }] }]}
         >
@@ -273,7 +274,6 @@ const CustomTabBarButton = ({ onPress }) => {
             />
           </View>
         </Animated.View>
-        {Platform.OS !== 'ios' && !hideTabLabels && <Text style={[styles.label, { color: theme.subText }]}>{t('navigation.create')}</Text>}
       </Pressable>
     </View>
   );
@@ -286,6 +286,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     alignItems: "center",
     zIndex: 3,
+    top: 0,
   },
   iconContainer: {
     justifyContent: "center",
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: 155,
     height: 50,
-    left: -49.5,
+    right: 0,
   },
   additionalButtonGlass: {
     width: "100%",
