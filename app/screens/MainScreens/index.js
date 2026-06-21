@@ -276,8 +276,8 @@ const CustomTabBar = ({
 
   const usableWidth = tabBarWidth - 16;
   const buttonWidth = usableWidth / 4;
-  const currentIndicatorWidth = buttonWidth - 8;
-  const currentIndicatorLeft = 8 + 4 + (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
+  const currentIndicatorWidth = buttonWidth;
+  const currentIndicatorLeft = 8 + (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -394,9 +394,9 @@ const CustomTabBar = ({
               style={{
                 position: "absolute",
                 width: currentIndicatorWidth,
-                height: 44,
-                borderRadius: 22,
-                top: 3,
+                height: 50,
+                borderRadius: 25,
+                top: 0,
                 left: 0,
                 opacity,
                 transform: [{ translateX: slideAnim }],
@@ -451,9 +451,9 @@ const CustomTabBar = ({
             style={{
               position: "absolute",
               width: currentIndicatorWidth,
-              height: 44,
-              borderRadius: 22,
-              top: 3,
+              height: 50,
+              borderRadius: 25,
+              top: 0,
               left: -0.8,
               opacity: opacity * 0.15,
               transform: [{ translateX: slideAnim }],
@@ -465,9 +465,9 @@ const CustomTabBar = ({
             style={{
               position: "absolute",
               width: currentIndicatorWidth,
-              height: 44,
-              borderRadius: 22,
-              top: 3,
+              height: 50,
+              borderRadius: 25,
+              top: 0,
               left: 0.8,
               opacity: opacity * 0.15,
               transform: [{ translateX: slideAnim }],
@@ -479,9 +479,9 @@ const CustomTabBar = ({
             style={{
               position: "absolute",
               width: currentIndicatorWidth,
-              height: 44,
-              borderRadius: 22,
-              top: 3,
+              height: 50,
+              borderRadius: 25,
+              top: 0,
               left: 0,
               opacity,
               transform: [{ translateX: slideAnim }],
