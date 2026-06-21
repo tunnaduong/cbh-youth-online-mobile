@@ -274,7 +274,7 @@ const CustomTabBar = ({
   const activeRouteName = state.routes[state.index].name;
   const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
 
-  const usableWidth = tabBarWidth;
+  const usableWidth = tabBarWidth - 2;
   const buttonWidth = usableWidth / 4;
   const currentIndicatorWidth = buttonWidth;
   const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
@@ -344,6 +344,8 @@ const CustomTabBar = ({
             </View>
             {!hideTabLabels && (
               <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
                 style={[
                   styles.iosTabLabel,
                   {
@@ -842,18 +844,25 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   iosTabButton: {
-    flex: 1,
+    width: '25%',
+    maxWidth: '25%',
+    minWidth: '25%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   iosTabButtonInner: {
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
   },
   iosTabLabel: {
     fontSize: 9,
     marginTop: 2,
+    textAlign: 'center',
+    width: '100%',
+    paddingHorizontal: 2,
   },
   iosRightPill: {
     width: 56,
