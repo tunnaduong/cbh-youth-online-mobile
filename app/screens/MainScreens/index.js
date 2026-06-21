@@ -174,7 +174,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         ...StyleSheet.absoluteFillObject,
         borderRadius: 26,
         overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
         borderWidth: 1,
         borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
       }}
@@ -379,7 +379,7 @@ const CustomTabBar = ({
           <LiquidGlassView
             effect="regular"
             colorScheme={isDarkMode ? 'dark' : 'light'}
-            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
+            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
             onLayout={onLeftPillLayout}
             style={[
               styles.iosLeftPill,
@@ -413,7 +413,7 @@ const CustomTabBar = ({
           <LiquidGlassView
             effect="clear"
             colorScheme={isDarkMode ? 'dark' : 'light'}
-            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
+            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
             style={[
               styles.iosRightPill,
               {
@@ -448,7 +448,7 @@ const CustomTabBar = ({
           style={[
             styles.iosLeftPill,
             {
-              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
               borderWidth: 1,
               borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
             }
@@ -520,7 +520,7 @@ const CustomTabBar = ({
           style={[
             styles.iosRightPill,
             {
-              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
               borderWidth: 1,
               borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
             }
