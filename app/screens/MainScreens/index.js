@@ -392,7 +392,7 @@ const CustomTabBar = ({
             <AnimatedLiquidGlassView
               effect="clear"
               colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.65)"}
+              tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}
               style={{
                 position: "absolute",
                 width: currentIndicatorWidth,
@@ -404,7 +404,7 @@ const CustomTabBar = ({
                 transform: [{ translateX: slideAnim }],
                 borderWidth: isDarkMode ? 0 : 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                backgroundColor: isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.6)",
+                backgroundColor: isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)",
               }}
             />
             {renderButtons()}
@@ -414,7 +414,13 @@ const CustomTabBar = ({
             effect="clear"
             colorScheme={isDarkMode ? 'dark' : 'light'}
             tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
-            style={styles.iosRightPill}
+            style={[
+              styles.iosRightPill,
+              {
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
           >
             <CustomTabBarButton
               onPress={() => {}}
