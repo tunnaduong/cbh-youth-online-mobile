@@ -63,7 +63,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   };
 
   const activeIndex = getRouteIndex(currentRoute);
-  const usableWidth = tabBarWidth - 16;
+  const usableWidth = tabBarWidth;
   const buttonWidth = usableWidth / 5;
 
   const getIndicatorWidth = (index, bWidth) => {
@@ -71,7 +71,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   };
 
   const getIndicatorLeft = (index, bWidth) => {
-    return 8 + index * bWidth;
+    return index * bWidth;
   };
 
   const currentIndicatorWidth = getIndicatorWidth(activeIndex, buttonWidth);
@@ -274,10 +274,10 @@ const CustomTabBar = ({
   const activeRouteName = state.routes[state.index].name;
   const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
 
-  const usableWidth = tabBarWidth - 16;
+  const usableWidth = tabBarWidth;
   const buttonWidth = usableWidth / 4;
   const currentIndicatorWidth = buttonWidth;
-  const currentIndicatorLeft = 8 + (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
+  const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
   useEffect(() => {
     Animated.spring(slideAnim, {
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 8,
+    paddingHorizontal: 0,
     backgroundColor: 'transparent',
     shadowColor: "#000",
     shadowOpacity: 0.12,
