@@ -1,0 +1,61 @@
+name: Update iOS Pods
+
+on:
+  push:
+    branches:
+      - dhphuc
+  workflow_dispatch:
+
+# Grant write permissions specifically to this workflow
+permissions:
+  contents: write
+
+jobs:
+  update-pods:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: dhphuc
+          fetch-depth: 0 
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install JavaScript Dependencies
+        run: |
+          npm install
+
+      - name: Cache Pods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Fix and Install CocoaPods
+        run: |
+          cd ios
+          pod update fast_float --no-repo-update
+          pod install
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add ios/Podfile.lock
+          git add ios/Pods/Local\ Podspecs/ || true 
+          
+          if git diff --staged --quiet; then
+            echo "No changes to commit. Podfile.lock is already up to date."
+          else
+            git commit -m "chore(ios): automatically update fast_float pod and lockfile"
+            git push origin dhphuc
+          fi
