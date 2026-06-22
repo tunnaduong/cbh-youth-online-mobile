@@ -6,7 +6,7 @@ on:
       - dhphuc
   workflow_dispatch:
 
-# Grant write permissions specifically to this workflow
+# Grant write permissions to commit the updated lockfile back to your branch
 permissions:
   contents: write
 
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18 # Update this if your project uses a different Node version
           cache: 'npm'
 
       - name: Install JavaScript Dependencies
@@ -42,7 +42,8 @@ jobs:
       - name: Fix and Install CocoaPods
         run: |
           cd ios
-          pod update fast_float --no-repo-update
+          # Force CocoaPods to re-evaluate all dependencies for Expo 54
+          pod update --no-repo-update
           pod install
 
       - name: Commit and Push changes
@@ -56,6 +57,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit. Podfile.lock is already up to date."
           else
-            git commit -m "chore(ios): automatically update fast_float pod and lockfile"
+            git commit -m "chore(ios): automatically update pods for Expo 54 upgrade"
             git push origin dhphuc
           fi
