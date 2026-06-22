@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18 # Update this if your project uses a different Node version
+          node-version: 20 # Update this if your project uses a different Node version
           cache: 'npm'
 
       - name: Install JavaScript Dependencies
