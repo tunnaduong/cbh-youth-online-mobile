@@ -9,6 +9,7 @@
     "newArchEnabled": true,
     "scheme": "com.fatties.youth",
     "splash": {
+      "image": "./app/assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },

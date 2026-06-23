@@ -38,7 +38,6 @@
       <intent-filter data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
         <data android:scheme="com.fatties.youth" android:host="oauth"/>
-        <data android:scheme="exp+cbh-youth-online-mobile"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
