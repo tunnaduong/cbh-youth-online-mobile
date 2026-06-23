@@ -23,7 +23,12 @@
       "bundleIdentifier": "com.fatties.youth",
       "buildNumber": "261",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["com.fatties.youth"]
+          }
+        ]
       }
     },
     "android": {
