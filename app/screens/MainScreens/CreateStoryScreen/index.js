@@ -26,6 +26,7 @@ import {
   Alert,
   StatusBar,
   Modal,
+  KeyboardAvoidingView,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -48,7 +49,6 @@ import { captureRef } from "react-native-view-shot";
 import { createStory } from "../../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import KeyboardSpacer from "react-native-keyboard-spacer";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
@@ -246,7 +246,7 @@ const TextInputArea = React.memo(
             autoFocus
           />
         </View>
-        {!isTextOnly && <KeyboardSpacer />}
+        {!isTextOnly && <KeyboardAvoidingView behavior="padding" />}
       </Pressable>
     );
   }

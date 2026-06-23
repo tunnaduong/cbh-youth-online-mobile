@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "2.6.1",
+    "version": "2.7.4",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -21,7 +21,7 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "261",
+      "buildNumber": "274",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
@@ -53,7 +53,7 @@
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth",
-      "versionCode": 261
+      "versionCode": 274
     },
     "web": {
       "favicon": "./app/assets/favicon.png"

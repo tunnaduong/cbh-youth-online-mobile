@@ -58,7 +58,7 @@ import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
-import KeyboardSpacer from "react-native-keyboard-spacer";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
 import { useTranslation } from "react-i18next";
 
@@ -512,7 +512,10 @@ const ReplyBar = ({
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior="padding"
+    >
       {floatingEmojis.map(({ id, emoji }) => (
         <FloatingEmoji
           key={id}
@@ -564,8 +567,7 @@ const ReplyBar = ({
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-      <KeyboardSpacer />
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

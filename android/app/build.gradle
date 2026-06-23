@@ -92,8 +92,8 @@ android {
         applicationId 'com.fatties.youth'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 261
-        versionName "2.6.1"
+        versionCode 274
+        versionName "2.7.4"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
