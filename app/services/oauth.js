@@ -1,6 +1,6 @@
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
-import { Linking } from "react-native";
+import { Linking, Platform } from "react-native";
 import i18n from "../i18n";
 
 // Complete the auth session for proper cleanup
@@ -11,24 +11,125 @@ const GOOGLE_CLIENT_ID =
   "464238880090-1c3s1seien4msnnmqdcu0mp10dacabik.apps.googleusercontent.com";
 const FACEBOOK_CLIENT_ID = "585636393835324";
 
-// Redirect URI - sử dụng backend callback URL cho cả Google và Facebook
+// Redirect URI - backend callback URL for both Google and Facebook
 const REDIRECT_URI = "https://api.chuyenbienhoa.com/v1.0/oauth/callback";
+
+// App's deep link scheme for receiving OAuth callbacks
+const APP_SCHEME = "com.fatties.youth";
 
 // Track active auth sessions to prevent multiple calls
 let activeGoogleAuthSession = false;
 let activeFacebookAuthSession = false;
 
+/**
+ * Wait for a deep link matching our OAuth callback.
+ * Returns a Promise that resolves with { code, state } when the deep link arrives,
+ * or rejects after `timeoutMs` milliseconds.
+ *
+ * On iOS, when the redirect goes through the backend and then redirects to the
+ * app's custom scheme, promptAsync() returns "dismiss". The deep link arrives
+ * shortly after via Linking. We use a proper Promise here to avoid the race
+ * condition of a fixed setTimeout.
+ */
+function waitForOAuthDeepLink(provider, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let subscription = null;
+    let timer = null;
+
+    const cleanup = () => {
+      if (subscription) {
+        subscription.remove();
+        subscription = null;
+      }
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const onUrl = (event) => {
+      if (settled) return;
+      try {
+        const urlStr = event.url;
+        // Match our app's OAuth deep link
+        if (urlStr.includes(APP_SCHEME) && urlStr.includes("oauth")) {
+          const queryString = urlStr.split("?")[1] || "";
+          const params = new URLSearchParams(queryString);
+          const code = params.get("code");
+          const state = params.get("state");
+          const error = params.get("error");
+
+          if (error) {
+            settled = true;
+            cleanup();
+            reject(new Error(error));
+            return;
+          }
+
+          if (code) {
+            settled = true;
+            cleanup();
+            resolve({ code, state });
+            return;
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors, keep waiting
+      }
+    };
+
+    // Also check if there's already a pending URL (iOS may have it queued)
+    Linking.getInitialURL().then((initialUrl) => {
+      if (initialUrl && !settled) {
+        onUrl({ url: initialUrl });
+      }
+    }).catch(() => {});
+
+    subscription = Linking.addEventListener("url", onUrl);
+
+    timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        cleanup();
+        reject(new Error("OAuth deep link timeout"));
+      }
+    }, timeoutMs);
+  });
+}
+
+/**
+ * Exchange an OAuth authorization code for tokens via the backend.
+ */
+async function exchangeCodeViaBackend(code, codeVerifier, provider) {
+  const { exchangeOAuthCode } = require("./api/Api");
+  const exchangeResponse = await exchangeOAuthCode({
+    code,
+    code_verifier: codeVerifier,
+    provider,
+  });
+
+  if (!exchangeResponse?.access_token) {
+    throw new Error("Backend did not return access_token");
+  }
+
+  return {
+    accessToken: exchangeResponse.access_token,
+    idToken: exchangeResponse.id_token || null,
+    tokenType: exchangeResponse.token_type || "Bearer",
+    expiresIn: exchangeResponse.expires_in,
+  };
+}
+
 // Google OAuth using Authorization Code flow with PKCE
 export const loginWithGoogle = async () => {
-  // Prevent multiple simultaneous calls
   if (activeGoogleAuthSession) {
     throw new Error(i18n.t("auth.googleProcessing"));
   }
 
   activeGoogleAuthSession = true;
   try {
-    console.log("Google OAuth: Using redirect URI:", REDIRECT_URI);
-    console.log("Google OAuth: Client ID (Android):", GOOGLE_CLIENT_ID);
+    console.log("Google OAuth: Starting with redirect URI:", REDIRECT_URI);
 
     const discovery = {
       authorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
@@ -44,369 +145,82 @@ export const loginWithGoogle = async () => {
       usePKCE: true,
     });
 
+    // makeAuthUrlAsync triggers ensureCodeIsSetupAsync which populates codeVerifier
     await request.makeAuthUrlAsync(discovery);
 
-    // Store code verifier for manual exchange if needed
-    // Try to access code verifier from request (may not be directly accessible)
-    let codeVerifier = null;
-    try {
-      // AuthRequest may store code verifier internally
-      // Try to access it if available
-      if (request.codeVerifier) {
-        codeVerifier = request.codeVerifier;
-      } else if (request._codeVerifier) {
-        codeVerifier = request._codeVerifier;
-      } else {
-        // Try common property names
-        for (const prop of [
-          "codeVerifier",
-          "_codeVerifier",
-          "verifier",
-          "_verifier",
-          "pkce",
-          "_pkce",
-        ]) {
-          if (request[prop]) {
-            codeVerifier = request[prop];
-            break;
-          }
-        }
-      }
-    } catch (e) {
-      // Code verifier not accessible, will use backend exchange
+    const codeVerifier = request.codeVerifier || null;
+    console.log("Google OAuth: codeVerifier present:", !!codeVerifier);
+
+    if (!codeVerifier) {
+      throw new Error(
+        "PKCE code verifier not available. Cannot securely exchange code."
+      );
     }
 
-    // Store code and state from deep link if received
-    let deepLinkCode = null;
-    let deepLinkState = null;
-
-    // Set up deep link listener BEFORE promptAsync
-    const deepLinkListener = Linking.addEventListener("url", (event) => {
-      console.log("Google OAuth: Deep link received:", event.url);
-      try {
-        // Parse deep link manually to handle both formats
-        // Format: com.fatties.youth:oauth?code=... or com.fatties.youth://oauth?code=...
-        const urlStr = event.url;
-
-        // Check if it's our OAuth deep link
-        if (urlStr.includes("com.fatties.youth") && urlStr.includes("oauth")) {
-          // Extract query parameters manually
-          const queryString = urlStr.split("?")[1] || "";
-          const params = new URLSearchParams(queryString);
-          const code = params.get("code");
-          const state = params.get("state");
-          const error = params.get("error");
-
-          console.log("Google OAuth: Parsed deep link:", {
-            code: !!code,
-            state: !!state,
-            error,
-            fullUrl: urlStr,
-          });
-
-          // Accept code regardless of provider in deep link
-          // We know this is Google OAuth from context (we're in loginWithGoogle function)
-          if (code) {
-            deepLinkCode = code;
-            deepLinkState = state;
-            WebBrowser.maybeCompleteAuthSession();
-          }
-        }
-      } catch (e) {
-        // Ignore parsing errors
-      }
-    });
+    // On iOS the backend redirect → custom scheme means promptAsync returns "dismiss".
+    // We start the deep link listener BEFORE promptAsync so we never miss it.
+    const deepLinkPromise = waitForOAuthDeepLink("google", 10000);
 
     const result = await request.promptAsync(discovery, {
       useProxy: false,
-      showInRecents: true,
+      showInRecents: Platform.OS === "android",
     });
 
-    // Handle different result types
+    console.log("Google OAuth: promptAsync result type:", result.type);
+
     if (result.type === "locked") {
-      // Clean up listener
-      deepLinkListener.remove();
-      throw new Error(
-        i18n.t("auth.sessionInProgress")
-      );
+      throw new Error(i18n.t("auth.sessionInProgress"));
     }
 
-    if (result.type === "dismiss") {
-      console.log(
-        "Google OAuth: promptAsync returned dismiss, checking for deep link code..."
+    // "success" path: redirect URI matched directly (rare when using backend redirect URI,
+    // but handle it for completeness / Android cases)
+    if (result.type === "success" && result.params?.code) {
+      console.log("Google OAuth: Got code via success result");
+      const tokenResult = await exchangeCodeViaBackend(
+        result.params.code,
+        codeVerifier,
+        "google"
       );
-
-      // Wait a bit for deep link to arrive if it hasn't yet
-      if (!deepLinkCode) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
-
-      // Check if we got code from deep link listener
-      // We're in Google OAuth context, so any code received is for Google
-      if (deepLinkCode) {
-        try {
-          // Check if request still has exchangeCodeAsync method
-          console.log("Google OAuth: Request object check:", {
-            hasRequest: !!request,
-            requestType: typeof request,
-            hasExchangeCodeAsync:
-              typeof request?.exchangeCodeAsync === "function",
-            requestMethods: request
-              ? Object.getOwnPropertyNames(Object.getPrototypeOf(request))
-              : [],
-            requestKeys: request ? Object.keys(request) : [],
-            hasCodeVerifier: !!codeVerifier,
-          });
-
-          // Try to exchange code
-          // When using deep link with backend redirect, prefer backend exchange to avoid state mismatch
-          // The backend exchange uses code_verifier which doesn't require state verification
-          let tokenResult;
-          if (codeVerifier) {
-            // Exchange code via backend API (backend has client_secret)
-            // This avoids state mismatch issues when redirecting through backend
-            console.log("Google OAuth: Exchanging code via backend API...");
-            console.log(
-              "Google OAuth: Code verifier:",
-              codeVerifier ? "present" : "missing"
-            );
-            const { exchangeOAuthCode } = require("./api/Api");
-
-            try {
-              const exchangeResponse = await exchangeOAuthCode({
-                code: deepLinkCode,
-                code_verifier: codeVerifier,
-                provider: "google",
-              });
-
-              console.log(
-                "Google OAuth: Backend exchange response:",
-                exchangeResponse
-              );
-              console.log(
-                "Google OAuth: Response keys:",
-                Object.keys(exchangeResponse || {})
-              );
-              console.log("Google OAuth: Token exchange successful:", {
-                hasAccessToken: !!exchangeResponse?.access_token,
-                hasIdToken: !!exchangeResponse?.id_token,
-                tokenType: exchangeResponse?.token_type,
-                expiresIn: exchangeResponse?.expires_in,
-                fullResponse: exchangeResponse,
-              });
-
-              if (!exchangeResponse?.access_token) {
-                throw new Error("Backend did not return access_token");
-              }
-
-              // Convert to format expected by rest of code
-              tokenResult = {
-                accessToken: exchangeResponse.access_token,
-                idToken: exchangeResponse.id_token || null,
-                tokenType: exchangeResponse.token_type || "Bearer",
-                expiresIn: exchangeResponse.expires_in,
-              };
-            } catch (error) {
-              console.log("Google OAuth: Token exchange failed:", error);
-              console.log("Google OAuth: Error details:", {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status,
-              });
-              throw new Error(
-                `Token exchange failed: ${error.message || "Unknown error"}`
-              );
-            }
-          } else if (
-            request &&
-            typeof request.exchangeCodeAsync === "function"
-          ) {
-            // Fallback: try using exchangeCodeAsync with state if available
-            // This may fail with state mismatch when redirecting through backend
-            try {
-              const exchangeParams = { code: deepLinkCode };
-              if (deepLinkState) {
-                exchangeParams.state = deepLinkState;
-              }
-              tokenResult = await request.exchangeCodeAsync(
-                exchangeParams,
-                discovery
-              );
-            } catch (exchangeError) {
-              // If exchange fails due to state mismatch, throw a clearer error
-              if (
-                exchangeError.message?.includes("state") ||
-                exchangeError.code === "state_mismatch"
-              ) {
-                throw new Error(
-                  i18n.t("auth.stateFailed")
-                );
-              }
-              throw exchangeError;
-            }
-          } else {
-            throw new Error(
-              "Cannot exchange code: code verifier not found and exchangeCodeAsync method not available. Please try again."
-            );
-          }
-
-          console.log("Google OAuth: Token exchange result:", {
-            hasAccessToken: !!tokenResult.accessToken,
-            hasIdToken: !!tokenResult.idToken,
-            tokenType: tokenResult.tokenType,
-            expiresIn: tokenResult.expiresIn,
-          });
-
-          const { accessToken, idToken } = tokenResult;
-
-          if (accessToken) {
-            // Continue with user info fetch
-            const userInfoResponse = await fetch(
-              `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
-            );
-
-            if (userInfoResponse.ok) {
-              const userInfo = await userInfoResponse.json();
-
-              // Clean up listener before returning
-              deepLinkListener.remove();
-
-              return {
-                provider: "google",
-                accessToken: accessToken,
-                idToken: idToken || null,
-                profile: userInfo,
-              };
-            }
-          }
-        } catch (e) {
-          console.log("Google OAuth: Error processing deep link code:", e);
-        }
-      }
-
-      // Clean up listener if we didn't successfully process the code
-      deepLinkListener.remove();
-
-      console.log(
-        "Google OAuth: User dismissed or webview closed unexpectedly"
-      );
-      console.log("Google OAuth: This might be due to:");
-      console.log("1. Redirect URI not configured in Google Cloud Console");
-      console.log("2. User closed the browser/webview");
-      throw new Error(
-        i18n.t("auth.loginCancelled")
-      );
-    }
-
-    if (result.type === "success" && result.params.code) {
-      console.log("Google OAuth: Received authorization code");
-
-      // Exchange authorization code for tokens
-      // Prefer backend exchange to avoid state mismatch and method availability issues
-      let tokenResult;
-      if (codeVerifier) {
-        // Use backend exchange with code_verifier (more reliable)
-        console.log("Google OAuth: Exchanging code via backend API...");
-        const { exchangeOAuthCode } = require("./api/Api");
-
-        try {
-          const exchangeResponse = await exchangeOAuthCode({
-            code: result.params.code,
-            code_verifier: codeVerifier,
-            provider: "google",
-          });
-
-          if (!exchangeResponse?.access_token) {
-            throw new Error("Backend did not return access_token");
-          }
-
-          tokenResult = {
-            accessToken: exchangeResponse.access_token,
-            idToken: exchangeResponse.id_token || null,
-            tokenType: exchangeResponse.token_type || "Bearer",
-            expiresIn: exchangeResponse.expires_in,
-          };
-        } catch (error) {
-          console.log("Google OAuth: Backend token exchange failed:", error);
-          throw new Error(
-            `Token exchange failed: ${error.message || "Unknown error"}`
-          );
-        }
-      } else if (request && typeof request.exchangeCodeAsync === "function") {
-        // Fallback to direct exchange if code_verifier not available
-        try {
-          tokenResult = await request.exchangeCodeAsync(
-            {
-              code: result.params.code,
-            },
-            discovery
-          );
-        } catch (exchangeError) {
-          console.log("Google OAuth: Direct exchange failed:", exchangeError);
-          throw new Error(
-            `Token exchange failed: ${exchangeError.message || "Unknown error"}`
-          );
-        }
-      } else {
-        throw new Error(
-          "Cannot exchange code: code verifier not found and exchangeCodeAsync method not available. Please try again."
-        );
-      }
-
-      console.log("Google OAuth: Token exchange result:", {
-        hasAccessToken: !!tokenResult.accessToken,
-        hasIdToken: !!tokenResult.idToken,
-        tokenType: tokenResult.tokenType,
-        expiresIn: tokenResult.expiresIn,
-      });
-
-      const { accessToken, idToken } = tokenResult;
-
-      if (!accessToken) {
-        throw new Error(i18n.t("auth.googleTokenError"));
-      }
-
-      // Get user info from Google
-      const userInfoResponse = await fetch(
-        `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
-      );
-
-      console.log(
-        "Google OAuth: User info response status:",
-        userInfoResponse.status
-      );
-
-      if (!userInfoResponse.ok) {
-        throw new Error(i18n.t("auth.googleUserInfoError"));
-      }
-
-      const userInfo = await userInfoResponse.json();
-      console.log("Google OAuth: User info received:", {
-        id: userInfo.id,
-        email: userInfo.email,
-        name: userInfo.name,
-      });
-
-      // Clean up listener before returning
-      deepLinkListener.remove();
-
+      const userInfo = await fetchGoogleUserInfo(tokenResult.accessToken);
       return {
         provider: "google",
-        accessToken: accessToken,
-        idToken: idToken || null,
+        accessToken: tokenResult.accessToken,
+        idToken: tokenResult.idToken,
         profile: userInfo,
       };
-    } else {
-      // Clean up listener for other result types
-      deepLinkListener.remove();
-      console.log("Google OAuth: Failed or cancelled", {
-        type: result.type,
-        params: result.params,
-        errorCode: result.errorCode,
-        error: result.error,
-      });
-      throw new Error(i18n.t("auth.googleFailed"));
     }
+
+    // "dismiss" path (iOS main path): browser closed, wait for deep link
+    if (result.type === "dismiss" || result.type === "cancel") {
+      console.log(
+        "Google OAuth: Browser dismissed, waiting for deep link callback..."
+      );
+      let deepLinkResult;
+      try {
+        deepLinkResult = await deepLinkPromise;
+      } catch (e) {
+        // Deep link timed out or errored — user likely cancelled
+        console.log("Google OAuth: Deep link wait failed:", e.message);
+        throw new Error(i18n.t("auth.loginCancelled"));
+      }
+
+      console.log("Google OAuth: Deep link received, exchanging code...");
+      const tokenResult = await exchangeCodeViaBackend(
+        deepLinkResult.code,
+        codeVerifier,
+        "google"
+      );
+      const userInfo = await fetchGoogleUserInfo(tokenResult.accessToken);
+      return {
+        provider: "google",
+        accessToken: tokenResult.accessToken,
+        idToken: tokenResult.idToken,
+        profile: userInfo,
+      };
+    }
+
+    // error or other result type
+    throw new Error(i18n.t("auth.googleFailed"));
   } catch (error) {
     throw error;
   } finally {
@@ -414,16 +228,26 @@ export const loginWithGoogle = async () => {
   }
 };
 
-// Facebook OAuth using Authorization Code flow (giống Google)
-// Chuyển từ Implicit flow vì fragment (#) không được gửi đến server
+async function fetchGoogleUserInfo(accessToken) {
+  const response = await fetch(
+    `https://www.googleapis.com/oauth2/v2/userinfo?access_token=${accessToken}`
+  );
+  if (!response.ok) {
+    throw new Error(i18n.t("auth.googleUserInfoError"));
+  }
+  return response.json();
+}
+
+// Facebook OAuth using Authorization Code flow
 export const loginWithFacebook = async () => {
-  // Prevent multiple simultaneous calls
   if (activeFacebookAuthSession) {
     throw new Error(i18n.t("auth.facebookProcessing"));
   }
 
   activeFacebookAuthSession = true;
   try {
+    console.log("Facebook OAuth: Starting with redirect URI:", REDIRECT_URI);
+
     const discovery = {
       authorizationEndpoint: "https://www.facebook.com/v18.0/dialog/oauth",
       tokenEndpoint: "https://graph.facebook.com/v18.0/oauth/access_token",
@@ -437,280 +261,98 @@ export const loginWithFacebook = async () => {
       usePKCE: true,
     });
 
+    // makeAuthUrlAsync triggers ensureCodeIsSetupAsync which populates codeVerifier
     await request.makeAuthUrlAsync(discovery);
 
-    // Store code verifier for manual exchange if needed
-    // Try to access code verifier from request (may not be directly accessible)
-    let codeVerifier = null;
-    try {
-      // AuthRequest may store code verifier internally
-      // Try to access it if available
-      if (request.codeVerifier) {
-        codeVerifier = request.codeVerifier;
-      } else if (request._codeVerifier) {
-        codeVerifier = request._codeVerifier;
-      } else {
-        // Try common property names
-        for (const prop of [
-          "codeVerifier",
-          "_codeVerifier",
-          "verifier",
-          "_verifier",
-          "pkce",
-          "_pkce",
-        ]) {
-          if (request[prop]) {
-            codeVerifier = request[prop];
-            break;
-          }
-        }
-      }
-    } catch (e) {
-      // Code verifier not accessible, will use backend exchange
+    const codeVerifier = request.codeVerifier || null;
+    console.log("Facebook OAuth: codeVerifier present:", !!codeVerifier);
+
+    if (!codeVerifier) {
+      throw new Error(
+        "PKCE code verifier not available. Cannot securely exchange code."
+      );
     }
 
-    // Store code and state from deep link if received
-    let deepLinkCode = null;
-    let deepLinkState = null;
-    let deepLinkProvider = null;
-
-    // Set up deep link listener BEFORE promptAsync
-    const deepLinkListener = Linking.addEventListener("url", (event) => {
-      try {
-        // Parse deep link manually to handle both formats
-        // Format: com.fatties.youth:oauth?code=... or com.fatties.youth://oauth?code=...
-        const urlStr = event.url;
-
-        // Check if it's our OAuth deep link
-        if (urlStr.includes("com.fatties.youth") && urlStr.includes("oauth")) {
-          // Extract query parameters manually
-          const queryString = urlStr.split("?")[1] || "";
-          const params = new URLSearchParams(queryString);
-          const code = params.get("code");
-          const state = params.get("state");
-
-          // Accept code regardless of provider in deep link
-          // We know this is Facebook OAuth from context (we're in loginWithFacebook function)
-          if (code) {
-            deepLinkCode = code;
-            deepLinkState = state;
-            deepLinkProvider = "facebook"; // Force to facebook since we're in Facebook OAuth flow
-            WebBrowser.maybeCompleteAuthSession();
-          }
-        }
-      } catch (e) {
-        // Ignore parsing errors
-      }
-    });
+    // Start deep link listener before promptAsync to avoid race condition on iOS
+    const deepLinkPromise = waitForOAuthDeepLink("facebook", 10000);
 
     const result = await request.promptAsync(discovery, {
       useProxy: false,
-      showInRecents: true,
+      showInRecents: Platform.OS === "android",
     });
 
-    // Handle different result types
+    console.log("Facebook OAuth: promptAsync result type:", result.type);
+
     if (result.type === "locked") {
-      // Clean up listener
-      deepLinkListener.remove();
-      throw new Error(
-        i18n.t("auth.sessionInProgress")
-      );
+      throw new Error(i18n.t("auth.sessionInProgress"));
     }
 
-    if (result.type === "dismiss") {
-      // Wait a bit for deep link to arrive if it hasn't yet
-      if (!deepLinkCode) {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
-
-      // Check if we got code from deep link listener
-      // We're in Facebook OAuth context, so any code received is for Facebook
-      if (deepLinkCode) {
-        try {
-          // Try to exchange code
-          // When using deep link with backend redirect, prefer backend exchange to avoid state mismatch
-          let tokenResult;
-          if (codeVerifier) {
-            // Exchange code via backend API (backend has client_secret)
-            // This avoids state mismatch issues when redirecting through backend
-            const { exchangeOAuthCode } = require("./api/Api");
-
-            try {
-              const exchangeResponse = await exchangeOAuthCode({
-                code: deepLinkCode,
-                code_verifier: codeVerifier,
-                provider: "facebook",
-              });
-
-              if (!exchangeResponse?.access_token) {
-                throw new Error("Backend did not return access_token");
-              }
-
-              // Convert to format expected by rest of code
-              tokenResult = {
-                accessToken: exchangeResponse.access_token,
-                idToken: null,
-                tokenType: exchangeResponse.token_type || "Bearer",
-                expiresIn: exchangeResponse.expires_in,
-              };
-            } catch (error) {
-              throw new Error(
-                `Token exchange failed: ${error.message || "Unknown error"}`
-              );
-            }
-          } else if (
-            request &&
-            typeof request.exchangeCodeAsync === "function"
-          ) {
-            // Fallback: try using exchangeCodeAsync with state if available
-            try {
-              const exchangeParams = { code: deepLinkCode };
-              if (deepLinkState) {
-                exchangeParams.state = deepLinkState;
-              }
-              tokenResult = await request.exchangeCodeAsync(
-                exchangeParams,
-                discovery
-              );
-            } catch (exchangeError) {
-              // If exchange fails due to state mismatch, throw a clearer error
-              if (
-                exchangeError.message?.includes("state") ||
-                exchangeError.code === "state_mismatch"
-              ) {
-                throw new Error(
-                  i18n.t("auth.stateFailed")
-                );
-              }
-              throw exchangeError;
-            }
-          } else {
-            throw new Error(
-              "Cannot exchange code: code verifier not found and exchangeCodeAsync method not available. Please try again."
-            );
-          }
-
-          const { accessToken } = tokenResult;
-          if (accessToken) {
-            // Continue with user info fetch
-            const userInfoResponse = await fetch(
-              `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
-            );
-
-            if (userInfoResponse.ok) {
-              const userInfo = await userInfoResponse.json();
-              if (!userInfo.error) {
-                // Clean up listener before returning
-                deepLinkListener.remove();
-
-                return {
-                  provider: "facebook",
-                  accessToken: accessToken,
-                  idToken: null,
-                  profile: userInfo,
-                };
-              }
-            }
-          }
-        } catch (e) {
-          // Error processing deep link code
-        }
-      }
-
-      // Clean up listener if we didn't successfully process the code
-      deepLinkListener.remove();
-
-      throw new Error(
-        i18n.t("auth.loginCancelled")
+    // "success" path
+    if (result.type === "success" && result.params?.code) {
+      console.log("Facebook OAuth: Got code via success result");
+      const tokenResult = await exchangeCodeViaBackend(
+        result.params.code,
+        codeVerifier,
+        "facebook"
       );
-    }
-
-    if (result.type === "success" && result.params.code) {
-      // Exchange authorization code for tokens
-      // Prefer backend exchange to avoid state mismatch and method availability issues
-      let tokenResult;
-      if (codeVerifier) {
-        // Use backend exchange with code_verifier (more reliable)
-        const { exchangeOAuthCode } = require("./api/Api");
-
-        try {
-          const exchangeResponse = await exchangeOAuthCode({
-            code: result.params.code,
-            code_verifier: codeVerifier,
-            provider: "facebook",
-          });
-
-          if (!exchangeResponse?.access_token) {
-            throw new Error("Backend did not return access_token");
-          }
-
-          tokenResult = {
-            accessToken: exchangeResponse.access_token,
-            idToken: null,
-            tokenType: exchangeResponse.token_type || "Bearer",
-            expiresIn: exchangeResponse.expires_in,
-          };
-        } catch (error) {
-          throw new Error(
-            `Token exchange failed: ${error.message || "Unknown error"}`
-          );
-        }
-      } else if (request && typeof request.exchangeCodeAsync === "function") {
-        // Fallback to direct exchange if code_verifier not available
-        try {
-          tokenResult = await request.exchangeCodeAsync(
-            {
-              code: result.params.code,
-            },
-            discovery
-          );
-        } catch (exchangeError) {
-          throw new Error(
-            `Token exchange failed: ${exchangeError.message || "Unknown error"}`
-          );
-        }
-      } else {
-        throw new Error(
-          "Cannot exchange code: code verifier not found and exchangeCodeAsync method not available. Please try again."
-        );
-      }
-
-      const { accessToken } = tokenResult;
-
-      if (!accessToken) {
-        throw new Error(i18n.t("auth.facebookTokenError"));
-      }
-
-      // Get user info from Facebook Graph API
-      const userInfoResponse = await fetch(
-        `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
-      );
-
-      if (!userInfoResponse.ok) {
-        throw new Error(i18n.t("auth.facebookUserInfoError"));
-      }
-
-      const userInfo = await userInfoResponse.json();
-
-      if (userInfo.error) {
-        throw new Error(
-          userInfo.error.message ||
-            i18n.t("auth.facebookUserInfoError")
-        );
-      }
-
+      const userInfo = await fetchFacebookUserInfo(tokenResult.accessToken);
       return {
         provider: "facebook",
-        accessToken: accessToken,
+        accessToken: tokenResult.accessToken,
         idToken: null,
         profile: userInfo,
       };
-    } else {
-      throw new Error(i18n.t("auth.facebookFailed"));
     }
+
+    // "dismiss" path (iOS main path)
+    if (result.type === "dismiss" || result.type === "cancel") {
+      console.log(
+        "Facebook OAuth: Browser dismissed, waiting for deep link callback..."
+      );
+      let deepLinkResult;
+      try {
+        deepLinkResult = await deepLinkPromise;
+      } catch (e) {
+        console.log("Facebook OAuth: Deep link wait failed:", e.message);
+        throw new Error(i18n.t("auth.loginCancelled"));
+      }
+
+      console.log("Facebook OAuth: Deep link received, exchanging code...");
+      const tokenResult = await exchangeCodeViaBackend(
+        deepLinkResult.code,
+        codeVerifier,
+        "facebook"
+      );
+      const userInfo = await fetchFacebookUserInfo(tokenResult.accessToken);
+      return {
+        provider: "facebook",
+        accessToken: tokenResult.accessToken,
+        idToken: null,
+        profile: userInfo,
+      };
+    }
+
+    // error or other result type
+    throw new Error(i18n.t("auth.facebookFailed"));
   } catch (error) {
     throw error;
   } finally {
     activeFacebookAuthSession = false;
   }
 };
+
+async function fetchFacebookUserInfo(accessToken) {
+  const response = await fetch(
+    `https://graph.facebook.com/me?fields=id,name,email,picture.type(large)&access_token=${accessToken}`
+  );
+  if (!response.ok) {
+    throw new Error(i18n.t("auth.facebookUserInfoError"));
+  }
+  const userInfo = await response.json();
+  if (userInfo.error) {
+    throw new Error(
+      userInfo.error.message || i18n.t("auth.facebookUserInfoError")
+    );
+  }
+  return userInfo;
+}
