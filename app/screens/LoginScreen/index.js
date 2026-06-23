@@ -53,6 +53,9 @@ const LoginScreen = ({ navigation }) => {
       const response = await loginRequest({ username: email, password });
 
       // Save token and user info
+      if (!response?.data?.token || !response?.data?.user) {
+        throw new Error(t("auth.invalidServerResponse"));
+      }
       signIn(response.data.token, response.data.user);
     } catch (error) {
       // Show an error message to the user

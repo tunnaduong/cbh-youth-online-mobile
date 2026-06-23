@@ -99,6 +99,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    // Call logout API first (while token is still available) then clear local state
+    try {
+      await logoutRequest();
+    } catch (e) {
+      console.error("Logout API call failed (proceeding with local sign-out):", e.message);
+    }
+
     await AsyncStorage.removeItem("auth_token");
     await AsyncStorage.removeItem("user_info");
 
@@ -107,10 +114,9 @@ export const AuthProvider = ({ children }) => {
     setProfileName(null);
     setUserInfo(null);
     setEmailVerifiedAt(null);
+    setBlockedUsers([]);
 
     storage.clear();
-
-    await logoutRequest();
   };
 
   const blockUser = async (userToBlock) => {
@@ -126,8 +132,8 @@ export const AuthProvider = ({ children }) => {
     // Notify developer
     try {
       // Best-effort network call to report the user.
-      // This satisfies the "Notify developer" requirement.
-      await reportUser(userToBlock, "Blocked by user");
+      // reportUser expects a params object: { reported_user_id, reason }
+      await reportUser({ reported_user_id: userToBlock, reason: "Blocked by user" });
     } catch (e) {
       console.log(
         "[Safety] Failed to send report for blocked user (expected if endpoint missing):",

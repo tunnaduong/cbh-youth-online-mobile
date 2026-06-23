@@ -677,16 +677,22 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const onEndReached = () => {
     if (!hasMore) return;
 
-    getHomePosts(currentPage).then((response) => {
-      if (response.data.data.length === 0) {
-        setHasMore(false);
-        return;
-      }
-      setFeed((prevData) => {
-        return [...prevData, ...response.data.data];
+    getHomePosts(currentPage)
+      .then((response) => {
+        const newPosts = response?.data?.data;
+        if (!newPosts || newPosts.length === 0) {
+          setHasMore(false);
+          return;
+        }
+        setFeed((prevData) => {
+          if (!prevData) return newPosts;
+          return [...prevData, ...newPosts];
+        });
+        setCurrentPage((prevPage) => prevPage + 1);
+      })
+      .catch((error) => {
+        console.error("Error loading more posts:", error);
       });
-      setCurrentPage((prevPage) => prevPage + 1);
-    });
   };
 
   const ListEndLoader = () => {
@@ -725,25 +731,31 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleVoteUpdate = (postId, newVotes) => {
     setFeed((prevFeed) =>
-      prevFeed.map((post) =>
-        post.id === postId ? { ...post, votes: newVotes } : post
-      )
+      prevFeed
+        ? prevFeed.map((post) =>
+            post.id === postId ? { ...post, votes: newVotes } : post
+          )
+        : prevFeed
     );
   };
 
   const handleSaveUpdate = (postId, savedStatus) => {
     setFeed((prevFeed) =>
-      prevFeed.map((post) =>
-        post.id === postId ? { ...post, saved: savedStatus } : post
-      )
+      prevFeed
+        ? prevFeed.map((post) =>
+            post.id === postId ? { ...post, saved: savedStatus } : post
+          )
+        : prevFeed
     );
   };
 
   const handleViewableItemsChanged = ({ viewableItems }) => {
+    if (!viewableItems) return;
     viewableItems.forEach((viewableItem) => {
+      if (!viewableItem?.item) return;
       const postId = viewableItem.item.id;
 
-      if (!viewedPosts.current.has(postId)) {
+      if (postId != null && !viewedPosts.current.has(postId)) {
         viewedPosts.current.add(postId); // Mark as viewed
         increasePostView(postId); // Call API
       }
@@ -892,44 +904,47 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     if (!apiResponse?.data) return [];
 
     let users = apiResponse.data.data;
+    if (!Array.isArray(users)) return [];
 
-    return users.map((user) => ({
-      uid: user.id,
-      id: user.username,
-      name: user.name,
-      avatarSource: {
-        uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
-      },
-      stories: user.stories.map((story) => ({
-        id: story.id,
-        storyId: story.id, // Store the actual story ID
-        userId: user.id, // Store user ID
-        username: user.username, // Store username
-        source: {
-          uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+    return users
+      .filter((user) => user && Array.isArray(user.stories) && user.stories.length > 0)
+      .map((user) => ({
+        uid: user.id,
+        id: user.username,
+        name: user.name,
+        avatarSource: {
+          uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
-        duration: story.duration,
-        viewers_count: story.viewers?.length || 0,
-        renderFooter: () => (
-          <ReplyBar
-            storyId={story.id}
-            userId={user.id}
-            username={user.username}
-            navigation={navigation}
-            viewersCount={story.viewers?.length || 0}
-            onDismissStory={dismissStoryModal}
-            storyRef={storyRef}
-          />
-        ),
-        date: formatTime(story.created_at || story.created_at_human),
-        created_at: story.created_at,
-        created_at_human: story.created_at_human,
-        onStoryItemPress: () => {
-          setCurrentStory(story.id);
-          setCurrentStoryUser({ id: user.id, username: user.username });
-        },
-      })),
-    }));
+        stories: user.stories.map((story) => ({
+          id: story.id,
+          storyId: story.id, // Store the actual story ID
+          userId: user.id, // Store user ID
+          username: user.username, // Store username
+          source: {
+            uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+          },
+          duration: story.duration,
+          viewers_count: story.viewers?.length || 0,
+          renderFooter: () => (
+            <ReplyBar
+              storyId={story.id}
+              userId={user.id}
+              username={user.username}
+              navigation={navigation}
+              viewersCount={story.viewers?.length || 0}
+              onDismissStory={dismissStoryModal}
+              storyRef={storyRef}
+            />
+          ),
+          date: formatTime(story.created_at || story.created_at_human),
+          created_at: story.created_at,
+          created_at_human: story.created_at_human,
+          onStoryItemPress: () => {
+            setCurrentStory(story.id);
+            setCurrentStoryUser({ id: user.id, username: user.username });
+          },
+        })),
+      }));
   };
 
   const EmailVerificationAlert = () => {
