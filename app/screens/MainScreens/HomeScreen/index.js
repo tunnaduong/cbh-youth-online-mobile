@@ -56,7 +56,7 @@ import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import KeyboardSpacer from "react-native-keyboard-spacer";
 import ActionSheet from "react-native-actions-sheet";

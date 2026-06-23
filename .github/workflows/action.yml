@@ -41,18 +41,18 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Tối ưu cấu hình Gradle (Tăng RAM & Chạy song song)
-        run: |
-          mkdir -p ~/.gradle
-          echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
-          echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-          echo "org.gradle.configureondemand=true" >> ~/.gradle/gradle.properties
+     # - name: Tối ưu cấu hình Gradle (Tăng RAM & Chạy song song)
+     #   run: |
+     #     mkdir -p ~/.gradle
+     #     echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
+     #     echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
+     #     echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
+     #     echo "org.gradle.configureondemand=true" >> ~/.gradle/gradle.properties
 
       - name: Build Android Release APK (Chỉ arm64-v8a để test nhanh)
         run: |
           cd android
-          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a -x lint -x test --no-daemon
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a 
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

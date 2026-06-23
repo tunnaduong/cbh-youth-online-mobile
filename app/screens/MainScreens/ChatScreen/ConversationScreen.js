@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-// import FastImage from "react-native-fast-image";
+// import FastImage from "../../../components/FastImage";
 import {
   getConversationMessages,
   sendMessage,

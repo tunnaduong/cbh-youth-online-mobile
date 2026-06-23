@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";

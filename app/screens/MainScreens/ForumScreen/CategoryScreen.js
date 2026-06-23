@@ -12,7 +12,7 @@ import {
   RefreshControl,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import CustomLoading from "../../../components/CustomLoading";
 import CustomRefreshControl from "../../../components/CustomRefreshControl";

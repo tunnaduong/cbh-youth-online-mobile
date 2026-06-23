@@ -14,7 +14,7 @@ import {
   StatusBar,
   DeviceEventEmitter,
 } from "react-native";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getForumCategories } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";

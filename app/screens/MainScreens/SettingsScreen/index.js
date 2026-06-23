@@ -14,7 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
 import Dropdown from "../../../components/Dropdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

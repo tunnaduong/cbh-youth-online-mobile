@@ -27,7 +27,7 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";

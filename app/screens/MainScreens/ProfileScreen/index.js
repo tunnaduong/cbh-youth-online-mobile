@@ -31,7 +31,7 @@ import {
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedContext } from "../../../contexts/FeedContext";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS, Platform } from "react-native";

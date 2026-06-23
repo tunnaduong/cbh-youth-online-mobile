@@ -25,7 +25,7 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import CustomLoading from "../../../components/CustomLoading";
 import DatePicker from "react-native-date-picker";
 import RadioGroup from "react-native-radio-buttons-group";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 

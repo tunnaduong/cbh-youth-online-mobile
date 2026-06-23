@@ -10,7 +10,7 @@ import {
   StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getProfile } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";

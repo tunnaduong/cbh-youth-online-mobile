@@ -30,7 +30,7 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

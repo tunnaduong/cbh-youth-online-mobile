@@ -26,7 +26,7 @@ import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";

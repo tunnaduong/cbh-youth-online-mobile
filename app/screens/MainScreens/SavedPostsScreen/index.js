@@ -14,7 +14,7 @@ import { getSavedPosts } from "../../../services/api/Api";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 
