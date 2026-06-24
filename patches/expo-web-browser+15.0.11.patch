@@ -1,0 +1,20 @@
+diff --git a/node_modules/expo-web-browser/ios/WebAuthSession.swift b/node_modules/expo-web-browser/ios/WebAuthSession.swift
+index 5d32d0c..710eab5 100644
+--- a/node_modules/expo-web-browser/ios/WebAuthSession.swift
++++ b/node_modules/expo-web-browser/ios/WebAuthSession.swift
+@@ -6,7 +6,14 @@ import AuthenticationServices
+ private class PresentationContextProvider: NSObject, ASWebAuthenticationPresentationContextProviding {
+   func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+     #if os(iOS)
+-    return UIApplication.shared.keyWindow ?? ASPresentationAnchor()
++    for scene in UIApplication.shared.connectedScenes {
++      if let windowScene = scene as? UIWindowScene {
++        if let window = windowScene.windows.first(where: { !$0.isHidden }) {
++          return window
++        }
++      }
++    }
++    return UIApplication.shared.windows.first ?? ASPresentationAnchor()
+     #else
+     return NSApp.mainWindow ?? ASPresentationAnchor()
+     #endif
