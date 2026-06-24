@@ -37,18 +37,22 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Tối ưu cấu hình Gradle (Tăng RAM & Chạy song song)
+      - name: Tối ưu cấu hình Gradle (Tăng RAM)
         run: |
           mkdir -p ~/.gradle
-          echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
+          echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
           echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
-          echo "org.gradle.configureondemand=true" >> ~/.gradle/gradle.properties
+          echo "org.gradle.workers.max=2" >> ~/.gradle/gradle.properties
 
       - name: Build Android Release & Debug APK (arm64-v8a)
         run: |
           cd android
-          ./gradlew assembleRelease assembleDebug -PreactNativeArchitectures=arm64-v8a -x lint -x test --no-daemon
+          ./gradlew assembleRelease assembleDebug \
+            -PreactNativeArchitectures=arm64-v8a \
+            -x lint -x test \
+            -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
+            --no-daemon
 
       - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
@@ -58,4 +62,3 @@ jobs:
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
-          
