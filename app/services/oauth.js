@@ -11,11 +11,33 @@ const GOOGLE_CLIENT_ID =
   "464238880090-1c3s1seien4msnnmqdcu0mp10dacabik.apps.googleusercontent.com";
 const FACEBOOK_CLIENT_ID = "585636393835324";
 
-// Redirect URI - backend callback URL for both Google and Facebook
-const REDIRECT_URI = "https://api.chuyenbienhoa.com/v1.0/oauth/callback";
-
 // App's deep link scheme for receiving OAuth callbacks
 const APP_SCHEME = "com.fatties.youth";
+
+// ✅ FIX: Platform-specific redirect URI.
+//
+// iOS (SDK 54 bug): expo-web-browser silently fails when the redirect URI uses https://
+// without Associated Domains entitlements — it tries to treat it as a Universal Link.
+// We use the custom app scheme instead, which is already registered in app.json
+// (scheme: "com.fatties.youth") and CFBundleURLSchemes.
+//
+// Android: Chrome Custom Tabs handles https:// redirects correctly — no change needed.
+// Switching Android to the custom scheme would break the existing working flow.
+//
+// ⚠️  BACKEND CHANGE REQUIRED (iOS only):
+// When redirect_uri is "com.fatties.youth://oauth/callback", your backend must
+// redirect back to the app instead of returning JSON:
+//   res.redirect(`com.fatties.youth://oauth/callback?code=...&state=...`);
+// You can detect which platform sent the request by checking the redirect_uri param.
+//
+// Also add com.fatties.youth://oauth/callback to:
+//   - Google Cloud Console → OAuth credentials → Authorized redirect URIs
+//   - Facebook Developer Console → App → Valid OAuth Redirect URIs
+// (keep the existing https:// URI registered too so Android keeps working)
+const REDIRECT_URI =
+  Platform.OS === "ios"
+    ? `${APP_SCHEME}://oauth/callback`                        // iOS: custom scheme fix
+    : "https://api.chuyenbienhoa.com/v1.0/oauth/callback";   // Android: unchanged
 
 // Track active auth sessions to prevent multiple calls
 let activeGoogleAuthSession = false;
@@ -26,10 +48,9 @@ let activeFacebookAuthSession = false;
  * Returns a Promise that resolves with { code, state } when the deep link arrives,
  * or rejects after `timeoutMs` milliseconds.
  *
- * On iOS, when the redirect goes through the backend and then redirects to the
- * app's custom scheme, promptAsync() returns "dismiss". The deep link arrives
- * shortly after via Linking. We use a proper Promise here to avoid the race
- * condition of a fixed setTimeout.
+ * On iOS, when using a custom scheme redirect, promptAsync() will return "success"
+ * directly with the code in result.params — the deep link listener below is a
+ * fallback for edge cases.
  *
  * Returns { promise, cancel } so callers can cancel early if promptAsync throws.
  */
@@ -172,9 +193,10 @@ export const loginWithGoogle = async () => {
       );
     }
 
-    // On iOS the backend redirect → custom scheme means promptAsync returns "dismiss".
-    // We start the deep link listener BEFORE promptAsync so we never miss it.
-    const { promise: deepLinkPromise, cancel: cancelDeepLink } = waitForOAuthDeepLink("google", 10000);
+    // Deep link listener as fallback (with custom scheme, promptAsync should
+    // return "success" directly on both iOS and Android)
+    const { promise: deepLinkPromise, cancel: cancelDeepLink } =
+      waitForOAuthDeepLink("google", 10000);
 
     let result;
     const promptStartTime = Date.now();
@@ -184,22 +206,27 @@ export const loginWithGoogle = async () => {
         showInRecents: Platform.OS === "android",
       });
     } catch (promptError) {
-      // promptAsync threw — cancel deep link listener and surface the real error
       cancelDeepLink(promptError);
       console.log("Google OAuth: promptAsync threw error:", promptError.message);
-      throw new Error(i18n.t("auth.googleFailed") + ": " + (promptError.message || ""));
+      throw new Error(
+        i18n.t("auth.googleFailed") + ": " + (promptError.message || "")
+      );
     }
 
     const promptDuration = Date.now() - promptStartTime;
-    console.log("Google OAuth: promptAsync result type:", result.type, "duration:", promptDuration + "ms");
+    console.log(
+      "Google OAuth: promptAsync result type:",
+      result.type,
+      "duration:",
+      promptDuration + "ms"
+    );
 
     if (result.type === "locked") {
       cancelDeepLink(new Error(i18n.t("auth.sessionInProgress")));
       throw new Error(i18n.t("auth.sessionInProgress"));
     }
 
-    // "success" path: redirect URI matched directly (rare when using backend redirect URI,
-    // but handle it for completeness / Android cases)
+    // "success" path — expected main path now that we use the custom scheme
     if (result.type === "success" && result.params?.code) {
       cancelDeepLink(new Error("code received via success"));
       console.log("Google OAuth: Got code via success result");
@@ -217,20 +244,21 @@ export const loginWithGoogle = async () => {
       };
     }
 
-    // "error" result type — surface the error
+    // "error" result type
     if (result.type === "error") {
-      cancelDeepLink(new Error(result.error?.message || i18n.t("auth.googleFailed")));
+      cancelDeepLink(
+        new Error(result.error?.message || i18n.t("auth.googleFailed"))
+      );
       throw new Error(result.error?.message || i18n.t("auth.googleFailed"));
     }
 
-    // "dismiss" or "cancel" path (iOS main path after successful OAuth redirect)
+    // "dismiss" or "cancel" — user cancelled, or fallback deep link path
     if (result.type === "dismiss" || result.type === "cancel") {
-      // If the browser returned almost immediately (< 1500ms), the browser likely
-      // never opened at all (SFSafariViewController failed silently on iOS).
-      // Don't wait 10s for a deep link that will never arrive.
       if (promptDuration < 1500) {
         cancelDeepLink(new Error("browser did not open"));
-        console.log("Google OAuth: Immediate cancel/dismiss — browser likely did not open.");
+        console.log(
+          "Google OAuth: Immediate cancel/dismiss — browser likely did not open."
+        );
         throw new Error(i18n.t("auth.googleFailed"));
       }
 
@@ -241,7 +269,6 @@ export const loginWithGoogle = async () => {
       try {
         deepLinkResult = await deepLinkPromise;
       } catch (e) {
-        // Deep link timed out or errored — user likely cancelled
         console.log("Google OAuth: Deep link wait failed:", e.message);
         throw new Error(i18n.t("auth.loginCancelled"));
       }
@@ -261,7 +288,6 @@ export const loginWithGoogle = async () => {
       };
     }
 
-    // other result type
     cancelDeepLink(new Error(i18n.t("auth.googleFailed")));
     throw new Error(i18n.t("auth.googleFailed"));
   } catch (error) {
@@ -316,8 +342,9 @@ export const loginWithFacebook = async () => {
       );
     }
 
-    // Start deep link listener before promptAsync to avoid race condition on iOS
-    const { promise: deepLinkPromise, cancel: cancelDeepLink } = waitForOAuthDeepLink("facebook", 10000);
+    // Deep link listener as fallback
+    const { promise: deepLinkPromise, cancel: cancelDeepLink } =
+      waitForOAuthDeepLink("facebook", 10000);
 
     let result;
     const promptStartTime = Date.now();
@@ -327,21 +354,30 @@ export const loginWithFacebook = async () => {
         showInRecents: Platform.OS === "android",
       });
     } catch (promptError) {
-      // promptAsync threw — cancel deep link listener and surface the real error
       cancelDeepLink(promptError);
-      console.log("Facebook OAuth: promptAsync threw error:", promptError.message);
-      throw new Error(i18n.t("auth.facebookFailed") + ": " + (promptError.message || ""));
+      console.log(
+        "Facebook OAuth: promptAsync threw error:",
+        promptError.message
+      );
+      throw new Error(
+        i18n.t("auth.facebookFailed") + ": " + (promptError.message || "")
+      );
     }
 
     const promptDuration = Date.now() - promptStartTime;
-    console.log("Facebook OAuth: promptAsync result type:", result.type, "duration:", promptDuration + "ms");
+    console.log(
+      "Facebook OAuth: promptAsync result type:",
+      result.type,
+      "duration:",
+      promptDuration + "ms"
+    );
 
     if (result.type === "locked") {
       cancelDeepLink(new Error(i18n.t("auth.sessionInProgress")));
       throw new Error(i18n.t("auth.sessionInProgress"));
     }
 
-    // "success" path
+    // "success" path — expected main path now that we use the custom scheme
     if (result.type === "success" && result.params?.code) {
       cancelDeepLink(new Error("code received via success"));
       console.log("Facebook OAuth: Got code via success result");
@@ -361,17 +397,19 @@ export const loginWithFacebook = async () => {
 
     // "error" result type
     if (result.type === "error") {
-      cancelDeepLink(new Error(result.error?.message || i18n.t("auth.facebookFailed")));
+      cancelDeepLink(
+        new Error(result.error?.message || i18n.t("auth.facebookFailed"))
+      );
       throw new Error(result.error?.message || i18n.t("auth.facebookFailed"));
     }
 
-    // "dismiss" or "cancel" path (iOS main path after successful OAuth redirect)
+    // "dismiss" or "cancel"
     if (result.type === "dismiss" || result.type === "cancel") {
-      // If the browser returned almost immediately (< 1500ms), the browser likely
-      // never opened at all (SFSafariViewController failed silently on iOS).
       if (promptDuration < 1500) {
         cancelDeepLink(new Error("browser did not open"));
-        console.log("Facebook OAuth: Immediate cancel/dismiss — browser likely did not open.");
+        console.log(
+          "Facebook OAuth: Immediate cancel/dismiss — browser likely did not open."
+        );
         throw new Error(i18n.t("auth.facebookFailed"));
       }
 
@@ -401,7 +439,6 @@ export const loginWithFacebook = async () => {
       };
     }
 
-    // other result type
     cancelDeepLink(new Error(i18n.t("auth.facebookFailed")));
     throw new Error(i18n.t("auth.facebookFailed"));
   } catch (error) {
