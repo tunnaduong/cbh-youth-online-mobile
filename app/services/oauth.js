@@ -14,30 +14,15 @@ const FACEBOOK_CLIENT_ID = "585636393835324";
 // App's deep link scheme for receiving OAuth callbacks
 const APP_SCHEME = "com.fatties.youth";
 
-// ✅ FIX: Platform-specific redirect URI.
+// Redirect URI - backend callback URL for both Google and Facebook.
+// The backend receives the code from Google/Facebook, exchanges it, then redirects
+// back to the app via com.fatties.youth://oauth/callback.
 //
-// iOS (SDK 54 bug): expo-web-browser silently fails when the redirect URI uses https://
-// without Associated Domains entitlements — it tries to treat it as a Universal Link.
-// We use the custom app scheme instead, which is already registered in app.json
-// (scheme: "com.fatties.youth") and CFBundleURLSchemes.
-//
-// Android: Chrome Custom Tabs handles https:// redirects correctly — no change needed.
-// Switching Android to the custom scheme would break the existing working flow.
-//
-// ⚠️  BACKEND CHANGE REQUIRED (iOS only):
-// When redirect_uri is "com.fatties.youth://oauth/callback", your backend must
-// redirect back to the app instead of returning JSON:
-//   res.redirect(`com.fatties.youth://oauth/callback?code=...&state=...`);
-// You can detect which platform sent the request by checking the redirect_uri param.
-//
-// Also add com.fatties.youth://oauth/callback to:
-//   - Google Cloud Console → OAuth credentials → Authorized redirect URIs
-//   - Facebook Developer Console → App → Valid OAuth Redirect URIs
-// (keep the existing https:// URI registered too so Android keeps working)
-const REDIRECT_URI =
-  Platform.OS === "ios"
-    ? `${APP_SCHEME}://oauth/callback`                        // iOS: custom scheme fix
-    : "https://api.chuyenbienhoa.com/v1.0/oauth/callback";   // Android: unchanged
+// ✅ SDK 54 FIX: preferUniversalLinks: false is passed to promptAsync() below.
+// In SDK 54, expo-web-browser started treating https:// redirect URIs as Universal
+// Links, silently failing without Associated Domains entitlements. Setting
+// preferUniversalLinks: false restores the original SDK 53 behavior.
+const REDIRECT_URI = "https://api.chuyenbienhoa.com/v1.0/oauth/callback";
 
 // Track active auth sessions to prevent multiple calls
 let activeGoogleAuthSession = false;
@@ -193,8 +178,8 @@ export const loginWithGoogle = async () => {
       );
     }
 
-    // Deep link listener as fallback (with custom scheme, promptAsync should
-    // return "success" directly on both iOS and Android)
+    // Deep link listener as fallback — promptAsync returns "dismiss" on iOS
+    // after the backend redirects back to the app scheme.
     const { promise: deepLinkPromise, cancel: cancelDeepLink } =
       waitForOAuthDeepLink("google", 10000);
 
@@ -204,6 +189,9 @@ export const loginWithGoogle = async () => {
       result = await request.promptAsync(discovery, {
         useProxy: false,
         showInRecents: Platform.OS === "android",
+        // ✅ SDK 54 FIX: prevents expo-web-browser from treating the https:// redirect
+        // URI as a Universal Link, which caused silent failure without Associated Domains.
+        preferUniversalLinks: false,
       });
     } catch (promptError) {
       cancelDeepLink(promptError);
@@ -352,6 +340,9 @@ export const loginWithFacebook = async () => {
       result = await request.promptAsync(discovery, {
         useProxy: false,
         showInRecents: Platform.OS === "android",
+        // ✅ SDK 54 FIX: prevents expo-web-browser from treating the https:// redirect
+        // URI as a Universal Link, which caused silent failure without Associated Domains.
+        preferUniversalLinks: false,
       });
     } catch (promptError) {
       cancelDeepLink(promptError);
