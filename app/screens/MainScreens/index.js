@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter } from "react-native";
-import * as Haptics from "expo-haptics";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter, Vibration } from "react-native";
 import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -344,7 +343,7 @@ const CustomTabBar = ({
         slideAnim.stopAnimation((currentVal) => {
           dragStartX.current = currentVal;
         });
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Vibration.vibrate(10);
       },
       onPanResponderMove: (evt, gestureState) => {
         const bWidth = (tabBarWidthRef.current - 2) / 4;
@@ -371,7 +370,7 @@ const CustomTabBar = ({
         // Haptic + navigate when crossing into a new tab zone
         if (hoveredIndex !== lastHapticIndex.current) {
           lastHapticIndex.current = hoveredIndex;
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          Vibration.vibrate(20);
           navigateToLeftIndex(hoveredIndex);
         }
       },
@@ -397,7 +396,7 @@ const CustomTabBar = ({
           navigateToLeftIndex(snappedIndex);
         }
 
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Vibration.vibrate(10);
       },
       onPanResponderTerminate: () => {
         isDragging.current = false;
