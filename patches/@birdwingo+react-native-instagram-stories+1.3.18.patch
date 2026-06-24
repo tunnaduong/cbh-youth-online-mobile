@@ -1,282 +1,3 @@
-diff --git a/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej
-new file mode 100644
-index 0000000..eb9f3e1
---- /dev/null
-+++ b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej
-@@ -0,0 +1,180 @@
-+@@ -1,25 +1,33 @@
-+-import { SharedValue } from 'react-native-reanimated';
-++import { SharedValue } from "react-native-reanimated";
-+ import {
-+-  ImageProps, ImageStyle, TextProps, TextStyle, ViewStyle,
-+-} from 'react-native';
-+-import { ReactNode } from 'react';
-+-import { InstagramStoriesProps, InstagramStoryProps, StoryItemProps } from './instagramStoriesDTO';
-+-import { ProgressStorageProps } from './helpersDTO';
-++  ImageProps,
-++  ImageStyle,
-++  TextProps,
-++  TextStyle,
-++  ViewStyle,
-++} from "react-native";
-++import { ReactNode } from "react";
-++import {
-++  InstagramStoriesProps,
-++  InstagramStoryProps,
-++  StoryItemProps,
-++} from "./instagramStoriesDTO";
-++import { ProgressStorageProps } from "./helpersDTO";
-+ 
-+ export interface StoryAvatarListProps {
-+   stories: InstagramStoryProps[];
-+-  loadingStory: StoryAvatarProps['loadingStory'];
-+-  seenStories: StoryAvatarProps['seenStories'];
-+-  colors: StoryAvatarProps['colors'];
-+-  seenColors: StoryAvatarProps['seenColors'];
-+-  size: StoryAvatarProps['size'];
-+-  showName: InstagramStoriesProps['showName'];
-+-  nameTextStyle: InstagramStoriesProps['nameTextStyle'];
-+-  nameTextProps: InstagramStoriesProps['nameTextProps'];
-+-  avatarListContainerStyle: InstagramStoriesProps['avatarListContainerStyle'];
-+-  avatarListContainerProps: InstagramStoriesProps['avatarListContainerProps'];
-++  loadingStory: StoryAvatarProps["loadingStory"];
-++  seenStories: StoryAvatarProps["seenStories"];
-++  colors: StoryAvatarProps["colors"];
-++  seenColors: StoryAvatarProps["seenColors"];
-++  size: StoryAvatarProps["size"];
-++  showName: InstagramStoriesProps["showName"];
-++  nameTextStyle: InstagramStoriesProps["nameTextStyle"];
-++  nameTextProps: InstagramStoriesProps["nameTextProps"];
-++  avatarListContainerStyle: InstagramStoriesProps["avatarListContainerStyle"];
-++  avatarListContainerProps: InstagramStoriesProps["avatarListContainerProps"];
-+   avatarBorderRadius?: number;
-+-  onPress: ( id: string ) => void;
-++  onPress: (id: string) => void;
-+ }
-+ 
-+ export interface StoryAvatarProps extends InstagramStoryProps {
-+@@ -62,35 +70,36 @@
-+   footerComponent?: ReactNode;
-+   hideElementsOnLongPress?: boolean;
-+   hideOverlayViewOnLongPress?: boolean;
-+-  loopingStories?: 'none' | 'all' | 'onlyLast';
-++  loopingStories?: "none" | "all" | "onlyLast";
-+   statusBarTranslucent?: boolean;
-++  toast?: ReactNode;
-+   onLoad: () => void;
-+-  onShow?: ( id: string ) => void;
-+-  onHide?: ( id: string ) => void;
-+-  onSeenStoriesChange: ( user: string, value: string ) => void;
-+-  onSwipeUp?: ( userId?: string, storyId?: string ) => void;
-+-  onStoryStart?: ( userId?: string, storyId?: string ) => void;
-+-  onStoryEnd?: ( userId?: string, storyId?: string ) => void;
-++  onShow?: (id: string) => void;
-++  onHide?: (id: string) => void;
-++  onSeenStoriesChange: (user: string, value: string) => void;
-++  onSwipeUp?: (userId?: string, storyId?: string) => void;
-++  onStoryStart?: (userId?: string, storyId?: string) => void;
-++  onStoryEnd?: (userId?: string, storyId?: string) => void;
-+ }
-+ 
-+ export type StoryModalPublicMethods = {
-+-  show: ( id: string ) => void;
-++  show: (id: string) => void;
-+   hide: () => void;
-+   pause: () => void;
-+   resume: () => void;
-+   goToPreviousStory: () => void;
-+   goToNextStory: () => void;
-+-  getCurrentStory: () => { userId?: string, storyId?: string };
-+-  goToSpecificStory: ( userId: string, index?: number ) => void;
-++  getCurrentStory: () => { userId?: string; storyId?: string };
-++  goToSpecificStory: (userId: string, index?: number) => void;
-+ };
-+ 
-+ export type GestureContext = {
-+-  x: number,
-+-  pressedX: number,
-+-  pressedAt: number,
-+-  moving: boolean,
-+-  vertical: boolean,
-+-  userId?: string,
-++  x: number;
-++  pressedX: number;
-++  pressedAt: number;
-++  moving: boolean;
-++  vertical: boolean;
-++  userId?: string;
-+ };
-+ 
-+ export interface AnimationProps {
-+@@ -100,7 +109,7 @@
-+ }
-+ 
-+ export interface StoryImageProps {
-+-  stories: InstagramStoryProps['stories'];
-++  stories: InstagramStoryProps["stories"];
-+   activeStory: SharedValue<string | undefined>;
-+   defaultStory?: StoryItemProps;
-+   isDefaultVideo: boolean;
-+@@ -111,8 +120,8 @@
-+   imageStyles?: ImageStyle;
-+   imageProps?: ImageProps;
-+   videoDuration?: number;
-+-  onImageLayout: ( height: number ) => void;
-+-  onLoad: ( duration?: number ) => void;
-++  onImageLayout: (height: number) => void;
-++  onLoad: (duration?: number) => void;
-+ }
-+ 
-+ export interface StoryProgressProps {
-+@@ -125,22 +134,26 @@
-+   progressContainerStyle?: ViewStyle;
-+ }
-+ 
-+-export interface StoryProgressItemProps extends Omit<StoryProgressProps, 'length'> {
-++export interface StoryProgressItemProps
-++  extends Omit<StoryProgressProps, "length"> {
-+   index: number;
-+   width: number;
-+ }
-+ 
-+ export interface StoryHeaderProps {
-+-  avatarSource: ImageProps['source'];
-++  avatarSource: ImageProps["source"];
-+   name?: string;
-++  date?: string;
-+   avatarSize: number;
-+   textStyle?: TextStyle;
-+   closeColor: string;
-+   headerStyle?: ViewStyle;
-+   headerContainerStyle?: ViewStyle;
-++  onMore: () => void;
-+   onClose: () => void;
-+   renderStoryHeader?: () => ReactNode;
-+   onStoryHeaderPress?: () => void;
-++  toast?: ReactNode;
-+ }
-+ 
-+ export interface IconProps {
-+@@ -148,7 +161,7 @@
-+ }
-+ 
-+ export interface StoryContentProps {
-+-  stories: InstagramStoryProps['stories'];
-++  stories: InstagramStoryProps["stories"];
-+   active: SharedValue<boolean>;
-+   activeStory: SharedValue<string | undefined>;
-+ }
-+@@ -172,13 +185,13 @@
-+   hideElements: SharedValue<boolean>;
-+   hideOverlayViewOnLongPress?: boolean;
-+   videoDuration?: number;
-+-  onLoad: ( duration?: number ) => void;
-++  onLoad: (duration?: number) => void;
-+ }
-+ 
-+ export interface StoryVideoProps {
-+-  source: ImageProps['source'];
-++  source: ImageProps["source"];
-+   paused: SharedValue<boolean>;
-+   isActive: SharedValue<boolean>;
-+-  onLoad: ( duration: number ) => void;
-+-  onLayout: ( height: number ) => void;
-++  onLoad: (duration: number) => void;
-++  onLayout: (height: number) => void;
-+ }
-diff --git a/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej.orig b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej.orig
-new file mode 100644
-index 0000000..bdfecc6
---- /dev/null
-+++ b/node_modules/@birdwingo/react-native-instagram-stories/Oops.rej.orig
-@@ -0,0 +1,87 @@
-+@@ -1,43 +1,58 @@
-+-import React, { FC, memo } from 'react';
-+-import { View } from 'react-native';
-+-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-+-import { StoryProgressItemProps } from '../../core/dto/componentsDTO';
-+-import ProgressStyles from './Progress.styles';
-+-import { PROGRESS_ACTIVE_COLOR, PROGRESS_COLOR } from '../../core/constants';
-+-
-+-const AnimatedView = Animated.createAnimatedComponent( View );
-+-
-+-const ProgressItem: FC<StoryProgressItemProps> = ( {
-+-  progress, active, activeStory, index, width,
-+-  progressActiveColor = PROGRESS_ACTIVE_COLOR, progressColor = PROGRESS_COLOR,
-+-} ) => {
-+-
-+-  const animatedStyle = useAnimatedStyle( () => {
-+-
-+-    if ( !active.value || activeStory.value < index ) {
-+-
-++import React, { FC, memo } from "react";
-++import { View } from "react-native";
-++import Animated, { useAnimatedStyle } from "react-native-reanimated";
-++import { StoryProgressItemProps } from "../../core/dto/componentsDTO";
-++import ProgressStyles from "./Progress.styles";
-++import { PROGRESS_ACTIVE_COLOR, PROGRESS_COLOR } from "../../core/constants";
-++
-++const AnimatedView = Animated.createAnimatedComponent(View);
-++
-++const ProgressItem: FC<StoryProgressItemProps> = ({
-++  progress,
-++  active,
-++  activeStory,
-++  index,
-++  width,
-++  progressActiveColor = PROGRESS_ACTIVE_COLOR,
-++  progressColor = PROGRESS_COLOR,
-++}) => {
-++  const animatedStyle = useAnimatedStyle(() => {
-++    if (!active.value || activeStory.value < index) {
-+       return { width: 0 };
-+-
-+     }
-+ 
-+-    if ( activeStory.value > index ) {
-+-
-++    if (activeStory.value > index) {
-+       return { width };
-+-
-+     }
-+ 
-+     return { width: width * progress.value };
-+-
-+-  } );
-++  });
-+ 
-+   return (
-+-    <View style={[ ProgressStyles.item, { backgroundColor: progressColor }, { width } ]}>
-++    <View
-++      style={[
-++        {
-++          height: 3,
-++          borderRadius: 8,
-++          overflow: "hidden",
-++        },
-++        { backgroundColor: progressColor },
-++        { width },
-++      ]}
-++    >
-+       <AnimatedView
-+-        style={[ ProgressStyles.item, { backgroundColor: progressActiveColor }, animatedStyle ]}
-++        style={[
-++          {
-++            height: 3,
-++            borderRadius: 8,
-++            overflow: "hidden",
-++          },
-++          { backgroundColor: progressActiveColor },
-++          animatedStyle,
-++        ]}
-+       />
-+     </View>
-+   );
-+-
-+ };
-+ 
-+-export default memo( ProgressItem );
-++export default memo(ProgressItem);
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Animation/Animation.styles.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Animation/Animation.styles.ts
 index da69701..aabf23c 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Animation/Animation.styles.ts
@@ -503,20 +224,49 @@ index 9fa47d8..1c62b34 100644
              <StoryContent stories={stories} active={isActive} activeStory={activeStory} />
            </Animated.View>
          </Animated.View>
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/gesture.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/gesture.tsx
+index 640052c..bb73af4 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/gesture.tsx
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/gesture.tsx
+@@ -1,10 +1,8 @@
+ import React, { memo } from 'react';
+-import { PanGestureHandler, PanGestureHandlerProps, gestureHandlerRootHOC } from 'react-native-gesture-handler';
++import { GestureDetector, GestureType } from 'react-native-gesture-handler';
+ 
+-const GestureHandler = gestureHandlerRootHOC(
+-  ( { children, onGestureEvent } : PanGestureHandlerProps ) => (
+-    <PanGestureHandler onGestureEvent={onGestureEvent}>{children}</PanGestureHandler>
+-  ),
++const GestureHandler = ( { children, gesture } : { children: React.ReactNode; gesture: GestureType } ) => (
++  <GestureDetector gesture={gesture}>{children}</GestureDetector>
+ );
+ 
+ export default memo( GestureHandler );
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
-index dd93855..bede20e 100644
+index dd93855..2b73856 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
-@@ -1,7 +1,7 @@
+@@ -1,9 +1,9 @@
  import React, {
    forwardRef, memo, useEffect, useImperativeHandle, useState,
  } from 'react';
 -import { GestureResponderEvent, Modal, Pressable } from 'react-native';
 +import { GestureResponderEvent, Modal, Pressable, View } from 'react-native';
  import Animated, {
-   cancelAnimation, interpolate, runOnJS, useAnimatedGestureHandler, useAnimatedReaction,
+-  cancelAnimation, interpolate, runOnJS, useAnimatedGestureHandler, useAnimatedReaction,
++  cancelAnimation, interpolate, runOnJS, useAnimatedReaction,
    useAnimatedStyle,
-@@ -20,7 +20,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+   useDerivedValue, useSharedValue, withTiming,
+ } from 'react-native-reanimated';
+@@ -12,6 +12,7 @@ import {
+ } from '../../core/constants';
+ import { GestureContext, StoryModalProps, StoryModalPublicMethods } from '../../core/dto/componentsDTO';
+ import GestureHandler from './gesture';
++import { Gesture } from 'react-native-gesture-handler';
+ import StoryList from '../List';
+ import ModalStyles from './Modal.styles';
+ 
+@@ -20,7 +21,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
    backgroundColor, videoProps, closeIconColor, modalAnimationDuration = STORY_ANIMATION_DURATION,
    storyAnimationDuration = STORY_ANIMATION_DURATION, hideElementsOnLongPress, loopingStories = 'none',
    statusBarTranslucent, loaderColor, loaderBackgroundColor, onLoad, onShow, onHide,
@@ -525,7 +275,94 @@ index dd93855..bede20e 100644
  }, ref ) => {
  
    const [ visible, setVisible ] = useState( false );
-@@ -510,6 +510,11 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+@@ -261,25 +262,34 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+ 
+   };
+ 
+-  const onGestureEvent = useAnimatedGestureHandler( {
+-    onStart: ( e, ctx: GestureContext ) => {
++  const gestureCtx = useSharedValue<GestureContext>( {
++    x: 0, pressedX: 0, pressedAt: 0, moving: false, vertical: false, userId: undefined,
++  } );
++
++  const panGesture = Gesture.Pan()
++    .onStart( ( e ) => {
+ 
+-      ctx.x = x.value;
+-      ctx.userId = userId.value;
++      gestureCtx.value = {
++        ...gestureCtx.value,
++        x: x.value,
++        userId: userId.value,
++      };
+       paused.value = true;
+ 
+-    },
+-    onActive: ( e, ctx ) => {
++    } )
++    .onUpdate( ( e ) => {
++
++      const ctx = gestureCtx.value;
+ 
+       if ( ctx.x === x.value
+         && ( ctx.vertical || ( Math.abs( e.velocityX ) < Math.abs( e.velocityY ) ) ) ) {
+ 
+-        ctx.vertical = true;
++        gestureCtx.value = { ...ctx, vertical: true };
+         y.value = e.translationY / 2;
+ 
+       } else {
+ 
+-        ctx.moving = true;
++        gestureCtx.value = { ...ctx, moving: true };
+         x.value = Math.max(
+           0,
+           Math.min( ctx.x + -e.translationX, WIDTH * ( stories.length - 1 ) ),
+@@ -287,8 +297,10 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+ 
+       }
+ 
+-    },
+-    onFinish: ( e, ctx ) => {
++    } )
++    .onEnd( ( e ) => {
++
++      const ctx = gestureCtx.value;
+ 
+       if ( ctx.vertical ) {
+ 
+@@ -338,14 +350,16 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+ 
+       }
+ 
+-      ctx.moving = false;
+-      ctx.vertical = false;
+-      ctx.userId = undefined;
++      gestureCtx.value = {
++        ...ctx,
++        moving: false,
++        vertical: false,
++        userId: undefined,
++      };
+       hideElements.value = false;
+       paused.value = false;
+ 
+-    },
+-  } );
++    } );
+ 
+   const onPressIn = () => {
+ 
+@@ -461,7 +475,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+ 
+   return (
+     <Modal statusBarTranslucent={statusBarTranslucent} visible={visible} transparent animationType="none" testID="storyRNModal" onRequestClose={onClose}>
+-      <GestureHandler onGestureEvent={onGestureEvent}>
++      <GestureHandler gesture={panGesture}>
+         <Animated.View style={ModalStyles.container} testID="storyModal">
+           <Pressable
+             onPressIn={onPressIn}
+@@ -510,6 +524,11 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
            {footerComponent && footerComponent}
          </Animated.View>
        </GestureHandler>
