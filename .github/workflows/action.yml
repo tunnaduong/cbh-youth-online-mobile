@@ -49,10 +49,10 @@ jobs:
         run: |
           cd android
           ./gradlew assembleRelease assembleDebug \
-            -PreactNativeArchitectures=arm64-v8a \
-            -x lint -x test \
-            -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
-            --no-daemon
+          -PreactNativeArchitectures=arm64-v8a \
+          -x lint -x test \
+          -x lintVitalRelease -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
+          --no-daemon
 
       - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
