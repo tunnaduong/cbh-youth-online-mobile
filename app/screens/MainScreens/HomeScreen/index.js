@@ -30,6 +30,7 @@ import {
   Dimensions,
   Alert,
   DeviceEventEmitter,
+  StatusBar,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -791,6 +792,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryShow = (userId) => {
+  if (Platform.OS === "android") StatusBar.setHidden(true, "fade");
     // Save current status bar style
     previousStatusBarStyle.current = { barStyle, backgroundColor };
     // Change to light content (white text) for dark background
@@ -824,6 +826,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryHide = () => {
+  if (Platform.OS === "android") StatusBar.setHidden(false, "fade");
     // Restore previous status bar style
     updateStatusBar(
       previousStatusBarStyle.current.barStyle,
