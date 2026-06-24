@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, DeviceEventEmitter } from "react-native";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter } from "react-native";
+import * as Haptics from "expo-haptics";
 import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -189,10 +190,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           height: 52,
           borderRadius: 26,
           top: 0,
-          left: -1.2,
-          opacity: opacity * 0.22,
+          left: -0.8,
+          opacity: opacity * 0.15,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.14)",
+          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
         }}
       />
       {/* Chromatic Aberration - Blue channel shift (right offset) */}
@@ -203,13 +204,13 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           height: 52,
           borderRadius: 26,
           top: 0,
-          left: 1.2,
-          opacity: opacity * 0.22,
+          left: 0.8,
+          opacity: opacity * 0.15,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.14)",
+          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
         }}
       />
-      {/* Main Glass Indicator */}
+      {/* Main Glass Indicator (neutral white/dark) */}
       <Animated.View
         style={{
           position: "absolute",
@@ -220,47 +221,24 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           left: 0,
           opacity,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(255, 255, 255, 0.38)",
-          shadowColor: isDarkMode ? "#ffffff" : "#000000",
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: isDarkMode ? 0.18 : 0.12,
-          shadowRadius: 8,
-          elevation: 4,
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+          shadowColor: isDarkMode ? "#fff" : "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: isDarkMode ? 0.3 : 0.15,
+          shadowRadius: 6,
+          elevation: 3,
           overflow: "hidden",
-          borderWidth: 1,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.85)",
         }}
       >
-        {/* Top specular highlight — simulates light hitting curved glass surface */}
-        <LinearGradient
-          colors={[
-            isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.72)",
-            isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.28)",
-            "transparent",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[StyleSheet.absoluteFillObject, { height: "55%" }]}
-        />
-        {/* Bottom inner shadow — simulates glass depth / concave feel */}
-        <LinearGradient
-          colors={[
-            "transparent",
-            isDarkMode ? "rgba(0, 0, 0, 0.18)" : "rgba(0, 0, 0, 0.06)",
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={[StyleSheet.absoluteFillObject, { top: "55%" }]}
-        />
-        {/* Left edge specular — diagonal light catch */}
         <LinearGradient
           colors={[
             isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-            "transparent",
+            isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+            "transparent"
           ]}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={[StyleSheet.absoluteFillObject, { width: "30%" }]}
+          end={{ x: 0, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
         />
       </Animated.View>
     </View>
@@ -284,12 +262,11 @@ const CustomTabBar = ({
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
-  const onLeftPillLayout = (event) => {
-    const { width } = event.nativeEvent.layout;
-    if (width) {
-      setTabBarWidth(width);
-    }
-  };
+  // Drag state refs (avoid re-renders during gesture)
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const lastHapticIndex = useRef(-1);
+  const tabBarWidthRef = useRef(tabBarWidth);
 
   const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
   const leftRoutes = leftRouteNames.map(name => {
@@ -301,40 +278,156 @@ const CustomTabBar = ({
 
   const activeRouteName = state.routes[state.index].name;
   const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
+  const activeLeftIndexRef = useRef(activeLeftIndex);
 
   const usableWidth = tabBarWidth - 2;
   const buttonWidth = usableWidth / 4;
-  const currentIndicatorWidth = buttonWidth;
   const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
+  // Keep refs in sync
   useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: currentIndicatorLeft,
-      useNativeDriver: true,
-      stiffness: 140,
-      damping: 14,
-      mass: 1.2,
-    }).start();
+    tabBarWidthRef.current = tabBarWidth;
+  }, [tabBarWidth]);
+
+  useEffect(() => {
+    activeLeftIndexRef.current = activeLeftIndex;
+  }, [activeLeftIndex]);
+
+  // Animate indicator to committed tab position (when not dragging)
+  useEffect(() => {
+    if (!isDragging.current) {
+      Animated.spring(slideAnim, {
+        toValue: currentIndicatorLeft,
+        useNativeDriver: true,
+        stiffness: 180,
+        damping: 18,
+        mass: 1.0,
+      }).start();
+    }
   }, [currentIndicatorLeft]);
+
+  const onLeftPillLayout = (event) => {
+    const { width } = event.nativeEvent.layout;
+    if (width) {
+      setTabBarWidth(width);
+      tabBarWidthRef.current = width;
+    }
+  };
+
+  // Navigate to a tab by left-route index
+  const navigateToLeftIndex = useCallback((leftIdx) => {
+    const target = leftRoutes[leftIdx];
+    if (!target) return;
+    const { route } = target;
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+    if (!event.defaultPrevented) {
+      navigation.navigate(route.name, route.params);
+    }
+  }, [leftRoutes, navigation]);
+
+  // PanResponder for drag-to-switch
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Only capture clearly horizontal drags (not vertical scrolls)
+        return Math.abs(gestureState.dx) > 6 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
+      },
+      onPanResponderGrant: (evt, gestureState) => {
+        isDragging.current = true;
+        lastHapticIndex.current = activeLeftIndexRef.current;
+        // Stop any in-flight spring so indicator follows finger instantly
+        slideAnim.stopAnimation((currentVal) => {
+          dragStartX.current = currentVal;
+        });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const bWidth = (tabBarWidthRef.current - 2) / 4;
+        const rawX = dragStartX.current + gestureState.dx;
+        const minX = 0;
+        const maxX = bWidth * 3;
+
+        // Rubber-band resistance at edges
+        let clampedX;
+        if (rawX < minX) {
+          clampedX = minX + (rawX - minX) * 0.2;
+        } else if (rawX > maxX) {
+          clampedX = maxX + (rawX - maxX) * 0.2;
+        } else {
+          clampedX = rawX;
+        }
+
+        slideAnim.setValue(clampedX);
+
+        // Determine which tab the indicator center is over
+        const indicatorCenter = clampedX + bWidth / 2;
+        const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
+
+        // Haptic + navigate when crossing into a new tab zone
+        if (hoveredIndex !== lastHapticIndex.current) {
+          lastHapticIndex.current = hoveredIndex;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          navigateToLeftIndex(hoveredIndex);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        isDragging.current = false;
+        const bWidth = (tabBarWidthRef.current - 2) / 4;
+
+        // Snap to the nearest tab
+        const rawX = dragStartX.current + gestureState.dx;
+        const clampedX = Math.min(bWidth * 3, Math.max(0, rawX));
+        const snappedIndex = Math.min(3, Math.max(0, Math.round(clampedX / bWidth)));
+        const snapTarget = snappedIndex * bWidth;
+
+        Animated.spring(slideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: true,
+          stiffness: 280,
+          damping: 26,
+          mass: 0.8,
+        }).start();
+
+        if (snappedIndex !== activeLeftIndexRef.current) {
+          navigateToLeftIndex(snappedIndex);
+        }
+
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      },
+      onPanResponderTerminate: () => {
+        isDragging.current = false;
+        // Spring back to committed position
+        const bWidth = (tabBarWidthRef.current - 2) / 4;
+        const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
+        Animated.spring(slideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: true,
+          stiffness: 200,
+          damping: 20,
+        }).start();
+      },
+    })
+  ).current;
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
 
   const renderButtons = () => {
-    return leftRoutes.map(({ route, index, descriptor }) => {
+    return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
       const isFocused = state.routes[state.index].key === route.key;
       const { options } = descriptor;
 
       const onPress = () => {
+        if (isDragging.current) return;
         if (isFocused) {
-          if (route.name === "Home") {
-            triggerHomeScrollOrReload();
-          } else if (route.name === "Forum") {
-            triggerForumScrollOrReload();
-          } else if (route.name === "Chat") {
-            triggerChatScrollOrReload();
-          } else if (route.name === "Notifications") {
-            triggerNotificationScrollOrReload();
-          }
+          if (route.name === "Home") triggerHomeScrollOrReload();
+          else if (route.name === "Forum") triggerForumScrollOrReload();
+          else if (route.name === "Chat") triggerChatScrollOrReload();
+          else if (route.name === "Notifications") triggerNotificationScrollOrReload();
           return;
         }
         const event = navigation.emit({
@@ -342,7 +435,6 @@ const CustomTabBar = ({
           target: route.key,
           canPreventDefault: true,
         });
-
         if (!event.defaultPrevented) {
           navigation.navigate(route.name, route.params);
         }
@@ -465,47 +557,25 @@ const CustomTabBar = ({
                   left: 0,
                   opacity,
                   transform: [{ translateX: slideAnim }],
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.88)",
-                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(255, 255, 255, 0.38)",
-                  shadowColor: isDarkMode ? "#ffffff" : "#000000",
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: isDarkMode ? 0.18 : 0.12,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  borderWidth: 0,
+                  backgroundColor: indicatorBg,
+                  shadowColor: isDarkMode ? "#fff" : "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                  shadowRadius: 6,
+                  elevation: 3,
                   overflow: "hidden",
                 }}
               >
-                {/* Top specular highlight */}
-                <LinearGradient
-                  colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.72)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.28)",
-                    "transparent",
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={[StyleSheet.absoluteFillObject, { height: "55%" }]}
-                />
-                {/* Bottom inner shadow */}
-                <LinearGradient
-                  colors={[
-                    "transparent",
-                    isDarkMode ? "rgba(0, 0, 0, 0.18)" : "rgba(0, 0, 0, 0.06)",
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={[StyleSheet.absoluteFillObject, { top: "55%" }]}
-                />
-                {/* Left edge specular */}
                 <LinearGradient
                   colors={[
                     isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    "transparent",
+                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                    "transparent"
                   ]}
                   start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[StyleSheet.absoluteFillObject, { width: "30%" }]}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
                 />
               </Animated.View>
             )}
@@ -566,10 +636,10 @@ const CustomTabBar = ({
               height: 50,
               borderRadius: 25,
               top: 0,
-              left: -1.2,
-              opacity: opacity * 0.22,
+              left: -0.8,
+              opacity: opacity * 0.15,
               transform: [{ translateX: slideAnim }],
-              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.14)",
+              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
             }}
           />
           {/* Chromatic Aberration - Blue channel shift */}
@@ -580,10 +650,10 @@ const CustomTabBar = ({
               height: 50,
               borderRadius: 25,
               top: 0,
-              left: 1.2,
-              opacity: opacity * 0.22,
+              left: 0.8,
+              opacity: opacity * 0.15,
               transform: [{ translateX: slideAnim }],
-              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.14)",
+              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
             }}
           />
           {/* Main Glass Indicator */}
@@ -597,47 +667,24 @@ const CustomTabBar = ({
               left: 0,
               opacity,
               transform: [{ translateX: slideAnim }],
-              borderWidth: 1,
-              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.88)",
-              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(255, 255, 255, 0.38)",
-              shadowColor: isDarkMode ? "#ffffff" : "#000000",
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: isDarkMode ? 0.18 : 0.12,
-              shadowRadius: 8,
-              elevation: 4,
+              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+              shadowColor: isDarkMode ? "#fff" : "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDarkMode ? 0.3 : 0.15,
+              shadowRadius: 6,
+              elevation: 3,
               overflow: "hidden",
             }}
           >
-            {/* Top specular highlight */}
-            <LinearGradient
-              colors={[
-                isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.72)",
-                isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.28)",
-                "transparent",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={[StyleSheet.absoluteFillObject, { height: "55%" }]}
-            />
-            {/* Bottom inner shadow */}
-            <LinearGradient
-              colors={[
-                "transparent",
-                isDarkMode ? "rgba(0, 0, 0, 0.18)" : "rgba(0, 0, 0, 0.06)",
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={[StyleSheet.absoluteFillObject, { top: "55%" }]}
-            />
-            {/* Left edge specular */}
             <LinearGradient
               colors={[
                 isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                "transparent",
+                isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                "transparent"
               ]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={[StyleSheet.absoluteFillObject, { width: "30%" }]}
+              end={{ x: 0, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
             />
           </Animated.View>
           {renderButtons()}
