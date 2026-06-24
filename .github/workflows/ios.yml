@@ -1,4 +1,4 @@
-name: Build iOS Signed IPA & Simulator
+name: Build iOS Signed IPA
 
 on:
   push:
@@ -7,7 +7,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # --- JOB 1: BUILD FOR REAL IPHONE (SIGNED IPA) ---
   build-ios-real:
     name: Build & Sign Real Device IPA
     runs-on: macos-latest
@@ -159,91 +158,18 @@ jobs:
           path: ${{ runner.temp }}/*-signed.ipa
           retention-days: 1
 
-# --- JOB 2: RUNS AT THE SAME TIME FOR PRODUCTION IOS SIMULATOR ---
-  build-ios-simulator:
-    name: Build iOS Simulator App
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Xcode version
-        uses: maxim-lobanov/setup-xcode@v1
-        with:
-          xcode-version: '26.0' 
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Configure Node path for Xcode build phases
-        run: |
-          sudo ln -sf $(which node) /usr/local/bin/node
-          echo "export NODE_BINARY=$(which node)" > ios/.xcode.env.local
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache Pods
-        uses: actions/cache@v4
-        with:
-          path: ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-pods-
-
-      - name: Install Pods
-        run: |
-          cd ios
-          pod install
-
-      - name: Detect iOS Project Name
-        run: |
-          cd ios
-          WORKSPACE_NAME=$(basename *.xcworkspace .xcworkspace)
-          echo "APP_NAME=$WORKSPACE_NAME" >> $GITHUB_ENV
-
-      - name: Install xcbeautify
-        run: brew install xcbeautify
-
-      - name: Build iOS Simulator App (Release Configuration)
-        run: |
-          cd ios
-          set -o pipefail
-          xcodebuild -workspace "${{ env.APP_NAME }}.xcworkspace" \
-            -scheme "${{ env.APP_NAME }}" \
-            -sdk iphonesimulator \
-            -configuration Release \
-            -derivedDataPath "$RUNNER_TEMP/simulator_derived_data" \
-            CODE_SIGNING_ALLOWED=NO \
-            | xcbeautify --quiet --renderer github-actions
-
-      - name: Compress Simulator .app File
-        run: |
-          cd "$RUNNER_TEMP/simulator_derived_data/Build/Products/Release-iphonesimulator"
-          zip -r "$RUNNER_TEMP/${{ env.APP_NAME }}-simulator.zip" "${{ env.APP_NAME }}.app"
-
-      - name: Upload Simulator Zip Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-simulator-zip
-          path: ${{ runner.temp }}/*-simulator.zip
-          retention-days: 7
-  # --- JOB 3: MERGE BOTH ARTIFACTS AND PUBLISH TO GITHUB RELEASES ---
   publish-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build-ios-real, build-ios-simulator]
+    needs: [build-ios-real]
     permissions:
       contents: write
     steps:
-      - name: Download all build artifacts
+      - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
+          name: app-release-signed-ipa
           path: ${{ github.workspace }}/release_artifacts
-          merge-multiple: true
 
       - name: Create or Update Pre-release
         uses: ncipollo/release-action@v1
@@ -261,9 +187,7 @@ jobs:
             Nhấn vào link dưới đây để đến trang cài đặt ứng dụng dành cho thiết bị thật:
             
             👉 **[BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)**
-
-            ### 💻 iOS Simulator Build
-            Tải file `*-simulator.zip` đính kèm bên dưới, giải nén và kéo tệp `.app` thả thẳng vào iOS Simulator của bạn.
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
+          
