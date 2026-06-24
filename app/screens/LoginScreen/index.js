@@ -59,10 +59,26 @@ const LoginScreen = ({ navigation }) => {
       signIn(response.data.token, response.data.user);
     } catch (error) {
       // Show an error message to the user
-      Alert.alert(
-        t("auth.loginError"),
-        error.message || t("common.error")
-      );
+      let errorMessage = error.message || t("common.error");
+
+      // Provide a helpful hint for bcrypt algorithm errors (old account hashing incompatibility)
+      if (
+        errorMessage &&
+        (errorMessage.toLowerCase().includes("bcrypt") ||
+          errorMessage.toLowerCase().includes("algorithm"))
+      ) {
+        errorMessage = t("auth.passwordResetRequired", {
+          defaultValue:
+            errorMessage +
+            "\n\n" +
+            t("auth.tryForgotPassword", {
+              defaultValue:
+                "Vui lòng thử dùng 'Quên mật khẩu' để đặt lại mật khẩu.",
+            }),
+        });
+      }
+
+      Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false); // Ensure loading stops even if there's an error
     }
@@ -294,8 +310,8 @@ const LoginScreen = ({ navigation }) => {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
-                    textContentType="password"
-                    autoComplete="password"
+                    textContentType="none"
+                    autoComplete="off"
                     autoCorrect={false}
                     autoCapitalize="none"
                   />

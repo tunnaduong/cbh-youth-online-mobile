@@ -656,9 +656,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const handleFetchFeed = async (page = 1) => {
     try {
       const response = await getHomePosts(page);
-      setFeed(response.data.data); // Ensure this updates the feed with the latest votes
+      const posts = response?.data?.data;
+      // Guard: only set feed if we received a valid array from the server
+      setFeed(Array.isArray(posts) ? posts : []);
     } catch (error) {
       console.log("Error fetching newsfeed:", error);
+      // Don't leave feed as null on error if it was already loaded
+      setFeed((prev) => prev ?? []);
       Toast.show({
         type: "error",
         text1: t('common.error'),
@@ -680,12 +684,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     getHomePosts(currentPage)
       .then((response) => {
         const newPosts = response?.data?.data;
-        if (!newPosts || newPosts.length === 0) {
+        if (!Array.isArray(newPosts) || newPosts.length === 0) {
           setHasMore(false);
           return;
         }
         setFeed((prevData) => {
-          if (!prevData) return newPosts;
+          if (!Array.isArray(prevData)) return newPosts;
           return [...prevData, ...newPosts];
         });
         setCurrentPage((prevPage) => prevPage + 1);
@@ -1433,11 +1437,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
 
   const filteredFeed = useMemo(() => {
-    if (!feed) return null;
+    if (feed === null) return null;
+    // Guard against non-array feed values from unexpected server responses
+    const safeFeed = Array.isArray(feed) ? feed : [];
     if (blockedUsers && blockedUsers.length > 0) {
-      return feed.filter((post) => !blockedUsers.includes(post.user?.username));
+      return safeFeed.filter((post) => !blockedUsers.includes(post.user?.username));
     }
-    return feed;
+    return safeFeed;
   }, [feed, blockedUsers]);
 
   const filteredStories = useMemo(() => {

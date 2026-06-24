@@ -30,9 +30,13 @@ let activeFacebookAuthSession = false;
  * app's custom scheme, promptAsync() returns "dismiss". The deep link arrives
  * shortly after via Linking. We use a proper Promise here to avoid the race
  * condition of a fixed setTimeout.
+ *
+ * Returns { promise, cancel } so callers can cancel early if promptAsync throws.
  */
 function waitForOAuthDeepLink(provider, timeoutMs = 8000) {
-  return new Promise((resolve, reject) => {
+  let cancelFn = null;
+
+  const promise = new Promise((resolve, reject) => {
     let settled = false;
     let subscription = null;
     let timer = null;
@@ -45,6 +49,15 @@ function waitForOAuthDeepLink(provider, timeoutMs = 8000) {
       if (timer) {
         clearTimeout(timer);
         timer = null;
+      }
+    };
+
+    // Expose cancel function for early termination
+    cancelFn = (reason) => {
+      if (!settled) {
+        settled = true;
+        cleanup();
+        reject(reason || new Error("OAuth cancelled"));
       }
     };
 
@@ -96,6 +109,8 @@ function waitForOAuthDeepLink(provider, timeoutMs = 8000) {
       }
     }, timeoutMs);
   });
+
+  return { promise, cancel: (reason) => cancelFn && cancelFn(reason) };
 }
 
 /**
@@ -159,22 +174,32 @@ export const loginWithGoogle = async () => {
 
     // On iOS the backend redirect → custom scheme means promptAsync returns "dismiss".
     // We start the deep link listener BEFORE promptAsync so we never miss it.
-    const deepLinkPromise = waitForOAuthDeepLink("google", 10000);
+    const { promise: deepLinkPromise, cancel: cancelDeepLink } = waitForOAuthDeepLink("google", 10000);
 
-    const result = await request.promptAsync(discovery, {
-      useProxy: false,
-      showInRecents: Platform.OS === "android",
-    });
+    let result;
+    try {
+      result = await request.promptAsync(discovery, {
+        useProxy: false,
+        showInRecents: Platform.OS === "android",
+      });
+    } catch (promptError) {
+      // promptAsync threw — cancel deep link listener and surface the real error
+      cancelDeepLink(promptError);
+      console.log("Google OAuth: promptAsync threw error:", promptError.message);
+      throw new Error(i18n.t("auth.googleFailed") + ": " + (promptError.message || ""));
+    }
 
     console.log("Google OAuth: promptAsync result type:", result.type);
 
     if (result.type === "locked") {
+      cancelDeepLink(new Error(i18n.t("auth.sessionInProgress")));
       throw new Error(i18n.t("auth.sessionInProgress"));
     }
 
     // "success" path: redirect URI matched directly (rare when using backend redirect URI,
     // but handle it for completeness / Android cases)
     if (result.type === "success" && result.params?.code) {
+      cancelDeepLink(new Error("code received via success"));
       console.log("Google OAuth: Got code via success result");
       const tokenResult = await exchangeCodeViaBackend(
         result.params.code,
@@ -188,6 +213,12 @@ export const loginWithGoogle = async () => {
         idToken: tokenResult.idToken,
         profile: userInfo,
       };
+    }
+
+    // "error" result type — surface the error
+    if (result.type === "error") {
+      cancelDeepLink(new Error(result.error?.message || i18n.t("auth.googleFailed")));
+      throw new Error(result.error?.message || i18n.t("auth.googleFailed"));
     }
 
     // "dismiss" path (iOS main path): browser closed, wait for deep link
@@ -219,7 +250,8 @@ export const loginWithGoogle = async () => {
       };
     }
 
-    // error or other result type
+    // other result type
+    cancelDeepLink(new Error(i18n.t("auth.googleFailed")));
     throw new Error(i18n.t("auth.googleFailed"));
   } catch (error) {
     throw error;
@@ -274,21 +306,31 @@ export const loginWithFacebook = async () => {
     }
 
     // Start deep link listener before promptAsync to avoid race condition on iOS
-    const deepLinkPromise = waitForOAuthDeepLink("facebook", 10000);
+    const { promise: deepLinkPromise, cancel: cancelDeepLink } = waitForOAuthDeepLink("facebook", 10000);
 
-    const result = await request.promptAsync(discovery, {
-      useProxy: false,
-      showInRecents: Platform.OS === "android",
-    });
+    let result;
+    try {
+      result = await request.promptAsync(discovery, {
+        useProxy: false,
+        showInRecents: Platform.OS === "android",
+      });
+    } catch (promptError) {
+      // promptAsync threw — cancel deep link listener and surface the real error
+      cancelDeepLink(promptError);
+      console.log("Facebook OAuth: promptAsync threw error:", promptError.message);
+      throw new Error(i18n.t("auth.facebookFailed") + ": " + (promptError.message || ""));
+    }
 
     console.log("Facebook OAuth: promptAsync result type:", result.type);
 
     if (result.type === "locked") {
+      cancelDeepLink(new Error(i18n.t("auth.sessionInProgress")));
       throw new Error(i18n.t("auth.sessionInProgress"));
     }
 
     // "success" path
     if (result.type === "success" && result.params?.code) {
+      cancelDeepLink(new Error("code received via success"));
       console.log("Facebook OAuth: Got code via success result");
       const tokenResult = await exchangeCodeViaBackend(
         result.params.code,
@@ -302,6 +344,12 @@ export const loginWithFacebook = async () => {
         idToken: null,
         profile: userInfo,
       };
+    }
+
+    // "error" result type
+    if (result.type === "error") {
+      cancelDeepLink(new Error(result.error?.message || i18n.t("auth.facebookFailed")));
+      throw new Error(result.error?.message || i18n.t("auth.facebookFailed"));
     }
 
     // "dismiss" path (iOS main path)
@@ -332,7 +380,8 @@ export const loginWithFacebook = async () => {
       };
     }
 
-    // error or other result type
+    // other result type
+    cancelDeepLink(new Error(i18n.t("auth.facebookFailed")));
     throw new Error(i18n.t("auth.facebookFailed"));
   } catch (error) {
     throw error;
