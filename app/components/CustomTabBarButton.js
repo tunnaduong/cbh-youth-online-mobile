@@ -276,14 +276,7 @@ const CustomTabBarButton = ({ onPress }) => {
         <Animated.View
           style={[styles.iconContainer, { transform: [{ rotate }] }]}
         >
-          <View style={{
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            backgroundColor: "transparent",
-            justifyContent: "center",
-            alignItems: "center",
-          }}>
+          <View style={styles.iconCircle}>
             <Ionicons
               name="add-circle"
               size={52}
@@ -299,23 +292,35 @@ const CustomTabBarButton = ({ onPress }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
   buttonContainer: {
     alignItems: "center",
+    justifyContent: "center",
     zIndex: 3,
-    top: 0,
   },
   iconContainer: {
+    width: 56,
+    height: 56,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 35,
+    borderRadius: 28,
+  },
+  iconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
   },
   icon: {
     shadowColor: "#319527",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
   },
   label: {
     fontWeight: "bold",
