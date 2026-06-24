@@ -28,7 +28,11 @@
           {
             "CFBundleURLSchemes": ["com.fatties.youth"]
           }
-        ]
+        ],
+        "UIApplicationSceneManifest": {
+          "UIApplicationSupportsMultipleScenes": false,
+          "UISceneConfigurations": {}
+        }
       }
     },
     "android": {
