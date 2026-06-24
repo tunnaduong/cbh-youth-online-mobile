@@ -1,4 +1,4 @@
-name: Build Android APK
+Name: Build Android APK
 
 on:
   push:
@@ -45,15 +45,17 @@ jobs:
           echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
           echo "org.gradle.configureondemand=true" >> ~/.gradle/gradle.properties
 
-      - name: Build Android Release APK (Chỉ arm64-v8a để test nhanh)
+      - name: Build Android Release & Debug APK (arm64-v8a)
         run: |
           cd android
-          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a -x lint -x test --no-daemon
+          ./gradlew assembleRelease assembleDebug -PreactNativeArchitectures=arm64-v8a -x lint -x test --no-daemon
 
-      - name: Upload APK Artifact
+      - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          # Sử dụng *.apk vì tên file sẽ đổi theo kiến trúc chip (ví dụ: app-arm64-v8a-release.apk)
-          path: android/app/build/outputs/apk/release/*.apk
+          name: app-apks
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
+          
