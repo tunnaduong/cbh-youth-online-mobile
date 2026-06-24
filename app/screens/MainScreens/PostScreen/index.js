@@ -1043,7 +1043,7 @@ const PostScreen = ({ route, navigation }) => {
     <>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: theme.background }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={headerHeight}
       >
         <SafeAreaView
