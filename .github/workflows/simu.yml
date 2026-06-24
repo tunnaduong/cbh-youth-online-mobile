@@ -67,8 +67,8 @@ jobs:
             -sdk iphonesimulator \
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/simulator_derived_data" \
-            -codeSignOnCopy \
             CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
             | xcbeautify --quiet --renderer github-actions
 
       - name: Compress Simulator .app File
