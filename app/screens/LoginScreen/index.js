@@ -310,8 +310,8 @@ const LoginScreen = ({ navigation }) => {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
-                    textContentType="none"
-                    autoComplete="off"
+                    textContentType="password"
+                    autoComplete="password"
                     autoCorrect={false}
                     autoCapitalize="none"
                   />

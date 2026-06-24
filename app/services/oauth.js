@@ -177,6 +177,7 @@ export const loginWithGoogle = async () => {
     const { promise: deepLinkPromise, cancel: cancelDeepLink } = waitForOAuthDeepLink("google", 10000);
 
     let result;
+    const promptStartTime = Date.now();
     try {
       result = await request.promptAsync(discovery, {
         useProxy: false,
@@ -189,7 +190,8 @@ export const loginWithGoogle = async () => {
       throw new Error(i18n.t("auth.googleFailed") + ": " + (promptError.message || ""));
     }
 
-    console.log("Google OAuth: promptAsync result type:", result.type);
+    const promptDuration = Date.now() - promptStartTime;
+    console.log("Google OAuth: promptAsync result type:", result.type, "duration:", promptDuration + "ms");
 
     if (result.type === "locked") {
       cancelDeepLink(new Error(i18n.t("auth.sessionInProgress")));
@@ -221,8 +223,17 @@ export const loginWithGoogle = async () => {
       throw new Error(result.error?.message || i18n.t("auth.googleFailed"));
     }
 
-    // "dismiss" path (iOS main path): browser closed, wait for deep link
+    // "dismiss" or "cancel" path (iOS main path after successful OAuth redirect)
     if (result.type === "dismiss" || result.type === "cancel") {
+      // If the browser returned almost immediately (< 1500ms), the browser likely
+      // never opened at all (SFSafariViewController failed silently on iOS).
+      // Don't wait 10s for a deep link that will never arrive.
+      if (promptDuration < 1500) {
+        cancelDeepLink(new Error("browser did not open"));
+        console.log("Google OAuth: Immediate cancel/dismiss — browser likely did not open.");
+        throw new Error(i18n.t("auth.googleFailed"));
+      }
+
       console.log(
         "Google OAuth: Browser dismissed, waiting for deep link callback..."
       );
@@ -309,6 +320,7 @@ export const loginWithFacebook = async () => {
     const { promise: deepLinkPromise, cancel: cancelDeepLink } = waitForOAuthDeepLink("facebook", 10000);
 
     let result;
+    const promptStartTime = Date.now();
     try {
       result = await request.promptAsync(discovery, {
         useProxy: false,
@@ -321,7 +333,8 @@ export const loginWithFacebook = async () => {
       throw new Error(i18n.t("auth.facebookFailed") + ": " + (promptError.message || ""));
     }
 
-    console.log("Facebook OAuth: promptAsync result type:", result.type);
+    const promptDuration = Date.now() - promptStartTime;
+    console.log("Facebook OAuth: promptAsync result type:", result.type, "duration:", promptDuration + "ms");
 
     if (result.type === "locked") {
       cancelDeepLink(new Error(i18n.t("auth.sessionInProgress")));
@@ -352,8 +365,16 @@ export const loginWithFacebook = async () => {
       throw new Error(result.error?.message || i18n.t("auth.facebookFailed"));
     }
 
-    // "dismiss" path (iOS main path)
+    // "dismiss" or "cancel" path (iOS main path after successful OAuth redirect)
     if (result.type === "dismiss" || result.type === "cancel") {
+      // If the browser returned almost immediately (< 1500ms), the browser likely
+      // never opened at all (SFSafariViewController failed silently on iOS).
+      if (promptDuration < 1500) {
+        cancelDeepLink(new Error("browser did not open"));
+        console.log("Facebook OAuth: Immediate cancel/dismiss — browser likely did not open.");
+        throw new Error(i18n.t("auth.facebookFailed"));
+      }
+
       console.log(
         "Facebook OAuth: Browser dismissed, waiting for deep link callback..."
       );
