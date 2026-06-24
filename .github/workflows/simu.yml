@@ -2,8 +2,8 @@ name: Build iOS Simulator
 
 on:
   push:
-    tags:
-      - 'dhphuc-ios'
+    branches:
+      - 'dhphuc'
   workflow_dispatch:
 
 permissions:
@@ -67,6 +67,7 @@ jobs:
             -sdk iphonesimulator \
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/simulator_derived_data" \
+            -codeSignOnCopy \
             CODE_SIGNING_ALLOWED=NO \
             | xcbeautify --quiet --renderer github-actions
 
@@ -78,8 +79,10 @@ jobs:
       - name: Upload Binaries to Release (Overwrite Enabled)
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: dhphuc-ios
           files: ${{ runner.temp }}/*-simulator.zip
           fail_on_unmatched_files: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
