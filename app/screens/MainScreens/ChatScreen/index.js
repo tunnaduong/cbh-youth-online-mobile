@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
   TextInput,
   StatusBar,
+  DeviceEventEmitter,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,7 +27,7 @@ const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
 };
 
-export default function ChatScreen({ navigation }) {
+export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const [conversations, setConversations] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,6 +36,63 @@ export default function ChatScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers } = useContext(AuthContext);
+  const flatListRef = useRef(null);
+  const scrollPositionRef = useRef(0);
+  const isProcessingRef = useRef(false);
+  const lastTriggerTimeRef = useRef(0);
+  const lastScrollYRef = useRef(0);
+
+  const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    scrollPositionRef.current = Math.max(0, offsetY);
+
+    const diff = offsetY - lastScrollYRef.current;
+    if (offsetY < 50) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    } else if (diff > 15) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
+    } else if (diff < -10) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    }
+    lastScrollYRef.current = offsetY;
+  };
+
+  const scrollToTopOrReload = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) return;
+    lastTriggerTimeRef.current = now;
+
+    if (isProcessingRef.current) return;
+
+    const isAtTop = scrollPositionRef.current <= 10;
+
+    if (isAtTop) {
+      isProcessingRef.current = true;
+      setRefreshing(true);
+      fetchConversations().finally(() => {
+        setTimeout(() => {
+          setRefreshing(false);
+          isProcessingRef.current = false;
+          scrollPositionRef.current = 0;
+        }, 1000);
+      });
+    } else {
+      isProcessingRef.current = true;
+      if (flatListRef.current) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+      setTimeout(() => {
+        scrollPositionRef.current = 0;
+        isProcessingRef.current = false;
+      }, 600);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -219,10 +277,13 @@ export default function ChatScreen({ navigation }) {
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={filteredConversations}
         extraData={{ t, theme, isDarkMode }}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{
           paddingBottom: 110,
           flex: filteredConversations.length === 0 ? 1 : undefined,

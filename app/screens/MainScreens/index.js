@@ -251,6 +251,9 @@ const CustomTabBar = ({
   chatUnreadCount,
   notificationUnreadCount,
   triggerHomeScrollOrReload,
+  triggerForumScrollOrReload,
+  triggerChatScrollOrReload,
+  triggerNotificationScrollOrReload,
   tabBarTranslateY,
 }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
@@ -299,8 +302,16 @@ const CustomTabBar = ({
       const { options } = descriptor;
 
       const onPress = () => {
-        if (route.name === "Home" && isFocused) {
-          triggerHomeScrollOrReload();
+        if (isFocused) {
+          if (route.name === "Home") {
+            triggerHomeScrollOrReload();
+          } else if (route.name === "Forum") {
+            triggerForumScrollOrReload();
+          } else if (route.name === "Chat") {
+            triggerChatScrollOrReload();
+          } else if (route.name === "Notifications") {
+            triggerNotificationScrollOrReload();
+          }
           return;
         }
         const event = navigation.emit({
@@ -309,7 +320,7 @@ const CustomTabBar = ({
           canPreventDefault: true,
         });
 
-        if (!isFocused && !event.defaultPrevented) {
+        if (!event.defaultPrevented) {
           navigation.navigate(route.name, route.params);
         }
       };
@@ -592,15 +603,34 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
+  const forumScrollTriggerRef = useRef(null);
+  const chatScrollTriggerRef = useRef(null);
+  const notificationScrollTriggerRef = useRef(null);
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const { t } = useTranslation();
 
   // Function to trigger scroll to top or reload in HomeScreen
   const triggerHomeScrollOrReload = () => {
-    // Trigger the action using a timestamp param
-    // The HomeScreen will listen for this param change
     if (homeScreenScrollTriggerRef.current) {
       homeScreenScrollTriggerRef.current(Date.now());
+    }
+  };
+
+  const triggerForumScrollOrReload = () => {
+    if (forumScrollTriggerRef.current) {
+      forumScrollTriggerRef.current(Date.now());
+    }
+  };
+
+  const triggerChatScrollOrReload = () => {
+    if (chatScrollTriggerRef.current) {
+      chatScrollTriggerRef.current(Date.now());
+    }
+  };
+
+  const triggerNotificationScrollOrReload = () => {
+    if (notificationScrollTriggerRef.current) {
+      notificationScrollTriggerRef.current(Date.now());
     }
   };
 
@@ -664,6 +694,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 chatUnreadCount={chatUnreadCount}
                 notificationUnreadCount={notificationUnreadCount}
                 triggerHomeScrollOrReload={triggerHomeScrollOrReload}
+                triggerForumScrollOrReload={triggerForumScrollOrReload}
+                triggerChatScrollOrReload={triggerChatScrollOrReload}
+                triggerNotificationScrollOrReload={triggerNotificationScrollOrReload}
                 tabBarTranslateY={tabBarTranslateY}
               />
             );
@@ -821,9 +854,25 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
           <Tab.Screen
             name="Forum"
-            component={MenuScreen}
             options={{ title: t('navigation.forum'), headerShown: false }}
-          />
+            listeners={{
+              tabPress: (e) => {
+                if (currentRoute === "Forum") {
+                  e.preventDefault();
+                  triggerForumScrollOrReload();
+                }
+              },
+            }}
+          >
+            {(props) => (
+              <MenuScreen
+                {...props}
+                scrollTriggerRef={(triggerFn) => {
+                  forumScrollTriggerRef.current = triggerFn;
+                }}
+              />
+            )}
+          </Tab.Screen>
           <Tab.Screen
             name="Create"
             component={DummyComponent} // Use the dummy component
@@ -849,20 +898,52 @@ export default function MainScreens({ navigation: stackNavigation }) {
           />
           <Tab.Screen
             name="Chat"
-            component={ChatScreen}
             options={{
               title: t('navigation.chat'),
               headerShown: false,
             }}
-          />
+            listeners={{
+              tabPress: (e) => {
+                if (currentRoute === "Chat") {
+                  e.preventDefault();
+                  triggerChatScrollOrReload();
+                }
+              },
+            }}
+          >
+            {(props) => (
+              <ChatScreen
+                {...props}
+                scrollTriggerRef={(triggerFn) => {
+                  chatScrollTriggerRef.current = triggerFn;
+                }}
+              />
+            )}
+          </Tab.Screen>
           <Tab.Screen
             name="Notifications"
-            component={NotificationScreen}
             options={{
               title: t('navigation.notifications'),
               headerShown: false,
             }}
-          />
+            listeners={{
+              tabPress: (e) => {
+                if (currentRoute === "Notifications") {
+                  e.preventDefault();
+                  triggerNotificationScrollOrReload();
+                }
+              },
+            }}
+          >
+            {(props) => (
+              <NotificationScreen
+                {...props}
+                scrollTriggerRef={(triggerFn) => {
+                  notificationScrollTriggerRef.current = triggerFn;
+                }}
+              />
+            )}
+          </Tab.Screen>
         </Tab.Navigator>
       </View>
     </SideMenu>

@@ -85,7 +85,7 @@ const formatNotificationMessage = (notification, t) => {
   }
 };
 
-export default function NotificationScreen({ navigation }) {
+export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const [notifications, setNotifications] = useState([]);
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -204,9 +204,14 @@ export default function NotificationScreen({ navigation }) {
   );
 
   const lastScrollYRef = useRef(0);
+  const scrollPositionRef = useRef(0);
+  const isProcessingRef = useRef(false);
+  const lastTriggerTimeRef = useRef(0);
+  const flatListRef = useRef(null);
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
+    scrollPositionRef.current = Math.max(0, offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -223,6 +228,44 @@ export default function NotificationScreen({ navigation }) {
       lottieRef.current?.play();
     }
   };
+
+  const scrollToTopOrReload = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) return;
+    lastTriggerTimeRef.current = now;
+
+    if (isProcessingRef.current) return;
+
+    const isAtTop = scrollPositionRef.current <= 10;
+
+    if (isAtTop) {
+      isProcessingRef.current = true;
+      setRefreshing(true);
+      setPage(1);
+      fetchNotifications(1, false);
+      refreshNotificationCount();
+      setTimeout(() => {
+        setRefreshing(false);
+        isProcessingRef.current = false;
+        scrollPositionRef.current = 0;
+      }, 1000);
+    } else {
+      isProcessingRef.current = true;
+      if (flatListRef.current) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+      setTimeout(() => {
+        scrollPositionRef.current = 0;
+        isProcessingRef.current = false;
+      }, 600);
+    }
+  }, [fetchNotifications, refreshNotificationCount]);
+
+  React.useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -486,6 +529,7 @@ export default function NotificationScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           onScroll={handleScroll}
           data={notifications}
           extraData={{ t, theme, isDarkMode }}

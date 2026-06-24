@@ -78,7 +78,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   </View>
 );
 
-export default function ForumScreen({ navigation }) {
+export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(1);
@@ -101,10 +101,15 @@ export default function ForumScreen({ navigation }) {
   };
 
   const lastScrollYRef = useRef(0);
+  const scrollPositionRef = useRef(0);
+  const isProcessingRef = useRef(false);
+  const lastTriggerTimeRef = useRef(0);
+  const innerScrollRefs = useRef({});
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    
+    scrollPositionRef.current = Math.max(0, offsetY);
+
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
     if (offsetY < 50) {
@@ -120,6 +125,43 @@ export default function ForumScreen({ navigation }) {
       lottieRef.current?.play();
     }
   };
+
+  const scrollToTopOrReload = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) return;
+    lastTriggerTimeRef.current = now;
+
+    if (isProcessingRef.current) return;
+
+    const isAtTop = scrollPositionRef.current <= 10;
+
+    if (isAtTop) {
+      isProcessingRef.current = true;
+      setRefreshing(true);
+      fetchForumData();
+      setTimeout(() => {
+        setRefreshing(false);
+        isProcessingRef.current = false;
+        scrollPositionRef.current = 0;
+      }, 1000);
+    } else {
+      isProcessingRef.current = true;
+      const scrollRef = innerScrollRefs.current[activeCategory];
+      if (scrollRef) {
+        scrollRef.scrollTo({ y: 0, animated: true });
+      }
+      setTimeout(() => {
+        scrollPositionRef.current = 0;
+        isProcessingRef.current = false;
+      }, 600);
+    }
+  }, [activeCategory]);
+
+  React.useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
 
   useEffect(() => {
     if (categories.length > 0) {
@@ -304,7 +346,14 @@ export default function ForumScreen({ navigation }) {
                 paddingTop: 5,
               }}
               showsVerticalScrollIndicator={false}
-              onScroll={handleScroll}
+              onScroll={(e) => {
+                const offsetY = e.nativeEvent.contentOffset.y;
+                if (item.id === activeCategory) {
+                  scrollPositionRef.current = Math.max(0, offsetY);
+                }
+                handleScroll(e);
+              }}
+              ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
