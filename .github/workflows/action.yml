@@ -1,4 +1,4 @@
-name: Build Android APK
+Name: Build Android APK
 
 on:
   push:
@@ -10,6 +10,10 @@ jobs:
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
+
+    # Cấp quyền ghi vào mục Release của repo
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -62,3 +66,24 @@ jobs:
             android/app/build/outputs/apk/release/*.apk
             android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
+
+      # Cập nhật đè / Khởi tạo bản Prerelease lên GitHub Releases cho Android
+      - name: Create or Update Pre-release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+          tag: "dhphuc-android"
+          name: "${{ github.sha }}"
+          body: |
+            ### 🤖 Android Build Details
+            - **Commit SHA:** `${{ github.sha }}`
+            - **Branch:** `${{ github.ref_name }}`
+            
+            Tải trực tiếp file APK (Release & Debug arm64-v8a) ở phần **Assets** bên dưới để cài đặt.
+          prerelease: true
+          makeLatest: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
