@@ -985,7 +985,7 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
+    overflow: 'visible',
   },
   iosTabButtonInner: {
     width: '100%',
