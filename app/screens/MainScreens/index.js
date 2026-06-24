@@ -91,15 +91,17 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   const isIOS = Platform.OS === "ios";
 
   if (isIOS && LiquidGlassView) {
+    const isRealGlass = isLiquidGlassSupported;
     return (
       <LiquidGlassView
         effect="regular"
+        interactive={isRealGlass}
         onLayout={onLayout}
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
           overflow: "hidden",
-          backgroundColor: "transparent",
+          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
           borderWidth: 1,
           borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
         }}
@@ -364,6 +366,13 @@ const CustomTabBar = ({
   };
 
   if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView) {
+    const isRealGlass = isLiquidGlassSupported;
+    const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
+    const indicatorBg = isRealGlass
+      ? (isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)")
+      : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)");
+    const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
+
     return (
       <Animated.View
         style={{
@@ -375,48 +384,87 @@ const CustomTabBar = ({
           zIndex: 99,
         }}
       >
-        <LiquidGlassContainerView spacing={12} style={styles.iosTabBarContainer}>
+        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={styles.iosTabBarContainer}>
           <LiquidGlassView
             effect="regular"
+            interactive={isRealGlass}
             colorScheme={isDarkMode ? 'dark' : 'light'}
             tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
             onLayout={onLeftPillLayout}
             style={[
               styles.iosLeftPill,
               {
+                backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
               }
             ]}
           >
-            <AnimatedLiquidGlassView
-              effect="clear"
-              colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}
-              style={{
-                position: "absolute",
-                width: currentIndicatorWidth,
-                height: 50,
-                borderRadius: 25,
-                top: 0,
-                left: 0,
-                opacity,
-                transform: [{ translateX: slideAnim }],
-                borderWidth: isDarkMode ? 0 : 1,
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                backgroundColor: isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)",
-              }}
-            />
+            {isRealGlass ? (
+              <AnimatedLiquidGlassView
+                effect="clear"
+                interactive={false}
+                colorScheme={isDarkMode ? 'dark' : 'light'}
+                tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}
+                style={{
+                  position: "absolute",
+                  width: currentIndicatorWidth,
+                  height: 50,
+                  borderRadius: 25,
+                  top: 0,
+                  left: 0,
+                  opacity,
+                  transform: [{ translateX: slideAnim }],
+                  borderWidth: indicatorBorderWidth,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                  backgroundColor: indicatorBg,
+                }}
+              />
+            ) : (
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: currentIndicatorWidth,
+                  height: 50,
+                  borderRadius: 25,
+                  top: 0,
+                  left: 0,
+                  opacity,
+                  transform: [{ translateX: slideAnim }],
+                  borderWidth: 0,
+                  backgroundColor: indicatorBg,
+                  shadowColor: isDarkMode ? "#fff" : "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  overflow: "hidden",
+                }}
+              >
+                <LinearGradient
+                  colors={[
+                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                    "transparent"
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              </Animated.View>
+            )}
             {renderButtons()}
           </LiquidGlassView>
 
           <LiquidGlassView
-            effect="clear"
+            effect="regular"
+            interactive={isRealGlass}
             colorScheme={isDarkMode ? 'dark' : 'light'}
             tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
             style={[
               styles.iosRightPill,
               {
+                backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
               }

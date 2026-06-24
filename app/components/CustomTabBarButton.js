@@ -170,7 +170,8 @@ const CustomTabBarButton = ({ onPress }) => {
   };
 
   const renderSubButton = (buttonAnimStyle, onPress, icon, labelKey) => {
-    const isIosReal = Platform.OS === 'ios' && LiquidGlassView;
+    const isRealGlass = Platform.OS === 'ios' && LiquidGlassView && isLiquidGlassSupported;
+    const isIosFallback = Platform.OS === 'ios' && LiquidGlassView && !isLiquidGlassSupported;
     const content = (
       <TouchableOpacity
         style={styles.additionalButtonTouch}
@@ -189,14 +190,31 @@ const CustomTabBarButton = ({ onPress }) => {
 
     return (
       <Animated.View style={[styles.additionalButtonContainer, buttonAnimStyle]}>
-        {isIosReal ? (
+        {isRealGlass ? (
           <LiquidGlassView
             effect="regular"
+            interactive={true}
             colorScheme={isDarkMode ? 'dark' : 'light'}
             tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
             style={[
               styles.additionalButtonGlass,
               {
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
+          >
+            {content}
+          </LiquidGlassView>
+        ) : isIosFallback ? (
+          <LiquidGlassView
+            effect="regular"
+            interactive={false}
+            colorScheme={isDarkMode ? 'dark' : 'light'}
+            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
+            style={[
+              styles.additionalButtonGlass,
+              {
+                backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.74)" : "rgba(255, 255, 255, 0.74)",
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
               }
             ]}
