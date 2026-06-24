@@ -189,10 +189,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           height: 52,
           borderRadius: 26,
           top: 0,
-          left: -0.8,
-          opacity: opacity * 0.15,
+          left: -1.2,
+          opacity: opacity * 0.22,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
+          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.14)",
         }}
       />
       {/* Chromatic Aberration - Blue channel shift (right offset) */}
@@ -203,13 +203,13 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           height: 52,
           borderRadius: 26,
           top: 0,
-          left: 0.8,
-          opacity: opacity * 0.15,
+          left: 1.2,
+          opacity: opacity * 0.22,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
+          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.14)",
         }}
       />
-      {/* Main Glass Indicator (neutral white/dark) */}
+      {/* Main Glass Indicator */}
       <Animated.View
         style={{
           position: "absolute",
@@ -220,24 +220,47 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           left: 0,
           opacity,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-          shadowColor: isDarkMode ? "#fff" : "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDarkMode ? 0.3 : 0.15,
-          shadowRadius: 6,
-          elevation: 3,
+          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(255, 255, 255, 0.38)",
+          shadowColor: isDarkMode ? "#ffffff" : "#000000",
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: isDarkMode ? 0.18 : 0.12,
+          shadowRadius: 8,
+          elevation: 4,
           overflow: "hidden",
+          borderWidth: 1,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.85)",
         }}
       >
+        {/* Top specular highlight — simulates light hitting curved glass surface */}
         <LinearGradient
           colors={[
-            isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-            isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-            "transparent"
+            isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.72)",
+            isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.28)",
+            "transparent",
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
+          style={[StyleSheet.absoluteFillObject, { height: "55%" }]}
+        />
+        {/* Bottom inner shadow — simulates glass depth / concave feel */}
+        <LinearGradient
+          colors={[
+            "transparent",
+            isDarkMode ? "rgba(0, 0, 0, 0.18)" : "rgba(0, 0, 0, 0.06)",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={[StyleSheet.absoluteFillObject, { top: "55%" }]}
+        />
+        {/* Left edge specular — diagonal light catch */}
+        <LinearGradient
+          colors={[
+            isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+            "transparent",
+          ]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[StyleSheet.absoluteFillObject, { width: "30%" }]}
         />
       </Animated.View>
     </View>
@@ -442,25 +465,47 @@ const CustomTabBar = ({
                   left: 0,
                   opacity,
                   transform: [{ translateX: slideAnim }],
-                  borderWidth: 0,
-                  backgroundColor: indicatorBg,
-                  shadowColor: isDarkMode ? "#fff" : "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                  shadowRadius: 6,
-                  elevation: 3,
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.88)",
+                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(255, 255, 255, 0.38)",
+                  shadowColor: isDarkMode ? "#ffffff" : "#000000",
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: isDarkMode ? 0.18 : 0.12,
+                  shadowRadius: 8,
+                  elevation: 4,
                   overflow: "hidden",
                 }}
               >
+                {/* Top specular highlight */}
                 <LinearGradient
                   colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                    "transparent"
+                    isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.72)",
+                    isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.28)",
+                    "transparent",
                   ]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
+                  style={[StyleSheet.absoluteFillObject, { height: "55%" }]}
+                />
+                {/* Bottom inner shadow */}
+                <LinearGradient
+                  colors={[
+                    "transparent",
+                    isDarkMode ? "rgba(0, 0, 0, 0.18)" : "rgba(0, 0, 0, 0.06)",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={[StyleSheet.absoluteFillObject, { top: "55%" }]}
+                />
+                {/* Left edge specular */}
+                <LinearGradient
+                  colors={[
+                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                    "transparent",
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[StyleSheet.absoluteFillObject, { width: "30%" }]}
                 />
               </Animated.View>
             )}
@@ -521,10 +566,10 @@ const CustomTabBar = ({
               height: 50,
               borderRadius: 25,
               top: 0,
-              left: -0.8,
-              opacity: opacity * 0.15,
+              left: -1.2,
+              opacity: opacity * 0.22,
               transform: [{ translateX: slideAnim }],
-              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
+              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.14)",
             }}
           />
           {/* Chromatic Aberration - Blue channel shift */}
@@ -535,10 +580,10 @@ const CustomTabBar = ({
               height: 50,
               borderRadius: 25,
               top: 0,
-              left: 0.8,
-              opacity: opacity * 0.15,
+              left: 1.2,
+              opacity: opacity * 0.22,
               transform: [{ translateX: slideAnim }],
-              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
+              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.14)",
             }}
           />
           {/* Main Glass Indicator */}
@@ -552,24 +597,47 @@ const CustomTabBar = ({
               left: 0,
               opacity,
               transform: [{ translateX: slideAnim }],
-              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-              shadowColor: isDarkMode ? "#fff" : "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isDarkMode ? 0.3 : 0.15,
-              shadowRadius: 6,
-              elevation: 3,
+              borderWidth: 1,
+              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(255, 255, 255, 0.88)",
+              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.07)" : "rgba(255, 255, 255, 0.38)",
+              shadowColor: isDarkMode ? "#ffffff" : "#000000",
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: isDarkMode ? 0.18 : 0.12,
+              shadowRadius: 8,
+              elevation: 4,
               overflow: "hidden",
             }}
           >
+            {/* Top specular highlight */}
             <LinearGradient
               colors={[
-                isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                "transparent"
+                isDarkMode ? "rgba(255, 255, 255, 0.22)" : "rgba(255, 255, 255, 0.72)",
+                isDarkMode ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.28)",
+                "transparent",
               ]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
+              style={[StyleSheet.absoluteFillObject, { height: "55%" }]}
+            />
+            {/* Bottom inner shadow */}
+            <LinearGradient
+              colors={[
+                "transparent",
+                isDarkMode ? "rgba(0, 0, 0, 0.18)" : "rgba(0, 0, 0, 0.06)",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={[StyleSheet.absoluteFillObject, { top: "55%" }]}
+            />
+            {/* Left edge specular */}
+            <LinearGradient
+              colors={[
+                isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                "transparent",
+              ]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={[StyleSheet.absoluteFillObject, { width: "30%" }]}
             />
           </Animated.View>
           {renderButtons()}
