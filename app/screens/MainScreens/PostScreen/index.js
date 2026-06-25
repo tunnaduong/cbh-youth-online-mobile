@@ -961,7 +961,7 @@ const PostScreen = ({ route, navigation }) => {
                     onPress={() =>
                       focusCommentInput(
                         comment.id,
-                        author.profile_name || author.username || "",
+                        comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || ""),
                         level
                       )
                     }

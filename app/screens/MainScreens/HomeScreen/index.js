@@ -677,13 +677,13 @@ const ReplyBar = ({
         />
       ))}
       <View style={{ paddingBottom: insets.bottom }}>
-        <View className="flex-row items-center gap-2 justify-center">
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6, paddingHorizontal: 8 }}>
           {emojis.map((emoji) => (
             <TouchableOpacity
               key={emoji}
               onPress={() => handleEmojiPress(emoji)}
             >
-              <Text className="text-[40px]">{emoji}</Text>
+              <Text style={{ fontSize: 28 }}>{emoji}</Text>
             </TouchableOpacity>
           ))}
         </View>
