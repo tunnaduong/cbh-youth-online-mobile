@@ -20,7 +20,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
-  useSafeAreaInsets,, SafeAreaView } from "react-native-safe-area-context";
+  useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
