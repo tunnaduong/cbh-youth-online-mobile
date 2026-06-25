@@ -50,6 +50,7 @@ import ReportModal from "../../../components/ReportModal";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "../../../global/storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
@@ -808,13 +809,29 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleFetchFeed = async (page = 1) => {
     try {
+      if (page === 1) {
+        const cachedStr = storage.getString("cached_feed");
+        if (cachedStr) {
+          try {
+            const parsed = JSON.parse(cachedStr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setFeed((prev) => prev ? prev : parsed);
+            }
+          } catch(e) {}
+        }
+        setRefreshing(true);
+      }
+
       const response = await getHomePosts(page);
       const posts = response?.data?.data;
-      // Guard: only set feed if we received a valid array from the server
-      setFeed(Array.isArray(posts) ? posts : []);
+      const validPosts = Array.isArray(posts) ? posts : [];
+      setFeed(validPosts);
+
+      if (page === 1 && validPosts.length > 0) {
+        storage.set("cached_feed", JSON.stringify(validPosts));
+      }
     } catch (error) {
       console.log("Error fetching newsfeed:", error);
-      // Don't leave feed as null on error if it was already loaded
       setFeed((prev) => prev ?? []);
       Toast.show({
         type: "error",
@@ -824,6 +841,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         visibilityTime: 5000,
         topOffset: 60,
       });
+    } finally {
+      if (page === 1) {
+        setTimeout(() => {
+          setRefreshing(false);
+        }, 1000);
+      }
     }
   };
 

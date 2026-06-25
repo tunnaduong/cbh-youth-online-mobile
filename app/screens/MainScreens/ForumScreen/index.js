@@ -24,6 +24,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
+import { storage } from "../../../global/storage";
 
 const { width } = Dimensions.get("window");
 
@@ -175,11 +176,30 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   const fetchForumData = async () => {
     try {
+      const cachedStr = storage.getString("cached_forum");
+      if (cachedStr) {
+        try {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCategories(parsed);
+            setLoading(false);
+            setRefreshing(true);
+          }
+        } catch(e) {}
+      }
+
       const response = await getForumCategories();
-      setCategories(response.data);
+      const categoriesData = response?.data;
+      if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+        setCategories(categoriesData);
+        storage.set("cached_forum", JSON.stringify(categoriesData));
+      }
       setLoading(false);
+      setTimeout(() => setRefreshing(false), 1000);
     } catch (error) {
       console.log(error);
+      setLoading(false);
+      setTimeout(() => setRefreshing(false), 1000);
     }
   };
 

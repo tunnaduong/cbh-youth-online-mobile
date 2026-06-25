@@ -21,6 +21,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LottieView from "lottie-react-native";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -40,6 +41,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
   const lastScrollYRef = useRef(0);
+  const lottieRef = useRef(null);
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -105,7 +107,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (cached) {
       setConversations(JSON.parse(cached));
     }
-    fetchConversations();
+    setRefreshing(true);
+    fetchConversations().finally(() => {
+      setTimeout(() => setRefreshing(false), 1000);
+    });
   }, []);
 
   const fetchConversations = async () => {
@@ -258,6 +263,18 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           </View>
         </TouchableOpacity>
       </View>
+
+      {refreshing && (
+        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <LottieView
+            source={require("../../../assets/refresh.json")}
+            style={{ width: 40, height: 40 }}
+            ref={lottieRef}
+            loop
+            autoPlay
+          />
+        </View>
+      )}
 
       <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
         <Ionicons

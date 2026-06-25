@@ -26,6 +26,7 @@ import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { useFocusEffect } from "@react-navigation/native";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
 
 // Helper function to format notification message based on type and data
@@ -106,6 +107,20 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const fetchNotifications = useCallback(
     async (pageNum = 1, append = false) => {
       try {
+        if (pageNum === 1 && !append) {
+          const cachedStr = storage.getString("cached_notifications");
+          if (cachedStr) {
+            try {
+              const parsed = JSON.parse(cachedStr);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setNotifications(parsed);
+                setLoading(false);
+              }
+            } catch(e) {}
+          }
+          setRefreshing(true);
+        }
+
         const response = await getNotifications(pageNum, 20);
 
         // Check if response has data property (some APIs wrap in data)
@@ -151,7 +166,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         if (append) {
           setNotifications((prev) => {
             const newNotifications = [...prev, ...formattedNotifications];
-            // Update unread count when loading more
             const localUnreadCount = newNotifications.filter(
               (n) => !n.is_read
             ).length;
@@ -160,6 +174,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           });
         } else {
           setNotifications(formattedNotifications);
+          if (formattedNotifications.length > 0) {
+            storage.set("cached_notifications", JSON.stringify(formattedNotifications));
+          }
         }
 
         // Check if there are more pages
@@ -519,6 +536,18 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {refreshing && (
+        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <LottieView
+            source={require("../../../assets/refresh.json")}
+            style={{ width: 40, height: 40 }}
+            ref={lottieRef}
+            loop
+            autoPlay
+          />
+        </View>
+      )}
 
       {loading && notifications.length === 0 ? (
         <View
