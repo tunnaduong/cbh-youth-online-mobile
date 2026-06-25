@@ -29,6 +29,9 @@ export default function Step3({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const isClassViolation = Boolean(cleanliness || uniform);
   const { userInfo } = useContext(AuthContext);
+  if (!userInfo) {
+    return null;
+  }
   const { theme, isDarkMode } = useTheme();
 
   const { t } = useTranslation();

@@ -258,6 +258,10 @@ const CustomTabBar = ({
   tabBarTranslateY,
 }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomOffset = Platform.OS === 'ios'
+    ? (insets.bottom > 0 ? insets.bottom + 8 : 24)
+    : (insets.bottom > 0 ? insets.bottom + 8 : 12);
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
   // All three anims must use useNativeDriver:false because slideAnim is combined
@@ -615,7 +619,7 @@ const CustomTabBar = ({
           zIndex: 99,
         }}
       >
-        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={styles.iosTabBarContainer}>
+        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
           {/* Wrap with a View that receives panHandlers — LiquidGlassView doesn't forward touch props */}
           <View
             {...panResponder.panHandlers}
@@ -725,7 +729,7 @@ const CustomTabBar = ({
         zIndex: 99,
       }}
     >
-      <View style={styles.iosTabBarContainer}>
+      <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
         {/* panHandlers on the outer View fixes drag on Android (and iOS non-LiquidGlass).
             onMoveShouldSetPanResponderCapture ensures the parent can steal the gesture
             from child TouchableOpacity components during a horizontal drag. */}
@@ -1184,7 +1188,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 24 : 12,
     left: 20,
     right: 20,
     backgroundColor: 'transparent',

@@ -91,6 +91,9 @@ const SettingSection = ({ title, children, titleColor, theme, isDarkMode }) => {
 export default function SecurityScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { signOut, userInfo, setUserInfo, refreshUserInfo } = useContext(AuthContext);
+  if (!userInfo) {
+    return null;
+  }
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 

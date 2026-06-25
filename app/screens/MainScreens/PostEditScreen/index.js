@@ -36,6 +36,9 @@ const PostEditScreen = ({ navigation, route }) => {
   const [title, setTitle] = useState("");
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
+  if (!userInfo) {
+    return null;
+  }
   const { theme, isDarkMode } = useTheme();
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);

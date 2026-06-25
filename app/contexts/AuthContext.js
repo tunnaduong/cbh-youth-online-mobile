@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }) => {
     setEmailVerifiedAt(null);
     setBlockedUsers([]);
 
-    storage.clear();
+    storage.clearAll();
   };
 
   const blockUser = async (userToBlock) => {

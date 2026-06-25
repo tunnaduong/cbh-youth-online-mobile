@@ -342,7 +342,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               contentContainerStyle={{
                 backgroundColor: theme.background,
                 paddingHorizontal: 16,
-                paddingBottom: 20,
+                paddingBottom: 110,
                 paddingTop: 5,
               }}
               showsVerticalScrollIndicator={false}
