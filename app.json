@@ -21,7 +21,9 @@
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["com.fatties.youth"]
+            "CFBundleURLSchemes": [
+              "com.fatties.youth"
+            ]
           }
         ],
         "UIApplicationSceneManifest": {
@@ -71,11 +73,11 @@
       [
         "expo-splash-screen",
         {
-          "image": "./app/assets/adaptive-icon.png",
+          "image": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
-            "image": "./app/assets/adaptive-icon.png",
+            "image": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
             "backgroundColor": "#000000"
           }
         }
