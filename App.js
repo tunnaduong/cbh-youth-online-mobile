@@ -95,8 +95,9 @@ const App = () => {
     <>
       <StatusBar
         barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={Platform.OS === "android" ? theme.headerBackground : "transparent"}
-        translucent={Platform.OS === "android"}
+        backgroundColor={theme.background}
+        translucent={false}
+        animated={true}
       />
       <NavigationContainer>
         <Stack.Navigator

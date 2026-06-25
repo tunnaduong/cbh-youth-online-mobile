@@ -31,6 +31,7 @@ import FastImage from "../../../components/FastImage";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const CreatePostScreen = ({ navigation }) => {
   const [postContent, setPostContent] = useState("");
@@ -39,6 +40,12 @@ const CreatePostScreen = ({ navigation }) => {
   const { username, userInfo, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+
+  // Keep status bar in sync with dark/light theme while this screen is mounted
+  useStatusBarStyle(
+    isDarkMode ? "light-content" : "dark-content",
+    theme.background
+  );
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
@@ -275,7 +282,11 @@ const CreatePostScreen = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={theme.background}
+        animated={true}
+      />
       <ProgressHUD loadText={t('createPost.posting')} visible={loading} />
       <View
         style={[
