@@ -4,7 +4,6 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   ActionSheetIOS,
   Animated,
