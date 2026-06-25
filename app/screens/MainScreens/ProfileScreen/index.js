@@ -260,7 +260,10 @@ const ProfileScreen = ({ route, navigation }) => {
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
-      setRecentPostsProfile(response.data.recent_posts);
+      const visiblePosts = (response.data.recent_posts || []).filter(
+        (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
+      );
+      setRecentPostsProfile(visiblePosts);
       // Check if the current user is in the followers list
       const isFollowed = response.data.followers.some(
         (follower) => follower.username === username

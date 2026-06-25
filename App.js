@@ -320,7 +320,7 @@ const App = () => {
                 name="ExploreScreen"
                 component={ExploreScreen}
                 options={{
-                  title: t('home.explore'),
+                  title: t('sidebar.explore'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
