@@ -261,12 +261,18 @@ const CustomTabBar = ({
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
   const slideAnim = useRef(new Animated.Value(0)).current;
+  // stretchAnim drives the liquid-glass width morph (useNativeDriver:false required)
+  const stretchAnim = useRef(new Animated.Value(0)).current;
+  // offsetAnim compensates translateX so the pill stretches toward drag direction
+  const offsetAnim = useRef(new Animated.Value(0)).current;
 
   // Drag state refs (avoid re-renders during gesture)
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const lastHapticIndex = useRef(-1);
   const tabBarWidthRef = useRef(tabBarWidth);
+  // Store buttonWidth at gesture-start so stretch math is consistent
+  const bWidthAtGrant = useRef(0);
 
   const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
   const leftRoutes = leftRouteNames.map(name => {
@@ -304,6 +310,21 @@ const CustomTabBar = ({
         damping: 18,
         mass: 1.0,
       }).start();
+      // Reset stretch & offset on tab commit
+      Animated.spring(stretchAnim, {
+        toValue: 0,
+        useNativeDriver: false,
+        stiffness: 260,
+        damping: 22,
+        mass: 0.7,
+      }).start();
+      Animated.spring(offsetAnim, {
+        toValue: 0,
+        useNativeDriver: false,
+        stiffness: 260,
+        damping: 22,
+        mass: 0.7,
+      }).start();
     }
   }, [currentIndicatorLeft]);
 
@@ -334,21 +355,34 @@ const CustomTabBar = ({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
+      // Capture phase: parent steals gesture from child TouchableOpacity
+      // when the move is clearly horizontal — fixes Android drag not working
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        return (
+          Math.abs(gestureState.dx) > 8 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.8
+        );
+      },
       onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Only capture clearly horizontal drags (not vertical scrolls)
-        return Math.abs(gestureState.dx) > 6 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5;
+        return (
+          Math.abs(gestureState.dx) > 6 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
+        );
       },
       onPanResponderGrant: (evt, gestureState) => {
         isDragging.current = true;
         lastHapticIndex.current = activeLeftIndexRef.current;
+        bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
         // Stop any in-flight spring so indicator follows finger instantly
         slideAnim.stopAnimation((currentVal) => {
           dragStartX.current = currentVal;
         });
+        stretchAnim.stopAnimation();
+        offsetAnim.stopAnimation();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       },
       onPanResponderMove: (evt, gestureState) => {
-        const bWidth = (tabBarWidthRef.current - 2) / 4;
+        const bWidth = bWidthAtGrant.current;
         const rawX = dragStartX.current + gestureState.dx;
         const minX = 0;
         const maxX = bWidth * 3;
@@ -365,6 +399,19 @@ const CustomTabBar = ({
 
         slideAnim.setValue(clampedX);
 
+        // --- Liquid glass stretch effect ---
+        // How far we've moved as a fraction of one tab width (0..1)
+        const progress = Math.min(1, Math.abs(gestureState.dx) / bWidth);
+        // Max extra width = 40% of buttonWidth, eased with sqrt for natural feel
+        const extraStretch = bWidth * 0.4 * Math.sqrt(progress);
+        stretchAnim.setValue(extraStretch);
+
+        // Shift origin so pill grows toward the drag direction:
+        //   dragging right → leading edge stays, trailing edge extends → no offset adjustment needed
+        //   dragging left  → we offset left by extraStretch so the leading edge moves left
+        const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
+        offsetAnim.setValue(directionOffset);
+
         // Determine which tab the indicator center is over
         const indicatorCenter = clampedX + bWidth / 2;
         const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
@@ -378,7 +425,7 @@ const CustomTabBar = ({
       },
       onPanResponderRelease: (evt, gestureState) => {
         isDragging.current = false;
-        const bWidth = (tabBarWidthRef.current - 2) / 4;
+        const bWidth = bWidthAtGrant.current;
 
         // Snap to the nearest tab
         const rawX = dragStartX.current + gestureState.dx;
@@ -394,6 +441,22 @@ const CustomTabBar = ({
           mass: 0.8,
         }).start();
 
+        // Snap stretch back to zero (liquid snaps back)
+        Animated.spring(stretchAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 320,
+          damping: 24,
+          mass: 0.6,
+        }).start();
+        Animated.spring(offsetAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 320,
+          damping: 24,
+          mass: 0.6,
+        }).start();
+
         if (snappedIndex !== activeLeftIndexRef.current) {
           navigateToLeftIndex(snappedIndex);
         }
@@ -402,8 +465,7 @@ const CustomTabBar = ({
       },
       onPanResponderTerminate: () => {
         isDragging.current = false;
-        // Spring back to committed position
-        const bWidth = (tabBarWidthRef.current - 2) / 4;
+        const bWidth = bWidthAtGrant.current || (tabBarWidthRef.current - 2) / 4;
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
         Animated.spring(slideAnim, {
           toValue: snapTarget,
@@ -411,11 +473,31 @@ const CustomTabBar = ({
           stiffness: 200,
           damping: 20,
         }).start();
+        Animated.spring(stretchAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 260,
+          damping: 22,
+        }).start();
+        Animated.spring(offsetAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 260,
+          damping: 22,
+        }).start();
       },
     })
   ).current;
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
+
+  // Animated width = base buttonWidth + liquid stretch (useNativeDriver:false required for width)
+  const indicatorAnimatedWidth = Animated.add(
+    new Animated.Value(currentIndicatorWidth),
+    stretchAnim
+  );
+  // translateX adjusted by offsetAnim so pill grows toward drag direction
+  const indicatorAnimatedTranslateX = Animated.add(slideAnim, offsetAnim);
 
   const renderButtons = () => {
     return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
@@ -512,21 +594,25 @@ const CustomTabBar = ({
         }}
       >
         <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={styles.iosTabBarContainer}>
-          <LiquidGlassView
-            effect="regular"
-            interactive={isRealGlass}
-            colorScheme={isDarkMode ? 'dark' : 'light'}
-            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+          {/* Wrap with a View that receives panHandlers — LiquidGlassView doesn't forward touch props */}
+          <View
+            {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
-            style={[
-              styles.iosLeftPill,
-              {
+            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
+          >
+            <LiquidGlassView
+              effect="regular"
+              interactive={isRealGlass}
+              colorScheme={isDarkMode ? 'dark' : 'light'}
+              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 26,
                 backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-              }
-            ]}
-          >
+              }}
+            />
             {isRealGlass ? (
               <AnimatedLiquidGlassView
                 effect="clear"
@@ -535,13 +621,13 @@ const CustomTabBar = ({
                 tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}
                 style={{
                   position: "absolute",
-                  width: currentIndicatorWidth,
+                  width: indicatorAnimatedWidth,
                   height: 50,
                   borderRadius: 25,
                   top: 0,
                   left: 0,
                   opacity,
-                  transform: [{ translateX: slideAnim }],
+                  transform: [{ translateX: indicatorAnimatedTranslateX }],
                   borderWidth: indicatorBorderWidth,
                   borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                   backgroundColor: indicatorBg,
@@ -551,13 +637,13 @@ const CustomTabBar = ({
               <Animated.View
                 style={{
                   position: "absolute",
-                  width: currentIndicatorWidth,
+                  width: indicatorAnimatedWidth,
                   height: 50,
                   borderRadius: 25,
                   top: 0,
                   left: 0,
                   opacity,
-                  transform: [{ translateX: slideAnim }],
+                  transform: [{ translateX: indicatorAnimatedTranslateX }],
                   borderWidth: 0,
                   backgroundColor: indicatorBg,
                   shadowColor: isDarkMode ? "#fff" : "#000",
@@ -581,7 +667,7 @@ const CustomTabBar = ({
               </Animated.View>
             )}
             {renderButtons()}
-          </LiquidGlassView>
+          </View>
 
           <LiquidGlassView
             effect="regular"
@@ -618,7 +704,11 @@ const CustomTabBar = ({
       }}
     >
       <View style={styles.iosTabBarContainer}>
+        {/* panHandlers on the outer View fixes drag on Android (and iOS non-LiquidGlass).
+            onMoveShouldSetPanResponderCapture ensures the parent can steal the gesture
+            from child TouchableOpacity components during a horizontal drag. */}
         <View
+          {...panResponder.panHandlers}
           onLayout={onLeftPillLayout}
           style={[
             styles.iosLeftPill,
@@ -633,13 +723,13 @@ const CustomTabBar = ({
           <Animated.View
             style={{
               position: "absolute",
-              width: currentIndicatorWidth,
+              width: indicatorAnimatedWidth,
               height: 50,
               borderRadius: 25,
               top: 0,
               left: -0.8,
               opacity: opacity * 0.15,
-              transform: [{ translateX: slideAnim }],
+              transform: [{ translateX: indicatorAnimatedTranslateX }],
               backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
             }}
           />
@@ -647,13 +737,13 @@ const CustomTabBar = ({
           <Animated.View
             style={{
               position: "absolute",
-              width: currentIndicatorWidth,
+              width: indicatorAnimatedWidth,
               height: 50,
               borderRadius: 25,
               top: 0,
               left: 0.8,
               opacity: opacity * 0.15,
-              transform: [{ translateX: slideAnim }],
+              transform: [{ translateX: indicatorAnimatedTranslateX }],
               backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
             }}
           />
@@ -661,13 +751,13 @@ const CustomTabBar = ({
           <Animated.View
             style={{
               position: "absolute",
-              width: currentIndicatorWidth,
+              width: indicatorAnimatedWidth,
               height: 50,
               borderRadius: 25,
               top: 0,
               left: 0,
               opacity,
-              transform: [{ translateX: slideAnim }],
+              transform: [{ translateX: indicatorAnimatedTranslateX }],
               backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
               shadowColor: isDarkMode ? "#fff" : "#000",
               shadowOffset: { width: 0, height: 2 },
