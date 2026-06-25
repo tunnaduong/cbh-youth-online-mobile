@@ -53,6 +53,7 @@ const PostScreen = ({ route, navigation }) => {
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
   const [commentText, setCommentText] = useState("");
+  const [isAnonymousComment, setIsAnonymousComment] = useState(false);
   const [parentId, setParentId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -383,10 +384,12 @@ const PostScreen = ({ route, navigation }) => {
         comment: commentText.trim(),
         topic_id: post.id,
         replying_to: replyingToId,
+        is_anonymous: isAnonymousComment,
       });
 
       // Reset input state
       setCommentText("");
+      setIsAnonymousComment(false);
       setParentId(null);
       setReplyingTo(null);
 
@@ -624,6 +627,7 @@ const PostScreen = ({ route, navigation }) => {
             // Edit comment
             setEditingCommentId(commentId);
             setEditingCommentText(comment.content || "");
+            setIsAnonymousComment(!!comment.is_anonymous);
             setParentId(null);
             setReplyingTo(null);
             if (commentInputRef.current) {
@@ -649,6 +653,7 @@ const PostScreen = ({ route, navigation }) => {
             onPress: () => {
               setEditingCommentId(commentId);
               setEditingCommentText(comment.content || "");
+              setIsAnonymousComment(!!comment.is_anonymous);
               setParentId(null);
               setReplyingTo(null);
               if (commentInputRef.current) {
@@ -746,11 +751,13 @@ const PostScreen = ({ route, navigation }) => {
     try {
       await updateComment(editingCommentId, {
         comment: editingCommentText.trim(),
+        is_anonymous: isAnonymousComment,
       });
 
       // Reset editing state
       setEditingCommentId(null);
       setEditingCommentText("");
+      setIsAnonymousComment(false);
 
       // Refresh comments
       const response = await getPostDetail(postId);
@@ -848,11 +855,12 @@ const PostScreen = ({ route, navigation }) => {
             >
               <Pressable
                 onPress={() =>
-                  author.username &&
+                  author.username && !comment.is_anonymous &&
                   navigation.navigate("ProfileScreen", {
                     username: author.username,
                   })
                 }
+                disabled={!author.username || !!comment.is_anonymous}
               >
                 <View
                   style={{
@@ -863,30 +871,37 @@ const PostScreen = ({ route, navigation }) => {
                     overflow: "hidden",
                     borderWidth: 1,
                     borderColor: theme.border,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {author.username && (
+                  {comment.is_anonymous ? (
+                    <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
+                    </View>
+                  ) : author.username ? (
                     <Image
                       source={{
                         uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
                       }}
                       style={{ width: 40, height: 40, borderRadius: 30 }}
                     />
-                  )}
+                  ) : null}
                 </View>
               </Pressable>
               <View style={{ flexShrink: 1 }}>
                 <Pressable
                   onPress={() =>
-                    author.username &&
+                    author.username && !comment.is_anonymous &&
                     navigation.navigate("ProfileScreen", {
                       username: author.username,
                     })
                   }
+                  disabled={!author.username || !!comment.is_anonymous}
                 >
                   <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                    {author.profile_name || author.username || t('post.anonymous')}
-                    {author.verified && (
+                    {comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || "")}
+                    {author.verified && !comment.is_anonymous && (
                       <View>
                         <Verified
                           width={15}
@@ -1105,6 +1120,7 @@ const PostScreen = ({ route, navigation }) => {
                   setEditingCommentId(null);
                   setEditingCommentText("");
                   setCommentText("");
+                  setIsAnonymousComment(false);
                 }}
                 style={{
                   marginLeft: 10,
@@ -1119,13 +1135,15 @@ const PostScreen = ({ route, navigation }) => {
           )}
 
           <CommentBar
-            value={commentText}
-            onChangeText={setCommentText}
+            value={editingCommentId ? editingCommentText : commentText}
+            onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
             placeholderText={t('post.commentPlaceholder')}
             onSubmit={onSubmit}
             ref={commentInputRef}
             isSubmitting={isSubmitting}
-            disabled={!commentText.trim() || isSubmitting}
+            disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
+            isAnonymous={isAnonymousComment}
+            onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
           />
 
           <ReportModal
