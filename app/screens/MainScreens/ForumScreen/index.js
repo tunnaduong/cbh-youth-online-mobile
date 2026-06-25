@@ -381,6 +381,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
                   colors={["transparent"]}
                   progressBackgroundColor="transparent"
                   style={{ backgroundColor: "transparent" }}
+                  progressViewOffset={-1000}
                 />
               }
             >

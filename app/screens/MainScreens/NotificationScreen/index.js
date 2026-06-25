@@ -577,6 +577,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               colors={["transparent"]}
               progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
+              progressViewOffset={-1000}
             />
           }
           onEndReached={loadMore}

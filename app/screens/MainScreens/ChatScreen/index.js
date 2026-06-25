@@ -9,6 +9,7 @@ import {
   TextInput,
   StatusBar,
   DeviceEventEmitter,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -87,6 +88,15 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         isProcessingRef.current = false;
       }, 600);
     }
+  }, []);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchConversations().finally(() => {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 1000);
+    });
   }, []);
 
   React.useEffect(() => {
@@ -300,6 +310,17 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         renderItem={renderItem}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+            progressViewOffset={-1000}
+          />
+        }
         contentContainerStyle={{
           paddingBottom: 110,
           flex: filteredConversations.length === 0 ? 1 : undefined,
