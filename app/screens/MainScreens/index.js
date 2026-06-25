@@ -318,32 +318,33 @@ const CustomTabBar = ({
     indicatorWidthBase.setValue(currentIndicatorWidth);
   }, [currentIndicatorWidth]);
 
-  // Animate indicator to committed tab position (when not dragging)
+  // Animate indicator to committed tab position (when not dragging).
+  // Fire immediately (no InteractionManager delay) so the spring tracks
+  // the tap right away — like Apple Music's tab indicator.
   useEffect(() => {
-    if (!isDragging.current) {
-      Animated.spring(slideAnim, {
-        toValue: currentIndicatorLeft,
-        useNativeDriver: false,
-        stiffness: 180,
-        damping: 18,
-        mass: 1.0,
-      }).start();
-      // Reset stretch & offset on tab commit
-      Animated.spring(stretchAnim, {
-        toValue: 0,
-        useNativeDriver: false,
-        stiffness: 260,
-        damping: 22,
-        mass: 0.7,
-      }).start();
-      Animated.spring(offsetAnim, {
-        toValue: 0,
-        useNativeDriver: false,
-        stiffness: 260,
-        damping: 22,
-        mass: 0.7,
-      }).start();
-    }
+    if (isDragging.current) return;
+    Animated.spring(slideAnim, {
+      toValue: currentIndicatorLeft,
+      useNativeDriver: false,
+      stiffness: 300,
+      damping: 28,
+      mass: 0.7,
+    }).start();
+    // Reset stretch & offset on tab commit
+    Animated.spring(stretchAnim, {
+      toValue: 0,
+      useNativeDriver: false,
+      stiffness: 360,
+      damping: 30,
+      mass: 0.5,
+    }).start();
+    Animated.spring(offsetAnim, {
+      toValue: 0,
+      useNativeDriver: false,
+      stiffness: 360,
+      damping: 30,
+      mass: 0.5,
+    }).start();
   }, [currentIndicatorLeft]);
 
   const onLeftPillLayout = (event) => {
@@ -706,6 +707,8 @@ const CustomTabBar = ({
                 backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                alignItems: 'center',
+                justifyContent: 'center',
               }
             ]}
           >
@@ -814,6 +817,8 @@ const CustomTabBar = ({
               backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
               borderWidth: 1,
               borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              alignItems: 'center',
+              justifyContent: 'center',
             }
           ]}
         >

@@ -292,7 +292,8 @@ const CustomTabBarButton = ({ onPress }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: 56,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
   },
