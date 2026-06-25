@@ -63,6 +63,7 @@ import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
@@ -553,6 +554,7 @@ const ReplyBar = ({
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const { userInfo } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -649,7 +651,7 @@ const ReplyBar = ({
 
   if (isOwnStory) {
     return (
-      <SafeAreaView>
+      <SafeAreaView style={{ paddingBottom: insets.bottom }}>
         <View style={styles.viewCountBar}>
           <TouchableOpacity
             onPress={handleViewCountPress}
@@ -674,7 +676,7 @@ const ReplyBar = ({
           onComplete={() => handleAnimationComplete(id)}
         />
       ))}
-      <SafeAreaView>
+      <SafeAreaView style={{ paddingBottom: insets.bottom }}>
         <View className="flex-row items-center gap-2 justify-center">
           {emojis.map((emoji) => (
             <TouchableOpacity
