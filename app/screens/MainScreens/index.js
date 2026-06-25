@@ -260,11 +260,20 @@ const CustomTabBar = ({
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
+  // All three anims must use useNativeDriver:false because slideAnim is combined
+  // with offsetAnim via Animated.add(), and offsetAnim/stretchAnim drive `width`
+  // which is JS-only. Mixing native + JS drivers on the same node crashes Android.
   const slideAnim = useRef(new Animated.Value(0)).current;
   // stretchAnim drives the liquid-glass width morph (useNativeDriver:false required)
   const stretchAnim = useRef(new Animated.Value(0)).current;
   // offsetAnim compensates translateX so the pill stretches toward drag direction
   const offsetAnim = useRef(new Animated.Value(0)).current;
+
+  // Stable base value for indicator width — updated via setValue, never recreated
+  const indicatorWidthBase = useRef(new Animated.Value(0)).current;
+  // Stable composed animated values — created once, never recreated on re-render
+  const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
+  const indicatorAnimatedTranslateX = useRef(Animated.add(slideAnim, offsetAnim)).current;
 
   // Drag state refs (avoid re-renders during gesture)
   const isDragging = useRef(false);
@@ -300,12 +309,17 @@ const CustomTabBar = ({
     activeLeftIndexRef.current = activeLeftIndex;
   }, [activeLeftIndex]);
 
+  // Keep the stable width base value in sync with layout-derived buttonWidth
+  useEffect(() => {
+    indicatorWidthBase.setValue(currentIndicatorWidth);
+  }, [currentIndicatorWidth]);
+
   // Animate indicator to committed tab position (when not dragging)
   useEffect(() => {
     if (!isDragging.current) {
       Animated.spring(slideAnim, {
         toValue: currentIndicatorLeft,
-        useNativeDriver: true,
+        useNativeDriver: false,
         stiffness: 180,
         damping: 18,
         mass: 1.0,
@@ -435,7 +449,7 @@ const CustomTabBar = ({
 
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: true,
+          useNativeDriver: false,
           stiffness: 280,
           damping: 26,
           mass: 0.8,
@@ -469,7 +483,7 @@ const CustomTabBar = ({
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: true,
+          useNativeDriver: false,
           stiffness: 200,
           damping: 20,
         }).start();
@@ -491,13 +505,8 @@ const CustomTabBar = ({
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
 
-  // Animated width = base buttonWidth + liquid stretch (useNativeDriver:false required for width)
-  const indicatorAnimatedWidth = Animated.add(
-    new Animated.Value(currentIndicatorWidth),
-    stretchAnim
-  );
-  // translateX adjusted by offsetAnim so pill grows toward drag direction
-  const indicatorAnimatedTranslateX = Animated.add(slideAnim, offsetAnim);
+  // indicatorAnimatedWidth and indicatorAnimatedTranslateX are declared above
+  // as stable useRef values — do not recreate them here.
 
   const renderButtons = () => {
     return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
