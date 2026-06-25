@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter } from "react-native";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter, InteractionManager } from "react-native";
 import * as Haptics from "expo-haptics";
 import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -350,6 +350,10 @@ const CustomTabBar = ({
     }
   };
 
+  // Use a ref so the PanResponder (created once at mount) always calls the
+  // latest version of navigate without stale closure lag
+  const navigateToLeftIndexRef = useRef(null);
+
   // Navigate to a tab by left-route index
   const navigateToLeftIndex = useCallback((leftIdx) => {
     const target = leftRoutes[leftIdx];
@@ -364,6 +368,11 @@ const CustomTabBar = ({
       navigation.navigate(route.name, route.params);
     }
   }, [leftRoutes, navigation]);
+
+  // Keep the ref in sync with the latest callback
+  useEffect(() => {
+    navigateToLeftIndexRef.current = navigateToLeftIndex;
+  }, [navigateToLeftIndex]);
 
   // PanResponder for drag-to-switch
   const panResponder = useRef(
@@ -430,11 +439,15 @@ const CustomTabBar = ({
         const indicatorCenter = clampedX + bWidth / 2;
         const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
 
-        // Haptic + navigate when crossing into a new tab zone
+        // Haptic + navigate when crossing into a new tab zone.
+        // Defer the navigate via requestAnimationFrame so it doesn't block
+        // the gesture thread and cause the stretch animation to stutter.
         if (hoveredIndex !== lastHapticIndex.current) {
           lastHapticIndex.current = hoveredIndex;
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          navigateToLeftIndex(hoveredIndex);
+          requestAnimationFrame(() => {
+            navigateToLeftIndexRef.current?.(hoveredIndex);
+          });
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
@@ -472,7 +485,7 @@ const CustomTabBar = ({
         }).start();
 
         if (snappedIndex !== activeLeftIndexRef.current) {
-          navigateToLeftIndex(snappedIndex);
+          navigateToLeftIndexRef.current?.(snappedIndex);
         }
 
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -897,7 +910,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
       onChange={(isOpen) => setSetting(isOpen)}
       edgeHitWidth={100}
       bounceBackOnOverdraw={false}
-      disableGestures={currentRoute !== "Home"}
+      disableGestures={true}
     >
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
