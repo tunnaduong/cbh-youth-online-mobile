@@ -30,7 +30,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 const EditProfileScreen = ({ navigation }) => {
-  const { username, userInfo, setUserInfo } = useContext(AuthContext);
+  const { username, userInfo, setUserInfo, bumpAvatarVersion } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -166,8 +166,8 @@ const EditProfileScreen = ({ navigation }) => {
 
       await updateProfile(username, formData);
 
-      FastImage.clearDiskCache();
-      FastImage.clearMemoryCache();
+      // Bust the avatar cache so all screens immediately show the new photo
+      bumpAvatarVersion();
 
       Toast.show({
         type: "success",

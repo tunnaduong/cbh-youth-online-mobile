@@ -18,6 +18,20 @@ export const AuthProvider = ({ children }) => {
   const [userInfo, setUserInfo] = useState(null);
   const [emailVerifiedAt, setEmailVerifiedAt] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState([]);
+  // Incremented when current user updates their avatar → busts expo-image cache
+  const [avatarVersion, setAvatarVersion] = useState(1);
+
+  const bumpAvatarVersion = () => setAvatarVersion((v) => v + 1);
+
+  // Helper to build an avatar URL with cache-busting for the current user
+  const getAvatarUrl = (uname) => {
+    const base = `https://api.chuyenbienhoa.com/v1.0/users/${uname}/avatar`;
+    // Only bust cache for the currently logged-in user
+    if (uname === username && avatarVersion > 1) {
+      return `${base}?v=${avatarVersion}`;
+    }
+    return base;
+  };
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -203,6 +217,10 @@ export const AuthProvider = ({ children }) => {
         // Keep old names for backward compatibility if needed, but prefer InContext variants
         blockUser,
         unblockUser,
+        // Avatar cache busting
+        avatarVersion,
+        bumpAvatarVersion,
+        getAvatarUrl,
       }}
     >
       {children}

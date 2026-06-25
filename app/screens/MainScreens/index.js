@@ -712,10 +712,12 @@ const CustomTabBar = ({
               }
             ]}
           >
-            <CustomTabBarButton
-              onPress={() => {}}
-              bottomOffset={bottomOffset}
-            />
+            <View style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center' }}>
+              <CustomTabBarButton
+                onPress={() => {}}
+                bottomOffset={bottomOffset}
+              />
+            </View>
           </LiquidGlassView>
         </LiquidGlassContainerView>
       </Animated.View>
