@@ -293,6 +293,9 @@ const LoginScreen = ({ navigation }) => {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoComplete="username"
+                  textContentType="username"
+                  importantForAutofill="yes"
                 />
               </View>
 
@@ -307,7 +310,8 @@ const LoginScreen = ({ navigation }) => {
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     textContentType="password"
-                    autoComplete="password"
+                    autoComplete="current-password"
+                    importantForAutofill="yes"
                     autoCorrect={false}
                     autoCapitalize="none"
                   />

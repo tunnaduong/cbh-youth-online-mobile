@@ -87,7 +87,7 @@ const CommentBar = React.forwardRef(
                   onPress={onToggleAnonymous}
                 >
                   <Ionicons
-                    name={isAnonymous ? "skull" : "skull-outline"}
+                    name={isAnonymous ? "glasses" : "glasses-outline"}
                     size={24}
                     color={isAnonymous ? theme.primary : theme.subText}
                   />
