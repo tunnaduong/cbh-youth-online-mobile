@@ -184,9 +184,9 @@ const ZoomableStoryImage = ({ uri, style }) => {
     lastTranslateX.current = 0;
     lastTranslateY.current = 0;
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: false }),
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: false }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: false }),
     ]).start();
   };
 
