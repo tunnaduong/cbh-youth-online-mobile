@@ -28,7 +28,7 @@ export default function Success({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />
@@ -98,7 +98,7 @@ export default function Success({ navigation }) {
       <TouchableOpacity style={[styles.returnButton, { backgroundColor: theme.primary }]} onPress={handleReturnHome}>
         <Text style={styles.returnButtonText}>{t('report.backToHome')}</Text>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 

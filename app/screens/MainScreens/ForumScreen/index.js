@@ -235,7 +235,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[
           { flex: 1, backgroundColor: theme.background },
           { paddingTop: insets.top },
@@ -261,12 +261,12 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           <CustomLoading />
           <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
+    <View
       style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
@@ -399,7 +399,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

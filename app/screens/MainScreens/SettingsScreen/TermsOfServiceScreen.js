@@ -25,7 +25,7 @@ export default function TermsOfServiceScreen({ navigation }) {
   const { t } = useTranslation();
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -143,7 +143,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

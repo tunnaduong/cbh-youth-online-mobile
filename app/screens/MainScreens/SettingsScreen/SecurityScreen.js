@@ -288,7 +288,7 @@ export default function SecurityScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -604,7 +604,7 @@ export default function SecurityScreen({ navigation }) {
       </Modal>
 
       <Toast topOffset={60} />
-    </SafeAreaView>
+    </View>
   );
 }
 

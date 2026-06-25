@@ -64,12 +64,12 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[styles.loadingContainer, { paddingTop: insets.top, backgroundColor: theme.background }]}
       >
         <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
         <CustomLoading />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -203,7 +203,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
@@ -266,7 +266,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           {renderInfoItem("time-outline", t('profile.joined'), profileData?.joined_at)}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

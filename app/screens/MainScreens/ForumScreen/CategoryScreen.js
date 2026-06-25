@@ -131,17 +131,17 @@ const CategoryScreen = ({ navigation, route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[styles.loadingContainer, { paddingTop: insets.top, backgroundColor: theme.background }]}
       >
         <CustomLoading />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!forumData) {
     return (
-      <SafeAreaView
+      <View
         style={[
           { flex: 1, backgroundColor: theme.background },
           { paddingTop: insets.top },
@@ -164,7 +164,7 @@ const CategoryScreen = ({ navigation, route }) => {
           />
           <Text style={{ color: theme.subText }}>{t('forum.loadError')}</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -230,7 +230,7 @@ const CategoryScreen = ({ navigation, route }) => {
   );
 
   return (
-    <SafeAreaView
+    <View
       style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
       {/* Custom Header */}
@@ -307,7 +307,7 @@ const CategoryScreen = ({ navigation, route }) => {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

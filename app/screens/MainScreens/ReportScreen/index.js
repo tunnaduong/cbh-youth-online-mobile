@@ -91,7 +91,7 @@ export default function ReportScreen({ navigation }) {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
@@ -183,7 +183,7 @@ export default function ReportScreen({ navigation }) {
         <Text style={styles.continueButtonText}>{t('report.continue')}</Text>
         <Ionicons name="arrow-forward" size={24} color="#fff" />
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 

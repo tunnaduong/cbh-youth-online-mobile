@@ -99,7 +99,7 @@ export default function Step3({ navigation, route }) {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
@@ -181,7 +181,7 @@ export default function Step3({ navigation, route }) {
         <Text style={styles.submitButtonText}>{t('report.submit')}</Text>
         <Ionicons name="send" size={24} color="#fff" />
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 

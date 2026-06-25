@@ -270,7 +270,7 @@ const ActivityScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView
+    <View
       style={{ flex: 1, backgroundColor: "#fff", paddingTop: insets.top }}
     >
       {/* Header */}
@@ -326,7 +326,7 @@ const ActivityScreen = ({ navigation }) => {
         }}
       />
       <Toast />
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -432,7 +432,7 @@ export default function Step2({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       {/* Header */}
@@ -528,7 +528,7 @@ export default function Step2({ navigation, route }) {
           />
         </BottomSheetView>
       </BottomSheet>
-    </SafeAreaView>
+    </View>
   );
 }
 
