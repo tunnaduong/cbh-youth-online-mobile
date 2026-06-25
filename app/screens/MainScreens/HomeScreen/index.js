@@ -31,6 +31,7 @@ import {
   Alert,
   DeviceEventEmitter,
   StatusBar,
+  PanResponder,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -127,6 +128,158 @@ const FloatingEmoji = ({ emoji, onComplete }) => {
     >
       {emoji}
     </Animated.Text>
+  );
+};
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+
+const ZoomableStoryImage = ({ uri, style }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  // Store raw values for calculations
+  const scaleValue = useRef(1);
+  const lastScale = useRef(1);
+  const translateXValue = useRef(0);
+  const translateYValue = useRef(0);
+  const lastTranslateX = useRef(0);
+  const lastTranslateY = useRef(0);
+
+  // Track initial distance for pinch gesture
+  const initialDistance = useRef(null);
+  const initialMidpoint = useRef({ x: 0, y: 0 });
+
+  const getDistance = (touches) => {
+    const [t1, t2] = touches;
+    return Math.sqrt(
+      Math.pow(t2.pageX - t1.pageX, 2) + Math.pow(t2.pageY - t1.pageY, 2)
+    );
+  };
+
+  const getMidpoint = (touches) => {
+    const [t1, t2] = touches;
+    return {
+      x: (t1.pageX + t2.pageX) / 2,
+      y: (t1.pageY + t2.pageY) / 2,
+    };
+  };
+
+  const clampTranslate = (tx, ty, currentScale) => {
+    const maxX = (SCREEN_WIDTH * (currentScale - 1)) / 2;
+    const maxY = (SCREEN_HEIGHT * (currentScale - 1)) / 2;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, tx)),
+      y: Math.max(-maxY, Math.min(maxY, ty)),
+    };
+  };
+
+  const resetTransform = () => {
+    scaleValue.current = 1;
+    lastScale.current = 1;
+    translateXValue.current = 0;
+    translateYValue.current = 0;
+    lastTranslateX.current = 0;
+    lastTranslateY.current = 0;
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Capture if zoomed in or if 2 fingers used
+        return scaleValue.current > 1 || gestureState.numberActiveTouches === 2;
+      },
+      onPanResponderGrant: () => {
+        lastTranslateX.current = translateXValue.current;
+        lastTranslateY.current = translateYValue.current;
+        lastScale.current = scaleValue.current;
+        initialDistance.current = null;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+
+        if (touches.length === 2) {
+          // Pinch to zoom
+          const dist = getDistance(touches);
+          const mid = getMidpoint(touches);
+
+          if (initialDistance.current === null) {
+            initialDistance.current = dist;
+            initialMidpoint.current = mid;
+          }
+
+          const newScale = Math.max(
+            MIN_SCALE,
+            Math.min(MAX_SCALE, lastScale.current * (dist / initialDistance.current))
+          );
+
+          scaleValue.current = newScale;
+          scale.setValue(newScale);
+
+          // Pan while pinching (follow midpoint)
+          const dx = mid.x - initialMidpoint.current.x;
+          const dy = mid.y - initialMidpoint.current.y;
+          const clamped = clampTranslate(
+            lastTranslateX.current + dx,
+            lastTranslateY.current + dy,
+            newScale
+          );
+          translateXValue.current = clamped.x;
+          translateYValue.current = clamped.y;
+          translateX.setValue(clamped.x);
+          translateY.setValue(clamped.y);
+        } else if (touches.length === 1 && scaleValue.current > 1) {
+          // Pan when zoomed in
+          const clamped = clampTranslate(
+            lastTranslateX.current + gestureState.dx,
+            lastTranslateY.current + gestureState.dy,
+            scaleValue.current
+          );
+          translateXValue.current = clamped.x;
+          translateYValue.current = clamped.y;
+          translateX.setValue(clamped.x);
+          translateY.setValue(clamped.y);
+        }
+      },
+      onPanResponderRelease: () => {
+        lastTranslateX.current = translateXValue.current;
+        lastTranslateY.current = translateYValue.current;
+        lastScale.current = scaleValue.current;
+        initialDistance.current = null;
+
+        // Snap back to MIN_SCALE if below threshold
+        if (scaleValue.current < MIN_SCALE + 0.1) {
+          resetTransform();
+        }
+      },
+      onPanResponderTerminationRequest: () => false,
+    })
+  ).current;
+
+  return (
+    <Animated.Image
+      source={{ uri }}
+      style={[
+        style,
+        {
+          transform: [
+            { scale },
+            { translateX },
+            { translateY },
+          ],
+        },
+      ]}
+      resizeMode="contain"
+      {...panResponder.panHandlers}
+    />
   );
 };
 
@@ -584,6 +737,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [currentStory, setCurrentStory] = useState(null);
   const [currentStoryUser, setCurrentStoryUser] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isStoryVisible, setIsStoryVisible] = useState(false);
   const {
     username,
     isLoggedIn,
@@ -789,7 +943,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryShow = (userId) => {
-  if (Platform.OS === "android") StatusBar.setHidden(true, "fade");
+    setIsStoryVisible(true);
+    if (Platform.OS === "android") StatusBar.setHidden(true, "fade");
     // Save current status bar style
     previousStatusBarStyle.current = { barStyle, backgroundColor };
     // Change to light content (white text) for dark background
@@ -823,7 +978,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryHide = () => {
-  if (Platform.OS === "android") StatusBar.setHidden(false, "fade");
+    setIsStoryVisible(false);
+    if (Platform.OS === "android") StatusBar.setHidden(false, "fade");
     // Restore previous status bar style
     updateStatusBar(
       previousStatusBarStyle.current.barStyle,
@@ -929,6 +1085,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           },
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
+          renderContent: () => (
+            <ZoomableStoryImage
+              uri={`https://api.chuyenbienhoa.com${story.media_url}`}
+              style={{
+                width: SCREEN_WIDTH,
+                height: SCREEN_HEIGHT,
+              }}
+            />
+          ),
           renderFooter: () => (
             <ReplyBar
               storyId={story.id}
@@ -1632,10 +1797,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           }}
           toast={<Toast topOffset={60} />}
-          containerStyle={{
-            height:
-              Dimensions.get("window").height -
-              (Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0),
+          containerStyle={Platform.OS === "android" ? {
+            // When story is visible, status bar is hidden so no offset needed.
+            // When story is first opening (not yet hidden), push below status bar to avoid overlap.
+            marginTop: isStoryVisible ? 0 : (StatusBar.currentHeight ?? 0),
+            height: Dimensions.get("window").height - (isStoryVisible ? 0 : (StatusBar.currentHeight ?? 0)),
+          } : {
+            height: Dimensions.get("window").height,
           }}
         />
         <ResendVerificationModal />
