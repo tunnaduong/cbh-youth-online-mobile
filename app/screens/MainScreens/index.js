@@ -264,20 +264,23 @@ const CustomTabBar = ({
     : (insets.bottom > 0 ? insets.bottom + 8 : 12);
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
-  // All three anims must use useNativeDriver:false because slideAnim is combined
-  // with offsetAnim via Animated.add(), and offsetAnim/stretchAnim drive `width`
-  // which is JS-only. Mixing native + JS drivers on the same node crashes Android.
+
+  // slideAnim: tab-to-tab translation on tap — useNativeDriver:TRUE → runs on UI thread at 60fps
+  // even while JS is busy mounting the new screen. This eliminates tap-transition jank.
   const slideAnim = useRef(new Animated.Value(0)).current;
-  // stretchAnim drives the liquid-glass width morph (useNativeDriver:false required)
+
+  // stretchAnim / offsetAnim: liquid-glass stretch during *drag only*.
+  // These drive `width` which is not supported by native driver → JS-only.
   const stretchAnim = useRef(new Animated.Value(0)).current;
-  // offsetAnim compensates translateX so the pill stretches toward drag direction
   const offsetAnim = useRef(new Animated.Value(0)).current;
 
-  // Stable base value for indicator width — updated via setValue, never recreated
+  // Stable base value for indicator width — JS driver (drives `width` style)
   const indicatorWidthBase = useRef(new Animated.Value(0)).current;
-  // Stable composed animated values — created once, never recreated on re-render
+  // indicatorAnimatedWidth: JS-driver composed value for width+stretch
   const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
-  const indicatorAnimatedTranslateX = useRef(Animated.add(slideAnim, offsetAnim)).current;
+  // indicatorDragOffset: JS-driver composed value for stretch direction offset
+  // slideAnim itself is native-driver and NOT added here — it's applied in a parent View
+  const indicatorDragOffset = useRef(offsetAnim).current;
 
   // Drag state refs (avoid re-renders during gesture)
   const isDragging = useRef(false);
@@ -319,18 +322,17 @@ const CustomTabBar = ({
   }, [currentIndicatorWidth]);
 
   // Animate indicator to committed tab position (when not dragging).
-  // Fire immediately (no InteractionManager delay) so the spring tracks
-  // the tap right away — like Apple Music's tab indicator.
+  // slideAnim uses useNativeDriver:true → runs on UI thread, immune to JS busy-ness.
   useEffect(() => {
     if (isDragging.current) return;
     Animated.spring(slideAnim, {
       toValue: currentIndicatorLeft,
-      useNativeDriver: false,
+      useNativeDriver: true,   // ← NATIVE: 60fps even when JS mounts new screen
       stiffness: 300,
       damping: 28,
       mass: 0.7,
     }).start();
-    // Reset stretch & offset on tab commit
+    // Reset stretch & offset on tab commit (JS driver, fine since drag is over)
     Animated.spring(stretchAnim, {
       toValue: 0,
       useNativeDriver: false,
@@ -401,7 +403,7 @@ const CustomTabBar = ({
         isDragging.current = true;
         lastHapticIndex.current = activeLeftIndexRef.current;
         bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
-        // Stop any in-flight spring so indicator follows finger instantly
+        // Stop in-flight spring on native-driver slideAnim
         slideAnim.stopAnimation((currentVal) => {
           dragStartX.current = currentVal;
         });
@@ -467,7 +469,7 @@ const CustomTabBar = ({
 
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: false,
+          useNativeDriver: true,   // ← NATIVE for snap-back
           stiffness: 280,
           damping: 26,
           mass: 0.8,
@@ -501,7 +503,7 @@ const CustomTabBar = ({
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 200,
           damping: 20,
         }).start();
@@ -522,9 +524,6 @@ const CustomTabBar = ({
   ).current;
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
-
-  // indicatorAnimatedWidth and indicatorAnimatedTranslateX are declared above
-  // as stable useRef values — do not recreate them here.
 
   const renderButtons = () => {
     return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
@@ -751,64 +750,75 @@ const CustomTabBar = ({
             }
           ]}
         >
-          {/* Chromatic Aberration - Red channel shift */}
+          {/*
+            2-layer indicator architecture:
+            - Outer: native-driver translateX (slideAnim) → 60fps even when JS busy
+            - Inner: JS-driver width + drag-offset → only active during drag gesture
+          */}
           <Animated.View
             style={{
               position: "absolute",
-              width: indicatorAnimatedWidth,
-              height: 50,
-              borderRadius: 25,
-              top: 0,
-              left: -0.8,
-              opacity: opacity * 0.15,
-              transform: [{ translateX: indicatorAnimatedTranslateX }],
-              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
-            }}
-          />
-          {/* Chromatic Aberration - Blue channel shift */}
-          <Animated.View
-            style={{
-              position: "absolute",
-              width: indicatorAnimatedWidth,
-              height: 50,
-              borderRadius: 25,
-              top: 0,
-              left: 0.8,
-              opacity: opacity * 0.15,
-              transform: [{ translateX: indicatorAnimatedTranslateX }],
-              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
-            }}
-          />
-          {/* Main Glass Indicator */}
-          <Animated.View
-            style={{
-              position: "absolute",
-              width: indicatorAnimatedWidth,
-              height: 50,
-              borderRadius: 25,
               top: 0,
               left: 0,
-              opacity,
-              transform: [{ translateX: indicatorAnimatedTranslateX }],
-              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-              shadowColor: isDarkMode ? "#fff" : "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isDarkMode ? 0.3 : 0.15,
-              shadowRadius: 6,
-              elevation: 3,
-              overflow: "hidden",
+              transform: [{ translateX: slideAnim }],   // ← NATIVE DRIVER
             }}
           >
-            <LinearGradient
-              colors={[
-                isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                "transparent"
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
+            {/* Chromatic Aberration - Red */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                top: 0,
+                left: -0.8,
+                opacity: opacity * 0.15,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
+              }}
             />
+            {/* Chromatic Aberration - Blue */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                top: 0,
+                left: 0.8,
+                opacity: opacity * 0.15,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
+              }}
+            />
+            {/* Main Glass Indicator */}
+            <Animated.View
+              style={{
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                opacity,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                shadowColor: isDarkMode ? "#fff" : "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                shadowRadius: 6,
+                elevation: 3,
+                overflow: "hidden",
+              }}
+            >
+              <LinearGradient
+                colors={[
+                  isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                  isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                  "transparent"
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </Animated.View>
           </Animated.View>
           {renderButtons()}
         </View>

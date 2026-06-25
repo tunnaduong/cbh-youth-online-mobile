@@ -1822,7 +1822,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }}
           toast={<Toast topOffset={60} />}
           containerStyle={{
-            height: Dimensions.get("window").height,
+            height: Dimensions.get("screen").height,
           }}
         />
         <ResendVerificationModal />
