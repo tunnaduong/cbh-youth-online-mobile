@@ -282,6 +282,7 @@ const CustomTabBar = ({
 
   const usableWidth = tabBarWidth - 2;
   const buttonWidth = usableWidth / 4;
+  const currentIndicatorWidth = buttonWidth;
   const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
   // Keep refs in sync
