@@ -14,9 +14,9 @@ import {
   Text,
   Pressable,
   Image,
-  Platform,
   ActionSheetIOS,
   KeyboardAvoidingView,
+  RefreshControl,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
@@ -41,6 +41,7 @@ import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+import LottieView from "lottie-react-native";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -69,6 +70,8 @@ const PostScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
   const { t } = useTranslation();
+  const [refreshing, setRefreshing] = useState(false);
+  const lottieRef = useRef(null);
 
   React.useEffect(() => {
     navigation.setOptions({ title: t('post.details') });
@@ -246,10 +249,18 @@ const PostScreen = ({ route, navigation }) => {
       setVotes(topic?.votes ?? []); // Update votes state
       setIsSaved(topic?.is_saved ?? false); // Update saved status
       setComments(comments ?? []);
-      console.log(JSON.stringify(comments, null, 2));
     } catch (error) {
       console.error("Error fetching data:", error);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData().finally(() => {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 1000);
+    });
   };
 
   const focusCommentInput = (id, name) => {
@@ -1064,11 +1075,33 @@ const PostScreen = ({ route, navigation }) => {
             flex: 1,
           }}
         >
+          {refreshing && (
+            <View style={{ position: "absolute", top: 15, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+              <LottieView
+                source={require("../../../assets/refresh.json")}
+                style={{ width: 40, height: 40 }}
+                ref={lottieRef}
+                loop
+                autoPlay
+              />
+            </View>
+          )}
           <ScrollView
             contentContainerStyle={{
               backgroundColor: theme.background,
             }}
             ref={scrollViewRef}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="transparent"
+                colors={["transparent"]}
+                progressBackgroundColor="transparent"
+                style={{ backgroundColor: "transparent" }}
+                progressViewOffset={-1000}
+              />
+            }
           >
             <PostItem
               navigation={navigation}
