@@ -102,7 +102,6 @@ const App = () => {
         <Stack.Navigator
           screenOptions={{
             headerStyle: {
-              height: 50 + insets.top,
               backgroundColor: theme.headerBackground,
               elevation: 0,
               shadowOpacity: 0,
@@ -147,7 +146,6 @@ const App = () => {
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
-                    height: 50 + insets.top,
                     backgroundColor: theme.headerBackground,
                     elevation: 0,
                     shadowOpacity: 0,
@@ -324,7 +322,6 @@ const App = () => {
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
-                    height: 50 + insets.top,
                     backgroundColor: theme.headerBackground,
                     borderBottomWidth: 0,
                     shadowOffset: { height: 0, width: 0 },

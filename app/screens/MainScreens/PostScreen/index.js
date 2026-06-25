@@ -1070,7 +1070,7 @@ const PostScreen = ({ route, navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={headerHeight}
       >
-        <SafeAreaView
+        <View
           style={{
             flex: 1,
           }}
@@ -1184,7 +1184,7 @@ const PostScreen = ({ route, navigation }) => {
             onClose={() => setReportModalVisible(false)}
             onSubmit={handleReportSubmit}
           />
-        </SafeAreaView>
+        </View>
       </KeyboardAvoidingView>
     </>
   );

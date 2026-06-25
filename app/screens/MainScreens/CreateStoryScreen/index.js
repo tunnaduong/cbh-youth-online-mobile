@@ -427,6 +427,142 @@ const CameraUI = ({ permission, cameraRef, cameraType, handleCloseCamera, handle
     </View>
   );
 };
+// ─── Camera Crop Preview ─────────────────────────────────────────────────────
+const CameraCropPreview = ({ photoUri, onConfirm, onRetake, t }) => {
+  const { width: screenW, height: screenH } = Dimensions.get("window");
+  const cropW = screenW;
+  const cropH = Math.round(screenW * (16 / 9));
+
+  // How far the crop window can slide vertically inside the photo display
+  const [offsetY, setOffsetY] = useState(0);
+  const dragStart = useRef(0);
+  const offsetRef = useRef(0);
+
+  // Photo display height (fill screen width, keep aspect)
+  const [imgSize, setImgSize] = useState({ width: screenW, height: screenH });
+
+  useEffect(() => {
+    Image.getSize(photoUri, (w, h) => {
+      const displayH = Math.round(screenW * (h / w));
+      setImgSize({ width: screenW, height: displayH });
+      // Start crop window centered
+      const maxOffset = Math.max(0, displayH - cropH);
+      setOffsetY(Math.round(maxOffset / 2));
+      offsetRef.current = Math.round(maxOffset / 2);
+    });
+  }, [photoUri]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        dragStart.current = offsetRef.current;
+      },
+      onPanResponderMove: (_, gs) => {
+        const maxOffset = Math.max(0, imgSize.height - cropH);
+        const next = Math.max(0, Math.min(maxOffset, dragStart.current - gs.dy));
+        offsetRef.current = next;
+        setOffsetY(next);
+      },
+    })
+  ).current;
+
+  const handleConfirm = async () => {
+    // Convert screen offsets → actual pixel coordinates in original image
+    Image.getSize(photoUri, async (origW, origH) => {
+      const scaleX = origW / screenW;
+      const scaleY = origH / imgSize.height;
+      const pixelOriginY = Math.round(offsetY * scaleY);
+      const pixelCropH = Math.round(cropH * scaleY);
+      const safeH = Math.min(pixelCropH, origH - pixelOriginY);
+
+      const cropped = await manipulateAsync(
+        photoUri,
+        [{ crop: { originX: 0, originY: pixelOriginY, width: origW, height: safeH } }],
+        { compress: 0.95, format: SaveFormat.JPEG }
+      );
+      onConfirm(cropped.uri);
+    });
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: "#000" }}>
+      {/* Scrollable photo – drag to reposition */}
+      <View
+        style={{ width: screenW, height: screenH, overflow: "hidden" }}
+        {...panResponder.panHandlers}
+      >
+        <Image
+          source={{ uri: photoUri }}
+          style={{ width: imgSize.width, height: imgSize.height, top: -offsetY }}
+          resizeMode="cover"
+        />
+        {/* Crop border overlay */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderWidth: 2,
+            borderColor: "rgba(255,255,255,0.8)",
+          }}
+        />
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            bottom: 16,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+          }}
+        >
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>
+            {t ? t("story.dragToAdjust") : "Kéo để điều chỉnh"}
+          </Text>
+        </View>
+      </View>
+
+      {/* Action buttons */}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          flexDirection: "row",
+          justifyContent: "space-between",
+          paddingHorizontal: 30,
+          paddingBottom: 50,
+          paddingTop: 16,
+          backgroundColor: "rgba(0,0,0,0.5)",
+        }}
+      >
+        <TouchableOpacity onPress={onRetake} style={{ paddingVertical: 12, paddingHorizontal: 20 }}>
+          <Text style={{ color: "#fff", fontSize: 17, fontWeight: "500" }}>
+            {t ? t("story.retake") : "Chụp lại"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleConfirm}
+          style={{
+            backgroundColor: "#319527",
+            paddingVertical: 12,
+            paddingHorizontal: 24,
+            borderRadius: 24,
+          }}
+        >
+          <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>
+            {t ? t("story.usePhoto") : "Dùng ảnh"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
@@ -456,6 +592,8 @@ const CreateStoryScreen = ({ navigation }) => {
   const [isUploading, setIsUploading] = useState(false);
   const imageWithOverlaysRef = useRef(null);
   const [viewReady, setViewReady] = useState(false);
+  const [isCropMode, setIsCropMode] = useState(false);
+  const [rawCameraPhoto, setRawCameraPhoto] = useState(null);
 
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
@@ -771,26 +909,10 @@ const CreateStoryScreen = ({ navigation }) => {
           quality: 1,
           base64: false,
         });
-
-        // Crop ảnh về tỉ lệ 9:16 để khớp story
-        const { width: photoW, height: photoH } = photo;
-        let cropW = photoW;
-        let cropH = Math.round(photoW * (16 / 9));
-        if (cropH > photoH) {
-          cropH = photoH;
-          cropW = Math.round(photoH * (9 / 16));
-        }
-        const originX = Math.round((photoW - cropW) / 2);
-        const originY = Math.round((photoH - cropH) / 2);
-
-        const cropped = await manipulateAsync(
-          photo.uri,
-          [{ crop: { originX, originY, width: cropW, height: cropH } }],
-          { compress: 1, format: SaveFormat.JPEG }
-        );
-
-        setSelectedImage(cropped.uri);
+        // Show the crop preview screen
         setIsCameraMode(false);
+        setRawCameraPhoto(photo.uri);
+        setIsCropMode(true);
       } catch (error) {
         console.error("Error taking photo:", error);
         Toast.show({
@@ -800,6 +922,18 @@ const CreateStoryScreen = ({ navigation }) => {
         });
       }
     }
+  };
+
+  const handleCropConfirm = (croppedUri) => {
+    setIsCropMode(false);
+    setRawCameraPhoto(null);
+    setSelectedImage(croppedUri);
+  };
+
+  const handleCropRetake = () => {
+    setIsCropMode(false);
+    setRawCameraPhoto(null);
+    setIsCameraMode(true);
   };
 
   const handleCloseCamera = useCallback(() => {
@@ -856,11 +990,11 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle={isCameraMode || isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar barStyle={isCameraMode || isCropMode || isDarkMode ? "light-content" : "dark-content"} />
 
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        {/* Header */}
-        {!isCameraMode && (
+        {/* Header – hidden in camera / crop mode */}
+        {!isCameraMode && !isCropMode && (
           <View
             style={{ marginTop: insets.top }}
             className="flex-row items-center justify-center px-4 py-2 h-[50px]"
@@ -895,7 +1029,14 @@ const CreateStoryScreen = ({ navigation }) => {
 
         {/* Main Content */}
         <View style={{ flex: 1 }}>
-          {isCameraMode ? (
+          {isCropMode ? (
+            <CameraCropPreview
+              photoUri={rawCameraPhoto}
+              onConfirm={handleCropConfirm}
+              onRetake={handleCropRetake}
+              t={t}
+            />
+          ) : isCameraMode ? (
             <CameraUI
               permission={permission}
               cameraRef={cameraRef}

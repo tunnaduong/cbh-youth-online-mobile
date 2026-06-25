@@ -651,7 +651,7 @@ const ReplyBar = ({
 
   if (isOwnStory) {
     return (
-      <SafeAreaView style={{ paddingBottom: insets.bottom }}>
+      <View style={{ paddingBottom: insets.bottom }}>
         <View style={styles.viewCountBar}>
           <TouchableOpacity
             onPress={handleViewCountPress}
@@ -663,7 +663,7 @@ const ReplyBar = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -676,7 +676,7 @@ const ReplyBar = ({
           onComplete={() => handleAnimationComplete(id)}
         />
       ))}
-      <SafeAreaView style={{ paddingBottom: insets.bottom }}>
+      <View style={{ paddingBottom: insets.bottom }}>
         <View className="flex-row items-center gap-2 justify-center">
           {emojis.map((emoji) => (
             <TouchableOpacity
@@ -719,7 +719,7 @@ const ReplyBar = ({
             )}
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </KeyboardStickyView>
   );
 };
@@ -1821,12 +1821,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           }}
           toast={<Toast topOffset={60} />}
-          containerStyle={Platform.OS === "android" ? {
-            // When story is visible, status bar is hidden so no offset needed.
-            // When story is first opening (not yet hidden), push below status bar to avoid overlap.
-            marginTop: isStoryVisible ? 0 : (StatusBar.currentHeight ?? 0),
-            height: Dimensions.get("window").height - (isStoryVisible ? 0 : (StatusBar.currentHeight ?? 0)),
-          } : {
+          containerStyle={{
             height: Dimensions.get("window").height,
           }}
         />

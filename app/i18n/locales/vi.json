@@ -505,11 +505,40 @@
     "addOtherViolation": "Thêm vi phạm khác",
     "searchViolation": "Nhập để tìm kiếm vi phạm...",
     "addNewViolation": "Thêm vi phạm mới",
-    "cleanliness": ["Sạch sẽ", "Tương đối sạch sẽ", "Bẩn", "Rất bẩn"],
-    "uniformStatus": ["Đủ", "Tương đối đủ", "Thiếu"],
-    "studentViolationTypes": ["Đi học muộn", "Không mặc đồng phục", "Không làm bài tập", "Nói chuyện trong giờ học", "Vi phạm nội quy lớp học", "Không tham gia hoạt động tập thể", "Khác"],
-    "classViolationTypes": ["Trực nhật không tốt", "Nề nếp lớp kém", "Không đảm bảo vệ sinh", "Không đồng phục đồng bộ", "Vi phạm nội quy trường", "Khác"],
-    "mockViolations": ["Vi phạm quy định sử dụng điện thoại", "Vi phạm giờ giấc học tập", "Vi phạm nội quy phòng học", "Vi phạm quy định an toàn"],
+    "cleanliness": [
+      "Sạch sẽ",
+      "Tương đối sạch sẽ",
+      "Bẩn",
+      "Rất bẩn"
+    ],
+    "uniformStatus": [
+      "Đủ",
+      "Tương đối đủ",
+      "Thiếu"
+    ],
+    "studentViolationTypes": [
+      "Đi học muộn",
+      "Không mặc đồng phục",
+      "Không làm bài tập",
+      "Nói chuyện trong giờ học",
+      "Vi phạm nội quy lớp học",
+      "Không tham gia hoạt động tập thể",
+      "Khác"
+    ],
+    "classViolationTypes": [
+      "Trực nhật không tốt",
+      "Nề nếp lớp kém",
+      "Không đảm bảo vệ sinh",
+      "Không đồng phục đồng bộ",
+      "Vi phạm nội quy trường",
+      "Khác"
+    ],
+    "mockViolations": [
+      "Vi phạm quy định sử dụng điện thoại",
+      "Vi phạm giờ giấc học tập",
+      "Vi phạm nội quy phòng học",
+      "Vi phạm quy định an toàn"
+    ],
     "previewMode": "Chức năng đang ở chế độ xem trước. Khi nào hệ thống được cập nhật, bạn sẽ có thể sử dụng chức năng này.",
     "classInfo": "Thông tin lớp học"
   },
@@ -851,7 +880,10 @@
       "obsidianNight": "Bóng đêm",
       "goldenHour": "Nắng vàng",
       "skyBlue": "Xanh trời"
-    }
+    },
+    "dragToAdjust": "Kéo để điều chỉnh vùng crop",
+    "retake": "Chụp lại",
+    "usePhoto": "Dùng ảnh này"
   },
   "terms": {
     "headerTitle": "Điều khoản sử dụng",

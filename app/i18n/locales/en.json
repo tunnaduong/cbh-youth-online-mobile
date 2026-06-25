@@ -516,11 +516,40 @@
     "addOtherViolation": "Add other violation",
     "searchViolation": "Type to search violations...",
     "addNewViolation": "Add new violation",
-    "cleanliness": ["Clean", "Relatively clean", "Dirty", "Very dirty"],
-    "uniformStatus": ["Sufficient", "Relatively sufficient", "Insufficient"],
-    "studentViolationTypes": ["Late for school", "Not wearing uniform", "Not doing homework", "Talking during class", "Breaking class rules", "Not participating in group activities", "Other"],
-    "classViolationTypes": ["Poor cleaning duty", "Poor class discipline", "Not ensuring hygiene", "Inconsistent uniform", "Breaking school rules", "Other"],
-    "mockViolations": ["Phone usage violation", "Study schedule violation", "Classroom rules violation", "Safety regulation violation"],
+    "cleanliness": [
+      "Clean",
+      "Relatively clean",
+      "Dirty",
+      "Very dirty"
+    ],
+    "uniformStatus": [
+      "Sufficient",
+      "Relatively sufficient",
+      "Insufficient"
+    ],
+    "studentViolationTypes": [
+      "Late for school",
+      "Not wearing uniform",
+      "Not doing homework",
+      "Talking during class",
+      "Breaking class rules",
+      "Not participating in group activities",
+      "Other"
+    ],
+    "classViolationTypes": [
+      "Poor cleaning duty",
+      "Poor class discipline",
+      "Not ensuring hygiene",
+      "Inconsistent uniform",
+      "Breaking school rules",
+      "Other"
+    ],
+    "mockViolations": [
+      "Phone usage violation",
+      "Study schedule violation",
+      "Classroom rules violation",
+      "Safety regulation violation"
+    ],
     "previewMode": "This feature is currently in preview mode. You will be able to use it once the system is updated.",
     "classInfo": "Class information"
   },
@@ -863,7 +892,10 @@
       "obsidianNight": "Obsidian Night",
       "goldenHour": "Golden Hour",
       "skyBlue": "Sky Blue"
-    }
+    },
+    "dragToAdjust": "Drag to adjust crop area",
+    "retake": "Retake",
+    "usePhoto": "Use Photo"
   },
   "terms": {
     "headerTitle": "Terms of Service",
