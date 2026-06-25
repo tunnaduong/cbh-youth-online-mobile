@@ -3,13 +3,12 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   StatusBar,
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";

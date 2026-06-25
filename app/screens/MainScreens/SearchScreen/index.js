@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Dimensions,
   Image,
   TextInput,
@@ -14,7 +13,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";

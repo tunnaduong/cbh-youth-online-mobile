@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Image,
   RefreshControl,
   Animated,
@@ -19,7 +18,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { getForumCategories } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import LottieView from "lottie-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";

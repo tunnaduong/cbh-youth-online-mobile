@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   Image,
@@ -12,7 +11,7 @@ import {
   DeviceEventEmitter,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { getConversations } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";

@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   StyleSheet,
   ActivityIndicator,
   Image,
@@ -16,7 +15,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 
 const StoryViewersScreen = ({ route, navigation }) => {
   const { storyId } = route.params;

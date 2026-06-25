@@ -10,7 +10,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   TextInput,
   ScrollView,
@@ -34,7 +33,7 @@ import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import FastImage from "../../../components/FastImage";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import {
   Canvas,
   Path,

@@ -7,13 +7,12 @@ import {
   StyleSheet,
   Image,
   StatusBar,
-  SafeAreaView,
   ImageBackground,
   RefreshControl,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import CustomLoading from "../../../components/CustomLoading";
 import CustomRefreshControl from "../../../components/CustomRefreshControl";
 import axios from "axios";

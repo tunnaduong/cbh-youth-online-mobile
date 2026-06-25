@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
@@ -17,7 +16,7 @@ import {
 } from "react-native";
 import React, { useContext, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import { deleteAccount, updateProfile, changePassword } from "../../../services/api/Api";

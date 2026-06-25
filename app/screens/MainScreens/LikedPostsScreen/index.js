@@ -5,8 +5,8 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getLikedPosts } from "../../../services/api/Api";
 import LottieView from "lottie-react-native";

@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   StatusBar,
 } from "react-native";
@@ -16,7 +15,7 @@ import { getProfile } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 

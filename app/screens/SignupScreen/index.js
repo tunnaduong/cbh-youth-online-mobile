@@ -5,13 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Alert,
   Image,
   Platform,
   StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -223,10 +223,6 @@ const SignupScreen = ({ navigation }) => {
           className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
           onPress={() => {
             navigation.goBack();
-          }}
-          style={{
-            marginTop:
-              Platform.OS === "android" ? StatusBar.currentHeight + 10 : 0,
           }}
         >
           <Icon name="chevron-back-outline" color="white" size={30} />

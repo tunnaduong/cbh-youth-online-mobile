@@ -5,7 +5,6 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   Image,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -14,7 +13,7 @@ import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
 const ActivityItem = ({ item, navigation }) => {

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Switch,
   Image,
@@ -17,7 +16,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
 import Dropdown from "../../../components/Dropdown";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import * as Application from 'expo-application';
 import { useTranslation } from "react-i18next";

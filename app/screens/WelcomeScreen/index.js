@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import LoginCarousel from "../../components/LoginCarousel";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -12,7 +13,7 @@ const WelcomeScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]} className="gap-y-8">
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} className="gap-y-8">
       <View className="items-center flex-1 gap-y-8 justify-end">
         <LoginCarousel />
       </View>
@@ -38,7 +39,7 @@ const WelcomeScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

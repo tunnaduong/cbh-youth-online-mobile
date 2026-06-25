@@ -4,11 +4,11 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   StyleSheet,
   ActivityIndicator,
   Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryArchive } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";

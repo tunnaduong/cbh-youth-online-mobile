@@ -19,7 +19,6 @@ import {
   Pressable,
   TextInput,
   StyleSheet,
-  SafeAreaView,
   TouchableWithoutFeedback,
   Keyboard,
   Modal,
@@ -63,7 +62,7 @@ import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
 import { useTranslation } from "react-i18next";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 
 const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
