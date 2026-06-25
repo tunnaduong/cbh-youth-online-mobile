@@ -23,109 +23,93 @@ import { useTranslation } from "react-i18next";
 const { width, height } = Dimensions.get("window");
 
 let LiquidGlassView = null;
+let LiquidGlassContainerView = null;
 let isLiquidGlassSupported = false;
 
 if (Platform.OS === 'ios') {
   try {
     const LiquidGlass = require('@callstack/liquid-glass');
     LiquidGlassView = LiquidGlass.LiquidGlassView;
+    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
     isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
   } catch (error) {
     console.warn("Failed to load @callstack/liquid-glass:", error);
   }
 }
 
-const CustomTabBarButton = ({ onPress }) => {
+// Height of each sub-button row
+const BTN_HEIGHT = 50;
+// Gap between rows
+const BTN_GAP = 8;
+// Total height of 3-button column
+const COL_HEIGHT = BTN_HEIGHT * 3 + BTN_GAP * 2;
+
+const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   const rotation = useRef(new Animated.Value(0)).current;
-  const button1Anim = useRef(new Animated.Value(0)).current;
-  const button2Anim = useRef(new Animated.Value(0)).current;
-  const button3Anim = useRef(new Animated.Value(0)).current;
+  // Single value drives the whole column: 0 = hidden (below anchor), 1 = visible
+  const menuAnim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
   const navigation = useNavigation();
-  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  // Close buttons when app goes to background
+  const isRealGlass = Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && isLiquidGlassSupported;
+  const isIosFallback = Platform.OS === 'ios' && LiquidGlassView && !isLiquidGlassSupported;
+
   useEffect(() => {
     return () => {
-      if (showButtons) {
-        animateButtonsOut();
-      }
+      if (showButtons) animateOut();
     };
   }, [showButtons]);
 
-  const handlePress = () => {
-    if (showButtons) {
-      animateButtonsOut();
-    } else {
-      if (onPress) onPress();
-      setShowButtons(true);
-      animateButtonsIn();
-    }
-  };
-
-  const handleDismiss = () => {
-    if (showButtons) {
-      animateButtonsOut();
-    }
-  };
-
-  const animateButtonsIn = () => {
+  const animateIn = () => {
     Animated.parallel([
-      Animated.timing(button1Anim, {
+      Animated.spring(menuAnim, {
         toValue: 1,
-        duration: 300,
-        easing: Easing.out(Easing.ease),
         useNativeDriver: true,
-      }),
-      Animated.timing(button2Anim, {
-        toValue: 1,
-        duration: 300,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(button3Anim, {
-        toValue: 1,
-        duration: 300,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
+        stiffness: 280,
+        damping: 24,
+        mass: 0.8,
       }),
       Animated.timing(rotation, {
         toValue: 1,
-        duration: 200,
-        easing: Easing.linear,
+        duration: 220,
+        easing: Easing.out(Easing.back(1.4)),
         useNativeDriver: true,
       }),
     ]).start();
   };
 
-  const animateButtonsOut = () => {
+  const animateOut = () => {
     Animated.parallel([
-      Animated.timing(button1Anim, {
+      Animated.spring(menuAnim, {
         toValue: 0,
-        duration: 300,
-        easing: Easing.in(Easing.ease),
         useNativeDriver: true,
-      }),
-      Animated.timing(button2Anim, {
-        toValue: 0,
-        duration: 300,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
-      }),
-      Animated.timing(button3Anim, {
-        toValue: 0,
-        duration: 300,
-        easing: Easing.in(Easing.ease),
-        useNativeDriver: true,
+        stiffness: 320,
+        damping: 28,
+        mass: 0.7,
       }),
       Animated.timing(rotation, {
         toValue: 0,
-        duration: 200,
-        easing: Easing.linear,
+        duration: 180,
+        easing: Easing.in(Easing.ease),
         useNativeDriver: true,
       }),
     ]).start(() => setShowButtons(false));
+  };
+
+  const handlePress = () => {
+    if (showButtons) {
+      animateOut();
+    } else {
+      if (onPress) onPress();
+      setShowButtons(true);
+      animateIn();
+    }
+  };
+
+  const handleDismiss = () => {
+    if (showButtons) animateOut();
   };
 
   const rotate = rotation.interpolate({
@@ -133,108 +117,122 @@ const CustomTabBarButton = ({ onPress }) => {
     outputRange: ["0deg", "45deg"],
   });
 
-  const button1Style = {
-    transform: [
-      {
-        translateY: button1Anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, -160],
-        }),
-      },
-    ],
-    opacity: button1Anim,
-  };
+  // Column slides up from anchor position and fades in
+  const menuTranslateY = menuAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [COL_HEIGHT + 16, 0], // starts just below anchor, slides up
+  });
 
-  const button2Style = {
-    transform: [
-      {
-        translateY: button2Anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, -80],
-        }),
-      },
-    ],
-    opacity: button2Anim,
-  };
+  const menuOpacity = menuAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0.8, 1],
+  });
 
-  const button3Style = {
-    transform: [
-      {
-        translateY: button3Anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, -240],
-        }),
-      },
-    ],
-    opacity: button3Anim,
-  };
+  // Pill background
+  const pillBg = isDarkMode
+    ? "rgba(28, 28, 30, 0.82)"
+    : "rgba(255, 255, 255, 0.82)";
+  const pillBorder = isDarkMode
+    ? "rgba(255, 255, 255, 0.10)"
+    : "rgba(0, 0, 0, 0.06)";
 
-  const renderSubButton = (buttonAnimStyle, onPress, icon, labelKey) => {
-    const isRealGlass = Platform.OS === 'ios' && LiquidGlassView && isLiquidGlassSupported;
-    const isIosFallback = Platform.OS === 'ios' && LiquidGlassView && !isLiquidGlassSupported;
-    const content = (
-      <TouchableOpacity
-        style={styles.additionalButtonTouch}
-        onPress={() => {
-          onPress();
-          handleDismiss();
-        }}
-        activeOpacity={0.8}
-      >
-        <Ionicons name={icon} size={28} color={theme.primary} />
-        <Text style={[styles.buttonText, { color: theme.primary }]} numberOfLines={1}>
-          {t(labelKey)}
-        </Text>
-      </TouchableOpacity>
-    );
+  const renderButtonContent = (icon, labelKey, onBtnPress) => (
+    <TouchableOpacity
+      style={styles.rowTouch}
+      onPress={() => {
+        onBtnPress();
+        handleDismiss();
+      }}
+      activeOpacity={0.75}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
+        <Ionicons name={icon} size={22} color={theme.primary} />
+      </View>
+      <Text style={[styles.rowText, { color: isDarkMode ? "#F0F0F0" : "#1C1C1E" }]} numberOfLines={1}>
+        {t(labelKey)}
+      </Text>
+    </TouchableOpacity>
+  );
 
+  const menuButtons = [
+    { icon: "create-outline", labelKey: "createActions.post", onPress: () => navigation.navigate("CreatePostScreen") },
+    { icon: "mic-outline", labelKey: "createActions.recording", onPress: () => Toast.show({ type: "info", text1: t('createActions.development') }) },
+    { icon: "document-text-outline", labelKey: "createActions.report", onPress: () => navigation.navigate("ReportScreen") },
+  ];
+
+  const renderMenu = () => {
+    if (isRealGlass) {
+      return (
+        <LiquidGlassContainerView
+          spacing={10}
+          style={styles.glassContainer}
+        >
+          {menuButtons.map((btn, i) => (
+            <LiquidGlassView
+              key={i}
+              effect="regular"
+              interactive={true}
+              colorScheme={isDarkMode ? 'dark' : 'light'}
+              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
+              style={styles.glassRow}
+            >
+              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
+            </LiquidGlassView>
+          ))}
+        </LiquidGlassContainerView>
+      );
+    }
+
+    if (isIosFallback) {
+      return (
+        <View style={styles.columnContainer}>
+          {menuButtons.map((btn, i) => (
+            <LiquidGlassView
+              key={i}
+              effect="regular"
+              interactive={false}
+              colorScheme={isDarkMode ? 'dark' : 'light'}
+              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
+              style={[
+                styles.pillRow,
+                {
+                  backgroundColor: isDarkMode ? "rgba(36, 36, 38, 0.82)" : "rgba(255, 255, 255, 0.82)",
+                  borderColor: pillBorder,
+                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
+                }
+              ]}
+            >
+              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
+            </LiquidGlassView>
+          ))}
+        </View>
+      );
+    }
+
+    // Android / no glass
     return (
-      <Animated.View style={[styles.additionalButtonContainer, buttonAnimStyle]}>
-        {isRealGlass ? (
-          <LiquidGlassView
-            effect="regular"
-            interactive={true}
-            colorScheme={isDarkMode ? 'dark' : 'light'}
-            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
-            style={[
-              styles.additionalButtonGlass,
-              {
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-              }
-            ]}
-          >
-            {content}
-          </LiquidGlassView>
-        ) : isIosFallback ? (
-          <LiquidGlassView
-            effect="regular"
-            interactive={false}
-            colorScheme={isDarkMode ? 'dark' : 'light'}
-            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.3)"}
-            style={[
-              styles.additionalButtonGlass,
-              {
-                backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.74)" : "rgba(255, 255, 255, 0.74)",
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-              }
-            ]}
-          >
-            {content}
-          </LiquidGlassView>
-        ) : (
+      <View style={styles.columnContainer}>
+        {menuButtons.map((btn, i) => (
           <View
+            key={i}
             style={[
-              styles.additionalButtonAndroid,
+              styles.pillRow,
               {
-                backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.74)" : "rgba(255, 255, 255, 0.74)",
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                backgroundColor: pillBg,
+                borderColor: pillBorder,
+                marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
+                elevation: 4,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.15,
+                shadowRadius: 6,
               }
             ]}
           >
-            {content}
+            {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
           </View>
-        )}
-      </Animated.View>
+        ))}
+      </View>
     );
   };
 
@@ -251,31 +249,27 @@ const CustomTabBarButton = ({ onPress }) => {
           <View style={StyleSheet.absoluteFillObject} />
         </TouchableWithoutFeedback>
 
-        <View
+        {/* Anchor positioned at same location as right pill */}
+        <Animated.View
           style={{
             position: "absolute",
-            bottom: Platform.OS === 'ios' ? 24 : 12,
+            bottom: Platform.OS === 'ios'
+              ? (bottomOffset > 0 ? bottomOffset + 8 + 56 + 16 : 24 + 56 + 16)
+              : (bottomOffset > 0 ? bottomOffset + 8 + 56 + 16 : 12 + 56 + 16),
             right: 20,
-            width: 56,
-            height: 56,
+            width: 160,
+            alignItems: 'flex-end',
+            opacity: menuOpacity,
+            transform: [{ translateY: menuTranslateY }],
           }}
           pointerEvents="box-none"
         >
-          {renderSubButton(button3Style, () => navigation.navigate("CreatePostScreen"), "create-outline", "createActions.post")}
-          {renderSubButton(button1Style, () => {
-            Toast.show({
-              type: "info",
-              text1: t('createActions.development'),
-            });
-          }, "mic-outline", "createActions.recording")}
-          {renderSubButton(button2Style, () => navigation.navigate("ReportScreen"), "document-text-outline", "createActions.report")}
-        </View>
+          {renderMenu()}
+        </Animated.View>
       </Modal>
 
       <Pressable style={styles.buttonContainer} onPress={handlePress}>
-        <Animated.View
-          style={[styles.iconContainer, { transform: [{ rotate }] }]}
-        >
+        <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
           <View style={styles.iconCircle}>
             <Ionicons
               name="add-circle"
@@ -323,50 +317,49 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 6,
   },
-  label: {
-    fontWeight: "bold",
-    fontSize: 9,
-    marginTop: 3,
+  // Real glass: LiquidGlassContainerView wraps all rows (connected morphing)
+  glassContainer: {
+    width: 160,
+    flexDirection: 'column',
+    alignItems: 'stretch',
   },
-  additionalButtonContainer: {
-    position: "absolute",
-    width: 155,
-    height: 50,
-    right: 0,
+  glassRow: {
+    width: 160,
+    height: BTN_HEIGHT,
+    borderRadius: BTN_HEIGHT / 2,
+    overflow: 'hidden',
   },
-  additionalButtonGlass: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 25,
-    overflow: "hidden",
+  // Fallback / Android: manual column
+  columnContainer: {
+    width: 160,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+  },
+  pillRow: {
+    width: 160,
+    height: BTN_HEIGHT,
+    borderRadius: BTN_HEIGHT / 2,
+    overflow: 'hidden',
     borderWidth: 1,
   },
-  additionalButtonAndroid: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 25,
-    overflow: "hidden",
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  additionalButtonTouch: {
-    width: "100%",
-    height: "100%",
+  rowTouch: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
-    justifyContent: "center",
   },
-  buttonText: {
-    marginLeft: 5,
-    fontSize: 14,
+  iconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  rowText: {
+    fontSize: 13,
     fontWeight: "600",
-    textAlign: "center",
-    width: 95,
+    flex: 1,
   },
 });
 
