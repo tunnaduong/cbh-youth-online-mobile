@@ -677,6 +677,7 @@ const CreateStoryScreen = ({ navigation }) => {
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
       aspect: [9, 16],
       quality: 1,
     });
@@ -772,7 +773,24 @@ const CreateStoryScreen = ({ navigation }) => {
           base64: false,
         });
 
-        setSelectedImage(photo.uri);
+        // Crop ảnh về tỉ lệ 9:16 để khớp story
+        const { width: photoW, height: photoH } = photo;
+        let cropW = photoW;
+        let cropH = Math.round(photoW * (16 / 9));
+        if (cropH > photoH) {
+          cropH = photoH;
+          cropW = Math.round(photoH * (9 / 16));
+        }
+        const originX = Math.round((photoW - cropW) / 2);
+        const originY = Math.round((photoH - cropH) / 2);
+
+        const cropped = await manipulateAsync(
+          photo.uri,
+          [{ crop: { originX, originY, width: cropW, height: cropH } }],
+          { compress: 1, format: SaveFormat.JPEG }
+        );
+
+        setSelectedImage(cropped.uri);
         setIsCameraMode(false);
       } catch (error) {
         console.error("Error taking photo:", error);
