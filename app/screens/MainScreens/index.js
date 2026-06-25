@@ -281,6 +281,9 @@ const CustomTabBar = ({
   // indicatorDragOffset: JS-driver composed value for stretch direction offset
   // slideAnim itself is native-driver and NOT added here — it's applied in a parent View
   const indicatorDragOffset = useRef(offsetAnim).current;
+  // indicatorAnimatedTranslateX: JS-driver composed value combining slide + drag offset
+  // Used in the LiquidGlass path where the indicator is NOT wrapped in a native-driver parent View
+  const indicatorAnimatedTranslateX = useRef(Animated.add(slideAnim, offsetAnim)).current;
 
   // Drag state refs (avoid re-renders during gesture)
   const isDragging = useRef(false);
@@ -291,12 +294,15 @@ const CustomTabBar = ({
   const bWidthAtGrant = useRef(0);
 
   const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
-  const leftRoutes = leftRouteNames.map(name => {
+  // useMemo prevents leftRoutes from being recreated on every render,
+  // which was causing navigateToLeftIndex → useEffect → ref update chain on each tab press.
+  const leftRoutes = React.useMemo(() => leftRouteNames.map(name => {
     const route = state.routes.find(r => r.name === name);
     const index = state.routes.indexOf(route);
     const descriptor = descriptors[route.key];
     return { route, index, descriptor };
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [state.routes, descriptors]);
 
   const activeRouteName = state.routes[state.index].name;
   const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
@@ -446,15 +452,13 @@ const CustomTabBar = ({
         const indicatorCenter = clampedX + bWidth / 2;
         const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
 
-        // Haptic + navigate when crossing into a new tab zone.
-        // Defer the navigate via requestAnimationFrame so it doesn't block
-        // the gesture thread and cause the stretch animation to stutter.
+        // Only trigger haptic when crossing tab boundary — do NOT navigate here.
+        // Navigating during drag forces JS to mount a new screen mid-gesture,
+        // which competes with the animation bridge and causes visible stutter.
+        // Navigation is deferred to onPanResponderRelease.
         if (hoveredIndex !== lastHapticIndex.current) {
           lastHapticIndex.current = hoveredIndex;
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          requestAnimationFrame(() => {
-            navigateToLeftIndexRef.current?.(hoveredIndex);
-          });
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
@@ -491,6 +495,11 @@ const CustomTabBar = ({
           mass: 0.6,
         }).start();
 
+        // Navigate only on release — this is the key fix for drag lag.
+        // During drag we only moved the indicator visually (slideAnim.setValue).
+        // Now that the gesture is done, we can afford to mount the target screen
+        // without competing with the animation bridge.
+        // Use lastHapticIndex (set during drag) which already holds the correct tab.
         if (snappedIndex !== activeLeftIndexRef.current) {
           navigateToLeftIndexRef.current?.(snappedIndex);
         }
@@ -525,7 +534,7 @@ const CustomTabBar = ({
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
 
-  const renderButtons = () => {
+  const renderButtons = useCallback(() => {
     return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
       const isFocused = state.routes[state.index].key === route.key;
       const { options } = descriptor;
@@ -598,7 +607,8 @@ const CustomTabBar = ({
         </TouchableOpacity>
       );
     });
-  };
+  }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
+      triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
   if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView) {
     const isRealGlass = isLiquidGlassSupported;
