@@ -250,6 +250,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           onPress={() => {
             navigation.navigate("NewConversationScreen");
           }}
+          style={{ flexShrink: 1 }}
         >
           <View
             className="flex-row items-center justify-center rounded-full px-3 py-2"
@@ -260,16 +261,25 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
               shadowOpacity: 0.22,
               shadowRadius: 2.22,
               elevation: 3,
-              height: 35,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              borderRadius: 20,
             }}
           >
             <Ionicons
               name="add"
               size={20}
               color="#fff"
-              style={{ marginRight: 6 }}
+              style={{ marginRight: 4, flexShrink: 0 }}
             />
-            <Text style={{ color: "#fff", fontWeight: "600" }}>{t('chat.newMessage')}</Text>
+            <Text
+              style={{ color: "#fff", fontWeight: "600" }}
+              numberOfLines={1}
+            >
+              {t('chat.newMessage')}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -358,11 +368,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: "space-between",
     height: 50,
+    gap: 8,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    flex: 1,
+    flexShrink: 1,
   },
   searchContainer: {
     flexDirection: "row",
