@@ -331,9 +331,61 @@ const DrawingTools = ({ drawingRef, isEraser, setIsEraser, showBrushSize, setSho
   </View>
 );
 
-const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, t }) => (
+const MoveableText = memo(({ text, position, setPosition, isEditing }) => {
+  const isEditingRef = useRef(isEditing);
+  const panOffset = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => !isEditingRef.current,
+      onMoveShouldSetPanResponder: () => !isEditingRef.current,
+      onPanResponderGrant: () => {
+        panOffset.current = { x: position.x, y: position.y };
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (isEditingRef.current) return;
+        setPosition({
+          x: panOffset.current.x + gestureState.dx,
+          y: panOffset.current.y + gestureState.dy,
+        });
+      },
+      onPanResponderRelease: () => {},
+    })
+  ).current;
+
+  if (!text || isEditing) return null;
+
+  return (
+    <View
+      {...panResponder.panHandlers}
+      style={[
+        styles.moveableTextContainer,
+        {
+          transform: [{ translateX: position.x }, { translateY: position.y }],
+        },
+      ]}
+    >
+      <Text style={styles.moveableText}>{text}</Text>
+    </View>
+  );
+});
+
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, t }) => {
+  const handleTextPress = () => {
+    if (!isEditing) {
+      setIsEditing(true);
+    } else {
+      setIsEditing(false);
+    }
+  };
+
+  return (
   <View style={styles.toolsContainer}>
-    <TouchableOpacity style={styles.toolButton} onPress={() => setIsEditing(!isEditing)}>
+    <TouchableOpacity style={styles.toolButton} onPress={handleTextPress}>
       <Ionicons name="text" size={24} color="#fff" />
     </TouchableOpacity>
     <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
@@ -349,7 +401,8 @@ const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage,
       <Ionicons name="musical-notes" size={24} color="#fff" />
     </TouchableOpacity>
   </View>
-);
+  );
+};
 
 
 const CreateStoryScreen = ({ navigation }) => {
@@ -358,8 +411,8 @@ const CreateStoryScreen = ({ navigation }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [text, setText] = useState("");
   const [textPosition, setTextPosition] = useState({
-    x: width / 2,
-    y: height / 2,
+    x: 0,
+    y: 0,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -650,7 +703,6 @@ const CreateStoryScreen = ({ navigation }) => {
     [isTextOnly]
   );
 
-  // Memoize text change handler
   const handleTextChange = useCallback((newText) => {
     setText(newText);
   }, []);
@@ -809,19 +861,12 @@ const CreateStoryScreen = ({ navigation }) => {
                       )}
 
                       {!isDrawing && text && !isEditing && (
-                        <View
-                          style={[
-                            styles.textDisplay,
-                            {
-                              transform: [
-                                { translateX: textPosition.x - width / 2 },
-                                { translateY: textPosition.y - height / 2 },
-                              ],
-                            },
-                          ]}
-                        >
-                          <Text style={styles.displayText}>{text}</Text>
-                        </View>
+                        <MoveableText
+                          text={text}
+                          position={textPosition}
+                          setPosition={setTextPosition}
+                          isEditing={isEditing}
+                        />
                       )}
                     </>
                   )}
@@ -992,6 +1037,30 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     textAlign: "center",
+  },
+  moveableTextContainer: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginLeft: -100,
+    marginTop: -20,
+    width: 200,
+    padding: 10,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    zIndex: 10,
+    alignItems: "center",
+  },
+  moveableText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   colorPicker: {
     position: "absolute",
