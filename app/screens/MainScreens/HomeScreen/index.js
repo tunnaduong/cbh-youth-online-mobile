@@ -969,11 +969,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleStoryShow = (userId) => {
     setIsStoryVisible(true);
-    if (Platform.OS === "android") StatusBar.setHidden(true, "fade");
-    // Save current status bar style
+    // Save current status bar style so we can restore it on hide
     previousStatusBarStyle.current = { barStyle, backgroundColor };
-    // Change to light content (white text) for dark background
-    updateStatusBar("light-content", "#000000");
+    if (Platform.OS === "android") {
+      // Keep status bar visible on Android so stories render below it.
+      // Style it dark or light depending on the current app theme.
+      StatusBar.setHidden(false);
+      updateStatusBar(
+        isDarkMode ? "light-content" : "dark-content",
+        isDarkMode ? "#000000" : "#ffffff"
+      );
+    } else {
+      // On iOS the story runs edge-to-edge; use light text on the dark media bg.
+      updateStatusBar("light-content", "#000000");
+    }
   };
 
   const handleStoryStart = async (userId, storyId) => {
@@ -1004,7 +1013,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleStoryHide = () => {
     setIsStoryVisible(false);
-    if (Platform.OS === "android") StatusBar.setHidden(false, "fade");
+    if (Platform.OS === "android") StatusBar.setHidden(false);
     // Restore previous status bar style
     updateStatusBar(
       previousStatusBarStyle.current.barStyle,
@@ -1780,11 +1789,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           stories={filteredStories}
           hideAvatarList={true}
           showName={true}
-          statusBarTranslucent={Platform.OS === "android"}
+          statusBarTranslucent={false}
           backgroundColor="#000000"
           mediaContainerStyle={{ backgroundColor: "#000000" }}
-          headerContainerStyle={{ top: insets.top + 16 }}
-          progressContainerStyle={{ top: insets.top + 8 }}
           imageProps={{ resizeMode: "cover" }}
           imageStyles={StyleSheet.absoluteFillObject}
           textStyle={{
