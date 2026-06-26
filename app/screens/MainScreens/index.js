@@ -392,19 +392,30 @@ const CustomTabBar = ({
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       // Capture phase: parent steals gesture from child TouchableOpacity
-      // when the move is clearly horizontal — fixes Android drag not working
+      // when the move is clearly horizontal — fixes Android drag not working.
+      // Ratio raised to 2.5 so diagonal/vertical swipes (e.g. tab-swipe, scroll)
+      // are NOT accidentally captured by the navbar.
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
         return (
           Math.abs(gestureState.dx) > 8 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.8
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
         );
       },
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         return (
           Math.abs(gestureState.dx) > 6 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
         );
       },
+      // Once the navbar owns the gesture, refuse to give it up to the tab
+      // navigator's swipe responder or any other parent. This is the key fix:
+      // without it, a fast swipe inside the navbar can be "stolen" by the
+      // screen-level gesture handler and trigger a tab navigation instead.
+      onPanResponderTerminationRequest: () => false,
+      // Block the native (UIKit/Android) scroll/swipe handler while the navbar
+      // gesture is active, preventing the underlying ViewPager / ScrollView from
+      // also reacting to the same touch sequence.
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: (evt, gestureState) => {
         isDragging.current = true;
         lastHapticIndex.current = activeLeftIndexRef.current;
