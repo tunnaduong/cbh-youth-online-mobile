@@ -334,7 +334,11 @@ const CustomTabBar = ({
     if (isDragging.current) return;
     Animated.spring(slideAnim, {
       toValue: currentIndicatorLeft,
-      useNativeDriver: true,   // ← NATIVE: 60fps even when JS mounts new screen
+      // JS DRIVER: must match onPanResponderMove, which calls slideAnim.setValue()
+      // directly. Mixing useNativeDriver:true here with a JS .setValue() elsewhere
+      // on the SAME node throws "Attempting to run JS driven animation on animated
+      // node that has been moved to native" — this was the crash.
+      useNativeDriver: false,
       stiffness: 300,
       damping: 28,
       mass: 0.7,
@@ -460,7 +464,7 @@ const CustomTabBar = ({
 
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: true,
+          useNativeDriver: false, // JS DRIVER: see note above onPanResponderGrant block
           stiffness: 280,
           damping: 26,
           mass: 0.8,
@@ -493,7 +497,7 @@ const CustomTabBar = ({
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: true,
+          useNativeDriver: false, // JS DRIVER: see note above onPanResponderGrant block
           stiffness: 200,
           damping: 20,
         }).start();
