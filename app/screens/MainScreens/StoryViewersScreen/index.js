@@ -132,7 +132,7 @@ const StoryViewersScreen = ({ route, navigation }) => {
           data={viewers}
           renderItem={renderViewerItem}
           keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: (insets?.bottom || 0) + 8 }]}
         />
       )}
     </View>
@@ -175,7 +175,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 8,
-    paddingBottom: (insets?.bottom || 0) + 8,
   },
   viewerItem: {
     flexDirection: "row",

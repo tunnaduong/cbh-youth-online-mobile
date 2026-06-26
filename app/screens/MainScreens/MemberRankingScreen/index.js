@@ -194,7 +194,7 @@ export default function MemberRankingScreen({ navigation }) {
         keyExtractor={(item) => item.username}
         renderItem={renderItem}
         ListHeaderComponent={renderTop3}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 20 + (insets?.bottom || 0) }]}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   listContent: {
-    paddingBottom: 20 + insets?.bottom || 0,
+    paddingBottom: 20,
   },
   top3Container: {
     flexDirection: "row",
