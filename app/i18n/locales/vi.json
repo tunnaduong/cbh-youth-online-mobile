@@ -868,6 +868,7 @@
     "requestingCameraPermission": "Đang yêu cầu quyền truy cập camera...",
     "openSettings": "Mở Cài đặt",
     "takePhoto": "Chụp ảnh",
+    "cameraPermissionDenied": "Cần quyền truy cập camera để chụp ảnh",
     "text": "Văn bản",
     "pickFromGallery": "Chọn ảnh từ thư viện",
     "backgroundChanged": "Màu nền: {{name}}",

@@ -895,6 +895,7 @@
     "requestingCameraPermission": "Запрос разрешения на камеру...",
     "openSettings": "Открыть настройки",
     "takePhoto": "Сделать фото",
+    "cameraPermissionDenied": "Для съемки фото требуется разрешение на камеру",
     "text": "Текст",
     "pickFromGallery": "Выбрать фото из галереи",
     "backgroundChanged": "Фон: {{name}}",

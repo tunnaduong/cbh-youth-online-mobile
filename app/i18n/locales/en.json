@@ -880,6 +880,7 @@
     "requestingCameraPermission": "Requesting camera permission...",
     "openSettings": "Open Settings",
     "takePhoto": "Take Photo",
+    "cameraPermissionDenied": "Camera permission is required to take photos",
     "text": "Text",
     "pickFromGallery": "Select photo from library",
     "backgroundChanged": "Background: {{name}}",

@@ -18,6 +18,8 @@
       "bundleIdentifier": "com.fatties.youth",
       "buildNumber": "274",
       "infoPlist": {
+        "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
+        "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
         "ITSAppUsesNonExemptEncryption": false,
         "CFBundleURLTypes": [
           {

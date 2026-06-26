@@ -807,7 +807,7 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [9, 16],
       quality: 1,
@@ -867,8 +867,16 @@ const CreateStoryScreen = ({ navigation }) => {
   }, []);
 
   const handleCameraPress = async () => {
+    const { status } = await ImagePicker.getCameraPermissionsAsync();
+    if (status !== "granted") {
+      const { status: newStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      if (newStatus !== "granted") {
+        Toast.show({ type: "error", text1: t("story.cameraPermissionDenied") });
+        return;
+      }
+    }
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [9, 16],
       quality: 1,

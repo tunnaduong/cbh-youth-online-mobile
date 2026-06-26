@@ -59,7 +59,7 @@
     <key>NSMicrophoneUsageDescription</key>
     <string>Cho phép CBH Youth Online truy cập microphone của bạn</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>Cho phép CBH Youth Online truy cập thư viện ảnh của bạn</string>
     <key>RCTNewArchEnabled</key>
     <true/>
     <key>UIApplicationSceneManifest</key>
