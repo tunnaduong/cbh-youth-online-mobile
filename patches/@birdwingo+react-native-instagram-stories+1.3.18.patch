@@ -16,14 +16,14 @@ index 9419aa6..7098ccd 100644
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
 @@ -1,10 +1,10 @@
 -import { StyleSheet } from 'react-native';
-+import { StyleSheet, Platform } from 'react-native';
++import { StyleSheet, Platform, StatusBar } from 'react-native';
  
  export default StyleSheet.create( {
    container: {
      position: 'absolute',
      left: 16,
 -    top: 32,
-+    top: Platform.OS === 'ios' ? 60 : 32,
++    top: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 24) + 8,
    },
    containerFlex: {
      flexDirection: 'row',
@@ -380,13 +380,13 @@ index a265a10..37b7693 100644
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
 @@ -1,9 +1,9 @@
 -import { StyleSheet } from 'react-native';
-+import { StyleSheet, Platform } from 'react-native';
++import { StyleSheet, Platform, StatusBar } from 'react-native';
  
  export default StyleSheet.create( {
    container: {
      position: 'absolute',
 -    top: 16,
-+    top: Platform.OS === 'ios' ? 44 : 16,
++    top: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight ?? 24),
      left: 16,
      height: 2,
      flexDirection: 'row',

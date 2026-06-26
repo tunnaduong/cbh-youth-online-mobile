@@ -223,7 +223,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <SettingSection title={t('notificationSettings.pushNotifications')} theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="notifications-outline"

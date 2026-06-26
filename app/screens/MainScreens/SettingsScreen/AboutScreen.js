@@ -37,7 +37,7 @@ export default function AboutScreen({ navigation }) {
         <View style={{ width: 24, height: 24 }}></View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         {/* School Info */}
         <View style={styles.schoolInfo}>
           <Image

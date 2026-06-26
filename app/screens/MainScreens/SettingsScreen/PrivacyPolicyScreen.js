@@ -36,7 +36,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
         <View style={{ width: 24, height: 24 }}></View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <Text style={[styles.introText, { color: theme.text }]}>
           {t("privacy.intro")}
         </Text>
