@@ -278,7 +278,7 @@ const ZoomableStoryImage = ({ uri, style }) => {
           ],
         },
       ]}
-      resizeMode="contain"
+      resizeMode="cover"
       {...panResponder.panHandlers}
     />
   );
@@ -1784,7 +1784,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           backgroundColor="#000000"
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           headerContainerStyle={{ top: insets.top + 16 }}
-          containerStyle={Platform.OS === "android" ? { paddingTop: 8 } : undefined}
+          progressContainerStyle={{ top: insets.top + 8 }}
+          imageProps={{ resizeMode: "cover" }}
+          imageStyles={StyleSheet.absoluteFillObject}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
