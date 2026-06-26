@@ -261,7 +261,7 @@ const CustomTabBar = ({
   const insets = useSafeAreaInsets();
   const bottomOffset = Platform.OS === 'ios'
     ? (insets.bottom > 0 ? insets.bottom + 8 : 24)
-    : (insets.bottom > 0 ? insets.bottom + 8 : 12);
+    : (insets.bottom > 0 ? insets.bottom + 8 : 16);
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
 

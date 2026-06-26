@@ -361,7 +361,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
               contentContainerStyle={{
                 backgroundColor: theme.background,
                 paddingHorizontal: 16,
-                paddingBottom: 110,
+                paddingBottom: 110 + insets.bottom,
                 paddingTop: 5,
               }}
               showsVerticalScrollIndicator={false}

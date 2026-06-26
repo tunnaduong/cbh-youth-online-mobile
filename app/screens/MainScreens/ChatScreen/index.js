@@ -332,7 +332,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           />
         }
         contentContainerStyle={{
-          paddingBottom: 110,
+          paddingBottom: 110 + insets.bottom,
           flex: filteredConversations.length === 0 ? 1 : undefined,
         }}
         ItemSeparatorComponent={() => (

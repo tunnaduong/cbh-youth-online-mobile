@@ -255,6 +255,7 @@ const StableCameraView = memo(
   ({ cameraRef, cameraType, onClose, onCameraFlip, onTakePhoto }) => {
     console.log("StableCameraView rendering");
     const { t } = useTranslation();
+    const insets = useSafeAreaInsets();
 
     return (
       <CameraView
@@ -273,7 +274,7 @@ const StableCameraView = memo(
           console.log("Camera is ready");
         }}
       >
-        <View style={styles.cameraControls}>
+        <View style={[styles.cameraControls, { paddingTop: 50 + insets.top }]}>
           <TouchableOpacity style={styles.cameraButton} onPress={onClose}>
             <Ionicons name="close" size={28} color="#fff" />
           </TouchableOpacity>
@@ -283,7 +284,7 @@ const StableCameraView = memo(
           </TouchableOpacity>
         </View>
 
-        <View style={styles.captureButtonContainer}>
+        <View style={[styles.captureButtonContainer, { bottom: 40 + insets.bottom }]}>
           <TouchableOpacity style={styles.captureButton} onPress={onTakePhoto}>
             <View style={styles.captureButtonInner} />
           </TouchableOpacity>

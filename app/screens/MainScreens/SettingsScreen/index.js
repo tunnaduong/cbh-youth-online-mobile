@@ -115,7 +115,7 @@ export default function SettingsScreen({ navigation }) {
         <View className="w-6 h-6"></View>
       </View>
 
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         {/* Profile Section */}
         <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
           <FastImage
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 16,
     gap: 20,
   },
   socialButton: {

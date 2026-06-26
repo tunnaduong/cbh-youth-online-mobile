@@ -87,7 +87,7 @@ const ExploreScreen = ({ navigation }) => {
         </View>
 
         {/* Bottom Section with Feature Grid */}
-        <View style={styles.bottomSection}>
+        <View style={[styles.bottomSection, { paddingBottom: 40 + insets.bottom }]}>
           <View style={styles.gridContainer}>
             {featureCards.map((card) => (
               <TouchableOpacity

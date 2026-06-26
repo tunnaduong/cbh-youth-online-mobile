@@ -1167,17 +1167,19 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          <CommentBar
-            value={editingCommentId ? editingCommentText : commentText}
-            onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
-            placeholderText={t('post.commentPlaceholder')}
-            onSubmit={onSubmit}
-            ref={commentInputRef}
-            isSubmitting={isSubmitting}
-            disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
-            isAnonymous={isAnonymousComment}
-            onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
-          />
+          <View style={{ paddingBottom: insets.bottom }}>
+            <CommentBar
+              value={editingCommentId ? editingCommentText : commentText}
+              onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
+              placeholderText={t('post.commentPlaceholder')}
+              onSubmit={onSubmit}
+              ref={commentInputRef}
+              isSubmitting={isSubmitting}
+              disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
+              isAnonymous={isAnonymousComment}
+              onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
+            />
+          </View>
 
           <ReportModal
             visible={reportModalVisible}

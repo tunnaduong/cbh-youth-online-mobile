@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: 20 + insets?.bottom || 0,
   },
   top3Container: {
     flexDirection: "row",

@@ -323,6 +323,7 @@ const ActivityScreen = ({ navigation }) => {
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{
           flexGrow: 1,
+          paddingBottom: insets.bottom || 0,
         }}
       />
       <Toast />

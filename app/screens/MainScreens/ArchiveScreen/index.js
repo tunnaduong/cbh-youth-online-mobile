@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -242,6 +243,7 @@ const ArchiveScreen = ({ route, navigation }) => {
           stories={[selectedStories]}
           hideAvatarList={true}
           showName={false}
+          statusBarTranslucent={Platform.OS === "android"}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -254,9 +256,6 @@ const ArchiveScreen = ({ route, navigation }) => {
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           onHide={() => setSelectedStories(null)}
-          containerStyle={{
-            height: Dimensions.get("window").height,
-          }}
         />
       )}
     </SafeAreaView>

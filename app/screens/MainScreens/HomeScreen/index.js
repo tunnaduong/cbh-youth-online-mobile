@@ -1738,7 +1738,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           contentContainerStyle={{
-            paddingBottom: 110,
+            paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (
@@ -1779,6 +1779,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           stories={filteredStories}
           hideAvatarList={true}
           showName={true}
+          statusBarTranslucent={Platform.OS === "android"}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -1821,9 +1822,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           }}
           toast={<Toast topOffset={60} />}
-          containerStyle={{
-            height: Dimensions.get("screen").height,
-          }}
         />
         <ResendVerificationModal />
         <ReportModal

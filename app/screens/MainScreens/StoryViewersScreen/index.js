@@ -175,6 +175,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingVertical: 8,
+    paddingBottom: (insets?.bottom || 0) + 8,
   },
   viewerItem: {
     flexDirection: "row",
