@@ -972,15 +972,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     // Save current status bar style so we can restore it on hide
     previousStatusBarStyle.current = { barStyle, backgroundColor };
     if (Platform.OS === "android") {
-      // Keep status bar visible on Android so stories render below it.
-      // Style it dark or light depending on the current app theme.
       StatusBar.setHidden(false);
-      updateStatusBar(
-        isDarkMode ? "light-content" : "dark-content",
-        isDarkMode ? "#000000" : "#ffffff"
-      );
+      updateStatusBar("light-content", "#000000");
     } else {
-      // On iOS the story runs edge-to-edge; use light text on the dark media bg.
       updateStatusBar("light-content", "#000000");
     }
   };

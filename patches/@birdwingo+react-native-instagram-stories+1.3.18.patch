@@ -16,14 +16,14 @@ index 9419aa6..7098ccd 100644
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
 @@ -1,10 +1,10 @@
 -import { StyleSheet } from 'react-native';
-+import { StyleSheet, Platform, StatusBar } from 'react-native';
++import { StyleSheet, Platform } from 'react-native';
  
  export default StyleSheet.create( {
    container: {
      position: 'absolute',
      left: 16,
 -    top: 32,
-+    top: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ?? 24) + 8,
++    top: Platform.OS === 'ios' ? 60 : 32,
    },
    containerFlex: {
      flexDirection: 'row',
@@ -167,7 +167,7 @@ index 32010ab..0ba2a35 100644
 -export default memo( StoryHeader );
 +export default memo(StoryHeader);
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
-index 9fa47d8..1c62b34 100644
+index 9fa47d8..85c653a 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
 @@ -1,6 +1,6 @@
@@ -215,15 +215,24 @@ index 9fa47d8..1c62b34 100644
    };
  
    const lastSeenIndex = stories.findIndex(
-@@ -79,7 +96,7 @@ const StoryList: FC<StoryListProps> = ( {
+@@ -70,6 +87,7 @@ const StoryList: FC<StoryListProps> = ( {
+         >
+           {imageOverlayView}
+           <Animated.View style={[ contentStyles, ListStyles.content ]} pointerEvents="box-none">
++            <StoryContent stories={stories} active={isActive} activeStory={activeStory} />
+             <Progress
+               active={isActive}
+               activeStory={activeStoryIndex}
+@@ -79,8 +97,7 @@ const StoryList: FC<StoryListProps> = ( {
                progressActiveColor={progressActiveColor}
                progressContainerStyle={progressContainerStyle}
              />
 -            <StoryHeader {...props} />
+-            <StoryContent stories={stories} active={isActive} activeStory={activeStory} />
 +            <StoryHeader {...props} date={currentStoryDate} userId={id} />
-             <StoryContent stories={stories} active={isActive} activeStory={activeStory} />
            </Animated.View>
          </Animated.View>
+       </Animated.View>
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/gesture.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/gesture.tsx
 index 640052c..bb73af4 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/gesture.tsx
@@ -380,13 +389,13 @@ index a265a10..37b7693 100644
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
 @@ -1,9 +1,9 @@
 -import { StyleSheet } from 'react-native';
-+import { StyleSheet, Platform, StatusBar } from 'react-native';
++import { StyleSheet, Platform } from 'react-native';
  
  export default StyleSheet.create( {
    container: {
      position: 'absolute',
 -    top: 16,
-+    top: Platform.OS === 'ios' ? 44 : (StatusBar.currentHeight ?? 24),
++    top: Platform.OS === 'ios' ? 44 : 16,
      left: 16,
      height: 2,
      flexDirection: 'row',
