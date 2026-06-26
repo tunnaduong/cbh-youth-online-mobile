@@ -837,6 +837,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const insets = useSafeAreaInsets();
   const [currentRoute, setCurrentRoute] = useState("Home");
   const tabBarHeightRef = useRef(null);
+  const tabBarHeightForHide = useRef(200); // safe fallback
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
@@ -874,7 +875,12 @@ export default function MainScreens({ navigation: stackNavigation }) {
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
     const { height } = event.nativeEvent.layout;
-    tabBarHeightRef.current = height;
+    if (height > 0) {
+      tabBarHeightRef.current = height;
+      // +16 buffer to ensure the pill fully exits the screen on Android
+      // when system navbar is transparent (edge-to-edge), insets.bottom can be 28-48px
+      tabBarHeightForHide.current = height + 16;
+    }
   };
 
   // Add navigation state listener to track current route
@@ -901,7 +907,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
       if (visible === isVisible) return;
       isVisible = visible;
       Animated.timing(tabBarTranslateY, {
-        toValue: visible ? 0 : 100, // Translate down by 100px to hide
+        // Use measured height instead of hardcoded 100px.
+        // On Android with transparent system navbar (edge-to-edge), the tab bar
+        // height includes insets.bottom which can exceed 100px, leaving a visible sliver.
+        toValue: visible ? 0 : tabBarHeightForHide.current,
         duration: 250,
         useNativeDriver: true,
       }).start();
