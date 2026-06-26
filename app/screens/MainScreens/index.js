@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, DeviceEventEmitter, InteractionManager } from "react-native";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter, InteractionManager } from "react-native";
 import * as Haptics from "expo-haptics";
 import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -388,13 +387,25 @@ const CustomTabBar = ({
     navigateToLeftIndexRef.current = navigateToLeftIndex;
   }, [navigateToLeftIndex]);
 
-  // Gesture.Pan() for drag-to-switch — uses RNGH native gesture system
-  // which properly competes with the tab navigator's swipe handler.
-  const panGesture = useRef(
-    Gesture.Pan()
-      .activeOffsetX([-8, 8])
-      .failOffsetY([-20, 20])
-      .onBegin(() => {
+  // PanResponder for drag-to-switch
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        return (
+          Math.abs(gestureState.dx) > 8 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
+        );
+      },
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          Math.abs(gestureState.dx) > 6 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
+        );
+      },
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
+      onPanResponderGrant: (evt, gestureState) => {
         isDragging.current = true;
         lastHapticIndex.current = activeLeftIndexRef.current;
         bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
@@ -404,10 +415,10 @@ const CustomTabBar = ({
         stretchAnim.stopAnimation();
         offsetAnim.stopAnimation();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      })
-      .onUpdate((e) => {
+      },
+      onPanResponderMove: (evt, gestureState) => {
         const bWidth = bWidthAtGrant.current;
-        const rawX = dragStartX.current + e.translationX;
+        const rawX = dragStartX.current + gestureState.dx;
         const minX = 0;
         const maxX = bWidth * 3;
 
@@ -422,11 +433,11 @@ const CustomTabBar = ({
 
         slideAnim.setValue(clampedX);
 
-        const progress = Math.min(1, Math.abs(e.translationX) / bWidth);
+        const progress = Math.min(1, Math.abs(gestureState.dx) / bWidth);
         const extraStretch = 0;
         stretchAnim.setValue(extraStretch);
 
-        const directionOffset = e.translationX < 0 ? -extraStretch : 0;
+        const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
         offsetAnim.setValue(directionOffset);
 
         const indicatorCenter = clampedX + bWidth / 2;
@@ -436,11 +447,12 @@ const CustomTabBar = ({
           lastHapticIndex.current = hoveredIndex;
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
-      })
-      .onEnd((e) => {
+      },
+      onPanResponderRelease: (evt, gestureState) => {
         isDragging.current = false;
         const bWidth = bWidthAtGrant.current;
-        const rawX = dragStartX.current + e.translationX;
+
+        const rawX = dragStartX.current + gestureState.dx;
         const clampedX = Math.min(bWidth * 3, Math.max(0, rawX));
         const snappedIndex = Math.min(3, Math.max(0, Math.round(clampedX / bWidth)));
         const snapTarget = snappedIndex * bWidth;
@@ -473,9 +485,8 @@ const CustomTabBar = ({
         }
 
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      })
-      .onFinalize(() => {
-        if (!isDragging.current) return;
+      },
+      onPanResponderTerminate: () => {
         isDragging.current = false;
         const bWidth = bWidthAtGrant.current || (tabBarWidthRef.current - 2) / 4;
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
@@ -497,7 +508,8 @@ const CustomTabBar = ({
           stiffness: 260,
           damping: 22,
         }).start();
-      })
+      },
+    })
   ).current;
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
@@ -598,12 +610,11 @@ const CustomTabBar = ({
         }}
       >
         <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-          {/* Wrap with GestureDetector — RNGH gesture competes with tab navigator's swipe */}
-          <GestureDetector gesture={panGesture}>
-            <View
-              onLayout={onLeftPillLayout}
-              style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
-            >
+          <View
+            {...panResponder.panHandlers}
+            onLayout={onLeftPillLayout}
+            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
+          >
             <LiquidGlassView
               effect="regular"
               interactive={isRealGlass}
@@ -672,7 +683,6 @@ const CustomTabBar = ({
             )}
             {renderButtons()}
           </View>
-          </GestureDetector>
 
           <LiquidGlassView
             effect="regular"
@@ -714,8 +724,8 @@ const CustomTabBar = ({
       }}
     >
       <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-        <GestureDetector gesture={panGesture}>
         <View
+          {...panResponder.panHandlers}
           onLayout={onLeftPillLayout}
           style={[
             styles.iosLeftPill,
@@ -798,7 +808,6 @@ const CustomTabBar = ({
           </Animated.View>
           {renderButtons()}
         </View>
-        </GestureDetector>
 
         <View
           style={[
