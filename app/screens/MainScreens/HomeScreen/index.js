@@ -752,6 +752,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
   const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const previousStatusBarStyle = useRef({
     barStyle: "dark-content",
     backgroundColor: "#ffffff",
