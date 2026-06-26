@@ -429,6 +429,20 @@ const CreateStoryScreen = ({ navigation }) => {
   const [isUploading, setIsUploading] = useState(false);
   const imageWithOverlaysRef = useRef(null);
   const [viewReady, setViewReady] = useState(false);
+  const [contentAreaHeight, setContentAreaHeight] = useState(0);
+
+  const captureDims = useMemo(() => {
+    const extraTopPad = Platform.OS === 'android' ? 4 : 0;
+    const availH = contentAreaHeight > 0 ? contentAreaHeight - extraTopPad : 0;
+    if (availH <= 0) {
+      return { w: width, h: width * 16 / 9 };
+    }
+    const idealH = width * 16 / 9;
+    if (idealH <= availH) {
+      return { w: width, h: idealH };
+    }
+    return { w: availH * 9 / 16, h: availH };
+  }, [contentAreaHeight]);
 
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
@@ -808,16 +822,16 @@ const CreateStoryScreen = ({ navigation }) => {
         )}
 
         {/* Main Content */}
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1 }} onLayout={(e) => setContentAreaHeight(e.nativeEvent.layout.height)}>
           {selectedImage || isTextOnly ? (
             <View style={{ flex: 1 }}>
               <View style={styles.aspectRatioContainer}>
                 <ScrollView
-                  style={styles.captureContainer}
+                  style={{ width: captureDims.w, height: captureDims.h, backgroundColor: '#000' }}
                   scrollEnabled={false}
                   ref={imageWithOverlaysRef}
                   onLayout={onViewLayout}
-                  contentContainerStyle={styles.captureContentContainer}
+                  contentContainerStyle={{ width: captureDims.w, height: captureDims.h }}
                   showsVerticalScrollIndicator={false}
                   showsHorizontalScrollIndicator={false}
                   bounces={false}
@@ -839,7 +853,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       <FastImage
                         source={{ uri: selectedImage }}
                         style={StyleSheet.absoluteFill}
-                        resizeMode={FastImage.resizeMode.cover}
+                        resizeMode={FastImage.resizeMode.contain}
                       />
 
                       {savedDrawingData && !isDrawing && (
