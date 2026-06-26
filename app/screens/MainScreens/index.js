@@ -395,17 +395,18 @@ const CustomTabBar = ({
   // PanResponder for drag-to-switch
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
         return (
-          Math.abs(gestureState.dx) > 8 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
+          Math.abs(gestureState.dx) > 4 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
         );
       },
+      onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         return (
           Math.abs(gestureState.dx) > 6 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2
         );
       },
       onPanResponderTerminationRequest: () => false,
