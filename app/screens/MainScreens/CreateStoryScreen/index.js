@@ -26,6 +26,7 @@ import {
   StatusBar,
   Modal,
   KeyboardAvoidingView,
+  Animated,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -223,10 +224,15 @@ const DrawingCanvas = React.forwardRef(
 
 // Move TextInputArea outside the main component
 const TextInputArea = React.memo(
-  ({ text, setText, isTextOnly, placeholder }) => {
+  ({ text, setText, isTextOnly, placeholder, onFinish }) => {
+    const handleSubmit = () => {
+      Keyboard.dismiss();
+      onFinish?.();
+    };
+
     return (
       <Pressable
-        onPress={() => Keyboard.dismiss()}
+        onPress={handleSubmit}
         style={[
           isTextOnly
             ? [styles.textOnlyCenterContainer, styles.textInputContainer2]
@@ -331,29 +337,57 @@ const DrawingTools = ({ drawingRef, isEraser, setIsEraser, showBrushSize, setSho
   </View>
 );
 
-const MoveableText = memo(({ text, position, setPosition, isEditing }) => {
+const MoveableText = memo(({ id, text, x, y, isEditing, onPositionChange, onTap, onDragStart, onDragEnd, onDragging, isAnyDragging }) => {
   const isEditingRef = useRef(isEditing);
+  const posRef = useRef({ x, y });
   const panOffset = useRef({ x: 0, y: 0 });
+  const didDragRef = useRef(false);
+  const callbacksRef = useRef({ onPositionChange, onTap, onDragStart, onDragEnd, onDragging });
 
   useEffect(() => {
     isEditingRef.current = isEditing;
   }, [isEditing]);
 
+  useEffect(() => {
+    posRef.current = { x, y };
+  }, [x, y]);
+
+  useEffect(() => {
+    callbacksRef.current = { onPositionChange, onTap, onDragStart, onDragEnd, onDragging };
+  }, [onPositionChange, onTap, onDragStart, onDragEnd, onDragging]);
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !isEditingRef.current,
-      onMoveShouldSetPanResponder: () => !isEditingRef.current,
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        panOffset.current = { x: position.x, y: position.y };
+        panOffset.current = { ...posRef.current };
+        didDragRef.current = false;
       },
       onPanResponderMove: (evt, gestureState) => {
         if (isEditingRef.current) return;
-        setPosition({
-          x: panOffset.current.x + gestureState.dx,
-          y: panOffset.current.y + gestureState.dy,
-        });
+        if (!didDragRef.current && (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5)) {
+          didDragRef.current = true;
+          callbacksRef.current.onDragStart?.();
+        }
+        if (didDragRef.current) {
+          callbacksRef.current.onPositionChange?.(id, {
+            x: panOffset.current.x + gestureState.dx,
+            y: panOffset.current.y + gestureState.dy,
+          });
+          callbacksRef.current.onDragging?.(gestureState.moveY);
+        }
       },
-      onPanResponderRelease: () => {},
+      onPanResponderRelease: (evt, gestureState) => {
+        if (isEditingRef.current) return;
+        if (didDragRef.current) {
+          const isOverTrash = gestureState.moveY > Dimensions.get("window").height * 0.82;
+          callbacksRef.current.onDragEnd?.(id, isOverTrash);
+        } else {
+          callbacksRef.current.onTap?.(id);
+        }
+        didDragRef.current = false;
+      },
     })
   ).current;
 
@@ -365,7 +399,8 @@ const MoveableText = memo(({ text, position, setPosition, isEditing }) => {
       style={[
         styles.moveableTextContainer,
         {
-          transform: [{ translateX: position.x }, { translateY: position.y }],
+          transform: [{ translateX: x }, { translateY: y }],
+          opacity: isAnyDragging && !isEditing ? 0.8 : 1,
         },
       ]}
     >
@@ -374,12 +409,51 @@ const MoveableText = memo(({ text, position, setPosition, isEditing }) => {
   );
 });
 
-const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, t }) => {
+const TrashZone = memo(({ visible, isOver }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: visible ? 1 : 0,
+      useNativeDriver: true,
+      friction: 8,
+    }).start();
+  }, [visible, scaleAnim]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.trashZone,
+        {
+          transform: [{ scale: scaleAnim }],
+          backgroundColor: isOver ? "rgba(255,59,48,0.9)" : "rgba(0,0,0,0.6)",
+        },
+      ]}
+    >
+      <Ionicons
+        name={isOver ? "trash" : "trash-outline"}
+        size={isOver ? 36 : 28}
+        color="#fff"
+      />
+      <Text style={[styles.trashZoneText, isOver && { fontWeight: "700" }]}>
+        {isOver ? "Drop to delete" : "Drag here to delete"}
+      </Text>
+    </Animated.View>
+  );
+});
+
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, t }) => {
   const handleTextPress = () => {
-    if (!isEditing) {
-      setIsEditing(true);
+    if (onAddText) {
+      onAddText();
     } else {
-      setIsEditing(false);
+      if (!isEditing) {
+        setIsEditing(true);
+      } else {
+        setIsEditing(false);
+      }
     }
   };
 
@@ -422,7 +496,66 @@ const CreateStoryScreen = ({ navigation }) => {
   const [showBrushSize, setShowBrushSize] = useState(false);
   const [savedDrawingData, setSavedDrawingData] = useState(null);
   const [isTextOnly, setIsTextOnly] = useState(false);
-  const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]); // Default gradient colors
+  const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]);
+
+  const [storyTexts, setStoryTexts] = useState([]);
+  const [editingTextId, setEditingTextId] = useState(null);
+  const [isDraggingText, setIsDraggingText] = useState(false);
+  const [isOverTrash, setIsOverTrash] = useState(false);
+  const textIdCounter = useRef(0);
+
+  const addStoryText = useCallback(() => {
+    const newId = `text_${textIdCounter.current++}`;
+    setStoryTexts((prev) => [
+      ...prev,
+      { id: newId, text: "", x: width / 2 - 100, y: captureDims.h / 2 - 20 },
+    ]);
+    setEditingTextId(newId);
+  }, [captureDims]);
+
+  const updateStoryText = useCallback((id, newText) => {
+    setStoryTexts((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, text: newText } : item))
+    );
+  }, []);
+
+  const updateStoryTextPosition = useCallback((id, newPos) => {
+    setStoryTexts((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, x: newPos.x, y: newPos.y } : item))
+    );
+  }, []);
+
+  const deleteStoryText = useCallback((id) => {
+    setStoryTexts((prev) => prev.filter((item) => item.id !== id));
+    setEditingTextId((prev) => (prev === id ? null : prev));
+  }, []);
+
+  const handleStoryTextDragStart = useCallback(() => {
+    setIsDraggingText(true);
+    setIsOverTrash(false);
+  }, []);
+
+  const handleStoryTextDragEnd = useCallback((id, wasOverTrash) => {
+    if (wasOverTrash) {
+      deleteStoryText(id);
+    }
+    setIsDraggingText(false);
+    setIsOverTrash(false);
+  }, [deleteStoryText]);
+
+  const handleStoryTextDragging = useCallback((moveY) => {
+    const screenH = Dimensions.get("window").height;
+    setIsOverTrash(moveY > screenH * 0.82);
+  }, []);
+
+  const handleStoryTextTap = useCallback((id) => {
+    setEditingTextId(id);
+  }, []);
+
+  const editingTextItem = useMemo(
+    () => storyTexts.find((item) => item.id === editingTextId),
+    [storyTexts, editingTextId]
+  );
 
   const drawingRef = useRef(null);
   const insets = useSafeAreaInsets();
@@ -503,9 +636,16 @@ const CreateStoryScreen = ({ navigation }) => {
 
       const formData = new FormData();
 
-      // Add content (text)
-      if (text) {
+      if (isTextOnly && text) {
         formData.append("content", text);
+      } else if (!isTextOnly && storyTexts.length > 0) {
+        const combinedText = storyTexts
+          .filter((item) => item.text)
+          .map((item) => item.text)
+          .join("\n");
+        if (combinedText) {
+          formData.append("content", combinedText);
+        }
       }
 
       try {
@@ -515,6 +655,7 @@ const CreateStoryScreen = ({ navigation }) => {
         if (selectedImage || isTextOnly) {
           // Dismiss keyboard and stop editing first so that overlays are properly rendered in their final state
           Keyboard.dismiss();
+          setEditingTextId(null);
           setIsEditing(false);
           await new Promise((resolve) => setTimeout(resolve, 150));
 
@@ -619,6 +760,8 @@ const CreateStoryScreen = ({ navigation }) => {
             setSelectedImage(null);
             setText("");
             setIsEditing(false);
+            setStoryTexts([]);
+            setEditingTextId(null);
           }
           // navigation.goBack();
         }
@@ -645,6 +788,8 @@ const CreateStoryScreen = ({ navigation }) => {
               setSelectedImage(null);
               setText("");
               setIsEditing(false);
+              setStoryTexts([]);
+              setEditingTextId(null);
             }
           },
         },
@@ -874,14 +1019,22 @@ const CreateStoryScreen = ({ navigation }) => {
                         />
                       )}
 
-                      {!isDrawing && text && !isEditing && (
+                      {!isDrawing && storyTexts.map((item) => (
                         <MoveableText
-                          text={text}
-                          position={textPosition}
-                          setPosition={setTextPosition}
-                          isEditing={isEditing}
+                          key={item.id}
+                          id={item.id}
+                          text={item.text}
+                          x={item.x}
+                          y={item.y}
+                          isEditing={editingTextId === item.id}
+                          onPositionChange={updateStoryTextPosition}
+                          onTap={handleStoryTextTap}
+                          onDragStart={handleStoryTextDragStart}
+                          onDragEnd={handleStoryTextDragEnd}
+                          onDragging={handleStoryTextDragging}
+                          isAnyDragging={isDraggingText}
                         />
-                      )}
+                      ))}
                     </>
                   )}
                 </ScrollView>
@@ -896,15 +1049,31 @@ const CreateStoryScreen = ({ navigation }) => {
                 </View>
               ) : !isTextOnly ? (
                 <>
-                  <ToolsBar isEditing={isEditing} setIsEditing={setIsEditing} isDrawing={isDrawing} setIsDrawing={setIsDrawing} pickImage={pickImage} t={t} />
-                  {isEditing && (
+                  <ToolsBar
+                    isEditing={editingTextId !== null}
+                    setIsEditing={(v) => { if (!v) setEditingTextId(null); }}
+                    isDrawing={isDrawing}
+                    setIsDrawing={setIsDrawing}
+                    pickImage={pickImage}
+                    onAddText={addStoryText}
+                    t={t}
+                  />
+                  {editingTextId && editingTextItem && (
                     <TextInputArea
-                      text={text}
-                      setText={handleTextChange}
-                      isTextOnly={isTextOnly}
-                      placeholder={textInputPlaceholder}
+                      text={editingTextItem.text}
+                      setText={(newText) => updateStoryText(editingTextId, newText)}
+                      isTextOnly={false}
+                      placeholder={t("story.drawingPlaceholder")}
+                      onFinish={() => {
+                        Keyboard.dismiss();
+                        if (!editingTextItem.text) {
+                          deleteStoryText(editingTextId);
+                        }
+                        setEditingTextId(null);
+                      }}
                     />
                   )}
+                  <TrashZone visible={isDraggingText} isOver={isOverTrash} />
                 </>
               ) : (
                 <>
@@ -1075,6 +1244,22 @@ const styles = StyleSheet.create({
     textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
+  },
+  trashZone: {
+    position: "absolute",
+    bottom: 30,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 20,
+    zIndex: 1000,
+  },
+  trashZoneText: {
+    color: "#fff",
+    fontSize: 13,
+    marginTop: 4,
   },
   colorPicker: {
     position: "absolute",
