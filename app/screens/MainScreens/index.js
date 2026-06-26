@@ -82,9 +82,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     Animated.spring(slideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: true,
-      stiffness: 140,
-      damping: 14,
-      mass: 1.2,
+      stiffness: 400,
+      damping: 35,
+      mass: 0.5,
     }).start();
   }, [currentIndicatorLeft]);
 
@@ -329,33 +329,27 @@ const CustomTabBar = ({
   }, [currentIndicatorWidth]);
 
   // Animate indicator to committed tab position (when not dragging).
-  // slideAnim uses useNativeDriver:true → runs on UI thread, immune to JS busy-ness.
+  // Dùng timing thay spring khi tap → chạy nhanh, không bounce, không chờ JS mount xong.
   useEffect(() => {
     if (isDragging.current) return;
-    Animated.spring(slideAnim, {
+    Animated.timing(slideAnim, {
       toValue: currentIndicatorLeft,
-      // JS DRIVER: must match onPanResponderMove, which calls slideAnim.setValue()
-      // directly. Mixing useNativeDriver:true here with a JS .setValue() elsewhere
-      // on the SAME node throws "Attempting to run JS driven animation on animated
-      // node that has been moved to native" — this was the crash.
+      duration: 200,
       useNativeDriver: false,
-      stiffness: 300,
-      damping: 28,
-      mass: 0.7,
     }).start();
     // Reset stretch & offset on tab commit (JS driver, fine since drag is over)
     Animated.spring(stretchAnim, {
       toValue: 0,
       useNativeDriver: false,
-      stiffness: 360,
-      damping: 30,
+      stiffness: 400,
+      damping: 35,
       mass: 0.5,
     }).start();
     Animated.spring(offsetAnim, {
       toValue: 0,
       useNativeDriver: false,
-      stiffness: 360,
-      damping: 30,
+      stiffness: 400,
+      damping: 35,
       mass: 0.5,
     }).start();
   }, [currentIndicatorLeft]);
@@ -466,24 +460,24 @@ const CustomTabBar = ({
         Animated.spring(slideAnim, {
           toValue: snapTarget,
           useNativeDriver: false, // JS DRIVER: see note above onPanResponderGrant block
-          stiffness: 280,
-          damping: 26,
-          mass: 0.8,
+          stiffness: 380,
+          damping: 32,
+          mass: 0.6,
         }).start();
 
         Animated.spring(stretchAnim, {
           toValue: 0,
           useNativeDriver: false,
-          stiffness: 320,
-          damping: 24,
-          mass: 0.6,
+          stiffness: 400,
+          damping: 34,
+          mass: 0.5,
         }).start();
         Animated.spring(offsetAnim, {
           toValue: 0,
           useNativeDriver: false,
-          stiffness: 320,
-          damping: 24,
-          mass: 0.6,
+          stiffness: 400,
+          damping: 34,
+          mass: 0.5,
         }).start();
 
         if (snappedIndex !== activeLeftIndexRef.current) {
@@ -525,7 +519,7 @@ const CustomTabBar = ({
       const isFocused = state.routes[state.index].key === route.key;
       const { options } = descriptor;
 
-      const onPress = () => {
+  const onPress = () => {
         if (isDragging.current) return;
         if (isFocused) {
           if (route.name === "Home") triggerHomeScrollOrReload();
@@ -540,7 +534,11 @@ const CustomTabBar = ({
           canPreventDefault: true,
         });
         if (!event.defaultPrevented) {
-          navigation.navigate(route.name, route.params);
+          // Dùng requestAnimationFrame để navigation chạy sau frame hiện tại,
+          // tránh block animation indicator đang chạy
+          requestAnimationFrame(() => {
+            navigation.navigate(route.name, route.params);
+          });
         }
       };
 
