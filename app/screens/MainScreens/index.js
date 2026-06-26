@@ -281,9 +281,10 @@ const CustomTabBar = ({
   // indicatorDragOffset: JS-driver composed value for stretch direction offset
   // slideAnim itself is native-driver and NOT added here — it's applied in a parent View
   const indicatorDragOffset = useRef(offsetAnim).current;
-  // indicatorAnimatedTranslateX: JS-driver composed value combining slide + drag offset
-  // Used in the LiquidGlass path where the indicator is NOT wrapped in a native-driver parent View
-  const indicatorAnimatedTranslateX = useRef(Animated.add(slideAnim, offsetAnim)).current;
+  // indicatorAnimatedTranslateX: uses slideAnim directly (native driver).
+  // offsetAnim is always 0 (stretch disabled), so no Animated.add needed.
+  // Composing native + JS animated values via Animated.add crashes on iOS.
+  const indicatorAnimatedTranslateX = useRef(slideAnim).current;
 
   // Drag state refs (avoid re-renders during gesture)
   const isDragging = useRef(false);
