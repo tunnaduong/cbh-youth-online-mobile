@@ -265,9 +265,14 @@ const CustomTabBar = ({
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
 
-  // slideAnim: tab-to-tab translation on tap — useNativeDriver:TRUE → runs on UI thread at 60fps
-  // even while JS is busy mounting the new screen. This eliminates tap-transition jank.
-  const slideAnim = useRef(new Animated.Value(0)).current;
+  // nativeSlideAnim: NATIVE DRIVER — chạy trên UI thread, không bị block bởi JS/React mount.
+  // Chỉ dùng cho Animated.timing/spring khi tap tab.
+  const nativeSlideAnim = useRef(new Animated.Value(0)).current;
+  // jsSlideAnim: JS DRIVER — dùng riêng cho PanResponder drag (.setValue() trực tiếp).
+  // Tách 2 value tránh lỗi "mixing native and JS driven animations on same node".
+  const jsSlideAnim = useRef(new Animated.Value(0)).current;
+  // slideAnim alias — trỏ vào jsSlideAnim để giữ tương thích với PanResponder code bên dưới
+  const slideAnim = jsSlideAnim;
 
   // stretchAnim / offsetAnim: liquid-glass stretch during *drag only*.
   // These drive `width` which is not supported by native driver → JS-only.
@@ -279,15 +284,12 @@ const CustomTabBar = ({
   // indicatorAnimatedWidth: JS-driver composed value for width+stretch
   const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
   // indicatorDragOffset: JS-driver composed value for stretch direction offset
-  // slideAnim itself is native-driver and NOT added here — it's applied in a parent View
   const indicatorDragOffset = useRef(offsetAnim).current;
-  // indicatorAnimatedTranslateX: uses slideAnim directly (native driver).
-  // offsetAnim is always 0 (stretch disabled), so no Animated.add needed.
-  // Composing native + JS animated values via Animated.add crashes on iOS.
-  const indicatorAnimatedTranslateX = useRef(slideAnim).current;
+  // indicatorAnimatedTranslateX: uses jsSlideAnim (JS driver, for drag compatibility).
+  const indicatorAnimatedTranslateX = useRef(jsSlideAnim).current;
 
-  // Drag state refs (avoid re-renders during gesture)
-  const isDragging = useRef(false);
+  // isDraggingAnim: switch display giữa native vs JS driver layer
+  const isDraggingState = useRef(false);
   const dragStartX = useRef(0);
   const lastHapticIndex = useRef(-1);
   const tabBarWidthRef = useRef(tabBarWidth);
@@ -329,15 +331,20 @@ const CustomTabBar = ({
   }, [currentIndicatorWidth]);
 
   // Animate indicator to committed tab position (when not dragging).
-  // Dùng timing thay spring khi tap → chạy nhanh, không bounce, không chờ JS mount xong.
+  // nativeSlideAnim dùng useNativeDriver:true → chạy trên UI thread, không bị block bởi
+  // React mount màn hình mới trên Android. jsSlideAnim được sync ngay lập tức (setValue)
+  // để drag gesture sau đó có đúng vị trí xuất phát.
   useEffect(() => {
     if (isDragging.current) return;
-    Animated.timing(slideAnim, {
+    // Native-driver animation cho visual indicator — mượt 60fps ngay cả khi JS bận
+    Animated.timing(nativeSlideAnim, {
       toValue: currentIndicatorLeft,
-      duration: 200,
-      useNativeDriver: false,
+      duration: 180,
+      useNativeDriver: true,
     }).start();
-    // Reset stretch & offset on tab commit (JS driver, fine since drag is over)
+    // Sync JS value để PanResponder có đúng starting position khi drag
+    jsSlideAnim.setValue(currentIndicatorLeft);
+    // Reset stretch & offset on tab commit
     Animated.spring(stretchAnim, {
       toValue: 0,
       useNativeDriver: false,
@@ -412,6 +419,7 @@ const CustomTabBar = ({
         slideAnim.stopAnimation((currentVal) => {
           dragStartX.current = currentVal;
         });
+        nativeSlideAnim.stopAnimation();
         stretchAnim.stopAnimation();
         offsetAnim.stopAnimation();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -432,8 +440,13 @@ const CustomTabBar = ({
         }
 
         slideAnim.setValue(clampedX);
+        // Sync native anim trong drag bằng duration:0 timing
+        Animated.timing(nativeSlideAnim, {
+          toValue: clampedX,
+          duration: 0,
+          useNativeDriver: true,
+        }).start();
 
-        const progress = Math.min(1, Math.abs(gestureState.dx) / bWidth);
         const extraStretch = 0;
         stretchAnim.setValue(extraStretch);
 
@@ -457,9 +470,18 @@ const CustomTabBar = ({
         const snappedIndex = Math.min(3, Math.max(0, Math.round(clampedX / bWidth)));
         const snapTarget = snappedIndex * bWidth;
 
+        // Sync JS anim (for internal state)
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: false, // JS DRIVER: see note above onPanResponderGrant block
+          useNativeDriver: false,
+          stiffness: 380,
+          damping: 32,
+          mass: 0.6,
+        }).start();
+        // Native anim snap — chạy trên UI thread
+        Animated.spring(nativeSlideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: true,
           stiffness: 380,
           damping: 32,
           mass: 0.6,
@@ -492,7 +514,13 @@ const CustomTabBar = ({
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: false, // JS DRIVER: see note above onPanResponderGrant block
+          useNativeDriver: false,
+          stiffness: 200,
+          damping: 20,
+        }).start();
+        Animated.spring(nativeSlideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: true,
           stiffness: 200,
           damping: 20,
         }).start();
@@ -742,15 +770,16 @@ const CustomTabBar = ({
         >
           {/*
             2-layer indicator architecture:
-            - Outer: native-driver translateX (slideAnim) → 60fps even when JS busy
-            - Inner: JS-driver width + drag-offset → only active during drag gesture
+            - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
+            - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
+              nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
           */}
           <Animated.View
             style={{
               position: "absolute",
               top: 0,
               left: 0,
-              transform: [{ translateX: slideAnim }],   // ← NATIVE DRIVER
+              transform: [{ translateX: nativeSlideAnim }],
             }}
           >
             {/* Chromatic Aberration - Red */}
@@ -952,6 +981,13 @@ export default function MainScreens({ navigation: stackNavigation }) {
             );
           }}
           screenOptions={({ route }) => ({
+            // Android: tắt animation mặc định của bottom tabs (fade JS-driven gây giật)
+            // Tab content switch là tức thì — indicator animation trên tab bar vẫn chạy mượt
+            animation: 'none',
+            // Tránh re-render toàn bộ scene khi chuyển tab
+            lazy: true,
+            // Giữ các screen đã mount (không unmount khi rời tab)
+            unmountOnBlur: false,
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
               let badgeCount = null;
