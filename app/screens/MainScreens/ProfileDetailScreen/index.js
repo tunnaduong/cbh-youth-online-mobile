@@ -224,7 +224,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         )}
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <FastImage

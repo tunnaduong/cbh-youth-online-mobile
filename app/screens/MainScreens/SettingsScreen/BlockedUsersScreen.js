@@ -181,7 +181,7 @@ export default function BlockedUsersScreen({ navigation }) {
           <Text style={{ marginTop: 10, color: theme.subText }}>{t('blockedUsers.empty')}</Text>
         </View>
       ) : (
-        <ScrollView style={styles.content}>
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
           {blockedUsers.map((user) => (
             <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>

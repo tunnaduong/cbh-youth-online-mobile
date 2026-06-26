@@ -224,7 +224,7 @@ export default function SearchScreen({ navigation }) {
 
         {query.trim() && renderFilterChips()}
 
-        <ScrollView style={styles.resultsContainer}>
+        <ScrollView style={styles.resultsContainer} contentContainerStyle={{ paddingBottom: inset.bottom + 16 }}>
           {!query.trim() ? (
             <View style={styles.searchImage}>
               <Image

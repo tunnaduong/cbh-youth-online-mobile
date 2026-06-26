@@ -343,7 +343,7 @@ const CreatePostScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <View
           style={{
             flexDirection: "row",

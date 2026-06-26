@@ -6,7 +6,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getLikedPosts } from "../../../services/api/Api";
 import LottieView from "lottie-react-native";
@@ -58,6 +58,7 @@ const LikedPostsScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const fetchLikedPosts = async () => {
     try {
@@ -207,6 +208,7 @@ const LikedPostsScreen = ({ navigation }) => {
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{
           flexGrow: 1,
+          paddingBottom: insets.bottom + 16,
         }}
       />
       <Toast />

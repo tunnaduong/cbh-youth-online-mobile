@@ -9,7 +9,7 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryArchive } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
@@ -31,6 +31,7 @@ const ArchiveScreen = ({ route, navigation }) => {
   const storyRef = React.useRef(null);
   const username = route.params?.username || currentUsername;
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const formatDateHeader = (dateStr) => {
     if (!dateStr) return "";
@@ -233,7 +234,7 @@ const ArchiveScreen = ({ route, navigation }) => {
           data={archiveData}
           renderItem={renderDateSection}
           keyExtractor={(item) => item.date}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 16 }]}
         />
       )}
 

@@ -484,7 +484,7 @@ const ProfileScreen = ({ route, navigation }) => {
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background }}
+          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
           refreshControl={
             <RefreshControl
               tintColor="transparent"

@@ -11,7 +11,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
@@ -32,6 +32,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 const EditProfileScreen = ({ navigation }) => {
   const { username, userInfo, setUserInfo, bumpAvatarVersion } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [loadingFirst, setLoadingFirst] = useState(true);
@@ -264,7 +265,7 @@ const EditProfileScreen = ({ navigation }) => {
           scrollEnabled={true}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background }}
+          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
         >
           <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateAvatar')}</Text>
           {/* Avatar Section */}

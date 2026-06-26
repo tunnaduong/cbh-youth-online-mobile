@@ -8,7 +8,7 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getSavedPosts } from "../../../services/api/Api";
 import LottieView from "lottie-react-native";
@@ -68,6 +68,7 @@ const SavedPostsScreen = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const { isLoggedIn } = useContext(AuthContext);
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const fetchSavedPosts = async () => {
     try {
@@ -229,6 +230,7 @@ const SavedPostsScreen = ({ navigation }) => {
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{
           flexGrow: 1,
+          paddingBottom: insets.bottom + 16,
         }}
       />
       <Toast />

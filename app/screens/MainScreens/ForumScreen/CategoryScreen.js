@@ -262,6 +262,7 @@ const CategoryScreen = ({ navigation, route }) => {
           flex: 1,
           backgroundColor: theme.background,
         }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
       >
         {/* Category Header */}
         <View style={{ backgroundColor: theme.background, borderBottomWidth: 1, borderBottomColor: theme.border }}>
