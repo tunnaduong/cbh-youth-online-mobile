@@ -252,7 +252,7 @@ index 640052c..bb73af4 100644
  
  export default memo( GestureHandler );
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
-index dd93855..2b73856 100644
+index dd93855..ef58e68 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
 @@ -1,9 +1,9 @@
@@ -260,7 +260,7 @@ index dd93855..2b73856 100644
    forwardRef, memo, useEffect, useImperativeHandle, useState,
  } from 'react';
 -import { GestureResponderEvent, Modal, Pressable } from 'react-native';
-+import { GestureResponderEvent, Modal, Pressable, View } from 'react-native';
++import { GestureResponderEvent, Modal, Pressable, View, Platform, StatusBar } from 'react-native';
  import Animated, {
 -  cancelAnimation, interpolate, runOnJS, useAnimatedGestureHandler, useAnimatedReaction,
 +  cancelAnimation, interpolate, runOnJS, useAnimatedReaction,
@@ -275,7 +275,7 @@ index dd93855..2b73856 100644
  import StoryList from '../List';
  import ModalStyles from './Modal.styles';
  
-@@ -20,7 +21,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+@@ -20,11 +21,13 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
    backgroundColor, videoProps, closeIconColor, modalAnimationDuration = STORY_ANIMATION_DURATION,
    storyAnimationDuration = STORY_ANIMATION_DURATION, hideElementsOnLongPress, loopingStories = 'none',
    statusBarTranslucent, loaderColor, loaderBackgroundColor, onLoad, onShow, onHide,
@@ -284,7 +284,22 @@ index dd93855..2b73856 100644
  }, ref ) => {
  
    const [ visible, setVisible ] = useState( false );
-@@ -261,25 +262,34 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+ 
++  const androidTopOffset = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 4 : 0;
++
+   const x = useSharedValue( 0 );
+   const y = useSharedValue( HEIGHT );
+   const animation = useSharedValue( 0 );
+@@ -50,7 +53,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+     ? stories[userIndex.value]?.stories[storyIndex.value + 1]?.id
+     : undefined ) );
+ 
+-  const animatedStyles = useAnimatedStyle( () => ( { top: y.value } ) );
++  const animatedStyles = useAnimatedStyle( () => ( { top: y.value + androidTopOffset, height: HEIGHT - androidTopOffset } ) );
+   const backgroundAnimatedStyles = useAnimatedStyle( () => ( {
+     opacity: interpolate( y.value, [ 0, HEIGHT ], [ 1, 0 ] ),
+     backgroundColor,
+@@ -261,25 +264,34 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
  
    };
  
@@ -327,7 +342,7 @@ index dd93855..2b73856 100644
          x.value = Math.max(
            0,
            Math.min( ctx.x + -e.translationX, WIDTH * ( stories.length - 1 ) ),
-@@ -287,8 +297,10 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+@@ -287,8 +299,10 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
  
        }
  
@@ -340,7 +355,7 @@ index dd93855..2b73856 100644
  
        if ( ctx.vertical ) {
  
-@@ -338,14 +350,16 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+@@ -338,14 +352,16 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
  
        }
  
@@ -362,7 +377,7 @@ index dd93855..2b73856 100644
  
    const onPressIn = () => {
  
-@@ -461,7 +475,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+@@ -461,7 +477,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
  
    return (
      <Modal statusBarTranslucent={statusBarTranslucent} visible={visible} transparent animationType="none" testID="storyRNModal" onRequestClose={onClose}>
@@ -371,7 +386,7 @@ index dd93855..2b73856 100644
          <Animated.View style={ModalStyles.container} testID="storyModal">
            <Pressable
              onPressIn={onPressIn}
-@@ -510,6 +524,11 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+@@ -510,6 +526,11 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
            {footerComponent && footerComponent}
          </Animated.View>
        </GestureHandler>
