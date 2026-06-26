@@ -29,7 +29,6 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import FastImage from "../../../components/FastImage";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
@@ -251,49 +250,6 @@ const TextInputArea = React.memo(
   }
 );
 
-const StableCameraView = memo(
-  ({ cameraRef, cameraType, onClose, onCameraFlip, onTakePhoto }) => {
-    console.log("StableCameraView rendering");
-    const { t } = useTranslation();
-    const insets = useSafeAreaInsets();
-
-    return (
-      <CameraView
-        ref={cameraRef}
-        style={StyleSheet.absoluteFill}
-        facing={cameraType}
-        onMountError={(error) => {
-          console.error("Camera mount error:", error);
-          Toast.show({
-            type: "error",
-            text1: t("story.cameraError"),
-            text2: t("story.cameraErrorDesc"),
-          });
-        }}
-        onCameraReady={() => {
-          console.log("Camera is ready");
-        }}
-      >
-        <View style={[styles.cameraControls, { paddingTop: 50 + insets.top }]}>
-          <TouchableOpacity style={styles.cameraButton} onPress={onClose}>
-            <Ionicons name="close" size={28} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.cameraButton} onPress={onCameraFlip}>
-            <Ionicons name="camera-reverse" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.captureButtonContainer, { bottom: 40 + insets.bottom }]}>
-          <TouchableOpacity style={styles.captureButton} onPress={onTakePhoto}>
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-        </View>
-      </CameraView>
-    );
-  }
-);
-
 const TextOnlyContent = memo(({ text }) => (
   <View style={styles.textOnlyWrapper}>
     <Text
@@ -395,175 +351,6 @@ const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage,
   </View>
 );
 
-const CameraUI = ({ permission, cameraRef, cameraType, handleCloseCamera, handleCameraFlip, handleTakePhoto, t }) => {
-  if (!permission) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.whiteText}>{t("story.requestingCameraPermission")}</Text>
-      </View>
-    );
-  }
-  if (!permission.granted) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.whiteText}>{t("story.noCameraPermission")}</Text>
-        <TouchableOpacity
-          style={styles.permissionButton}
-          onPress={() => { if (Platform.OS === "ios") { Linking.openURL("app-settings:"); } else { Linking.openSettings(); } }}
-        >
-          <Text style={styles.permissionButtonText}>{t("story.openSettings")}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <StableCameraView
-        cameraRef={cameraRef}
-        cameraType={cameraType}
-        onClose={handleCloseCamera}
-        onCameraFlip={handleCameraFlip}
-        onTakePhoto={handleTakePhoto}
-      />
-    </View>
-  );
-};
-// ─── Camera Crop Preview ─────────────────────────────────────────────────────
-const CameraCropPreview = ({ photoUri, onConfirm, onRetake, t }) => {
-  const { width: screenW, height: screenH } = Dimensions.get("window");
-  const cropW = screenW;
-  const cropH = Math.round(screenW * (16 / 9));
-
-  // How far the crop window can slide vertically inside the photo display
-  const [offsetY, setOffsetY] = useState(0);
-  const dragStart = useRef(0);
-  const offsetRef = useRef(0);
-
-  // Photo display height (fill screen width, keep aspect)
-  const [imgSize, setImgSize] = useState({ width: screenW, height: screenH });
-
-  useEffect(() => {
-    Image.getSize(photoUri, (w, h) => {
-      const displayH = Math.round(screenW * (h / w));
-      setImgSize({ width: screenW, height: displayH });
-      // Start crop window centered
-      const maxOffset = Math.max(0, displayH - cropH);
-      setOffsetY(Math.round(maxOffset / 2));
-      offsetRef.current = Math.round(maxOffset / 2);
-    });
-  }, [photoUri]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        dragStart.current = offsetRef.current;
-      },
-      onPanResponderMove: (_, gs) => {
-        const maxOffset = Math.max(0, imgSize.height - cropH);
-        const next = Math.max(0, Math.min(maxOffset, dragStart.current - gs.dy));
-        offsetRef.current = next;
-        setOffsetY(next);
-      },
-    })
-  ).current;
-
-  const handleConfirm = async () => {
-    // Convert screen offsets → actual pixel coordinates in original image
-    Image.getSize(photoUri, async (origW, origH) => {
-      const scaleX = origW / screenW;
-      const scaleY = origH / imgSize.height;
-      const pixelOriginY = Math.round(offsetY * scaleY);
-      const pixelCropH = Math.round(cropH * scaleY);
-      const safeH = Math.min(pixelCropH, origH - pixelOriginY);
-
-      const cropped = await manipulateAsync(
-        photoUri,
-        [{ crop: { originX: 0, originY: pixelOriginY, width: origW, height: safeH } }],
-        { compress: 0.95, format: SaveFormat.JPEG }
-      );
-      onConfirm(cropped.uri);
-    });
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: "#000" }}>
-      {/* Scrollable photo – drag to reposition */}
-      <View
-        style={{ width: screenW, height: screenH, overflow: "hidden" }}
-        {...panResponder.panHandlers}
-      >
-        <Image
-          source={{ uri: photoUri }}
-          style={{ width: imgSize.width, height: imgSize.height, top: -offsetY }}
-          resizeMode="cover"
-        />
-        {/* Crop border overlay */}
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderWidth: 2,
-            borderColor: "rgba(255,255,255,0.8)",
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            bottom: 16,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 13 }}>
-            {t ? t("story.dragToAdjust") : "Kéo để điều chỉnh"}
-          </Text>
-        </View>
-      </View>
-
-      {/* Action buttons */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          flexDirection: "row",
-          justifyContent: "space-between",
-          paddingHorizontal: 30,
-          paddingBottom: 50,
-          paddingTop: 16,
-          backgroundColor: "rgba(0,0,0,0.5)",
-        }}
-      >
-        <TouchableOpacity onPress={onRetake} style={{ paddingVertical: 12, paddingHorizontal: 20 }}>
-          <Text style={{ color: "#fff", fontSize: 17, fontWeight: "500" }}>
-            {t ? t("story.retake") : "Chụp lại"}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleConfirm}
-          style={{
-            backgroundColor: "#319527",
-            paddingVertical: 12,
-            paddingHorizontal: 24,
-            borderRadius: 24,
-          }}
-        >
-          <Text style={{ color: "#fff", fontSize: 17, fontWeight: "600" }}>
-            {t ? t("story.usePhoto") : "Dùng ảnh"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
 
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
@@ -586,15 +373,9 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const drawingRef = useRef(null);
   const insets = useSafeAreaInsets();
-  const [isCameraMode, setIsCameraMode] = useState(false);
-  const [cameraType, setCameraType] = useState("back");
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const imageWithOverlaysRef = useRef(null);
   const [viewReady, setViewReady] = useState(false);
-  const [isCropMode, setIsCropMode] = useState(false);
-  const [rawCameraPhoto, setRawCameraPhoto] = useState(null);
 
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
@@ -875,71 +656,17 @@ const CreateStoryScreen = ({ navigation }) => {
   }, []);
 
   const handleCameraPress = async () => {
-    if (!permission) {
-      Toast.show({
-        type: "info",
-        text1: t("story.checkingPermission"),
-        text2: t("story.pleaseWait"),
-      });
-      return;
-    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [9, 16],
+      quality: 1,
+    });
 
-    if (!permission.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        Toast.show({
-          type: "error",
-          text1: t("story.noCameraPermission"),
-          text2: t("story.cameraPermissionDesc"),
-        });
-        return;
-      }
-    }
-
-    setIsCameraMode(true);
-  };
-
-  const handleCameraFlip = () => {
-    setCameraType((prevType) => (prevType === "back" ? "front" : "back"));
-  };
-
-  const handleTakePhoto = async () => {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 1,
-          base64: false,
-        });
-        // Show the crop preview screen
-        setIsCameraMode(false);
-        setRawCameraPhoto(photo.uri);
-        setIsCropMode(true);
-      } catch (error) {
-        console.error("Error taking photo:", error);
-        Toast.show({
-          type: "error",
-          text1: t("story.captureError"),
-          text2: t("story.captureErrorDesc"),
-        });
-      }
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
     }
   };
-
-  const handleCropConfirm = (croppedUri) => {
-    setIsCropMode(false);
-    setRawCameraPhoto(null);
-    setSelectedImage(croppedUri);
-  };
-
-  const handleCropRetake = () => {
-    setIsCropMode(false);
-    setRawCameraPhoto(null);
-    setIsCameraMode(true);
-  };
-
-  const handleCloseCamera = useCallback(() => {
-    setIsCameraMode(false);
-  }, []);
 
   const handleBackPress = useCallback(() => {
     if (isDrawing) {
@@ -991,11 +718,11 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle={isCameraMode || isCropMode || isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        {/* Header – hidden in camera / crop mode */}
-        {!isCameraMode && !isCropMode && (
+        {/* Header */}
+        {(
           <View
             style={{ marginTop: insets.top }}
             className="flex-row items-center justify-center px-4 py-2 h-[50px]"
@@ -1030,24 +757,7 @@ const CreateStoryScreen = ({ navigation }) => {
 
         {/* Main Content */}
         <View style={{ flex: 1 }}>
-          {isCropMode ? (
-            <CameraCropPreview
-              photoUri={rawCameraPhoto}
-              onConfirm={handleCropConfirm}
-              onRetake={handleCropRetake}
-              t={t}
-            />
-          ) : isCameraMode ? (
-            <CameraUI
-              permission={permission}
-              cameraRef={cameraRef}
-              cameraType={cameraType}
-              handleCloseCamera={handleCloseCamera}
-              handleCameraFlip={handleCameraFlip}
-              handleTakePhoto={handleTakePhoto}
-              t={t}
-            />
-          ) : selectedImage || isTextOnly ? (
+          {selectedImage || isTextOnly ? (
             <View style={{ flex: 1 }}>
               <View style={styles.aspectRatioContainer}>
                 <ScrollView

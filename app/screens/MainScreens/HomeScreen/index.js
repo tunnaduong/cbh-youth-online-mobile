@@ -1781,6 +1781,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           hideAvatarList={true}
           showName={true}
           statusBarTranslucent={Platform.OS === "android"}
+          backgroundColor="#000000"
+          mediaContainerStyle={{ backgroundColor: "#000000" }}
+          headerContainerStyle={{ top: insets.top + 16 }}
+          containerStyle={Platform.OS === "android" ? { paddingTop: 8 } : undefined}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",

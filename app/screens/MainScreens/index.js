@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter, InteractionManager } from "react-native";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, DeviceEventEmitter, InteractionManager } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import * as Haptics from "expo-haptics";
 import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -387,54 +388,29 @@ const CustomTabBar = ({
     navigateToLeftIndexRef.current = navigateToLeftIndex;
   }, [navigateToLeftIndex]);
 
-  // PanResponder for drag-to-switch
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => false,
-      // Capture phase: parent steals gesture from child TouchableOpacity
-      // when the move is clearly horizontal — fixes Android drag not working.
-      // Ratio raised to 2.5 so diagonal/vertical swipes (e.g. tab-swipe, scroll)
-      // are NOT accidentally captured by the navbar.
-      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
-        return (
-          Math.abs(gestureState.dx) > 8 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
-        );
-      },
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return (
-          Math.abs(gestureState.dx) > 6 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2.5
-        );
-      },
-      // Once the navbar owns the gesture, refuse to give it up to the tab
-      // navigator's swipe responder or any other parent. This is the key fix:
-      // without it, a fast swipe inside the navbar can be "stolen" by the
-      // screen-level gesture handler and trigger a tab navigation instead.
-      onPanResponderTerminationRequest: () => false,
-      // Block the native (UIKit/Android) scroll/swipe handler while the navbar
-      // gesture is active, preventing the underlying ViewPager / ScrollView from
-      // also reacting to the same touch sequence.
-      onShouldBlockNativeResponder: () => true,
-      onPanResponderGrant: (evt, gestureState) => {
+  // Gesture.Pan() for drag-to-switch — uses RNGH native gesture system
+  // which properly competes with the tab navigator's swipe handler.
+  const panGesture = useRef(
+    Gesture.Pan()
+      .activeOffsetX([-8, 8])
+      .failOffsetY([-20, 20])
+      .onBegin(() => {
         isDragging.current = true;
         lastHapticIndex.current = activeLeftIndexRef.current;
         bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
-        // Stop in-flight spring on native-driver slideAnim
         slideAnim.stopAnimation((currentVal) => {
           dragStartX.current = currentVal;
         });
         stretchAnim.stopAnimation();
         offsetAnim.stopAnimation();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      },
-      onPanResponderMove: (evt, gestureState) => {
+      })
+      .onUpdate((e) => {
         const bWidth = bWidthAtGrant.current;
-        const rawX = dragStartX.current + gestureState.dx;
+        const rawX = dragStartX.current + e.translationX;
         const minX = 0;
         const maxX = bWidth * 3;
 
-        // Rubber-band resistance at edges
         let clampedX;
         if (rawX < minX) {
           clampedX = minX + (rawX - minX) * 0.2;
@@ -446,51 +422,37 @@ const CustomTabBar = ({
 
         slideAnim.setValue(clampedX);
 
-        // --- Liquid glass stretch effect ---
-        // How far we've moved as a fraction of one tab width (0..1)
-        const progress = Math.min(1, Math.abs(gestureState.dx) / bWidth);
-        // Max extra width = 40% of buttonWidth, eased with sqrt for natural feel
-        const extraStretch = bWidth * 0.4 * Math.sqrt(progress);
+        const progress = Math.min(1, Math.abs(e.translationX) / bWidth);
+        const extraStretch = 0;
         stretchAnim.setValue(extraStretch);
 
-        // Shift origin so pill grows toward the drag direction:
-        //   dragging right → leading edge stays, trailing edge extends → no offset adjustment needed
-        //   dragging left  → we offset left by extraStretch so the leading edge moves left
-        const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
+        const directionOffset = e.translationX < 0 ? -extraStretch : 0;
         offsetAnim.setValue(directionOffset);
 
-        // Determine which tab the indicator center is over
         const indicatorCenter = clampedX + bWidth / 2;
         const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
 
-        // Only trigger haptic when crossing tab boundary — do NOT navigate here.
-        // Navigating during drag forces JS to mount a new screen mid-gesture,
-        // which competes with the animation bridge and causes visible stutter.
-        // Navigation is deferred to onPanResponderRelease.
         if (hoveredIndex !== lastHapticIndex.current) {
           lastHapticIndex.current = hoveredIndex;
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
+      })
+      .onEnd((e) => {
         isDragging.current = false;
         const bWidth = bWidthAtGrant.current;
-
-        // Snap to the nearest tab
-        const rawX = dragStartX.current + gestureState.dx;
+        const rawX = dragStartX.current + e.translationX;
         const clampedX = Math.min(bWidth * 3, Math.max(0, rawX));
         const snappedIndex = Math.min(3, Math.max(0, Math.round(clampedX / bWidth)));
         const snapTarget = snappedIndex * bWidth;
 
         Animated.spring(slideAnim, {
           toValue: snapTarget,
-          useNativeDriver: true,   // ← NATIVE for snap-back
+          useNativeDriver: true,
           stiffness: 280,
           damping: 26,
           mass: 0.8,
         }).start();
 
-        // Snap stretch back to zero (liquid snaps back)
         Animated.spring(stretchAnim, {
           toValue: 0,
           useNativeDriver: false,
@@ -506,18 +468,14 @@ const CustomTabBar = ({
           mass: 0.6,
         }).start();
 
-        // Navigate only on release — this is the key fix for drag lag.
-        // During drag we only moved the indicator visually (slideAnim.setValue).
-        // Now that the gesture is done, we can afford to mount the target screen
-        // without competing with the animation bridge.
-        // Use lastHapticIndex (set during drag) which already holds the correct tab.
         if (snappedIndex !== activeLeftIndexRef.current) {
           navigateToLeftIndexRef.current?.(snappedIndex);
         }
 
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      },
-      onPanResponderTerminate: () => {
+      })
+      .onFinalize(() => {
+        if (!isDragging.current) return;
         isDragging.current = false;
         const bWidth = bWidthAtGrant.current || (tabBarWidthRef.current - 2) / 4;
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
@@ -539,8 +497,7 @@ const CustomTabBar = ({
           stiffness: 260,
           damping: 22,
         }).start();
-      },
-    })
+      })
   ).current;
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
@@ -641,12 +598,12 @@ const CustomTabBar = ({
         }}
       >
         <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-          {/* Wrap with a View that receives panHandlers — LiquidGlassView doesn't forward touch props */}
-          <View
-            {...panResponder.panHandlers}
-            onLayout={onLeftPillLayout}
-            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
-          >
+          {/* Wrap with GestureDetector — RNGH gesture competes with tab navigator's swipe */}
+          <GestureDetector gesture={panGesture}>
+            <View
+              onLayout={onLeftPillLayout}
+              style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
+            >
             <LiquidGlassView
               effect="regular"
               interactive={isRealGlass}
@@ -715,6 +672,7 @@ const CustomTabBar = ({
             )}
             {renderButtons()}
           </View>
+          </GestureDetector>
 
           <LiquidGlassView
             effect="regular"
@@ -756,11 +714,8 @@ const CustomTabBar = ({
       }}
     >
       <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-        {/* panHandlers on the outer View fixes drag on Android (and iOS non-LiquidGlass).
-            onMoveShouldSetPanResponderCapture ensures the parent can steal the gesture
-            from child TouchableOpacity components during a horizontal drag. */}
+        <GestureDetector gesture={panGesture}>
         <View
-          {...panResponder.panHandlers}
           onLayout={onLeftPillLayout}
           style={[
             styles.iosLeftPill,
@@ -843,6 +798,7 @@ const CustomTabBar = ({
           </Animated.View>
           {renderButtons()}
         </View>
+        </GestureDetector>
 
         <View
           style={[
