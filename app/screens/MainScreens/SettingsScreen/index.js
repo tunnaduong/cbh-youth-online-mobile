@@ -104,7 +104,7 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      
+
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border, backgroundColor: theme.headerBackground }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -241,7 +241,11 @@ export default function SettingsScreen({ navigation }) {
               "Mãi mãi là chuyên Nga!!",
               "Em yêu chuyên Nga",
               "Cảm ơn bạn đã dùng app",
-              "Chúc bạn có trải nghiệm thật tuyệt vời và đáng nhớ"
+              "Chúc bạn có trải nghiệm thật tuyệt vời và đáng nhớ",
+              "Chúc bạn có một ngày vui vẻ!",
+              "Cảm ơn bạn đã sử dụng app",
+              "Test app là 1 cách để đóng góp cho dự án",
+              "Cảm ơn bạn A lớp sử giấu tên đã test ở iOS nhé! Thank you >3"
             ];
             const randomLine = lines[Math.floor(Math.random() * lines.length)];
             Toast.show({
