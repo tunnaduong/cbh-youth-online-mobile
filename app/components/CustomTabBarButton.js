@@ -173,7 +173,10 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
               interactive={true}
               colorScheme={isDarkMode ? 'dark' : 'light'}
               tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
-              style={styles.glassRow}
+              style={[
+                styles.glassRow,
+                { marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0 }
+              ]}
             >
               {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
             </LiquidGlassView>

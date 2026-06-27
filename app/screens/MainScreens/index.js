@@ -665,7 +665,7 @@ const CustomTabBar = ({
                 position: "absolute",
                 top: 0,
                 left: 0,
-                transform: [{ translateX: slideAnim }],
+                transform: [{ translateX: nativeSlideAnim }],
               }}
             >
               {isRealGlass ? (
