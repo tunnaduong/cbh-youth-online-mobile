@@ -329,7 +329,7 @@ const StoryOptionsModal = ({
       gestureEnabled={true}
     >
       <View style={{ paddingVertical: 8, paddingBottom: insets.bottom || 20, backgroundColor: theme.cardBackground }}>
-        {!isOwnStory && (
+        {/* !isOwnStory && (
           <View style={{
             flexDirection: "row",
             alignItems: "center",
@@ -380,7 +380,7 @@ const StoryOptionsModal = ({
             trackColor={{ false: "#767577", true: theme.primary }}
           />
         </View>
-        )}
+        ) */}
 
         {/* <Pressable
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
