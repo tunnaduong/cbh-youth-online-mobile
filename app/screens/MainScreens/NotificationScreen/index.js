@@ -352,10 +352,13 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   };
 
   const renderItem = ({ item }) => {
-    const isSystemMessage = item.type === "system_message" || !item.actor;
+    const isAnonymous = item.data?.is_anonymous === true || item.data?.anonymous === true;
+    const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
     const userName = isSystemMessage
       ? t('notifications.system')
-      : item.actor?.profile_name || item.actor?.username || t('notifications.user');
+      : isAnonymous
+        ? (t('createPost.anonymousUser') || "Ẩn danh")
+        : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
     const displayContent = formatNotificationMessage(item.raw || item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
@@ -402,16 +405,22 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           }
         }}
       >
-        <Image
-          source={
-            !isSystemMessage
-              ? {
-                uri: item.user.avatar,
-              }
-              : require("../../../assets/logo.png")
-          }
-          style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
-        />
+        {isAnonymous ? (
+          <View style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border, backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9', alignItems: 'center', justifyContent: 'center' }]}>
+             <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
+          </View>
+        ) : (
+          <Image
+            source={
+              !isSystemMessage
+                ? {
+                  uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
+                }
+                : require("../../../assets/logo.png")
+            }
+            style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
+          />
+        )}
         <View style={styles.content}>
           <Text style={[styles.message, { color: theme.text }]}>
             {isSystemMessage ? (
