@@ -123,8 +123,8 @@ const PostScreen = ({ route, navigation }) => {
         {isCurrentUser && (
           <TouchableOpacity onPress={() => console.log("Privacy", post?.id)}>
             <View className="flex-row items-center">
-              <Ionicons name="lock-closed-outline" size={23} />
-              <Text style={{ padding: 12, fontSize: 17 }}>
+              <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
+              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
                 {t('post.privacy')}
               </Text>
             </View>
