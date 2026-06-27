@@ -40,7 +40,7 @@ if (Platform.OS === 'ios') {
 // Height of each sub-button row
 const BTN_HEIGHT = 50;
 // Gap between rows
-const BTN_GAP = 8;
+const BTN_GAP = Platform.OS === 'ios' ? 16 : 8;
 // Total height of 3-button column
 const COL_HEIGHT = BTN_HEIGHT * 3 + BTN_GAP * 2;
 
@@ -54,7 +54,6 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   const { t } = useTranslation();
 
   const isRealGlass = Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && isLiquidGlassSupported;
-  const isIosFallback = Platform.OS === 'ios' && LiquidGlassView && !isLiquidGlassSupported;
 
   useEffect(() => {
     return () => {
@@ -164,7 +163,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
     if (isRealGlass) {
       return (
         <LiquidGlassContainerView
-          spacing={10}
+          spacing={BTN_GAP}
           style={styles.glassContainer}
         >
           {menuButtons.map((btn, i) => (
@@ -183,31 +182,6 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
       );
     }
 
-    if (isIosFallback) {
-      return (
-        <View style={styles.columnContainer}>
-          {menuButtons.map((btn, i) => (
-            <LiquidGlassView
-              key={i}
-              effect="regular"
-              interactive={false}
-              colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
-              style={[
-                styles.pillRow,
-                {
-                  backgroundColor: isDarkMode ? "rgba(36, 36, 38, 0.82)" : "rgba(255, 255, 255, 0.82)",
-                  borderColor: pillBorder,
-                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                }
-              ]}
-            >
-              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
-            </LiquidGlassView>
-          ))}
-        </View>
-      );
-    }
 
     // Android / no glass
     return (
@@ -292,9 +266,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   buttonContainer: {
+    width: 56,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
+    // Add shadow to Pressable wrapper to prevent Ionicons layout shifts on iOS
+    shadowColor: "#319527",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    // Compensate for Ionicons font alignment offset on both platforms
+    transform: [
+      { translateY: Platform.OS === 'ios' ? -1.5 : -0.5 },
+      { translateX: Platform.OS === 'ios' ? 1.5 : 0.5 }
+    ]
   },
   iconContainer: {
     width: 56,
@@ -311,12 +297,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  icon: {
-    shadowColor: "#319527",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-  },
+  icon: {},
   // Real glass: LiquidGlassContainerView wraps all rows (connected morphing)
   glassContainer: {
     width: 160,

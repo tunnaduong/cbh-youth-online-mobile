@@ -91,7 +91,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   const opacity = activeIndex === 2 ? 0 : 1;
   const isIOS = Platform.OS === "ios";
 
-  if (isIOS && LiquidGlassView) {
+  if (isIOS && LiquidGlassView && isLiquidGlassSupported) {
     const isRealGlass = isLiquidGlassSupported;
     return (
       <LiquidGlassView
@@ -622,7 +622,7 @@ const CustomTabBar = ({
   }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
       triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
-  if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView) {
+  if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView && isLiquidGlassSupported) {
     const isRealGlass = isLiquidGlassSupported;
     const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
     const indicatorBg = isRealGlass
@@ -660,59 +660,62 @@ const CustomTabBar = ({
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
               }}
             />
-            {isRealGlass ? (
-              <AnimatedLiquidGlassView
-                effect="clear"
-                interactive={false}
-                colorScheme={isDarkMode ? 'dark' : 'light'}
-                tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}
-                style={{
-                  position: "absolute",
-                  width: indicatorAnimatedWidth,
-                  height: 50,
-                  borderRadius: 25,
-                  top: 0,
-                  left: 0,
-                  opacity,
-                  transform: [{ translateX: indicatorAnimatedTranslateX }],
-                  borderWidth: indicatorBorderWidth,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                  backgroundColor: indicatorBg,
-                }}
-              />
-            ) : (
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  width: indicatorAnimatedWidth,
-                  height: 50,
-                  borderRadius: 25,
-                  top: 0,
-                  left: 0,
-                  opacity,
-                  transform: [{ translateX: indicatorAnimatedTranslateX }],
-                  borderWidth: 0,
-                  backgroundColor: indicatorBg,
-                  shadowColor: isDarkMode ? "#fff" : "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  overflow: "hidden",
-                }}
-              >
-                <LinearGradient
-                  colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                    "transparent"
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: [{ translateX: slideAnim }],
+              }}
+            >
+              {isRealGlass ? (
+                <AnimatedLiquidGlassView
+                  effect="clear"
+                  interactive={false}
+                  colorScheme={isDarkMode ? 'dark' : 'light'}
+                  tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: indicatorBorderWidth,
+                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                    backgroundColor: indicatorBg,
+                    opacity,
+                  }}
                 />
-              </Animated.View>
-            )}
+              ) : (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: 0,
+                    backgroundColor: indicatorBg,
+                    opacity,
+                    shadowColor: isDarkMode ? "#fff" : "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                    shadowRadius: 6,
+                    elevation: 3,
+                    overflow: "hidden",
+                  }}
+                >
+                  <LinearGradient
+                    colors={[
+                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                      "transparent"
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </Animated.View>
+              )}
+            </Animated.View>
             {renderButtons()}
           </View>
 
@@ -727,12 +730,10 @@ const CustomTabBar = ({
                 backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                alignItems: 'center',
-                justifyContent: 'center',
               }
             ]}
           >
-            <View style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
               <CustomTabBarButton
                 onPress={() => {}}
                 bottomOffset={bottomOffset}

@@ -229,12 +229,37 @@ export default function SettingsScreen({ navigation }) {
           />
         </SettingSection>
 
-        <Text style={[styles.versionText, { color: theme.subText }]}>
-          {t('settings.version', {
-            appVersion: Application.nativeApplicationVersion,
-            buildVersion: Application.nativeBuildVersion,
-          })}
-        </Text>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            const lines = [
+              "Diễn đàn hs Chuyên Biên Hòa là sân chơi của chuyên Nga :)))",
+              "1 trong 2 người tạo ra là chuyên Nga K60",
+              "Quản lý page chính Nga K67",
+              "Developer chăm chỉ Nga K67 :))",
+              "Phát triển Discord Nga K68",
+              "Thank you Dương Tùng Anh",
+              "Mãi mãi là chuyên Nga!!",
+              "Em yêu chuyên Nga",
+              "Cảm ơn bạn đã dùng app",
+              "Chúc bạn có trải nghiệm thật tuyệt vời và đáng nhớ"
+            ];
+            const randomLine = lines[Math.floor(Math.random() * lines.length)];
+            Toast.show({
+              type: "success",
+              text1: "Chuyên Nga CBH 🇷🇺",
+              text2: randomLine,
+              visibilityTime: 3000,
+            });
+          }}
+        >
+          <Text style={[styles.versionText, { color: theme.subText }]}>
+            {t('settings.version', {
+              appVersion: Application.nativeApplicationVersion,
+              buildVersion: Application.nativeBuildVersion,
+            })}
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.socialContainer}>
           <TouchableOpacity
