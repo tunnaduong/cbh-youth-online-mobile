@@ -1181,6 +1181,7 @@ const PostScreen = ({ route, navigation }) => {
               disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
               isAnonymous={isAnonymousComment}
               onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
+              anonymousDisabled={!!editingCommentId}
             />
           </View>
 

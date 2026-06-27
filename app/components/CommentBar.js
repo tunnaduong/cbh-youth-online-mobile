@@ -22,6 +22,7 @@ const CommentBar = React.forwardRef(
       isSubmitting = false,
       isAnonymous = false,
       onToggleAnonymous,
+      anonymousDisabled = false,
       style,
     },
     ref
@@ -83,8 +84,9 @@ const CommentBar = React.forwardRef(
             <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 10 }}>
               {onToggleAnonymous && (
                 <TouchableOpacity
-                  style={{ marginRight: 10 }}
+                  style={{ marginRight: 10, opacity: anonymousDisabled ? 0.5 : 1 }}
                   onPress={onToggleAnonymous}
+                  disabled={anonymousDisabled}
                 >
                   <Ionicons
                     name={isAnonymous ? "glasses" : "glasses-outline"}
