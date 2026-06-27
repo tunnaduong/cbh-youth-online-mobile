@@ -665,11 +665,7 @@ const CustomTabBar = ({
               }}
             >
               {isRealGlass ? (
-                <AnimatedLiquidGlassView
-                  effect="clear"
-                  interactive={false}
-                  colorScheme={isDarkMode ? 'dark' : 'light'}
-                  tintColor={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}
+                <Animated.View
                   style={{
                     position: "absolute",
                     width: indicatorAnimatedWidth,
