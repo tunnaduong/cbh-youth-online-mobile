@@ -139,8 +139,8 @@
     "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\""
   },
   "follow": {
-    "followers": "Người theo dõi",
-    "following": "Đang theo dõi",
+    "followers": "N. theo dõi",
+    "following": "Đ. theo dõi",
     "followAction": "Theo dõi",
     "unfollowAction": "Bỏ theo dõi",
     "message": "Nhắn tin",
@@ -608,8 +608,8 @@
     "joinedPrefix": "Tham gia ngày",
     "viewDetail": "Chi tiết",
     "postsTab": "Bài viết",
-    "followingTab": "Đang theo dõi",
-    "followersTab": "Người theo dõi",
+    "followingTab": "Đ. theo dõi",
+    "followersTab": "N. theo dõi",
     "likesTab": "Lượt thích",
     "pointsTab": "Điểm",
     "yourActivity": "Hoạt động của bạn",
