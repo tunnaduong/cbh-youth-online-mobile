@@ -124,7 +124,7 @@ const NewConversationScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       {/* Header */}
       <View
         style={[

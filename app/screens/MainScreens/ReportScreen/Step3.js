@@ -99,7 +99,7 @@ export default function Step3({ navigation, route }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
 
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />

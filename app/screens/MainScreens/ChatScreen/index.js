@@ -242,7 +242,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       <View style={[styles.header, { marginTop: insets.top }]}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.title')}</Text>
         <TouchableOpacity

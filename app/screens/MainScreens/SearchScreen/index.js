@@ -189,7 +189,7 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       <View style={{ flex: 1 }}>
         <View style={{ paddingTop: inset.top }}>
           <View style={[styles.topBar, { borderBottomColor: theme.border }]}>

@@ -22,7 +22,6 @@ import {
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
@@ -1057,7 +1056,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       {/* Header */}
       <View
         style={[

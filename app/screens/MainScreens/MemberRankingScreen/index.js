@@ -176,7 +176,7 @@ export default function MemberRankingScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}

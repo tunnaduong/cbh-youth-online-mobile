@@ -278,7 +278,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
   return (
     <>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
       <View
         style={[

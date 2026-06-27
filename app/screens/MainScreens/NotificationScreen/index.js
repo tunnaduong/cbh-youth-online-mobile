@@ -513,7 +513,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
         <TouchableOpacity

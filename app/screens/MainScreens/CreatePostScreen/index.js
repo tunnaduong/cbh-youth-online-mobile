@@ -281,11 +281,7 @@ const CreatePostScreen = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar
-        style={isDarkMode ? "light" : "dark"}
-        backgroundColor={theme.background}
-        animated={true}
-      />
+
       <ProgressHUD loadText={t('createPost.posting')} visible={loading} />
       <View
         style={[

@@ -14,7 +14,6 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import Dropdown from "../../../components/Dropdown";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -105,7 +104,7 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border, backgroundColor: theme.headerBackground }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>

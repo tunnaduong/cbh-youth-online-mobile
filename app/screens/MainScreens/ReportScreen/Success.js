@@ -28,7 +28,7 @@ export default function Success({ navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
