@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  StatusBar,
   DeviceEventEmitter,
   RefreshControl,
 } from "react-native";
@@ -243,7 +242,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <View style={[styles.header, { marginTop: insets.top }]}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.title')}</Text>
         <TouchableOpacity

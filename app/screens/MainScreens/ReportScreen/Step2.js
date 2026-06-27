@@ -11,7 +11,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  StatusBar,
   TextInput,
   ScrollView,
   Modal,
@@ -433,7 +432,7 @@ export default function Step2({ navigation, route }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
 
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />

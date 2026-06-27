@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,6 +34,7 @@ import FastImage from "../../../components/FastImage";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -441,7 +441,7 @@ const ProfileScreen = ({ route, navigation }) => {
   return (
     <>
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
         <View
           style={[styles.header, { height: 50, borderBottomColor: theme.border }]}
           onLayout={(event) => {

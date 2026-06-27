@@ -8,7 +8,6 @@ import {
   ScrollView,
   Image,
   Platform,
-  StatusBar,
   Switch,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -283,7 +282,7 @@ const CreatePostScreen = ({ navigation }) => {
   return (
     <>
       <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        style={isDarkMode ? "light" : "dark"}
         backgroundColor={theme.background}
         animated={true}
       />

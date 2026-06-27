@@ -23,7 +23,6 @@ import {
   Linking,
   ActionSheetIOS,
   Alert,
-  StatusBar,
   Modal,
   KeyboardAvoidingView,
   Animated,
@@ -937,7 +936,7 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
 
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         {/* Header */}

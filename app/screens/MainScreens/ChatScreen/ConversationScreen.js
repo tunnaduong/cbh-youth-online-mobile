@@ -22,6 +22,7 @@ import {
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
@@ -32,7 +33,6 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
 import Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { StatusBar } from "react-native";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 
@@ -1057,7 +1057,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Header */}
       <View
         style={[

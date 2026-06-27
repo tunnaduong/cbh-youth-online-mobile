@@ -9,7 +9,6 @@ import {
   TouchableHighlight,
   ScrollView,
   Platform,
-  StatusBar,
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
@@ -190,7 +189,7 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <View style={{ flex: 1 }}>
         <View style={{ paddingTop: inset.top }}>
           <View style={[styles.topBar, { borderBottomColor: theme.border }]}>

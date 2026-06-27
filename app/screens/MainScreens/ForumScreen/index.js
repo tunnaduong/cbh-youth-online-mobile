@@ -10,7 +10,6 @@ import {
   Animated,
   FlatList,
   Dimensions,
-  StatusBar,
   DeviceEventEmitter,
   Platform,
 } from "react-native";
@@ -242,7 +241,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           { paddingTop: insets.top },
         ]}
       >
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
           <TouchableOpacity
@@ -270,7 +269,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
     <View
       style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <TouchableOpacity

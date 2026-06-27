@@ -8,7 +8,6 @@ import {
   ScrollView,
   Image,
   Platform,
-  StatusBar,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -279,7 +278,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
   return (
     <>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
       <View
         style={[
