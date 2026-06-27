@@ -250,7 +250,7 @@ export default function SettingsScreen({ navigation }) {
             const randomLine = lines[Math.floor(Math.random() * lines.length)];
             Toast.show({
               type: "success",
-              text1: "Chuyên Nga CBH 🇷🇺",
+              text1: "Lời nhắn từ nhà phát triển app",
               text2: randomLine,
               visibilityTime: 3000,
             });
