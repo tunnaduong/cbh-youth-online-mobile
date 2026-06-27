@@ -245,7 +245,8 @@ export default function SettingsScreen({ navigation }) {
               "Chúc bạn có một ngày vui vẻ!",
               "Cảm ơn bạn đã sử dụng app",
               "Test app là 1 cách để đóng góp cho dự án",
-              "Cảm ơn bạn A lớp sử giấu tên đã test ở iOS nhé! Thank you >3"
+              "Cảm ơn bạn A lớp sử giấu tên đã test ở iOS nhé! Thank you >3",
+              "Mãi yêu a Tùng Anh"
             ];
             const randomLine = lines[Math.floor(Math.random() * lines.length)];
             Toast.show({
