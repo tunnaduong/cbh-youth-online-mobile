@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "2.7.4",
+    "version": "2.7.5",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -56,7 +56,7 @@
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth",
-      "versionCode": 274,
+      "versionCode": 275,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {

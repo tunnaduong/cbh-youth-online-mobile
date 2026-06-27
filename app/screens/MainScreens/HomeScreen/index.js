@@ -373,14 +373,18 @@ const StoryOptionsModal = ({
         </View>
         )}
 
-        <TouchableOpacity
-          onPress={() => {
+        <Pressable
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+          onPress={async () => {
             actionSheetRef.current?.hide();
-            Toast.show({
-              type: "info",
-              text1: t('home.share'),
-              text2: t('home.linkCopied'),
-            });
+            try {
+              const { Share } = require('react-native');
+              await Share.share({
+                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://api.chuyenbienhoa.com/users/${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id}/story`,
+              });
+            } catch (error) {
+              console.error(error.message);
+            }
           }}
         >
           <View style={{
@@ -405,10 +409,11 @@ const StoryOptionsModal = ({
               {t('home.copyLinkShare')}
             </Text>
           </View>
-        </TouchableOpacity>
+        </Pressable>
 
         {isOwnStory ? (
-          <TouchableOpacity
+          <Pressable
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             onPress={() => {
               actionSheetRef.current?.hide();
               Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
@@ -458,10 +463,11 @@ const StoryOptionsModal = ({
                 {t('home.deleteStory') || "Xóa story"}
               </Text>
             </View>
-          </TouchableOpacity>
+          </Pressable>
         ) : (
           <>
-            <TouchableOpacity
+            <Pressable
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
               onPress={() => {
                 actionSheetRef.current?.hide();
                 setReportModalVisible(true);
@@ -499,7 +505,7 @@ const StoryOptionsModal = ({
                   />
                 </View>
               </View>
-            </TouchableOpacity>
+            </Pressable>
 
             {/* Temporarily hidden unfollow button
             {currentStoryUserRef.current?.isFollowed && (
@@ -551,13 +557,14 @@ const StoryOptionsModal = ({
             )}
             */}
 
-            <TouchableOpacity
+            <Pressable
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
               onPress={() => {
                 actionSheetRef.current?.hide();
-                Alert.alert(t('home.blockedTitle'), t('home.blockedBody'), [
-                  { text: t('settings.cancel'), style: "cancel" },
+                Alert.alert(t('home.blockedTitle') || "Chặn người dùng?", t('home.blockedBody') || "Bạn sẽ không thấy tin của người này nữa.", [
+                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
                   {
-                    text: t('home.blockPerson'), style: "destructive", onPress: async () => {
+                    text: t('home.blockPerson') || "Chặn", style: "destructive", onPress: async () => {
                       const userToBlockRef = currentStoryUserRef.current;
                       console.log("Blocking user (ref)...", userToBlockRef);
 
@@ -573,19 +580,23 @@ const StoryOptionsModal = ({
 
                         if (userToBlock) {
                           await blockUser(userToBlock.id || userToBlock.uid);
-
                           const usernameToBlock = userToBlock.username || userToBlock.id;
-                          await blockUserInContext(usernameToBlock);
+                          
+                          try {
+                            await blockUserInContext(usernameToBlock);
+                          } catch (ctxErr) {
+                            console.error("Error updating block context:", ctxErr);
+                          }
 
                           dismissStoryModal();
                           setTimeout(() => {
-                            Alert.alert(t('home.blockedSuccessTitle'), t('home.blockedSuccessMessage'));
+                            Alert.alert(t('home.blockedSuccessTitle') || "Thành công", t('home.blockedSuccessMessage') || "Đã chặn người dùng");
                           }, 500);
 
                           fetchStories();
                         } else {
                           console.error("No user found to block");
-                          Alert.alert(t('home.blockedErrorTitle'), t('home.blockedErrorMessage'));
+                          Alert.alert(t('home.blockedErrorTitle') || "Lỗi", t('home.blockedErrorMessage') || "Không tìm thấy thông tin");
                         }
                       } catch (e) {
                         console.error("Block error:", e);
@@ -616,7 +627,7 @@ const StoryOptionsModal = ({
                   {t('home.blockPerson')}
                 </Text>
               </View>
-            </TouchableOpacity>
+            </Pressable>
           </>
         )}
       </View>
