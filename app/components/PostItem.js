@@ -158,7 +158,7 @@ const PostItem = ({
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
-        {isCurrentUser && (
+        {false && isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
               navigation.navigate("PostEditScreen", { postId: item.id });
@@ -173,7 +173,7 @@ const PostItem = ({
             </View>
           </TouchableOpacity>
         )}
-        {isCurrentUser && (
+        {false && isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
               navigation.navigate("PostEditScreen", { postId: item.id });

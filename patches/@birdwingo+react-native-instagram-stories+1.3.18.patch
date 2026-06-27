@@ -11,16 +11,17 @@ index da69701..aabf23c 100644
    },
  } );
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
-index 9419aa6..7098ccd 100644
+index 9419aa6..0e3a161 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/Header.styles.ts
-@@ -1,10 +1,10 @@
+@@ -1,10 +1,11 @@
 -import { StyleSheet } from 'react-native';
 +import { StyleSheet, Platform } from 'react-native';
  
  export default StyleSheet.create( {
    container: {
      position: 'absolute',
++    zIndex: 9999,
      left: 16,
 -    top: 32,
 +    top: Platform.OS === 'ios' ? 60 : 32,
@@ -28,7 +29,7 @@ index 9419aa6..7098ccd 100644
    containerFlex: {
      flexDirection: 'row',
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
-index 32010ab..0ba2a35 100644
+index 32010ab..01fcce0 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
 @@ -1,57 +1,95 @@
@@ -147,7 +148,7 @@ index 32010ab..0ba2a35 100644
 -      </TouchableOpacity>
 +      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
 +        {onMore && (
-+          <TouchableOpacity onPress={onMore}>
++          <TouchableOpacity onPress={onMore} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
 +            <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
 +          </TouchableOpacity>
 +        )}
