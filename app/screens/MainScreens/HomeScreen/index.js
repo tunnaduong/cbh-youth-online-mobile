@@ -194,10 +194,10 @@ const ZoomableStoryImage = ({ uri, style }) => {
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.touches.length > 1 || scaleValue.current > 1,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         // Capture if zoomed in or if 2 fingers used
-        return scaleValue.current > 1 || gestureState.numberActiveTouches === 2;
+        return scaleValue.current > 1 || gestureState.numberActiveTouches > 1;
       },
       onPanResponderGrant: () => {
         lastTranslateX.current = translateXValue.current;
