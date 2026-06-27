@@ -500,6 +500,7 @@ const StoryOptionsModal = ({
               </View>
             </TouchableOpacity>
 
+            {/* Temporarily hidden unfollow button
             {currentStoryUserRef.current?.isFollowed && (
               <TouchableOpacity
                 onPress={async () => {
@@ -547,6 +548,7 @@ const StoryOptionsModal = ({
                 </View>
               </TouchableOpacity>
             )}
+            */}
 
             <TouchableOpacity
               onPress={() => {
