@@ -185,9 +185,9 @@ const ZoomableStoryImage = ({ uri, style }) => {
     lastTranslateX.current = 0;
     lastTranslateY.current = 0;
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: false }),
-      Animated.spring(translateX, { toValue: 0, useNativeDriver: false }),
-      Animated.spring(translateY, { toValue: 0, useNativeDriver: false }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
     ]).start();
   };
 
@@ -1797,6 +1797,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           data={filteredFeed}
           extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
             paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,

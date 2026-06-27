@@ -5,6 +5,7 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -192,6 +193,10 @@ const LikedPostsScreen = ({ navigation }) => {
       <FlatList
         data={posts}
         keyExtractor={(item) => `${item.topic.id}`}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item }) => (
           <PostItem item={item} navigation={navigation} />
         )}

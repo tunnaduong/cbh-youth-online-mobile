@@ -11,6 +11,7 @@ import {
   RefreshControl,
   Animated,
   DeviceEventEmitter,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
@@ -562,6 +563,10 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           data={notifications}
           extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item) => item.id.toString()}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           renderItem={renderItem}
           contentContainerStyle={{
             paddingBottom: 110 + insets.bottom,

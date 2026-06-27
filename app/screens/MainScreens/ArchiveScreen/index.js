@@ -234,6 +234,10 @@ const ArchiveScreen = ({ route, navigation }) => {
           data={archiveData}
           renderItem={renderDateSection}
           keyExtractor={(item) => item.date}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 16 }]}
         />
       )}

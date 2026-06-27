@@ -6,6 +6,7 @@ import {
   RefreshControl,
   TouchableOpacity,
   Image,
+  Platform,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getActivities } from "../../../services/api/Api";
@@ -307,6 +308,10 @@ const ActivityScreen = ({ navigation }) => {
       <FlatList
         data={activities}
         keyExtractor={(item) => `${item.type}-${item.created_timestamp}`}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item }) => (
           <ActivityItem item={item} navigation={navigation} />
         )}

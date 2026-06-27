@@ -12,6 +12,7 @@ import {
   Dimensions,
   StatusBar,
   DeviceEventEmitter,
+  Platform,
 } from "react-native";
 import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -341,6 +342,10 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           {

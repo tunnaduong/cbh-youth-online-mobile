@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Image,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -208,6 +209,10 @@ const SavedPostsScreen = ({ navigation }) => {
         data={savedPosts}
         extraData={t}
         keyExtractor={(item) => item.id.toString()}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item }) => (
           <SavedPostItem
             item={item}
