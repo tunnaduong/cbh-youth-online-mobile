@@ -866,6 +866,7 @@
     "textContent": "Tin văn bản",
     "edit": "Chỉnh sửa",
     "createStory": "Tạo tin",
+    "emptyTextError": "Vui lòng nhập văn bản cho tin của bạn.",
     "dropToDelete": "Thả để xóa",
     "dragHereToDelete": "Kéo vào đây để xóa",
     "brushSize": "Kích thước bút: {{size}}px",

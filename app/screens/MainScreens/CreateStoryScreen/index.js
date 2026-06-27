@@ -631,6 +631,15 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const uploadStory = async () => {
     try {
+      if (isTextOnly && (!text || text.trim() === "")) {
+        Toast.show({
+          type: "error",
+          text1: t("createStory.error") || "Error",
+          text2: t("createStory.emptyTextError") || "Please enter some text for your story.",
+        });
+        return;
+      }
+
       setIsUploading(true);
 
       const formData = new FormData();

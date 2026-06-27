@@ -878,6 +878,7 @@
     "textContent": "Text story",
     "edit": "Edit",
     "createStory": "Create story",
+    "emptyTextError": "Please enter some text for your story.",
     "dropToDelete": "Drop to delete",
     "dragHereToDelete": "Drag here to delete",
     "brushSize": "Brush size: {{size}}px",
