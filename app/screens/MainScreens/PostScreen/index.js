@@ -65,7 +65,7 @@ const PostScreen = ({ route, navigation }) => {
   const commentRefs = useRef({});
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
-  const isCurrentUser = post?.author?.username === username || String(post?.author?.id) === String(userInfo?.id) || String(post?.user_id) === String(userInfo?.id) || String(post?.uid) === String(userInfo?.id) || String(post?.userid) === String(userInfo?.id) || post?.is_mine === true || post?.is_author === true;
+  const isCurrentUser = post?.is_owner === true || post?.topic?.is_owner === true || post?.author?.username === username || String(post?.author?.id) === String(userInfo?.id) || String(post?.user_id) === String(userInfo?.id) || String(post?.uid) === String(userInfo?.id) || String(post?.userid) === String(userInfo?.id) || post?.is_mine === true || post?.is_author === true;
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
@@ -121,7 +121,10 @@ const PostScreen = ({ route, navigation }) => {
           </View>
         </TouchableOpacity>
         {isCurrentUser && (
-          <TouchableOpacity onPress={() => console.log("Privacy", post?.id)}>
+          <TouchableOpacity onPress={() => {
+            navigation.navigate("PostEditScreen", { postId: post?.id });
+            hideBottomSheet();
+          }}>
             <View className="flex-row items-center">
               <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
@@ -133,7 +136,7 @@ const PostScreen = ({ route, navigation }) => {
         {isCurrentUser && (
           <TouchableOpacity
             onPress={() => {
-              navigation.navigate("EditPostScreen", { postId: post?.id });
+              navigation.navigate("PostEditScreen", { postId: post?.id });
               hideBottomSheet();
             }}
           >
@@ -210,7 +213,7 @@ const PostScreen = ({ route, navigation }) => {
           text: t('post.editAction'),
           style: "default",
           onPress: () => {
-            navigation.navigate("EditPostScreen", { postId: post.id });
+            navigation.navigate("PostEditScreen", { postId: post.id });
             hideBottomSheet();
           },
         },

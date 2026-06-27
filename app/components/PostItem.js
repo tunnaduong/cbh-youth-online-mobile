@@ -54,7 +54,7 @@ const PostItem = ({
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const isCurrentUser = item?.author?.username === username || String(item?.author?.id) === String(userInfo?.id) || String(item?.user_id) === String(userInfo?.id) || String(item?.uid) === String(userInfo?.id) || String(item?.userid) === String(userInfo?.id) || item?.is_mine === true || item?.is_author === true;
+  const isCurrentUser = item?.is_owner === true || item?.topic?.is_owner === true || item?.author?.username === username || String(item?.author?.id) === String(userInfo?.id) || String(item?.user_id) === String(userInfo?.id) || String(item?.uid) === String(userInfo?.id) || String(item?.userid) === String(userInfo?.id) || item?.is_mine === true || item?.is_author === true;
 
   // Use external state if provided (for single view), otherwise use item props
   const currentVotes =
@@ -103,7 +103,7 @@ const PostItem = ({
           style: "default",
           onPress: () => {
             if (navigation) {
-              navigation.navigate("EditPostScreen", { postId: item.id });
+              navigation.navigate("PostEditScreen", { postId: item.id });
             }
             hideBottomSheet();
           },
@@ -159,7 +159,12 @@ const PostItem = ({
           </View>
         </TouchableOpacity>
         {isCurrentUser && (
-          <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
+          <TouchableOpacity onPress={() => {
+            if (navigation) {
+              navigation.navigate("PostEditScreen", { postId: item.id });
+            }
+            hideBottomSheet();
+          }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
@@ -171,7 +176,7 @@ const PostItem = ({
         {isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
-              navigation.navigate("EditPostScreen", { postId: item.id });
+              navigation.navigate("PostEditScreen", { postId: item.id });
             }
             hideBottomSheet();
           }}>
