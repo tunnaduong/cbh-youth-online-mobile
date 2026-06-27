@@ -980,7 +980,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           screenOptions={({ route }) => ({
             // Android: tắt animation mặc định của bottom tabs (fade JS-driven gây giật)
             // Tab content switch là tức thì — indicator animation trên tab bar vẫn chạy mượt
-            animation: 'none',
+            animation: Platform.OS === 'android' ? 'none' : 'shift',
             // Tránh re-render toàn bộ scene khi chuyển tab
             lazy: true,
             // Giữ các screen đã mount (không unmount khi rời tab)
