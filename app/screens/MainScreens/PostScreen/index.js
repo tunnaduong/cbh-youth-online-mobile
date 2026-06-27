@@ -120,6 +120,7 @@ const PostScreen = ({ route, navigation }) => {
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
+        {/*
         {isCurrentUser && (
           <TouchableOpacity onPress={() => {
             navigation.navigate("PostEditScreen", { postId: post?.id });
@@ -148,6 +149,7 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
+        */}
         <TouchableOpacity onPress={() => {
           hideBottomSheet();
           setReportModalVisible(true);
