@@ -289,7 +289,7 @@ const CustomTabBar = ({
   const indicatorAnimatedTranslateX = useRef(jsSlideAnim).current;
 
   // isDraggingAnim: switch display giữa native vs JS driver layer
-  const isDraggingState = useRef(false);
+  const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const lastHapticIndex = useRef(-1);
   const tabBarWidthRef = useRef(tabBarWidth);
