@@ -382,7 +382,7 @@ const StoryOptionsModal = ({
         </View>
         )}
 
-        <Pressable
+        {/* <Pressable
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
           onPress={async () => {
             actionSheetRef.current?.hide();
@@ -418,7 +418,7 @@ const StoryOptionsModal = ({
               {t('home.copyLinkShare')}
             </Text>
           </View>
-        </Pressable>
+        </Pressable> */}
 
         {isOwnStory ? (
           <Pressable
