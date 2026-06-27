@@ -437,7 +437,7 @@ const TrashZone = memo(({ visible, isOver }) => {
         color="#fff"
       />
       <Text style={[styles.trashZoneText, isOver && { fontWeight: "700" }]}>
-        {isOver ? "Drop to delete" : "Drag here to delete"}
+        {isOver ? t('createStory.dropToDelete') || "Drop to delete" : t('createStory.dragHereToDelete') || "Drag here to delete"}
       </Text>
     </Animated.View>
   );

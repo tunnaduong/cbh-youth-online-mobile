@@ -878,6 +878,8 @@
     "textContent": "Text story",
     "edit": "Edit",
     "createStory": "Create story",
+    "dropToDelete": "Drop to delete",
+    "dragHereToDelete": "Drag here to delete",
     "brushSize": "Brush size: {{size}}px",
     "featureInDevelopment": "Feature in development",
     "stayTuned": "Please stay tuned for this feature",

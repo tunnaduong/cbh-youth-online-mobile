@@ -866,6 +866,8 @@
     "textContent": "Tin văn bản",
     "edit": "Chỉnh sửa",
     "createStory": "Tạo tin",
+    "dropToDelete": "Thả để xóa",
+    "dragHereToDelete": "Kéo vào đây để xóa",
     "brushSize": "Kích thước bút: {{size}}px",
     "featureInDevelopment": "Tính năng đang phát triển",
     "stayTuned": "Hãy cùng chờ đón tính năng này nhé",
