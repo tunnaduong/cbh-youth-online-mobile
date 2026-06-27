@@ -290,6 +290,7 @@ const StoryOptionsModal = ({
   setReportModalVisible,
   currentStoryUserRef,
   currentStory,
+  currentStoryRef,
   userStories,
   dismissStoryModal,
   fetchStories,
@@ -411,8 +412,9 @@ const StoryOptionsModal = ({
                 {
                   text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
                     try {
-                      if (currentStory) {
-                        await deleteStory(currentStory);
+                      const storyIdToDelete = currentStoryRef.current;
+                      if (storyIdToDelete) {
+                        await deleteStory(storyIdToDelete);
                         dismissStoryModal();
                         fetchStories();
                         Toast.show({
@@ -540,8 +542,8 @@ const StoryOptionsModal = ({
                       try {
                         let userToBlock = userToBlockRef;
 
-                        if (!userToBlock && currentStory) {
-                          const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStory));
+                        if (!userToBlock && currentStoryRef.current) {
+                          const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStoryRef.current));
                           if (foundUser) {
                             userToBlock = { id: foundUser.uid, username: foundUser.id };
                           }
@@ -795,6 +797,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
   const [currentStory, setCurrentStory] = useState(null);
+  const currentStoryRef = useRef(null);
+  useEffect(() => {
+    currentStoryRef.current = currentStory;
+  }, [currentStory]);
   const [currentStoryUser, setCurrentStoryUser] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [isStoryVisible, setIsStoryVisible] = useState(false);
@@ -1905,6 +1911,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           setReportModalVisible={setReportModalVisible}
           currentStoryUserRef={currentStoryUserRef}
           currentStory={currentStory}
+          currentStoryRef={currentStoryRef}
           userStories={userStories}
           dismissStoryModal={dismissStoryModal}
           fetchStories={fetchStories}
