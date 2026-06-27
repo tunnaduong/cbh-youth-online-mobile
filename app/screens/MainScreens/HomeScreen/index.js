@@ -297,7 +297,7 @@ const StoryOptionsModal = ({
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
-  const isOwnStory = currentStoryUserRef.current?.id === userInfo?.id || currentStoryUserRef.current?.uid === userInfo?.id;
+  const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
 
   return (
     <ActionSheet
@@ -319,10 +319,11 @@ const StoryOptionsModal = ({
       gestureEnabled={true}
     >
       <View style={{ paddingVertical: 8, backgroundColor: theme.cardBackground }}>
-        <View style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+        {!isOwnStory && (
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
           paddingVertical: 16,
           marginHorizontal: 20,
           borderBottomWidth: 1,
@@ -365,6 +366,7 @@ const StoryOptionsModal = ({
             trackColor={{ false: "#767577", true: theme.primary }}
           />
         </View>
+        )}
 
         <TouchableOpacity
           onPress={() => {
