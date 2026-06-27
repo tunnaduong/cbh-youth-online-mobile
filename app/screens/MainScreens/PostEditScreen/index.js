@@ -223,7 +223,7 @@ const PostEditScreen = ({ navigation, route }) => {
       if (viewSelected?.value === "public") {
         setFeed((prevPosts) =>
           prevPosts.map((post) =>
-            post.id === route.params.postId ? response.data : post
+            post.id === route.params.postId ? { ...response.data, is_mine: true, is_author: true, author: { ...userInfo, ...response.data?.author }, anonymous: response.data?.anonymous ?? isAnonymous } : post
           )
         );
       }

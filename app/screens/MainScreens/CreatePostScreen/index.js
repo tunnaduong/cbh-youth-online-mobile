@@ -235,7 +235,7 @@ const CreatePostScreen = ({ navigation }) => {
       });
 
       if (viewSelected.value === "public") {
-        setFeed((prevPosts) => [response.data, ...prevPosts]);
+        setFeed((prevPosts) => [{ ...response.data, is_mine: true, is_author: true, author: { ...userInfo, ...response.data?.author }, anonymous: response.data?.anonymous ?? isAnonymous }, ...prevPosts]);
       }
 
       // Use a more defensive approach to navigation

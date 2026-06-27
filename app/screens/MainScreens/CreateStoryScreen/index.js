@@ -408,7 +408,7 @@ const MoveableText = memo(({ id, text, x, y, isEditing, onPositionChange, onTap,
   );
 });
 
-const TrashZone = memo(({ visible, isOver }) => {
+const TrashZone = memo(({ visible, isOver, t }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -437,7 +437,7 @@ const TrashZone = memo(({ visible, isOver }) => {
         color="#fff"
       />
       <Text style={[styles.trashZoneText, isOver && { fontWeight: "700" }]}>
-        {isOver ? t('createStory.dropToDelete') || "Drop to delete" : t('createStory.dragHereToDelete') || "Drag here to delete"}
+        {isOver ? t('story.dropToDelete', 'Drop to delete') : t('story.dragHereToDelete', 'Drag here to delete')}
       </Text>
     </Animated.View>
   );
@@ -634,8 +634,8 @@ const CreateStoryScreen = ({ navigation }) => {
       if (isTextOnly && (!text || text.trim() === "")) {
         Toast.show({
           type: "error",
-          text1: t("createStory.error") || "Error",
-          text2: t("createStory.emptyTextError") || "Please enter some text for your story.",
+          text1: t("common.error"),
+          text2: t("story.emptyTextError", "Please enter some text for your story."),
         });
         return;
       }
@@ -1089,7 +1089,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       }}
                     />
                   )}
-                  <TrashZone visible={isDraggingText} isOver={isOverTrash} />
+                  <TrashZone visible={isDraggingText} isOver={isOverTrash} t={t} />
                 </>
               ) : (
                 <>
