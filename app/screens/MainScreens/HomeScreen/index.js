@@ -303,6 +303,11 @@ const StoryOptionsModal = ({
   const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
   const insets = useSafeAreaInsets();
 
+  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
+
+  // When opening the modal for a new user, you might want to reset or set the initial state
+  // based on some actual user data. For now, we'll let it maintain local state.
+
   return (
     <ActionSheet
       ref={actionSheetRef}
@@ -357,16 +362,20 @@ const StoryOptionsModal = ({
             </View>
           </View>
           <Switch
-            value={false}
+            value={isNotificationsEnabled}
             onValueChange={(value) => {
-              actionSheetRef.current?.hide();
-              Toast.show({
-                type: "info",
-                text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
-                text2: value
-                  ? t('home.receiveNotifications')
-                  : t('home.stopNotifications'),
-              });
+              setIsNotificationsEnabled(value);
+              // Delay hiding so user sees the toggle animation
+              setTimeout(() => {
+                actionSheetRef.current?.hide();
+                Toast.show({
+                  type: "info",
+                  text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
+                  text2: value
+                    ? t('home.receiveNotifications')
+                    : t('home.stopNotifications'),
+                });
+              }, 300);
             }}
             trackColor={{ false: "#767577", true: theme.primary }}
           />
