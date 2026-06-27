@@ -19,7 +19,7 @@ import {
   updatePost,
   getSubforums,
   uploadFile,
-  getPost,
+  getPostDetail,
 } from "../../../services/api/Api";
 import Verified from "../../../assets/Verified";
 import Toast from "react-native-toast-message";
@@ -72,7 +72,7 @@ const PostEditScreen = ({ navigation, route }) => {
         setLoading(true);
         const [subforumsRes, postRes] = await Promise.all([
           getSubforums(),
-          getPost(route.params.postId),
+          getPostDetail(route.params.postId),
         ]);
 
         const translatedSubforums = subforumsRes.data.map(item => ({
