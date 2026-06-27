@@ -45,6 +45,7 @@ import {
   blockUser,
   reportUser,
   deleteStory,
+  markStoryAsViewed,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import formatTime from "../../../utils/formatTime";
@@ -299,6 +300,7 @@ const StoryOptionsModal = ({
   const { theme, isDarkMode } = useTheme();
   const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
   const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
+  const insets = useSafeAreaInsets();
 
   return (
     <ActionSheet
@@ -319,7 +321,7 @@ const StoryOptionsModal = ({
       }}
       gestureEnabled={true}
     >
-      <View style={{ paddingVertical: 8, backgroundColor: theme.cardBackground }}>
+      <View style={{ paddingVertical: 8, paddingBottom: insets.bottom || 20, backgroundColor: theme.cardBackground }}>
         {!isOwnStory && (
           <View style={{
             flexDirection: "row",
