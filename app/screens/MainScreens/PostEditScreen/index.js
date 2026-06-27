@@ -82,12 +82,12 @@ const PostEditScreen = ({ navigation, route }) => {
           label: getCategoryName(item.label, t)
         }));
         setSubforums(translatedSubforums);
-        const post = postRes.data;
+        const post = postRes.data.post || postRes.data;
         setInitialPost(post);
 
         // Set initial values
-        setTitle(post.title);
-        setPostContent(post.description);
+        setTitle(post.title || "");
+        setPostContent(post.description || post.content || "");
         setIsAnonymous(!!post.anonymous);
         
         // Match the initial view option based on privacy

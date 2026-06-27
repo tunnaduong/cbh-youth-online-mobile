@@ -46,6 +46,7 @@ import {
   reportUser,
   deleteStory,
   markStoryAsViewed,
+  unfollowUser,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import formatTime from "../../../utils/formatTime";
@@ -499,37 +500,53 @@ const StoryOptionsModal = ({
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              onPress={() => {
-                actionSheetRef.current?.hide();
-                Toast.show({
-                  type: "info",
-                  text1: t('home.unfollowPerson'),
-                  text2: t('home.unfollowed'),
-                });
-              }}
-            >
-              <View style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingVertical: 16,
-                marginHorizontal: 20
-              }}>
+            {currentStoryUserRef.current?.isFollowed && (
+              <TouchableOpacity
+                onPress={async () => {
+                  actionSheetRef.current?.hide();
+                  try {
+                    const userToUnfollow = currentStoryUserRef.current;
+                    if (userToUnfollow && userToUnfollow.id) {
+                      await unfollowUser(userToUnfollow.id);
+                      fetchStories(); // Update the UI if needed
+                      Toast.show({
+                        type: "success",
+                        text1: t('home.unfollowPerson'),
+                        text2: t('home.unfollowed'),
+                      });
+                    }
+                  } catch (error) {
+                    console.error("Failed to unfollow user from stories:", error);
+                    Toast.show({
+                      type: "error",
+                      text1: t('common.error'),
+                      text2: error.message || "Failed to unfollow",
+                    });
+                  }
+                }}
+              >
                 <View style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.iconBackground,
-                  justifyContent: "center",
-                  alignItems: "center"
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 16,
+                  marginHorizontal: 20
                 }}>
-                  <Ionicons name="close-outline" size={23} color={theme.text} />
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: theme.iconBackground,
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}>
+                    <Ionicons name="close-outline" size={23} color={theme.text} />
+                  </View>
+                  <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
+                    {t('home.unfollowPerson')}
+                  </Text>
                 </View>
-                <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-                  {t('home.unfollowPerson')}
-                </Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={() => {
@@ -1166,6 +1183,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         uid: user.id,
         id: user.username,
         name: user.name,
+        isFollowed: user.is_following,
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
