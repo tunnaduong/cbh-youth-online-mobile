@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, BackHandler } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
@@ -15,8 +15,19 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
     onClose();
   };
 
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'android') return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [visible, onClose]);
+
+  if (!visible) return null;
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+    <View style={StyleSheet.absoluteFill}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <TouchableWithoutFeedback onPress={onClose}>
           <View style={styles.overlay}>
@@ -57,7 +68,7 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </Modal>
+    </View>
   );
 };
 

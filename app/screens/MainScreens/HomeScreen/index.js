@@ -306,6 +306,7 @@ const StoryOptionsModal = ({
   return (
     <ActionSheet
       ref={actionSheetRef}
+      isModal={false}
       containerStyle={{
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
@@ -1921,24 +1922,28 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           }}
           toast={<Toast topOffset={60} />}
+          footerComponent={
+            <>
+              <ReportModal
+                visible={reportModalVisible}
+                onClose={() => setReportModalVisible(false)}
+                onSubmit={handleReportSubmit}
+              />
+              <StoryOptionsModal
+                actionSheetRef={actionSheetRef}
+                storyRef={storyRef}
+                setReportModalVisible={setReportModalVisible}
+                currentStoryUserRef={currentStoryUserRef}
+                currentStory={currentStory}
+                currentStoryRef={currentStoryRef}
+                userStories={userStories}
+                dismissStoryModal={dismissStoryModal}
+                fetchStories={fetchStories}
+              />
+            </>
+          }
         />
         <ResendVerificationModal />
-        <ReportModal
-          visible={reportModalVisible}
-          onClose={() => setReportModalVisible(false)}
-          onSubmit={handleReportSubmit}
-        />
-        <StoryOptionsModal
-          actionSheetRef={actionSheetRef}
-          storyRef={storyRef}
-          setReportModalVisible={setReportModalVisible}
-          currentStoryUserRef={currentStoryUserRef}
-          currentStory={currentStory}
-          currentStoryRef={currentStoryRef}
-          userStories={userStories}
-          dismissStoryModal={dismissStoryModal}
-          fetchStories={fetchStories}
-        />
       </View>
     </>
   );
