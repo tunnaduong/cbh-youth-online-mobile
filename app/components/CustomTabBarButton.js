@@ -249,8 +249,8 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
         <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
           <View style={styles.iconCircle}>
             <Ionicons
-              name="add-circle"
-              size={52}
+              name="add"
+              size={40}
               color={theme.primary}
               style={styles.icon}
             />
