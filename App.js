@@ -1,8 +1,7 @@
 import React, { useContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, Alert } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { View, Text, Platform, Alert, StatusBar } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 
@@ -95,7 +94,7 @@ const App = () => {
   return (
     <>
       <StatusBar
-        style={isDarkMode ? "light" : "dark"}
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
         backgroundColor={theme.background}
         translucent={false}
         animated={true}

@@ -562,11 +562,7 @@ const CustomTabBar = ({
           canPreventDefault: true,
         });
         if (!event.defaultPrevented) {
-          // Dùng requestAnimationFrame để navigation chạy sau frame hiện tại,
-          // tránh block animation indicator đang chạy
-          requestAnimationFrame(() => {
-            navigation.navigate(route.name, route.params);
-          });
+          navigation.navigate(route.name, route.params);
         }
       };
 
