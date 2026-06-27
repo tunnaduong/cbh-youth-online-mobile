@@ -44,14 +44,27 @@ const PostEditScreen = ({ navigation, route }) => {
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
-  const view = [
-    { label: t('editPost.public'), value: 0, icon: "earth" },
-    { label: t('editPost.private'), value: 1, icon: "lock-closed" },
-  ];
-  const [viewSelected, setViewSelected] = useState(view[0]);
+  
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [viewSelected, setViewSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
   const [initialPost, setInitialPost] = useState(null);
+
+  const viewOptions = isAnonymous ? [
+    { label: t('editPost.public') || t('createPost.privacyPublic') || "Công khai", value: "public", icon: "earth" },
+    { label: t('editPost.private') || t('createPost.privacyPrivate') || "Riêng tư", value: "private", icon: "lock-closed" },
+  ] : [
+    { label: t('editPost.public') || t('createPost.privacyPublic') || "Công khai", value: "public", icon: "earth" },
+    { label: t('createPost.privacyFollowers') || "Người theo dõi", value: "followers", icon: "people" },
+    { label: t('editPost.private') || t('createPost.privacyPrivate') || "Riêng tư", value: "private", icon: "lock-closed" },
+  ];
+
+  useEffect(() => {
+    if (isAnonymous && viewSelected?.value === 'followers') {
+      setViewSelected(viewOptions[0]);
+    }
+  }, [isAnonymous]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -73,9 +86,13 @@ const PostEditScreen = ({ navigation, route }) => {
         // Set initial values
         setTitle(post.title);
         setPostContent(post.description);
-        setViewSelected(
-          view.find((v) => v.value === post.visibility) || view[0]
-        );
+        setIsAnonymous(!!post.anonymous);
+        
+        // Match the initial view option based on privacy
+        const initialPrivacy = post.privacy || (post.visibility === 1 ? "private" : "public");
+        const matchingOption = viewOptions.find(v => v.value === initialPrivacy) || viewOptions[0];
+        setViewSelected(matchingOption);
+
         if (post.subforum_id) {
           setSelected(
             translatedSubforums.find((s) => s.value === post.subforum_id)
@@ -199,10 +216,12 @@ const PostEditScreen = ({ navigation, route }) => {
         description: postContent,
         cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         subforum_id: selected?.value ?? null,
-        visibility: viewSelected.value,
+        visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
+        privacy: viewSelected?.value,
+        anonymous: isAnonymous,
       });
 
-      if (viewSelected.value === 0) {
+      if (viewSelected?.value === "public") {
         setFeed((prevPosts) =>
           prevPosts.map((post) =>
             post.id === route.params.postId ? response.data : post
@@ -343,8 +362,8 @@ const PostEditScreen = ({ navigation, route }) => {
           />
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '500', fontSize: 18, color: theme.text }} numberOfLines={1}>
-              {profileName}
-              {userInfo.verified && (
+              {isAnonymous ? t('createPost.anonymousUser') : profileName}
+              {userInfo.verified && !isAnonymous && (
                 <View>
                   <Verified
                     width={20}
@@ -356,8 +375,8 @@ const PostEditScreen = ({ navigation, route }) => {
               )}
             </Text>
             <Dropdown
-              options={view}
-              placeholder={t('editPost.public')}
+              options={viewOptions}
+              placeholder={viewOptions[0].label}
               selectedValue={viewSelected}
               onValueChange={setViewSelected}
               style={{
@@ -370,7 +389,7 @@ const PostEditScreen = ({ navigation, route }) => {
               }}
               leftIcon={
                 <Ionicons
-                  name={viewSelected.icon}
+                  name={viewSelected?.icon || "earth"}
                   size={15}
                   color={theme.subText}
                 />
@@ -408,6 +427,26 @@ const PostEditScreen = ({ navigation, route }) => {
             multiline
             textAlignVertical="top"
           />
+          <View
+            style={{
+              height: 0,
+              borderTopWidth: 1,
+              borderColor: theme.border,
+              marginHorizontal: 12,
+            }}
+          ></View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}>
+            <View>
+              <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.text, marginBottom: 5 }}>{t('createPost.anonymous') || "Ẩn danh"}</Text>
+              <Text style={{ color: theme.subText, fontSize: 12 }}>{t('createPost.anonymousDesc') || "Đăng bài ẩn danh"}</Text>
+            </View>
+            <Switch
+              trackColor={{ false: '#767577', true: theme.primary }}
+              thumbColor={isAnonymous ? '#f4f3f4' : '#f4f3f4'}
+              onValueChange={() => setIsAnonymous(!isAnonymous)}
+              value={isAnonymous}
+            />
+          </View>
         </View>
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
           <Dropdown

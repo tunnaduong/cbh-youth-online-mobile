@@ -47,14 +47,14 @@ const PostItem = ({
   onSave: onSaveCallback, // Callback for single view save updates
 }) => {
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
-  const { username } = useContext(AuthContext);
+  const { username, userInfo } = useContext(AuthContext);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const isCurrentUser = item?.author?.username === username;
+  const isCurrentUser = item?.author?.username === username || item?.user_id === userInfo?.id || item?.uid === userInfo?.id || item?.is_mine === true || item?.is_author === true;
 
   // Use external state if provided (for single view), otherwise use item props
   const currentVotes =

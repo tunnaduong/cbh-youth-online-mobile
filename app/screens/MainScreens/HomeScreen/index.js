@@ -42,9 +42,9 @@ import {
   removeStoryReaction,
   replyToStory,
   getStoryViewers,
-  markStoryAsViewed,
   blockUser,
   reportUser,
+  deleteStory,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import formatTime from "../../../utils/formatTime";
@@ -296,7 +296,8 @@ const StoryOptionsModal = ({
 }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
-  const { blockUser: blockUserInContext } = useContext(AuthContext);
+  const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
+  const isOwnStory = currentStoryUserRef.current?.id === userInfo?.id || currentStoryUserRef.current?.uid === userInfo?.id;
 
   return (
     <ActionSheet
@@ -399,144 +400,199 @@ const StoryOptionsModal = ({
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            setReportModalVisible(true);
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="warning-outline" size={23} color={theme.subText} />
-            </View>
-            <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
-              <Text style={{ color: theme.subText, fontSize: 13 }}>
-                {t('home.reportStoryDesc')}
-              </Text>
-            </View>
-            <View style={{ marginLeft: "auto" }}>
-              <Ionicons
-                name="chevron-forward-outline"
-                size={23}
-                color="#D1D1D1"
-              />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            Toast.show({
-              type: "info",
-              text1: t('home.unfollowPerson'),
-              text2: t('home.unfollowed'),
-            });
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="close-outline" size={23} color={theme.text} />
-            </View>
-            <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              {t('home.unfollowPerson')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            Alert.alert(t('home.blockedTitle'), t('home.blockedBody'), [
-              { text: t('settings.cancel'), style: "cancel" },
-              {
-                text: t('home.blockPerson'), style: "destructive", onPress: async () => {
-                  const userToBlockRef = currentStoryUserRef.current;
-                  console.log("Blocking user (ref)...", userToBlockRef);
-
-                  try {
-                    let userToBlock = userToBlockRef;
-
-                    if (!userToBlock && currentStory) {
-                      const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStory));
-                      if (foundUser) {
-                        userToBlock = { id: foundUser.uid, username: foundUser.id };
+        {isOwnStory ? (
+          <TouchableOpacity
+            onPress={() => {
+              actionSheetRef.current?.hide();
+              Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
+                { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                {
+                  text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
+                    try {
+                      if (currentStory) {
+                        await deleteStory(currentStory);
+                        dismissStoryModal();
+                        fetchStories();
+                        Toast.show({
+                          type: "success",
+                          text1: t('home.deleteStorySuccess') || "Xóa thành công",
+                        });
                       }
+                    } catch (e) {
+                      Toast.show({
+                        type: "error",
+                        text1: t('common.error'),
+                        text2: e.message,
+                      });
                     }
-
-                    if (userToBlock) {
-                      await blockUser(userToBlock.id || userToBlock.uid);
-
-                      const usernameToBlock = userToBlock.username || userToBlock.id;
-                      await blockUserInContext(usernameToBlock);
-
-                      dismissStoryModal();
-                      setTimeout(() => {
-                        Alert.alert(t('home.blockedSuccessTitle'), t('home.blockedSuccessMessage'));
-                      }, 500);
-
-                      fetchStories();
-                    } else {
-                      console.error("No user found to block");
-                      Alert.alert(t('home.blockedErrorTitle'), t('home.blockedErrorMessage'));
-                    }
-                  } catch (e) {
-                    console.error("Block error:", e);
-                    Alert.alert(t('common.error'), e.message || t('common.unknownError'));
                   }
                 }
-              }
-            ]);
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20
-          }}>
+              ]);
+            }}
+          >
             <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
+              flexDirection: "row",
+              alignItems: "center",
+              paddingVertical: 16,
+              marginHorizontal: 20
             }}>
-              <Ionicons name="ban-outline" size={23} color="#ef4444" />
+              <View style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: theme.iconBackground,
+                justifyContent: "center",
+                alignItems: "center"
+              }}>
+                <Ionicons name="trash-outline" size={23} color="#ef4444" />
+              </View>
+              <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
+                {t('home.deleteStory') || "Xóa story"}
+              </Text>
             </View>
-            <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
-              {t('home.blockPerson')}
-            </Text>
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity
+              onPress={() => {
+                actionSheetRef.current?.hide();
+                setReportModalVisible(true);
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                marginHorizontal: 20,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.iconBackground,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <Ionicons name="warning-outline" size={23} color={theme.subText} />
+                </View>
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
+                  <Text style={{ color: theme.subText, fontSize: 13 }}>
+                    {t('home.reportStoryDesc')}
+                  </Text>
+                </View>
+                <View style={{ marginLeft: "auto" }}>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={23}
+                    color="#D1D1D1"
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                actionSheetRef.current?.hide();
+                Toast.show({
+                  type: "info",
+                  text1: t('home.unfollowPerson'),
+                  text2: t('home.unfollowed'),
+                });
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                marginHorizontal: 20
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.iconBackground,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <Ionicons name="close-outline" size={23} color={theme.text} />
+                </View>
+                <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
+                  {t('home.unfollowPerson')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                actionSheetRef.current?.hide();
+                Alert.alert(t('home.blockedTitle'), t('home.blockedBody'), [
+                  { text: t('settings.cancel'), style: "cancel" },
+                  {
+                    text: t('home.blockPerson'), style: "destructive", onPress: async () => {
+                      const userToBlockRef = currentStoryUserRef.current;
+                      console.log("Blocking user (ref)...", userToBlockRef);
+
+                      try {
+                        let userToBlock = userToBlockRef;
+
+                        if (!userToBlock && currentStory) {
+                          const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStory));
+                          if (foundUser) {
+                            userToBlock = { id: foundUser.uid, username: foundUser.id };
+                          }
+                        }
+
+                        if (userToBlock) {
+                          await blockUser(userToBlock.id || userToBlock.uid);
+
+                          const usernameToBlock = userToBlock.username || userToBlock.id;
+                          await blockUserInContext(usernameToBlock);
+
+                          dismissStoryModal();
+                          setTimeout(() => {
+                            Alert.alert(t('home.blockedSuccessTitle'), t('home.blockedSuccessMessage'));
+                          }, 500);
+
+                          fetchStories();
+                        } else {
+                          console.error("No user found to block");
+                          Alert.alert(t('home.blockedErrorTitle'), t('home.blockedErrorMessage'));
+                        }
+                      } catch (e) {
+                        console.error("Block error:", e);
+                        Alert.alert(t('common.error'), e.message || t('common.unknownError'));
+                      }
+                    }
+                  }
+                ]);
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                marginHorizontal: 20
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.iconBackground,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <Ionicons name="ban-outline" size={23} color="#ef4444" />
+                </View>
+                <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
+                  {t('home.blockPerson')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
     </ActionSheet>
   );
