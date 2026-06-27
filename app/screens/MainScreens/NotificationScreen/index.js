@@ -352,12 +352,12 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   };
 
   const renderItem = ({ item }) => {
-    const isAnonymous = item.data?.is_anonymous === true || item.data?.anonymous === true;
+    const isAnonymous = (item.actor && item.actor.id === null) || item.data?.is_anonymous === true || item.data?.anonymous === true;
     const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
     const userName = isSystemMessage
       ? t('notifications.system')
       : isAnonymous
-        ? (t('createPost.anonymousUser') || "Ẩn danh")
+        ? (item.actor?.profile_name || t('createPost.anonymousUser') || "Ẩn danh")
         : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
     const displayContent = formatNotificationMessage(item.raw || item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
@@ -398,7 +398,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.data?.post_id) {
             navigation.navigate("PostScreen", { postId: item.data.post_id });
-          } else if (item.actor?.username) {
+          } else if (item.actor?.username && !isAnonymous) {
             navigation.navigate("ProfileScreen", {
               username: item.actor.username,
             });
