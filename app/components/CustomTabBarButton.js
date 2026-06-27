@@ -135,6 +135,16 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
     ? "rgba(255, 255, 255, 0.10)"
     : "rgba(0, 0, 0, 0.06)";
 
+  const dynamicElevation = menuAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0, 4],
+  });
+
+  const dynamicShadowOpacity = menuAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0, 0, 0.15],
+  });
+
   const renderButtonContent = (icon, labelKey, onBtnPress) => (
     <TouchableOpacity
       style={styles.rowTouch}
@@ -190,7 +200,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
     return (
       <View style={styles.columnContainer}>
         {menuButtons.map((btn, i) => (
-          <View
+          <Animated.View
             key={i}
             style={[
               styles.pillRow,
@@ -198,16 +208,16 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
                 backgroundColor: pillBg,
                 borderColor: pillBorder,
                 marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                elevation: 4,
+                elevation: dynamicElevation,
                 shadowColor: "#000",
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.15,
+                shadowOpacity: dynamicShadowOpacity,
                 shadowRadius: 6,
               }
             ]}
           >
             {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
-          </View>
+          </Animated.View>
         ))}
       </View>
     );
