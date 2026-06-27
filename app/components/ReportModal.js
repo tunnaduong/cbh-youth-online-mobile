@@ -17,12 +17,13 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-              <TouchableWithoutFeedback>
-                <View style={[styles.content, { backgroundColor: theme.cardBackground }]}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.container}>
+                <TouchableWithoutFeedback>
+                  <View style={[styles.content, { backgroundColor: theme.cardBackground }]}>
                   <Text style={[styles.title, { color: theme.text }]}>{t('report.modalTitle')}</Text>
                   <TextInput
                     style={[styles.input, {
@@ -51,10 +52,11 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
                   </View>
                 </View>
               </TouchableWithoutFeedback>
-            </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
