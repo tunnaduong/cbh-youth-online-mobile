@@ -65,7 +65,7 @@ const PostScreen = ({ route, navigation }) => {
   const commentRefs = useRef({});
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
-  const isCurrentUser = post?.author?.username === username || post?.user_id === userInfo?.id || post?.uid === userInfo?.id || post?.is_mine === true || post?.is_author === true;
+  const isCurrentUser = post?.author?.username === username || String(post?.author?.id) === String(userInfo?.id) || String(post?.user_id) === String(userInfo?.id) || String(post?.uid) === String(userInfo?.id) || post?.is_mine === true || post?.is_author === true;
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;

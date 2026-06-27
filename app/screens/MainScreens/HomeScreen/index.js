@@ -1847,6 +1847,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         />
 
         <InstagramStories
+          key={filteredStories.map(u => u.stories.length).join('-')}
           ref={storyRef}
           stories={filteredStories}
           hideAvatarList={true}

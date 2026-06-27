@@ -14,7 +14,7 @@ import {
   Platform,
   Modal,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../contexts/ThemeContext";
@@ -248,9 +248,9 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
       <Pressable style={styles.buttonContainer} onPress={handlePress}>
         <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
           <View style={styles.iconCircle}>
-            <Ionicons
-              name="add"
-              size={40}
+            <MaterialCommunityIcons
+              name="plus"
+              size={38}
               color={theme.primary}
               style={styles.icon}
             />
