@@ -1131,7 +1131,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const handleReportSubmit = async (reason) => {
     try {
       if (!currentStoryUser) return;
-      await reportUser({ story_id: currentStory, reported_user_id: currentStoryUser.uid || currentStoryUser.id, reason });
+      await reportUser({ story_id: currentStory, reason });
       Toast.show({
         type: "success",
         text1: t('home.reportSentTitle'),
