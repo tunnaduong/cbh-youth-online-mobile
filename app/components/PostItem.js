@@ -118,7 +118,8 @@ const PostItem = ({
 
   const handleReportSubmit = async (reason) => {
     try {
-      await reportUser({ topic_id: item.id, reason });
+      const reportedUserId = item?.author?.id || item?.user_id || item?.uid || item?.userid;
+      await reportUser({ reported_user_id: reportedUserId, topic_id: item.id, reason });
       Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
       Alert.alert(t('profile.errorTitle'), e.response?.data?.message || e.message || t('post.reportError'));

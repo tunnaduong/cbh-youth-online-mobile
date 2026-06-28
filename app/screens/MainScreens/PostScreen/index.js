@@ -470,7 +470,8 @@ const PostScreen = ({ route, navigation }) => {
 
   const handleReportSubmit = async (reason) => {
     try {
-      await reportUser({ topic_id: post.id, reason });
+      const reportedUserId = post?.author?.id || post?.user_id || post?.uid || post?.userid;
+      await reportUser({ reported_user_id: reportedUserId, topic_id: post.id, reason });
       Alert.alert(
         t('post.reportSuccessTitle'),
         t('post.reportSuccessBody')
