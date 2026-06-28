@@ -19,7 +19,6 @@ import {
   Pressable,
   TextInput,
   StyleSheet,
-  SafeAreaView,
   TouchableWithoutFeedback,
   Keyboard,
   Modal,
@@ -30,6 +29,8 @@ import {
   Dimensions,
   Alert,
   DeviceEventEmitter,
+  StatusBar,
+  PanResponder,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -41,14 +42,17 @@ import {
   removeStoryReaction,
   replyToStory,
   getStoryViewers,
-  markStoryAsViewed,
   blockUser,
   reportUser,
+  deleteStory,
+  markStoryAsViewed,
+  unfollowUser,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "../../../global/storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
@@ -56,11 +60,771 @@ import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
-import KeyboardSpacer from "react-native-keyboard-spacer";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+
+const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+
+const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
+
+// Map emojis to reaction types
+const emojiToReactionType = {
+  "👍": "like",
+  "❤️": "love",
+  "🔥": "like", // Fire doesn't exist in API, use like
+  "😆": "haha",
+  "😮": "wow",
+  "😢": "sad",
+  "😡": "angry",
+};
+
+const FloatingEmoji = ({ emoji, onComplete }) => {
+  const translateY = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const randomX = (Math.random() - 0.5) * 150; // Increased random range for wider spread
+
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: -300, // Increased travel distance
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateX, {
+        toValue: randomX,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 0,
+          duration: 900,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start(() => {
+      onComplete();
+    });
+  }, []);
+
+  return (
+    <Animated.Text
+      style={{
+        position: "absolute",
+        fontSize: 80, // Increased font size
+        left: "50%",
+        bottom: 200,
+        marginLeft: -40, // Half of the emoji's approximate width
+        transform: [{ translateY }, { translateX }, { scale }],
+      }}
+    >
+      {emoji}
+    </Animated.Text>
+  );
+};
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+
+const ZoomableStoryImage = ({ uri, style }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  // Store raw values for calculations
+  const scaleValue = useRef(1);
+  const lastScale = useRef(1);
+  const translateXValue = useRef(0);
+  const translateYValue = useRef(0);
+  const lastTranslateX = useRef(0);
+  const lastTranslateY = useRef(0);
+
+  // Track initial distance for pinch gesture
+  const initialDistance = useRef(null);
+  const initialMidpoint = useRef({ x: 0, y: 0 });
+
+  const getDistance = (touches) => {
+    const [t1, t2] = touches;
+    return Math.sqrt(
+      Math.pow(t2.pageX - t1.pageX, 2) + Math.pow(t2.pageY - t1.pageY, 2)
+    );
+  };
+
+  const getMidpoint = (touches) => {
+    const [t1, t2] = touches;
+    return {
+      x: (t1.pageX + t2.pageX) / 2,
+      y: (t1.pageY + t2.pageY) / 2,
+    };
+  };
+
+  const clampTranslate = (tx, ty, currentScale) => {
+    const maxX = (SCREEN_WIDTH * (currentScale - 1)) / 2;
+    const maxY = (SCREEN_HEIGHT * (currentScale - 1)) / 2;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, tx)),
+      y: Math.max(-maxY, Math.min(maxY, ty)),
+    };
+  };
+
+  const resetTransform = () => {
+    scaleValue.current = 1;
+    lastScale.current = 1;
+    translateXValue.current = 0;
+    translateYValue.current = 0;
+    lastTranslateX.current = 0;
+    lastTranslateY.current = 0;
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.touches.length > 1 || scaleValue.current > 1,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Capture if zoomed in or if 2 fingers used
+        return scaleValue.current > 1 || gestureState.numberActiveTouches > 1;
+      },
+      onPanResponderGrant: () => {
+        lastTranslateX.current = translateXValue.current;
+        lastTranslateY.current = translateYValue.current;
+        lastScale.current = scaleValue.current;
+        initialDistance.current = null;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+
+        if (touches.length === 2) {
+          // Pinch to zoom
+          const dist = getDistance(touches);
+          const mid = getMidpoint(touches);
+
+          if (initialDistance.current === null) {
+            initialDistance.current = dist;
+            initialMidpoint.current = mid;
+          }
+
+          const newScale = Math.max(
+            MIN_SCALE,
+            Math.min(MAX_SCALE, lastScale.current * (dist / initialDistance.current))
+          );
+
+          scaleValue.current = newScale;
+          scale.setValue(newScale);
+
+          // Pan while pinching (follow midpoint)
+          const dx = mid.x - initialMidpoint.current.x;
+          const dy = mid.y - initialMidpoint.current.y;
+          const clamped = clampTranslate(
+            lastTranslateX.current + dx,
+            lastTranslateY.current + dy,
+            newScale
+          );
+          translateXValue.current = clamped.x;
+          translateYValue.current = clamped.y;
+          translateX.setValue(clamped.x);
+          translateY.setValue(clamped.y);
+        } else if (touches.length === 1 && scaleValue.current > 1) {
+          // Pan when zoomed in
+          const clamped = clampTranslate(
+            lastTranslateX.current + gestureState.dx,
+            lastTranslateY.current + gestureState.dy,
+            scaleValue.current
+          );
+          translateXValue.current = clamped.x;
+          translateYValue.current = clamped.y;
+          translateX.setValue(clamped.x);
+          translateY.setValue(clamped.y);
+        }
+      },
+      onPanResponderRelease: () => {
+        lastTranslateX.current = translateXValue.current;
+        lastTranslateY.current = translateYValue.current;
+        lastScale.current = scaleValue.current;
+        initialDistance.current = null;
+
+        // Snap back to MIN_SCALE if below threshold
+        if (scaleValue.current < MIN_SCALE + 0.1) {
+          resetTransform();
+        }
+      },
+      onPanResponderTerminationRequest: () => false,
+    })
+  ).current;
+
+  return (
+    <Animated.Image
+      source={{ uri }}
+      style={[
+        style,
+        {
+          transform: [
+            { scale },
+            { translateX },
+            { translateY },
+          ],
+        },
+      ]}
+      resizeMode="cover"
+      {...panResponder.panHandlers}
+    />
+  );
+};
+
+const StoryOptionsModal = ({
+  actionSheetRef,
+  storyRef,
+  setReportModalVisible,
+  currentStoryUserRef,
+  currentStory,
+  currentStoryRef,
+  userStories,
+  dismissStoryModal,
+  fetchStories,
+}) => {
+  const { t } = useTranslation();
+  const { theme, isDarkMode } = useTheme();
+  const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
+  const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
+  const insets = useSafeAreaInsets();
+
+  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
+
+  // When opening the modal for a new user, you might want to reset or set the initial state
+  // based on some actual user data. For now, we'll let it maintain local state.
+
+  return (
+    <ActionSheet
+      ref={actionSheetRef}
+      isModal={false}
+      containerStyle={{
+        borderTopLeftRadius: 15,
+        borderTopRightRadius: 15,
+        backgroundColor: theme.cardBackground,
+      }}
+      indicatorStyle={{
+        width: 30,
+        height: 4,
+        backgroundColor: isDarkMode ? "#666" : "#404040",
+        marginTop: 10,
+      }}
+      onClose={() => {
+        storyRef.current?.resume?.(); // Resume story timer when sheet closes
+      }}
+      gestureEnabled={true}
+    >
+      <View style={{ paddingVertical: 8, paddingBottom: insets.bottom || 20, backgroundColor: theme.cardBackground }}>
+        {/* !isOwnStory && (
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+          paddingVertical: 16,
+          marginHorizontal: 20,
+          borderBottomWidth: 1,
+          borderBottomColor: theme.border
+        }}>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: theme.iconBackground,
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
+              <Ionicons
+                name="notifications-outline"
+                size={23}
+                color={theme.subText}
+              />
+            </View>
+            <View style={{ marginLeft: 12 }}>
+              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.receiveStory')}</Text>
+              <Text style={{ color: theme.subText, fontSize: 13 }}>
+                {t('home.turnOnOffStory')}
+              </Text>
+            </View>
+          </View>
+          <Switch
+            value={isNotificationsEnabled}
+            onValueChange={(value) => {
+              setIsNotificationsEnabled(value);
+              // Delay hiding so user sees the toggle animation
+              setTimeout(() => {
+                actionSheetRef.current?.hide();
+                Toast.show({
+                  type: "info",
+                  text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
+                  text2: value
+                    ? t('home.receiveNotifications')
+                    : t('home.stopNotifications'),
+                });
+              }, 300);
+            }}
+            trackColor={{ false: "#767577", true: theme.primary }}
+          />
+        </View>
+        ) */}
+
+        {/* <Pressable
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+          onPress={async () => {
+            actionSheetRef.current?.hide();
+            try {
+              const { Share } = require('react-native');
+              await Share.share({
+                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://api.chuyenbienhoa.com/users/${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id}/story`,
+              });
+            } catch (error) {
+              console.error(error.message);
+            }
+          }}
+        >
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 16,
+            marginHorizontal: 20,
+            borderBottomWidth: 1,
+            borderBottomColor: theme.border
+          }}>
+            <View style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: theme.iconBackground,
+              justifyContent: "center",
+              alignItems: "center"
+            }}>
+              <Ionicons name="link-outline" size={23} color={theme.subText} />
+            </View>
+            <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
+              {t('home.copyLinkShare')}
+            </Text>
+          </View>
+        </Pressable> */}
+
+        {isOwnStory ? (
+          <Pressable
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            onPress={() => {
+              actionSheetRef.current?.hide();
+              Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
+                { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                {
+                  text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
+                    try {
+                      const storyIdToDelete = currentStoryRef.current;
+                      if (storyIdToDelete) {
+                        await deleteStory(storyIdToDelete);
+                        dismissStoryModal();
+                        fetchStories();
+                        Toast.show({
+                          type: "success",
+                          text1: t('home.deleteStorySuccess') || "Xóa thành công",
+                        });
+                      }
+                    } catch (e) {
+                      Toast.show({
+                        type: "error",
+                        text1: t('common.error'),
+                        text2: e.message,
+                      });
+                    }
+                  }
+                }
+              ]);
+            }}
+          >
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              paddingVertical: 16,
+              marginHorizontal: 20
+            }}>
+              <View style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: theme.iconBackground,
+                justifyContent: "center",
+                alignItems: "center"
+              }}>
+                <Ionicons name="trash-outline" size={23} color="#ef4444" />
+              </View>
+              <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
+                {t('home.deleteStory') || "Xóa story"}
+              </Text>
+            </View>
+          </Pressable>
+        ) : (
+          <>
+            <Pressable
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+              onPress={() => {
+                actionSheetRef.current?.hide();
+                setReportModalVisible(true);
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                marginHorizontal: 20,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.iconBackground,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <Ionicons name="warning-outline" size={23} color={theme.subText} />
+                </View>
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
+                  <Text style={{ color: theme.subText, fontSize: 13 }}>
+                    {t('home.reportStoryDesc')}
+                  </Text>
+                </View>
+                <View style={{ marginLeft: "auto" }}>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={23}
+                    color="#D1D1D1"
+                  />
+                </View>
+              </View>
+            </Pressable>
+
+            {/* Temporarily hidden unfollow button
+            {currentStoryUserRef.current?.isFollowed && (
+              <TouchableOpacity
+                onPress={async () => {
+                  actionSheetRef.current?.hide();
+                  try {
+                    const userToUnfollow = currentStoryUserRef.current;
+                    if (userToUnfollow && userToUnfollow.id) {
+                      await unfollowUser(userToUnfollow.id);
+                      fetchStories(); // Update the UI if needed
+                      Toast.show({
+                        type: "success",
+                        text1: t('home.unfollowPerson'),
+                        text2: t('home.unfollowed'),
+                      });
+                    }
+                  } catch (error) {
+                    console.error("Failed to unfollow user from stories:", error);
+                    Toast.show({
+                      type: "error",
+                      text1: t('common.error'),
+                      text2: error.message || "Failed to unfollow",
+                    });
+                  }
+                }}
+              >
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 16,
+                  marginHorizontal: 20
+                }}>
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: theme.iconBackground,
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}>
+                    <Ionicons name="close-outline" size={23} color={theme.text} />
+                  </View>
+                  <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
+                    {t('home.unfollowPerson')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            */}
+
+            <Pressable
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+              onPress={() => {
+                actionSheetRef.current?.hide();
+                Alert.alert(t('home.blockedTitle') || "Chặn người dùng?", t('home.blockedBody') || "Bạn sẽ không thấy tin của người này nữa.", [
+                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                  {
+                    text: t('home.blockPerson') || "Chặn", style: "destructive", onPress: async () => {
+                      const userToBlockRef = currentStoryUserRef.current;
+                      console.log("Blocking user (ref)...", userToBlockRef);
+
+                      try {
+                        let userToBlock = userToBlockRef;
+
+                        if (!userToBlock && currentStoryRef.current) {
+                          const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStoryRef.current));
+                          if (foundUser) {
+                            userToBlock = { id: foundUser.uid, username: foundUser.id };
+                          }
+                        }
+
+                        if (userToBlock) {
+                          await blockUser(userToBlock.id || userToBlock.uid);
+                          const usernameToBlock = userToBlock.username || userToBlock.id;
+                          
+                          try {
+                            await blockUserInContext(usernameToBlock);
+                          } catch (ctxErr) {
+                            console.error("Error updating block context:", ctxErr);
+                          }
+
+                          dismissStoryModal();
+                          setTimeout(() => {
+                            Alert.alert(t('home.blockedSuccessTitle') || "Thành công", t('home.blockedSuccessMessage') || "Đã chặn người dùng");
+                          }, 500);
+
+                          fetchStories();
+                        } else {
+                          console.error("No user found to block");
+                          Alert.alert(t('home.blockedErrorTitle') || "Lỗi", t('home.blockedErrorMessage') || "Không tìm thấy thông tin");
+                        }
+                      } catch (e) {
+                        console.error("Block error:", e);
+                        Alert.alert(t('common.error'), e.message || t('common.unknownError'));
+                      }
+                    }
+                  }
+                ]);
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                marginHorizontal: 20
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.iconBackground,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <Ionicons name="ban-outline" size={23} color="#ef4444" />
+                </View>
+                <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
+                  {t('home.blockPerson')}
+                </Text>
+              </View>
+            </Pressable>
+          </>
+        )}
+      </View>
+    </ActionSheet>
+  );
+};
+
+const ReplyBar = ({
+  storyId,
+  userId,
+  username,
+  navigation,
+  viewersCount = 0,
+  onDismissStory,
+  storyRef,
+}) => {
+  const { t } = useTranslation();
+  const { theme, isDarkMode } = useTheme();
+  const { userInfo } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
+  const [replyText, setReplyText] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const isOwnStory = String(userId) === String(userInfo?.id);
+
+  const handleEmojiPress = async (emoji) => {
+    if (emoji === "add" || !storyId) return;
+
+    const id = Date.now();
+    setFloatingEmojis((prev) => [...prev, { id, emoji }]);
+
+    const reactionType = emojiToReactionType[emoji];
+    if (reactionType) {
+      try {
+        await reactToStory(storyId, reactionType);
+      } catch (error) {
+        console.error("Error reacting to story:", error);
+        Toast.show({
+          type: "error",
+          text1: t('common.error'),
+          text2: t('home.reactionError'),
+        });
+      }
+    }
+  };
+
+  const handleAnimationComplete = (id) => {
+    setFloatingEmojis((prev) => prev.filter((emoji) => emoji.id !== id));
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !storyId || isSending) return;
+
+    setIsSending(true);
+    try {
+      const response = await replyToStory(storyId, replyText.trim());
+      setReplyText("");
+      Toast.show({
+        type: "success",
+        text1: t('home.replySent'),
+        text2: t('home.replySentBody'),
+      });
+
+      if (response?.data?.conversation_id && navigation) {
+        navigation.navigate("ConversationScreen", {
+          conversationId: response.data.conversation_id,
+        });
+      }
+    } catch (error) {
+      console.error("Error replying to story:", error);
+
+      let errorMessage = t('home.replySendError');
+
+      if (error.response?.data) {
+        if (error.response.data.message) {
+          if (typeof error.response.data.message === "string") {
+            errorMessage = error.response.data.message;
+          } else if (typeof error.response.data.message === "object") {
+            const firstError = Object.values(error.response.data.message)[0];
+            errorMessage = Array.isArray(firstError)
+              ? firstError[0]
+              : firstError;
+          }
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      Toast.show({
+        type: "error",
+        text1: t('common.error'),
+        text2: errorMessage,
+        visibilityTime: 4000,
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleViewCountPress = () => {
+    if (navigation && storyId) {
+      if (onDismissStory) {
+        onDismissStory();
+      }
+      setTimeout(() => {
+        navigation.navigate("StoryViewersScreen", {
+          storyId: storyId,
+        });
+      }, 100);
+    }
+  };
+
+  if (isOwnStory) {
+    return (
+      <View style={{ paddingBottom: insets.bottom }}>
+        <View style={styles.viewCountBar}>
+          <TouchableOpacity
+            onPress={handleViewCountPress}
+            style={styles.viewCountButton}
+          >
+            <Ionicons name="eye-outline" size={20} color="#fff" />
+            <Text style={styles.viewCountText}>
+              {t('home.views', { count: viewersCount === 0 ? 0 : viewersCount - 1 })}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <KeyboardStickyView style={{ flex: 1 }}>
+      {floatingEmojis.map(({ id, emoji }) => (
+        <FloatingEmoji
+          key={id}
+          emoji={emoji}
+          onComplete={() => handleAnimationComplete(id)}
+        />
+      ))}
+      <View style={{ paddingBottom: insets.bottom }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6, paddingHorizontal: 8 }}>
+          {emojis.map((emoji) => (
+            <TouchableOpacity
+              key={emoji}
+              onPress={() => handleEmojiPress(emoji)}
+            >
+              <Text style={{ fontSize: 28 }}>{emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={styles.replyBar}>
+          <TextInput
+            placeholder={t('chat.typeMessage')}
+            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+            style={[
+              styles.input,
+              {
+                backgroundColor: "rgba(255, 255, 255, 0.15)",
+                color: "#ffffff",
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.2)",
+              },
+            ]}
+            value={replyText}
+            onChangeText={setReplyText}
+            onFocus={() => storyRef.current?.pause?.()}
+            onBlur={() => storyRef.current?.resume?.()}
+            onSubmitEditing={handleSendReply}
+            editable={!isSending}
+          />
+          <TouchableOpacity
+            style={{ position: "absolute", right: 20 }}
+            onPress={handleSendReply}
+            disabled={!replyText.trim() || isSending}
+          >
+            {isSending ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons name="send" size={24} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+    </KeyboardStickyView>
+  );
+};
 
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
@@ -75,8 +839,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
   const [currentStory, setCurrentStory] = useState(null);
+  const currentStoryRef = useRef(null);
+  useEffect(() => {
+    currentStoryRef.current = currentStory;
+  }, [currentStory]);
   const [currentStoryUser, setCurrentStoryUser] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isStoryVisible, setIsStoryVisible] = useState(false);
   const {
     username,
     isLoggedIn,
@@ -89,6 +858,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
   const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const previousStatusBarStyle = useRef({
     barStyle: "dark-content",
     backgroundColor: "#ffffff",
@@ -146,10 +916,30 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleFetchFeed = async (page = 1) => {
     try {
+      if (page === 1) {
+        const cachedStr = storage.getString("cached_feed");
+        if (cachedStr) {
+          try {
+            const parsed = JSON.parse(cachedStr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setFeed((prev) => prev ? prev : parsed);
+            }
+          } catch(e) {}
+        }
+        setRefreshing(true);
+      }
+
       const response = await getHomePosts(page);
-      setFeed(response.data.data); // Ensure this updates the feed with the latest votes
+      const posts = response?.data?.data;
+      const validPosts = Array.isArray(posts) ? posts : [];
+      setFeed(validPosts);
+
+      if (page === 1 && validPosts.length > 0) {
+        storage.set("cached_feed", JSON.stringify(validPosts));
+      }
     } catch (error) {
       console.log("Error fetching newsfeed:", error);
+      setFeed((prev) => prev ?? []);
       Toast.show({
         type: "error",
         text1: t('common.error'),
@@ -158,6 +948,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         visibilityTime: 5000,
         topOffset: 60,
       });
+    } finally {
+      if (page === 1) {
+        setTimeout(() => {
+          setRefreshing(false);
+        }, 1000);
+      }
     }
   };
 
@@ -168,16 +964,22 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const onEndReached = () => {
     if (!hasMore) return;
 
-    getHomePosts(currentPage).then((response) => {
-      if (response.data.data.length === 0) {
-        setHasMore(false);
-        return;
-      }
-      setFeed((prevData) => {
-        return [...prevData, ...response.data.data];
+    getHomePosts(currentPage)
+      .then((response) => {
+        const newPosts = response?.data?.data;
+        if (!Array.isArray(newPosts) || newPosts.length === 0) {
+          setHasMore(false);
+          return;
+        }
+        setFeed((prevData) => {
+          if (!Array.isArray(prevData)) return newPosts;
+          return [...prevData, ...newPosts];
+        });
+        setCurrentPage((prevPage) => prevPage + 1);
+      })
+      .catch((error) => {
+        console.error("Error loading more posts:", error);
       });
-      setCurrentPage((prevPage) => prevPage + 1);
-    });
   };
 
   const ListEndLoader = () => {
@@ -216,25 +1018,31 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleVoteUpdate = (postId, newVotes) => {
     setFeed((prevFeed) =>
-      prevFeed.map((post) =>
-        post.id === postId ? { ...post, votes: newVotes } : post
-      )
+      prevFeed
+        ? prevFeed.map((post) =>
+            post.id === postId ? { ...post, votes: newVotes } : post
+          )
+        : prevFeed
     );
   };
 
   const handleSaveUpdate = (postId, savedStatus) => {
     setFeed((prevFeed) =>
-      prevFeed.map((post) =>
-        post.id === postId ? { ...post, saved: savedStatus } : post
-      )
+      prevFeed
+        ? prevFeed.map((post) =>
+            post.id === postId ? { ...post, saved: savedStatus } : post
+          )
+        : prevFeed
     );
   };
 
   const handleViewableItemsChanged = ({ viewableItems }) => {
+    if (!viewableItems) return;
     viewableItems.forEach((viewableItem) => {
+      if (!viewableItem?.item) return;
       const postId = viewableItem.item.id;
 
-      if (!viewedPosts.current.has(postId)) {
+      if (postId != null && !viewedPosts.current.has(postId)) {
         viewedPosts.current.add(postId); // Mark as viewed
         increasePostView(postId); // Call API
       }
@@ -261,15 +1069,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       console.log("handleStoryOptions called without userId, relying on currentStoryUser state");
     }
 
-    storyRef?.current.pause(); // Pause the story timer
+    storyRef.current?.pause?.(); // Pause the story timer
     actionSheetRef.current?.show();
   };
 
   const handleStoryShow = (userId) => {
-    // Save current status bar style
+    setIsStoryVisible(true);
+    // Save current status bar style so we can restore it on hide
     previousStatusBarStyle.current = { barStyle, backgroundColor };
-    // Change to light content (white text) for dark background
-    updateStatusBar("light-content", "#000000");
+    if (Platform.OS === "android") {
+      StatusBar.setHidden(false);
+      updateStatusBar("light-content", "#000000");
+    } else {
+      updateStatusBar("light-content", "#000000");
+    }
   };
 
   const handleStoryStart = async (userId, storyId) => {
@@ -299,6 +1112,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryHide = () => {
+    setIsStoryVisible(false);
+    if (Platform.OS === "android") StatusBar.setHidden(false);
     // Restore previous status bar style
     updateStatusBar(
       previousStatusBarStyle.current.barStyle,
@@ -316,7 +1131,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const handleReportSubmit = async (reason) => {
     try {
       if (!currentStoryUser) return;
-      await reportUser({ story_id: currentStory, reported_user_id: currentStoryUser.uid || currentStoryUser.id, reason });
+      await reportUser({ reported_user_id: currentStoryUser.id, reason });
       Toast.show({
         type: "success",
         text1: t('home.reportSentTitle'),
@@ -340,256 +1155,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     // Assuming I'll add Alert to imports if needed, or use a custom Confirmation.
     // For now I'll just use the blockUser API directly with a simple confirmation if possible?
     // Or just call it. But blocking is destructive.
-    // I'll import Alert in next chunk.
   };
-
-  const StoryOptionsModal = () => (
-    <ActionSheet
-      ref={actionSheetRef}
-      containerStyle={{
-        borderTopLeftRadius: 15,
-        borderTopRightRadius: 15,
-        backgroundColor: theme.cardBackground,
-      }}
-      indicatorStyle={{
-        width: 30,
-        height: 4,
-        backgroundColor: isDarkMode ? "#666" : "#404040",
-        marginTop: 10,
-      }}
-      onClose={() => {
-        storyRef?.current.resume(); // Resume story timer when sheet closes
-      }}
-      gestureEnabled={true}
-    >
-      <View style={{ paddingVertical: 8, backgroundColor: theme.cardBackground }}>
-        <View style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingVertical: 16,
-          marginHorizontal: 20,
-          borderBottomWidth: 1,
-          borderBottomColor: theme.border
-        }}>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons
-                name="notifications-outline"
-                size={23}
-                color={theme.subText}
-              />
-            </View>
-            <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.receiveStory')}</Text>
-              <Text style={{ color: theme.subText, fontSize: 13 }}>
-                {t('home.turnOnOffStory')}
-              </Text>
-            </View>
-          </View>
-          <Switch
-            value={false}
-            onValueChange={(value) => {
-              actionSheetRef.current?.hide();
-              Toast.show({
-                type: "info",
-                text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
-                text2: value
-                  ? t('home.receiveNotifications')
-                  : t('home.stopNotifications'),
-              });
-            }}
-            trackColor={{ false: "#767577", true: theme.primary }}
-          />
-        </View>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            Toast.show({
-              type: "info",
-              text1: t('home.share'),
-              text2: t('home.linkCopied'),
-            });
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="link-outline" size={23} color={theme.subText} />
-            </View>
-            <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              {t('home.copyLinkShare')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            setReportModalVisible(true);
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="warning-outline" size={23} color={theme.subText} />
-            </View>
-            <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
-              <Text style={{ color: theme.subText, fontSize: 13 }}>
-                {t('home.reportStoryDesc')}
-              </Text>
-            </View>
-            <View style={{ marginLeft: "auto" }}>
-              <Ionicons
-                name="chevron-forward-outline"
-                size={23}
-                color="#D1D1D1"
-              />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            Toast.show({
-              type: "info",
-              text1: t('home.unfollowPerson'),
-              text2: t('home.unfollowed'),
-            });
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="close-outline" size={23} color={theme.text} />
-            </View>
-            <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              {t('home.unfollowPerson')}
-            </Text>
-          </View>
-
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            Alert.alert(t('home.blockedTitle'), t('home.blockedBody'), [
-              { text: t('settings.cancel'), style: "cancel" },
-              {
-                text: t('home.blockPerson'), style: "destructive", onPress: async () => {
-                  // Use ref for immediate access to freshness
-                  const userToBlockRef = currentStoryUserRef.current;
-                  console.log("Blocking user (ref)...", userToBlockRef);
-
-                  try {
-                    let userToBlock = userToBlockRef;
-
-                    // Fallback using currentStory if user is missing
-                    if (!userToBlock && currentStory) {
-                      const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStory));
-                      if (foundUser) {
-                        userToBlock = { id: foundUser.uid, username: foundUser.id };
-                      }
-                    }
-
-                    if (userToBlock) {
-                      await blockUser(userToBlock.id || userToBlock.uid);
-
-                      // Handle potential username mismatch in object structure
-                      const usernameToBlock = userToBlock.username || userToBlock.id;
-                      await blockUserInContext(usernameToBlock);
-
-                      // Force a small delay to ensure modal close animation doesn't conflict with Alert
-                      dismissStoryModal();
-                      setTimeout(() => {
-                        Alert.alert(t('home.blockedSuccessTitle'), t('home.blockedSuccessMessage'));
-                      }, 500);
-
-                      fetchStories();
-                    } else {
-                      console.error("No user found to block");
-                      Alert.alert(t('home.blockedErrorTitle'), t('home.blockedErrorMessage'));
-                    }
-                  } catch (e) {
-                    console.error("Block error:", e);
-                    Alert.alert(t('common.error'), e.message || t('common.unknownError'));
-                  }
-                }
-              }
-            ]);
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="ban-outline" size={23} color="#ef4444" />
-            </View>
-            <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
-              {t('home.blockPerson')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View >
-    </ActionSheet >
-  );
 
   const fetchStories = async () => {
     try {
@@ -632,43 +1198,57 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     if (!apiResponse?.data) return [];
 
     let users = apiResponse.data.data;
+    if (!Array.isArray(users)) return [];
 
-    return users.map((user) => ({
-      uid: user.id,
-      id: user.username,
-      name: user.name,
-      avatarSource: {
-        uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
-      },
-      stories: user.stories.map((story) => ({
-        id: story.id,
-        storyId: story.id, // Store the actual story ID
-        userId: user.id, // Store user ID
-        username: user.username, // Store username
-        source: {
-          uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+    return users
+      .filter((user) => user && Array.isArray(user.stories) && user.stories.length > 0)
+      .map((user) => ({
+        uid: user.id,
+        id: user.username,
+        name: user.name,
+        isFollowed: user.is_following,
+        avatarSource: {
+          uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
-        duration: story.duration,
-        viewers_count: story.viewers?.length || 0,
-        renderFooter: () => (
-          <ReplyBar
-            storyId={story.id}
-            userId={user.id}
-            username={user.username}
-            navigation={navigation}
-            viewersCount={story.viewers?.length || 0}
-            onDismissStory={dismissStoryModal}
-          />
-        ),
-        date: formatTime(story.created_at || story.created_at_human),
-        created_at: story.created_at,
-        created_at_human: story.created_at_human,
-        onStoryItemPress: () => {
-          setCurrentStory(story.id);
-          setCurrentStoryUser({ id: user.id, username: user.username });
-        },
-      })),
-    }));
+        stories: user.stories.map((story) => ({
+          id: story.id,
+          storyId: story.id, // Store the actual story ID
+          userId: user.id, // Store user ID
+          username: user.username, // Store username
+          source: {
+            uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+          },
+          duration: story.duration,
+          viewers_count: story.viewers?.length || 0,
+          renderContent: () => (
+            <ZoomableStoryImage
+              uri={`https://api.chuyenbienhoa.com${story.media_url}`}
+              style={{
+                width: SCREEN_WIDTH,
+                height: SCREEN_HEIGHT,
+              }}
+            />
+          ),
+          renderFooter: () => (
+            <ReplyBar
+              storyId={story.id}
+              userId={user.id}
+              username={user.username}
+              navigation={navigation}
+              viewersCount={story.viewers?.length || 0}
+              onDismissStory={dismissStoryModal}
+              storyRef={storyRef}
+            />
+          ),
+          date: formatTime(story.created_at || story.created_at_human),
+          created_at: story.created_at,
+          created_at_human: story.created_at_human,
+          onStoryItemPress: () => {
+            setCurrentStory(story.id);
+            setCurrentStoryUser({ id: user.id, username: user.username });
+          },
+        })),
+      }));
   };
 
   const EmailVerificationAlert = () => {
@@ -1154,79 +1734,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
   };
 
-  const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
-  const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
-
-  // Map emojis to reaction types
-  const emojiToReactionType = {
-    "👍": "like",
-    "❤️": "love",
-    "🔥": "like", // Fire doesn't exist in API, use like
-    "😆": "haha",
-    "😮": "wow",
-    "😢": "sad",
-    "😡": "angry",
-  };
-
-  const FloatingEmoji = ({ emoji, onComplete }) => {
-    const translateY = useRef(new Animated.Value(0)).current;
-    const translateX = useRef(new Animated.Value(0)).current;
-    const scale = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-      const randomX = (Math.random() - 0.5) * 150; // Increased random range for wider spread
-
-      Animated.parallel([
-        Animated.timing(translateY, {
-          toValue: -300, // Increased travel distance
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(translateX, {
-          toValue: randomX,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.sequence([
-          Animated.timing(scale, {
-            toValue: 1,
-            duration: 100,
-            useNativeDriver: true,
-          }),
-          Animated.timing(scale, {
-            toValue: 0,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start(() => {
-        onComplete();
-      });
-    }, []);
-
-    return (
-      <Animated.Text
-        style={{
-          position: "absolute",
-          fontSize: 80, // Increased font size
-          left: "50%",
-          bottom: 200,
-          marginLeft: -40, // Half of the emoji's approximate width
-          transform: [{ translateY }, { translateX }, { scale }],
-        }}
-      >
-        {emoji}
-      </Animated.Text>
-    );
-  };
 
   const filteredFeed = useMemo(() => {
-    if (!feed) return null;
+    if (feed === null) return null;
+    // Guard against non-array feed values from unexpected server responses
+    const safeFeed = Array.isArray(feed) ? feed : [];
     if (blockedUsers && blockedUsers.length > 0) {
-      return feed.filter((post) => !blockedUsers.includes(post.user?.username));
+      return safeFeed.filter((post) => !blockedUsers.includes(post.user?.username));
     }
-    return feed;
+    return safeFeed;
   }, [feed, blockedUsers]);
 
   const filteredStories = useMemo(() => {
@@ -1248,204 +1765,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             navigation={navigation}
             viewersCount={story.viewers_count || 0}
             onDismissStory={dismissStoryModal}
+            storyRef={storyRef}
           />
         ),
       })),
     }));
   }, [userStories, blockedUsers, t, navigation]);
 
-  const ReplyBar = ({
-    storyId,
-    userId,
-    username,
-    navigation,
-    viewersCount = 0,
-    onDismissStory,
-  }) => {
-    const { t } = useTranslation();
-    const { theme, isDarkMode } = useTheme();
-    const [floatingEmojis, setFloatingEmojis] = useState([]);
-    const [replyText, setReplyText] = useState("");
-    const [isSending, setIsSending] = useState(false);
-    const isOwnStory = String(userId) === String(userInfo?.id);
 
-    const handleEmojiPress = async (emoji) => {
-      if (emoji === "add" || !storyId) return;
-
-      const id = Date.now();
-      setFloatingEmojis((prev) => [...prev, { id, emoji }]);
-
-      // Map emoji to reaction type and send to API
-      const reactionType = emojiToReactionType[emoji];
-      if (reactionType) {
-        try {
-          await reactToStory(storyId, reactionType);
-        } catch (error) {
-          console.error("Error reacting to story:", error);
-          Toast.show({
-            type: "error",
-            text1: t('common.error'),
-            text2: t('home.reactionError'),
-          });
-        }
-      }
-    };
-
-    const handleAnimationComplete = (id) => {
-      setFloatingEmojis((prev) => prev.filter((emoji) => emoji.id !== id));
-    };
-
-    const handleSendReply = async () => {
-      if (!replyText.trim() || !storyId || isSending) return;
-
-      setIsSending(true);
-      try {
-        const response = await replyToStory(storyId, replyText.trim());
-        setReplyText("");
-        Toast.show({
-          type: "success",
-          text1: t('home.replySent'),
-          text2: t('home.replySentBody'),
-        });
-
-        // Optionally navigate to conversation after sending reply
-        // Optionally navigate to conversation after sending reply
-        if (response?.data?.conversation_id && navigation) {
-          // Navigate to conversation screen to see the sent message
-          navigation.navigate("ConversationScreen", {
-            conversationId: response.data.conversation_id,
-          });
-        }
-      } catch (error) {
-        console.error("Error replying to story:", error);
-
-        // Extract error message from API response
-        let errorMessage = t('home.replySendError');
-
-        if (error.response?.data) {
-          // Handle different error response formats
-          if (error.response.data.message) {
-            // Single message string
-            if (typeof error.response.data.message === "string") {
-              errorMessage = error.response.data.message;
-            }
-            // Message object (validation errors)
-            else if (typeof error.response.data.message === "object") {
-              const firstError = Object.values(error.response.data.message)[0];
-              errorMessage = Array.isArray(firstError)
-                ? firstError[0]
-                : firstError;
-            }
-          } else if (error.response.data.error) {
-            errorMessage = error.response.data.error;
-          }
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-
-        Toast.show({
-          type: "error",
-          text1: t('common.error'),
-          text2: errorMessage,
-          visibilityTime: 4000,
-        });
-      } finally {
-        setIsSending(false);
-      }
-    };
-
-    const handleViewCountPress = () => {
-      if (navigation && storyId) {
-        // Dismiss story modal first
-        if (onDismissStory) {
-          onDismissStory();
-        }
-        // Small delay to ensure modal is dismissed before navigation
-        setTimeout(() => {
-          navigation.navigate("StoryViewersScreen", {
-            storyId: storyId,
-          });
-        }, 100);
-      }
-    };
-
-    // If it's the user's own story, show view count instead of reply/reaction
-    if (isOwnStory) {
-      return (
-        <SafeAreaView>
-          <View style={styles.viewCountBar}>
-            <TouchableOpacity
-              onPress={handleViewCountPress}
-              style={styles.viewCountButton}
-            >
-              <Ionicons name="eye-outline" size={20} color="#fff" />
-              <Text style={styles.viewCountText}>
-                {t('home.views', { count: viewersCount === 0 ? 0 : viewersCount - 1 })}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      );
-    }
-
-    return (
-      <View style={{ flex: 1 }}>
-        {floatingEmojis.map(({ id, emoji }) => (
-          <FloatingEmoji
-            key={id}
-            emoji={emoji}
-            onComplete={() => handleAnimationComplete(id)}
-          />
-        ))}
-        <SafeAreaView>
-          <View className="flex-row items-center gap-2 justify-center">
-            {emojis.map((emoji) => (
-              <TouchableOpacity
-                key={emoji}
-                onPress={() => handleEmojiPress(emoji)}
-              >
-                <Text className="text-[40px]">{emoji}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <View style={styles.replyBar}>
-            <TextInput
-              placeholder={t('chat.typeMessage')}
-              placeholderTextColor="rgba(255, 255, 255, 0.6)"
-              style={[
-                styles.input,
-                {
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  color: "#ffffff",
-                  borderWidth: 1,
-                  borderColor: "rgba(255, 255, 255, 0.2)",
-                },
-              ]}
-              value={replyText}
-              onChangeText={setReplyText}
-              onFocus={() => storyRef?.current.pause()}
-              onBlur={() => storyRef?.current.resume()}
-              onSubmitEditing={handleSendReply}
-              editable={!isSending}
-            />
-            <TouchableOpacity
-              style={{ position: "absolute", right: 20 }}
-              onPress={handleSendReply}
-              disabled={!replyText.trim() || isSending}
-            >
-              {isSending ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Ionicons name="send" size={24} color="#fff" />
-              )}
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-        <StoryOptionsModal />
-        <KeyboardSpacer />
-      </View>
-    );
-  };
 
   return filteredFeed == null ? (
     <ScrollView
@@ -1521,8 +1848,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           data={filteredFeed}
           extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
-            paddingBottom: 110,
+            paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (
@@ -1559,10 +1890,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         />
 
         <InstagramStories
+          key={filteredStories.map(u => u.stories.length).join('-')}
           ref={storyRef}
           stories={filteredStories}
           hideAvatarList={true}
           showName={true}
+          statusBarTranslucent={false}
+          backgroundColor="#000000"
+          mediaContainerStyle={{ backgroundColor: "#000000" }}
+          imageProps={{ resizeMode: "cover" }}
+          imageStyles={StyleSheet.absoluteFillObject}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -1605,16 +1942,28 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           }}
           toast={<Toast topOffset={60} />}
-          containerStyle={{
-            height: Dimensions.get("window").height,
-          }}
+          footerComponent={
+            <>
+              <ReportModal
+                visible={reportModalVisible}
+                onClose={() => setReportModalVisible(false)}
+                onSubmit={handleReportSubmit}
+              />
+              <StoryOptionsModal
+                actionSheetRef={actionSheetRef}
+                storyRef={storyRef}
+                setReportModalVisible={setReportModalVisible}
+                currentStoryUserRef={currentStoryUserRef}
+                currentStory={currentStory}
+                currentStoryRef={currentStoryRef}
+                userStories={userStories}
+                dismissStoryModal={dismissStoryModal}
+                fetchStories={fetchStories}
+              />
+            </>
+          }
         />
         <ResendVerificationModal />
-        <ReportModal
-          visible={reportModalVisible}
-          onClose={() => setReportModalVisible(false)}
-          onSubmit={handleReportSubmit}
-        />
       </View>
     </>
   );

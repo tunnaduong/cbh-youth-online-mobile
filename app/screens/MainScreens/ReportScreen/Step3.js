@@ -3,13 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
-  StatusBar,
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -29,6 +27,9 @@ export default function Step3({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const isClassViolation = Boolean(cleanliness || uniform);
   const { userInfo } = useContext(AuthContext);
+  if (!userInfo) {
+    return null;
+  }
   const { theme, isDarkMode } = useTheme();
 
   const { t } = useTranslation();
@@ -97,8 +98,8 @@ export default function Step3({ navigation, route }) {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
 
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />
@@ -179,7 +180,7 @@ export default function Step3({ navigation, route }) {
         <Text style={styles.submitButtonText}>{t('report.submit')}</Text>
         <Ionicons name="send" size={24} color="#fff" />
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 

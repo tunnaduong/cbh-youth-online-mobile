@@ -3,21 +3,19 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Switch,
   Image,
   Alert,
   Linking,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
 import Dropdown from "../../../components/Dropdown";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import * as Application from 'expo-application';
 import { useTranslation } from "react-i18next";
@@ -94,6 +92,9 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
+  if (!userInfo) {
+    return null;
+  }
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -102,8 +103,8 @@ export default function SettingsScreen({ navigation }) {
   const currentThemeLabel = useSystemTheme ? t('settings.auto') : (isDarkMode ? t('settings.dark') : t('settings.light'));
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border, backgroundColor: theme.headerBackground }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -113,7 +114,7 @@ export default function SettingsScreen({ navigation }) {
         <View className="w-6 h-6"></View>
       </View>
 
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         {/* Profile Section */}
         <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
           <FastImage
@@ -227,12 +228,42 @@ export default function SettingsScreen({ navigation }) {
           />
         </SettingSection>
 
-        <Text style={[styles.versionText, { color: theme.subText }]}>
-          {t('settings.version', {
-            appVersion: Application.nativeApplicationVersion,
-            buildVersion: Application.nativeBuildVersion,
-          })}
-        </Text>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            const lines = [
+              "Diễn đàn hs Chuyên Biên Hòa là sân chơi của chuyên Nga :)))",
+              "1 trong 2 người tạo ra là chuyên Nga K60",
+              "Quản lý page chính Nga K67",
+              "Developer chăm chỉ Nga K67 :))",
+              "Phát triển Discord Nga K68",
+              "Thank you Dương Tùng Anh",
+              "Mãi mãi là chuyên Nga!!",
+              "Em yêu chuyên Nga",
+              "Cảm ơn bạn đã dùng app",
+              "Chúc bạn có trải nghiệm thật tuyệt vời và đáng nhớ",
+              "Chúc bạn có một ngày vui vẻ!",
+              "Cảm ơn bạn đã sử dụng app",
+              "Test app là 1 cách để đóng góp cho dự án",
+              "Cảm ơn bạn A lớp sử giấu tên đã test ở iOS nhé! Thank you >3",
+              "Mãi yêu a Tùng Anh"
+            ];
+            const randomLine = lines[Math.floor(Math.random() * lines.length)];
+            Toast.show({
+              type: "success",
+              text1: "Lời nhắn từ nhà phát triển app",
+              text2: randomLine,
+              visibilityTime: 3000,
+            });
+          }}
+        >
+          <Text style={[styles.versionText, { color: theme.subText }]}>
+            {t('settings.version', {
+              appVersion: Application.nativeApplicationVersion,
+              buildVersion: Application.nativeBuildVersion,
+            })}
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.socialContainer}>
           <TouchableOpacity
@@ -251,7 +282,7 @@ export default function SettingsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -369,7 +400,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 16,
     gap: 20,
   },
   socialButton: {

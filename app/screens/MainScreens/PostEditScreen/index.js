@@ -8,7 +8,7 @@ import {
   ScrollView,
   Image,
   Platform,
-  StatusBar,
+  Switch,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,14 +19,15 @@ import {
   updatePost,
   getSubforums,
   uploadFile,
-  getPost,
+  getPostDetail,
 } from "../../../services/api/Api";
 import Verified from "../../../assets/Verified";
 import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
-import FastImage from "react-native-fast-image";
+import * as DocumentPicker from "expo-document-picker";
+import FastImage from "../../../components/FastImage";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -36,19 +37,36 @@ const PostEditScreen = ({ navigation, route }) => {
   const [title, setTitle] = useState("");
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
+  if (!userInfo) {
+    return null;
+  }
   const { theme, isDarkMode } = useTheme();
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
-  const view = [
-    { label: t('editPost.public'), value: 0, icon: "earth" },
-    { label: t('editPost.private'), value: 1, icon: "lock-closed" },
-  ];
-  const [viewSelected, setViewSelected] = useState(view[0]);
+  
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [viewSelected, setViewSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
+  const [selectedDocuments, setSelectedDocuments] = useState([]);
   const [initialPost, setInitialPost] = useState(null);
+
+  const viewOptions = isAnonymous ? [
+    { label: t('editPost.public') || t('createPost.privacyPublic') || "Công khai", value: "public", icon: "earth" },
+    { label: t('editPost.private') || t('createPost.privacyPrivate') || "Riêng tư", value: "private", icon: "lock-closed" },
+  ] : [
+    { label: t('editPost.public') || t('createPost.privacyPublic') || "Công khai", value: "public", icon: "earth" },
+    { label: t('createPost.privacyFollowers') || "Người theo dõi", value: "followers", icon: "people" },
+    { label: t('editPost.private') || t('createPost.privacyPrivate') || "Riêng tư", value: "private", icon: "lock-closed" },
+  ];
+
+  useEffect(() => {
+    if (isAnonymous && viewSelected?.value === 'followers') {
+      setViewSelected(viewOptions[0]);
+    }
+  }, [isAnonymous]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +74,7 @@ const PostEditScreen = ({ navigation, route }) => {
         setLoading(true);
         const [subforumsRes, postRes] = await Promise.all([
           getSubforums(),
-          getPost(route.params.postId),
+          getPostDetail(route.params.postId),
         ]);
 
         const translatedSubforums = subforumsRes.data.map(item => ({
@@ -64,26 +82,41 @@ const PostEditScreen = ({ navigation, route }) => {
           label: getCategoryName(item.label, t)
         }));
         setSubforums(translatedSubforums);
-        const post = postRes.data;
+        const post = postRes.data.post || postRes.data;
         setInitialPost(post);
 
         // Set initial values
-        setTitle(post.title);
-        setPostContent(post.description);
-        setViewSelected(
-          view.find((v) => v.value === post.visibility) || view[0]
-        );
+        setTitle(post.title || "");
+        setPostContent(post.description || post.content || "");
+        setIsAnonymous(!!post.anonymous);
+        
+        // Match the initial view option based on privacy
+        const initialPrivacy = post.privacy || (post.visibility === 1 ? "private" : "public");
+        const matchingOption = viewOptions.find(v => v.value === initialPrivacy) || viewOptions[0];
+        setViewSelected(matchingOption);
+
         if (post.subforum_id) {
           setSelected(
             translatedSubforums.find((s) => s.value === post.subforum_id)
           );
         }
-        if (post.cdn_image_id) {
-          // Convert comma-separated CDN IDs to image URLs
+
+        if (post.images && post.images.length > 0) {
+          setSelectedImages(post.images.map(img => ({ id: img.id, uri: img.url })));
+        } else if (post.cdn_image_id) {
+          // Fallback if images array is not present
           const imageUrls = post.cdn_image_id
             .split(",")
-            .map((id) => `https://api.chuyenbienhoa.com/v1.0/cdn/${id}`);
+            .map((id) => ({ id: id, uri: `https://api.chuyenbienhoa.com/v1.0/cdn/${id}` }));
           setSelectedImages(imageUrls);
+        }
+
+        if (post.documents && post.documents.length > 0) {
+          setSelectedDocuments(post.documents.map(doc => ({ 
+            id: doc.id, 
+            uri: doc.url, 
+            name: doc.name || decodeURIComponent(doc.url.split('/').pop()).replace(/^\\d+_/, '') 
+          })));
         }
       } catch (error) {
         console.log("Error fetching post:", error);
@@ -111,7 +144,7 @@ const PostEditScreen = ({ navigation, route }) => {
   const pickImage = async () => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         quality: 0.7,
         allowsMultipleSelection: true,
       });
@@ -119,7 +152,7 @@ const PostEditScreen = ({ navigation, route }) => {
       if (!result.canceled && result.assets) {
         setSelectedImages((prev) => [
           ...prev,
-          ...result.assets.map((asset) => asset.uri),
+          ...result.assets.map((asset) => ({ uri: asset.uri })),
         ]);
       }
     } catch (error) {
@@ -135,8 +168,37 @@ const PostEditScreen = ({ navigation, route }) => {
     }
   };
 
+  const pickDocument = async () => {
+    try {
+      let result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        multiple: true,
+      });
+
+      if (!result.canceled && result.assets) {
+        setSelectedDocuments((prev) => [...prev, ...result.assets]);
+      }
+    } catch (error) {
+      console.log("Error picking document:", error);
+      Toast.show({
+        type: "error",
+        text1: t('createPost.pickDocumentError') || "Lỗi chọn tài liệu",
+        text2: t('createPost.retry') || "Vui lòng thử lại",
+        autoHide: true,
+        visibilityTime: 3000,
+        topOffset: 60,
+      });
+    }
+  };
+
   const removeImage = (indexToRemove) => {
     setSelectedImages((prev) =>
+      prev.filter((_, index) => index !== indexToRemove)
+    );
+  };
+
+  const removeDocument = (indexToRemove) => {
+    setSelectedDocuments((prev) =>
       prev.filter((_, index) => index !== indexToRemove)
     );
   };
@@ -156,13 +218,17 @@ const PostEditScreen = ({ navigation, route }) => {
 
     try {
       setLoading(true);
-      let cdnIds = [];
+      let newCdnIds = [];
+      let newDocIds = [];
+
+      // Kept IDs
+      const keptImageIds = selectedImages.filter(img => img.id).map(img => img.id);
+      const keptDocumentIds = selectedDocuments.filter(doc => doc.id).map(doc => doc.id);
 
       // Handle new images that need to be uploaded
-      const newImages = selectedImages.filter(
-        (uri) => !uri.includes("api.chuyenbienhoa.com")
-      );
-      for (const imageUri of newImages) {
+      const newImages = selectedImages.filter(img => !img.id);
+      for (const img of newImages) {
+        const imageUri = img.uri;
         const formData = new FormData();
         const fileExtension = imageUri.split(".").pop();
         let mimeType = "image/jpeg";
@@ -180,29 +246,42 @@ const PostEditScreen = ({ navigation, route }) => {
         });
 
         const uploadResponse = await uploadFile(formData);
-        cdnIds.push(uploadResponse.data.id);
+        newCdnIds.push(uploadResponse.data.id);
       }
 
-      // Get existing CDN IDs from URLs
-      const existingCdnIds = selectedImages
-        .filter((uri) => uri.includes("api.chuyenbienhoa.com"))
-        .map((uri) => uri.split("/").pop());
+      // Handle new documents
+      const newDocs = selectedDocuments.filter(doc => !doc.id);
+      for (const dock of newDocs) {
+        const formData = new FormData();
 
-      // Combine existing and new CDN IDs
-      const allCdnIds = [...existingCdnIds, ...cdnIds];
+        formData.append("uid", userInfo.id);
+        formData.append("file", {
+          uri: dock.uri,
+          name: dock.name,
+          type: dock.mimeType || "application/octet-stream",
+        });
+
+        const uploadResponse = await uploadFile(formData);
+        newDocIds.push(uploadResponse.data.id);
+      }
 
       const response = await updatePost(route.params.postId, {
         title,
         description: postContent,
-        cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
+        cdn_image_id: newCdnIds.length > 0 ? newCdnIds.join(",") : null,
+        cdn_document_id: newDocIds.length > 0 ? newDocIds.join(",") : null,
+        kept_image_ids: keptImageIds,
+        kept_document_ids: keptDocumentIds,
         subforum_id: selected?.value ?? null,
-        visibility: viewSelected.value,
+        visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
+        privacy: viewSelected?.value,
+        anonymous: isAnonymous,
       });
 
-      if (viewSelected.value === 0) {
+      if (viewSelected?.value === "public") {
         setFeed((prevPosts) =>
           prevPosts.map((post) =>
-            post.id === route.params.postId ? response.data : post
+            post.id === route.params.postId ? { ...response.data, is_mine: true, is_author: true, author: { ...userInfo, ...response.data?.author }, anonymous: response.data?.anonymous ?? isAnonymous } : post
           )
         );
       }
@@ -257,7 +336,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
   return (
     <>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
       <View
         style={[
@@ -314,7 +393,7 @@ const PostEditScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <View
           style={{
             flexDirection: "row",
@@ -340,8 +419,8 @@ const PostEditScreen = ({ navigation, route }) => {
           />
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '500', fontSize: 18, color: theme.text }} numberOfLines={1}>
-              {profileName}
-              {userInfo.verified && (
+              {isAnonymous ? t('createPost.anonymousUser') : profileName}
+              {userInfo.verified && !isAnonymous && (
                 <View>
                   <Verified
                     width={20}
@@ -353,8 +432,8 @@ const PostEditScreen = ({ navigation, route }) => {
               )}
             </Text>
             <Dropdown
-              options={view}
-              placeholder={t('editPost.public')}
+              options={viewOptions}
+              placeholder={viewOptions[0].label}
               selectedValue={viewSelected}
               onValueChange={setViewSelected}
               style={{
@@ -367,7 +446,7 @@ const PostEditScreen = ({ navigation, route }) => {
               }}
               leftIcon={
                 <Ionicons
-                  name={viewSelected.icon}
+                  name={viewSelected?.icon || "earth"}
                   size={15}
                   color={theme.subText}
                 />
@@ -405,6 +484,27 @@ const PostEditScreen = ({ navigation, route }) => {
             multiline
             textAlignVertical="top"
           />
+          <View
+            style={{
+              height: 0,
+              borderTopWidth: 1,
+              borderColor: theme.border,
+              marginHorizontal: 12,
+            }}
+          ></View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}>
+            <View>
+              <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.text, marginBottom: 5 }}>{t('createPost.anonymous') || "Ẩn danh"}</Text>
+              <Text style={{ color: theme.subText, fontSize: 12 }}>{t('createPost.anonymousDesc') || "Đăng bài ẩn danh"}</Text>
+            </View>
+            <Switch
+              trackColor={{ false: '#767577', true: theme.primary }}
+              thumbColor={isAnonymous ? '#f4f3f4' : '#f4f3f4'}
+              onValueChange={() => {}}
+              value={isAnonymous}
+              disabled={true}
+            />
+          </View>
         </View>
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
           <Dropdown
@@ -430,6 +530,21 @@ const PostEditScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
+          {/* Document list */}
+          {selectedDocuments.length > 0 && (
+            <View style={{ marginTop: 10 }}>
+              {selectedDocuments.map((doc, index) => (
+                <View key={index} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#374151' : '#F0F2F5', padding: 10, borderRadius: 8, marginBottom: 5 }}>
+                  <Ionicons name="document-text-outline" size={24} color={theme.primary} />
+                  <Text style={{ flex: 1, marginHorizontal: 10, color: theme.text }} numberOfLines={1}>{doc.name}</Text>
+                  <TouchableOpacity onPress={() => removeDocument(index)}>
+                    <Ionicons name="close-circle" size={20} color={theme.subText} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+
           {selectedImages.length > 0 ? (
             <ScrollView
               horizontal
@@ -442,14 +557,14 @@ const PostEditScreen = ({ navigation, route }) => {
             >
               <View className="flex-row gap-2">
                 {Array.isArray(selectedImages) &&
-                  selectedImages.map((uri, index) => {
+                  selectedImages.map((img, index) => {
                     return (
                       <View
-                        key={`image-${index}-${uri}`}
+                        key={`image-${index}-${img.uri}`}
                         style={{ marginTop: 7, marginRight: 7, position: 'relative' }}
                       >
                         <Image
-                          source={{ uri }}
+                          source={{ uri: img.uri }}
                           style={{
                             width: 146,
                             height: 146,
@@ -508,32 +623,51 @@ const PostEditScreen = ({ navigation, route }) => {
               </View>
             </ScrollView>
           ) : (
-            <TouchableOpacity
-              onPress={() => {
-                if (typeof pickImage === "function") {
-                  pickImage();
-                }
-              }}
-              style={{
-                height: 100,
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1.3,
-                borderColor: theme.border,
-                borderRadius: 12,
-                marginTop: 20,
-                padding: 40,
-                alignSelf: 'flex-start'
-              }}
-            >
-              <Ionicons
-                name="add-outline"
-                size={40}
-                color={theme.primary}
-                style={{ marginTop: -5 }}
-              />
-              <Text style={{ color: theme.primary }}>{t('editPost.addImage')}</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (typeof pickImage === "function") {
+                    pickImage();
+                  }
+                }}
+                style={{
+                  height: 100,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1.3,
+                  borderColor: theme.border,
+                  borderRadius: 12,
+                  flex: 1
+                }}
+              >
+                <Ionicons
+                  name="image-outline"
+                  size={30}
+                  color={theme.primary}
+                />
+                <Text style={{ color: theme.primary, marginTop: 4 }}>{t('editPost.addImage') || t('createPost.addImage') || "Thêm ảnh"}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={pickDocument}
+                style={{
+                  height: 100,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1.3,
+                  borderColor: theme.border,
+                  borderRadius: 12,
+                  flex: 1
+                }}
+              >
+                <Ionicons
+                  name="document-attach-outline"
+                  size={30}
+                  color={theme.primary}
+                />
+                <Text style={{ color: theme.primary, marginTop: 4 }}>{t('createPost.addDocument') || "Thêm tài liệu"}</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </ScrollView>

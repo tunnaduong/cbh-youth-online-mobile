@@ -2,16 +2,12 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "2.0.1",
+    "version": "2.7.6",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "com.fatties.youth",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true,
       "icon": {
@@ -20,8 +16,22 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
+      "buildNumber": "274",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
+        "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "com.fatties.youth"
+            ]
+          }
+        ],
+        "UIApplicationSceneManifest": {
+          "UIApplicationSupportsMultipleScenes": false,
+          "UISceneConfigurations": {}
+        }
       }
     },
     "android": {
@@ -45,7 +55,9 @@
         "backgroundColor": "#ffffff",
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
-      "package": "com.fatties.youth"
+      "package": "com.fatties.youth",
+      "versionCode": 276,
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./app/assets/favicon.png"
@@ -60,6 +72,18 @@
       "url": "https://u.expo.dev/172eec8c-8c58-453c-a375-258412496e09"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "dark": {
+            "image": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
+            "backgroundColor": "#000000"
+          }
+        }
+      ],
       [
         "expo-camera",
         {
@@ -78,7 +102,16 @@
       ],
       "expo-web-browser",
       "expo-apple-authentication",
-      "expo-localization"
+      "expo-localization",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification.png",

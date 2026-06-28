@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Image,
   Keyboard,
   TouchableWithoutFeedback,
@@ -14,6 +13,7 @@ import {
   StatusBar,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -53,13 +53,32 @@ const LoginScreen = ({ navigation }) => {
       const response = await loginRequest({ username: email, password });
 
       // Save token and user info
+      if (!response?.data?.token || !response?.data?.user) {
+        throw new Error(t("auth.invalidServerResponse"));
+      }
       signIn(response.data.token, response.data.user);
     } catch (error) {
       // Show an error message to the user
-      Alert.alert(
-        t("auth.loginError"),
-        error.message || t("common.error")
-      );
+      let errorMessage = error.message || t("common.error");
+
+      // Provide a helpful hint for bcrypt algorithm errors (old account hashing incompatibility)
+      if (
+        errorMessage &&
+        (errorMessage.toLowerCase().includes("bcrypt") ||
+          errorMessage.toLowerCase().includes("algorithm"))
+      ) {
+        errorMessage = t("auth.passwordResetRequired", {
+          defaultValue:
+            errorMessage +
+            "\n\n" +
+            t("auth.tryForgotPassword", {
+              defaultValue:
+                "Vui lòng thử dùng 'Quên mật khẩu' để đặt lại mật khẩu.",
+            }),
+        });
+      }
+
+      Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false); // Ensure loading stops even if there's an error
     }
@@ -252,10 +271,6 @@ const LoginScreen = ({ navigation }) => {
             onPress={() => {
               navigation.goBack();
             }}
-            style={{
-              marginTop:
-                Platform.OS === "android" ? StatusBar.currentHeight + 10 : 0,
-            }}
           >
             <Icon name="chevron-back-outline" color="white" size={30} />
           </TouchableOpacity>
@@ -278,6 +293,9 @@ const LoginScreen = ({ navigation }) => {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  autoComplete="username"
+                  textContentType="username"
+                  importantForAutofill="yes"
                 />
               </View>
 
@@ -291,6 +309,11 @@ const LoginScreen = ({ navigation }) => {
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
+                    textContentType="password"
+                    autoComplete="current-password"
+                    importantForAutofill="yes"
+                    autoCorrect={false}
+                    autoCapitalize="none"
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}

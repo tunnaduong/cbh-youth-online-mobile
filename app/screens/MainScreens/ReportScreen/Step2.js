@@ -10,9 +10,7 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
-  StatusBar,
   TextInput,
   ScrollView,
   Modal,
@@ -20,7 +18,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import DatePicker from "react-native-date-picker";
 import BottomSheet, {
   BottomSheetBackdrop,
@@ -433,8 +431,8 @@ export default function Step2({ navigation, route }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
 
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />
@@ -529,7 +527,7 @@ export default function Step2({ navigation, route }) {
           />
         </BottomSheetView>
       </BottomSheet>
-    </SafeAreaView>
+    </View>
   );
 }
 

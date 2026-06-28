@@ -5,26 +5,26 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Image,
   RefreshControl,
   Animated,
   FlatList,
   Dimensions,
-  StatusBar,
   DeviceEventEmitter,
+  Platform,
 } from "react-native";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getForumCategories } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import LottieView from "lottie-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
+import { storage } from "../../../global/storage";
 
 const { width } = Dimensions.get("window");
 
@@ -78,7 +78,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   </View>
 );
 
-export default function ForumScreen({ navigation }) {
+export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(1);
@@ -101,10 +101,15 @@ export default function ForumScreen({ navigation }) {
   };
 
   const lastScrollYRef = useRef(0);
+  const scrollPositionRef = useRef(0);
+  const isProcessingRef = useRef(false);
+  const lastTriggerTimeRef = useRef(0);
+  const innerScrollRefs = useRef({});
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    
+    scrollPositionRef.current = Math.max(0, offsetY);
+
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
     if (offsetY < 50) {
@@ -121,6 +126,43 @@ export default function ForumScreen({ navigation }) {
     }
   };
 
+  const scrollToTopOrReload = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) return;
+    lastTriggerTimeRef.current = now;
+
+    if (isProcessingRef.current) return;
+
+    const isAtTop = scrollPositionRef.current <= 10;
+
+    if (isAtTop) {
+      isProcessingRef.current = true;
+      setRefreshing(true);
+      fetchForumData();
+      setTimeout(() => {
+        setRefreshing(false);
+        isProcessingRef.current = false;
+        scrollPositionRef.current = 0;
+      }, 1000);
+    } else {
+      isProcessingRef.current = true;
+      const scrollRef = innerScrollRefs.current[activeCategory];
+      if (scrollRef) {
+        scrollRef.scrollTo({ y: 0, animated: true });
+      }
+      setTimeout(() => {
+        scrollPositionRef.current = 0;
+        isProcessingRef.current = false;
+      }, 600);
+    }
+  }, [activeCategory]);
+
+  React.useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
+
   useEffect(() => {
     if (categories.length > 0) {
       const selectedCategory = categories.find(
@@ -134,11 +176,30 @@ export default function ForumScreen({ navigation }) {
 
   const fetchForumData = async () => {
     try {
+      const cachedStr = storage.getString("cached_forum");
+      if (cachedStr) {
+        try {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCategories(parsed);
+            setLoading(false);
+            setRefreshing(true);
+          }
+        } catch(e) {}
+      }
+
       const response = await getForumCategories();
-      setCategories(response.data);
+      const categoriesData = response?.data;
+      if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+        setCategories(categoriesData);
+        storage.set("cached_forum", JSON.stringify(categoriesData));
+      }
       setLoading(false);
+      setTimeout(() => setRefreshing(false), 1000);
     } catch (error) {
       console.log(error);
+      setLoading(false);
+      setTimeout(() => setRefreshing(false), 1000);
     }
   };
 
@@ -174,13 +235,13 @@ export default function ForumScreen({ navigation }) {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[
           { flex: 1, backgroundColor: theme.background },
           { paddingTop: insets.top },
         ]}
       >
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
           <TouchableOpacity
@@ -200,15 +261,15 @@ export default function ForumScreen({ navigation }) {
           <CustomLoading />
           <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
+    <View
       style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <TouchableOpacity
@@ -280,6 +341,10 @@ export default function ForumScreen({ navigation }) {
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           {
@@ -300,11 +365,18 @@ export default function ForumScreen({ navigation }) {
               contentContainerStyle={{
                 backgroundColor: theme.background,
                 paddingHorizontal: 16,
-                paddingBottom: 20,
+                paddingBottom: 110 + insets.bottom,
                 paddingTop: 5,
               }}
               showsVerticalScrollIndicator={false}
-              onScroll={handleScroll}
+              onScroll={(e) => {
+                const offsetY = e.nativeEvent.contentOffset.y;
+                if (item.id === activeCategory) {
+                  scrollPositionRef.current = Math.max(0, offsetY);
+                }
+                handleScroll(e);
+              }}
+              ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -313,6 +385,7 @@ export default function ForumScreen({ navigation }) {
                   colors={["transparent"]}
                   progressBackgroundColor="transparent"
                   style={{ backgroundColor: "transparent" }}
+                  progressViewOffset={-1000}
                 />
               }
             >
@@ -330,7 +403,7 @@ export default function ForumScreen({ navigation }) {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

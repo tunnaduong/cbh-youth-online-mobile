@@ -4,14 +4,15 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   StyleSheet,
   ActivityIndicator,
   Dimensions,
+  Platform,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryArchive } from "../../../services/api/Api";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import Toast from "react-native-toast-message";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -30,6 +31,7 @@ const ArchiveScreen = ({ route, navigation }) => {
   const storyRef = React.useRef(null);
   const username = route.params?.username || currentUsername;
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const formatDateHeader = (dateStr) => {
     if (!dateStr) return "";
@@ -232,7 +234,11 @@ const ArchiveScreen = ({ route, navigation }) => {
           data={archiveData}
           renderItem={renderDateSection}
           keyExtractor={(item) => item.date}
-          contentContainerStyle={styles.listContent}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 16 }]}
         />
       )}
 
@@ -242,6 +248,7 @@ const ArchiveScreen = ({ route, navigation }) => {
           stories={[selectedStories]}
           hideAvatarList={true}
           showName={false}
+          statusBarTranslucent={Platform.OS === "android"}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -254,9 +261,6 @@ const ArchiveScreen = ({ route, navigation }) => {
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           onHide={() => setSelectedStories(null)}
-          containerStyle={{
-            height: Dimensions.get("window").height,
-          }}
         />
       )}
     </SafeAreaView>

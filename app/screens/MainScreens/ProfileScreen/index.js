@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  StatusBar,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,7 +30,7 @@ import {
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedContext } from "../../../contexts/FeedContext";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
@@ -260,7 +259,10 @@ const ProfileScreen = ({ route, navigation }) => {
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
-      setRecentPostsProfile(response.data.recent_posts);
+      const visiblePosts = (response.data.recent_posts || []).filter(
+        (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
+      );
+      setRecentPostsProfile(visiblePosts);
       // Check if the current user is in the followers list
       const isFollowed = response.data.followers.some(
         (follower) => follower.username === username
@@ -438,7 +440,7 @@ const ProfileScreen = ({ route, navigation }) => {
   return (
     <>
       <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        
         <View
           style={[styles.header, { height: 50, borderBottomColor: theme.border }]}
           onLayout={(event) => {
@@ -481,7 +483,7 @@ const ProfileScreen = ({ route, navigation }) => {
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background }}
+          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
           refreshControl={
             <RefreshControl
               tintColor="transparent"

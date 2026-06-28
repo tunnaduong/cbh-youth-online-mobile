@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Modal } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
@@ -16,45 +16,52 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-              <TouchableWithoutFeedback>
-                <View style={[styles.content, { backgroundColor: theme.cardBackground }]}>
-                  <Text style={[styles.title, { color: theme.text }]}>{t('report.modalTitle')}</Text>
-                  <TextInput
-                    style={[styles.input, {
-                      backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
-                      borderColor: theme.border,
-                      color: theme.text
-                    }]}
-                    placeholder={t('report.reasonPlaceholder')}
-                    placeholderTextColor={theme.subText}
-                    multiline
-                    value={reason}
-                    onChangeText={setReason}
-                    autoFocus
-                  />
-                  <View style={styles.buttons}>
-                    <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
-                      <Text style={[styles.cancelText, { color: theme.subText }]}>{t('report.cancel')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={handleSubmit}
-                      style={[styles.submitButton, { backgroundColor: theme.primary }, !reason.trim() && styles.disabled]}
-                      disabled={!reason.trim()}
-                    >
-                      <Text style={styles.submitText}>{t('report.submit')}</Text>
-                    </TouchableOpacity>
+    <Modal
+      transparent={true}
+      visible={visible}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+        <TouchableWithoutFeedback onPress={onClose}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.container}>
+                <TouchableWithoutFeedback>
+                  <View style={[styles.content, { backgroundColor: theme.cardBackground }]}>
+                    <Text style={[styles.title, { color: theme.text }]}>{t('report.modalTitle')}</Text>
+                    <TextInput
+                      style={[styles.input, {
+                        backgroundColor: isDarkMode ? '#374151' : '#f9fafb',
+                        borderColor: theme.border,
+                        color: theme.text
+                      }]}
+                      placeholder={t('report.reasonPlaceholder')}
+                      placeholderTextColor={theme.subText}
+                      multiline
+                      value={reason}
+                      onChangeText={setReason}
+                      autoFocus
+                    />
+                    <View style={styles.buttons}>
+                      <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
+                        <Text style={[styles.cancelText, { color: theme.subText }]}>{t('report.cancel')}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleSubmit}
+                        style={[styles.submitButton, { backgroundColor: theme.primary }, !reason.trim() && styles.disabled]}
+                        disabled={!reason.trim()}
+                      >
+                        <Text style={styles.submitText}>{t('report.submit')}</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-              </TouchableWithoutFeedback>
-            </KeyboardAvoidingView>
-          </TouchableWithoutFeedback>
-        </View>
-      </TouchableWithoutFeedback>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   Image,
   TextInput,
-  StatusBar,
+  DeviceEventEmitter,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { getConversations } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
@@ -21,12 +21,13 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LottieView from "lottie-react-native";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
 };
 
-export default function ChatScreen({ navigation }) {
+export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const [conversations, setConversations] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -35,6 +36,73 @@ export default function ChatScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers } = useContext(AuthContext);
+  const flatListRef = useRef(null);
+  const scrollPositionRef = useRef(0);
+  const isProcessingRef = useRef(false);
+  const lastTriggerTimeRef = useRef(0);
+  const lastScrollYRef = useRef(0);
+  const lottieRef = useRef(null);
+
+  const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    scrollPositionRef.current = Math.max(0, offsetY);
+
+    const diff = offsetY - lastScrollYRef.current;
+    if (offsetY < 50) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    } else if (diff > 15) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
+    } else if (diff < -10) {
+      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
+    }
+    lastScrollYRef.current = offsetY;
+  };
+
+  const scrollToTopOrReload = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) return;
+    lastTriggerTimeRef.current = now;
+
+    if (isProcessingRef.current) return;
+
+    const isAtTop = scrollPositionRef.current <= 10;
+
+    if (isAtTop) {
+      isProcessingRef.current = true;
+      setRefreshing(true);
+      fetchConversations().finally(() => {
+        setTimeout(() => {
+          setRefreshing(false);
+          isProcessingRef.current = false;
+          scrollPositionRef.current = 0;
+        }, 1000);
+      });
+    } else {
+      isProcessingRef.current = true;
+      if (flatListRef.current) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+      setTimeout(() => {
+        scrollPositionRef.current = 0;
+        isProcessingRef.current = false;
+      }, 600);
+    }
+  }, []);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchConversations().finally(() => {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 1000);
+    });
+  }, []);
+
+  React.useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -48,7 +116,10 @@ export default function ChatScreen({ navigation }) {
     if (cached) {
       setConversations(JSON.parse(cached));
     }
-    fetchConversations();
+    setRefreshing(true);
+    fetchConversations().finally(() => {
+      setTimeout(() => setRefreshing(false), 1000);
+    });
   }, []);
 
   const fetchConversations = async () => {
@@ -171,13 +242,14 @@ export default function ChatScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <View style={[styles.header, { marginTop: insets.top }]}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.title')}</Text>
         <TouchableOpacity
           onPress={() => {
             navigation.navigate("NewConversationScreen");
           }}
+          style={{ flexShrink: 1 }}
         >
           <View
             className="flex-row items-center justify-center rounded-full px-3 py-2"
@@ -188,19 +260,40 @@ export default function ChatScreen({ navigation }) {
               shadowOpacity: 0.22,
               shadowRadius: 2.22,
               elevation: 3,
-              height: 35,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              borderRadius: 20,
             }}
           >
             <Ionicons
               name="add"
               size={20}
               color="#fff"
-              style={{ marginRight: 6 }}
+              style={{ marginRight: 4, flexShrink: 0 }}
             />
-            <Text style={{ color: "#fff", fontWeight: "600" }}>{t('chat.newMessage')}</Text>
+            <Text
+              style={{ color: "#fff", fontWeight: "600" }}
+              numberOfLines={1}
+            >
+              {t('chat.newMessage')}
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
+
+      {refreshing && (
+        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <LottieView
+            source={require("../../../assets/refresh.json")}
+            style={{ width: 40, height: 40 }}
+            ref={lottieRef}
+            loop
+            autoPlay
+          />
+        </View>
+      )}
 
       <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
         <Ionicons
@@ -219,12 +312,26 @@ export default function ChatScreen({ navigation }) {
       </View>
 
       <FlatList
+        ref={flatListRef}
         data={filteredConversations}
         extraData={{ t, theme, isDarkMode }}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+            progressViewOffset={-1000}
+          />
+        }
         contentContainerStyle={{
-          paddingBottom: 110,
+          paddingBottom: 110 + insets.bottom,
           flex: filteredConversations.length === 0 ? 1 : undefined,
         }}
         ItemSeparatorComponent={() => (
@@ -260,11 +367,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: "space-between",
     height: 50,
+    gap: 8,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    flex: 1,
+    flexShrink: 1,
   },
   searchContainer: {
     flexDirection: "row",

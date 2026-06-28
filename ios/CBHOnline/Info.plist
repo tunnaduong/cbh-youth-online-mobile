@@ -21,7 +21,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.0.1</string>
+    <string>2.7.6</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -29,7 +29,6 @@
       <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-          <string>com.fatties.youth</string>
           <string>com.fatties.youth</string>
         </array>
       </dict>
@@ -41,7 +40,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>201</string>
+    <string>274</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
@@ -60,7 +59,16 @@
     <key>NSMicrophoneUsageDescription</key>
     <string>Cho phép CBH Youth Online truy cập microphone của bạn</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>Cho phép CBH Youth Online truy cập thư viện ảnh của bạn</string>
+    <key>RCTNewArchEnabled</key>
+    <true/>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+      <key>UIApplicationSupportsMultipleScenes</key>
+      <false/>
+      <key>UISceneConfigurations</key>
+      <dict/>
+    </dict>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
@@ -84,7 +92,7 @@
       <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UIUserInterfaceStyle</key>
-    <string>Light</string>
+    <string>Automatic</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
     <false/>
   </dict>

@@ -5,16 +5,16 @@ import {
   FlatList,
   RefreshControl,
   TouchableOpacity,
-  SafeAreaView,
   Image,
+  Platform,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getActivities } from "../../../services/api/Api";
 import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import FastImage from "react-native-fast-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import FastImage from "../../../components/FastImage";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 
 const ActivityItem = ({ item, navigation }) => {
@@ -271,7 +271,7 @@ const ActivityScreen = ({ navigation }) => {
   );
 
   return (
-    <SafeAreaView
+    <View
       style={{ flex: 1, backgroundColor: "#fff", paddingTop: insets.top }}
     >
       {/* Header */}
@@ -308,6 +308,10 @@ const ActivityScreen = ({ navigation }) => {
       <FlatList
         data={activities}
         keyExtractor={(item) => `${item.type}-${item.created_timestamp}`}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item }) => (
           <ActivityItem item={item} navigation={navigation} />
         )}
@@ -324,10 +328,11 @@ const ActivityScreen = ({ navigation }) => {
         ListEmptyComponent={ListEmptyComponent}
         contentContainerStyle={{
           flexGrow: 1,
+          paddingBottom: insets.bottom || 0,
         }}
       />
       <Toast />
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, DeviceEventEmitter } from "react-native";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter, InteractionManager } from "react-native";
+import * as Haptics from "expo-haptics";
 import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import HomeScreen from "./HomeScreen";
@@ -17,6 +18,25 @@ import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
+
+let LiquidGlassView = null;
+let LiquidGlassContainerView = null;
+let isLiquidGlassSupported = false;
+let AnimatedLiquidGlassView = null;
+
+if (Platform.OS === 'ios') {
+  try {
+    const LiquidGlass = require('@callstack/liquid-glass');
+    LiquidGlassView = LiquidGlass.LiquidGlassView;
+    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
+    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
+    if (LiquidGlassView) {
+      AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
+    }
+  } catch (error) {
+    console.warn("Failed to load @callstack/liquid-glass:", error);
+  }
+}
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
@@ -44,7 +64,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   };
 
   const activeIndex = getRouteIndex(currentRoute);
-  const usableWidth = tabBarWidth - 16;
+  const usableWidth = tabBarWidth;
   const buttonWidth = usableWidth / 5;
 
   const getIndicatorWidth = (index, bWidth) => {
@@ -52,7 +72,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   };
 
   const getIndicatorLeft = (index, bWidth) => {
-    return 8 + index * bWidth;
+    return index * bWidth;
   };
 
   const currentIndicatorWidth = getIndicatorWidth(activeIndex, buttonWidth);
@@ -62,13 +82,93 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     Animated.spring(slideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: true,
-      stiffness: 140,
-      damping: 14,
-      mass: 1.2,
+      stiffness: 400,
+      damping: 35,
+      mass: 0.5,
     }).start();
   }, [currentIndicatorLeft]);
 
   const opacity = activeIndex === 2 ? 0 : 1;
+  const isIOS = Platform.OS === "ios";
+
+  if (isIOS && LiquidGlassView && isLiquidGlassSupported) {
+    const isRealGlass = isLiquidGlassSupported;
+    return (
+      <LiquidGlassView
+        effect="regular"
+        interactive={isRealGlass}
+        onLayout={onLayout}
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 26,
+          overflow: "hidden",
+          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
+          borderWidth: 1,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        {/* Chromatic Aberration - Red channel shift (left offset) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: -0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+          }}
+        />
+        {/* Chromatic Aberration - Blue channel shift (right offset) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+          }}
+        />
+        {/* Main Glass Indicator (neutral white/dark) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0,
+            opacity,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+            shadowColor: isDarkMode ? "#fff" : "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isDarkMode ? 0.3 : 0.15,
+            shadowRadius: 6,
+            elevation: 3,
+            overflow: "hidden",
+          }}
+        >
+          <LinearGradient
+            colors={[
+              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+              "transparent"
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      </LiquidGlassView>
+    );
+  }
 
   return (
     <View
@@ -77,7 +177,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         ...StyleSheet.absoluteFillObject,
         borderRadius: 26,
         overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)",
+        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
         borderWidth: 1,
         borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
       }}
@@ -91,9 +191,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           borderRadius: 26,
           top: 0,
           left: -0.8,
-          opacity: opacity * 0.35,
+          opacity: opacity * 0.15,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
         }}
       />
       {/* Chromatic Aberration - Blue channel shift (right offset) */}
@@ -105,9 +205,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           borderRadius: 26,
           top: 0,
           left: 0.8,
-          opacity: opacity * 0.35,
+          opacity: opacity * 0.15,
           transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
         }}
       />
       {/* Main Glass Indicator (neutral white/dark) */}
@@ -145,30 +245,668 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   );
 };
 
+const CustomTabBar = ({
+  state,
+  descriptors,
+  navigation,
+  chatUnreadCount,
+  notificationUnreadCount,
+  triggerHomeScrollOrReload,
+  triggerForumScrollOrReload,
+  triggerChatScrollOrReload,
+  triggerNotificationScrollOrReload,
+  tabBarTranslateY,
+}) => {
+  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomOffset = Platform.OS === 'ios'
+    ? (insets.bottom > 0 ? insets.bottom + 8 : 24)
+    : (insets.bottom > 0 ? insets.bottom + 8 : 16);
+  const { t } = useTranslation();
+  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
+
+  // nativeSlideAnim: NATIVE DRIVER — chạy trên UI thread, không bị block bởi JS/React mount.
+  // Chỉ dùng cho Animated.timing/spring khi tap tab.
+  const nativeSlideAnim = useRef(new Animated.Value(0)).current;
+  // jsSlideAnim: JS DRIVER — dùng riêng cho PanResponder drag (.setValue() trực tiếp).
+  // Tách 2 value tránh lỗi "mixing native and JS driven animations on same node".
+  const jsSlideAnim = useRef(new Animated.Value(0)).current;
+  // slideAnim alias — trỏ vào jsSlideAnim để giữ tương thích với PanResponder code bên dưới
+  const slideAnim = jsSlideAnim;
+
+  // stretchAnim / offsetAnim: liquid-glass stretch during *drag only*.
+  // These drive `width` which is not supported by native driver → JS-only.
+  const stretchAnim = useRef(new Animated.Value(0)).current;
+  const offsetAnim = useRef(new Animated.Value(0)).current;
+
+  // Stable base value for indicator width — JS driver (drives `width` style)
+  const indicatorWidthBase = useRef(new Animated.Value(0)).current;
+  // indicatorAnimatedWidth: JS-driver composed value for width+stretch
+  const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
+  // indicatorDragOffset: JS-driver composed value for stretch direction offset
+  const indicatorDragOffset = useRef(offsetAnim).current;
+  // indicatorAnimatedTranslateX: uses jsSlideAnim (JS driver, for drag compatibility).
+  const indicatorAnimatedTranslateX = useRef(jsSlideAnim).current;
+
+  // isDraggingAnim: switch display giữa native vs JS driver layer
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const lastHapticIndex = useRef(-1);
+  const tabBarWidthRef = useRef(tabBarWidth);
+  // Store buttonWidth at gesture-start so stretch math is consistent
+  const bWidthAtGrant = useRef(0);
+
+  const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
+  // useMemo prevents leftRoutes from being recreated on every render,
+  // which was causing navigateToLeftIndex → useEffect → ref update chain on each tab press.
+  const leftRoutes = React.useMemo(() => leftRouteNames.map(name => {
+    const route = state.routes.find(r => r.name === name);
+    const index = state.routes.indexOf(route);
+    const descriptor = descriptors[route.key];
+    return { route, index, descriptor };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [state.routes, descriptors]);
+
+  const activeRouteName = state.routes[state.index].name;
+  const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
+  const activeLeftIndexRef = useRef(activeLeftIndex);
+
+  const usableWidth = tabBarWidth - 2;
+  const buttonWidth = usableWidth / 4;
+  const currentIndicatorWidth = buttonWidth;
+  const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
+
+  // Keep refs in sync
+  useEffect(() => {
+    tabBarWidthRef.current = tabBarWidth;
+  }, [tabBarWidth]);
+
+  useEffect(() => {
+    activeLeftIndexRef.current = activeLeftIndex;
+  }, [activeLeftIndex]);
+
+  // Keep the stable width base value in sync with layout-derived buttonWidth
+  useEffect(() => {
+    indicatorWidthBase.setValue(currentIndicatorWidth);
+  }, [currentIndicatorWidth]);
+
+  // Animate indicator to committed tab position (when not dragging).
+  // nativeSlideAnim dùng useNativeDriver:true → chạy trên UI thread, không bị block bởi
+  // React mount màn hình mới trên Android. jsSlideAnim được sync ngay lập tức (setValue)
+  // để drag gesture sau đó có đúng vị trí xuất phát.
+  useEffect(() => {
+    if (isDragging.current) return;
+    // Native-driver animation cho visual indicator — mượt 60fps ngay cả khi JS bận
+    Animated.timing(nativeSlideAnim, {
+      toValue: currentIndicatorLeft,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+    // Sync JS value để PanResponder có đúng starting position khi drag
+    jsSlideAnim.setValue(currentIndicatorLeft);
+    // Reset stretch & offset on tab commit
+    Animated.spring(stretchAnim, {
+      toValue: 0,
+      useNativeDriver: false,
+      stiffness: 400,
+      damping: 35,
+      mass: 0.5,
+    }).start();
+    Animated.spring(offsetAnim, {
+      toValue: 0,
+      useNativeDriver: false,
+      stiffness: 400,
+      damping: 35,
+      mass: 0.5,
+    }).start();
+  }, [currentIndicatorLeft]);
+
+  const onLeftPillLayout = (event) => {
+    const { width } = event.nativeEvent.layout;
+    if (width) {
+      setTabBarWidth(width);
+      tabBarWidthRef.current = width;
+    }
+  };
+
+  // Use a ref so the PanResponder (created once at mount) always calls the
+  // latest version of navigate without stale closure lag
+  const navigateToLeftIndexRef = useRef(null);
+
+  // Navigate to a tab by left-route index
+  const navigateToLeftIndex = useCallback((leftIdx) => {
+    const target = leftRoutes[leftIdx];
+    if (!target) return;
+    const { route } = target;
+    const event = navigation.emit({
+      type: 'tabPress',
+      target: route.key,
+      canPreventDefault: true,
+    });
+    if (!event.defaultPrevented) {
+      navigation.navigate(route.name, route.params);
+    }
+  }, [leftRoutes, navigation]);
+
+  // Keep the ref in sync with the latest callback
+  useEffect(() => {
+    navigateToLeftIndexRef.current = navigateToLeftIndex;
+  }, [navigateToLeftIndex]);
+
+  // PanResponder for drag-to-switch
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        return (
+          Math.abs(gestureState.dx) > 4 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
+        );
+      },
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          Math.abs(gestureState.dx) > 6 &&
+          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2
+        );
+      },
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
+      onPanResponderGrant: (evt, gestureState) => {
+        isDragging.current = true;
+        lastHapticIndex.current = activeLeftIndexRef.current;
+        bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
+        slideAnim.stopAnimation((currentVal) => {
+          dragStartX.current = currentVal;
+        });
+        nativeSlideAnim.stopAnimation();
+        stretchAnim.stopAnimation();
+        offsetAnim.stopAnimation();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const bWidth = bWidthAtGrant.current;
+        const rawX = dragStartX.current + gestureState.dx;
+        const minX = 0;
+        const maxX = bWidth * 3;
+
+        let clampedX;
+        if (rawX < minX) {
+          clampedX = minX + (rawX - minX) * 0.2;
+        } else if (rawX > maxX) {
+          clampedX = maxX + (rawX - maxX) * 0.2;
+        } else {
+          clampedX = rawX;
+        }
+
+        slideAnim.setValue(clampedX);
+        // Sync native anim trong drag bằng duration:0 timing
+        Animated.timing(nativeSlideAnim, {
+          toValue: clampedX,
+          duration: 0,
+          useNativeDriver: true,
+        }).start();
+
+        const extraStretch = 0;
+        stretchAnim.setValue(extraStretch);
+
+        const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
+        offsetAnim.setValue(directionOffset);
+
+        const indicatorCenter = clampedX + bWidth / 2;
+        const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
+
+        if (hoveredIndex !== lastHapticIndex.current) {
+          lastHapticIndex.current = hoveredIndex;
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        isDragging.current = false;
+        const bWidth = bWidthAtGrant.current;
+
+        const rawX = dragStartX.current + gestureState.dx;
+        const clampedX = Math.min(bWidth * 3, Math.max(0, rawX));
+        const snappedIndex = Math.min(3, Math.max(0, Math.round(clampedX / bWidth)));
+        const snapTarget = snappedIndex * bWidth;
+
+        // Sync JS anim (for internal state)
+        Animated.spring(slideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: false,
+          stiffness: 380,
+          damping: 32,
+          mass: 0.6,
+        }).start();
+        // Native anim snap — chạy trên UI thread
+        Animated.spring(nativeSlideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: true,
+          stiffness: 380,
+          damping: 32,
+          mass: 0.6,
+        }).start();
+
+        Animated.spring(stretchAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 400,
+          damping: 34,
+          mass: 0.5,
+        }).start();
+        Animated.spring(offsetAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 400,
+          damping: 34,
+          mass: 0.5,
+        }).start();
+
+        if (snappedIndex !== activeLeftIndexRef.current) {
+          navigateToLeftIndexRef.current?.(snappedIndex);
+        }
+
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      },
+      onPanResponderTerminate: () => {
+        isDragging.current = false;
+        const bWidth = bWidthAtGrant.current || (tabBarWidthRef.current - 2) / 4;
+        const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
+        Animated.spring(slideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: false,
+          stiffness: 200,
+          damping: 20,
+        }).start();
+        Animated.spring(nativeSlideAnim, {
+          toValue: snapTarget,
+          useNativeDriver: true,
+          stiffness: 200,
+          damping: 20,
+        }).start();
+        Animated.spring(stretchAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 260,
+          damping: 22,
+        }).start();
+        Animated.spring(offsetAnim, {
+          toValue: 0,
+          useNativeDriver: false,
+          stiffness: 260,
+          damping: 22,
+        }).start();
+      },
+    })
+  ).current;
+
+  const opacity = activeRouteName === "Create" ? 0 : 1;
+
+  const renderButtons = useCallback(() => {
+    return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
+      const isFocused = state.routes[state.index].key === route.key;
+      const { options } = descriptor;
+
+  const onPress = () => {
+        if (isDragging.current) return;
+        if (isFocused) {
+          if (route.name === "Home") triggerHomeScrollOrReload();
+          else if (route.name === "Forum") triggerForumScrollOrReload();
+          else if (route.name === "Chat") triggerChatScrollOrReload();
+          else if (route.name === "Notifications") triggerNotificationScrollOrReload();
+          return;
+        }
+        const event = navigation.emit({
+          type: 'tabPress',
+          target: route.key,
+          canPreventDefault: true,
+        });
+        if (!event.defaultPrevented) {
+          navigation.navigate(route.name, route.params);
+        }
+      };
+
+      let iconName;
+      let badgeCount = null;
+      if (route.name === "Home") {
+        iconName = isFocused ? "home" : "home-outline";
+      } else if (route.name === "Forum") {
+        iconName = isFocused ? "people" : "people-outline";
+      } else if (route.name === "Chat") {
+        iconName = isFocused ? "chatbubble" : "chatbubble-outline";
+        badgeCount = chatUnreadCount;
+      } else if (route.name === "Notifications") {
+        iconName = isFocused ? "notifications" : "notifications-outline";
+        badgeCount = notificationUnreadCount;
+      }
+
+      const tintColor = isFocused
+        ? theme.primary
+        : (isDarkMode ? "#A0A0A0" : "gray");
+
+      return (
+        <TouchableOpacity
+          key={route.key}
+          onPress={onPress}
+          style={styles.iosTabButton}
+          activeOpacity={0.8}
+        >
+          <View style={styles.iosTabButtonInner}>
+            <View style={{ position: "relative" }}>
+              <Ionicons name={iconName} size={24} color={tintColor} />
+              {badgeCount !== null && <TabBarBadge count={badgeCount} />}
+            </View>
+            {!hideTabLabels && (
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[
+                  styles.iosTabLabel,
+                  {
+                    color: tintColor,
+                    fontWeight: isFocused ? "bold" : "normal",
+                  },
+                ]}
+              >
+                {options.title || route.name}
+              </Text>
+            )}
+          </View>
+        </TouchableOpacity>
+      );
+    });
+  }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
+      triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
+
+  if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView && isLiquidGlassSupported) {
+    const isRealGlass = isLiquidGlassSupported;
+    const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
+    const indicatorBg = isRealGlass
+      ? (isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)")
+      : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)");
+    const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
+
+    return (
+      <Animated.View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          transform: [{ translateY: tabBarTranslateY }],
+          zIndex: 99,
+        }}
+      >
+        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+          <View
+            {...panResponder.panHandlers}
+            onLayout={onLeftPillLayout}
+            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
+          >
+            <LiquidGlassView
+              effect="regular"
+              interactive={isRealGlass}
+              colorScheme={isDarkMode ? 'dark' : 'light'}
+              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 26,
+                backgroundColor: pillBg,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }}
+            />
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: [{ translateX: nativeSlideAnim }],
+              }}
+            >
+              {isRealGlass ? (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: indicatorBorderWidth,
+                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                    backgroundColor: indicatorBg,
+                    opacity,
+                  }}
+                />
+              ) : (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: 0,
+                    backgroundColor: indicatorBg,
+                    opacity,
+                    shadowColor: isDarkMode ? "#fff" : "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                    shadowRadius: 6,
+                    elevation: 3,
+                    overflow: "hidden",
+                  }}
+                >
+                  <LinearGradient
+                    colors={[
+                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                      "transparent"
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </Animated.View>
+              )}
+            </Animated.View>
+            {renderButtons()}
+          </View>
+
+          <LiquidGlassView
+            effect="regular"
+            interactive={isRealGlass}
+            colorScheme={isDarkMode ? 'dark' : 'light'}
+            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+            style={[
+              styles.iosRightPill,
+              {
+                backgroundColor: pillBg,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
+          >
+            <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+              <CustomTabBarButton
+                onPress={() => {}}
+                bottomOffset={bottomOffset}
+              />
+            </View>
+          </LiquidGlassView>
+        </LiquidGlassContainerView>
+      </Animated.View>
+    );
+  }
+
+  return (
+    <Animated.View
+      style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        transform: [{ translateY: tabBarTranslateY }],
+        zIndex: 99,
+      }}
+    >
+      <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+        <View
+          {...panResponder.panHandlers}
+          onLayout={onLeftPillLayout}
+          style={[
+            styles.iosLeftPill,
+            {
+              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+              borderWidth: 1,
+              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+            }
+          ]}
+        >
+          {/*
+            2-layer indicator architecture:
+            - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
+            - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
+              nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
+          */}
+          <Animated.View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              transform: [{ translateX: nativeSlideAnim }],
+            }}
+          >
+            {/* Chromatic Aberration - Red */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                top: 0,
+                left: -0.8,
+                opacity: opacity * 0.15,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
+              }}
+            />
+            {/* Chromatic Aberration - Blue */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                top: 0,
+                left: 0.8,
+                opacity: opacity * 0.15,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
+              }}
+            />
+            {/* Main Glass Indicator */}
+            <Animated.View
+              style={{
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                opacity,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                shadowColor: isDarkMode ? "#fff" : "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                shadowRadius: 6,
+                elevation: 3,
+                overflow: "hidden",
+              }}
+            >
+              <LinearGradient
+                colors={[
+                  isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                  isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                  "transparent"
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </Animated.View>
+          </Animated.View>
+          {renderButtons()}
+        </View>
+
+        <View
+          style={[
+            styles.iosRightPill,
+            {
+              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+              borderWidth: 1,
+              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              alignItems: 'center',
+              justifyContent: 'center',
+            }
+          ]}
+        >
+          <CustomTabBarButton
+            onPress={() => {}}
+            bottomOffset={bottomOffset}
+          />
+        </View>
+      </View>
+    </Animated.View>
+  );
+};
+
+
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = React.useState(false);
   const insets = useSafeAreaInsets();
   const [currentRoute, setCurrentRoute] = useState("Home");
   const tabBarHeightRef = useRef(null);
+  const tabBarHeightForHide = useRef(200); // safe fallback
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
+  const forumScrollTriggerRef = useRef(null);
+  const chatScrollTriggerRef = useRef(null);
+  const notificationScrollTriggerRef = useRef(null);
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const { t } = useTranslation();
 
   // Function to trigger scroll to top or reload in HomeScreen
   const triggerHomeScrollOrReload = () => {
-    // Trigger the action using a timestamp param
-    // The HomeScreen will listen for this param change
     if (homeScreenScrollTriggerRef.current) {
       homeScreenScrollTriggerRef.current(Date.now());
+    }
+  };
+
+  const triggerForumScrollOrReload = () => {
+    if (forumScrollTriggerRef.current) {
+      forumScrollTriggerRef.current(Date.now());
+    }
+  };
+
+  const triggerChatScrollOrReload = () => {
+    if (chatScrollTriggerRef.current) {
+      chatScrollTriggerRef.current(Date.now());
+    }
+  };
+
+  const triggerNotificationScrollOrReload = () => {
+    if (notificationScrollTriggerRef.current) {
+      notificationScrollTriggerRef.current(Date.now());
     }
   };
 
   // This will be used to measure the tab bar height
   const onTabBarLayout = (event) => {
     const { height } = event.nativeEvent.layout;
-    tabBarHeightRef.current = height;
+    if (height > 0) {
+      tabBarHeightRef.current = height;
+      // +16 buffer to ensure the pill fully exits the screen on Android
+      // when system navbar is transparent (edge-to-edge), insets.bottom can be 28-48px
+      tabBarHeightForHide.current = height + 16;
+    }
   };
 
   // Add navigation state listener to track current route
@@ -195,7 +933,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
       if (visible === isVisible) return;
       isVisible = visible;
       Animated.timing(tabBarTranslateY, {
-        toValue: visible ? 0 : 100, // Translate down by 100px to hide
+        // Use measured height instead of hardcoded 100px.
+        // On Android with transparent system navbar (edge-to-edge), the tab bar
+        // height includes insets.bottom which can exceed 100px, leaving a visible sliver.
+        toValue: visible ? 0 : tabBarHeightForHide.current,
         duration: 250,
         useNativeDriver: true,
       }).start();
@@ -203,10 +944,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return () => subscription.remove();
   }, []);
 
-  useEffect(() => {
-    // Reset tab bar visibility to true when switching tabs
-    DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-  }, [currentRoute]);
+
 
   return (
     <SideMenu
@@ -216,26 +954,33 @@ export default function MainScreens({ navigation: stackNavigation }) {
       onChange={(isOpen) => setSetting(isOpen)}
       edgeHitWidth={100}
       bounceBackOnOverdraw={false}
-      disableGestures={currentRoute !== "Home"}
+      disableGestures={true}
     >
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
-          tabBar={(props) => (
-            <Animated.View
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                transform: [{ translateY: tabBarTranslateY }],
-                zIndex: 99,
-              }}
-            >
-              <BottomTabBar {...props} />
-            </Animated.View>
-          )}
+          tabBar={(props) => {
+            return (
+              <CustomTabBar
+                {...props}
+                chatUnreadCount={chatUnreadCount}
+                notificationUnreadCount={notificationUnreadCount}
+                triggerHomeScrollOrReload={triggerHomeScrollOrReload}
+                triggerForumScrollOrReload={triggerForumScrollOrReload}
+                triggerChatScrollOrReload={triggerChatScrollOrReload}
+                triggerNotificationScrollOrReload={triggerNotificationScrollOrReload}
+                tabBarTranslateY={tabBarTranslateY}
+              />
+            );
+          }}
           screenOptions={({ route }) => ({
+            // Android: tắt animation mặc định của bottom tabs (fade JS-driven gây giật)
+            // Tab content switch là tức thì — indicator animation trên tab bar vẫn chạy mượt
+            animation: Platform.OS === 'android' ? 'none' : 'shift',
+            // Tránh re-render toàn bộ scene khi chuyển tab
+            lazy: true,
+            // Giữ các screen đã mount (không unmount khi rời tab)
+            unmountOnBlur: false,
             tabBarIcon: ({ focused, color, size }) => {
               let iconName;
               let badgeCount = null;
@@ -388,9 +1133,25 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
           <Tab.Screen
             name="Forum"
-            component={MenuScreen}
             options={{ title: t('navigation.forum'), headerShown: false }}
-          />
+            listeners={{
+              tabPress: (e) => {
+                if (currentRoute === "Forum") {
+                  e.preventDefault();
+                  triggerForumScrollOrReload();
+                }
+              },
+            }}
+          >
+            {(props) => (
+              <MenuScreen
+                {...props}
+                scrollTriggerRef={(triggerFn) => {
+                  forumScrollTriggerRef.current = triggerFn;
+                }}
+              />
+            )}
+          </Tab.Screen>
           <Tab.Screen
             name="Create"
             component={DummyComponent} // Use the dummy component
@@ -416,22 +1177,112 @@ export default function MainScreens({ navigation: stackNavigation }) {
           />
           <Tab.Screen
             name="Chat"
-            component={ChatScreen}
             options={{
               title: t('navigation.chat'),
               headerShown: false,
             }}
-          />
+            listeners={{
+              tabPress: (e) => {
+                if (currentRoute === "Chat") {
+                  e.preventDefault();
+                  triggerChatScrollOrReload();
+                }
+              },
+            }}
+          >
+            {(props) => (
+              <ChatScreen
+                {...props}
+                scrollTriggerRef={(triggerFn) => {
+                  chatScrollTriggerRef.current = triggerFn;
+                }}
+              />
+            )}
+          </Tab.Screen>
           <Tab.Screen
             name="Notifications"
-            component={NotificationScreen}
             options={{
               title: t('navigation.notifications'),
               headerShown: false,
             }}
-          />
+            listeners={{
+              tabPress: (e) => {
+                if (currentRoute === "Notifications") {
+                  e.preventDefault();
+                  triggerNotificationScrollOrReload();
+                }
+              },
+            }}
+          >
+            {(props) => (
+              <NotificationScreen
+                {...props}
+                scrollTriggerRef={(triggerFn) => {
+                  notificationScrollTriggerRef.current = triggerFn;
+                }}
+              />
+            )}
+          </Tab.Screen>
         </Tab.Navigator>
       </View>
     </SideMenu>
   );
 }
+
+const styles = StyleSheet.create({
+  iosTabBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    backgroundColor: 'transparent',
+    zIndex: 99,
+  },
+  iosLeftPill: {
+    flex: 1,
+    height: 52,
+    borderRadius: 26,
+    position: 'relative',
+    marginRight: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 0,
+    backgroundColor: 'transparent',
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+  },
+  iosTabButton: {
+    width: '25%',
+    maxWidth: '25%',
+    minWidth: '25%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'visible',
+  },
+  iosTabButtonInner: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iosTabLabel: {
+    fontSize: 9,
+    marginTop: 2,
+    textAlign: 'center',
+    width: '100%',
+    paddingHorizontal: 2,
+  },
+  iosRightPill: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+});

@@ -5,18 +5,16 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getProfile } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -65,12 +63,12 @@ const ProfileDetailScreen = ({ navigation, route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[styles.loadingContainer, { paddingTop: insets.top, backgroundColor: theme.background }]}
       >
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        
         <CustomLoading />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -204,8 +202,8 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -225,7 +223,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         )}
       </View>
 
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <FastImage
@@ -267,7 +265,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           {renderInfoItem("time-outline", t('profile.joined'), profileData?.joined_at)}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

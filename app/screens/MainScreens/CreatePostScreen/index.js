@@ -8,7 +8,6 @@ import {
   ScrollView,
   Image,
   Platform,
-  StatusBar,
   Switch,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -27,10 +26,11 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const CreatePostScreen = ({ navigation }) => {
   const [postContent, setPostContent] = useState("");
@@ -39,6 +39,12 @@ const CreatePostScreen = ({ navigation }) => {
   const { username, userInfo, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+
+  // Keep status bar in sync with dark/light theme while this screen is mounted
+  useStatusBarStyle(
+    isDarkMode ? "light-content" : "dark-content",
+    theme.background
+  );
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
@@ -99,7 +105,7 @@ const CreatePostScreen = ({ navigation }) => {
   const pickImage = async () => {
     try {
       let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         quality: 0.7,
         allowsMultipleSelection: true,
       });
@@ -229,7 +235,7 @@ const CreatePostScreen = ({ navigation }) => {
       });
 
       if (viewSelected.value === "public") {
-        setFeed((prevPosts) => [response.data, ...prevPosts]);
+        setFeed((prevPosts) => [{ ...response.data, is_mine: true, is_author: true, author: { ...userInfo, ...response.data?.author }, anonymous: response.data?.anonymous ?? isAnonymous }, ...prevPosts]);
       }
 
       // Use a more defensive approach to navigation
@@ -275,7 +281,7 @@ const CreatePostScreen = ({ navigation }) => {
 
   return (
     <>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+
       <ProgressHUD loadText={t('createPost.posting')} visible={loading} />
       <View
         style={[
@@ -332,7 +338,7 @@ const CreatePostScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <View
           style={{
             flexDirection: "row",

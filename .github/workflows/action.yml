@@ -11,6 +11,10 @@ jobs:
     name: Build Android APK
     runs-on: ubuntu-latest
 
+    # Cấp quyền ghi vào mục Release của repo
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -48,11 +52,11 @@ jobs:
       - name: Build Android Release & Debug APK (arm64-v8a)
         run: |
           cd android
-          ./gradlew assembleRelease assembleDebug \
-            -PreactNativeArchitectures=arm64-v8a \
-            -x lint -x test \
-            -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
-            --no-daemon
+          ./gradlew assembleRelease \
+          -PreactNativeArchitectures=arm64-v8a \
+          -x lint -x test \
+          -x lintVitalRelease -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
+          --no-daemon
 
       - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
@@ -60,5 +64,25 @@ jobs:
           name: app-apks
           path: |
             android/app/build/outputs/apk/release/*.apk
-            android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
+
+      # Cập nhật đè / Khởi tạo bản Prerelease lên GitHub Releases cho Android
+      - name: Create or Update Pre-release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+          tag: "dhphuc-android"
+          name: "${{ github.sha }}"
+          body: |
+            ### 🤖 Android Build Details
+            - **Commit SHA:** `${{ github.sha }}`
+            - **Branch:** `${{ github.ref_name }}`
+            
+            Tải trực tiếp file APK (Release & Debug arm64-v8a) ở phần **Assets** bên dưới để cài đặt.
+          prerelease: true
+          makeLatest: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          

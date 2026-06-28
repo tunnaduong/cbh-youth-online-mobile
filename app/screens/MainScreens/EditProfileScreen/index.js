@@ -11,7 +11,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
@@ -25,13 +25,14 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import CustomLoading from "../../../components/CustomLoading";
 import DatePicker from "react-native-date-picker";
 import RadioGroup from "react-native-radio-buttons-group";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 const EditProfileScreen = ({ navigation }) => {
-  const { username, userInfo, setUserInfo } = useContext(AuthContext);
+  const { username, userInfo, setUserInfo, bumpAvatarVersion } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [loadingFirst, setLoadingFirst] = useState(true);
@@ -166,8 +167,8 @@ const EditProfileScreen = ({ navigation }) => {
 
       await updateProfile(username, formData);
 
-      FastImage.clearDiskCache();
-      FastImage.clearMemoryCache();
+      // Bust the avatar cache so all screens immediately show the new photo
+      bumpAvatarVersion();
 
       Toast.show({
         type: "success",
@@ -195,7 +196,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 1,
@@ -208,7 +209,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   const pickCoverImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
     });
@@ -264,7 +265,7 @@ const EditProfileScreen = ({ navigation }) => {
           scrollEnabled={true}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background }}
+          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
         >
           <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateAvatar')}</Text>
           {/* Avatar Section */}

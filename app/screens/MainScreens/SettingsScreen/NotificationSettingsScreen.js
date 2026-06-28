@@ -3,15 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Switch,
   ScrollView,
   ActivityIndicator,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import {
   getNotificationSettings,
@@ -213,8 +211,8 @@ export default function NotificationSettingsScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -224,7 +222,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <SettingSection title={t('notificationSettings.pushNotifications')} theme={theme} isDarkMode={isDarkMode}>
           <SettingItem
             icon="notifications-outline"
@@ -324,7 +322,7 @@ export default function NotificationSettingsScreen({ navigation }) {
           />
         </SettingSection>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

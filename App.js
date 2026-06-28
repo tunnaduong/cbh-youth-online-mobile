@@ -1,7 +1,7 @@
 import React, { useContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, StatusBar, Alert } from "react-native";
+import { View, Text, Platform, Alert, StatusBar } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 
@@ -95,14 +95,14 @@ const App = () => {
     <>
       <StatusBar
         barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={Platform.OS === "android" ? theme.headerBackground : "transparent"}
-        translucent={Platform.OS === "android"}
+        backgroundColor="transparent"
+        translucent={true}
+        animated={true}
       />
       <NavigationContainer>
         <Stack.Navigator
           screenOptions={{
             headerStyle: {
-              height: 50 + insets.top,
               backgroundColor: theme.headerBackground,
               elevation: 0,
               shadowOpacity: 0,
@@ -147,7 +147,6 @@ const App = () => {
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
-                    height: 50 + insets.top,
                     backgroundColor: theme.headerBackground,
                     elevation: 0,
                     shadowOpacity: 0,
@@ -320,11 +319,10 @@ const App = () => {
                 name="ExploreScreen"
                 component={ExploreScreen}
                 options={{
-                  title: t('home.explore'),
+                  title: t('sidebar.explore'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
                   headerStyle: {
-                    height: 50 + insets.top,
                     backgroundColor: theme.headerBackground,
                     borderBottomWidth: 0,
                     shadowOffset: { height: 0, width: 0 },

@@ -10,7 +10,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   TextInput,
   ScrollView,
@@ -24,16 +23,16 @@ import {
   Linking,
   ActionSheetIOS,
   Alert,
-  StatusBar,
   Modal,
+  KeyboardAvoidingView,
+  Animated,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import {
   Canvas,
   Path,
@@ -48,7 +47,7 @@ import { captureRef } from "react-native-view-shot";
 import { createStory } from "../../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import KeyboardSpacer from "react-native-keyboard-spacer";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -224,10 +223,15 @@ const DrawingCanvas = React.forwardRef(
 
 // Move TextInputArea outside the main component
 const TextInputArea = React.memo(
-  ({ text, setText, isTextOnly, placeholder }) => {
+  ({ text, setText, isTextOnly, placeholder, onFinish }) => {
+    const handleSubmit = () => {
+      Keyboard.dismiss();
+      onFinish?.();
+    };
+
     return (
       <Pressable
-        onPress={() => Keyboard.dismiss()}
+        onPress={handleSubmit}
         style={[
           isTextOnly
             ? [styles.textOnlyCenterContainer, styles.textInputContainer2]
@@ -245,50 +249,8 @@ const TextInputArea = React.memo(
             autoFocus
           />
         </View>
-        {!isTextOnly && <KeyboardSpacer />}
+        {!isTextOnly && <KeyboardAvoidingView behavior="padding" />}
       </Pressable>
-    );
-  }
-);
-
-const StableCameraView = memo(
-  ({ cameraRef, cameraType, onClose, onCameraFlip, onTakePhoto }) => {
-    console.log("StableCameraView rendering");
-    const { t } = useTranslation();
-
-    return (
-      <CameraView
-        ref={cameraRef}
-        style={StyleSheet.absoluteFill}
-        facing={cameraType}
-        onMountError={(error) => {
-          console.error("Camera mount error:", error);
-          Toast.show({
-            type: "error",
-            text1: t("story.cameraError"),
-            text2: t("story.cameraErrorDesc"),
-          });
-        }}
-        onCameraReady={() => {
-          console.log("Camera is ready");
-        }}
-      >
-        <View style={styles.cameraControls}>
-          <TouchableOpacity style={styles.cameraButton} onPress={onClose}>
-            <Ionicons name="close" size={28} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.cameraButton} onPress={onCameraFlip}>
-            <Ionicons name="camera-reverse" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.captureButtonContainer}>
-          <TouchableOpacity style={styles.captureButton} onPress={onTakePhoto}>
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-        </View>
-      </CameraView>
     );
   }
 );
@@ -374,9 +336,129 @@ const DrawingTools = ({ drawingRef, isEraser, setIsEraser, showBrushSize, setSho
   </View>
 );
 
-const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, t }) => (
+const MoveableText = memo(({ id, text, x, y, isEditing, onPositionChange, onTap, onDragStart, onDragEnd, onDragging, isAnyDragging }) => {
+  const isEditingRef = useRef(isEditing);
+  const posRef = useRef({ x, y });
+  const panOffset = useRef({ x: 0, y: 0 });
+  const didDragRef = useRef(false);
+  const callbacksRef = useRef({ onPositionChange, onTap, onDragStart, onDragEnd, onDragging });
+
+  useEffect(() => {
+    isEditingRef.current = isEditing;
+  }, [isEditing]);
+
+  useEffect(() => {
+    posRef.current = { x, y };
+  }, [x, y]);
+
+  useEffect(() => {
+    callbacksRef.current = { onPositionChange, onTap, onDragStart, onDragEnd, onDragging };
+  }, [onPositionChange, onTap, onDragStart, onDragEnd, onDragging]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        panOffset.current = { ...posRef.current };
+        didDragRef.current = false;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        if (isEditingRef.current) return;
+        if (!didDragRef.current && (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5)) {
+          didDragRef.current = true;
+          callbacksRef.current.onDragStart?.();
+        }
+        if (didDragRef.current) {
+          callbacksRef.current.onPositionChange?.(id, {
+            x: panOffset.current.x + gestureState.dx,
+            y: panOffset.current.y + gestureState.dy,
+          });
+          callbacksRef.current.onDragging?.(gestureState.moveY);
+        }
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (isEditingRef.current) return;
+        if (didDragRef.current) {
+          const isOverTrash = gestureState.moveY > Dimensions.get("window").height * 0.82;
+          callbacksRef.current.onDragEnd?.(id, isOverTrash);
+        } else {
+          callbacksRef.current.onTap?.(id);
+        }
+        didDragRef.current = false;
+      },
+    })
+  ).current;
+
+  if (!text || isEditing) return null;
+
+  return (
+    <View
+      {...panResponder.panHandlers}
+      style={[
+        styles.moveableTextContainer,
+        {
+          transform: [{ translateX: x }, { translateY: y }],
+          opacity: isAnyDragging && !isEditing ? 0.8 : 1,
+        },
+      ]}
+    >
+      <Text style={styles.moveableText}>{text}</Text>
+    </View>
+  );
+});
+
+const TrashZone = memo(({ visible, isOver, t }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.spring(scaleAnim, {
+      toValue: visible ? 1 : 0,
+      useNativeDriver: true,
+      friction: 8,
+    }).start();
+  }, [visible, scaleAnim]);
+
+  if (!visible) return null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.trashZone,
+        {
+          transform: [{ scale: scaleAnim }],
+          backgroundColor: isOver ? "rgba(255,59,48,0.9)" : "rgba(0,0,0,0.6)",
+        },
+      ]}
+    >
+      <Ionicons
+        name={isOver ? "trash" : "trash-outline"}
+        size={isOver ? 36 : 28}
+        color="#fff"
+      />
+      <Text style={[styles.trashZoneText, isOver && { fontWeight: "700" }]}>
+        {isOver ? t('story.dropToDelete', 'Drop to delete') : t('story.dragHereToDelete', 'Drag here to delete')}
+      </Text>
+    </Animated.View>
+  );
+});
+
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, t }) => {
+  const handleTextPress = () => {
+    if (onAddText) {
+      onAddText();
+    } else {
+      if (!isEditing) {
+        setIsEditing(true);
+      } else {
+        setIsEditing(false);
+      }
+    }
+  };
+
+  return (
   <View style={styles.toolsContainer}>
-    <TouchableOpacity style={styles.toolButton} onPress={() => setIsEditing(!isEditing)}>
+    <TouchableOpacity style={styles.toolButton} onPress={handleTextPress}>
       <Ionicons name="text" size={24} color="#fff" />
     </TouchableOpacity>
     <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
@@ -392,49 +474,18 @@ const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage,
       <Ionicons name="musical-notes" size={24} color="#fff" />
     </TouchableOpacity>
   </View>
-);
-
-const CameraUI = ({ permission, cameraRef, cameraType, handleCloseCamera, handleCameraFlip, handleTakePhoto, t }) => {
-  if (!permission) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.whiteText}>{t("story.requestingCameraPermission")}</Text>
-      </View>
-    );
-  }
-  if (!permission.granted) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.whiteText}>{t("story.noCameraPermission")}</Text>
-        <TouchableOpacity
-          style={styles.permissionButton}
-          onPress={() => { if (Platform.OS === "ios") { Linking.openURL("app-settings:"); } else { Linking.openSettings(); } }}
-        >
-          <Text style={styles.permissionButtonText}>{t("story.openSettings")}</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <StableCameraView
-        cameraRef={cameraRef}
-        cameraType={cameraType}
-        onClose={handleCloseCamera}
-        onCameraFlip={handleCameraFlip}
-        onTakePhoto={handleTakePhoto}
-      />
-    </View>
   );
 };
 
+
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
+  const { theme, isDarkMode } = useTheme();
   const [selectedImage, setSelectedImage] = useState(null);
   const [text, setText] = useState("");
   const [textPosition, setTextPosition] = useState({
-    x: width / 2,
-    y: height / 2,
+    x: 0,
+    y: 0,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -444,17 +495,86 @@ const CreateStoryScreen = ({ navigation }) => {
   const [showBrushSize, setShowBrushSize] = useState(false);
   const [savedDrawingData, setSavedDrawingData] = useState(null);
   const [isTextOnly, setIsTextOnly] = useState(false);
-  const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]); // Default gradient colors
+  const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]);
+
+  const [storyTexts, setStoryTexts] = useState([]);
+  const [editingTextId, setEditingTextId] = useState(null);
+  const [isDraggingText, setIsDraggingText] = useState(false);
+  const [isOverTrash, setIsOverTrash] = useState(false);
+  const textIdCounter = useRef(0);
+
+  const addStoryText = useCallback(() => {
+    const newId = `text_${textIdCounter.current++}`;
+    setStoryTexts((prev) => [
+      ...prev,
+      { id: newId, text: "", x: width / 2 - 100, y: captureDims.h / 2 - 20 },
+    ]);
+    setEditingTextId(newId);
+  }, [captureDims]);
+
+  const updateStoryText = useCallback((id, newText) => {
+    setStoryTexts((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, text: newText } : item))
+    );
+  }, []);
+
+  const updateStoryTextPosition = useCallback((id, newPos) => {
+    setStoryTexts((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, x: newPos.x, y: newPos.y } : item))
+    );
+  }, []);
+
+  const deleteStoryText = useCallback((id) => {
+    setStoryTexts((prev) => prev.filter((item) => item.id !== id));
+    setEditingTextId((prev) => (prev === id ? null : prev));
+  }, []);
+
+  const handleStoryTextDragStart = useCallback(() => {
+    setIsDraggingText(true);
+    setIsOverTrash(false);
+  }, []);
+
+  const handleStoryTextDragEnd = useCallback((id, wasOverTrash) => {
+    if (wasOverTrash) {
+      deleteStoryText(id);
+    }
+    setIsDraggingText(false);
+    setIsOverTrash(false);
+  }, [deleteStoryText]);
+
+  const handleStoryTextDragging = useCallback((moveY) => {
+    const screenH = Dimensions.get("window").height;
+    setIsOverTrash(moveY > screenH * 0.82);
+  }, []);
+
+  const handleStoryTextTap = useCallback((id) => {
+    setEditingTextId(id);
+  }, []);
+
+  const editingTextItem = useMemo(
+    () => storyTexts.find((item) => item.id === editingTextId),
+    [storyTexts, editingTextId]
+  );
 
   const drawingRef = useRef(null);
   const insets = useSafeAreaInsets();
-  const [isCameraMode, setIsCameraMode] = useState(false);
-  const [cameraType, setCameraType] = useState("back");
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const imageWithOverlaysRef = useRef(null);
   const [viewReady, setViewReady] = useState(false);
+  const [contentAreaHeight, setContentAreaHeight] = useState(0);
+
+  const captureDims = useMemo(() => {
+    const extraTopPad = Platform.OS === 'android' ? 4 : 0;
+    const availH = contentAreaHeight > 0 ? contentAreaHeight - extraTopPad : 0;
+    if (availH <= 0) {
+      return { w: width, h: width * 16 / 9 };
+    }
+    const idealH = width * 16 / 9;
+    if (idealH <= availH) {
+      return { w: width, h: idealH };
+    }
+    return { w: availH * 9 / 16, h: availH };
+  }, [contentAreaHeight]);
 
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
@@ -511,13 +631,29 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const uploadStory = async () => {
     try {
+      if (isTextOnly && (!text || text.trim() === "")) {
+        Toast.show({
+          type: "error",
+          text1: t("common.error"),
+          text2: t("story.emptyTextError", "Please enter some text for your story."),
+        });
+        return;
+      }
+
       setIsUploading(true);
 
       const formData = new FormData();
 
-      // Add content (text)
-      if (text) {
+      if (isTextOnly && text) {
         formData.append("content", text);
+      } else if (!isTextOnly && storyTexts.length > 0) {
+        const combinedText = storyTexts
+          .filter((item) => item.text)
+          .map((item) => item.text)
+          .join("\n");
+        if (combinedText) {
+          formData.append("content", combinedText);
+        }
       }
 
       try {
@@ -527,6 +663,7 @@ const CreateStoryScreen = ({ navigation }) => {
         if (selectedImage || isTextOnly) {
           // Dismiss keyboard and stop editing first so that overlays are properly rendered in their final state
           Keyboard.dismiss();
+          setEditingTextId(null);
           setIsEditing(false);
           await new Promise((resolve) => setTimeout(resolve, 150));
 
@@ -631,6 +768,8 @@ const CreateStoryScreen = ({ navigation }) => {
             setSelectedImage(null);
             setText("");
             setIsEditing(false);
+            setStoryTexts([]);
+            setEditingTextId(null);
           }
           // navigation.goBack();
         }
@@ -657,6 +796,8 @@ const CreateStoryScreen = ({ navigation }) => {
               setSelectedImage(null);
               setText("");
               setIsEditing(false);
+              setStoryTexts([]);
+              setEditingTextId(null);
             }
           },
         },
@@ -674,7 +815,8 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ["images"],
+      allowsEditing: true,
       aspect: [9, 16],
       quality: 1,
     });
@@ -728,64 +870,30 @@ const CreateStoryScreen = ({ navigation }) => {
     [isTextOnly]
   );
 
-  // Memoize text change handler
   const handleTextChange = useCallback((newText) => {
     setText(newText);
   }, []);
 
   const handleCameraPress = async () => {
-    if (!permission) {
-      Toast.show({
-        type: "info",
-        text1: t("story.checkingPermission"),
-        text2: t("story.pleaseWait"),
-      });
-      return;
-    }
-
-    if (!permission.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        Toast.show({
-          type: "error",
-          text1: t("story.noCameraPermission"),
-          text2: t("story.cameraPermissionDesc"),
-        });
+    const { status } = await ImagePicker.getCameraPermissionsAsync();
+    if (status !== "granted") {
+      const { status: newStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      if (newStatus !== "granted") {
+        Toast.show({ type: "error", text1: t("story.cameraPermissionDenied") });
         return;
       }
     }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [9, 16],
+      quality: 1,
+    });
 
-    setIsCameraMode(true);
-  };
-
-  const handleCameraFlip = () => {
-    setCameraType((prevType) => (prevType === "back" ? "front" : "back"));
-  };
-
-  const handleTakePhoto = async () => {
-    if (cameraRef.current) {
-      try {
-        const photo = await cameraRef.current.takePictureAsync({
-          quality: 1,
-          base64: false,
-        });
-
-        setSelectedImage(photo.uri);
-        setIsCameraMode(false);
-      } catch (error) {
-        console.error("Error taking photo:", error);
-        Toast.show({
-          type: "error",
-          text1: t("story.captureError"),
-          text2: t("story.captureErrorDesc"),
-        });
-      }
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
     }
   };
-
-  const handleCloseCamera = useCallback(() => {
-    setIsCameraMode(false);
-  }, []);
 
   const handleBackPress = useCallback(() => {
     if (isDrawing) {
@@ -821,13 +929,14 @@ const CreateStoryScreen = ({ navigation }) => {
       disabled={(!selectedImage && !isTextOnly) || isUploading}
     >
       <Text
-        className={`text-base font-semibold ${
-          selectedImage || isTextOnly
+        style={{
+          color: selectedImage || isTextOnly
             ? isUploading
-              ? "text-[#319527]/50"
-              : "text-[#319527]"
-            : "text-[#319527]/50"
-        }`}
+              ? `${theme.primary}80`
+              : theme.primary
+            : `${theme.primary}80`,
+        }}
+        className="text-base font-semibold"
       >
         {isDrawing ? t("story.done") : isUploading ? t("story.posting") : t("story.share")}
       </Text>
@@ -836,11 +945,11 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar barStyle="light-content" />
+      
 
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {/* Header */}
-        {!isCameraMode && (
+        {(
           <View
             style={{ marginTop: insets.top }}
             className="flex-row items-center justify-center px-4 py-2 h-[50px]"
@@ -857,10 +966,10 @@ const CreateStoryScreen = ({ navigation }) => {
                     : "arrow-back"
                 }
                 size={28}
-                color="#fff"
+                color={theme.text}
               />
             </TouchableOpacity>
-            <Text className="text-white text-lg font-semibold">
+            <Text style={{ color: theme.text }} className="text-lg font-semibold">
               {isDrawing
                 ? t("story.draw")
                 : isTextOnly
@@ -874,26 +983,16 @@ const CreateStoryScreen = ({ navigation }) => {
         )}
 
         {/* Main Content */}
-        <View style={{ flex: 1 }}>
-          {isCameraMode ? (
-            <CameraUI
-              permission={permission}
-              cameraRef={cameraRef}
-              cameraType={cameraType}
-              handleCloseCamera={handleCloseCamera}
-              handleCameraFlip={handleCameraFlip}
-              handleTakePhoto={handleTakePhoto}
-              t={t}
-            />
-          ) : selectedImage || isTextOnly ? (
+        <View style={{ flex: 1 }} onLayout={(e) => setContentAreaHeight(e.nativeEvent.layout.height)}>
+          {selectedImage || isTextOnly ? (
             <View style={{ flex: 1 }}>
               <View style={styles.aspectRatioContainer}>
                 <ScrollView
-                  style={styles.captureContainer}
+                  style={{ width: captureDims.w, height: captureDims.h, backgroundColor: '#000' }}
                   scrollEnabled={false}
                   ref={imageWithOverlaysRef}
                   onLayout={onViewLayout}
-                  contentContainerStyle={styles.captureContentContainer}
+                  contentContainerStyle={{ width: captureDims.w, height: captureDims.h }}
                   showsVerticalScrollIndicator={false}
                   showsHorizontalScrollIndicator={false}
                   bounces={false}
@@ -915,7 +1014,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       <FastImage
                         source={{ uri: selectedImage }}
                         style={StyleSheet.absoluteFill}
-                        resizeMode={FastImage.resizeMode.cover}
+                        resizeMode={FastImage.resizeMode.contain}
                       />
 
                       {savedDrawingData && !isDrawing && (
@@ -936,21 +1035,22 @@ const CreateStoryScreen = ({ navigation }) => {
                         />
                       )}
 
-                      {!isDrawing && text && !isEditing && (
-                        <View
-                          style={[
-                            styles.textDisplay,
-                            {
-                              transform: [
-                                { translateX: textPosition.x - width / 2 },
-                                { translateY: textPosition.y - height / 2 },
-                              ],
-                            },
-                          ]}
-                        >
-                          <Text style={styles.displayText}>{text}</Text>
-                        </View>
-                      )}
+                      {!isDrawing && storyTexts.map((item) => (
+                        <MoveableText
+                          key={item.id}
+                          id={item.id}
+                          text={item.text}
+                          x={item.x}
+                          y={item.y}
+                          isEditing={editingTextId === item.id}
+                          onPositionChange={updateStoryTextPosition}
+                          onTap={handleStoryTextTap}
+                          onDragStart={handleStoryTextDragStart}
+                          onDragEnd={handleStoryTextDragEnd}
+                          onDragging={handleStoryTextDragging}
+                          isAnyDragging={isDraggingText}
+                        />
+                      ))}
                     </>
                   )}
                 </ScrollView>
@@ -965,15 +1065,31 @@ const CreateStoryScreen = ({ navigation }) => {
                 </View>
               ) : !isTextOnly ? (
                 <>
-                  <ToolsBar isEditing={isEditing} setIsEditing={setIsEditing} isDrawing={isDrawing} setIsDrawing={setIsDrawing} pickImage={pickImage} t={t} />
-                  {isEditing && (
+                  <ToolsBar
+                    isEditing={editingTextId !== null}
+                    setIsEditing={(v) => { if (!v) setEditingTextId(null); }}
+                    isDrawing={isDrawing}
+                    setIsDrawing={setIsDrawing}
+                    pickImage={pickImage}
+                    onAddText={addStoryText}
+                    t={t}
+                  />
+                  {editingTextId && editingTextItem && (
                     <TextInputArea
-                      text={text}
-                      setText={handleTextChange}
-                      isTextOnly={isTextOnly}
-                      placeholder={textInputPlaceholder}
+                      text={editingTextItem.text}
+                      setText={(newText) => updateStoryText(editingTextId, newText)}
+                      isTextOnly={false}
+                      placeholder={t("story.drawingPlaceholder")}
+                      onFinish={() => {
+                        Keyboard.dismiss();
+                        if (!editingTextItem.text) {
+                          deleteStoryText(editingTextId);
+                        }
+                        setEditingTextId(null);
+                      }}
                     />
                   )}
+                  <TrashZone visible={isDraggingText} isOver={isOverTrash} t={t} />
                 </>
               ) : (
                 <>
@@ -1008,41 +1124,43 @@ const CreateStoryScreen = ({ navigation }) => {
               <View className="flex-row items-center justify-center py-5 gap-4 mx-2">
                 <TouchableHighlight
                   onPress={handleCameraPress}
-                  className="flex-1"
+                  className="flex-1 rounded-xl"
+                  underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
                 >
-                  <View className="items-center justify-center h-[100px] rounded-xl bg-neutral-900 border-2 border-neutral-800">
+                  <View style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} className="items-center justify-center h-[100px] rounded-xl border-2">
                     <Ionicons
                       name="camera-outline"
                       size={40}
-                      color="#fff"
+                      color={theme.text}
                       style={{ marginBottom: 3 }}
                     />
-                    <Text className="text-white text-md font-semibold">
+                    <Text style={{ color: theme.text }} className="text-md font-semibold">
                       {t("story.takePhoto")}
                     </Text>
                   </View>
                 </TouchableHighlight>
                 <TouchableHighlight
                   onPress={handleTextOnlyStory}
-                  className="flex-1"
+                  className="flex-1 rounded-xl"
+                  underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
                 >
-                  <View className="items-center justify-center h-[100px] rounded-xl bg-neutral-900 border-2 border-neutral-800">
+                  <View style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} className="items-center justify-center h-[100px] rounded-xl border-2">
                     <Ionicons
                       name="text-outline"
                       size={40}
-                      color="#fff"
+                      color={theme.text}
                       style={{ marginBottom: 3 }}
                     />
-                    <Text className="text-white text-md font-semibold">
+                    <Text style={{ color: theme.text }} className="text-md font-semibold">
                       {t("story.text")}
                     </Text>
                   </View>
                 </TouchableHighlight>
               </View>
-              <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+              <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.background }]} onPress={pickImage}>
                 <View style={styles.imagePickerContent}>
-                  <Ionicons name="image" size={40} color="#fff" />
-                  <Text style={styles.imagePickerText}>
+                  <Ionicons name="image" size={40} color={theme.text} />
+                  <Text style={[styles.imagePickerText, { color: theme.text }]}>
                     {t("story.pickFromGallery")}
                   </Text>
                 </View>
@@ -1118,6 +1236,46 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     textAlign: "center",
+  },
+  moveableTextContainer: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginLeft: -100,
+    marginTop: -20,
+    width: 200,
+    padding: 10,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+    zIndex: 10,
+    alignItems: "center",
+  },
+  moveableText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
+  },
+  trashZone: {
+    position: "absolute",
+    bottom: 30,
+    alignSelf: "center",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 20,
+    zIndex: 1000,
+  },
+  trashZoneText: {
+    color: "#fff",
+    fontSize: 13,
+    marginTop: 4,
   },
   colorPicker: {
     position: "absolute",

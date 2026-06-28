@@ -54,8 +54,8 @@ axiosInstance.interceptors.response.use(
       if (error.response) {
         console.error("Status:", error.response.status);
         console.error("Error Data:", JSON.stringify(error.response.data, null, 2));
-        console.error("Request URL:", error.config.url);
-        console.error("Authorization Header:", error.config.headers?.Authorization ? "Present" : "Missing");
+        console.error("Request URL:", error.config?.url);
+        console.error("Authorization Header:", error.config?.headers?.Authorization ? "Present" : "Missing");
       } else {
         console.error("Message:", error.message);
       }

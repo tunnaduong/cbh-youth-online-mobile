@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   Image,
@@ -12,8 +11,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-// import FastImage from "react-native-fast-image";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+// import FastImage from "../../../components/FastImage";
 import {
   getConversationMessages,
   sendMessage,
@@ -33,7 +32,6 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
 import Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { StatusBar } from "react-native";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 
@@ -346,7 +344,7 @@ const ConversationScreen = ({ navigation, route }) => {
     try {
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -951,8 +949,8 @@ const ConversationScreen = ({ navigation, route }) => {
               item.is_myself && styles.storyReplyHeaderRight,
             ]}
           >
-            <Ionicons name="arrow-back" size={14} color="#666" />
-            <Text style={styles.storyReplyText}>
+            <Ionicons name="arrow-back" size={14} color={theme.subText} />
+            <Text style={[styles.storyReplyText, { color: theme.subText, flexShrink: 1 }]} numberOfLines={2}>
               {item.is_myself
                 ? t("chatConversation.storyReply.you", { owner: storyOwnerName || t("chatConversation.anonymous") })
                 : t("chatConversation.storyReply.other", { sender: item.sender?.profile_name || item.sender?.username || t("chatConversation.anonymous") })}
@@ -1058,7 +1056,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       {/* Header */}
       <View
         style={[
@@ -1261,6 +1259,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     paddingHorizontal: 16,
     marginTop: 8,
+    flexShrink: 1,
   },
   storyReplyHeaderRight: {
     justifyContent: "flex-end",
@@ -1269,6 +1268,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
     fontStyle: "italic",
+    flex: 1,
+    flexWrap: "wrap",
   },
   inputContainer: {
     flexDirection: "row",

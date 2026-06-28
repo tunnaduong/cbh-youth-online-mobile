@@ -47,14 +47,14 @@ const PostItem = ({
   onSave: onSaveCallback, // Callback for single view save updates
 }) => {
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
-  const { username } = useContext(AuthContext);
+  const { username, userInfo } = useContext(AuthContext);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const isCurrentUser = item?.author?.username === username;
+  const isCurrentUser = item?.is_owner === true || item?.topic?.is_owner === true || item?.author?.username === username || String(item?.author?.id) === String(userInfo?.id) || String(item?.user_id) === String(userInfo?.id) || String(item?.uid) === String(userInfo?.id) || String(item?.userid) === String(userInfo?.id) || item?.is_mine === true || item?.is_author === true;
 
   // Use external state if provided (for single view), otherwise use item props
   const currentVotes =
@@ -103,7 +103,7 @@ const PostItem = ({
           style: "default",
           onPress: () => {
             if (navigation) {
-              navigation.navigate("EditPostScreen", { postId: item.id });
+              navigation.navigate("PostEditScreen", { postId: item.id });
             }
             hideBottomSheet();
           },
@@ -118,7 +118,8 @@ const PostItem = ({
 
   const handleReportSubmit = async (reason) => {
     try {
-      await reportUser({ topic_id: item.id, reason });
+      const reportedUserId = item?.author?.id || item?.user_id || item?.uid || item?.userid;
+      await reportUser({ reported_user_id: reportedUserId, topic_id: item.id, reason });
       Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
       Alert.alert(t('profile.errorTitle'), e.response?.data?.message || e.message || t('post.reportError'));
@@ -158,8 +159,13 @@ const PostItem = ({
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
-        {isCurrentUser && (
-          <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
+        {false && isCurrentUser && (
+          <TouchableOpacity onPress={() => {
+            if (navigation) {
+              navigation.navigate("PostEditScreen", { postId: item.id });
+            }
+            hideBottomSheet();
+          }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
@@ -168,10 +174,10 @@ const PostItem = ({
             </View>
           </TouchableOpacity>
         )}
-        {isCurrentUser && (
+        {false && isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
-              navigation.navigate("EditPostScreen", { postId: item.id });
+              navigation.navigate("PostEditScreen", { postId: item.id });
             }
             hideBottomSheet();
           }}>

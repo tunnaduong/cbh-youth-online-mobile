@@ -254,6 +254,14 @@ export const deletePost = (id) => {
   return Api.deleteRequest("/v1.0/topics/" + id);
 };
 
+export const getPost = (id) => {
+  return Api.getRequest("/v1.0/topics/" + id);
+};
+
+export const updatePost = (id, params) => {
+  return Api.putRequest("/v1.0/topics/" + id, params);
+};
+
 export const getOnlineStatus = (username) => {
   return Api.getRequest("/v1.0/users/" + username + "/online-status");
 };

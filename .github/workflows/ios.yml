@@ -1,25 +1,81 @@
-name: Build iOS Unsigned IPA
+name: Build iOS Signed IPA
 
 on:
   push:
     branches:
       - dhphuc
-  workflow_dispatch: # Keeps the manual trigger option available
+  workflow_dispatch:
 
 jobs:
-  build-ios:
-    name: Build iOS Unsigned IPA
+  build-ios-real:
+    name: Build & Sign Real Device IPA
     runs-on: macos-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Xcode version
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0' 
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
+      - name: Configure Node path for Xcode build phases
+        run: |
+          sudo ln -sf $(which node) /usr/local/bin/node
+          echo "export NODE_BINARY=$(which node)" > ios/.xcode.env.local
+
+      - name: Install Apple Certificate and Provisioning Profile
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISIONING_PROFILE_BASE64: ${{ secrets.BUILD_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
+
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
+          security create-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
+
+          security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH \
+            -k $KEYCHAIN_PATH \
+            -P "$P12_PASSWORD" \
+            -t cert \
+            -f pkcs12 \
+            -A
+
+          security set-key-partition-list -S apple-tool:,apple: -s -k "github-actions-pwd" $KEYCHAIN_PATH
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          security cms -D -i $PP_PATH > $RUNNER_TEMP/profile.plist
+          TEAM_ID=$(plutil -extract TeamIdentifier.0 raw $RUNNER_TEMP/profile.plist || plutil -extract Entitlements.com.apple.developer.team-identifier raw $RUNNER_TEMP/profile.plist)
+          UUID=$(plutil -extract UUID raw $RUNNER_TEMP/profile.plist)
+          PROFILE_NAME=$(plutil -extract Name raw $RUNNER_TEMP/profile.plist)
+          FULL_APP_ID=$(plutil -extract Entitlements.application-identifier raw $RUNNER_TEMP/profile.plist)
+          BUNDLE_ID="${FULL_APP_ID#*.}"
+          if [ "$BUNDLE_ID" = "*" ]; then
+            BUNDLE_ID="com.fatties.youth"
+          fi
+
+          echo "DEVELOPMENT_TEAM=$TEAM_ID" >> $GITHUB_ENV
+          echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
+          echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
+          echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: npm ci
@@ -38,49 +94,100 @@ jobs:
           pod install
 
       - name: Detect iOS Project Name
-        id: detect_name
         run: |
           cd ios
-          # Finds the first .xcworkspace file and extracts just the name without the extension
           WORKSPACE_NAME=$(basename *.xcworkspace .xcworkspace)
           echo "APP_NAME=$WORKSPACE_NAME" >> $GITHUB_ENV
-          echo "Detected App Name: $WORKSPACE_NAME"
 
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      - name: Build Unsigned iOS Archive
+      - name: Build iOS Archive
         run: |
           cd ios
-          
-          # Đảm bảo bắt đúng exit code của xcodebuild khi dùng pipe
           set -o pipefail
-          
           xcodebuild clean archive \
             -workspace "${{ env.APP_NAME }}.xcworkspace" \
             -scheme "${{ env.APP_NAME }}" \
             -configuration Release \
             -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER="" | xcbeautify --quiet --renderer github-actions
+            DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}" \
+            PROVISIONING_PROFILE="${{ env.PROVISIONING_PROFILE_UUID }}" \
+            | xcbeautify --quiet --renderer github-actions
 
-      - name: Package .xcarchive into Unsigned .ipa
+      - name: Export IPA
         run: |
-          mkdir -p $RUNNER_TEMP/Payload
-          
-          # Copy the .app bundle to the Payload folder
-          cp -r "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive/Products/Applications/"*.app $RUNNER_TEMP/Payload/
-          
-          # Compress into an .ipa file
-          cd $RUNNER_TEMP
-          zip -r "${{ env.APP_NAME }}-unsigned.ipa" Payload
+          cat <<EOF > $RUNNER_TEMP/ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>destination</key>
+              <string>export</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>teamID</key>
+              <string>${{ env.DEVELOPMENT_TEAM }}</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${{ env.BUNDLE_ID }}</key>
+                  <string>${{ env.PROVISIONING_PROFILE_NAME }}</string>
+              </dict>
+          </dict>
+          </plist>
+          EOF
 
-      - name: Upload Unsigned IPA Artifact
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/exported_ipa
+
+          mv $RUNNER_TEMP/exported_ipa/*.ipa $RUNNER_TEMP/${{ env.APP_NAME }}-signed.ipa
+
+      - name: Upload Real IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-unsigned-ipa
-          path: ${{ runner.temp }}/*-unsigned.ipa
-          retention-days: 7
+          name: app-release-signed-ipa
+          path: ${{ runner.temp }}/*-signed.ipa
+          retention-days: 1
+
+  publish-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-ios-real]
+    permissions:
+      contents: write
+    steps:
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-release-signed-ipa
+          path: ${{ github.workspace }}/release_artifacts
+
+      - name: Create or Update Pre-release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "${{ github.workspace }}/release_artifacts/*"
+          tag: "dhphuc-ios"
+          name: "${{ github.sha }}"
+          body: |
+            ### 🚀 iOS Build Details
+            - **Commit SHA:** `${{ github.sha }}`
+            - **Branch:** `${{ github.ref_name }}`
+            
+            ### 🔗 Liên kết cài đặt trực tuyến (Mở bằng Safari trên iPhone)
+            Nhấn vào link dưới đây để đến trang cài đặt ứng dụng dành cho thiết bị thật:
+            
+            👉 **[BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)**
+          prerelease: true
+          makeLatest: false
+          token: ${{ secrets.GITHUB_TOKEN }}
           

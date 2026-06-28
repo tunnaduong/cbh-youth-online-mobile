@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   View,
-  SafeAreaView,
   StyleSheet,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -41,7 +40,7 @@ const FeatureHeader = ({
       <Ionicons name={"menu-outline"} size={27} color={theme.text} />
     </TouchableOpacity>
     {havingIcon ? (
-      <SafeAreaView style={{ marginTop: -4 }}>
+      <View style={{ marginTop: -4 }}>
         <TouchableOpacity
           onPress={onLogoPress}
           activeOpacity={0.7}
@@ -61,18 +60,18 @@ const FeatureHeader = ({
             </Text>
           </View>
         </TouchableOpacity>
-      </SafeAreaView>
+      </View>
     ) : (
       <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
     )}
 
-    <SafeAreaView style={{ marginTop: -4 }}>
+    <View style={{ marginTop: -4 }}>
       <TouchableOpacity onPress={action}>
         <View style={[styles.iconContainer, { backgroundColor: theme.iconBackground }]}>
           <Ionicons name={icon} size={23} color={theme.text} />
         </View>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   </View>
 );
 

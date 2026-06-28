@@ -3,21 +3,19 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Dimensions,
   Image,
   TextInput,
   TouchableHighlight,
   ScrollView,
   Platform,
-  StatusBar,
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
-import FastImage from "react-native-fast-image";
+import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -191,7 +189,7 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <View style={{ flex: 1 }}>
         <View style={{ paddingTop: inset.top }}>
           <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
@@ -225,7 +223,7 @@ export default function SearchScreen({ navigation }) {
 
         {query.trim() && renderFilterChips()}
 
-        <ScrollView style={styles.resultsContainer}>
+        <ScrollView style={styles.resultsContainer} contentContainerStyle={{ paddingBottom: inset.bottom + 16 }}>
           {!query.trim() ? (
             <View style={styles.searchImage}>
               <Image

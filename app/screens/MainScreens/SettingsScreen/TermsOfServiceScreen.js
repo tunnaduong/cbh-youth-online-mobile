@@ -3,13 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -26,8 +24,8 @@ export default function TermsOfServiceScreen({ navigation }) {
   const { t } = useTranslation();
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -37,7 +35,7 @@ export default function TermsOfServiceScreen({ navigation }) {
         <View style={{ width: 24, height: 24 }}></View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <Text style={[styles.introText, { color: theme.text }]}>
           {t("terms.intro")}
         </Text>
@@ -144,7 +142,7 @@ export default function TermsOfServiceScreen({ navigation }) {
           </Text>
         </Section>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -3,15 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TouchableOpacity,
   Image,
   Dimensions,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -65,8 +63,8 @@ const ExploreScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -88,7 +86,7 @@ const ExploreScreen = ({ navigation }) => {
         </View>
 
         {/* Bottom Section with Feature Grid */}
-        <View style={styles.bottomSection}>
+        <View style={[styles.bottomSection, { paddingBottom: 40 + insets.bottom }]}>
           <View style={styles.gridContainer}>
             {featureCards.map((card) => (
               <TouchableOpacity
@@ -113,7 +111,7 @@ const ExploreScreen = ({ navigation }) => {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -3,12 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { CommonActions } from "@react-navigation/native";
 import ReportHeader from "../../../components/ReportHeader";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -29,8 +27,8 @@ export default function Success({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
@@ -99,7 +97,7 @@ export default function Success({ navigation }) {
       <TouchableOpacity style={[styles.returnButton, { backgroundColor: theme.primary }]} onPress={handleReturnHome}>
         <Text style={styles.returnButtonText}>{t('report.backToHome')}</Text>
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 

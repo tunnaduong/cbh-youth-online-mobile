@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Keyboard,
   TouchableWithoutFeedback,
   Alert,
@@ -13,6 +12,7 @@ import {
   StatusBar,
   ScrollView,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ProgressHUD from "../../components/ProgressHUD";
 import Icon from "react-native-vector-icons/Ionicons";
 import { forgotPassword } from "../../services/api/Api";
@@ -85,10 +85,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
             className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
             onPress={() => {
               navigation.goBack();
-            }}
-            style={{
-              marginTop:
-                Platform.OS === "android" ? StatusBar.currentHeight + 10 : 0,
             }}
           >
             <Icon name="chevron-back-outline" color="white" size={30} />

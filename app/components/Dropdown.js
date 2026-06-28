@@ -7,7 +7,6 @@ import {
   FlatList,
   SectionList,
   StyleSheet,
-  SafeAreaView,
   Platform,
   ScrollView,
 } from "react-native";

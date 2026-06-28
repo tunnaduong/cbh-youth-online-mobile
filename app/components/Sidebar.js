@@ -4,7 +4,6 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   ActionSheetIOS,
   Animated,
@@ -19,7 +18,7 @@ import { AuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
-import FastImage from "react-native-fast-image";
+import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";

@@ -108,6 +108,10 @@
     "reportSentBody": "Thank you for reporting this content.",
     "resendVerificationSuccess": "Success",
     "resendVerificationSuccessBody": "Verification email has been resent. Please check your inbox.",
+    "deleteStoryTitle": "Delete Story",
+    "deleteStoryDesc": "Are you sure you want to delete this story?",
+    "deleteStory": "Delete Story",
+    "deleteStorySuccess": "Story deleted successfully",
     "resendVerificationError": "Could not send verification email. Please try again later.",
     "resendVerificationEmail": "Resend verification email",
     "yourEmail": "Your email:",
@@ -516,11 +520,40 @@
     "addOtherViolation": "Add other violation",
     "searchViolation": "Type to search violations...",
     "addNewViolation": "Add new violation",
-    "cleanliness": ["Clean", "Relatively clean", "Dirty", "Very dirty"],
-    "uniformStatus": ["Sufficient", "Relatively sufficient", "Insufficient"],
-    "studentViolationTypes": ["Late for school", "Not wearing uniform", "Not doing homework", "Talking during class", "Breaking class rules", "Not participating in group activities", "Other"],
-    "classViolationTypes": ["Poor cleaning duty", "Poor class discipline", "Not ensuring hygiene", "Inconsistent uniform", "Breaking school rules", "Other"],
-    "mockViolations": ["Phone usage violation", "Study schedule violation", "Classroom rules violation", "Safety regulation violation"],
+    "cleanliness": [
+      "Clean",
+      "Relatively clean",
+      "Dirty",
+      "Very dirty"
+    ],
+    "uniformStatus": [
+      "Sufficient",
+      "Relatively sufficient",
+      "Insufficient"
+    ],
+    "studentViolationTypes": [
+      "Late for school",
+      "Not wearing uniform",
+      "Not doing homework",
+      "Talking during class",
+      "Breaking class rules",
+      "Not participating in group activities",
+      "Other"
+    ],
+    "classViolationTypes": [
+      "Poor cleaning duty",
+      "Poor class discipline",
+      "Not ensuring hygiene",
+      "Inconsistent uniform",
+      "Breaking school rules",
+      "Other"
+    ],
+    "mockViolations": [
+      "Phone usage violation",
+      "Study schedule violation",
+      "Classroom rules violation",
+      "Safety regulation violation"
+    ],
     "previewMode": "This feature is currently in preview mode. You will be able to use it once the system is updated.",
     "classInfo": "Class information"
   },
@@ -845,12 +878,16 @@
     "textContent": "Text story",
     "edit": "Edit",
     "createStory": "Create story",
+    "emptyTextError": "Please enter some text for your story.",
+    "dropToDelete": "Drop to delete",
+    "dragHereToDelete": "Drag here to delete",
     "brushSize": "Brush size: {{size}}px",
     "featureInDevelopment": "Feature in development",
     "stayTuned": "Please stay tuned for this feature",
     "requestingCameraPermission": "Requesting camera permission...",
     "openSettings": "Open Settings",
     "takePhoto": "Take Photo",
+    "cameraPermissionDenied": "Camera permission is required to take photos",
     "text": "Text",
     "pickFromGallery": "Select photo from library",
     "backgroundChanged": "Background: {{name}}",
@@ -863,7 +900,10 @@
       "obsidianNight": "Obsidian Night",
       "goldenHour": "Golden Hour",
       "skyBlue": "Sky Blue"
-    }
+    },
+    "dragToAdjust": "Drag to adjust crop area",
+    "retake": "Retake",
+    "usePhoto": "Use Photo"
   },
   "terms": {
     "headerTitle": "Terms of Service",

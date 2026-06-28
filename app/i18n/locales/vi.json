@@ -101,6 +101,10 @@
     "reportSentBody": "Cảm ơn bạn đã báo cáo nội dung này.",
     "resendVerificationSuccess": "Thành công",
     "resendVerificationSuccessBody": "Email xác minh đã được gửi lại. Vui lòng kiểm tra hộp thư của bạn.",
+    "deleteStoryTitle": "Xóa story",
+    "deleteStoryDesc": "Bạn có chắc muốn xóa story này?",
+    "deleteStory": "Xóa story",
+    "deleteStorySuccess": "Xóa thành công",
     "resendVerificationError": "Không thể gửi email xác minh. Vui lòng thử lại sau.",
     "resendVerificationEmail": "Gửi lại email xác minh",
     "yourEmail": "Email của bạn:",
@@ -135,8 +139,8 @@
     "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\""
   },
   "follow": {
-    "followers": "Người theo dõi",
-    "following": "Đang theo dõi",
+    "followers": "N. theo dõi",
+    "following": "Đ. theo dõi",
     "followAction": "Theo dõi",
     "unfollowAction": "Bỏ theo dõi",
     "message": "Nhắn tin",
@@ -505,11 +509,40 @@
     "addOtherViolation": "Thêm vi phạm khác",
     "searchViolation": "Nhập để tìm kiếm vi phạm...",
     "addNewViolation": "Thêm vi phạm mới",
-    "cleanliness": ["Sạch sẽ", "Tương đối sạch sẽ", "Bẩn", "Rất bẩn"],
-    "uniformStatus": ["Đủ", "Tương đối đủ", "Thiếu"],
-    "studentViolationTypes": ["Đi học muộn", "Không mặc đồng phục", "Không làm bài tập", "Nói chuyện trong giờ học", "Vi phạm nội quy lớp học", "Không tham gia hoạt động tập thể", "Khác"],
-    "classViolationTypes": ["Trực nhật không tốt", "Nề nếp lớp kém", "Không đảm bảo vệ sinh", "Không đồng phục đồng bộ", "Vi phạm nội quy trường", "Khác"],
-    "mockViolations": ["Vi phạm quy định sử dụng điện thoại", "Vi phạm giờ giấc học tập", "Vi phạm nội quy phòng học", "Vi phạm quy định an toàn"],
+    "cleanliness": [
+      "Sạch sẽ",
+      "Tương đối sạch sẽ",
+      "Bẩn",
+      "Rất bẩn"
+    ],
+    "uniformStatus": [
+      "Đủ",
+      "Tương đối đủ",
+      "Thiếu"
+    ],
+    "studentViolationTypes": [
+      "Đi học muộn",
+      "Không mặc đồng phục",
+      "Không làm bài tập",
+      "Nói chuyện trong giờ học",
+      "Vi phạm nội quy lớp học",
+      "Không tham gia hoạt động tập thể",
+      "Khác"
+    ],
+    "classViolationTypes": [
+      "Trực nhật không tốt",
+      "Nề nếp lớp kém",
+      "Không đảm bảo vệ sinh",
+      "Không đồng phục đồng bộ",
+      "Vi phạm nội quy trường",
+      "Khác"
+    ],
+    "mockViolations": [
+      "Vi phạm quy định sử dụng điện thoại",
+      "Vi phạm giờ giấc học tập",
+      "Vi phạm nội quy phòng học",
+      "Vi phạm quy định an toàn"
+    ],
     "previewMode": "Chức năng đang ở chế độ xem trước. Khi nào hệ thống được cập nhật, bạn sẽ có thể sử dụng chức năng này.",
     "classInfo": "Thông tin lớp học"
   },
@@ -575,8 +608,8 @@
     "joinedPrefix": "Tham gia ngày",
     "viewDetail": "Chi tiết",
     "postsTab": "Bài viết",
-    "followingTab": "Đang theo dõi",
-    "followersTab": "Người theo dõi",
+    "followingTab": "Đ. theo dõi",
+    "followersTab": "N. theo dõi",
     "likesTab": "Lượt thích",
     "pointsTab": "Điểm",
     "yourActivity": "Hoạt động của bạn",
@@ -833,12 +866,16 @@
     "textContent": "Tin văn bản",
     "edit": "Chỉnh sửa",
     "createStory": "Tạo tin",
+    "emptyTextError": "Vui lòng nhập văn bản cho tin của bạn.",
+    "dropToDelete": "Thả để xóa",
+    "dragHereToDelete": "Kéo vào đây để xóa",
     "brushSize": "Kích thước bút: {{size}}px",
     "featureInDevelopment": "Tính năng đang phát triển",
     "stayTuned": "Hãy cùng chờ đón tính năng này nhé",
     "requestingCameraPermission": "Đang yêu cầu quyền truy cập camera...",
     "openSettings": "Mở Cài đặt",
     "takePhoto": "Chụp ảnh",
+    "cameraPermissionDenied": "Cần quyền truy cập camera để chụp ảnh",
     "text": "Văn bản",
     "pickFromGallery": "Chọn ảnh từ thư viện",
     "backgroundChanged": "Màu nền: {{name}}",
@@ -851,7 +888,10 @@
       "obsidianNight": "Bóng đêm",
       "goldenHour": "Nắng vàng",
       "skyBlue": "Xanh trời"
-    }
+    },
+    "dragToAdjust": "Kéo để điều chỉnh vùng crop",
+    "retake": "Chụp lại",
+    "usePhoto": "Dùng ảnh này"
   },
   "terms": {
     "headerTitle": "Điều khoản sử dụng",

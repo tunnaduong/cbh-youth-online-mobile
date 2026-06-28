@@ -3,19 +3,18 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   Image,
   Modal,
-  StatusBar,
   RefreshControl,
   Animated,
   DeviceEventEmitter,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native";
 import {
   getNotifications,
@@ -27,6 +26,7 @@ import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { useFocusEffect } from "@react-navigation/native";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
 
 // Helper function to format notification message based on type and data
@@ -85,7 +85,7 @@ const formatNotificationMessage = (notification, t) => {
   }
 };
 
-export default function NotificationScreen({ navigation }) {
+export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const [notifications, setNotifications] = useState([]);
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -107,6 +107,20 @@ export default function NotificationScreen({ navigation }) {
   const fetchNotifications = useCallback(
     async (pageNum = 1, append = false) => {
       try {
+        if (pageNum === 1 && !append) {
+          const cachedStr = storage.getString("cached_notifications");
+          if (cachedStr) {
+            try {
+              const parsed = JSON.parse(cachedStr);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setNotifications(parsed);
+                setLoading(false);
+              }
+            } catch(e) {}
+          }
+          setRefreshing(true);
+        }
+
         const response = await getNotifications(pageNum, 20);
 
         // Check if response has data property (some APIs wrap in data)
@@ -152,7 +166,6 @@ export default function NotificationScreen({ navigation }) {
         if (append) {
           setNotifications((prev) => {
             const newNotifications = [...prev, ...formattedNotifications];
-            // Update unread count when loading more
             const localUnreadCount = newNotifications.filter(
               (n) => !n.is_read
             ).length;
@@ -161,6 +174,9 @@ export default function NotificationScreen({ navigation }) {
           });
         } else {
           setNotifications(formattedNotifications);
+          if (formattedNotifications.length > 0) {
+            storage.set("cached_notifications", JSON.stringify(formattedNotifications));
+          }
         }
 
         // Check if there are more pages
@@ -204,9 +220,14 @@ export default function NotificationScreen({ navigation }) {
   );
 
   const lastScrollYRef = useRef(0);
+  const scrollPositionRef = useRef(0);
+  const isProcessingRef = useRef(false);
+  const lastTriggerTimeRef = useRef(0);
+  const flatListRef = useRef(null);
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
+    scrollPositionRef.current = Math.max(0, offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -223,6 +244,44 @@ export default function NotificationScreen({ navigation }) {
       lottieRef.current?.play();
     }
   };
+
+  const scrollToTopOrReload = React.useCallback(() => {
+    const now = Date.now();
+    if (now - lastTriggerTimeRef.current < 300) return;
+    lastTriggerTimeRef.current = now;
+
+    if (isProcessingRef.current) return;
+
+    const isAtTop = scrollPositionRef.current <= 10;
+
+    if (isAtTop) {
+      isProcessingRef.current = true;
+      setRefreshing(true);
+      setPage(1);
+      fetchNotifications(1, false);
+      refreshNotificationCount();
+      setTimeout(() => {
+        setRefreshing(false);
+        isProcessingRef.current = false;
+        scrollPositionRef.current = 0;
+      }, 1000);
+    } else {
+      isProcessingRef.current = true;
+      if (flatListRef.current) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+      setTimeout(() => {
+        scrollPositionRef.current = 0;
+        isProcessingRef.current = false;
+      }, 600);
+    }
+  }, [fetchNotifications, refreshNotificationCount]);
+
+  React.useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(scrollToTopOrReload);
+    }
+  }, [scrollTriggerRef, scrollToTopOrReload]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -293,10 +352,13 @@ export default function NotificationScreen({ navigation }) {
   };
 
   const renderItem = ({ item }) => {
-    const isSystemMessage = item.type === "system_message" || !item.actor;
+    const isAnonymous = (item.actor && item.actor.id === null) || item.data?.is_anonymous === true || item.data?.anonymous === true;
+    const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
     const userName = isSystemMessage
       ? t('notifications.system')
-      : item.actor?.profile_name || item.actor?.username || t('notifications.user');
+      : isAnonymous
+        ? (item.actor?.profile_name || t('createPost.anonymousUser') || "Ẩn danh")
+        : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
     const displayContent = formatNotificationMessage(item.raw || item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
@@ -336,23 +398,29 @@ export default function NotificationScreen({ navigation }) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.data?.post_id) {
             navigation.navigate("PostScreen", { postId: item.data.post_id });
-          } else if (item.actor?.username) {
+          } else if (item.actor?.username && !isAnonymous) {
             navigation.navigate("ProfileScreen", {
               username: item.actor.username,
             });
           }
         }}
       >
-        <Image
-          source={
-            !isSystemMessage
-              ? {
-                uri: item.user.avatar,
-              }
-              : require("../../../assets/logo.png")
-          }
-          style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
-        />
+        {isAnonymous ? (
+          <View style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border, backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9', alignItems: 'center', justifyContent: 'center' }]}>
+             <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
+          </View>
+        ) : (
+          <Image
+            source={
+              !isSystemMessage
+                ? {
+                  uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
+                }
+                : require("../../../assets/logo.png")
+            }
+            style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
+          />
+        )}
         <View style={styles.content}>
           <Text style={[styles.message, { color: theme.text }]}>
             {isSystemMessage ? (
@@ -454,7 +522,7 @@ export default function NotificationScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
         <TouchableOpacity
@@ -478,6 +546,18 @@ export default function NotificationScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
+      {refreshing && (
+        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <LottieView
+            source={require("../../../assets/refresh.json")}
+            style={{ width: 40, height: 40 }}
+            ref={lottieRef}
+            loop
+            autoPlay
+          />
+        </View>
+      )}
+
       {loading && notifications.length === 0 ? (
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
@@ -486,13 +566,18 @@ export default function NotificationScreen({ navigation }) {
         </View>
       ) : (
         <FlatList
+          ref={flatListRef}
           onScroll={handleScroll}
           data={notifications}
           extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item) => item.id.toString()}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           renderItem={renderItem}
           contentContainerStyle={{
-            paddingBottom: 110,
+            paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,
           }}
@@ -505,6 +590,7 @@ export default function NotificationScreen({ navigation }) {
               colors={["transparent"]}
               progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
+              progressViewOffset={-1000}
             />
           }
           onEndReached={loadMore}

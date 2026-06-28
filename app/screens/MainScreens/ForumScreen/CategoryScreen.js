@@ -7,13 +7,12 @@ import {
   StyleSheet,
   Image,
   StatusBar,
-  SafeAreaView,
   ImageBackground,
   RefreshControl,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import FastImage from "react-native-fast-image";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import FastImage from "../../../components/FastImage";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import CustomLoading from "../../../components/CustomLoading";
 import CustomRefreshControl from "../../../components/CustomRefreshControl";
 import axios from "axios";
@@ -132,17 +131,17 @@ const CategoryScreen = ({ navigation, route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[styles.loadingContainer, { paddingTop: insets.top, backgroundColor: theme.background }]}
       >
         <CustomLoading />
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!forumData) {
     return (
-      <SafeAreaView
+      <View
         style={[
           { flex: 1, backgroundColor: theme.background },
           { paddingTop: insets.top },
@@ -165,7 +164,7 @@ const CategoryScreen = ({ navigation, route }) => {
           />
           <Text style={{ color: theme.subText }}>{t('forum.loadError')}</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -231,7 +230,7 @@ const CategoryScreen = ({ navigation, route }) => {
   );
 
   return (
-    <SafeAreaView
+    <View
       style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
       {/* Custom Header */}
@@ -263,6 +262,7 @@ const CategoryScreen = ({ navigation, route }) => {
           flex: 1,
           backgroundColor: theme.background,
         }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
       >
         {/* Category Header */}
         <View style={{ backgroundColor: theme.background, borderBottomWidth: 1, borderBottomColor: theme.border }}>
@@ -308,7 +308,7 @@ const CategoryScreen = ({ navigation, route }) => {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

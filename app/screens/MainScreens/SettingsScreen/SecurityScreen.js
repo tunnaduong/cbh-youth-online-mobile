@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
@@ -13,11 +12,10 @@ import {
   Platform,
   Switch,
   Image,
-  StatusBar,
 } from "react-native";
 import React, { useContext, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import { deleteAccount, updateProfile, changePassword } from "../../../services/api/Api";
@@ -91,6 +89,9 @@ const SettingSection = ({ title, children, titleColor, theme, isDarkMode }) => {
 export default function SecurityScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { signOut, userInfo, setUserInfo, refreshUserInfo } = useContext(AuthContext);
+  if (!userInfo) {
+    return null;
+  }
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
@@ -286,8 +287,8 @@ export default function SecurityScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -602,7 +603,7 @@ export default function SecurityScreen({ navigation }) {
       </Modal>
 
       <Toast topOffset={60} />
-    </SafeAreaView>
+    </View>
   );
 }
 

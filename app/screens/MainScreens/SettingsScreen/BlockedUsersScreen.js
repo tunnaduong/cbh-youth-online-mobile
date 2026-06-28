@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
@@ -13,11 +12,10 @@ import {
   Platform,
   Switch,
   Image,
-  StatusBar,
 } from "react-native";
 import React, { useContext, useState, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import {
@@ -161,8 +159,8 @@ export default function BlockedUsersScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+      
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -182,7 +180,7 @@ export default function BlockedUsersScreen({ navigation }) {
           <Text style={{ marginTop: 10, color: theme.subText }}>{t('blockedUsers.empty')}</Text>
         </View>
       ) : (
-        <ScrollView style={styles.content}>
+        <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
           {blockedUsers.map((user) => (
             <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -206,7 +204,7 @@ export default function BlockedUsersScreen({ navigation }) {
         </ScrollView>
       )}
       <Toast topOffset={60} />
-    </SafeAreaView>
+    </View>
   );
 }
 

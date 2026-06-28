@@ -7,6 +7,7 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 const CommentBar = React.forwardRef(
   (
@@ -19,11 +20,15 @@ const CommentBar = React.forwardRef(
       disabled,
       editable = true,
       isSubmitting = false,
+      isAnonymous = false,
+      onToggleAnonymous,
+      anonymousDisabled = false,
       style,
     },
     ref
   ) => {
     const { theme, isDarkMode } = useTheme();
+    const { t } = useTranslation();
 
     return (
       <View
@@ -76,26 +81,38 @@ const CommentBar = React.forwardRef(
                 editable={editable}
               ></TextInput>
             </View>
-            <TouchableOpacity
-              style={{
-                alignItems: "center",
-                paddingLeft: 10,
-              }}
-              onPress={onSubmit}
-              disabled={disabled}
-            >
-              {isSubmitting ? (
-                <View style={{ width: 25 }}>
-                  <ActivityIndicator size="small" color={theme.primary} />
-                </View>
-              ) : (
-                <Ionicons
-                  name={"send"}
-                  size={25}
-                  color={disabled ? (isDarkMode ? "#1e2e1c" : "#C7F0C2") : theme.primary}
-                />
+            <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: 10 }}>
+              {onToggleAnonymous && (
+                <TouchableOpacity
+                  style={{ marginRight: 10, opacity: anonymousDisabled ? 0.5 : 1 }}
+                  onPress={onToggleAnonymous}
+                  disabled={anonymousDisabled}
+                >
+                  <Ionicons
+                    name={isAnonymous ? "glasses" : "glasses-outline"}
+                    size={24}
+                    color={isAnonymous ? theme.primary : theme.subText}
+                  />
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={{ alignItems: "center" }}
+                onPress={onSubmit}
+                disabled={disabled}
+              >
+                {isSubmitting ? (
+                  <View style={{ width: 25 }}>
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  </View>
+                ) : (
+                  <Ionicons
+                    name={"send"}
+                    size={25}
+                    color={disabled ? (isDarkMode ? "#1e2e1c" : "#C7F0C2") : theme.primary}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
