@@ -40,9 +40,6 @@ jobs:
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
 
-          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
-          echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
-
           security create-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
@@ -102,7 +99,6 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      # Đã thêm cờ -sdk iphoneos để ép Xcode bỏ qua toàn bộ lỗi liên quan đến Simulator Runtime
       - name: Build iOS Archive
         run: |
           cd ios
@@ -199,64 +195,66 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-ios-real, publish-release]
     if: always()
-    env:
-      WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_IOS }}
-      BUILD_RESULT: ${{ needs.build-ios-real.result }}
-      RELEASE_RESULT: ${{ needs.publish-release.result }}
-      REF_NAME: ${{ github.ref_name }}
-      COMMIT_SHA: ${{ github.sha }}
-      RUN_NUMBER: ${{ github.run_number }}
-    shell: python
-    run: |
-      import os, json, urllib.request
+    steps:
+      - name: Run Discord Notification Script
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_IOS }}
+          BUILD_RESULT: ${{ needs.build-ios-real.result }}
+          RELEASE_RESULT: ${{ needs.publish-release.result }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        shell: python
+        run: |
+          import os, json, urllib.request
 
-      build_ok = os.environ['BUILD_RESULT'] == 'success'
-      release_ok = os.environ['RELEASE_RESULT'] == 'success'
-      ref_name = os.environ['REF_NAME']
-      sha = os.environ['COMMIT_SHA']
-      run_number = os.environ['RUN_NUMBER']
-      webhook_url = os.environ['WEBHOOK_URL']
+          build_ok = os.environ['BUILD_RESULT'] == 'success'
+          release_ok = os.environ['RELEASE_RESULT'] == 'success'
+          ref_name = os.environ['REF_NAME']
+          sha = os.environ['COMMIT_SHA']
+          run_number = os.environ['RUN_NUMBER']
+          webhook_url = os.environ['WEBHOOK_URL']
 
-      if not webhook_url:
-          print("Webhook URL is empty. Skipping notification.")
-          exit(0)
+          if not webhook_url:
+              print("Webhook URL is empty. Skipping notification.")
+              exit(0)
 
-      if build_ok and release_ok:
-          title = f"🟢 **NEW IOS BUILD AVAILABLE (Build #{run_number})**"
-          color = 3066993
-          description = (
-              "📲 **Vui lòng lựa chọn phương thức tải/cài đặt phù hợp:**\n\n"
-              "🔗 **1. Cài đặt trực tuyến (Mở bằng Safari trên iPhone):**\n"
-              "👉 [**BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT**](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)\n\n"
-              "📦 **2. Tải trực tiếp file IPA về máy:**\n"
-              "📥 [**TẢI FILE CBHOnline-signed.ipa**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-ios/CBHOnline-signed.ipa)\n\n"
-              "---\n"
-              "**Thông tin phiên bản:**\n"
-              f"- **Số lần build:** `#{run_number}`\n"
-              f"- **Nhánh (Branch):** `{ref_name}`\n"
-              f"- **Mã commit:** `{sha}`"
+          if build_ok and release_ok:
+              title = f"🟢 **NEW IOS BUILD AVAILABLE (Build #{run_number})**"
+              color = 3066993
+              description = (
+                  "📲 **Vui lòng lựa chọn phương thức tải/cài đặt phù hợp:**\n\n"
+                  "🔗 **1. Cài đặt trực tuyến (Mở bằng Safari trên iPhone):**\n"
+                  "👉 [**BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT**](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)\n\n"
+                  "📦 **2. Tải trực tiếp file IPA về máy:**\n"
+                  "📥 [**TẢI FILE CBHOnline-signed.ipa**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-ios/CBHOnline-signed.ipa)\n\n"
+                  "---\n"
+                  "**Thông tin phiên bản:**\n"
+                  f"- **Số lần build:** `#{run_number}`\n"
+                  f"- **Nhánh (Branch):** `{ref_name}`\n"
+                  f"- **Mã commit:** `{sha}`"
+              )
+          else:
+              title = f"🔴 **IOS BUILD FAILED (Build #{run_number})**"
+              color = 15158332
+              description = f"❌ Đã xảy ra lỗi trong quá trình build hoặc phát hành file IPA.\n- **Số lần build:** `#{run_number}`\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`"
+
+          payload = {
+              "embeds": [{
+                  "title": title,
+                  "description": description,
+                  "color": color
+              }]
+          }
+
+          req = urllib.request.Request(
+              webhook_url, 
+              data=json.dumps(payload).encode('utf-8'), 
+              headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
           )
-      else:
-          title = f"🔴 **IOS BUILD FAILED (Build #{run_number})**"
-          color = 15158332
-          description = f"❌ Đã xảy ra lỗi trong quá trình build hoặc phát hành file IPA.\n- **Số lần build:** `#{run_number}`\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`"
-
-      payload = {
-          "embeds": [{
-              "title": title,
-              "description": description,
-              "color": color
-          }]
-      }
-
-      req = urllib.request.Request(
-          webhook_url, 
-          data=json.dumps(payload).encode('utf-8'), 
-          headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
-      )
-      try:
-          with urllib.request.urlopen(req) as response:
-              print("Notification sent successfully:", response.status)
-      except Exception as e:
-          print("Error sending notification:", e)
+          try:
+              with urllib.request.urlopen(req) as response:
+                  print("Notification sent successfully:", response.status)
+          except Exception as e:
+              print("Error sending notification:", e)
 
