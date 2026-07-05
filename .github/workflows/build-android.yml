@@ -78,6 +78,7 @@ jobs:
           name: "${{ github.sha }}"
           body: |
             ### 🤖 Android Build Details
+            - **Build Number:** `#${{ github.run_number }}`
             - **Commit SHA:** `${{ github.sha }}`
             - **Branch:** `${{ github.ref_name }}`
             
@@ -86,55 +87,67 @@ jobs:
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Tự động gửi thông báo an toàn qua Discord Webhook (Sử dụng Secret bảo mật)
+      # Tự động gửi thông báo an toàn qua Discord Webhook nhờ Python
       - name: Send Discord Notification
         if: always()
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_ANDROID }}
+          JOB_STATUS: ${{ job.status }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+        shell: python
         run: |
-          STATUS="${{ job.status }}"
-          
-          if [ "$STATUS" = "success" ]; then
-            STATUS_TEXT="🟢 **NEW ANDROID BUILD AVAILABLE**"
-            COLOR=3066993 # Xanh lá
-            
-            # Sử dụng Heredoc an toàn tuyệt đối với ký tự đặc biệt
-            MAIN_CONTENT=$(cat << 'EOF'
-📥 **Nhấp vào liên kết bên dưới để tải file APK trực tiếp về máy:**
+          import os, json, urllib.request
 
-🔹 [**TẢI BẢN RELEASE APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-release.apk)
-🔸 [**TẢI BẢN DEBUG APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-debug.apk)
+          status = os.environ['JOB_STATUS']
+          ref_name = os.environ['REF_NAME']
+          sha = os.environ['COMMIT_SHA']
+          run_number = os.environ['RUN_NUMBER']
+          webhook_url = os.environ['WEBHOOK_URL']
 
----
-**Thông tin phiên bản:**
-- **Nhánh (Branch):** `${{ github.ref_name }}`
-- **Mã commit:** `${{ github.sha }}`
-EOF
-)
-          elif [ "$STATUS" = "failure" ]; then
-            STATUS_TEXT="🔴 **ANDROID BUILD FAILED**"
-            COLOR=15158332 # Đỏ
-            MAIN_CONTENT=$(cat << 'EOF'
-❌ Đã xảy ra lỗi trong quá trình build file APK.
-- **Nhánh (Branch):** `${{ github.ref_name }}`
-- **Mã commit:** `${{ github.sha }}`
-EOF
-)
-          else
-            STATUS_TEXT="⚪ **ANDROID BUILD CANCELLED**"
-            COLOR=9807270 # Xám
-            MAIN_CONTENT="⚠️ Quy trình build đã bị hủy bỏ."
-          fi
+          if not webhook_url:
+              print("Webhook URL is empty. Skipping notification.")
+              exit(0)
 
-          # Định dạng xuống dòng chuỗi sang \n hợp lệ cho cú pháp JSON
-          MAIN_CONTENT_ESCAPED=$(echo "$MAIN_CONTENT" | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
+          if status == "success":
+              title = f"🟢 **NEW ANDROID BUILD AVAILABLE (Build #{run_number})**"
+              color = 3066993
+              description = (
+                  "📥 **Nhấp vào liên kết bên dưới để tải file APK trực tiếp về máy:**\n\n"
+                  "🔹 [**TẢI BẢN RELEASE APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-release.apk)\n"
+                  "🔸 [**TẢI BẢN DEBUG APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-debug.apk)\n\n"
+                  "---\n"
+                  "**Thông tin phiên bản:**\n"
+                  f"- **Số lần build:** `#{run_number}`\n"
+                  f"- **Nhánh (Branch):** `{ref_name}`\n"
+                  f"- **Mã commit:** `{sha}`"
+              )
+          elif status == "failure":
+              title = f"🔴 **ANDROID BUILD FAILED (Build #{run_number})**"
+              color = 15158332
+              description = f"❌ Đã xảy ra lỗi trong quá trình build file APK.\n- **Số lần build:** `#{run_number}`\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`"
+          else:
+              title = f"⚪ **ANDROID BUILD CANCELLED (Build #{run_number})**"
+              color = 9807270
+              description = f"⚠️ Quy trình build thứ `#{run_number}` đã bị hủy bỏ."
 
-          curl -H "Content-Type: application/json" \
-          -X POST \
-          -d '{
-            "embeds": [{
-              "title": "'"$STATUS_TEXT"'",
-              "description": "'"$MAIN_CONTENT_ESCAPED"'",
-              "color": '$COLOR'
-            }]
-          }' \
-          "${{ secrets.DISCORD_WEBHOOK_ANDROID }}"
+          payload = {
+              "embeds": [{
+                  "title": title,
+                  "description": description,
+                  "color": color
+              }]
+          }
+
+          req = urllib.request.Request(
+              webhook_url, 
+              data=json.dumps(payload).encode('utf-8'), 
+              headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+          )
+          try:
+              with urllib.request.urlopen(req) as response:
+                  print("Notification sent successfully:", response.status)
+          except Exception as e:
+              print("Error sending notification:", e)
 
