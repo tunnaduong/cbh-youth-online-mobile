@@ -65,6 +65,7 @@ jobs:
           xcodebuild -workspace "${{ env.APP_NAME }}.xcworkspace" \
             -scheme "${{ env.APP_NAME }}" \
             -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/simulator_derived_data" \
             CODE_SIGNING_ALLOWED=NO \
