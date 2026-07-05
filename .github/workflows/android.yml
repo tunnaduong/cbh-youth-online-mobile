@@ -85,4 +85,37 @@ jobs:
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tự động gửi thông báo tập trung hoàn toàn vào việc Click-to-Download qua Discord Webhook
+      - name: Send Discord Notification
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          
+          if [ "$STATUS" = "success" ]; then
+            STATUS_TEXT="🟢 **NEW ANDROID BUILD AVAILABLE**"
+            COLOR=3066993 # Xanh lá
+            
+            # Giao diện tập trung hoàn toàn vào link tải trực tiếp cho người dùng
+            MAIN_CONTENT="📥 **Nhấp vào liên kết bên dưới để tải file APK trực tiếp về máy:**\n\n🔹 [**TẢI BẢN RELEASE APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-release.apk)\n🔸 [**TẢI BẢN DEBUG APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-debug.apk)\n\n---\n**Thông tin phiên bản:**\n- **Nhánh (Branch):** `${{ github.ref_name }}`\n- **Mã commit:** `${{ github.sha }}`"
+          elif [ "$STATUS" = "failure" ]; then
+            STATUS_TEXT="🔴 **ANDROID BUILD FAILED**"
+            COLOR=15158332 # Đỏ
+            MAIN_CONTENT="❌ Đã xảy ra lỗi trong quá trình build file APK.\n- **Nhánh (Branch):** `${{ github.ref_name }}`\n- **Mã commit:** `${{ github.sha }}`"
+          else
+            STATUS_TEXT="⚪ **ANDROID BUILD CANCELLED**"
+            COLOR=9807270 # Xám
+            MAIN_CONTENT="⚠️ Quy trình build đã bị hủy bỏ."
+          fi
+
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{
+            "embeds": [{
+              "title": "'"$STATUS_TEXT"'",
+              "description": "'"$MAIN_CONTENT"'",
+              "color": '$COLOR'
+            }]
+          }' \
+          "${{ secrets.DISCORD_WEBHOOK_ANDROID }}"
           
