@@ -40,6 +40,10 @@ jobs:
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
 
+          # Giải mã dữ liệu mã hóa Base64 sang file vật lý trong thư mục tạm
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
           security create-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
           security unlock-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
@@ -99,6 +103,7 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
+      # Đã cấu hình thêm cờ -sdk iphoneos loại bỏ triệt để lỗi Simulator Runtime
       - name: Build iOS Archive
         run: |
           cd ios
