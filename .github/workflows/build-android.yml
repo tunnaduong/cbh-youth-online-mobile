@@ -78,9 +78,9 @@ jobs:
           name: "${{ github.sha }}"
           body: |
             ### 🤖 Android Build Details
-            - **Build Number:** `#${{ github.run_number }}`
             - **Commit SHA:** `${{ github.sha }}`
             - **Branch:** `${{ github.ref_name }}`
+            - **Changelog:** ${{ github.event.head_commit.message }}
             
             Tải trực tiếp file APK (Release & Debug arm64-v8a) ở phần **Assets** bên dưới để cài đặt.
           prerelease: true
@@ -96,15 +96,17 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           COMMIT_SHA: ${{ github.sha }}
           RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         shell: python
         run: |
           import os, json, urllib.request
 
-          status = os.environ['JOB_STATUS']
-          ref_name = os.environ['REF_NAME']
-          sha = os.environ['COMMIT_SHA']
-          run_number = os.environ['RUN_NUMBER']
-          webhook_url = os.environ['WEBHOOK_URL']
+          status = os.environ.get('JOB_STATUS', '')
+          ref_name = os.environ.get('REF_NAME', '')
+          sha = os.environ.get('COMMIT_SHA', '')
+          run_number = os.environ.get('RUN_NUMBER', '')
+          webhook_url = os.environ.get('WEBHOOK_URL', '')
+          commit_message = os.environ.get('COMMIT_MESSAGE', 'No commit message')
 
           if not webhook_url:
               print("Webhook URL is empty. Skipping notification.")
@@ -119,14 +121,14 @@ jobs:
                   "🔸 [**TẢI BẢN DEBUG APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-debug.apk)\n\n"
                   "---\n"
                   "**Thông tin phiên bản:**\n"
-                  f"- **Số lần build:** `#{run_number}`\n"
                   f"- **Nhánh (Branch):** `{ref_name}`\n"
-                  f"- **Mã commit:** `{sha}`"
+                  f"- **Mã commit:** `{sha}`\n"
+                  f"- **Changelog:** {commit_message}"
               )
           elif status == "failure":
               title = f"🔴 **ANDROID BUILD FAILED (Build #{run_number})**"
               color = 15158332
-              description = f"❌ Đã xảy ra lỗi trong quá trình build file APK.\n- **Số lần build:** `#{run_number}`\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`"
+              description = f"❌ Đã xảy ra lỗi trong quá trình build file APK.\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`\n- **Changelog:** {commit_message}"
           else:
               title = f"⚪ **ANDROID BUILD CANCELLED (Build #{run_number})**"
               color = 9807270

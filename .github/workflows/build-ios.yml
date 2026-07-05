@@ -185,9 +185,9 @@ jobs:
           name: "${{ github.sha }}"
           body: |
             ### 🚀 iOS Build Details
-            - **Build Number:** `#${{ github.run_number }}`
             - **Commit SHA:** `${{ github.sha }}`
             - **Branch:** `${{ github.ref_name }}`
+            - **Changelog:** ${{ github.event.head_commit.message }}
             
             ### 🔗 Liên kết cài đặt trực tuyến (Mở bằng Safari trên iPhone)
             Nhấn vào link dưới đây để đến trang cài đặt ứng dụng dành cho thiết bị thật:
@@ -211,16 +211,18 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           COMMIT_SHA: ${{ github.sha }}
           RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         shell: python
         run: |
           import os, json, urllib.request
 
-          build_ok = os.environ['BUILD_RESULT'] == 'success'
-          release_ok = os.environ['RELEASE_RESULT'] == 'success'
-          ref_name = os.environ['REF_NAME']
-          sha = os.environ['COMMIT_SHA']
-          run_number = os.environ['RUN_NUMBER']
-          webhook_url = os.environ['WEBHOOK_URL']
+          build_ok = os.environ.get('BUILD_RESULT', '') == 'success'
+          release_ok = os.environ.get('RELEASE_RESULT', '') == 'success'
+          ref_name = os.environ.get('REF_NAME', '')
+          sha = os.environ.get('COMMIT_SHA', '')
+          run_number = os.environ.get('RUN_NUMBER', '')
+          webhook_url = os.environ.get('WEBHOOK_URL', '')
+          commit_message = os.environ.get('COMMIT_MESSAGE', 'No commit message')
 
           if not webhook_url:
               print("Webhook URL is empty. Skipping notification.")
@@ -237,14 +239,14 @@ jobs:
                   "📥 [**TẢI FILE CBHOnline-signed.ipa**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-ios/CBHOnline-signed.ipa)\n\n"
                   "---\n"
                   "**Thông tin phiên bản:**\n"
-                  f"- **Số lần build:** `#{run_number}`\n"
                   f"- **Nhánh (Branch):** `{ref_name}`\n"
-                  f"- **Mã commit:** `{sha}`"
+                  f"- **Mã commit:** `{sha}`\n"
+                  f"- **Changelog:** {commit_message}"
               )
           else:
               title = f"🔴 **IOS BUILD FAILED (Build #{run_number})**"
               color = 15158332
-              description = f"❌ Đã xảy ra lỗi trong quá trình build hoặc phát hành file IPA.\n- **Số lần build:** `#{run_number}`\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`"
+              description = f"❌ Đã xảy ra lỗi trong quá trình build hoặc phát hành file IPA.\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`\n- **Changelog:** {commit_message}"
 
           payload = {
               "embeds": [{
