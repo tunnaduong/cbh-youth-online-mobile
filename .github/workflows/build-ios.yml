@@ -103,7 +103,7 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      # Đã cấu hình thêm cờ -sdk iphoneos loại bỏ triệt để lỗi Simulator Runtime
+      # Ép các biến môi trường loại bỏ Simulator ngay tại câu lệnh build xcodebuild
       - name: Build iOS Archive
         run: |
           cd ios
@@ -119,6 +119,8 @@ jobs:
             CODE_SIGN_IDENTITY="Apple Development" \
             PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}" \
             PROVISIONING_PROFILE="${{ env.PROVISIONING_PROFILE_UUID }}" \
+            SUPPORTED_PLATFORMS="iphoneos" \
+            EXCLUDED_ARCHS="x86_64 i386" \
             | xcbeautify --quiet --renderer github-actions
 
       - name: Export IPA
