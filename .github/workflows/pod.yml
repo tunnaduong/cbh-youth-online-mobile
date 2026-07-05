@@ -1,9 +1,6 @@
 name: Update iOS Pods
 
 on:
-  push:
-    branches:
-      - dhphuc
   workflow_dispatch:
 
 # Grant write permissions to commit the updated lockfile back to your branch
