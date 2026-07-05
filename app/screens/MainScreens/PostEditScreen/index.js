@@ -270,8 +270,8 @@ const PostEditScreen = ({ navigation, route }) => {
         description: postContent,
         cdn_image_id: newCdnIds.length > 0 ? newCdnIds.join(",") : null,
         cdn_document_id: newDocIds.length > 0 ? newDocIds.join(",") : null,
-        kept_image_ids: keptImageIds,
-        kept_document_ids: keptDocumentIds,
+        kept_image_ids: keptImageIds.join(","),
+        kept_document_ids: keptDocumentIds.join(","),
         subforum_id: selected?.value ?? null,
         visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
         privacy: viewSelected?.value,
@@ -405,18 +405,24 @@ const PostEditScreen = ({ navigation, route }) => {
           }}
           pointerEvents="box-none"
         >
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={{
-              width: 70,
-              height: 70,
-              borderRadius: 35,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}
-          />
+          {isAnonymous ? (
+            <View style={{ width: 70, height: 70, backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9', borderRadius: 35, alignItems: 'center', justifyContent: 'center', borderColor: theme.border, borderWidth: 1 }}>
+              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 36 }}>?</Text>
+            </View>
+          ) : (
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={{
+                width: 70,
+                height: 70,
+                borderRadius: 35,
+                borderColor: theme.border,
+                borderWidth: 1,
+              }}
+            />
+          )}
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '500', fontSize: 18, color: theme.text }} numberOfLines={1}>
               {isAnonymous ? t('createPost.anonymousUser') : profileName}
@@ -492,7 +498,7 @@ const PostEditScreen = ({ navigation, route }) => {
               marginHorizontal: 12,
             }}
           ></View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, opacity: 0.6 }}>
             <View>
               <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.text, marginBottom: 5 }}>{t('createPost.anonymous') || "Ẩn danh"}</Text>
               <Text style={{ color: theme.subText, fontSize: 12 }}>{t('createPost.anonymousDesc') || "Đăng bài ẩn danh"}</Text>

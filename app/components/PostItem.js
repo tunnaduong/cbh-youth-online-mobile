@@ -174,7 +174,7 @@ const PostItem = ({
             </View>
           </TouchableOpacity>
         )}
-        {false && isCurrentUser && (
+        {isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
               navigation.navigate("PostEditScreen", { postId: item.id });

@@ -134,6 +134,7 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
+        */}
         {isCurrentUser && (
           <TouchableOpacity
             onPress={() => {
@@ -149,7 +150,6 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
-        */}
         <TouchableOpacity onPress={() => {
           hideBottomSheet();
           setReportModalVisible(true);
