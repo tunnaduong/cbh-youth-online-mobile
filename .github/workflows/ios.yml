@@ -190,4 +190,35 @@ jobs:
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-discord:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+    needs: [publish-release]
+    if: always()
+    steps:
+      - name: Send Discord Notification
+        run: |
+          if [ "${{ needs.build-ios-real.result }}" = "success" ] && [ "${{ needs.publish-release.result }}" = "success" ]; then
+            STATUS_TEXT="🟢 **NEW IOS BUILD AVAILABLE**"
+            COLOR=3066993 # Xanh lá
+            
+            # Cấu hình hiển thị đồng thời cả 2 liên kết theo yêu cầu
+            MAIN_CONTENT="📲 **Vui lòng lựa chọn phương thức tải/cài đặt phù hợp:**\n\n🔗 **1. Cài đặt trực tuyến (Mở bằng Safari trên iPhone):**\n👉 [**BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT**](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)\n\n📦 **2. Tải trực tiếp file IPA về máy:**\n📥 [**TẢI FILE CBHOnline-signed.ipa**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-ios/CBHOnline-signed.ipa)\n\n---\n**Thông tin phiên bản:**\n- **Nhánh (Branch):** `${{ github.ref_name }}`\n- **Mã commit:** `${{ github.sha }}`"
+          else
+            STATUS_TEXT="🔴 **IOS BUILD FAILED**"
+            COLOR=15158332 # Đỏ
+            MAIN_CONTENT="❌ Đã xảy ra lỗi trong quá trình build hoặc phát hành file IPA.\n- **Nhánh (Branch):** `${{ github.ref_name }}`\n- **Mã commit:** `${{ github.sha }}`"
+          fi
+
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{
+            "embeds": [{
+              "title": "'"$STATUS_TEXT"'",
+              "description": "'"$MAIN_CONTENT"'",
+              "color": '$COLOR'
+            }]
+          }' \
+          "${{ secrets.DISCORD_WEBHOOK_IOS }}"
           
