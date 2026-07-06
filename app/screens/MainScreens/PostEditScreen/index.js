@@ -288,13 +288,12 @@ const PostEditScreen = ({ navigation, route }) => {
         anonymous: isAnonymous,
       });
 
-      if (viewSelected?.value === "public") {
-        setFeed((prevPosts) =>
-          prevPosts.map((post) =>
-            post.id === route.params.postId ? { ...response.data, is_mine: true, is_author: true, author: { ...userInfo, ...response.data?.author }, anonymous: response.data?.anonymous ?? isAnonymous } : post
-          )
-        );
-      }
+      const updatedPostData = response.data?.post || response.data;
+      setFeed((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === route.params.postId ? { ...post, ...updatedPostData, is_mine: true, is_author: true, author: { ...post.author, ...userInfo, ...updatedPostData?.author }, anonymous: updatedPostData?.anonymous ?? isAnonymous } : post
+        )
+      );
 
       navigation.dispatch(
         CommonActions.reset({
