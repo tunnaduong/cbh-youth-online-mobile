@@ -97,7 +97,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
         if (post.subforum_id) {
           setSelected(
-            translatedSubforums.find((s) => s.value === post.subforum_id)
+            translatedSubforums.find((s) => String(s.value) === String(post.subforum_id))
           );
         }
 
@@ -270,8 +270,8 @@ const PostEditScreen = ({ navigation, route }) => {
         description: postContent,
         cdn_image_id: newCdnIds.length > 0 ? newCdnIds.join(",") : null,
         cdn_document_id: newDocIds.length > 0 ? newDocIds.join(",") : null,
-        kept_image_ids: keptImageIds,
-        kept_document_ids: keptDocumentIds,
+        kept_image_ids: keptImageIds.length > 0 ? keptImageIds.join(",") : null,
+        kept_document_ids: keptDocumentIds.length > 0 ? keptDocumentIds.join(",") : null,
         subforum_id: selected?.value ?? null,
         visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
         privacy: viewSelected?.value,
