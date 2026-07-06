@@ -113,6 +113,7 @@ jobs:
             -scheme "${{ env.APP_NAME }}" \
             -sdk iphoneos \
             -configuration Release \
+            -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
             DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
             CODE_SIGN_STYLE="Manual" \
