@@ -95,9 +95,10 @@ const PostEditScreen = ({ navigation, route }) => {
         const matchingOption = viewOptions.find(v => v.value === initialPrivacy) || viewOptions[0];
         setViewSelected(matchingOption);
 
-        if (post.subforum_id) {
+        const subforumId = post.subforum_id || post.subforum?.id || post.category_id || post.category?.id;
+        if (subforumId) {
           setSelected(
-            translatedSubforums.find((s) => String(s.value) === String(post.subforum_id))
+            translatedSubforums.find((s) => String(s.value) === String(subforumId))
           );
         }
 
@@ -265,13 +266,22 @@ const PostEditScreen = ({ navigation, route }) => {
         newDocIds.push(uploadResponse.data.id);
       }
 
+      // Get existing CDN IDs from URLs
+      const existingCdnIds = selectedImages
+        .filter((img) => img.id && img.uri && img.uri.includes("api.chuyenbienhoa.com"))
+        .map((img) => img.uri.split("/").pop());
+      const allCdnIds = [...existingCdnIds, ...newCdnIds];
+
+      const existingDocIds = selectedDocuments
+        .filter((doc) => doc.id && doc.uri && doc.uri.includes("api.chuyenbienhoa.com"))
+        .map((doc) => doc.uri.split("/").pop());
+      const allDocIds = [...existingDocIds, ...newDocIds];
+
       const response = await updatePost(route.params.postId, {
         title,
         description: postContent,
-        cdn_image_id: newCdnIds.length > 0 ? newCdnIds.join(",") : null,
-        cdn_document_id: newDocIds.length > 0 ? newDocIds.join(",") : null,
-        kept_image_ids: keptImageIds.length > 0 ? keptImageIds.join(",") : null,
-        kept_document_ids: keptDocumentIds.length > 0 ? keptDocumentIds.join(",") : null,
+        cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
+        cdn_document_id: allDocIds.length > 0 ? allDocIds.join(",") : null,
         subforum_id: selected?.value ?? null,
         visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
         privacy: viewSelected?.value,
