@@ -270,8 +270,8 @@ const PostEditScreen = ({ navigation, route }) => {
         description: postContent,
         cdn_image_id: newCdnIds.length > 0 ? newCdnIds.join(",") : null,
         cdn_document_id: newDocIds.length > 0 ? newDocIds.join(",") : null,
-        kept_image_ids: keptImageIds.join(","),
-        kept_document_ids: keptDocumentIds.join(","),
+        kept_image_ids: keptImageIds,
+        kept_document_ids: keptDocumentIds,
         subforum_id: selected?.value ?? null,
         visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
         privacy: viewSelected?.value,
@@ -490,27 +490,7 @@ const PostEditScreen = ({ navigation, route }) => {
             multiline
             textAlignVertical="top"
           />
-          <View
-            style={{
-              height: 0,
-              borderTopWidth: 1,
-              borderColor: theme.border,
-              marginHorizontal: 12,
-            }}
-          ></View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, opacity: 0.6 }}>
-            <View>
-              <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.text, marginBottom: 5 }}>{t('createPost.anonymous') || "Ẩn danh"}</Text>
-              <Text style={{ color: theme.subText, fontSize: 12 }}>{t('createPost.anonymousDesc') || "Đăng bài ẩn danh"}</Text>
-            </View>
-            <Switch
-              trackColor={{ false: '#767577', true: theme.primary }}
-              thumbColor={isAnonymous ? '#f4f3f4' : '#f4f3f4'}
-              onValueChange={() => {}}
-              value={isAnonymous}
-              disabled={true}
-            />
-          </View>
+
         </View>
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
           <Dropdown
