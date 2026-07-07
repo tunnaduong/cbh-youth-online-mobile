@@ -546,8 +546,9 @@ const CustomTabBar = ({
         );
       },
       onPanResponderTerminationRequest: () => false,
-      // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
-      onShouldBlockNativeResponder: () => false,
+      // true = block native gesture handlers (like horizontal ScrollView/ViewPager inside content)
+      // so dragging on the floating navbar doesn't trigger screen content swiping.
+      onShouldBlockNativeResponder: () => true,
       onPanResponderGrant: (evt, gestureState) => {
         isDragging.current = true;
         lastHapticIndex.current = activeLeftIndexRef.current;
