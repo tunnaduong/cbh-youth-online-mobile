@@ -58,14 +58,7 @@ if (Platform.OS === 'android') {
 }
 
 const ScreenWrapper = ({ children }) => {
-  // LiquidGlassProviderAndroid is now hoisted to the TabContentWrapper at the
-  // Tab.Navigator level to avoid unmounting the GPU surface when switching tabs.
-  return children;
-};
-
-// Wraps the entire Tab.Navigator with the Android LiquidGlassProvider so all
-// screens share one stable provider instance that never unmounts between tab switches.
-const TabContentWrapper = ({ children, theme }) => {
+  const { theme } = useTheme();
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -77,7 +70,7 @@ const TabContentWrapper = ({ children, theme }) => {
       </View>
     );
   }
-  return <View style={{ flex: 1, backgroundColor: theme.background }}>{children}</View>;
+  return children;
 };
 
 const Tab = createBottomTabNavigator();
@@ -1244,7 +1237,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
       bounceBackOnOverdraw={false}
       disableGestures={true}
     >
-      <TabContentWrapper theme={theme}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
           tabBar={(props) => {
@@ -1520,7 +1513,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             )}
           </Tab.Screen>
         </Tab.Navigator>
-      </TabContentWrapper>
+      </View>
     </SideMenu>
   );
 }
