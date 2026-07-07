@@ -20,7 +20,6 @@ import {
   getSubforums,
   uploadFile,
   getPostDetail,
-  getPostDetailForEdit,
 } from "../../../services/api/Api";
 import Verified from "../../../assets/Verified";
 import Toast from "react-native-toast-message";
@@ -75,9 +74,7 @@ const PostEditScreen = ({ navigation, route }) => {
         setLoading(true);
 
         const [postRes, subforumsRes] = await Promise.all([
-          // /api/topics/{id} returns subforum_id in the post object (needed for pre-selection)
-          // Fall back to v1.0 if it fails
-          getPostDetailForEdit(route.params.postId).catch(() => getPostDetail(route.params.postId)),
+          getPostDetail(route.params.postId),
           getSubforums(),
         ]);
 
@@ -546,12 +543,14 @@ const PostEditScreen = ({ navigation, route }) => {
 
         </View>
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
+          {/* Category selector hidden — re-enable when backend supports subforum pre-selection
           <Dropdown
             options={subforums}
             placeholder={t('editPost.placeholderCategory')}
             selectedValue={selected}
             onValueChange={setSelected}
           />
+          */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <TouchableOpacity
               onPress={() => navigateToHelp(213057)}
