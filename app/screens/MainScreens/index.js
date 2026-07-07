@@ -68,9 +68,13 @@ const ScreenWrapper = ({ children }) => {
 const TabContentWrapper = ({ children, theme }) => {
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
-      <LiquidGlassProviderAndroid style={[StyleSheet.absoluteFill, { flex: 1, backgroundColor: theme.background }]}>
-        {children}
-      </LiquidGlassProviderAndroid>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
+          <View style={{ flex: 1, backgroundColor: theme.background }}>
+            {children}
+          </View>
+        </LiquidGlassProviderAndroid>
+      </View>
     );
   }
   return <View style={{ flex: 1, backgroundColor: theme.background }}>{children}</View>;
@@ -779,7 +783,7 @@ const CustomTabBar = ({
       tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
     };
 
-    const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
+    const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
 
     return (
       <Animated.View
@@ -890,10 +894,8 @@ const CustomTabBar = ({
 
   if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView && isLiquidGlassSupported) {
     const isRealGlass = isLiquidGlassSupported;
-    const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
-    const indicatorBg = isRealGlass
-      ? (isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)")
-      : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)");
+    const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
+    const indicatorBg = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)";
     const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
 
     return (
@@ -945,6 +947,7 @@ const CustomTabBar = ({
                       width: indicatorAnimatedWidth,
                       height: 50,
                       borderRadius: 25,
+                      backgroundColor: indicatorBg,
                       opacity,
                     }}
                   />
