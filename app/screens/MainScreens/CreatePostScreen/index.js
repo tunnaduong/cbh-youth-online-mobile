@@ -18,6 +18,7 @@ import { getCategoryName } from "../../../utils/forumUtils";
 import {
   createPost,
   getSubforums,
+  getSubforumsForEdit,
   uploadFile,
 } from "../../../services/api/Api";
 import Verified from "../../../assets/Verified";
@@ -93,18 +94,34 @@ const CreatePostScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    getSubforums().then((res) => {
-      const translated = res.data.map((item) => {
-        const id = item.value || item.id;
-        const name = item.label || item.name || item.title;
-        return {
-          ...item,
-          value: id,
-          label: getCategoryName(name, t)
-        };
-      });
-      setSubforums(translated);
-    });
+    const loadSubforums = async () => {
+      try {
+        // Primary: role-aware endpoint (returns [{label, value, category}])
+        let rawSubforums = [];
+        try {
+          const res = await getSubforumsForEdit();
+          const d = res.data;
+          rawSubforums = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
+        } catch (_) {}
+
+        // Fallback to v1.0 if primary returned nothing
+        if (rawSubforums.length === 0) {
+          const fallback = await getSubforums();
+          const d = fallback.data;
+          rawSubforums = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
+        }
+
+        const translated = rawSubforums.map((item) => {
+          const id = item.value ?? item.id;
+          const name = item.label || item.name || item.title || "";
+          return { ...item, value: id, label: getCategoryName(name, t) };
+        });
+        setSubforums(translated);
+      } catch (error) {
+        console.log("Error loading subforums:", error);
+      }
+    };
+    loadSubforums();
   }, [t]);
 
   const pickImage = async () => {

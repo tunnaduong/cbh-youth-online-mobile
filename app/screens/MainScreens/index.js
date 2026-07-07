@@ -543,7 +543,8 @@ const CustomTabBar = ({
         );
       },
       onPanResponderTerminationRequest: () => false,
-      onShouldBlockNativeResponder: () => true,
+      // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
+      onShouldBlockNativeResponder: () => false,
       onPanResponderGrant: (evt, gestureState) => {
         isDragging.current = true;
         lastHapticIndex.current = activeLeftIndexRef.current;
@@ -943,18 +944,33 @@ const CustomTabBar = ({
               }}
             >
               {isRealGlass ? (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 50,
-                    borderRadius: 25,
-                    borderWidth: indicatorBorderWidth,
-                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                    backgroundColor: indicatorBg,
-                    opacity,
-                  }}
-                />
+                AnimatedLiquidGlassView ? (
+                  <AnimatedLiquidGlassView
+                    effect="regular"
+                    interactive={false}
+                    colorScheme={isDarkMode ? 'dark' : 'light'}
+                    style={{
+                      position: "absolute",
+                      width: indicatorAnimatedWidth,
+                      height: 50,
+                      borderRadius: 25,
+                      opacity,
+                    }}
+                  />
+                ) : (
+                  <Animated.View
+                    style={{
+                      position: "absolute",
+                      width: indicatorAnimatedWidth,
+                      height: 50,
+                      borderRadius: 25,
+                      borderWidth: indicatorBorderWidth,
+                      borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                      backgroundColor: indicatorBg,
+                      opacity,
+                    }}
+                  />
+                )
               ) : (
                 <Animated.View
                   style={{

@@ -8,8 +8,20 @@ import {
   TouchableWithoutFeedback,
   Animated,
   Dimensions,
+  Platform,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
+
+// ─── Optional liquid-glass on Android ──────────────────────────────────────
+let LiquidGlassProviderAndroid = null;
+let LiquidGlassViewAndroid = null;
+if (Platform.OS === 'android') {
+  try {
+    const LiquidGlassKit = require('liquid-glass-kit');
+    LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
+    LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
+  } catch (_) {}
+}
 
 // Global reference for imperative calling
 export const customAlertRef = React.createRef();
@@ -89,6 +101,68 @@ export const CustomAlertProvider = () => {
 
   if (!visible) return null;
 
+  // ─── Android liquid-glass dialog ───────────────────────────────────────────
+  const isAndroid33 = Platform.OS === 'android' && Platform.Version >= 33;
+  const useGlass = Platform.OS === 'android' && LiquidGlassViewAndroid && LiquidGlassProviderAndroid;
+
+  const dialogContent = (
+    <>
+      {title ? (
+        <Text style={[styles.title, { color: theme.text }]}>
+          {title}
+        </Text>
+      ) : null}
+
+      {message ? (
+        <Text style={[styles.message, { color: theme.subText }]}>
+          {message}
+        </Text>
+      ) : null}
+
+      <View style={styles.buttonContainer}>
+        {buttons.map((btn, index) => {
+          const isCancel = btn.style === "cancel";
+          const isDestructive = btn.style === "destructive";
+
+          let buttonTextColor = theme.primary;
+          if (isCancel) {
+            buttonTextColor = theme.subText;
+          } else if (isDestructive) {
+            buttonTextColor = "#FF3B30";
+          }
+
+          return (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.button,
+                useGlass && {
+                  backgroundColor: isDarkMode
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.04)",
+                },
+              ]}
+              onPress={() => {
+                hideDialog(() => {
+                  if (btn.onPress) btn.onPress();
+                });
+              }}
+            >
+              <Text
+                style={[
+                  styles.buttonText,
+                  { color: buttonTextColor },
+                ]}
+              >
+                {btn.text}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </>
+  );
+
   return (
     <Modal
       transparent
@@ -112,59 +186,48 @@ export const CustomAlertProvider = () => {
           <TouchableWithoutFeedback>
             <Animated.View
               style={[
-                styles.dialogContainer,
-                {
-                  backgroundColor: theme.surface,
-                  transform: [{ scale: scaleAnim }],
-                },
+                styles.dialogWrapper,
+                { transform: [{ scale: scaleAnim }] },
               ]}
             >
-              {title ? (
-                <Text style={[styles.title, { color: theme.text }]}>
-                  {title}
-                </Text>
-              ) : null}
-
-              {message ? (
-                <Text style={[styles.message, { color: theme.subText }]}>
-                  {message}
-                </Text>
-              ) : null}
-
-              <View style={styles.buttonContainer}>
-                {buttons.map((btn, index) => {
-                  const isCancel = btn.style === "cancel";
-                  const isDestructive = btn.style === "destructive";
-
-                  let buttonTextColor = theme.primary;
-                  if (isCancel) {
-                    buttonTextColor = theme.subText;
-                  } else if (isDestructive) {
-                    buttonTextColor = "#FF3B30";
-                  }
-
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.button}
-                      onPress={() => {
-                        hideDialog(() => {
-                          if (btn.onPress) btn.onPress();
-                        });
-                      }}
-                    >
-                      <Text
-                        style={[
-                          styles.buttonText,
-                          { color: buttonTextColor },
-                        ]}
-                      >
-                        {btn.text}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              {useGlass ? (
+                // Android: render LiquidGlassView as the dialog surface
+                // Wrap in a provider so it can sample the blurred background
+                <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
+                  <LiquidGlassViewAndroid
+                    blurRadius={isAndroid33 ? 6 : 20}
+                    refractionAmount={isAndroid33 ? 18 : 0}
+                    refractionHeight={isAndroid33 ? 10 : 0}
+                    chromaticAberration={isAndroid33 ? 0.25 : 0}
+                    highlightAlpha={isAndroid33 ? 0.5 : 0.25}
+                    tint={isDarkMode ? "rgba(30, 30, 30, 0.55)" : "rgba(255, 255, 255, 0.45)"}
+                    style={[
+                      styles.dialogContainer,
+                      {
+                        backgroundColor: isDarkMode
+                          ? "rgba(28, 28, 32, 0.82)"
+                          : "rgba(255, 255, 255, 0.72)",
+                        borderWidth: 1,
+                        borderColor: isDarkMode
+                          ? "rgba(255,255,255,0.12)"
+                          : "rgba(0,0,0,0.07)",
+                      },
+                    ]}
+                  >
+                    {dialogContent}
+                  </LiquidGlassViewAndroid>
+                </LiquidGlassProviderAndroid>
+              ) : (
+                // iOS / fallback: original surface colour
+                <View
+                  style={[
+                    styles.dialogContainer,
+                    { backgroundColor: theme.surface },
+                  ]}
+                >
+                  {dialogContent}
+                </View>
+              )}
             </Animated.View>
           </TouchableWithoutFeedback>
         </View>
@@ -179,16 +242,21 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  dialogContainer: {
-    width: Dimensions.get("window").width - 56, // 28dp margins
+  // Wrapper carries the scale animation; inner surface is either glass or plain
+  dialogWrapper: {
+    width: Dimensions.get("window").width - 56,
     maxWidth: 320,
-    borderRadius: 28, // MD3 Rounded corners
-    padding: 24, // MD3 padding
+  },
+  dialogContainer: {
+    width: "100%",
+    borderRadius: 28,   // MD3 Rounded corners
+    padding: 24,        // MD3 padding
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 11 },
     shadowOpacity: 0.15,
     shadowRadius: 15,
     elevation: 8,
+    overflow: "hidden",
   },
   title: {
     fontSize: 22,
@@ -211,7 +279,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginLeft: 8,
-    borderRadius: 100, // MD3 pill buttons
+    borderRadius: 100,  // MD3 pill buttons
   },
   buttonText: {
     fontSize: 14,
