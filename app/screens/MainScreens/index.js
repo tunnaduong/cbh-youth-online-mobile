@@ -448,7 +448,7 @@ const CustomTabBar = ({
     // Native-driver animation cho visual indicator — mượt 60fps ngay cả khi JS bận
     Animated.timing(nativeSlideAnim, {
       toValue: currentIndicatorLeft,
-      duration: 180,
+      duration: 280,
       useNativeDriver: true,
     }).start();
     // Sync JS value để PanResponder có đúng starting position khi drag
@@ -583,16 +583,16 @@ const CustomTabBar = ({
         Animated.spring(slideAnim, {
           toValue: snapTarget,
           useNativeDriver: false,
-          stiffness: 380,
-          damping: 32,
+          stiffness: 280,
+          damping: 30,
           mass: 0.6,
         }).start();
         // Native anim snap — chạy trên UI thread
         Animated.spring(nativeSlideAnim, {
           toValue: snapTarget,
           useNativeDriver: true,
-          stiffness: 380,
-          damping: 32,
+          stiffness: 280,
+          damping: 30,
           mass: 0.6,
         }).start();
 
