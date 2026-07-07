@@ -20,6 +20,7 @@ import {
   getSubforums,
   uploadFile,
   getPostDetail,
+  getPostDetailForEdit,
 } from "../../../services/api/Api";
 import Verified from "../../../assets/Verified";
 import Toast from "react-native-toast-message";
@@ -74,7 +75,9 @@ const PostEditScreen = ({ navigation, route }) => {
         setLoading(true);
 
         const [postRes, subforumsRes] = await Promise.all([
-          getPostDetail(route.params.postId),
+          // /api/topics/{id} returns subforum_id in the post object (needed for pre-selection)
+          // Fall back to v1.0 if it fails
+          getPostDetailForEdit(route.params.postId).catch(() => getPostDetail(route.params.postId)),
           getSubforums(),
         ]);
 

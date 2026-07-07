@@ -186,6 +186,11 @@ export const getPostDetail = (id) => {
   return Api.getRequest("/v1.0/topics/" + id);
 };
 
+// Use this when editing a post — /api/topics/{id} includes subforum_id in the post object
+export const getPostDetailForEdit = (id) => {
+  return Api.getRequest("/api/topics/" + id);
+};
+
 export const commentPost = (id, params) => {
   return Api.postRequest("/v1.0/topics/" + id + "/comments", params);
 };
