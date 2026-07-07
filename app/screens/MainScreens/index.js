@@ -529,19 +529,9 @@ const CustomTabBar = ({
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
-        return (
-          Math.abs(gestureState.dx) > 4 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
-        );
-      },
+      onMoveShouldSetPanResponderCapture: () => false, // Temporarily disabled drag-to-switch
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return (
-          Math.abs(gestureState.dx) > 6 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2
-        );
-      },
+      onMoveShouldSetPanResponder: () => false, // Temporarily disabled drag-to-switch
       onPanResponderTerminationRequest: () => false,
       // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
       onShouldBlockNativeResponder: () => false,
