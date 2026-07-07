@@ -961,7 +961,7 @@ const PostScreen = ({ route, navigation }) => {
                 </Text>
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""} ·
+                    {comment.created_at ? formatTime(comment.created_at) : ""}{comment.is_edited ? ` (${t('post.edited')})` : ""} ·
                   </Text>
                   <TouchableOpacity
                     onPress={() =>

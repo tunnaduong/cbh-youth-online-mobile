@@ -334,6 +334,7 @@
   },
   "post": {
     "details": "Post Details",
+    "edited": "Edited",
     "like": "Like",
     "comment": "Comment",
     "share": "Share",
