@@ -92,7 +92,18 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const tabScrollViewRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "SET_FEED_SCROLL_ENABLED",
+      (enabled) => {
+        setScrollEnabled(enabled);
+      }
+    );
+    return () => subscription.remove();
+  }, []);
 
   const handleTabScroll = (index) => {
     const tabWidth = 180;
@@ -296,6 +307,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.tabScrollContent}
+          scrollEnabled={scrollEnabled}
         >
           {categories.map((cat, index) => (
             <TouchableOpacity
@@ -340,6 +352,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         extraData={{ t, theme, isDarkMode }}
         horizontal
         pagingEnabled
+        scrollEnabled={scrollEnabled}
         showsHorizontalScrollIndicator={false}
         initialNumToRender={5}
         maxToRenderPerBatch={5}

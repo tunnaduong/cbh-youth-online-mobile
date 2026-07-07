@@ -871,6 +871,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const isScrollingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "SET_FEED_SCROLL_ENABLED",
+      (enabled) => {
+        setScrollEnabled(enabled);
+      }
+    );
+    return () => subscription.remove();
+  }, []);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -1302,6 +1313,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           contentContainerStyle={{ gap: 10, paddingRight: 15 }}
           horizontal
           showsHorizontalScrollIndicator={false}
+          scrollEnabled={scrollEnabled}
         >
           {/* Story like Facebook component */}
           <TouchableHighlight

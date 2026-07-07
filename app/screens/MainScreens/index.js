@@ -546,11 +546,12 @@ const CustomTabBar = ({
         );
       },
       onPanResponderTerminationRequest: () => false,
-      // true = block native gesture handlers (like horizontal ScrollView/ViewPager inside content)
-      // so dragging on the floating navbar doesn't trigger screen content swiping.
-      onShouldBlockNativeResponder: () => true,
+      // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
+      onShouldBlockNativeResponder: () => false,
       onPanResponderGrant: (evt, gestureState) => {
         isDragging.current = true;
+        // Temporarily disable feed/tab scrolling on both Android and iOS to prevent interference
+        DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", false);
         lastHapticIndex.current = activeLeftIndexRef.current;
         bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
         slideAnim.stopAnimation((currentVal) => {
@@ -600,6 +601,8 @@ const CustomTabBar = ({
       },
       onPanResponderRelease: (evt, gestureState) => {
         isDragging.current = false;
+        // Re-enable feed/tab scrolling
+        DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", true);
         const bWidth = bWidthAtGrant.current;
 
         const rawX = dragStartX.current + gestureState.dx;
@@ -647,6 +650,8 @@ const CustomTabBar = ({
       },
       onPanResponderTerminate: () => {
         isDragging.current = false;
+        // Re-enable feed/tab scrolling
+        DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", true);
         const bWidth = bWidthAtGrant.current || (tabBarWidthRef.current - 2) / 4;
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
         Animated.spring(slideAnim, {
