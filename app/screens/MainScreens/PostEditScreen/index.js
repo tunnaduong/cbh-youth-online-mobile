@@ -18,7 +18,6 @@ import { getCategoryName } from "../../../utils/forumUtils";
 import {
   updatePost,
   getSubforums,
-  getSubforumsForEdit,
   uploadFile,
   getPostDetail,
 } from "../../../services/api/Api";
@@ -74,28 +73,14 @@ const PostEditScreen = ({ navigation, route }) => {
       try {
         setLoading(true);
 
-        // Fetch post detail and subforums in parallel.
-        // Primary: role-aware /api/forum/subforums (matches the documented Create/Edit API)
         const [postRes, subforumsRes] = await Promise.all([
           getPostDetail(route.params.postId),
-          getSubforumsForEdit().catch(() => null),
+          getSubforums(),
         ]);
 
-        // ── Subforums: try primary endpoint first, fall back to v1.0 ──────────
-        let rawSubforums = [];
-        if (subforumsRes) {
-          // /api/forum/subforums returns the array directly OR wrapped in .data
-          const d = subforumsRes.data;
-          rawSubforums = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
-        }
-        // Fallback to old endpoint if primary returned nothing
-        if (rawSubforums.length === 0) {
-          try {
-            const fallbackRes = await getSubforums();
-            const d = fallbackRes.data;
-            rawSubforums = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
-          } catch (_) {}
-        }
+        // Handle both array-direct and data-wrapped responses
+        const d = subforumsRes.data;
+        const rawSubforums = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
 
         const translatedSubforums = rawSubforums.map(item => {
           const id = item.value ?? item.id;
@@ -112,12 +97,10 @@ const PostEditScreen = ({ navigation, route }) => {
         const post = postRes.data?.post ?? postRes.data;
         setInitialPost(post);
 
-        // Set initial values
         setTitle(post.title || "");
         setPostContent(post.description || post.content || "");
         setIsAnonymous(!!post.anonymous);
 
-        // Match the initial view option based on privacy
         const initialPrivacy = post.privacy || (post.visibility === 1 ? "private" : "public");
         const matchingOption = viewOptions.find(v => v.value === initialPrivacy) || viewOptions[0];
         setViewSelected(matchingOption);
@@ -140,7 +123,6 @@ const PostEditScreen = ({ navigation, route }) => {
         if (post.images && post.images.length > 0) {
           setSelectedImages(post.images.map(img => ({ id: img.id, uri: img.url })));
         } else if (post.cdn_image_id) {
-          // Fallback if images array is not present
           const imageUrls = post.cdn_image_id
             .split(",")
             .map((id) => ({ id: id, uri: `https://api.chuyenbienhoa.com/v1.0/cdn/${id}` }));

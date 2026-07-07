@@ -252,9 +252,9 @@ export const getSubforums = () => {
 
 // Role-aware subforum list — recommended for Create/Edit post screens
 // Returns [{label, value, category}] directly without wrapping
-export const getSubforumsForEdit = () => {
-  return Api.getRequest("/api/forum/subforums");
-};
+// export const getSubforumsForEdit = () => {
+//   return Api.getRequest("/api/forum/subforums");
+// };
 
 export const deletePost = (id) => {
   return Api.deleteRequest("/v1.0/topics/" + id);
