@@ -301,37 +301,36 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.tabContainer, { backgroundColor: theme.background }]}>
-        <ScrollView
-          ref={tabScrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScrollContent}
-          scrollEnabled={scrollEnabled}
-        >
-          {categories.map((cat, index) => (
-            <TouchableOpacity
-              key={`cat-${cat.id}`}
-              onPress={() => handleActiveCategory(cat.id, index)}
+      <ScrollView
+        ref={tabScrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabScrollContent}
+        scrollEnabled={scrollEnabled}
+        style={[styles.tabContainer, { backgroundColor: theme.background }]}
+      >
+        {categories.map((cat, index) => (
+          <TouchableOpacity
+            key={`cat-${cat.id}`}
+            onPress={() => handleActiveCategory(cat.id, index)}
+            style={[
+              styles.tab,
+              { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
+              activeCategory === cat.id && (isDarkMode ? { backgroundColor: "#2e4e2a" } : styles.tabActive),
+            ]}
+          >
+            <Text
               style={[
-                styles.tab,
-                { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
-                activeCategory === cat.id && (isDarkMode ? { backgroundColor: "#2e4e2a" } : styles.tabActive),
+                styles.tabText,
+                { color: theme.text },
+                activeCategory === cat.id && styles.tabTextActive,
               ]}
             >
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: theme.text },
-                  activeCategory === cat.id && styles.tabTextActive,
-                ]}
-              >
-                {getCategoryName(cat.name, t)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+              {getCategoryName(cat.name, t)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       <AnimatedLottieView
         source={require("../../../assets/refresh.json")}
@@ -372,48 +371,46 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         onMomentumScrollEnd={handlePageChange}
         keyExtractor={(item) => `category-${item.id}`}
         renderItem={({ item }) => (
-          <View style={{ width, backgroundColor: theme.background }}>
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{
-                backgroundColor: theme.background,
-                paddingHorizontal: 16,
-                paddingBottom: 110 + insets.bottom,
-                paddingTop: 5,
-              }}
-              showsVerticalScrollIndicator={false}
-              onScroll={(e) => {
-                const offsetY = e.nativeEvent.contentOffset.y;
-                if (item.id === activeCategory) {
-                  scrollPositionRef.current = Math.max(0, offsetY);
-                }
-                handleScroll(e);
-              }}
-              ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor="transparent"
-                  colors={["transparent"]}
-                  progressBackgroundColor="transparent"
-                  style={{ backgroundColor: "transparent" }}
-                  progressViewOffset={-1000}
-                />
+          <ScrollView
+            style={{ flex: 1, width, backgroundColor: theme.background }}
+            contentContainerStyle={{
+              backgroundColor: theme.background,
+              paddingHorizontal: 16,
+              paddingBottom: 110 + insets.bottom,
+              paddingTop: 5,
+            }}
+            showsVerticalScrollIndicator={false}
+            onScroll={(e) => {
+              const offsetY = e.nativeEvent.contentOffset.y;
+              if (item.id === activeCategory) {
+                scrollPositionRef.current = Math.max(0, offsetY);
               }
-            >
-              {item.subforums.map((section) => (
-                  <ForumSection
-                    key={section.id}
-                    section={section}
-                    navigation={navigation}
-                    theme={theme}
-                    isDarkMode={isDarkMode}
-                    t={t}
-                  />
-              ))}
-            </ScrollView>
-          </View>
+              handleScroll(e);
+            }}
+            ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="transparent"
+                colors={["transparent"]}
+                progressBackgroundColor="transparent"
+                style={{ backgroundColor: "transparent" }}
+                progressViewOffset={-1000}
+              />
+            }
+          >
+            {item.subforums.map((section) => (
+              <ForumSection
+                key={section.id}
+                section={section}
+                navigation={navigation}
+                theme={theme}
+                isDarkMode={isDarkMode}
+                t={t}
+              />
+            ))}
+          </ScrollView>
         )}
       />
     </View>
