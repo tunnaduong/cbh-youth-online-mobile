@@ -41,6 +41,7 @@ if (Platform.OS === 'ios') {
 let LiquidGlassProviderAndroid = null;
 let LiquidGlassViewAndroid = null;
 let isLiquidGlassSupportedAndroid = false;
+let AnimatedLiquidGlassViewAndroid = null;
 
 if (Platform.OS === 'android') {
   try {
@@ -48,17 +49,25 @@ if (Platform.OS === 'android') {
     LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
     LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
     isLiquidGlassSupportedAndroid = LiquidGlassKit.isLiquidGlassSupported;
+    if (LiquidGlassViewAndroid) {
+      AnimatedLiquidGlassViewAndroid = Animated.createAnimatedComponent(LiquidGlassViewAndroid);
+    }
   } catch (error) {
     console.warn("Failed to load liquid-glass-kit:", error);
   }
 }
 
 const ScreenWrapper = ({ children }) => {
+  const { theme } = useTheme();
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
-      <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
-        {children}
-      </LiquidGlassProviderAndroid>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
+          <View style={{ flex: 1, backgroundColor: theme.background }}>
+            {children}
+          </View>
+        </LiquidGlassProviderAndroid>
+      </View>
     );
   }
   return children;
@@ -118,14 +127,28 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
 
   if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
     const isRealGlass = isLiquidGlassSupportedAndroid;
+    const isAndroid33 = Platform.Version >= 33;
+    const glassProps = isAndroid33 ? {
+      blurRadius: 4,
+      refractionAmount: 20,
+      refractionHeight: 12,
+      chromaticAberration: 0.3,
+      highlightAlpha: 0.6,
+      tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
+    } : {
+      blurRadius: 20,
+      refractionAmount: 0,
+      refractionHeight: 0,
+      chromaticAberration: 0,
+      highlightAlpha: 0.3,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
+    };
+
     return (
       <LiquidGlassViewAndroid
         interactive={isRealGlass}
         onLayout={onLayout}
-        chromaticAberration={0.15}
-        blurRadius={20}
-        saturation={1.4}
-        tint={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+        {...glassProps}
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
@@ -729,11 +752,24 @@ const CustomTabBar = ({
 
   if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
     const isRealGlass = isLiquidGlassSupportedAndroid;
+    const isAndroid33 = Platform.Version >= 33;
+    const glassProps = isAndroid33 ? {
+      blurRadius: 4,
+      refractionAmount: 20,
+      refractionHeight: 12,
+      chromaticAberration: 0.3,
+      highlightAlpha: 0.6,
+      tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
+    } : {
+      blurRadius: 20,
+      refractionAmount: 0,
+      refractionHeight: 0,
+      chromaticAberration: 0,
+      highlightAlpha: 0.3,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
+    };
+
     const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
-    const indicatorBg = isRealGlass
-      ? (isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)")
-      : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)");
-    const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
 
     return (
       <Animated.View
@@ -754,10 +790,7 @@ const CustomTabBar = ({
           >
             <LiquidGlassViewAndroid
               interactive={isRealGlass}
-              chromaticAberration={0.15}
-              blurRadius={20}
-              saturation={1.4}
-              tint={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+              {...glassProps}
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 26,
@@ -775,18 +808,36 @@ const CustomTabBar = ({
               }}
             >
               {isRealGlass ? (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 50,
-                    borderRadius: 25,
-                    borderWidth: indicatorBorderWidth,
-                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                    backgroundColor: indicatorBg,
-                    opacity,
-                  }}
-                />
+                AnimatedLiquidGlassViewAndroid ? (
+                  <AnimatedLiquidGlassViewAndroid
+                    interactive={false}
+                    blurRadius={isAndroid33 ? 4 : 10}
+                    refractionAmount={isAndroid33 ? 12 : 0}
+                    tint={isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)"}
+                    style={{
+                      position: "absolute",
+                      width: indicatorAnimatedWidth,
+                      height: 50,
+                      borderRadius: 25,
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                      opacity,
+                    }}
+                  />
+                ) : (
+                  <Animated.View
+                    style={{
+                      position: "absolute",
+                      width: indicatorAnimatedWidth,
+                      height: 50,
+                      borderRadius: 25,
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                      backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
+                      opacity,
+                    }}
+                  />
+                )
               ) : (
                 <Animated.View
                   style={{
@@ -795,7 +846,7 @@ const CustomTabBar = ({
                     height: 50,
                     borderRadius: 25,
                     borderWidth: 0,
-                    backgroundColor: indicatorBg,
+                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
                     opacity,
                     shadowColor: isDarkMode ? "#fff" : "#000",
                     shadowOffset: { width: 0, height: 2 },
@@ -823,10 +874,7 @@ const CustomTabBar = ({
 
           <LiquidGlassViewAndroid
             interactive={isRealGlass}
-            chromaticAberration={0.15}
-            blurRadius={20}
-            saturation={1.4}
-            tint={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+            {...glassProps}
             style={[
               styles.iosRightPill,
               {
