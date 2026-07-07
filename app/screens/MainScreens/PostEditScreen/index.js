@@ -114,9 +114,31 @@ const PostEditScreen = ({ navigation, route }) => {
           null;
 
         if (subforumId !== null && subforumId !== undefined) {
-          const matched = translatedSubforums.find(
+          let matched = translatedSubforums.find(
             (s) => String(s.value) === String(subforumId)
           );
+
+          // The v1.0 subforum list is role-filtered, so the post's current subforum
+          // might not be in the list. If missing, synthesize an entry from post.subforum
+          // so the dropdown always shows the correct pre-selected category.
+          if (!matched && (post.subforum || post.category)) {
+            const sf = post.subforum || post.category;
+            const syntheticLabel = getCategoryName(
+              sf.name || sf.title || String(subforumId),
+              t
+            );
+            matched = {
+              value: subforumId,
+              label: syntheticLabel,
+              category: sf.category?.name || sf.parent?.name || '',
+            };
+            // Prepend so it's visible at the top of the dropdown
+            setSubforums(prev => {
+              const alreadyIn = prev.some(s => String(s.value) === String(subforumId));
+              return alreadyIn ? prev : [matched, ...prev];
+            });
+          }
+
           if (matched) setSelected(matched);
         }
 
