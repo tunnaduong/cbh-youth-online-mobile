@@ -38,6 +38,32 @@ if (Platform.OS === 'ios') {
   }
 }
 
+let LiquidGlassProviderAndroid = null;
+let LiquidGlassViewAndroid = null;
+let isLiquidGlassSupportedAndroid = false;
+
+if (Platform.OS === 'android') {
+  try {
+    const LiquidGlassKit = require('liquid-glass-kit');
+    LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
+    LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
+    isLiquidGlassSupportedAndroid = LiquidGlassKit.isLiquidGlassSupported;
+  } catch (error) {
+    console.warn("Failed to load liquid-glass-kit:", error);
+  }
+}
+
+const ScreenWrapper = ({ children }) => {
+  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+    return (
+      <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
+        {children}
+      </LiquidGlassProviderAndroid>
+    );
+  }
+  return children;
+};
+
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
@@ -89,6 +115,89 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   }, [currentIndicatorLeft]);
 
   const opacity = activeIndex === 2 ? 0 : 1;
+
+  if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
+    const isRealGlass = isLiquidGlassSupportedAndroid;
+    return (
+      <LiquidGlassViewAndroid
+        interactive={isRealGlass}
+        onLayout={onLayout}
+        chromaticAberration={0.15}
+        blurRadius={20}
+        saturation={1.4}
+        tint={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+        style={{
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: 26,
+          overflow: "hidden",
+          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
+          borderWidth: 1,
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+        }}
+      >
+        {/* Chromatic Aberration - Red channel shift (left offset) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: -0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
+          }}
+        />
+        {/* Chromatic Aberration - Blue channel shift (right offset) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0.8,
+            opacity: opacity * 0.35,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
+          }}
+        />
+        {/* Main Glass Indicator (neutral white/dark) */}
+        <Animated.View
+          style={{
+            position: "absolute",
+            width: currentIndicatorWidth,
+            height: 52,
+            borderRadius: 26,
+            top: 0,
+            left: 0,
+            opacity,
+            transform: [{ translateX: slideAnim }],
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+            shadowColor: isDarkMode ? "#fff" : "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isDarkMode ? 0.3 : 0.15,
+            shadowRadius: 6,
+            elevation: 3,
+            overflow: "hidden",
+          }}
+        >
+          <LinearGradient
+            colors={[
+              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+              "transparent"
+            ]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+      </LiquidGlassViewAndroid>
+    );
+  }
+
   const isIOS = Platform.OS === "ios";
 
   if (isIOS && LiquidGlassView && isLiquidGlassSupported) {
@@ -618,6 +727,127 @@ const CustomTabBar = ({
   }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
       triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
+  if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
+    const isRealGlass = isLiquidGlassSupportedAndroid;
+    const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
+    const indicatorBg = isRealGlass
+      ? (isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)")
+      : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)");
+    const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
+
+    return (
+      <Animated.View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          transform: [{ translateY: tabBarTranslateY }],
+          zIndex: 99,
+        }}
+      >
+        <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+          <View
+            {...panResponder.panHandlers}
+            onLayout={onLeftPillLayout}
+            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
+          >
+            <LiquidGlassViewAndroid
+              interactive={isRealGlass}
+              chromaticAberration={0.15}
+              blurRadius={20}
+              saturation={1.4}
+              tint={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 26,
+                backgroundColor: pillBg,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }}
+            />
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: [{ translateX: nativeSlideAnim }],
+              }}
+            >
+              {isRealGlass ? (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: indicatorBorderWidth,
+                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                    backgroundColor: indicatorBg,
+                    opacity,
+                  }}
+                />
+              ) : (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: 0,
+                    backgroundColor: indicatorBg,
+                    opacity,
+                    shadowColor: isDarkMode ? "#fff" : "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                    shadowRadius: 6,
+                    elevation: 3,
+                    overflow: "hidden",
+                  }}
+                >
+                  <LinearGradient
+                    colors={[
+                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                      "transparent"
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </Animated.View>
+              )}
+            </Animated.View>
+            {renderButtons()}
+          </View>
+
+          <LiquidGlassViewAndroid
+            interactive={isRealGlass}
+            chromaticAberration={0.15}
+            blurRadius={20}
+            saturation={1.4}
+            tint={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+            style={[
+              styles.iosRightPill,
+              {
+                backgroundColor: pillBg,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
+          >
+            <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+              <CustomTabBarButton
+                onPress={() => {}}
+                bottomOffset={bottomOffset}
+              />
+            </View>
+          </LiquidGlassViewAndroid>
+        </View>
+      </Animated.View>
+    );
+  }
+
   if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView && isLiquidGlassSupported) {
     const isRealGlass = isLiquidGlassSupported;
     const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
@@ -1123,12 +1353,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
             )}
           >
             {(props) => (
-              <HomeScreen
-                {...props}
-                scrollTriggerRef={(triggerFn) => {
-                  homeScreenScrollTriggerRef.current = triggerFn;
-                }}
-              />
+              <ScreenWrapper>
+                <HomeScreen
+                  {...props}
+                  scrollTriggerRef={(triggerFn) => {
+                    homeScreenScrollTriggerRef.current = triggerFn;
+                  }}
+                />
+              </ScreenWrapper>
             )}
           </Tab.Screen>
           <Tab.Screen
@@ -1144,12 +1376,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <MenuScreen
-                {...props}
-                scrollTriggerRef={(triggerFn) => {
-                  forumScrollTriggerRef.current = triggerFn;
-                }}
-              />
+              <ScreenWrapper>
+                <MenuScreen
+                  {...props}
+                  scrollTriggerRef={(triggerFn) => {
+                    forumScrollTriggerRef.current = triggerFn;
+                  }}
+                />
+              </ScreenWrapper>
             )}
           </Tab.Screen>
           <Tab.Screen
@@ -1191,12 +1425,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ChatScreen
-                {...props}
-                scrollTriggerRef={(triggerFn) => {
-                  chatScrollTriggerRef.current = triggerFn;
-                }}
-              />
+              <ScreenWrapper>
+                <ChatScreen
+                  {...props}
+                  scrollTriggerRef={(triggerFn) => {
+                    chatScrollTriggerRef.current = triggerFn;
+                  }}
+                />
+              </ScreenWrapper>
             )}
           </Tab.Screen>
           <Tab.Screen
@@ -1215,12 +1451,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <NotificationScreen
-                {...props}
-                scrollTriggerRef={(triggerFn) => {
-                  notificationScrollTriggerRef.current = triggerFn;
-                }}
-              />
+              <ScreenWrapper>
+                <NotificationScreen
+                  {...props}
+                  scrollTriggerRef={(triggerFn) => {
+                    notificationScrollTriggerRef.current = triggerFn;
+                  }}
+                />
+              </ScreenWrapper>
             )}
           </Tab.Screen>
         </Tab.Navigator>

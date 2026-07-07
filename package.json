@@ -49,6 +49,7 @@
     "expo-updates": "~29.0.18",
     "expo-web-browser": "55.0.11",
     "i18next": "^26.3.1",
+    "liquid-glass-kit": "^1.0.0",
     "lottie-react-native": "~7.3.1",
     "patch-package": "^8.0.0",
     "postcss": "^8.4.49",
