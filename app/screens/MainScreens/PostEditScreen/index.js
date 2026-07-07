@@ -77,10 +77,15 @@ const PostEditScreen = ({ navigation, route }) => {
           getPostDetail(route.params.postId),
         ]);
 
-        const translatedSubforums = subforumsRes.data.map(item => ({
-          ...item,
-          label: getCategoryName(item.label, t)
-        }));
+        const translatedSubforums = subforumsRes.data.map(item => {
+          const id = item.value || item.id;
+          const name = item.label || item.name || item.title;
+          return {
+            ...item,
+            value: id,
+            label: getCategoryName(name, t)
+          };
+        });
         setSubforums(translatedSubforums);
         const post = postRes.data.post || postRes.data;
         setInitialPost(post);
@@ -266,21 +271,23 @@ const PostEditScreen = ({ navigation, route }) => {
         newDocIds.push(uploadResponse.data.id);
       }
 
-      // Get existing CDN IDs from URLs
-      const existingCdnIds = selectedImages
-        .filter((img) => img.id && img.uri && img.uri.includes("api.chuyenbienhoa.com"))
+      // Get existing CDN IDs from kept IDs or fallback to parsing from URLs
+      const urlImageIds = selectedImages
+        .filter((img) => !img.id && img.uri && img.uri.includes("api.chuyenbienhoa.com"))
         .map((img) => img.uri.split("/").pop());
-      const allCdnIds = [...existingCdnIds, ...newCdnIds];
+      const allCdnIds = [...new Set([...keptImageIds, ...urlImageIds, ...newCdnIds])];
 
-      const existingDocIds = selectedDocuments
-        .filter((doc) => doc.id && doc.uri && doc.uri.includes("api.chuyenbienhoa.com"))
+      const urlDocIds = selectedDocuments
+        .filter((doc) => !doc.id && doc.uri && doc.uri.includes("api.chuyenbienhoa.com"))
         .map((doc) => doc.uri.split("/").pop());
-      const allDocIds = [...existingDocIds, ...newDocIds];
+      const allDocIds = [...new Set([...keptDocumentIds, ...urlDocIds, ...newDocIds])];
 
       const response = await updatePost(route.params.postId, {
         title,
         description: postContent,
+        kept_image_ids: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
+        kept_document_ids: allDocIds.length > 0 ? allDocIds.join(",") : null,
         cdn_document_id: allDocIds.length > 0 ? allDocIds.join(",") : null,
         subforum_id: selected?.value ?? null,
         visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed

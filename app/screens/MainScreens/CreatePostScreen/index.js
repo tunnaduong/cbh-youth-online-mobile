@@ -94,10 +94,15 @@ const CreatePostScreen = ({ navigation }) => {
 
   useEffect(() => {
     getSubforums().then((res) => {
-      const translated = res.data.map((item) => ({
-        ...item,
-        label: getCategoryName(item.label, t),
-      }));
+      const translated = res.data.map((item) => {
+        const id = item.value || item.id;
+        const name = item.label || item.name || item.title;
+        return {
+          ...item,
+          value: id,
+          label: getCategoryName(name, t)
+        };
+      });
       setSubforums(translated);
     });
   }, [t]);
