@@ -316,7 +316,15 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
 
       <Pressable style={styles.buttonContainer} onPress={handlePress}>
         <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
-          <View style={styles.iconCircle}>
+          <View style={[
+            styles.iconCircle,
+            {
+              borderWidth: 1.5,
+              borderColor: isDarkMode
+                ? `${theme.primary}55`
+                : `${theme.primary}44`,
+            }
+          ]}>
             <MaterialCommunityIcons
               name="plus"
               size={38}
