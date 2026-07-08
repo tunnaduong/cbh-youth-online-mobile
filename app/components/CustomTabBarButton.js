@@ -242,7 +242,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
                 styles.glassRow,
                 {
                   marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                  backgroundColor: "transparent",
+                  backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)",
                   borderWidth: 1,
                   borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)",
                 }
