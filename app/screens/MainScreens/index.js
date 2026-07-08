@@ -79,12 +79,25 @@ const DummyComponent = () => null;
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
   const [glassProviderId, setGlassProviderId] = useState(currentRoute);
+  const glassOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Fade out glass to hide remnants of the old tab
+    Animated.timing(glassOpacity, {
+      toValue: 0.0,
+      duration: 100,
+      useNativeDriver: true,
+    }).start(() => {
       setGlassProviderId(currentRoute);
-    }, 80);
-    return () => clearTimeout(timer);
+      // Fade back in once target route has mounted and rendered
+      setTimeout(() => {
+        Animated.timing(glassOpacity, {
+          toValue: 1.0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }, 100);
+    });
   }, [currentRoute]);
 
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -126,9 +139,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     Animated.spring(slideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: true,
-      stiffness: 400,
-      damping: 35,
-      mass: 0.5,
+      stiffness: 650,
+      damping: 30,
+      mass: 0.3,
     }).start();
   }, [currentIndicatorLeft]);
 
@@ -153,21 +166,31 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       tint: isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(255, 255, 255, 0.18)",
     };
 
+    const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
+
     return (
-      <LiquidGlassViewAndroid
-        providerId={glassProviderId}
-        interactive={isRealGlass}
+      <View
         onLayout={onLayout}
-        {...glassProps}
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
           overflow: "hidden",
-          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
+          backgroundColor: pillBg,
           borderWidth: 1,
           borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
         }}
       >
+        <AnimatedLiquidGlassViewAndroid
+          providerId={glassProviderId}
+          interactive={isRealGlass}
+          {...glassProps}
+          style={{
+            ...StyleSheet.absoluteFillObject,
+            borderRadius: 26,
+            backgroundColor: "transparent",
+            opacity: glassOpacity,
+          }}
+        />
         {/* Chromatic Aberration - Red channel shift (left offset) */}
         <Animated.View
           style={{
@@ -227,7 +250,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             style={StyleSheet.absoluteFillObject}
           />
         </Animated.View>
-      </LiquidGlassViewAndroid>
+      </View>
     );
   }
 
@@ -408,12 +431,25 @@ const CustomTabBar = ({
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
   const activeRouteName = state.routes[state.index].name;
   const [glassProviderId, setGlassProviderId] = useState(activeRouteName);
+  const glassOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Fade out glass to hide remnants of the old tab
+    Animated.timing(glassOpacity, {
+      toValue: 0.0,
+      duration: 100,
+      useNativeDriver: true,
+    }).start(() => {
       setGlassProviderId(activeRouteName);
-    }, 80);
-    return () => clearTimeout(timer);
+      // Fade back in once target route has mounted and rendered
+      setTimeout(() => {
+        Animated.timing(glassOpacity, {
+          toValue: 1.0,
+          duration: 200,
+          useNativeDriver: true,
+        }).start();
+      }, 100);
+    });
   }, [activeRouteName]);
 
   // nativeSlideAnim: NATIVE DRIVER — chạy trên UI thread, không bị block bởi JS/React mount.
@@ -490,18 +526,18 @@ const CustomTabBar = ({
     Animated.spring(nativeSlideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: true,
-      stiffness: 500,
-      damping: 28,
-      mass: 0.4,
+      stiffness: 650,
+      damping: 30,
+      mass: 0.3,
     }).start();
 
     // Sync JS value để PanResponder có đúng starting position khi drag
     Animated.spring(jsSlideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: false,
-      stiffness: 500,
-      damping: 28,
-      mass: 0.4,
+      stiffness: 650,
+      damping: 30,
+      mass: 0.3,
     }).start();
 
     // === LIQUID MORPH STRETCH/SNAP TRANSITION ===
@@ -631,19 +667,9 @@ const CustomTabBar = ({
   // PanResponder for drag-to-switch
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
-        return (
-          Math.abs(gestureState.dx) > 4 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 1.5
-        );
-      },
+      onMoveShouldSetPanResponderCapture: () => false,
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        return (
-          Math.abs(gestureState.dx) > 6 &&
-          Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2
-        );
-      },
+      onMoveShouldSetPanResponder: () => false,
       onPanResponderTerminationRequest: () => false,
       // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
       onShouldBlockNativeResponder: () => false,
@@ -941,18 +967,19 @@ const CustomTabBar = ({
           <View
             {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
-            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
+            style={[styles.iosLeftPill, { backgroundColor: pillBg, overflow: 'hidden' }]}
           >
-            <LiquidGlassViewAndroid
+            <AnimatedLiquidGlassViewAndroid
               providerId={glassProviderId}
               interactive={isRealGlass}
               {...glassProps}
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 26,
-                backgroundColor: pillBg,
+                backgroundColor: 'transparent',
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                opacity: glassOpacity,
               }}
             />
             {isRealGlass ? (
@@ -1015,19 +1042,28 @@ const CustomTabBar = ({
             {renderButtons()}
           </View>
 
-          <LiquidGlassViewAndroid
-            providerId={glassProviderId}
-            interactive={isRealGlass}
-            {...glassProps}
+          <View
             style={[
               styles.iosRightPill,
               {
                 backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                overflow: 'hidden',
               }
             ]}
           >
+            <AnimatedLiquidGlassViewAndroid
+              providerId={glassProviderId}
+              interactive={isRealGlass}
+              {...glassProps}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 26,
+                backgroundColor: 'transparent',
+                opacity: glassOpacity,
+              }}
+            />
             <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
               <CustomTabBarButton
                 onPress={() => {}}
@@ -1035,7 +1071,7 @@ const CustomTabBar = ({
                 currentRoute={glassProviderId}
               />
             </View>
-          </LiquidGlassViewAndroid>
+          </View>
         </View>
       </Animated.View>
     );
