@@ -319,10 +319,10 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           <View style={[
             styles.iconCircle,
             {
-              borderWidth: 1.5,
+              borderWidth: 1.0,
               borderColor: isDarkMode
-                ? `${theme.primary}55`
-                : `${theme.primary}44`,
+                ? `${theme.primary}25`
+                : `${theme.primary}18`,
             }
           ]}>
             <MaterialCommunityIcons
