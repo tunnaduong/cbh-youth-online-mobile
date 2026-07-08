@@ -78,6 +78,15 @@ const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
+  const [glassProviderId, setGlassProviderId] = useState(currentRoute);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setGlassProviderId(currentRoute);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [currentRoute]);
+
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -129,24 +138,24 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     const isRealGlass = isLiquidGlassSupportedAndroid;
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
-      blurRadius: 18,
-      refractionAmount: 12,
-      refractionHeight: 8,
-      chromaticAberration: 0.1,
-      highlightAlpha: 0.5,
-      tint: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.12)",
+      blurRadius: 4,
+      refractionAmount: 26,
+      refractionHeight: 14,
+      chromaticAberration: 0.35,
+      highlightAlpha: 0.7,
+      tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
     } : {
-      blurRadius: 28,
+      blurRadius: 20,
       refractionAmount: 0,
       refractionHeight: 0,
       chromaticAberration: 0,
       highlightAlpha: 0.35,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.25)" : "rgba(255, 255, 255, 0.15)",
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(255, 255, 255, 0.18)",
     };
 
     return (
       <LiquidGlassViewAndroid
-        providerId={currentRoute}
+        providerId={glassProviderId}
         interactive={isRealGlass}
         onLayout={onLayout}
         {...glassProps}
@@ -397,6 +406,15 @@ const CustomTabBar = ({
     : (insets.bottom > 0 ? insets.bottom + 8 : 16);
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
+  const activeRouteName = state.routes[state.index].name;
+  const [glassProviderId, setGlassProviderId] = useState(activeRouteName);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setGlassProviderId(activeRouteName);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [activeRouteName]);
 
   // nativeSlideAnim: NATIVE DRIVER — chạy trên UI thread, không bị block bởi JS/React mount.
   // Chỉ dùng cho Animated.timing/spring khi tap tab.
@@ -469,18 +487,22 @@ const CustomTabBar = ({
   // để drag gesture sau đó có đúng vị trí xuất phát.
   useEffect(() => {
     if (isDragging.current) return;
-    // Native-driver animation cho visual indicator — mượt 60fps ngay cả khi JS bận
-    Animated.timing(nativeSlideAnim, {
+    // Native-driver spring animation cho visual indicator — mượt 60fps ngay cả khi JS bận
+    Animated.spring(nativeSlideAnim, {
       toValue: currentIndicatorLeft,
-      duration: 280,
       useNativeDriver: true,
+      stiffness: 320,
+      damping: 28,
+      mass: 0.6,
     }).start();
 
     // Sync JS value để PanResponder có đúng starting position khi drag
-    Animated.timing(jsSlideAnim, {
+    Animated.spring(jsSlideAnim, {
       toValue: currentIndicatorLeft,
-      duration: 280,
       useNativeDriver: false,
+      stiffness: 320,
+      damping: 28,
+      mass: 0.6,
     }).start();
 
     // === LIQUID MORPH STRETCH/SNAP TRANSITION ===
@@ -489,39 +511,21 @@ const CustomTabBar = ({
     prevLeftIndex.current = currIdx;
 
     if (currIdx !== prevIdx && prevIdx >= 0 && currIdx >= 0) {
-      const distance = Math.abs(currIdx - prevIdx);
-      const direction = currIdx > prevIdx ? 1 : -1;
-
-      // Stretch width
-      Animated.timing(stretchAnim, {
-        toValue: 0.48 * Math.min(distance, 1.8),
-        duration: 130,
+      // Giữ phẳng indicator trong quá trình tap chuyển tab (không bị stretch)
+      Animated.spring(stretchAnim, {
+        toValue: 0,
         useNativeDriver: true,
-      }).start(() => {
-        Animated.spring(stretchAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          stiffness: 320,
-          damping: 24,
-          mass: 0.5,
-        }).start();
-      });
-
-      // Shift offset to anchor the trailing side
-      const peakOffset = -direction * (buttonWidth * 0.22 * Math.min(distance, 1.8));
-      Animated.timing(offsetAnim, {
-        toValue: peakOffset,
-        duration: 130,
+        stiffness: 400,
+        damping: 35,
+        mass: 0.5,
+      }).start();
+      Animated.spring(offsetAnim, {
+        toValue: 0,
         useNativeDriver: true,
-      }).start(() => {
-        Animated.spring(offsetAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          stiffness: 320,
-          damping: 24,
-          mass: 0.5,
-        }).start();
-      });
+        stiffness: 400,
+        damping: 35,
+        mass: 0.5,
+      }).start();
 
       // Zoom up indicator scale (embolden to embrace the zoomed icon during slide)
       Animated.sequence([
@@ -906,19 +910,19 @@ const CustomTabBar = ({
     const isRealGlass = isLiquidGlassSupportedAndroid;
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
-      blurRadius: 18,
-      refractionAmount: 12,
-      refractionHeight: 8,
-      chromaticAberration: 0.1,
-      highlightAlpha: 0.5,
-      tint: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.12)",
+      blurRadius: 4,
+      refractionAmount: 26,
+      refractionHeight: 14,
+      chromaticAberration: 0.35,
+      highlightAlpha: 0.7,
+      tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
     } : {
-      blurRadius: 28,
+      blurRadius: 20,
       refractionAmount: 0,
       refractionHeight: 0,
       chromaticAberration: 0,
       highlightAlpha: 0.35,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.25)" : "rgba(255, 255, 255, 0.15)",
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(255, 255, 255, 0.18)",
     };
 
     const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
@@ -941,7 +945,7 @@ const CustomTabBar = ({
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassViewAndroid
-              providerId={state.routes[state.index].name}
+              providerId={glassProviderId}
               interactive={isRealGlass}
               {...glassProps}
               style={{
@@ -1013,7 +1017,7 @@ const CustomTabBar = ({
           </View>
 
           <LiquidGlassViewAndroid
-            providerId={state.routes[state.index].name}
+            providerId={glassProviderId}
             interactive={isRealGlass}
             {...glassProps}
             style={[
@@ -1029,7 +1033,7 @@ const CustomTabBar = ({
               <CustomTabBarButton
                 onPress={() => {}}
                 bottomOffset={bottomOffset}
-                currentRoute={state.routes[state.index].name}
+                currentRoute={glassProviderId}
               />
             </View>
           </LiquidGlassViewAndroid>

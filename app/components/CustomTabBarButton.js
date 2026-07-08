@@ -215,19 +215,19 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
     if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
       const isAndroid33 = Platform.Version >= 33;
       const glassProps = isAndroid33 ? {
-        blurRadius: 18,
-        refractionAmount: 12,
-        refractionHeight: 8,
-        chromaticAberration: 0.1,
-        highlightAlpha: 0.5,
-        tint: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.12)",
+        blurRadius: 4,
+        refractionAmount: 26,
+        refractionHeight: 14,
+        chromaticAberration: 0.35,
+        highlightAlpha: 0.7,
+        tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
       } : {
-        blurRadius: 28,
+        blurRadius: 20,
         refractionAmount: 0,
         refractionHeight: 0,
         chromaticAberration: 0,
         highlightAlpha: 0.35,
-        tint: isDarkMode ? "rgba(30, 30, 30, 0.25)" : "rgba(255, 255, 255, 0.15)",
+        tint: isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(255, 255, 255, 0.18)",
       };
 
       return (
@@ -348,11 +348,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
-    // Compensate for Ionicons font alignment offset on both platforms
-    transform: [
-      { translateY: Platform.OS === 'ios' ? -1.5 : -0.5 },
-      { translateX: Platform.OS === 'ios' ? 1.5 : 0.5 }
-    ]
   },
   iconContainer: {
     width: 56,
