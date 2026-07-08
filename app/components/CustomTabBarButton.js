@@ -37,6 +37,21 @@ if (Platform.OS === 'ios') {
   }
 }
 
+let LiquidGlassProviderAndroid = null;
+let LiquidGlassViewAndroid = null;
+let isLiquidGlassSupportedAndroid = false;
+
+if (Platform.OS === 'android') {
+  try {
+    const LiquidGlassKit = require('liquid-glass-kit');
+    LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
+    LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
+    isLiquidGlassSupportedAndroid = LiquidGlassKit.isLiquidGlassSupported;
+  } catch (error) {
+    console.warn("Failed to load liquid-glass-kit:", error);
+  }
+}
+
 // Height of each sub-button row
 const BTN_HEIGHT = 50;
 // Gap between rows
@@ -44,7 +59,7 @@ const BTN_GAP = Platform.OS === 'ios' ? 16 : 8;
 // Total height of 3-button column
 const COL_HEIGHT = BTN_HEIGHT * 3 + BTN_GAP * 2;
 
-const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
+const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
   const rotation = useRef(new Animated.Value(0)).current;
   // Single value drives the whole column: 0 = hidden (below anchor), 1 = visible
   const menuAnim = useRef(new Animated.Value(0)).current;
@@ -70,11 +85,12 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
         damping: 24,
         mass: 0.8,
       }),
-      Animated.timing(rotation, {
+      Animated.spring(rotation, {
         toValue: 1,
-        duration: 220,
-        easing: Easing.out(Easing.back(1.4)),
         useNativeDriver: true,
+        stiffness: 280,
+        damping: 24,
+        mass: 0.8,
       }),
     ]).start();
   };
@@ -88,11 +104,12 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
         damping: 28,
         mass: 0.7,
       }),
-      Animated.timing(rotation, {
+      Animated.spring(rotation, {
         toValue: 0,
-        duration: 180,
-        easing: Easing.in(Easing.ease),
         useNativeDriver: true,
+        stiffness: 320,
+        damping: 28,
+        mass: 0.7,
       }),
     ]).start(() => setShowButtons(false));
   };
@@ -195,8 +212,50 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
       );
     }
 
+    if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
+      const isAndroid33 = Platform.Version >= 33;
+      const glassProps = isAndroid33 ? {
+        blurRadius: 18,
+        refractionAmount: 12,
+        refractionHeight: 8,
+        chromaticAberration: 0.1,
+        highlightAlpha: 0.5,
+        tint: isDarkMode ? "rgba(255, 255, 255, 0.03)" : "rgba(255, 255, 255, 0.12)",
+      } : {
+        blurRadius: 28,
+        refractionAmount: 0,
+        refractionHeight: 0,
+        chromaticAberration: 0,
+        highlightAlpha: 0.35,
+        tint: isDarkMode ? "rgba(30, 30, 30, 0.25)" : "rgba(255, 255, 255, 0.15)",
+      };
 
-    // Android / no glass
+      return (
+        <View style={styles.glassContainer}>
+          {menuButtons.map((btn, i) => (
+            <LiquidGlassViewAndroid
+              key={i}
+              providerId={currentRoute}
+              interactive={true}
+              {...glassProps}
+              style={[
+                styles.glassRow,
+                {
+                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
+                  backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                }
+              ]}
+            >
+              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
+            </LiquidGlassViewAndroid>
+          ))}
+        </View>
+      );
+    }
+
+    // Android / no glass fallback
     return (
       <View style={styles.columnContainer}>
         {menuButtons.map((btn, i) => (
