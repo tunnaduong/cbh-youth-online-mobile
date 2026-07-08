@@ -532,13 +532,14 @@ const CustomTabBar = ({
         }).start();
       });
 
-      // Zoom in/out indicator scale (organic shrink and bounce back)
+      // Zoom up indicator scale (embolden to embrace the zoomed icon during slide)
       Animated.sequence([
         Animated.spring(indicatorScale, {
-          toValue: 0.82,
+          toValue: 1.20,
           useNativeDriver: false,
-          stiffness: 400,
-          damping: 18,
+          stiffness: 600,
+          damping: 15,
+          mass: 0.4,
         }),
         Animated.spring(indicatorScale, {
           toValue: 1.0,
