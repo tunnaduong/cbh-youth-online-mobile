@@ -48,6 +48,23 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.fatties.youth",
+              "host": "post"
+            },
+            {
+              "scheme": "com.fatties.youth",
+              "host": "story"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
