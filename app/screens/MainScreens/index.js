@@ -57,12 +57,12 @@ if (Platform.OS === 'android') {
   }
 }
 
-const ScreenWrapper = ({ children, routeName }) => {
+const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid providerId={routeName} style={StyleSheet.absoluteFill}>
+        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
           <View style={{ flex: 1, backgroundColor: theme.background }}>
             {children}
           </View>
@@ -78,12 +78,6 @@ const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
-  const [glassProviderId, setGlassProviderId] = useState(currentRoute);
-
-  useEffect(() => {
-    setGlassProviderId(currentRoute);
-  }, [currentRoute]);
-
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -123,9 +117,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     Animated.spring(slideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: true,
-      stiffness: 650,
-      damping: 30,
-      mass: 0.3,
+      stiffness: 400,
+      damping: 35,
+      mass: 0.5,
     }).start();
   }, [currentIndicatorLeft]);
 
@@ -136,44 +130,34 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
       blurRadius: 4,
-      refractionAmount: 26,
-      refractionHeight: 14,
-      chromaticAberration: 0.35,
-      highlightAlpha: 0.7,
+      refractionAmount: 20,
+      refractionHeight: 12,
+      chromaticAberration: 0.3,
+      highlightAlpha: 0.6,
       tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
     } : {
       blurRadius: 20,
       refractionAmount: 0,
       refractionHeight: 0,
       chromaticAberration: 0,
-      highlightAlpha: 0.35,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(255, 255, 255, 0.18)",
+      highlightAlpha: 0.3,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
     };
 
-    const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
-
     return (
-      <View
+      <LiquidGlassViewAndroid
+        interactive={isRealGlass}
         onLayout={onLayout}
+        {...glassProps}
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
-          overflow: "visible",
-          backgroundColor: pillBg,
+          overflow: "hidden",
+          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
           borderWidth: 1,
           borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
         }}
       >
-        <LiquidGlassViewAndroid
-          providerId={glassProviderId}
-          interactive={isRealGlass}
-          {...glassProps}
-          style={{
-            ...StyleSheet.absoluteFillObject,
-            borderRadius: 26,
-            backgroundColor: "transparent",
-          }}
-        />
         {/* Chromatic Aberration - Red channel shift (left offset) */}
         <Animated.View
           style={{
@@ -233,7 +217,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             style={StyleSheet.absoluteFillObject}
           />
         </Animated.View>
-      </View>
+      </LiquidGlassViewAndroid>
     );
   }
 
@@ -412,12 +396,6 @@ const CustomTabBar = ({
     : (insets.bottom > 0 ? insets.bottom + 8 : 16);
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
-  const activeRouteName = state.routes[state.index].name;
-  const [glassProviderId, setGlassProviderId] = useState(activeRouteName);
-
-  useEffect(() => {
-    setGlassProviderId(activeRouteName);
-  }, [activeRouteName]);
 
   // nativeSlideAnim: NATIVE DRIVER — chạy trên UI thread, không bị block bởi JS/React mount.
   // Chỉ dùng cho Animated.timing/spring khi tap tab.
@@ -433,14 +411,14 @@ const CustomTabBar = ({
   const stretchAnim = useRef(new Animated.Value(0)).current;
   const offsetAnim = useRef(new Animated.Value(0)).current;
 
-
-
-  // Per-tab scale animations for the zoom bounce effect (native driver).
-  // One Animated.Value per left-route tab (4 tabs: Home, Forum, Chat, Notifications).
-  const tabScaleAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(1))).current;
-
-  // indicatorScale: JS driver to avoid mixing native/JS drivers on the same animated node
-  const indicatorScale = useRef(new Animated.Value(1)).current;
+  // Stable base value for indicator width — JS driver (drives `width` style)
+  const indicatorWidthBase = useRef(new Animated.Value(0)).current;
+  // indicatorAnimatedWidth: JS-driver composed value for width+stretch
+  const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
+  // indicatorDragOffset: JS-driver composed value for stretch direction offset
+  const indicatorDragOffset = useRef(offsetAnim).current;
+  // indicatorAnimatedTranslateX: uses jsSlideAnim (JS driver, for drag compatibility).
+  const indicatorAnimatedTranslateX = useRef(jsSlideAnim).current;
 
   // isDraggingAnim: switch display giữa native vs JS driver layer
   const isDragging = useRef(false);
@@ -461,6 +439,7 @@ const CustomTabBar = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [state.routes, descriptors]);
 
+  const activeRouteName = state.routes[state.index].name;
   const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
   const activeLeftIndexRef = useRef(activeLeftIndex);
 
@@ -478,10 +457,10 @@ const CustomTabBar = ({
     activeLeftIndexRef.current = activeLeftIndex;
   }, [activeLeftIndex]);
 
-
-
-  // Keep track of the previously selected left index to calculate distance and direction
-  const prevLeftIndex = useRef(activeLeftIndex);
+  // Keep the stable width base value in sync with layout-derived buttonWidth
+  useEffect(() => {
+    indicatorWidthBase.setValue(currentIndicatorWidth);
+  }, [currentIndicatorWidth]);
 
   // Animate indicator to committed tab position (when not dragging).
   // nativeSlideAnim dùng useNativeDriver:true → chạy trên UI thread, không bị block bởi
@@ -489,115 +468,30 @@ const CustomTabBar = ({
   // để drag gesture sau đó có đúng vị trí xuất phát.
   useEffect(() => {
     if (isDragging.current) return;
-    // Native-driver spring animation cho visual indicator — mượt 60fps ngay cả khi JS bận
-    Animated.spring(nativeSlideAnim, {
+    // Native-driver animation cho visual indicator — mượt 60fps ngay cả khi JS bận
+    Animated.timing(nativeSlideAnim, {
       toValue: currentIndicatorLeft,
+      duration: 280,
       useNativeDriver: true,
-      stiffness: 650,
-      damping: 30,
-      mass: 0.3,
     }).start();
-
     // Sync JS value để PanResponder có đúng starting position khi drag
-    Animated.spring(jsSlideAnim, {
-      toValue: currentIndicatorLeft,
+    jsSlideAnim.setValue(currentIndicatorLeft);
+    // Reset drag stretch & offset on tab commit
+    Animated.spring(stretchAnim, {
+      toValue: 0,
       useNativeDriver: false,
-      stiffness: 650,
-      damping: 30,
-      mass: 0.3,
+      stiffness: 400,
+      damping: 35,
+      mass: 0.5,
     }).start();
-
-    // === LIQUID MORPH STRETCH/SNAP TRANSITION ===
-    const prevIdx = prevLeftIndex.current;
-    const currIdx = activeLeftIndex;
-    prevLeftIndex.current = currIdx;
-
-    if (currIdx !== prevIdx && prevIdx >= 0 && currIdx >= 0) {
-      // Giữ phẳng indicator trong quá trình tap chuyển tab (không bị stretch)
-      Animated.spring(stretchAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        stiffness: 400,
-        damping: 35,
-        mass: 0.5,
-      }).start();
-      Animated.spring(offsetAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        stiffness: 400,
-        damping: 35,
-        mass: 0.5,
-      }).start();
-
-      // Zoom up indicator scale (embolden to embrace the zoomed icon during slide)
-      Animated.sequence([
-        Animated.spring(indicatorScale, {
-          toValue: 1.25,
-          useNativeDriver: true,
-          stiffness: 900,
-          damping: 22,
-          mass: 0.3,
-        }),
-        Animated.spring(indicatorScale, {
-          toValue: 1.0,
-          useNativeDriver: true,
-          stiffness: 450,
-          damping: 26,
-          mass: 0.4,
-        }),
-      ]).start();
-    } else {
-      // Direct spring back if index is invalid or first mount
-      Animated.spring(stretchAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        stiffness: 400,
-        damping: 35,
-        mass: 0.5,
-      }).start();
-      Animated.spring(offsetAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        stiffness: 400,
-        damping: 35,
-        mass: 0.5,
-      }).start();
-      Animated.spring(indicatorScale, {
-        toValue: 1.0,
-        useNativeDriver: true,
-        stiffness: 400,
-        damping: 35,
-        mass: 0.5,
-      }).start();
-    }
-
-    // === ZOOM/BOUNCE ACTIVE ICON ===
-    if (activeLeftIndex >= 0) {
-      // Instantly reset other tabs to scale 1
-      tabScaleAnims.forEach((anim, idx) => {
-        if (idx !== activeLeftIndex) {
-          anim.setValue(1);
-        }
-      });
-      // Bounce active tab icon (stiffness/damping tuned for premium bouncy feel)
-      Animated.sequence([
-        Animated.spring(tabScaleAnims[activeLeftIndex], {
-          toValue: 1.25,
-          useNativeDriver: true,
-          stiffness: 900,
-          damping: 22,
-          mass: 0.3,
-        }),
-        Animated.spring(tabScaleAnims[activeLeftIndex], {
-          toValue: 1.0,
-          useNativeDriver: true,
-          stiffness: 450,
-          damping: 26,
-          mass: 0.4,
-        }),
-      ]).start();
-    }
-  }, [currentIndicatorLeft, activeLeftIndex]);
+    Animated.spring(offsetAnim, {
+      toValue: 0,
+      useNativeDriver: false,
+      stiffness: 400,
+      damping: 35,
+      mass: 0.5,
+    }).start();
+  }, [currentIndicatorLeft]);
 
   const onLeftPillLayout = (event) => {
     const { width } = event.nativeEvent.layout;
@@ -634,9 +528,10 @@ const CustomTabBar = ({
   // PanResponder for drag-to-switch
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponderCapture: () => false,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponderCapture: () => false, // Temporarily disabled drag-to-switch
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: () => false, // Temporarily disabled drag-to-switch
       onPanResponderTerminationRequest: () => false,
       // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
       onShouldBlockNativeResponder: () => false,
@@ -652,16 +547,7 @@ const CustomTabBar = ({
         nativeSlideAnim.stopAnimation();
         stretchAnim.stopAnimation();
         offsetAnim.stopAnimation();
-        indicatorScale.stopAnimation();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-        // Scale down slightly while dragging
-        Animated.spring(indicatorScale, {
-          toValue: 0.9,
-          useNativeDriver: true,
-          stiffness: 300,
-          damping: 20,
-        }).start();
       },
       onPanResponderMove: (evt, gestureState) => {
         const bWidth = bWidthAtGrant.current;
@@ -687,18 +573,10 @@ const CustomTabBar = ({
         }).start();
 
         const extraStretch = 0;
-        Animated.timing(stretchAnim, {
-          toValue: extraStretch,
-          duration: 0,
-          useNativeDriver: true,
-        }).start();
+        stretchAnim.setValue(extraStretch);
 
         const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
-        Animated.timing(offsetAnim, {
-          toValue: directionOffset,
-          duration: 0,
-          useNativeDriver: true,
-        }).start();
+        offsetAnim.setValue(directionOffset);
 
         const indicatorCenter = clampedX + bWidth / 2;
         const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
@@ -738,25 +616,17 @@ const CustomTabBar = ({
 
         Animated.spring(stretchAnim, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           stiffness: 400,
           damping: 34,
           mass: 0.5,
         }).start();
         Animated.spring(offsetAnim, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           stiffness: 400,
           damping: 34,
           mass: 0.5,
-        }).start();
-        // Zoom back to normal size
-        Animated.spring(indicatorScale, {
-          toValue: 1.0,
-          useNativeDriver: true,
-          stiffness: 280,
-          damping: 20,
-          mass: 0.6,
         }).start();
 
         if (snappedIndex !== activeLeftIndexRef.current) {
@@ -785,22 +655,15 @@ const CustomTabBar = ({
         }).start();
         Animated.spring(stretchAnim, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           stiffness: 260,
           damping: 22,
         }).start();
         Animated.spring(offsetAnim, {
           toValue: 0,
-          useNativeDriver: true,
+          useNativeDriver: false,
           stiffness: 260,
           damping: 22,
-        }).start();
-        // Zoom back to normal size
-        Animated.spring(indicatorScale, {
-          toValue: 1.0,
-          useNativeDriver: true,
-          stiffness: 200,
-          damping: 20,
         }).start();
       },
     })
@@ -850,8 +713,6 @@ const CustomTabBar = ({
         ? theme.primary
         : (isDarkMode ? "#A0A0A0" : "gray");
 
-      const iconScale = tabScaleAnims[leftIdx];
-
       return (
         <TouchableOpacity
           key={route.key}
@@ -861,21 +722,11 @@ const CustomTabBar = ({
         >
           <View style={styles.iosTabButtonInner}>
             <View style={{ position: "relative" }}>
-              <Animated.View
-                style={{
-                  transform: [{ scale: iconScale }],
-                }}
-              >
-                <Ionicons
-                  name={iconName}
-                  size={24}
-                  color={tintColor}
-                />
-              </Animated.View>
+              <Ionicons name={iconName} size={24} color={tintColor} />
               {badgeCount !== null && <TabBarBadge count={badgeCount} />}
             </View>
             {!hideTabLabels && (
-              <Animated.Text
+              <Text
                 numberOfLines={1}
                 ellipsizeMode="tail"
                 style={[
@@ -883,38 +734,36 @@ const CustomTabBar = ({
                   {
                     color: tintColor,
                     fontWeight: isFocused ? "bold" : "normal",
-                    transform: [{ scale: iconScale }],
                   },
                 ]}
               >
                 {options.title || route.name}
-              </Animated.Text>
+              </Text>
             )}
           </View>
         </TouchableOpacity>
       );
     });
   }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
-      triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload,
-      tabScaleAnims]);
+      triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
   if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
     const isRealGlass = isLiquidGlassSupportedAndroid;
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
       blurRadius: 4,
-      refractionAmount: 26,
-      refractionHeight: 14,
-      chromaticAberration: 0.35,
-      highlightAlpha: 0.7,
+      refractionAmount: 20,
+      refractionHeight: 12,
+      chromaticAberration: 0.3,
+      highlightAlpha: 0.6,
       tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
     } : {
       blurRadius: 20,
       refractionAmount: 0,
       refractionHeight: 0,
       chromaticAberration: 0,
-      highlightAlpha: 0.35,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(255, 255, 255, 0.18)",
+      highlightAlpha: 0.3,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
     };
 
     const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
@@ -934,109 +783,93 @@ const CustomTabBar = ({
           <View
             {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
-            style={[styles.iosLeftPill, { backgroundColor: pillBg, overflow: 'visible' }]}
+            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassViewAndroid
-              providerId={glassProviderId}
               interactive={isRealGlass}
               {...glassProps}
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 26,
-                backgroundColor: 'transparent',
+                backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
               }}
             />
-            {isRealGlass ? (
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: currentIndicatorWidth,
-                  height: 50,
-                  borderRadius: 25,
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
-                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
-                  opacity,
-                  transform: [
-                    { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                    { scale: indicatorScale },
-                    { scaleX: Animated.add(1, stretchAnim) }
-                  ],
-                }}
-              />
-            ) : (
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: currentIndicatorWidth,
-                  height: 50,
-                  borderRadius: 25,
-                  borderWidth: 0,
-                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-                  opacity,
-                  shadowColor: isDarkMode ? "#fff" : "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  overflow: "hidden",
-                  transform: [
-                    { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                    { scale: indicatorScale },
-                    { scaleX: Animated.add(1, stretchAnim) }
-                  ],
-                }}
-              >
-                <LinearGradient
-                  colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                    "transparent"
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: [{ translateX: nativeSlideAnim }],
+              }}
+            >
+              {isRealGlass ? (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: 1,
+                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
+                    opacity,
+                  }}
                 />
-              </Animated.View>
-            )}
+              ) : (
+                <Animated.View
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 50,
+                    borderRadius: 25,
+                    borderWidth: 0,
+                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                    opacity,
+                    shadowColor: isDarkMode ? "#fff" : "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                    shadowRadius: 6,
+                    elevation: 3,
+                    overflow: "hidden",
+                  }}
+                >
+                  <LinearGradient
+                    colors={[
+                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                      "transparent"
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </Animated.View>
+              )}
+            </Animated.View>
             {renderButtons()}
           </View>
 
-          <View
+          <LiquidGlassViewAndroid
+            interactive={isRealGlass}
+            {...glassProps}
             style={[
               styles.iosRightPill,
               {
                 backgroundColor: pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                overflow: 'visible',
               }
             ]}
           >
-            <LiquidGlassViewAndroid
-              providerId={glassProviderId}
-              interactive={isRealGlass}
-              {...glassProps}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 26,
-                backgroundColor: 'transparent',
-              }}
-            />
             <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
               <CustomTabBarButton
                 onPress={() => {}}
                 bottomOffset={bottomOffset}
-                currentRoute={glassProviderId}
               />
             </View>
-          </View>
+          </LiquidGlassViewAndroid>
         </View>
       </Animated.View>
     );
@@ -1059,7 +892,7 @@ const CustomTabBar = ({
           zIndex: 99,
         }}
       >
-        <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
           <View
             {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
@@ -1078,86 +911,74 @@ const CustomTabBar = ({
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
               }}
             />
-            {isRealGlass ? (
-              AnimatedLiquidGlassView ? (
-                <AnimatedLiquidGlassView
-                  effect="regular"
-                  interactive={false}
-                  colorScheme={isDarkMode ? 'dark' : 'light'}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: currentIndicatorWidth,
-                    height: 50,
-                    borderRadius: 25,
-                    backgroundColor: indicatorBg,
-                    opacity,
-                    transform: [
-                      { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                      { scale: indicatorScale },
-                      { scaleX: Animated.add(1, stretchAnim) }
-                    ],
-                  }}
-                />
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: [{ translateX: nativeSlideAnim }],
+              }}
+            >
+              {isRealGlass ? (
+                AnimatedLiquidGlassView ? (
+                  <AnimatedLiquidGlassView
+                    effect="regular"
+                    interactive={false}
+                    colorScheme={isDarkMode ? 'dark' : 'light'}
+                    style={{
+                      position: "absolute",
+                      width: indicatorAnimatedWidth,
+                      height: 50,
+                      borderRadius: 25,
+                      backgroundColor: indicatorBg,
+                      opacity,
+                    }}
+                  />
+                ) : (
+                  <Animated.View
+                    style={{
+                      position: "absolute",
+                      width: indicatorAnimatedWidth,
+                      height: 50,
+                      borderRadius: 25,
+                      borderWidth: indicatorBorderWidth,
+                      borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                      backgroundColor: indicatorBg,
+                      opacity,
+                    }}
+                  />
+                )
               ) : (
                 <Animated.View
                   style={{
                     position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: currentIndicatorWidth,
+                    width: indicatorAnimatedWidth,
                     height: 50,
                     borderRadius: 25,
-                    borderWidth: indicatorBorderWidth,
-                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                    borderWidth: 0,
                     backgroundColor: indicatorBg,
                     opacity,
-                    transform: [
-                      { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                      { scale: indicatorScale },
-                      { scaleX: Animated.add(1, stretchAnim) }
-                    ],
+                    shadowColor: isDarkMode ? "#fff" : "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                    shadowRadius: 6,
+                    elevation: 3,
+                    overflow: "hidden",
                   }}
-                />
-              )
-            ) : (
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: currentIndicatorWidth,
-                  height: 50,
-                  borderRadius: 25,
-                  borderWidth: 0,
-                  backgroundColor: indicatorBg,
-                  opacity,
-                  shadowColor: isDarkMode ? "#fff" : "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  overflow: "hidden",
-                  transform: [
-                    { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                    { scale: indicatorScale },
-                    { scaleX: Animated.add(1, stretchAnim) }
-                  ],
-                }}
-              >
-                <LinearGradient
-                  colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                    "transparent"
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              </Animated.View>
-            )}
+                >
+                  <LinearGradient
+                    colors={[
+                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                      "transparent"
+                    ]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+                </Animated.View>
+              )}
+            </Animated.View>
             {renderButtons()}
           </View>
 
@@ -1182,7 +1003,7 @@ const CustomTabBar = ({
               />
             </View>
           </LiquidGlassView>
-        </View>
+        </LiquidGlassContainerView>
       </Animated.View>
     );
   }
@@ -1217,76 +1038,70 @@ const CustomTabBar = ({
             - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
               nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
           */}
-          {/* Chromatic Aberration - Red */}
-          <Animated.View
-            style={{
-              position: "absolute",
-              width: currentIndicatorWidth,
-              height: 50,
-              borderRadius: 25,
-              top: 0,
-              left: -0.8,
-              opacity: opacity * 0.15,
-              transform: [
-                { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                { scale: indicatorScale },
-                { scaleX: Animated.add(1, stretchAnim) }
-              ],
-              backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
-            }}
-          />
-          {/* Chromatic Aberration - Blue */}
-          <Animated.View
-            style={{
-              position: "absolute",
-              width: currentIndicatorWidth,
-              height: 50,
-              borderRadius: 25,
-              top: 0,
-              left: 0.8,
-              opacity: opacity * 0.15,
-              transform: [
-                { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                { scale: indicatorScale },
-                { scaleX: Animated.add(1, stretchAnim) }
-              ],
-              backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
-            }}
-          />
-          {/* Main Glass Indicator */}
           <Animated.View
             style={{
               position: "absolute",
               top: 0,
               left: 0,
-              width: currentIndicatorWidth,
-              height: 50,
-              borderRadius: 25,
-              opacity,
-              transform: [
-                { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                { scale: indicatorScale },
-                { scaleX: Animated.add(1, stretchAnim) }
-              ],
-              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-              shadowColor: isDarkMode ? "#fff" : "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isDarkMode ? 0.3 : 0.15,
-              shadowRadius: 6,
-              elevation: 3,
-              overflow: "hidden",
+              transform: [{ translateX: nativeSlideAnim }],
             }}
           >
-            <LinearGradient
-              colors={[
-                isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                "transparent"
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
+            {/* Chromatic Aberration - Red */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                top: 0,
+                left: -0.8,
+                opacity: opacity * 0.15,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
+              }}
             />
+            {/* Chromatic Aberration - Blue */}
+            <Animated.View
+              style={{
+                position: "absolute",
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                top: 0,
+                left: 0.8,
+                opacity: opacity * 0.15,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
+              }}
+            />
+            {/* Main Glass Indicator */}
+            <Animated.View
+              style={{
+                width: indicatorAnimatedWidth,
+                height: 50,
+                borderRadius: 25,
+                opacity,
+                transform: [{ translateX: indicatorDragOffset }],
+                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                shadowColor: isDarkMode ? "#fff" : "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                shadowRadius: 6,
+                elevation: 3,
+                overflow: "hidden",
+              }}
+            >
+              <LinearGradient
+                colors={[
+                  isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                  isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                  "transparent"
+                ]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </Animated.View>
           </Animated.View>
           {renderButtons()}
         </View>
@@ -1306,7 +1121,6 @@ const CustomTabBar = ({
           <CustomTabBarButton
             onPress={() => {}}
             bottomOffset={bottomOffset}
-            currentRoute={state.routes[state.index].name}
           />
         </View>
       </View>
@@ -1403,8 +1217,16 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
 
 
-  const renderContent = () => {
-    const content = (
+  return (
+    <SideMenu
+      menu={<Sidebar />}
+      menuPosition="left"
+      isOpen={setting}
+      onChange={(isOpen) => setSetting(isOpen)}
+      edgeHitWidth={100}
+      bounceBackOnOverdraw={false}
+      disableGestures={true}
+    >
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
@@ -1423,8 +1245,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
             );
           }}
           screenOptions={({ route }) => ({
-            // Sử dụng native transition 'shift' của react-navigation v7 trên cả Android & iOS
-            animation: 'shift',
+            // Android: tắt animation mặc định của bottom tabs (fade JS-driven gây giật)
+            // Tab content switch là tức thì — indicator animation trên tab bar vẫn chạy mượt
+            animation: Platform.OS === 'android' ? 'none' : 'shift',
             // Tránh re-render toàn bộ scene khi chuyển tab
             lazy: true,
             // Giữ các screen đã mount (không unmount khi rời tab)
@@ -1571,7 +1394,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             )}
           >
             {(props) => (
-              <ScreenWrapper routeName="Home">
+              <ScreenWrapper>
                 <HomeScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1594,7 +1417,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Forum">
+              <ScreenWrapper>
                 <MenuScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1643,7 +1466,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Chat">
+              <ScreenWrapper>
                 <ChatScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1669,7 +1492,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Notifications">
+              <ScreenWrapper>
                 <NotificationScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1681,32 +1504,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
         </Tab.Navigator>
       </View>
-    );
-
-
-
-    if (Platform.OS === 'ios' && LiquidGlassContainerView && isLiquidGlassSupported) {
-      return (
-        <LiquidGlassContainerView style={{ flex: 1 }} spacing={12}>
-          {content}
-        </LiquidGlassContainerView>
-      );
-    }
-
-    return content;
-  };
-
-  return (
-    <SideMenu
-      menu={<Sidebar />}
-      menuPosition="left"
-      isOpen={setting}
-      onChange={(isOpen) => setSetting(isOpen)}
-      edgeHitWidth={100}
-      bounceBackOnOverdraw={false}
-      disableGestures={true}
-    >
-      {renderContent()}
     </SideMenu>
   );
 }
