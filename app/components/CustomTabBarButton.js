@@ -212,7 +212,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
       );
     }
 
-    if (Platform.OS === 'android' && LiquidGlassViewAndroid && LiquidGlassProviderAndroid && isLiquidGlassSupportedAndroid) {
+    if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
       const isAndroid33 = Platform.Version >= 33;
       const glassProps = isAndroid33 ? {
         blurRadius: 4,
@@ -231,29 +231,27 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
       };
 
       return (
-        <LiquidGlassProviderAndroid providerId="create-menu" style={{ width: 160 }}>
-          <View style={styles.glassContainer}>
-            {menuButtons.map((btn, i) => (
-              <LiquidGlassViewAndroid
-                key={i}
-                providerId="create-menu"
-                interactive={true}
-                {...glassProps}
-                style={[
-                  styles.glassRow,
-                  {
-                    marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                    backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                  }
-                ]}
-              >
-                {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
-              </LiquidGlassViewAndroid>
-            ))}
-          </View>
-        </LiquidGlassProviderAndroid>
+        <View style={styles.glassContainer}>
+          {menuButtons.map((btn, i) => (
+            <LiquidGlassViewAndroid
+              key={i}
+              providerId={currentRoute}
+              interactive={true}
+              {...glassProps}
+              style={[
+                styles.glassRow,
+                {
+                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
+                  backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                }
+              ]}
+            >
+              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
+            </LiquidGlassViewAndroid>
+          ))}
+        </View>
       );
     }
 

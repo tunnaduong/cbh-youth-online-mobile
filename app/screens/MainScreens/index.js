@@ -1460,6 +1460,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               tabBarButton: (props) => (
                 <CustomTabBarButton
                   {...props}
+                  currentRoute={currentRoute}
                   onPress={() => {
                     // Perform any action you want here
                     // console.log("Custom button pressed");
