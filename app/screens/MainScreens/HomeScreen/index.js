@@ -426,31 +426,33 @@ const StoryOptionsModal = ({
             style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             onPress={() => {
               actionSheetRef.current?.hide();
-              Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
-                { text: t('settings.cancel') || "Hủy", style: "cancel" },
-                {
-                  text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
-                    try {
-                      const storyIdToDelete = currentStoryRef.current;
-                      if (storyIdToDelete) {
-                        await deleteStory(storyIdToDelete);
-                        dismissStoryModal();
-                        fetchStories();
+              setTimeout(() => {
+                Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
+                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                  {
+                    text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
+                      try {
+                        const storyIdToDelete = currentStoryRef.current;
+                        if (storyIdToDelete) {
+                          await deleteStory(storyIdToDelete);
+                          dismissStoryModal();
+                          fetchStories();
+                          Toast.show({
+                            type: "success",
+                            text1: t('home.deleteStorySuccess') || "Xóa thành công",
+                          });
+                        }
+                      } catch (e) {
                         Toast.show({
-                          type: "success",
-                          text1: t('home.deleteStorySuccess') || "Xóa thành công",
+                          type: "error",
+                          text1: t('common.error'),
+                          text2: e.message,
                         });
                       }
-                    } catch (e) {
-                      Toast.show({
-                        type: "error",
-                        text1: t('common.error'),
-                        text2: e.message,
-                      });
                     }
                   }
-                }
-              ]);
+                ]);
+              }, 300);
             }}
           >
             <View style={{
