@@ -3,7 +3,6 @@ import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animate
 import * as Haptics from "expo-haptics";
 import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
 import Ionicons from "react-native-vector-icons/Ionicons";
-const AnimatedIonicons = Animated.createAnimatedComponent(Ionicons);
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
@@ -815,14 +814,17 @@ const CustomTabBar = ({
         >
           <View style={styles.iosTabButtonInner}>
             <View style={{ position: "relative" }}>
-              <AnimatedIonicons
-                name={iconName}
-                size={24}
-                color={tintColor}
+              <Animated.View
                 style={{
                   transform: [{ scale: iconScale }],
                 }}
-              />
+              >
+                <Ionicons
+                  name={iconName}
+                  size={24}
+                  color={tintColor}
+                />
+              </Animated.View>
               {badgeCount !== null && <TabBarBadge count={badgeCount} />}
             </View>
             {!hideTabLabels && (
