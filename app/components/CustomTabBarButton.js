@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 6,
     transform: [
-      { translateX: Platform.OS === 'ios' ? 2.0 : 1.5 }
+      { translateX: Platform.OS === 'ios' ? 0 : 0 }
     ]
   },
   iconContainer: {
