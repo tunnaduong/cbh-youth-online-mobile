@@ -424,6 +424,9 @@ const CustomTabBar = ({
   // One Animated.Value per left-route tab (4 tabs: Home, Forum, Chat, Notifications).
   const tabScaleAnims = useRef([0, 1, 2, 3].map(() => new Animated.Value(1))).current;
 
+  // indicatorScale: JS driver to avoid mixing native/JS drivers on the same animated node
+  const indicatorScale = useRef(new Animated.Value(1)).current;
+
   // isDraggingAnim: switch display giữa native vs JS driver layer
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
@@ -528,6 +531,23 @@ const CustomTabBar = ({
           mass: 0.5,
         }).start();
       });
+
+      // Zoom in/out indicator scale (organic shrink and bounce back)
+      Animated.sequence([
+        Animated.spring(indicatorScale, {
+          toValue: 0.82,
+          useNativeDriver: false,
+          stiffness: 400,
+          damping: 18,
+        }),
+        Animated.spring(indicatorScale, {
+          toValue: 1.0,
+          useNativeDriver: false,
+          stiffness: 280,
+          damping: 20,
+          mass: 0.5,
+        }),
+      ]).start();
     } else {
       // Direct spring back if index is invalid or first mount
       Animated.spring(stretchAnim, {
@@ -539,6 +559,13 @@ const CustomTabBar = ({
       }).start();
       Animated.spring(offsetAnim, {
         toValue: 0,
+        useNativeDriver: false,
+        stiffness: 400,
+        damping: 35,
+        mass: 0.5,
+      }).start();
+      Animated.spring(indicatorScale, {
+        toValue: 1.0,
         useNativeDriver: false,
         stiffness: 400,
         damping: 35,
@@ -637,7 +664,16 @@ const CustomTabBar = ({
         nativeSlideAnim.stopAnimation();
         stretchAnim.stopAnimation();
         offsetAnim.stopAnimation();
+        indicatorScale.stopAnimation();
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        // Scale down slightly while dragging
+        Animated.spring(indicatorScale, {
+          toValue: 0.9,
+          useNativeDriver: false,
+          stiffness: 300,
+          damping: 20,
+        }).start();
       },
       onPanResponderMove: (evt, gestureState) => {
         const bWidth = bWidthAtGrant.current;
@@ -718,6 +754,14 @@ const CustomTabBar = ({
           damping: 34,
           mass: 0.5,
         }).start();
+        // Zoom back to normal size
+        Animated.spring(indicatorScale, {
+          toValue: 1.0,
+          useNativeDriver: false,
+          stiffness: 280,
+          damping: 20,
+          mass: 0.6,
+        }).start();
 
         if (snappedIndex !== activeLeftIndexRef.current) {
           navigateToLeftIndexRef.current?.(snappedIndex);
@@ -754,6 +798,13 @@ const CustomTabBar = ({
           useNativeDriver: false,
           stiffness: 260,
           damping: 22,
+        }).start();
+        // Zoom back to normal size
+        Animated.spring(indicatorScale, {
+          toValue: 1.0,
+          useNativeDriver: false,
+          stiffness: 200,
+          damping: 20,
         }).start();
       },
     })
@@ -913,7 +964,10 @@ const CustomTabBar = ({
                   borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
                   backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
                   opacity,
-                  transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+                  transform: [
+                    { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                    { scale: indicatorScale }
+                  ],
                 }}
               />
             ) : (
@@ -934,7 +988,10 @@ const CustomTabBar = ({
                   shadowRadius: 6,
                   elevation: 3,
                   overflow: "hidden",
-                  transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+                  transform: [
+                    { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                    { scale: indicatorScale }
+                  ],
                 }}
               >
                 <LinearGradient
@@ -1020,18 +1077,25 @@ const CustomTabBar = ({
                   colorScheme={isDarkMode ? 'dark' : 'light'}
                   style={{
                     position: "absolute",
+                    top: 0,
+                    left: 0,
                     width: indicatorAnimatedWidth,
                     height: 50,
                     borderRadius: 25,
                     backgroundColor: indicatorBg,
                     opacity,
-                    transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+                    transform: [
+                      { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                      { scale: indicatorScale }
+                    ],
                   }}
                 />
               ) : (
                 <Animated.View
                   style={{
                     position: "absolute",
+                    top: 0,
+                    left: 0,
                     width: indicatorAnimatedWidth,
                     height: 50,
                     borderRadius: 25,
@@ -1039,7 +1103,10 @@ const CustomTabBar = ({
                     borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                     backgroundColor: indicatorBg,
                     opacity,
-                    transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+                    transform: [
+                      { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                      { scale: indicatorScale }
+                    ],
                   }}
                 />
               )
@@ -1047,6 +1114,8 @@ const CustomTabBar = ({
               <Animated.View
                 style={{
                   position: "absolute",
+                  top: 0,
+                  left: 0,
                   width: indicatorAnimatedWidth,
                   height: 50,
                   borderRadius: 25,
@@ -1059,7 +1128,10 @@ const CustomTabBar = ({
                   shadowRadius: 6,
                   elevation: 3,
                   overflow: "hidden",
-                  transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+                  transform: [
+                    { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                    { scale: indicatorScale }
+                  ],
                 }}
               >
                 <LinearGradient
@@ -1143,7 +1215,10 @@ const CustomTabBar = ({
               top: 0,
               left: -0.8,
               opacity: opacity * 0.15,
-              transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+              transform: [
+                { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                { scale: indicatorScale }
+              ],
               backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
             }}
           />
@@ -1157,18 +1232,27 @@ const CustomTabBar = ({
               top: 0,
               left: 0.8,
               opacity: opacity * 0.15,
-              transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+              transform: [
+                { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                { scale: indicatorScale }
+              ],
               backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
             }}
           />
           {/* Main Glass Indicator */}
           <Animated.View
             style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
               width: indicatorAnimatedWidth,
               height: 50,
               borderRadius: 25,
               opacity,
-              transform: [{ translateX: Animated.add(jsSlideAnim, offsetAnim) }],
+              transform: [
+                { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                { scale: indicatorScale }
+              ],
               backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
               shadowColor: isDarkMode ? "#fff" : "#000",
               shadowOffset: { width: 0, height: 2 },
