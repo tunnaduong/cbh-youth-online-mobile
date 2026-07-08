@@ -160,7 +160,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         {...glassProps}
         style={{
           ...StyleSheet.absoluteFillObject,
-          borderRadius: 26,
+          borderRadius: 24.5,
           overflow: "hidden",
           backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
           borderWidth: 1.0,
@@ -172,8 +172,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
+            height: 49,
+            borderRadius: 24.5,
             top: 0,
             left: -0.8,
             opacity: opacity * 0.35,
@@ -186,8 +186,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
+            height: 49,
+            borderRadius: 24.5,
             top: 0,
             left: 0.8,
             opacity: opacity * 0.35,
@@ -203,8 +203,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
+            height: 49,
+            borderRadius: 24.5,
             top: 0,
             left: 0,
             opacity,
@@ -244,7 +244,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         onLayout={onLayout}
         style={{
           ...StyleSheet.absoluteFillObject,
-          borderRadius: 26,
+          borderRadius: 24.5,
           overflow: "hidden",
           backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
           borderWidth: 1.0,
@@ -256,8 +256,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
+            height: 49,
+            borderRadius: 24.5,
             top: 0,
             left: -0.8,
             opacity: opacity * 0.35,
@@ -270,8 +270,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
+            height: 49,
+            borderRadius: 24.5,
             top: 0,
             left: 0.8,
             opacity: opacity * 0.35,
@@ -288,8 +288,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
-            height: 52,
-            borderRadius: 26,
+            height: 49,
+            borderRadius: 24.5,
             top: 0,
             left: 0,
             opacity,
@@ -323,7 +323,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       onLayout={onLayout}
       style={{
         ...StyleSheet.absoluteFillObject,
-        borderRadius: 26,
+        borderRadius: 24.5,
         overflow: "hidden",
         backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
         borderWidth: 1.0,
@@ -335,8 +335,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         style={{
           position: "absolute",
           width: currentIndicatorWidth,
-          height: 52,
-          borderRadius: 26,
+          height: 49,
+          borderRadius: 24.5,
           top: 0,
           left: -0.8,
           opacity: opacity * 0.15,
@@ -349,8 +349,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         style={{
           position: "absolute",
           width: currentIndicatorWidth,
-          height: 52,
-          borderRadius: 26,
+          height: 49,
+          borderRadius: 24.5,
           top: 0,
           left: 0.8,
           opacity: opacity * 0.15,
@@ -363,8 +363,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         style={{
           position: "absolute",
           width: currentIndicatorWidth,
-          height: 52,
-          borderRadius: 26,
+          height: 49,
+          borderRadius: 24.5,
           top: 0,
           left: 0,
           opacity,
@@ -807,7 +807,7 @@ const CustomTabBar = ({
               {...glassProps}
               style={{
                 ...StyleSheet.absoluteFillObject,
-                borderRadius: 26,
+                borderRadius: 24.5,
                 backgroundColor: isRealGlass ? "transparent" : pillBg,
                 borderWidth: 1.0,
                 borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
@@ -816,7 +816,7 @@ const CustomTabBar = ({
             <Animated.View
               style={{
                 position: "absolute",
-                top: 0,
+                top: 1,
                 left: 0,
                 transform: [{ translateX: nativeSlideAnim }],
               }}
@@ -826,8 +826,8 @@ const CustomTabBar = ({
                   style={{
                     position: "absolute",
                     width: indicatorAnimatedWidth,
-                    height: 50,
-                    borderRadius: 25,
+                    height: 47,
+                    borderRadius: 23.5,
                     borderWidth: 1,
                     borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
                     backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
@@ -839,8 +839,8 @@ const CustomTabBar = ({
                   style={{
                     position: "absolute",
                     width: indicatorAnimatedWidth,
-                    height: 50,
-                    borderRadius: 25,
+                    height: 47,
+                    borderRadius: 23.5,
                     borderWidth: 0,
                     backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
                     opacity,
@@ -923,7 +923,7 @@ const CustomTabBar = ({
               tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
               style={{
                 ...StyleSheet.absoluteFillObject,
-                borderRadius: 26,
+                borderRadius: 24.5,
                 backgroundColor: isRealGlass ? "transparent" : pillBg,
                 borderWidth: 1.0,
                 borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
@@ -932,7 +932,7 @@ const CustomTabBar = ({
             <Animated.View
               style={{
                 position: "absolute",
-                top: 0,
+                top: 1,
                 left: 0,
                 transform: [{ translateX: nativeSlideAnim }],
               }}
@@ -946,8 +946,8 @@ const CustomTabBar = ({
                     style={{
                       position: "absolute",
                       width: indicatorAnimatedWidth,
-                      height: 50,
-                      borderRadius: 25,
+                      height: 47,
+                      borderRadius: 23.5,
                       backgroundColor: indicatorBg,
                       opacity,
                     }}
@@ -957,8 +957,8 @@ const CustomTabBar = ({
                     style={{
                       position: "absolute",
                       width: indicatorAnimatedWidth,
-                      height: 50,
-                      borderRadius: 25,
+                      height: 47,
+                      borderRadius: 23.5,
                       borderWidth: indicatorBorderWidth,
                       borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
                       backgroundColor: indicatorBg,
@@ -971,8 +971,8 @@ const CustomTabBar = ({
                   style={{
                     position: "absolute",
                     width: indicatorAnimatedWidth,
-                    height: 50,
-                    borderRadius: 25,
+                    height: 47,
+                    borderRadius: 23.5,
                     borderWidth: 0,
                     backgroundColor: indicatorBg,
                     opacity,
@@ -1059,7 +1059,7 @@ const CustomTabBar = ({
           <Animated.View
             style={{
               position: "absolute",
-              top: 0,
+              top: 1,
               left: 0,
               transform: [{ translateX: nativeSlideAnim }],
             }}
@@ -1069,8 +1069,8 @@ const CustomTabBar = ({
               style={{
                 position: "absolute",
                 width: indicatorAnimatedWidth,
-                height: 50,
-                borderRadius: 25,
+                height: 47,
+                borderRadius: 23.5,
                 top: 0,
                 left: -0.8,
                 opacity: opacity * 0.15,
@@ -1083,8 +1083,8 @@ const CustomTabBar = ({
               style={{
                 position: "absolute",
                 width: indicatorAnimatedWidth,
-                height: 50,
-                borderRadius: 25,
+                height: 47,
+                borderRadius: 23.5,
                 top: 0,
                 left: 0.8,
                 opacity: opacity * 0.15,
@@ -1096,8 +1096,8 @@ const CustomTabBar = ({
             <Animated.View
               style={{
                 width: indicatorAnimatedWidth,
-                height: 50,
-                borderRadius: 25,
+                height: 47,
+                borderRadius: 23.5,
                 opacity,
                 transform: [{ translateX: indicatorDragOffset }],
                 backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
@@ -1338,8 +1338,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
               left: 95,
               right: 95,
               elevation: 10,
-              borderRadius: 26,
-              height: 52,
+              borderRadius: 24.5,
+              height: 49,
               shadowColor: "#000",
               shadowOpacity: 0.12,
               shadowOffset: { width: 0, height: 4 },
@@ -1543,8 +1543,8 @@ const styles = StyleSheet.create({
   },
   iosLeftPill: {
     flex: 1,
-    height: 52,
-    borderRadius: 26,
+    height: 49,
+    borderRadius: 24.5,
     position: 'relative',
     marginRight: 12,
     flexDirection: 'row',
@@ -1580,9 +1580,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   iosRightPill: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 53,
+    height: 53,
+    borderRadius: 26.5,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 100,

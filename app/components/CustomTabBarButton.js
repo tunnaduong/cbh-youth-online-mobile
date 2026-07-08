@@ -300,8 +300,8 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           style={{
             position: "absolute",
             bottom: Platform.OS === 'ios'
-              ? (bottomOffset > 0 ? bottomOffset + 8 + 56 + 16 : 24 + 56 + 16)
-              : (bottomOffset > 0 ? bottomOffset + 8 + 56 + 16 : 12 + 56 + 16),
+              ? (bottomOffset > 0 ? bottomOffset + 8 + 53 + 16 : 24 + 53 + 16)
+              : (bottomOffset > 0 ? bottomOffset + 8 + 53 + 16 : 12 + 53 + 16),
             right: 20,
             width: 160,
             alignItems: 'flex-end',
@@ -340,14 +340,14 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: 56,
-    height: 56,
+    width: 53,
+    height: 53,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonContainer: {
-    width: 56,
-    height: 56,
+    width: 53,
+    height: 53,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
@@ -361,16 +361,16 @@ const styles = StyleSheet.create({
     ]
   },
   iconContainer: {
-    width: 56,
-    height: 56,
+    width: 53,
+    height: 53,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 28,
+    borderRadius: 26.5,
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 53,
+    height: 53,
+    borderRadius: 26.5,
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
