@@ -348,6 +348,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
+    transform: [
+      { translateX: Platform.OS === 'ios' ? 2.0 : 1.5 }
+    ]
   },
   iconContainer: {
     width: 56,

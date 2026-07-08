@@ -83,7 +83,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   useEffect(() => {
     const timer = setTimeout(() => {
       setGlassProviderId(currentRoute);
-    }, 350);
+    }, 80);
     return () => clearTimeout(timer);
   }, [currentRoute]);
 
@@ -412,7 +412,7 @@ const CustomTabBar = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       setGlassProviderId(activeRouteName);
-    }, 350);
+    }, 80);
     return () => clearTimeout(timer);
   }, [activeRouteName]);
 
@@ -490,18 +490,18 @@ const CustomTabBar = ({
     Animated.spring(nativeSlideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: true,
-      stiffness: 320,
+      stiffness: 500,
       damping: 28,
-      mass: 0.6,
+      mass: 0.4,
     }).start();
 
     // Sync JS value để PanResponder có đúng starting position khi drag
     Animated.spring(jsSlideAnim, {
       toValue: currentIndicatorLeft,
       useNativeDriver: false,
-      stiffness: 320,
+      stiffness: 500,
       damping: 28,
-      mass: 0.6,
+      mass: 0.4,
     }).start();
 
     // === LIQUID MORPH STRETCH/SNAP TRANSITION ===
@@ -529,18 +529,18 @@ const CustomTabBar = ({
       // Zoom up indicator scale (embolden to embrace the zoomed icon during slide)
       Animated.sequence([
         Animated.spring(indicatorScale, {
-          toValue: 1.20,
+          toValue: 1.25,
           useNativeDriver: true,
-          stiffness: 600,
-          damping: 15,
-          mass: 0.4,
+          stiffness: 900,
+          damping: 22,
+          mass: 0.3,
         }),
         Animated.spring(indicatorScale, {
           toValue: 1.0,
           useNativeDriver: true,
-          stiffness: 280,
-          damping: 20,
-          mass: 0.5,
+          stiffness: 450,
+          damping: 26,
+          mass: 0.4,
         }),
       ]).start();
     } else {
@@ -581,16 +581,16 @@ const CustomTabBar = ({
         Animated.spring(tabScaleAnims[activeLeftIndex], {
           toValue: 1.25,
           useNativeDriver: true,
-          stiffness: 600,
-          damping: 15,
-          mass: 0.4,
+          stiffness: 900,
+          damping: 22,
+          mass: 0.3,
         }),
         Animated.spring(tabScaleAnims[activeLeftIndex], {
           toValue: 1.0,
           useNativeDriver: true,
-          stiffness: 280,
-          damping: 20,
-          mass: 0.5,
+          stiffness: 450,
+          damping: 26,
+          mass: 0.4,
         }),
       ]).start();
     }
