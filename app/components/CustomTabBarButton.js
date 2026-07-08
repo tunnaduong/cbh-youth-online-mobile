@@ -216,8 +216,8 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
       const isAndroid33 = Platform.Version >= 33;
       const glassProps = isAndroid33 ? {
         blurRadius: 20,
-        refractionAmount: 15,
-        refractionHeight: 10,
+        refractionAmount: 35,
+        refractionHeight: 20,
         chromaticAberration: 0.2,
         highlightAlpha: 0.6,
         tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
