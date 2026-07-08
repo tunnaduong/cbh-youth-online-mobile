@@ -905,19 +905,37 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   // Handle story highlighting from notifications
   useEffect(() => {
     if (route.params?.highlightStoryId && userStories.length > 0) {
-      // Find the user and story to highlight
       const storyToHighlight = route.params.highlightStoryId;
       const userWithStory = userStories.find((user) =>
         user.stories.some((story) => story.storyId === storyToHighlight)
       );
       if (userWithStory) {
-        // Open the story viewer for that user
         setTimeout(() => {
           storyRef.current?.show(userWithStory.id);
         }, 500);
       }
     }
   }, [route.params?.highlightStoryId, userStories]);
+
+  // Handle deep link: com.fatties.youth://story/<storyId>
+  // App.js passes openStoryId param when user taps a story share link
+  useEffect(() => {
+    if (!route.params?.openStoryId || userStories.length === 0) return;
+
+    const targetId = String(route.params.openStoryId);
+
+    // Find which user owns this story (story.id is numeric, compare as string)
+    const userWithStory = userStories.find((user) =>
+      user.stories.some((story) => String(story.id) === targetId)
+    );
+
+    if (userWithStory) {
+      // Small delay to let the screen finish mounting before opening viewer
+      setTimeout(() => {
+        storyRef.current?.show(userWithStory.id); // user.id = username string
+      }, 600);
+    }
+  }, [route.params?.openStoryId, userStories]);
 
   const currentStoryUserRef = useRef(null); // Ref to hold fresh user object for callbacks
 

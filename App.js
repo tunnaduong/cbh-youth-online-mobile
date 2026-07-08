@@ -82,7 +82,14 @@ const parseDeepLink = (url) => {
 
     if (host === "story" && pathSegment) {
       const storyId = pathSegment.split("?")[0]; // strip query if any
-      if (storyId) return { screen: "HomeScreen", params: { openStoryId: storyId } };
+      if (storyId) return {
+        // Story lives inside the Home tab of MainScreens
+        screen: "MainScreens",
+        params: {
+          screen: "Home",
+          params: { openStoryId: storyId },
+        },
+      };
     }
   } catch (e) {
     console.warn("[DeepLink] parse error:", e);
@@ -131,6 +138,22 @@ const App = () => {
       pendingDeepLink.current = null;
     }
   };
+
+  // Also flush when user logs in after app was already open (e.g. opened link while logged out)
+  useEffect(() => {
+    if (isLoggedIn && pendingDeepLink.current && navigationRef.current) {
+      // Small delay to ensure navigator is fully mounted after login
+      setTimeout(() => {
+        if (pendingDeepLink.current) {
+          navigationRef.current?.navigate(
+            pendingDeepLink.current.screen,
+            pendingDeepLink.current.params
+          );
+          pendingDeepLink.current = null;
+        }
+      }, 500);
+    }
+  }, [isLoggedIn]);
 
   const handleSplashFinish = () => {
     setShowSplash(false);
