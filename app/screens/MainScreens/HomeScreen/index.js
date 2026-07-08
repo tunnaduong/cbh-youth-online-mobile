@@ -382,14 +382,15 @@ const StoryOptionsModal = ({
         </View>
         ) */}
 
-        {/* <Pressable
+        <Pressable
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
           onPress={async () => {
             actionSheetRef.current?.hide();
             try {
               const { Share } = require('react-native');
               await Share.share({
-                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://api.chuyenbienhoa.com/users/${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id}/story`,
+                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
+                url: `https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
               });
             } catch (error) {
               console.error(error.message);
@@ -418,7 +419,7 @@ const StoryOptionsModal = ({
               {t('home.copyLinkShare')}
             </Text>
           </View>
-        </Pressable> */}
+        </Pressable>
 
         {isOwnStory ? (
           <Pressable
