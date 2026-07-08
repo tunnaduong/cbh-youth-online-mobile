@@ -246,7 +246,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
           overflow: "hidden",
-          backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
+          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
           borderWidth: 1,
           borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
         }}
@@ -924,7 +924,7 @@ const CustomTabBar = ({
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 26,
-                backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : pillBg,
+                backgroundColor: isRealGlass ? "transparent" : pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
               }}
@@ -1008,7 +1008,7 @@ const CustomTabBar = ({
             style={[
               styles.iosRightPill,
               {
-                backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : pillBg,
+                backgroundColor: isRealGlass ? "transparent" : pillBg,
                 borderWidth: 1,
                 borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
               }
@@ -1524,13 +1524,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
         </Tab.Navigator>
         );
-        if (Platform.OS === 'ios' && LiquidGlassContainerView && isLiquidGlassSupported) {
-          return (
-            <LiquidGlassContainerView style={{ flex: 1, backgroundColor: theme.background }} spacing={12}>
-              {navContent}
-            </LiquidGlassContainerView>
-          );
-        }
         return <View style={{ flex: 1, backgroundColor: theme.background }}>{navContent}</View>;
       })()}
     </SideMenu>
