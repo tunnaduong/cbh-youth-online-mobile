@@ -57,12 +57,12 @@ if (Platform.OS === 'android') {
   }
 }
 
-const ScreenWrapper = ({ children, routeName }) => {
+const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid id={routeName} style={StyleSheet.absoluteFill}>
+        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
           <View style={{ flex: 1, backgroundColor: theme.background }}>
             {children}
           </View>
@@ -78,12 +78,6 @@ const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
-  const [glassProviderId, setGlassProviderId] = useState(currentRoute);
-
-  useEffect(() => {
-    setGlassProviderId(currentRoute);
-  }, [currentRoute]);
-
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -152,7 +146,6 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
 
     return (
       <LiquidGlassViewAndroid
-        providerId={glassProviderId}
         interactive={isRealGlass}
         onLayout={onLayout}
         {...glassProps}
@@ -793,7 +786,6 @@ const CustomTabBar = ({
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassViewAndroid
-              providerId={activeRouteName}
               interactive={isRealGlass}
               {...glassProps}
               style={{
@@ -860,7 +852,6 @@ const CustomTabBar = ({
           </View>
 
           <LiquidGlassViewAndroid
-            providerId={activeRouteName}
             interactive={isRealGlass}
             {...glassProps}
             style={[
@@ -1403,7 +1394,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             )}
           >
             {(props) => (
-              <ScreenWrapper routeName="Home">
+              <ScreenWrapper>
                 <HomeScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1426,7 +1417,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Forum">
+              <ScreenWrapper>
                 <MenuScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1475,7 +1466,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Chat">
+              <ScreenWrapper>
                 <ChatScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1501,7 +1492,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Notifications">
+              <ScreenWrapper>
                 <NotificationScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
