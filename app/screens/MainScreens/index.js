@@ -57,12 +57,12 @@ if (Platform.OS === 'android') {
   }
 }
 
-const ScreenWrapper = ({ children }) => {
+const ScreenWrapper = ({ children, routeName }) => {
   const { theme } = useTheme();
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
+        <LiquidGlassProviderAndroid id={routeName} style={StyleSheet.absoluteFill}>
           <View style={{ flex: 1, backgroundColor: theme.background }}>
             {children}
           </View>
@@ -78,6 +78,11 @@ const DummyComponent = () => null;
 
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
+  const [glassProviderId, setGlassProviderId] = useState(currentRoute);
+
+  useEffect(() => {
+    setGlassProviderId(currentRoute);
+  }, [currentRoute]);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const onLayout = (event) => {
@@ -130,10 +135,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
       blurRadius: 4,
-      refractionAmount: 20,
-      refractionHeight: 12,
-      chromaticAberration: 0.3,
-      highlightAlpha: 0.6,
+      refractionAmount: 30,
+      refractionHeight: 18,
+      chromaticAberration: 0.4,
+      highlightAlpha: 0.7,
       tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
     } : {
       blurRadius: 20,
@@ -146,6 +151,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
 
     return (
       <LiquidGlassViewAndroid
+        providerId={glassProviderId}
         interactive={isRealGlass}
         onLayout={onLayout}
         {...glassProps}
@@ -752,10 +758,10 @@ const CustomTabBar = ({
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
       blurRadius: 4,
-      refractionAmount: 20,
-      refractionHeight: 12,
-      chromaticAberration: 0.3,
-      highlightAlpha: 0.6,
+      refractionAmount: 30,
+      refractionHeight: 18,
+      chromaticAberration: 0.4,
+      highlightAlpha: 0.7,
       tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
     } : {
       blurRadius: 20,
@@ -786,6 +792,7 @@ const CustomTabBar = ({
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassViewAndroid
+              providerId={activeRouteName}
               interactive={isRealGlass}
               {...glassProps}
               style={{
@@ -852,6 +859,7 @@ const CustomTabBar = ({
           </View>
 
           <LiquidGlassViewAndroid
+            providerId={activeRouteName}
             interactive={isRealGlass}
             {...glassProps}
             style={[
@@ -1227,8 +1235,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
       bounceBackOnOverdraw={false}
       disableGestures={true}
     >
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <Tab.Navigator
+      {(() => {
+        const navContent = (
+          <Tab.Navigator
           ref={tabNavigatorRef}
           tabBar={(props) => {
             return (
@@ -1394,7 +1403,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             )}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Home">
                 <HomeScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1417,7 +1426,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Forum">
                 <MenuScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1466,7 +1475,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Chat">
                 <ChatScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1492,7 +1501,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Notifications">
                 <NotificationScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1503,7 +1512,16 @@ export default function MainScreens({ navigation: stackNavigation }) {
             )}
           </Tab.Screen>
         </Tab.Navigator>
-      </View>
+        );
+        if (Platform.OS === 'ios' && LiquidGlassContainerView && isLiquidGlassSupported) {
+          return (
+            <LiquidGlassContainerView style={{ flex: 1, backgroundColor: theme.background }} spacing={12}>
+              {navContent}
+            </LiquidGlassContainerView>
+          );
+        }
+        return <View style={{ flex: 1, backgroundColor: theme.background }}>{navContent}</View>;
+      })()}
     </SideMenu>
   );
 }
