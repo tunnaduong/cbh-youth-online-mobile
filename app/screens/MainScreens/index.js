@@ -521,11 +521,11 @@ const CustomTabBar = ({
       Animated.timing(offsetAnim, {
         toValue: peakOffset,
         duration: 130,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }).start(() => {
         Animated.spring(offsetAnim, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 320,
           damping: 24,
           mass: 0.5,
@@ -536,14 +536,14 @@ const CustomTabBar = ({
       Animated.sequence([
         Animated.spring(indicatorScale, {
           toValue: 1.20,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 600,
           damping: 15,
           mass: 0.4,
         }),
         Animated.spring(indicatorScale, {
           toValue: 1.0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 280,
           damping: 20,
           mass: 0.5,
@@ -560,14 +560,14 @@ const CustomTabBar = ({
       }).start();
       Animated.spring(offsetAnim, {
         toValue: 0,
-        useNativeDriver: false,
+        useNativeDriver: true,
         stiffness: 400,
         damping: 35,
         mass: 0.5,
       }).start();
       Animated.spring(indicatorScale, {
         toValue: 1.0,
-        useNativeDriver: false,
+        useNativeDriver: true,
         stiffness: 400,
         damping: 35,
         mass: 0.5,
@@ -671,7 +671,7 @@ const CustomTabBar = ({
         // Scale down slightly while dragging
         Animated.spring(indicatorScale, {
           toValue: 0.9,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 300,
           damping: 20,
         }).start();
@@ -750,7 +750,7 @@ const CustomTabBar = ({
         }).start();
         Animated.spring(offsetAnim, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 400,
           damping: 34,
           mass: 0.5,
@@ -758,7 +758,7 @@ const CustomTabBar = ({
         // Zoom back to normal size
         Animated.spring(indicatorScale, {
           toValue: 1.0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 280,
           damping: 20,
           mass: 0.6,
@@ -796,14 +796,14 @@ const CustomTabBar = ({
         }).start();
         Animated.spring(offsetAnim, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 260,
           damping: 22,
         }).start();
         // Zoom back to normal size
         Animated.spring(indicatorScale, {
           toValue: 1.0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 200,
           damping: 20,
         }).start();
@@ -966,7 +966,7 @@ const CustomTabBar = ({
                   backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
                   opacity,
                   transform: [
-                    { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                    { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                     { scale: indicatorScale }
                   ],
                 }}
@@ -990,7 +990,7 @@ const CustomTabBar = ({
                   elevation: 3,
                   overflow: "hidden",
                   transform: [
-                    { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                    { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                     { scale: indicatorScale }
                   ],
                 }}
@@ -1086,7 +1086,7 @@ const CustomTabBar = ({
                     backgroundColor: indicatorBg,
                     opacity,
                     transform: [
-                      { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                      { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                       { scale: indicatorScale }
                     ],
                   }}
@@ -1105,7 +1105,7 @@ const CustomTabBar = ({
                     backgroundColor: indicatorBg,
                     opacity,
                     transform: [
-                      { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                      { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                       { scale: indicatorScale }
                     ],
                   }}
@@ -1130,7 +1130,7 @@ const CustomTabBar = ({
                   elevation: 3,
                   overflow: "hidden",
                   transform: [
-                    { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                    { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                     { scale: indicatorScale }
                   ],
                 }}
@@ -1217,7 +1217,7 @@ const CustomTabBar = ({
               left: -0.8,
               opacity: opacity * 0.15,
               transform: [
-                { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                 { scale: indicatorScale }
               ],
               backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
@@ -1234,7 +1234,7 @@ const CustomTabBar = ({
               left: 0.8,
               opacity: opacity * 0.15,
               transform: [
-                { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                 { scale: indicatorScale }
               ],
               backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
@@ -1251,7 +1251,7 @@ const CustomTabBar = ({
               borderRadius: 25,
               opacity,
               transform: [
-                { translateX: Animated.add(jsSlideAnim, offsetAnim) },
+                { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
                 { scale: indicatorScale }
               ],
               backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
