@@ -868,26 +868,27 @@ const CustomTabBar = ({
             {renderButtons()}
           </View>
 
-          <LiquidGlassViewAndroid
-            providerId={activeRouteName}
-            interactive={isRealGlass}
-            {...glassProps}
-            style={[
-              styles.iosRightPill,
-              {
+          <View style={styles.iosRightPill}>
+            <LiquidGlassViewAndroid
+              providerId={activeRouteName}
+              interactive={isRealGlass}
+              {...glassProps}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 26.5,
                 backgroundColor: isRealGlass ? "transparent" : pillBg,
                 borderWidth: 1.0,
                 borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
-              }
-            ]}
-          >
+              }}
+            />
             <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
               <CustomTabBarButton
                 onPress={() => {}}
                 bottomOffset={bottomOffset}
+                currentRoute={activeRouteName}
               />
             </View>
-          </LiquidGlassViewAndroid>
+          </View>
         </View>
       </Animated.View>
     );
@@ -1018,6 +1019,7 @@ const CustomTabBar = ({
               <CustomTabBarButton
                 onPress={() => {}}
                 bottomOffset={bottomOffset}
+                currentRoute={activeRouteName}
               />
             </View>
           </LiquidGlassView>
@@ -1139,6 +1141,7 @@ const CustomTabBar = ({
           <CustomTabBarButton
             onPress={() => {}}
             bottomOffset={bottomOffset}
+            currentRoute={activeRouteName}
           />
         </View>
       </View>
