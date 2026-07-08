@@ -58,18 +58,6 @@ if (Platform.OS === 'android') {
 }
 
 const ScreenWrapper = ({ children }) => {
-  const { theme } = useTheme();
-  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
-          <View style={{ flex: 1, backgroundColor: theme.background }}>
-            {children}
-          </View>
-        </LiquidGlassProviderAndroid>
-      </View>
-    );
-  }
   return children;
 };
 
@@ -1051,7 +1039,7 @@ const CustomTabBar = ({
           zIndex: 99,
         }}
       >
-        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+        <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
           <View
             {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
@@ -1171,7 +1159,7 @@ const CustomTabBar = ({
               />
             </View>
           </LiquidGlassView>
-        </LiquidGlassContainerView>
+        </View>
       </Animated.View>
     );
   }
@@ -1388,16 +1376,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
 
 
-  return (
-    <SideMenu
-      menu={<Sidebar />}
-      menuPosition="left"
-      isOpen={setting}
-      onChange={(isOpen) => setSetting(isOpen)}
-      edgeHitWidth={100}
-      bounceBackOnOverdraw={false}
-      disableGestures={true}
-    >
+  const renderContent = () => {
+    const content = (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           ref={tabNavigatorRef}
@@ -1674,6 +1654,38 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
         </Tab.Navigator>
       </View>
+    );
+
+    if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+      return (
+        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
+          {content}
+        </LiquidGlassProviderAndroid>
+      );
+    }
+
+    if (Platform.OS === 'ios' && LiquidGlassContainerView && isLiquidGlassSupported) {
+      return (
+        <LiquidGlassContainerView style={{ flex: 1 }} spacing={12}>
+          {content}
+        </LiquidGlassContainerView>
+      );
+    }
+
+    return content;
+  };
+
+  return (
+    <SideMenu
+      menu={<Sidebar />}
+      menuPosition="left"
+      isOpen={setting}
+      onChange={(isOpen) => setSetting(isOpen)}
+      edgeHitWidth={100}
+      bounceBackOnOverdraw={false}
+      disableGestures={true}
+    >
+      {renderContent()}
     </SideMenu>
   );
 }
