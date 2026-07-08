@@ -57,7 +57,19 @@ if (Platform.OS === 'android') {
   }
 }
 
-const ScreenWrapper = ({ children }) => {
+const ScreenWrapper = ({ children, routeName }) => {
+  const { theme } = useTheme();
+  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <LiquidGlassProviderAndroid providerId={routeName} style={StyleSheet.absoluteFill}>
+          <View style={{ flex: 1, backgroundColor: theme.background }}>
+            {children}
+          </View>
+        </LiquidGlassProviderAndroid>
+      </View>
+    );
+  }
   return children;
 };
 
@@ -134,6 +146,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
 
     return (
       <LiquidGlassViewAndroid
+        providerId={currentRoute}
         interactive={isRealGlass}
         onLayout={onLayout}
         {...glassProps}
@@ -928,6 +941,7 @@ const CustomTabBar = ({
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassViewAndroid
+              providerId={state.routes[state.index].name}
               interactive={isRealGlass}
               {...glassProps}
               style={{
@@ -1550,7 +1564,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             )}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Home">
                 <HomeScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1573,7 +1587,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Forum">
                 <MenuScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1622,7 +1636,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Chat">
                 <ChatScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1648,7 +1662,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper>
+              <ScreenWrapper routeName="Notifications">
                 <NotificationScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -1662,13 +1676,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
       </View>
     );
 
-    if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-      return (
-        <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
-          {content}
-        </LiquidGlassProviderAndroid>
-      );
-    }
+
 
     if (Platform.OS === 'ios' && LiquidGlassContainerView && isLiquidGlassSupported) {
       return (
