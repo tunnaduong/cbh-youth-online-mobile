@@ -399,14 +399,7 @@ const CustomTabBar = ({
   const stretchAnim = useRef(new Animated.Value(0)).current;
   const offsetAnim = useRef(new Animated.Value(0)).current;
 
-  // Stable base value for indicator width — JS driver (drives `width` style)
-  const indicatorWidthBase = useRef(new Animated.Value(0)).current;
-  // indicatorAnimatedWidth: JS-driver composed value for width+stretch
-  const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
-  // indicatorDragOffset: JS-driver composed value for stretch direction offset
-  const indicatorDragOffset = useRef(offsetAnim).current;
-  // indicatorAnimatedTranslateX: uses jsSlideAnim (JS driver, for drag compatibility).
-  const indicatorAnimatedTranslateX = useRef(jsSlideAnim).current;
+
 
   // Per-tab scale animations for the zoom bounce effect (native driver).
   // One Animated.Value per left-route tab (4 tabs: Home, Forum, Chat, Notifications).
@@ -452,10 +445,7 @@ const CustomTabBar = ({
     activeLeftIndexRef.current = activeLeftIndex;
   }, [activeLeftIndex]);
 
-  // Keep the stable width base value in sync with layout-derived buttonWidth
-  useEffect(() => {
-    indicatorWidthBase.setValue(currentIndicatorWidth);
-  }, [currentIndicatorWidth]);
+
 
   // Keep track of the previously selected left index to calculate distance and direction
   const prevLeftIndex = useRef(activeLeftIndex);
@@ -491,13 +481,13 @@ const CustomTabBar = ({
 
       // Stretch width
       Animated.timing(stretchAnim, {
-        toValue: buttonWidth * 0.48 * Math.min(distance, 1.8),
+        toValue: 0.48 * Math.min(distance, 1.8),
         duration: 130,
-        useNativeDriver: false,
+        useNativeDriver: true,
       }).start(() => {
         Animated.spring(stretchAnim, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 320,
           damping: 24,
           mass: 0.5,
@@ -541,7 +531,7 @@ const CustomTabBar = ({
       // Direct spring back if index is invalid or first mount
       Animated.spring(stretchAnim, {
         toValue: 0,
-        useNativeDriver: false,
+        useNativeDriver: true,
         stiffness: 400,
         damping: 35,
         mass: 0.5,
@@ -688,7 +678,11 @@ const CustomTabBar = ({
         }).start();
 
         const extraStretch = 0;
-        stretchAnim.setValue(extraStretch);
+        Animated.timing(stretchAnim, {
+          toValue: extraStretch,
+          duration: 0,
+          useNativeDriver: true,
+        }).start();
 
         const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
         Animated.timing(offsetAnim, {
@@ -735,7 +729,7 @@ const CustomTabBar = ({
 
         Animated.spring(stretchAnim, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 400,
           damping: 34,
           mass: 0.5,
@@ -782,7 +776,7 @@ const CustomTabBar = ({
         }).start();
         Animated.spring(stretchAnim, {
           toValue: 0,
-          useNativeDriver: false,
+          useNativeDriver: true,
           stiffness: 260,
           damping: 22,
         }).start();
@@ -950,7 +944,7 @@ const CustomTabBar = ({
                   position: "absolute",
                   top: 0,
                   left: 0,
-                  width: indicatorAnimatedWidth,
+                  width: currentIndicatorWidth,
                   height: 50,
                   borderRadius: 25,
                   borderWidth: 1,
@@ -959,7 +953,8 @@ const CustomTabBar = ({
                   opacity,
                   transform: [
                     { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                    { scale: indicatorScale }
+                    { scale: indicatorScale },
+                    { scaleX: Animated.add(1, stretchAnim) }
                   ],
                 }}
               />
@@ -969,7 +964,7 @@ const CustomTabBar = ({
                   position: "absolute",
                   top: 0,
                   left: 0,
-                  width: indicatorAnimatedWidth,
+                  width: currentIndicatorWidth,
                   height: 50,
                   borderRadius: 25,
                   borderWidth: 0,
@@ -983,7 +978,8 @@ const CustomTabBar = ({
                   overflow: "hidden",
                   transform: [
                     { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                    { scale: indicatorScale }
+                    { scale: indicatorScale },
+                    { scaleX: Animated.add(1, stretchAnim) }
                   ],
                 }}
               >
@@ -1072,14 +1068,15 @@ const CustomTabBar = ({
                     position: "absolute",
                     top: 0,
                     left: 0,
-                    width: indicatorAnimatedWidth,
+                    width: currentIndicatorWidth,
                     height: 50,
                     borderRadius: 25,
                     backgroundColor: indicatorBg,
                     opacity,
                     transform: [
                       { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                      { scale: indicatorScale }
+                      { scale: indicatorScale },
+                      { scaleX: Animated.add(1, stretchAnim) }
                     ],
                   }}
                 />
@@ -1089,7 +1086,7 @@ const CustomTabBar = ({
                     position: "absolute",
                     top: 0,
                     left: 0,
-                    width: indicatorAnimatedWidth,
+                    width: currentIndicatorWidth,
                     height: 50,
                     borderRadius: 25,
                     borderWidth: indicatorBorderWidth,
@@ -1098,7 +1095,8 @@ const CustomTabBar = ({
                     opacity,
                     transform: [
                       { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                      { scale: indicatorScale }
+                      { scale: indicatorScale },
+                      { scaleX: Animated.add(1, stretchAnim) }
                     ],
                   }}
                 />
@@ -1109,7 +1107,7 @@ const CustomTabBar = ({
                   position: "absolute",
                   top: 0,
                   left: 0,
-                  width: indicatorAnimatedWidth,
+                  width: currentIndicatorWidth,
                   height: 50,
                   borderRadius: 25,
                   borderWidth: 0,
@@ -1123,7 +1121,8 @@ const CustomTabBar = ({
                   overflow: "hidden",
                   transform: [
                     { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                    { scale: indicatorScale }
+                    { scale: indicatorScale },
+                    { scaleX: Animated.add(1, stretchAnim) }
                   ],
                 }}
               >
@@ -1202,7 +1201,7 @@ const CustomTabBar = ({
           <Animated.View
             style={{
               position: "absolute",
-              width: indicatorAnimatedWidth,
+              width: currentIndicatorWidth,
               height: 50,
               borderRadius: 25,
               top: 0,
@@ -1210,7 +1209,8 @@ const CustomTabBar = ({
               opacity: opacity * 0.15,
               transform: [
                 { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                { scale: indicatorScale }
+                { scale: indicatorScale },
+                { scaleX: Animated.add(1, stretchAnim) }
               ],
               backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
             }}
@@ -1219,7 +1219,7 @@ const CustomTabBar = ({
           <Animated.View
             style={{
               position: "absolute",
-              width: indicatorAnimatedWidth,
+              width: currentIndicatorWidth,
               height: 50,
               borderRadius: 25,
               top: 0,
@@ -1227,7 +1227,8 @@ const CustomTabBar = ({
               opacity: opacity * 0.15,
               transform: [
                 { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                { scale: indicatorScale }
+                { scale: indicatorScale },
+                { scaleX: Animated.add(1, stretchAnim) }
               ],
               backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
             }}
@@ -1238,13 +1239,14 @@ const CustomTabBar = ({
               position: "absolute",
               top: 0,
               left: 0,
-              width: indicatorAnimatedWidth,
+              width: currentIndicatorWidth,
               height: 50,
               borderRadius: 25,
               opacity,
               transform: [
                 { translateX: Animated.add(nativeSlideAnim, offsetAnim) },
-                { scale: indicatorScale }
+                { scale: indicatorScale },
+                { scaleX: Animated.add(1, stretchAnim) }
               ],
               backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
               shadowColor: isDarkMode ? "#fff" : "#000",
