@@ -458,7 +458,6 @@ const CustomTabBar = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [state.routes, descriptors]);
 
-  const activeRouteName = state.routes[state.index].name;
   const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
   const activeLeftIndexRef = useRef(activeLeftIndex);
 
