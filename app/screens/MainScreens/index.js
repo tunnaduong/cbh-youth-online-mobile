@@ -691,7 +691,11 @@ const CustomTabBar = ({
         stretchAnim.setValue(extraStretch);
 
         const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
-        offsetAnim.setValue(directionOffset);
+        Animated.timing(offsetAnim, {
+          toValue: directionOffset,
+          duration: 0,
+          useNativeDriver: true,
+        }).start();
 
         const indicatorCenter = clampedX + bWidth / 2;
         const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
