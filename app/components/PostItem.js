@@ -149,8 +149,7 @@ const PostItem = ({
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${item.author.username
-              }/posts/${generatePostSlug(item.id, item.title)}?source=share`
+              `https://chuyenbienhoa.com/${item.author.id}/posts/${generatePostSlug(item.id, item.title)}?source=share`
             );
           }}
         >

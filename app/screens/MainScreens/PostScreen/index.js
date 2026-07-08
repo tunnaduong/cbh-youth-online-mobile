@@ -42,6 +42,7 @@ import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+import { generatePostSlug } from "../../../utils/slugify";
 import LottieView from "lottie-react-native";
 
 const PostScreen = ({ route, navigation }) => {
@@ -111,7 +112,7 @@ const PostScreen = ({ route, navigation }) => {
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${post?.author?.username}/posts/${post?.id}?source=share`
+              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`
             );
             hideBottomSheet();
           }}
