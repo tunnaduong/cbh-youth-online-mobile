@@ -62,7 +62,7 @@ const ScreenWrapper = ({ children, routeName }) => {
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid id={routeName} style={StyleSheet.absoluteFill}>
+        <LiquidGlassProviderAndroid providerId={routeName} style={StyleSheet.absoluteFill}>
           <View style={{ flex: 1, backgroundColor: theme.background }}>
             {children}
           </View>
