@@ -162,9 +162,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
           overflow: "hidden",
-          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
+          backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
           borderWidth: 1,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
         }}
       >
         {/* Chromatic Aberration - Red channel shift (left offset) */}
@@ -246,9 +246,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
           overflow: "hidden",
-          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
+          backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
           borderWidth: 1,
-          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+          borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
         }}
       >
         {/* Chromatic Aberration - Red channel shift (left offset) */}
@@ -325,9 +325,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         ...StyleSheet.absoluteFillObject,
         borderRadius: 26,
         overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+        backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
         borderWidth: 1,
-        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+        borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
       }}
     >
       {/* Chromatic Aberration - Red channel shift (left offset) */}
@@ -782,7 +782,7 @@ const CustomTabBar = ({
       tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
     };
 
-    const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
+    const pillBg = isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)";
 
     return (
       <Animated.View
@@ -808,9 +808,9 @@ const CustomTabBar = ({
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 26,
-                backgroundColor: pillBg,
+                backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : pillBg,
                 borderWidth: 1,
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
               }}
             />
             <Animated.View
@@ -875,9 +875,9 @@ const CustomTabBar = ({
             style={[
               styles.iosRightPill,
               {
-                backgroundColor: pillBg,
+                backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : pillBg,
                 borderWidth: 1,
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
               }
             ]}
           >
@@ -895,7 +895,7 @@ const CustomTabBar = ({
 
   if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView && isLiquidGlassSupported) {
     const isRealGlass = isLiquidGlassSupported;
-    const pillBg = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)";
+    const pillBg = isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)";
     const indicatorBg = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)";
     const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
 
@@ -924,9 +924,9 @@ const CustomTabBar = ({
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 26,
-                backgroundColor: pillBg,
+                backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : pillBg,
                 borderWidth: 1,
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
               }}
             />
             <Animated.View
@@ -1008,9 +1008,9 @@ const CustomTabBar = ({
             style={[
               styles.iosRightPill,
               {
-                backgroundColor: pillBg,
+                backgroundColor: isRealGlass ? (isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(240, 240, 240, 0.3)") : pillBg,
                 borderWidth: 1,
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
               }
             ]}
           >
@@ -1044,9 +1044,9 @@ const CustomTabBar = ({
           style={[
             styles.iosLeftPill,
             {
-              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+              backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
               borderWidth: 1,
-              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
             }
           ]}
         >
@@ -1128,9 +1128,9 @@ const CustomTabBar = ({
           style={[
             styles.iosRightPill,
             {
-              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+              backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
               borderWidth: 1,
-              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)",
               alignItems: 'center',
               justifyContent: 'center',
             }
