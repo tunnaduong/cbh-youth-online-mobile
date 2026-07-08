@@ -57,6 +57,9 @@ if (Platform.OS === 'android') {
   }
 }
 
+const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View;
+const AnimatedIndicatorIOS = AnimatedLiquidGlassView || Animated.View;
+
 const ScreenWrapper = ({ children, routeName }) => {
   const { theme } = useTheme();
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
@@ -193,7 +196,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           }}
         />
         {/* Main Glass Indicator (neutral white/dark) */}
-        <Animated.View
+        <AnimatedIndicatorAndroid
+          providerId={glassProviderId}
+          interactive={isRealGlass}
+          {...glassProps}
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
@@ -203,7 +209,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             left: 0,
             opacity,
             transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+            backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)"),
             shadowColor: isDarkMode ? "#fff" : "#000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: isDarkMode ? 0.3 : 0.15,
@@ -222,7 +228,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             end={{ x: 0, y: 1 }}
             style={StyleSheet.absoluteFillObject}
           />
-        </Animated.View>
+        </AnimatedIndicatorAndroid>
       </LiquidGlassViewAndroid>
     );
   }
@@ -274,7 +280,11 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           }}
         />
         {/* Main Glass Indicator (neutral white/dark) */}
-        <Animated.View
+        <AnimatedIndicatorIOS
+          effect="regular"
+          interactive={isRealGlass}
+          colorScheme={isDarkMode ? 'dark' : 'light'}
+          tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
@@ -284,7 +294,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             left: 0,
             opacity,
             transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+            backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)"),
             shadowColor: isDarkMode ? "#fff" : "#000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: isDarkMode ? 0.3 : 0.15,
@@ -303,7 +313,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             end={{ x: 0, y: 1 }}
             style={StyleSheet.absoluteFillObject}
           />
-        </Animated.View>
+        </AnimatedIndicatorIOS>
       </LiquidGlassView>
     );
   }
