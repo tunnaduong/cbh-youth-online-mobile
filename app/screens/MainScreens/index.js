@@ -137,19 +137,19 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     const isRealGlass = isLiquidGlassSupportedAndroid;
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
-      blurRadius: 10,
-      refractionAmount: 60,
-      refractionHeight: 30,
-      chromaticAberration: 0.2,
-      highlightAlpha: 0.6,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
+      blurRadius: 5,
+      refractionAmount: 25,
+      refractionHeight: 12,
+      chromaticAberration: 0.1,
+      highlightAlpha: 0.15,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
     } : {
-      blurRadius: 10,
+      blurRadius: 5,
       refractionAmount: 0,
       refractionHeight: 0,
       chromaticAberration: 0,
-      highlightAlpha: 0.3,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
+      highlightAlpha: 0.1,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
     };
 
     return (
@@ -767,19 +767,19 @@ const CustomTabBar = ({
     const isRealGlass = isLiquidGlassSupportedAndroid;
     const isAndroid33 = Platform.Version >= 33;
     const glassProps = isAndroid33 ? {
-      blurRadius: 10,
-      refractionAmount: 60,
-      refractionHeight: 30,
-      chromaticAberration: 0.2,
-      highlightAlpha: 0.6,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
+      blurRadius: 5,
+      refractionAmount: 25,
+      refractionHeight: 12,
+      chromaticAberration: 0.1,
+      highlightAlpha: 0.15,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
     } : {
-      blurRadius: 10,
+      blurRadius: 5,
       refractionAmount: 0,
       refractionHeight: 0,
       chromaticAberration: 0,
-      highlightAlpha: 0.3,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
+      highlightAlpha: 0.1,
+      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
     };
 
     const pillBg = isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)";
