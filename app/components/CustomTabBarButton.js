@@ -215,19 +215,19 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
     if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
       const isAndroid33 = Platform.Version >= 33;
       const glassProps = isAndroid33 ? {
-        blurRadius: 4,
-        refractionAmount: 30,
-        refractionHeight: 18,
-        chromaticAberration: 0.4,
-        highlightAlpha: 0.7,
-        tint: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.18)",
+        blurRadius: 20,
+        refractionAmount: 15,
+        refractionHeight: 10,
+        chromaticAberration: 0.2,
+        highlightAlpha: 0.6,
+        tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
       } : {
         blurRadius: 20,
         refractionAmount: 0,
         refractionHeight: 0,
         chromaticAberration: 0,
         highlightAlpha: 0.35,
-        tint: isDarkMode ? "rgba(30, 30, 30, 0.3)" : "rgba(255, 255, 255, 0.18)",
+        tint: isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)",
       };
 
       return (
@@ -242,9 +242,9 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
                 styles.glassRow,
                 {
                   marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                  backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
+                  backgroundColor: "transparent",
                   borderWidth: 1,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)",
                 }
               ]}
             >

@@ -195,12 +195,12 @@ export const CustomAlertProvider = () => {
                 // Wrap in a provider so it can sample the blurred background
                 <LiquidGlassProviderAndroid style={StyleSheet.absoluteFill}>
                   <LiquidGlassViewAndroid
-                    blurRadius={isAndroid33 ? 6 : 20}
-                    refractionAmount={isAndroid33 ? 18 : 0}
-                    refractionHeight={isAndroid33 ? 10 : 0}
-                    chromaticAberration={isAndroid33 ? 0.25 : 0}
-                    highlightAlpha={isAndroid33 ? 0.5 : 0.25}
-                    tint={isDarkMode ? "rgba(30, 30, 30, 0.55)" : "rgba(255, 255, 255, 0.45)"}
+                    blurRadius={isAndroid33 ? 20 : 20}
+                    refractionAmount={isAndroid33 ? 12 : 0}
+                    refractionHeight={isAndroid33 ? 8 : 0}
+                    chromaticAberration={isAndroid33 ? 0.15 : 0}
+                    highlightAlpha={isAndroid33 ? 0.4 : 0.25}
+                    tint={isDarkMode ? "rgba(30, 30, 30, 0.45)" : "rgba(255, 255, 255, 0.25)"}
                     style={[
                       styles.dialogContainer,
                       {
