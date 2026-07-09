@@ -167,7 +167,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     >
       <BlurView
         blurType={isDarkMode ? "dark" : "light"}
-        blurAmount={20}
+        blurAmount={15}
+        blurRounds={2}
         overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.5)" : "rgba(255, 255, 255, 0.3)"}
         style={StyleSheet.absoluteFillObject}
       />
@@ -691,7 +692,8 @@ const CustomTabBar = ({
           >
             <BlurView
               blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={20}
+              blurAmount={15}
+              blurRounds={2}
               overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.5)" : "rgba(255, 255, 255, 0.3)"}
               style={{
                 ...StyleSheet.absoluteFillObject,
@@ -754,7 +756,8 @@ const CustomTabBar = ({
           >
             <BlurView
               blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={20}
+              blurAmount={15}
+              blurRounds={2}
               overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.5)" : "rgba(255, 255, 255, 0.3)"}
               style={StyleSheet.absoluteFillObject}
             />

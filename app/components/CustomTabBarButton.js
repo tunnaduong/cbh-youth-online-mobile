@@ -205,7 +205,8 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
           >
             <BlurView
               blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={20}
+              blurAmount={15}
+              blurRounds={2}
               overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.6)" : "rgba(255, 255, 255, 0.4)"}
               style={StyleSheet.absoluteFillObject}
             />
