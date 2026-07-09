@@ -1,19 +1,21 @@
 import React from "react";
-import { StyleSheet, View, Platform } from "react-native";
-import { BlurView as NativeBlurView } from "@sbaiahmed1/react-native-blur";
+import { StyleSheet, View, Platform, useColorScheme } from "react-native";
+import { BlurView as NativeBlurView, LiquidGlassView } from "@sbaiahmed1/react-native-blur";
+import { useTheme } from "../contexts/ThemeContext";
 
 /**
  * A standard, performant BlurView wrapper component.
  * Features:
  * - absolute positioning with overflow: 'hidden'
  * - borderRadius: 30
- * - blurType: 'light' default
- * - max blurAmount: 14 (strictly capped to ensure optimal rendering speed)
- * - Optimized styling and property configurations for Android scroll performance
+ * - blurType: 'light' / 'dark' default, matching current theme (light or dark)
+ * - max blurAmount: 14 (capped on Android for performance)
+ * - Uses LiquidGlassView on iOS for premium glassy / liquid glass effect
+ * - Uses NativeBlurView on Android with custom theme-based overlayColor and downsampleFactor 4 for zero blocky square pixels
  */
 export const BlurView = ({
   style,
-  blurType = "light",
+  blurType,
   blurAmount = 14,
   blurRounds = 2,
   overlayColor,
@@ -22,27 +24,66 @@ export const BlurView = ({
   pointerEvents = "none",
   ...props
 }) => {
+  // Safe theme detection
+  const systemScheme = useColorScheme();
+  let isDark = systemScheme === "dark";
+  try {
+    const { isDarkMode } = useTheme();
+    isDark = isDarkMode;
+  } catch (e) {
+    // Fallback if rendered outside ThemeProvider
+  }
+
+  const resolvedBlurType = blurType ?? (isDark ? "dark" : "light");
+
+  // Determine dynamic overlay color for Android following the current theme
+  const resolvedOverlayColor = overlayColor ?? (isDark 
+    ? "rgba(18, 18, 18, 0.6)" 
+    : "rgba(255, 255, 255, 0.45)"
+  );
+
   // Cap blurAmount to a maximum of 14 for scroll performance (especially on Android)
   const cappedBlurAmount = Math.min(Math.max(0, blurAmount), 14);
 
   // Android-specific performance optimizations
-  const androidDownsample = downsampleFactor ?? 8;
+  const androidDownsample = downsampleFactor ?? 4; // 4 provides clean borders & avoids blockiness near images while keeping speed high
   const androidBlurRounds = Math.min(blurRounds, 2);
+
+  const renderContent = () => {
+    if (Platform.OS === "ios") {
+      // Use LiquidGlassView on iOS for the premium glassy/liquid glass effect
+      return (
+        <LiquidGlassView
+          glassType="regular"
+          glassTintColor={isDark ? "#1e1e1e" : "#ffffff"}
+          glassOpacity={isDark ? 0.35 : 0.15}
+          isInteractive={true}
+          style={styles.blurView}
+          {...props}
+        />
+      );
+    }
+
+    // Android: Use optimized NativeBlurView
+    return (
+      <NativeBlurView
+        style={styles.blurView}
+        blurType={resolvedBlurType}
+        blurAmount={cappedBlurAmount}
+        blurRounds={androidBlurRounds}
+        downsampleFactor={androidDownsample}
+        overlayColor={resolvedOverlayColor}
+        {...props}
+      />
+    );
+  };
 
   return (
     <View
       style={[styles.container, style]}
       pointerEvents={pointerEvents}
     >
-      <NativeBlurView
-        style={styles.blurView}
-        blurType={blurType}
-        blurAmount={cappedBlurAmount}
-        blurRounds={Platform.OS === "android" ? androidBlurRounds : blurRounds}
-        downsampleFactor={Platform.OS === "android" ? androidDownsample : undefined}
-        overlayColor={overlayColor}
-        {...props}
-      />
+      {renderContent()}
       {children}
     </View>
   );
