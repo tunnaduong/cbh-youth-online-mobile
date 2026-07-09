@@ -19,24 +19,8 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 
-let LiquidGlassView = null;
-let LiquidGlassContainerView = null;
-let isLiquidGlassSupported = false;
-let AnimatedLiquidGlassView = null;
+import { BlurView, LiquidGlassView, LiquidGlassContainer } from '@sbaiahmed1/react-native-blur';
 
-if (Platform.OS === 'ios') {
-  try {
-    const LiquidGlass = require('@callstack/liquid-glass');
-    LiquidGlassView = LiquidGlass.LiquidGlassView;
-    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
-    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
-    if (LiquidGlassView) {
-      AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
-    }
-  } catch (error) {
-    console.warn("Failed to load @callstack/liquid-glass:", error);
-  }
-}
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
@@ -91,18 +75,18 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   const opacity = activeIndex === 2 ? 0 : 1;
   const isIOS = Platform.OS === "ios";
 
-  if (isIOS && LiquidGlassView && isLiquidGlassSupported) {
-    const isRealGlass = isLiquidGlassSupported;
+  if (isIOS) {
     return (
       <LiquidGlassView
-        effect="regular"
-        interactive={isRealGlass}
+        glassType="regular"
+        glassTintColor={isDarkMode ? "#1e1e1e" : "#ffffff"}
+        glassOpacity={isDarkMode ? 0.35 : 0.15}
+        isInteractive={true}
         onLayout={onLayout}
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: 26,
           overflow: "hidden",
-          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)"),
           borderWidth: 1,
           borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
         }}
@@ -177,11 +161,16 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         ...StyleSheet.absoluteFillObject,
         borderRadius: 26,
         overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
         borderWidth: 1,
         borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
       }}
     >
+      <BlurView
+        blurType={isDarkMode ? "dark" : "light"}
+        blurAmount={20}
+        overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.5)" : "rgba(255, 255, 255, 0.3)"}
+        style={StyleSheet.absoluteFillObject}
+      />
       {/* Chromatic Aberration - Red channel shift (left offset) */}
       <Animated.View
         style={{
@@ -618,124 +607,7 @@ const CustomTabBar = ({
   }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
       triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
-  if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView && isLiquidGlassSupported) {
-    const isRealGlass = isLiquidGlassSupported;
-    const pillBg = isRealGlass ? "transparent" : (isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)");
-    const indicatorBg = isRealGlass
-      ? (isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)")
-      : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)");
-    const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
-
-    return (
-      <Animated.View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          transform: [{ translateY: tabBarTranslateY }],
-          zIndex: 99,
-        }}
-      >
-        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-          <View
-            {...panResponder.panHandlers}
-            onLayout={onLeftPillLayout}
-            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
-          >
-            <LiquidGlassView
-              effect="regular"
-              interactive={isRealGlass}
-              colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 26,
-                backgroundColor: pillBg,
-                borderWidth: 1,
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-              }}
-            />
-            <Animated.View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                transform: [{ translateX: nativeSlideAnim }],
-              }}
-            >
-              {isRealGlass ? (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 50,
-                    borderRadius: 25,
-                    borderWidth: indicatorBorderWidth,
-                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                    backgroundColor: indicatorBg,
-                    opacity,
-                  }}
-                />
-              ) : (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 50,
-                    borderRadius: 25,
-                    borderWidth: 0,
-                    backgroundColor: indicatorBg,
-                    opacity,
-                    shadowColor: isDarkMode ? "#fff" : "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                    shadowRadius: 6,
-                    elevation: 3,
-                    overflow: "hidden",
-                  }}
-                >
-                  <LinearGradient
-                    colors={[
-                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                      "transparent"
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                </Animated.View>
-              )}
-            </Animated.View>
-            {renderButtons()}
-          </View>
-
-          <LiquidGlassView
-            effect="regular"
-            interactive={isRealGlass}
-            colorScheme={isDarkMode ? 'dark' : 'light'}
-            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
-            style={[
-              styles.iosRightPill,
-              {
-                backgroundColor: pillBg,
-                borderWidth: 1,
-                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-              }
-            ]}
-          >
-            <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
-              <CustomTabBarButton
-                onPress={() => {}}
-                bottomOffset={bottomOffset}
-              />
-            </View>
-          </LiquidGlassView>
-        </LiquidGlassContainerView>
-      </Animated.View>
-    );
-  }
+  const isIOS = Platform.OS === 'ios';
 
   return (
     <Animated.View
@@ -748,111 +620,151 @@ const CustomTabBar = ({
         zIndex: 99,
       }}
     >
-      <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-        <View
-          {...panResponder.panHandlers}
-          onLayout={onLeftPillLayout}
-          style={[
-            styles.iosLeftPill,
-            {
-              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
-              borderWidth: 1,
-              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-            }
-          ]}
-        >
-          {/*
-            2-layer indicator architecture:
-            - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
-            - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
-              nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
-          */}
-          <Animated.View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              transform: [{ translateX: nativeSlideAnim }],
-            }}
+      {isIOS ? (
+        <LiquidGlassContainer spacing={12} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+          <View
+            {...panResponder.panHandlers}
+            onLayout={onLeftPillLayout}
+            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
-            {/* Chromatic Aberration - Red */}
+            <LiquidGlassView
+              glassType="regular"
+              glassTintColor={isDarkMode ? "#1e1e1e" : "#ffffff"}
+              glassOpacity={isDarkMode ? 0.35 : 0.15}
+              isInteractive={true}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 26,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }}
+            />
             <Animated.View
               style={{
                 position: "absolute",
-                width: indicatorAnimatedWidth,
-                height: 50,
-                borderRadius: 25,
                 top: 0,
-                left: -0.8,
-                opacity: opacity * 0.15,
-                transform: [{ translateX: indicatorDragOffset }],
-                backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
-              }}
-            />
-            {/* Chromatic Aberration - Blue */}
-            <Animated.View
-              style={{
-                position: "absolute",
-                width: indicatorAnimatedWidth,
-                height: 50,
-                borderRadius: 25,
-                top: 0,
-                left: 0.8,
-                opacity: opacity * 0.15,
-                transform: [{ translateX: indicatorDragOffset }],
-                backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
-              }}
-            />
-            {/* Main Glass Indicator */}
-            <Animated.View
-              style={{
-                width: indicatorAnimatedWidth,
-                height: 50,
-                borderRadius: 25,
-                opacity,
-                transform: [{ translateX: indicatorDragOffset }],
-                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-                shadowColor: isDarkMode ? "#fff" : "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                shadowRadius: 6,
-                elevation: 3,
-                overflow: "hidden",
+                left: 0,
+                transform: [{ translateX: nativeSlideAnim }],
               }}
             >
-              <LinearGradient
-                colors={[
-                  isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                  isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                  "transparent"
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: indicatorAnimatedWidth,
+                  height: 50,
+                  borderRadius: 25,
+                  backgroundColor: isDarkMode ? "transparent" : "rgba(255, 255, 255, 0.15)",
+                  opacity,
+                }}
               />
             </Animated.View>
-          </Animated.View>
-          {renderButtons()}
-        </View>
+            {renderButtons()}
+          </View>
 
-        <View
-          style={[
-            styles.iosRightPill,
-            {
-              backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.45)",
-              borderWidth: 1,
-              borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-              alignItems: 'center',
-              justifyContent: 'center',
-            }
-          ]}
-        >
-          <CustomTabBarButton
-            onPress={() => {}}
-            bottomOffset={bottomOffset}
-          />
+          <LiquidGlassView
+            glassType="regular"
+            glassTintColor={isDarkMode ? "#1e1e1e" : "#ffffff"}
+            glassOpacity={isDarkMode ? 0.35 : 0.15}
+            isInteractive={true}
+            style={[
+              styles.iosRightPill,
+              {
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }
+            ]}
+          >
+            <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
+              <CustomTabBarButton
+                onPress={() => {}}
+                bottomOffset={bottomOffset}
+              />
+            </View>
+          </LiquidGlassView>
+        </LiquidGlassContainer>
+      ) : (
+        <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+          <View
+            {...panResponder.panHandlers}
+            onLayout={onLeftPillLayout}
+            style={[styles.iosLeftPill, { overflow: 'hidden' }]}
+          >
+            <BlurView
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={20}
+              overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.5)" : "rgba(255, 255, 255, 0.3)"}
+              style={{
+                ...StyleSheet.absoluteFillObject,
+                borderRadius: 26,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+              }}
+            />
+            <Animated.View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                transform: [{ translateX: nativeSlideAnim }],
+              }}
+            >
+              {/* Main Glass Indicator */}
+              <Animated.View
+                style={{
+                  width: indicatorAnimatedWidth,
+                  height: 50,
+                  borderRadius: 25,
+                  opacity,
+                  transform: [{ translateX: indicatorDragOffset }],
+                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                  shadowColor: isDarkMode ? "#fff" : "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  overflow: "hidden",
+                }}
+              >
+                <LinearGradient
+                  colors={[
+                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                    "transparent"
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              </Animated.View>
+            </Animated.View>
+            {renderButtons()}
+          </View>
+
+          <View
+            style={[
+              styles.iosRightPill,
+              {
+                borderWidth: 1,
+                borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+              }
+            ]}
+          >
+            <BlurView
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={20}
+              overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.5)" : "rgba(255, 255, 255, 0.3)"}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <CustomTabBarButton
+              onPress={() => {}}
+              bottomOffset={bottomOffset}
+            />
+          </View>
         </View>
-      </View>
+      )}
     </Animated.View>
   );
 };

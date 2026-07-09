@@ -22,20 +22,7 @@ import { useTranslation } from "react-i18next";
 
 const { width, height } = Dimensions.get("window");
 
-let LiquidGlassView = null;
-let LiquidGlassContainerView = null;
-let isLiquidGlassSupported = false;
-
-if (Platform.OS === 'ios') {
-  try {
-    const LiquidGlass = require('@callstack/liquid-glass');
-    LiquidGlassView = LiquidGlass.LiquidGlassView;
-    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
-    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
-  } catch (error) {
-    console.warn("Failed to load @callstack/liquid-glass:", error);
-  }
-}
+import { BlurView, LiquidGlassView, LiquidGlassContainer } from '@sbaiahmed1/react-native-blur';
 
 // Height of each sub-button row
 const BTN_HEIGHT = 50;
@@ -53,7 +40,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  const isRealGlass = Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && isLiquidGlassSupported;
+  const isIOS = Platform.OS === 'ios';
 
   useEffect(() => {
     return () => {
@@ -170,19 +157,19 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   ];
 
   const renderMenu = () => {
-    if (isRealGlass) {
+    if (isIOS) {
       return (
-        <LiquidGlassContainerView
+        <LiquidGlassContainer
           spacing={BTN_GAP}
           style={styles.glassContainer}
         >
           {menuButtons.map((btn, i) => (
             <LiquidGlassView
               key={i}
-              effect="regular"
-              interactive={true}
-              colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
+              glassType="regular"
+              glassTintColor={isDarkMode ? "#1e1e1e" : "#ffffff"}
+              glassOpacity={0.7}
+              isInteractive={true}
               style={[
                 styles.glassRow,
                 { marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0 }
@@ -191,7 +178,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
               {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
             </LiquidGlassView>
           ))}
-        </LiquidGlassContainerView>
+        </LiquidGlassContainer>
       );
     }
 
@@ -205,7 +192,6 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
             style={[
               styles.pillRow,
               {
-                backgroundColor: pillBg,
                 borderColor: pillBorder,
                 marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
                 elevation: dynamicElevation,
@@ -213,9 +199,16 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: dynamicShadowOpacity,
                 shadowRadius: 6,
+                overflow: 'hidden',
               }
             ]}
           >
+            <BlurView
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={20}
+              overlayColor={isDarkMode ? "rgba(18, 18, 18, 0.6)" : "rgba(255, 255, 255, 0.4)"}
+              style={StyleSheet.absoluteFillObject}
+            />
             {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
           </Animated.View>
         ))}
