@@ -509,12 +509,12 @@ const PostEditScreen = ({ navigation, route }) => {
 
         </View>
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
-          <Dropdown
+          {/* <Dropdown
             options={subforums}
             placeholder={t('editPost.placeholderCategory')}
             selectedValue={selected}
             onValueChange={setSelected}
-          />
+          /> */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <TouchableOpacity
               onPress={() => navigateToHelp(213057)}

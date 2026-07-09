@@ -52,7 +52,7 @@ export const BlurView = ({
   const cappedBlurAmount = Math.min(Math.max(0, blurAmount), 14);
 
   // Android-specific performance optimizations
-  const androidDownsample = downsampleFactor ?? 2; // Downsample factor of 2 eliminates pixelated/square blocks near images
+  const androidDownsample = downsampleFactor ?? 1; // Downsample factor of 1 completely disables downscaling to eliminate pixelation
   const androidBlurRounds = Math.min(blurRounds, 2);
 
   const renderContent = () => {
