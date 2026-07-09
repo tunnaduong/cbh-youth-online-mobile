@@ -15,11 +15,11 @@ jobs:
       contents: write
 
     steps:
-      # 1. Checkout the repository, specifically targeting the dhphuc branch
-      - name: Checkout dhphuc branch
+      # 1. Checkout the repository, specifically targeting the dhphuc_redo branch
+      - name: Checkout dhphuc_redo branch
         uses: actions/checkout@v4
         with:
-          ref: dhphuc
+          ref: dhphuc_redo
           # Fetch all history so git can push properly
           fetch-depth: 0 
 

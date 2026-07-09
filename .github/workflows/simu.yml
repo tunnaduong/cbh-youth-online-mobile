@@ -3,7 +3,7 @@ name: Build iOS Simulator
 on:
   push:
     branches:
-      - 'dhphuc'
+      - 'dhphuc_redo'
   workflow_dispatch:
 
 permissions:

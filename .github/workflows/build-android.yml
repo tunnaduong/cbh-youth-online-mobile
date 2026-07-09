@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   push:
     branches:
-      - dhphuc
+      - dhphuc_redo
   workflow_dispatch: # Keeps the manual trigger option available
 
 jobs:
