@@ -7,11 +7,13 @@ import { useTheme } from "../contexts/ThemeContext";
  * A standard, performant BlurView wrapper component.
  * Features:
  * - absolute positioning with overflow: 'hidden'
- * - borderRadius: 30
- * - blurType: 'light' / 'dark' default, matching current theme (light or dark)
+ * - borderRadius: 30 (customizable via style prop)
+ * - blurType: matching current theme (light or dark)
  * - max blurAmount: 14 (capped on Android for performance)
  * - Uses LiquidGlassView on iOS for premium glassy / liquid glass effect
- * - Uses NativeBlurView on Android with custom theme-based overlayColor and downsampleFactor 4 for zero blocky square pixels
+ * - Uses NativeBlurView on Android with custom theme-based overlayColor
+ * - Solves Android corner clipping ("square box" bug) using collapsable={false} and passing borderRadius directly to native view
+ * - Optimized downsampling (factor of 2) on Android to prevent pixelated blockiness while maintaining high scroll performance
  */
 export const BlurView = ({
   style,
@@ -42,11 +44,15 @@ export const BlurView = ({
     : "rgba(255, 255, 255, 0.45)"
   );
 
+  // Extract borderRadius from style if present, default to 30
+  const flatStyle = StyleSheet.flatten(style) || {};
+  const borderRadius = flatStyle.borderRadius ?? 30;
+
   // Cap blurAmount to a maximum of 14 for scroll performance (especially on Android)
   const cappedBlurAmount = Math.min(Math.max(0, blurAmount), 14);
 
   // Android-specific performance optimizations
-  const androidDownsample = downsampleFactor ?? 4; // 4 provides clean borders & avoids blockiness near images while keeping speed high
+  const androidDownsample = downsampleFactor ?? 2; // Downsample factor of 2 eliminates pixelated/square blocks near images
   const androidBlurRounds = Math.min(blurRounds, 2);
 
   const renderContent = () => {
@@ -58,7 +64,7 @@ export const BlurView = ({
           glassTintColor={isDark ? "#1e1e1e" : "#ffffff"}
           glassOpacity={isDark ? 0.35 : 0.15}
           isInteractive={true}
-          style={styles.blurView}
+          style={[styles.blurView, { borderRadius }]}
           {...props}
         />
       );
@@ -67,7 +73,7 @@ export const BlurView = ({
     // Android: Use optimized NativeBlurView
     return (
       <NativeBlurView
-        style={styles.blurView}
+        style={[styles.blurView, { borderRadius }]}
         blurType={resolvedBlurType}
         blurAmount={cappedBlurAmount}
         blurRounds={androidBlurRounds}
@@ -80,8 +86,9 @@ export const BlurView = ({
 
   return (
     <View
-      style={[styles.container, style]}
+      style={[styles.container, style, { borderRadius }]}
       pointerEvents={pointerEvents}
+      collapsable={false}
     >
       {renderContent()}
       {children}
@@ -97,10 +104,10 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     overflow: "hidden",
-    borderRadius: 30,
   },
   blurView: {
     ...StyleSheet.absoluteFillObject,
+    overflow: "hidden",
   },
 });
 
