@@ -46,7 +46,8 @@ import { generatePostSlug } from "../../../utils/slugify";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
-  const { item, postId, screenName } = route.params; // Destructure item from route.params
+  const { item, postId: rawPostId, screenName } = route.params; // Destructure item from route.params
+  const postId = rawPostId != null ? Number(rawPostId) : item?.id;
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
   const [isSaved, setIsSaved] = useState(

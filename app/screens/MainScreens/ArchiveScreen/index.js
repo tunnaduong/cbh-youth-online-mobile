@@ -82,7 +82,9 @@ const ArchiveScreen = ({ route, navigation }) => {
       avatarSource: {
         uri: `https://api.chuyenbienhoa.com/users/${username}/avatar`,
       },
-      stories: stories.map((story) => ({
+      stories: stories
+        .filter((story) => story.media_url != null && story.media_url !== "")
+        .map((story) => ({
         id: story.id,
         storyId: story.id,
         source: {

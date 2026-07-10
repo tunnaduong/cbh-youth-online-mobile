@@ -63,24 +63,38 @@ const navigationRef = createNavigationContainerRef();
 const parseDeepLink = (url) => {
   if (!url) return null;
   try {
+    // Handle custom scheme: com.fatties.youth://story/ID or com.fatties.youth://post/ID
     const schemePrefix = "com.fatties.youth://";
-    if (!url.startsWith(schemePrefix)) {
+    if (url.startsWith(schemePrefix)) {
+      const rest = url.substring(schemePrefix.length);
+      const [host, param] = rest.split("/");
+      if ((host === "story" || host === "stories") && param) {
+        return { type: "story", storyId: String(param) };
+      }
+      if ((host === "post" || host === "posts") && param) {
+        const match = param.match(/^(\d+)/);
+        const postId = match ? match[1] : param;
+        return { type: "post", postId: String(postId) };
+      }
       return null;
     }
-    
-    const rest = url.substring(schemePrefix.length);
-    const parts = rest.split("/");
-    const host = parts[0];
-    const param = parts[1];
-    
-    if (host === "story" && param) {
-      return { type: "story", storyId: param };
-    }
-    
-    if (host === "post" && param) {
-      const match = param.match(/^(\d+)/);
-      const postId = match ? match[1] : param;
-      return { type: "post", postId };
+
+    // Handle web URLs: https://(www.)chuyenbienhoa.com/...
+    const webPattern = /^https?:\/\/(www\.)?chuyenbienhoa\.com/i;
+    if (webPattern.test(url)) {
+      const urlObj = new URL(url);
+
+      // Query param: ?storyId=123
+      const storyId = urlObj.searchParams.get("storyId");
+      if (storyId) return { type: "story", storyId: String(storyId) };
+
+      // Query param: ?postId=123 or ?id=123
+      const postIdParam = urlObj.searchParams.get("postId") || urlObj.searchParams.get("id");
+      if (postIdParam) return { type: "post", postId: String(postIdParam) };
+
+      // Path: /{username}/posts/{id}-{slug} or /{username}/posts/{id}
+      const pathMatch = urlObj.pathname.match(/\/[^\/]+\/posts\/(\d+)/);
+      if (pathMatch) return { type: "post", postId: String(pathMatch[1]) };
     }
   } catch (error) {
     console.error("Failed to parse deep link URL:", error);

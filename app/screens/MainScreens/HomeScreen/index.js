@@ -893,13 +893,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   // Handle story highlighting from notifications
   useEffect(() => {
     if (route.params?.highlightStoryId && userStories.length > 0) {
-      // Find the user and story to highlight
-      const storyToHighlight = route.params.highlightStoryId;
+      const storyToHighlight = String(route.params.highlightStoryId);
       const userWithStory = userStories.find((user) =>
-        user.stories.some((story) => story.storyId === storyToHighlight)
+        user.stories.some((story) => String(story.storyId) === storyToHighlight)
       );
       if (userWithStory) {
-        // Open the story viewer for that user
         setTimeout(() => {
           storyRef.current?.show(userWithStory.id);
         }, 500);
@@ -1210,7 +1208,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
-        stories: user.stories.map((story) => ({
+        stories: user.stories
+          .filter((story) => story.media_url != null && story.media_url !== "")
+          .map((story) => ({
           id: story.id,
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
@@ -1248,7 +1248,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setCurrentStoryUser({ id: user.id, username: user.username });
           },
         })),
-      }));
+      }))
+      .filter((user) => user.stories.length > 0);
   };
 
   const EmailVerificationAlert = () => {
