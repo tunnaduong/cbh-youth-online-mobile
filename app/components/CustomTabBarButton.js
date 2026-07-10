@@ -123,11 +123,11 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
 
   // Pill background
   const pillBg = isDarkMode
-    ? `${theme.surface}CC`
-    : `${theme.background}F2`;
+    ? "rgba(18, 18, 18, 0.78)"
+    : "rgba(255, 255, 255, 0.78)";
   const pillBorder = isDarkMode
-    ? "rgba(255, 255, 255, 0.10)"
-    : "rgba(0, 0, 0, 0.06)";
+    ? "rgba(255, 255, 255, 0.12)"
+    : "rgba(0, 0, 0, 0.08)";
 
   const dynamicElevation = menuAnim.interpolate({
     inputRange: [0, 0.5, 1],
