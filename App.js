@@ -117,10 +117,29 @@ const App = () => {
   const pendingDeepLinkRef = useRef(null);
   const pendingDeepLinkIsBrowserRef = useRef(false);
   const isLoggedInRef = useRef(isLoggedIn);
+  const browserIntentLoadingTimeoutRef = useRef(null);
 
   useEffect(() => {
     isLoggedInRef.current = isLoggedIn;
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    return () => {
+      if (browserIntentLoadingTimeoutRef.current) {
+        clearTimeout(browserIntentLoadingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const hideBrowserIntentLoading = () => {
+    if (browserIntentLoadingTimeoutRef.current) {
+      clearTimeout(browserIntentLoadingTimeoutRef.current);
+    }
+
+    browserIntentLoadingTimeoutRef.current = setTimeout(() => {
+      setShowBrowserIntentLoading(false);
+    }, 900);
+  };
 
   const executeDeepLinkAction = async (action, showLoading = false) => {
     if (!action) return;
@@ -194,7 +213,7 @@ const App = () => {
       console.error("Error executing deep link action:", e);
     } finally {
       if (showLoading) {
-        setShowBrowserIntentLoading(false);
+        hideBrowserIntentLoading();
       }
     }
   };
