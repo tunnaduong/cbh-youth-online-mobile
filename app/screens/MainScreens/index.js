@@ -73,7 +73,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
   }, [currentIndicatorLeft]);
 
   const opacity = activeIndex === 2 ? 0 : 1;
-  const isIOS = Platform.OS === "ios";
+  const isIOS = Platform.OS === "ios" && parseInt(Platform.Version, 10) >= 26;
 
   if (isIOS) {
     return (
@@ -608,7 +608,7 @@ const CustomTabBar = ({
   }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
       triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
-  const isIOS = Platform.OS === 'ios';
+  const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(Platform.Version, 10) >= 26;
 
   return (
     <Animated.View
@@ -621,7 +621,7 @@ const CustomTabBar = ({
         zIndex: 99,
       }}
     >
-      {isIOS ? (
+      {supportsLiquidGlass ? (
         <LiquidGlassContainer spacing={12} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
           <View
             {...panResponder.panHandlers}

@@ -56,8 +56,8 @@ export const BlurView = ({
   const androidBlurRounds = Math.min(blurRounds, 2);
 
   const renderContent = () => {
-    if (Platform.OS === "ios") {
-      // Use LiquidGlassView on iOS for the premium glassy/liquid glass effect
+    if (Platform.OS === "ios" && parseInt(Platform.Version, 10) >= 26) {
+      // Use LiquidGlassView on iOS 26+ for the premium glassy/liquid glass effect
       return (
         <LiquidGlassView
           glassType="regular"
@@ -70,7 +70,7 @@ export const BlurView = ({
       );
     }
 
-    // Android: Use optimized NativeBlurView
+    // Android / iOS < 16: Use optimized NativeBlurView
     return (
       <NativeBlurView
         style={[styles.blurView, { borderRadius }]}

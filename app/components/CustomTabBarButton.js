@@ -40,7 +40,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  const isIOS = Platform.OS === 'ios';
+  const supportsLiquidGlass = Platform.OS === 'ios' && parseInt(Platform.Version, 10) >= 26;
 
   useEffect(() => {
     return () => {
@@ -157,7 +157,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   ];
 
   const renderMenu = () => {
-    if (isIOS) {
+    if (supportsLiquidGlass) {
       return (
         <LiquidGlassContainer
           spacing={BTN_GAP}
