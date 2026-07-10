@@ -1175,7 +1175,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             });
           });
           if (prefetchUrls.length > 0) {
-            Promise.all(prefetchUrls.map((uri) => Image.prefetch(uri))).catch((err) =>
+            Promise.all(
+              prefetchUrls
+                .filter((uri) => uri && !uri.includes("null") && !uri.endsWith("com"))
+                .map((uri) => Image.prefetch(uri))
+            ).catch((err) =>
               console.log("Error prefetching story images:", err)
             );
           }
@@ -1209,20 +1213,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
         stories: user.stories
-          .filter((story) => story.media_url != null && story.media_url !== "")
           .map((story) => ({
           id: story.id,
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+            uri: story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : "",
           },
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
           renderContent: () => (
             <ZoomableStoryImage
-              uri={`https://api.chuyenbienhoa.com${story.media_url}`}
+              uri={story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : ""}
               style={{
                 width: SCREEN_WIDTH,
                 height: SCREEN_HEIGHT,
