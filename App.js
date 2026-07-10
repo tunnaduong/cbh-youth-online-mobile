@@ -114,14 +114,19 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [showBrowserIntentLoading, setShowBrowserIntentLoading] = useState(false);
 
-  const pendingDeepLinkRef = useRef(null);
-  const pendingDeepLinkIsBrowserRef = useRef(false);
+  const pendingDeepLinkQueueRef = useRef([]);
+  const isDeepLinkProcessingRef = useRef(false);
   const isLoggedInRef = useRef(isLoggedIn);
+  const isLoadingRef = useRef(isLoading);
   const browserIntentLoadingTimeoutRef = useRef(null);
 
   useEffect(() => {
     isLoggedInRef.current = isLoggedIn;
   }, [isLoggedIn]);
+
+  useEffect(() => {
+    isLoadingRef.current = isLoading;
+  }, [isLoading]);
 
   useEffect(() => {
     return () => {
@@ -218,6 +223,27 @@ const App = () => {
     }
   };
 
+  const processQueuedDeepLinks = () => {
+    if (isDeepLinkProcessingRef.current || isLoadingRef.current || !isLoggedInRef.current) {
+      return;
+    }
+
+    const nextItem = pendingDeepLinkQueueRef.current.shift();
+    if (!nextItem) {
+      return;
+    }
+
+    isDeepLinkProcessingRef.current = true;
+    const { action, showLoading } = nextItem;
+
+    setTimeout(() => {
+      executeDeepLinkAction(action, showLoading).finally(() => {
+        isDeepLinkProcessingRef.current = false;
+        processQueuedDeepLinks();
+      });
+    }, 1000);
+  };
+
   const handleUrl = (url) => {
     console.log("Deep Link URL intercepted:", url);
     const parsed = parseDeepLink(url);
@@ -225,19 +251,24 @@ const App = () => {
 
     const shouldShowBrowserLoading = isBrowserIntentUrl(url);
 
+    if (isLoadingRef.current) {
+      pendingDeepLinkQueueRef.current.push({ action: parsed, showLoading: shouldShowBrowserLoading });
+      return;
+    }
+
     if (!isLoggedInRef.current) {
-      pendingDeepLinkRef.current = parsed;
-      pendingDeepLinkIsBrowserRef.current = shouldShowBrowserLoading;
+      pendingDeepLinkQueueRef.current.push({ action: parsed, showLoading: shouldShowBrowserLoading });
       Toast.show({
         type: "info",
-        text1: "Yêu cầu đăng nhập",
-        text2: "Vui lòng đăng nhập để xem nội dung này.",
+        text1: t("auth.loginRequiredTitle"),
+        text2: t("auth.loginRequiredMessage"),
         topOffset: 60,
       });
       return;
     }
 
-    executeDeepLinkAction(parsed, shouldShowBrowserLoading);
+    pendingDeepLinkQueueRef.current.push({ action: parsed, showLoading: shouldShowBrowserLoading });
+    processQueuedDeepLinks();
   };
 
   useEffect(() => {
@@ -261,16 +292,10 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn && pendingDeepLinkRef.current) {
-      const action = pendingDeepLinkRef.current;
-      const shouldShowBrowserLoading = pendingDeepLinkIsBrowserRef.current;
-      pendingDeepLinkRef.current = null;
-      pendingDeepLinkIsBrowserRef.current = false;
-      setTimeout(() => {
-        executeDeepLinkAction(action, shouldShowBrowserLoading);
-      }, 1000);
+    if (!isLoading && isLoggedIn) {
+      processQueuedDeepLinks();
     }
-  }, [isLoggedIn]);
+  }, [isLoading, isLoggedIn]);
 
   const handleSplashFinish = () => {
     setShowSplash(false);

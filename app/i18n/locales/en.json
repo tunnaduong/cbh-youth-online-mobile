@@ -761,6 +761,8 @@
   },
   "auth": {
     "googleProcessing": "Processing Google login. Please wait...",
+    "loginRequiredTitle": "Login required",
+    "loginRequiredMessage": "Please log in to view this content.",
     "sessionInProgress": "Another login session is in progress. Please wait or try again later.",
     "stateFailed": "Could not verify login. Please try again.",
     "loginCancelled": "Login was cancelled or an error occurred. Please try again later.",

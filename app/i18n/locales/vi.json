@@ -749,6 +749,8 @@
   },
   "auth": {
     "googleProcessing": "Đang xử lý đăng nhập với Google. Vui lòng đợi...",
+    "loginRequiredTitle": "Yêu cầu đăng nhập",
+    "loginRequiredMessage": "Vui lòng đăng nhập để xem nội dung này.",
     "sessionInProgress": "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau.",
     "stateFailed": "Không thể xác thực đăng nhập. Vui lòng thử lại.",
     "loginCancelled": "Đăng nhập đã bị hủy hoặc có lỗi xảy ra. Vui lòng thử lại sau.",
