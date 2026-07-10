@@ -75,6 +75,8 @@ const PostScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const lottieRef = useRef(null);
+  // True while fetching post data (for deep link navigation where no item is passed)
+  const [isLoadingPost, setIsLoadingPost] = useState(!item);
 
   React.useEffect(() => {
     navigation.setOptions({ title: t('post.details') });
@@ -259,6 +261,8 @@ const PostScreen = ({ route, navigation }) => {
       setComments(comments ?? []);
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setIsLoadingPost(false);
     }
   };
 
@@ -1064,14 +1068,18 @@ const PostScreen = ({ route, navigation }) => {
   );
 
   return post == null ? (
-    <View
-      style={{
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: theme.background,
-        flex: 1,
-      }}
-    ></View>
+    <View style={{ alignItems: "center", justifyContent: "center", backgroundColor: theme.background, flex: 1 }}>
+      {isLoadingPost ? (
+        <LottieView
+          source={require("../../../assets/refresh.json")}
+          style={{ width: 60, height: 60 }}
+          loop
+          autoPlay
+        />
+      ) : (
+        <Text style={{ color: theme.subText }}>{t('home.loadingError')}</Text>
+      )}
+    </View>
   ) : (
     <>
       <KeyboardAvoidingView

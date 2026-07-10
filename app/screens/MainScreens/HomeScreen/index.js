@@ -1219,13 +1219,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            uri: story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : "",
+            uri: story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : undefined,
           },
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
           renderContent: () => (
             <ZoomableStoryImage
-              uri={story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : ""}
+              uri={story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : undefined}
               style={{
                 width: SCREEN_WIDTH,
                 height: SCREEN_HEIGHT,
