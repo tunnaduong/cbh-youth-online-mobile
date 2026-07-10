@@ -19,38 +19,15 @@ import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import {
+  LiquidGlassView,
+  LiquidGlassContainer,
+  LiquidGlassViewAndroid,
+  isLiquidGlassSupportedAndroid,
+  useIOSGlass,
+} from "./GlassModules";
 
 const { width, height } = Dimensions.get("window");
-
-let LiquidGlassView = null;
-let LiquidGlassContainerView = null;
-let isLiquidGlassSupported = false;
-
-if (Platform.OS === 'ios') {
-  try {
-    const LiquidGlass = require('@callstack/liquid-glass');
-    LiquidGlassView = LiquidGlass.LiquidGlassView;
-    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
-    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
-  } catch (error) {
-    console.warn("Failed to load @callstack/liquid-glass:", error);
-  }
-}
-
-let LiquidGlassProviderAndroid = null;
-let LiquidGlassViewAndroid = null;
-let isLiquidGlassSupportedAndroid = false;
-
-if (Platform.OS === 'android') {
-  try {
-    const LiquidGlassKit = require('liquid-glass-kit');
-    LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
-    LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
-    isLiquidGlassSupportedAndroid = LiquidGlassKit.isLiquidGlassSupported;
-  } catch (error) {
-    console.warn("Failed to load liquid-glass-kit:", error);
-  }
-}
 
 // Height of each sub-button row
 const BTN_HEIGHT = 50;
@@ -68,7 +45,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  const isRealGlass = Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && isLiquidGlassSupported;
+  const isRealGlass = useIOSGlass;
 
   useEffect(() => {
     return () => {
@@ -189,17 +166,17 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
   const renderMenu = () => {
     if (isRealGlass) {
       return (
-        <LiquidGlassContainerView
+        <LiquidGlassContainer
           spacing={BTN_GAP}
           style={styles.glassContainer}
         >
           {menuButtons.map((btn, i) => (
             <LiquidGlassView
               key={i}
-              effect="regular"
-              interactive={true}
-              colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
+              glassType="regular"
+              glassTintColor={isDarkMode ? "#1E1E1E66" : "#FFFFFF40"}
+              glassOpacity={1}
+              isInteractive={true}
               style={[
                 styles.glassRow,
                 { marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0 }
@@ -208,7 +185,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
               {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
             </LiquidGlassView>
           ))}
-        </LiquidGlassContainerView>
+        </LiquidGlassContainer>
       );
     }
 

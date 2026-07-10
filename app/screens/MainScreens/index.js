@@ -19,43 +19,16 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 
-let LiquidGlassView = null;
-let LiquidGlassContainerView = null;
-let isLiquidGlassSupported = false;
-let AnimatedLiquidGlassView = null;
-
-if (Platform.OS === 'ios') {
-  try {
-    const LiquidGlass = require('@callstack/liquid-glass');
-    LiquidGlassView = LiquidGlass.LiquidGlassView;
-    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
-    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
-    if (LiquidGlassView) {
-      AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
-    }
-  } catch (error) {
-    console.warn("Failed to load @callstack/liquid-glass:", error);
-  }
-}
-
-let LiquidGlassProviderAndroid = null;
-let LiquidGlassViewAndroid = null;
-let isLiquidGlassSupportedAndroid = false;
-let AnimatedLiquidGlassViewAndroid = null;
-
-if (Platform.OS === 'android') {
-  try {
-    const LiquidGlassKit = require('liquid-glass-kit');
-    LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
-    LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
-    isLiquidGlassSupportedAndroid = LiquidGlassKit.isLiquidGlassSupported;
-    if (LiquidGlassViewAndroid) {
-      AnimatedLiquidGlassViewAndroid = Animated.createAnimatedComponent(LiquidGlassViewAndroid);
-    }
-  } catch (error) {
-    console.warn("Failed to load liquid-glass-kit:", error);
-  }
-}
+import {
+  LiquidGlassView,
+  LiquidGlassContainer,
+  LiquidGlassProviderAndroid,
+  LiquidGlassViewAndroid,
+  AnimatedLiquidGlassViewAndroid,
+  isLiquidGlassSupportedAndroid,
+  AnimatedLiquidGlassView,
+  useIOSGlass,
+} from "../../components/GlassModules";
 
 const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View;
 const AnimatedIndicatorIOS = AnimatedLiquidGlassView || Animated.View;
@@ -235,12 +208,14 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
 
   const isIOS = Platform.OS === "ios";
 
-  if (isIOS && LiquidGlassView && isLiquidGlassSupported) {
-    const isRealGlass = isLiquidGlassSupported;
+  if (isIOS && useIOSGlass) {
+    const isRealGlass = useIOSGlass;
     return (
       <LiquidGlassView
-        effect="regular"
-        interactive={isRealGlass}
+        glassType="regular"
+        glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
+        glassOpacity={1}
+        isInteractive={isRealGlass}
         onLayout={onLayout}
         style={{
           ...StyleSheet.absoluteFillObject,
@@ -281,10 +256,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         />
         {/* Main Glass Indicator (neutral white/dark) */}
         <AnimatedIndicatorIOS
-          effect="regular"
-          interactive={isRealGlass}
-          colorScheme={isDarkMode ? 'dark' : 'light'}
-          tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
+          glassType="regular"
+          glassTintColor={isDarkMode ? "#1E1E1E66" : "#FFFFFF40"}
+          glassOpacity={1}
+          isInteractive={false}
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
@@ -894,11 +869,10 @@ const CustomTabBar = ({
     );
   }
 
-  if (Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && AnimatedLiquidGlassView && isLiquidGlassSupported) {
-    const isRealGlass = isLiquidGlassSupported;
+  if (Platform.OS === 'ios' && useIOSGlass) {
+    const isRealGlass = useIOSGlass;
     const pillBg = isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)";
     const indicatorBg = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)";
-    const indicatorBorderWidth = isRealGlass ? (isDarkMode ? 0 : 1) : 0;
 
     return (
       <Animated.View
@@ -911,17 +885,17 @@ const CustomTabBar = ({
           zIndex: 99,
         }}
       >
-        <LiquidGlassContainerView spacing={isRealGlass ? 12 : 0} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+        <LiquidGlassContainer spacing={12} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
           <View
             {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassView
-              effect="regular"
-              interactive={isRealGlass}
-              colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+              glassType="regular"
+              glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
+              glassOpacity={1}
+              isInteractive={isRealGlass}
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 24.5,
@@ -938,35 +912,21 @@ const CustomTabBar = ({
                 transform: [{ translateX: nativeSlideAnim }],
               }}
             >
-              {isRealGlass ? (
-                AnimatedLiquidGlassView ? (
-                  <AnimatedLiquidGlassView
-                    effect="regular"
-                    interactive={false}
-                    colorScheme={isDarkMode ? 'dark' : 'light'}
-                    style={{
-                      position: "absolute",
-                      width: indicatorAnimatedWidth,
-                      height: 47,
-                      borderRadius: 23.5,
-                      backgroundColor: indicatorBg,
-                      opacity,
-                    }}
-                  />
-                ) : (
-                  <Animated.View
-                    style={{
-                      position: "absolute",
-                      width: indicatorAnimatedWidth,
-                      height: 47,
-                      borderRadius: 23.5,
-                      borderWidth: indicatorBorderWidth,
-                      borderColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.05)",
-                      backgroundColor: indicatorBg,
-                      opacity,
-                    }}
-                  />
-                )
+              {AnimatedLiquidGlassView ? (
+                <AnimatedLiquidGlassView
+                  glassType="regular"
+                  glassTintColor={isDarkMode ? "#1E1E1E66" : "#FFFFFF40"}
+                  glassOpacity={1}
+                  isInteractive={false}
+                  style={{
+                    position: "absolute",
+                    width: indicatorAnimatedWidth,
+                    height: 47,
+                    borderRadius: 23.5,
+                    backgroundColor: indicatorBg,
+                    opacity,
+                  }}
+                />
               ) : (
                 <Animated.View
                   style={{
@@ -974,7 +934,6 @@ const CustomTabBar = ({
                     width: indicatorAnimatedWidth,
                     height: 47,
                     borderRadius: 23.5,
-                    borderWidth: 0,
                     backgroundColor: indicatorBg,
                     opacity,
                     shadowColor: isDarkMode ? "#fff" : "#000",
@@ -1002,10 +961,10 @@ const CustomTabBar = ({
           </View>
 
           <LiquidGlassView
-            effect="regular"
-            interactive={isRealGlass}
-            colorScheme={isDarkMode ? 'dark' : 'light'}
-            tintColor={isDarkMode ? "rgba(30, 30, 30, 0.35)" : "rgba(255, 255, 255, 0.15)"}
+            glassType="regular"
+            glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
+            glassOpacity={1}
+            isInteractive={isRealGlass}
             style={[
               styles.iosRightPill,
               {
@@ -1023,7 +982,7 @@ const CustomTabBar = ({
               />
             </View>
           </LiquidGlassView>
-        </LiquidGlassContainerView>
+        </LiquidGlassContainer>
       </Animated.View>
     );
   }
