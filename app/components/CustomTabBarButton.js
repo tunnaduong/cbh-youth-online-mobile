@@ -197,14 +197,14 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
         refractionHeight: 12,
         chromaticAberration: 0.1,
         highlightAlpha: 0.15,
-        tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
+        tint: isDarkMode ? "rgba(20, 20, 20, 0.35)" : "rgba(255, 255, 255, 0.30)",
       } : {
         blurRadius: 5,
         refractionAmount: 0,
         refractionHeight: 0,
         chromaticAberration: 0,
         highlightAlpha: 0.25,
-        tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
+        tint: isDarkMode ? "rgba(20, 20, 20, 0.35)" : "rgba(255, 255, 255, 0.30)",
       };
 
       return (
@@ -219,9 +219,6 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
                 styles.glassRow,
                 {
                   marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                  backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)",
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.08)",
                 }
               ]}
             >
