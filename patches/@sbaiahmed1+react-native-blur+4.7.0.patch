@@ -2205,7 +2205,7 @@ index 0000000..4a423f8
 +  }
 +}
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/src/main/java/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView.kt b/node_modules/@sbaiahmed1/react-native-blur/android/src/main/java/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView.kt
-index d96ca6e..658d13b 100644
+index d96ca6e..5c26cab 100644
 --- a/node_modules/@sbaiahmed1/react-native-blur/android/src/main/java/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView.kt
 +++ b/node_modules/@sbaiahmed1/react-native-blur/android/src/main/java/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView.kt
 @@ -1,6 +1,8 @@
@@ -2217,7 +2217,7 @@ index d96ca6e..658d13b 100644
  import android.graphics.Color
  import android.graphics.Outline
  import android.graphics.Path
-@@ -46,6 +48,11 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -46,6 +48,12 @@ class ReactNativeBlurView : BlurViewGroup {
    private var isBlurInitialized: Boolean = false
    private var initRunnable: Runnable? = null
  
@@ -2225,11 +2225,12 @@ index d96ca6e..658d13b 100644
 +  private var fallbackColorStr: String? = null
 +  private var fallbackColor: Int = Color.TRANSPARENT
 +  private var activeListener: ViewTreeObserver.OnPreDrawListener? = null
++  private val clipPath = Path()
 +
    companion object {
      private const val TAG = "ReactNativeBlurView"
      private const val MAX_BLUR_RADIUS = 100f
-@@ -93,22 +100,77 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -93,22 +101,77 @@ class ReactNativeBlurView : BlurViewGroup {
    }
  
    private fun setupView() {
@@ -2307,7 +2308,7 @@ index d96ca6e..658d13b 100644
    private fun swapBlurRootToScreenAncestor() {
      val newRoot = findOptimalBlurRoot() ?: return
  
-@@ -137,14 +199,23 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -137,14 +200,23 @@ class ReactNativeBlurView : BlurViewGroup {
  
        if (preDrawListener != null && oldDecorView != null) {
          try {
@@ -2333,7 +2334,7 @@ index d96ca6e..658d13b 100644
  
          val differentRootField = baseClass.getDeclaredField("mDifferentRoot")
          differentRootField.isAccessible = true
-@@ -154,7 +225,7 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -154,7 +226,7 @@ class ReactNativeBlurView : BlurViewGroup {
          forceRedrawField.isAccessible = true
          forceRedrawField.setBoolean(baseBlurViewGroup, true)
  
@@ -2342,7 +2343,7 @@ index d96ca6e..658d13b 100644
        }
      } catch (e: NoSuchFieldException) {
        logWarning("Reflection failed - QmBlurView field not found: ${e.message}. Falling back to decor view.")
-@@ -213,6 +284,26 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -213,6 +285,26 @@ class ReactNativeBlurView : BlurViewGroup {
      isBlurInitialized = false
      initRunnable?.let { removeCallbacks(it) }
      initRunnable = null
@@ -2369,7 +2370,7 @@ index d96ca6e..658d13b 100644
      logDebug("View cleaned up")
    }
  
-@@ -248,6 +339,7 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -248,6 +340,7 @@ class ReactNativeBlurView : BlurViewGroup {
      val blurType = BlurType.fromString(type)
      currentOverlayColor = blurType.overlayColor
      logDebug("setBlurType: $type -> ${blurType.name}")
@@ -2377,7 +2378,7 @@ index d96ca6e..658d13b 100644
  
      try {
        super.setBackgroundColor(currentOverlayColor)
-@@ -311,6 +403,7 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -311,6 +404,7 @@ class ReactNativeBlurView : BlurViewGroup {
          )
          super.setOverlayColor(glassColor)
          logDebug("Applied glass effect: color=$glassColor, opacity=$glassOpacity")
@@ -2385,7 +2386,7 @@ index d96ca6e..658d13b 100644
        } catch (e: Exception) {
          logError("Failed to update glass effect: ${e.message}", e)
        }
-@@ -326,6 +419,7 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -326,6 +420,7 @@ class ReactNativeBlurView : BlurViewGroup {
          try {
            super.setBackgroundColor(currentOverlayColor)
            super.setOverlayColor(currentOverlayColor)
@@ -2393,7 +2394,7 @@ index d96ca6e..658d13b 100644
          } catch (e: Exception) {
            logError("Failed to restore blur overlay: ${e.message}", e)
          }
-@@ -333,6 +427,36 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -333,6 +428,36 @@ class ReactNativeBlurView : BlurViewGroup {
      }
    }
  
@@ -2417,11 +2418,11 @@ index d96ca6e..658d13b 100644
 +    }
 +    val overlayColor = currentOverlayColor
 +    val alpha = Color.alpha(overlayColor)
-+    fallbackColor = if (alpha < 200) {
++    fallbackColor = if (alpha < 170) {
 +      val r = Color.red(overlayColor)
 +      val g = Color.green(overlayColor)
 +      val b = Color.blue(overlayColor)
-+      Color.argb(220, r, g, b)
++      Color.argb(170, r, g, b)
 +    } else {
 +      overlayColor
 +    }
@@ -2430,15 +2431,39 @@ index d96ca6e..658d13b 100644
    fun setBorderRadius(radius: Float) {
      borderRadius = radius
      logDebug("setBorderRadius: $radius dp")
-@@ -452,4 +576,13 @@ class ReactNativeBlurView : BlurViewGroup {
+@@ -452,4 +577,37 @@ class ReactNativeBlurView : BlurViewGroup {
    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
      // No-op: Layout is handled by React Native's UIManager.
    }
 +
 +  override fun draw(canvas: Canvas) {
 +    if (isBlurDisabled) {
++      val saveCount = canvas.save()
++      
++      val baseRadius = convertDpToPx(borderRadius)
++      val topLeft = if (borderTopLeftRadius > 0) convertDpToPx(borderTopLeftRadius) else baseRadius
++      val topRight = if (borderTopRightRadius > 0) convertDpToPx(borderTopRightRadius) else baseRadius
++      val bottomLeft = if (borderBottomLeftRadius > 0) convertDpToPx(borderBottomLeftRadius) else baseRadius
++      val bottomRight = if (borderBottomRightRadius > 0) convertDpToPx(borderBottomRightRadius) else baseRadius
++      
++      clipPath.reset()
++      val radii = floatArrayOf(
++        topLeft, topLeft,
++        topRight, topRight,
++        bottomRight, bottomRight,
++        bottomLeft, bottomLeft
++      )
++      clipPath.addRoundRect(0f, 0f, width.toFloat(), height.toFloat(), radii, Path.Direction.CW)
++      
++      try {
++        canvas.clipPath(clipPath)
++      } catch (e: Exception) {
++        // Fallback for older devices/canvas that might throw UnsupportedOperationException
++      }
++      
 +      canvas.drawColor(fallbackColor)
 +      super.dispatchDraw(canvas)
++      canvas.restoreToCount(saveCount)
 +    } else {
 +      super.draw(canvas)
 +    }
