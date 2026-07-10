@@ -77,7 +77,7 @@ export const BlurView = ({
         blurType={resolvedBlurType}
         blurAmount={cappedBlurAmount}
         blurRounds={androidBlurRounds}
-        downsampleFactor={androidDownsample}
+        // downsampleFactor={androidDownsample}
         overlayColor={resolvedOverlayColor}
         {...props}
       />
