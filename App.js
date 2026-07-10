@@ -1,7 +1,8 @@
-import React, { useContext, useState } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import React, { useContext, useState, useRef, useEffect } from "react";
+import { NavigationContainer, createNavigationContainerRef } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, Alert, StatusBar } from "react-native";
+import { View, Text, Platform, Alert, StatusBar, Linking } from "react-native";
+import { getPostDetail, getStories } from "./app/services/api/Api";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 
@@ -57,6 +58,35 @@ import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 
 const Stack = createStackNavigator();
+const navigationRef = createNavigationContainerRef();
+
+const parseDeepLink = (url) => {
+  if (!url) return null;
+  try {
+    const schemePrefix = "com.fatties.youth://";
+    if (!url.startsWith(schemePrefix)) {
+      return null;
+    }
+    
+    const rest = url.substring(schemePrefix.length);
+    const parts = rest.split("/");
+    const host = parts[0];
+    const param = parts[1];
+    
+    if (host === "story" && param) {
+      return { type: "story", storyId: param };
+    }
+    
+    if (host === "post" && param) {
+      const match = param.match(/^(\d+)/);
+      const postId = match ? match[1] : param;
+      return { type: "post", postId };
+    }
+  } catch (error) {
+    console.error("Failed to parse deep link URL:", error);
+  }
+  return null;
+};
 
 // Main App component
 const App = () => {
@@ -65,6 +95,131 @@ const App = () => {
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
+
+  const pendingDeepLinkRef = useRef(null);
+  const isLoggedInRef = useRef(isLoggedIn);
+
+  useEffect(() => {
+    isLoggedInRef.current = isLoggedIn;
+  }, [isLoggedIn]);
+
+  const executeDeepLinkAction = async (action) => {
+    if (!action) return;
+
+    try {
+      if (action.type === "post") {
+        const { postId } = action;
+        try {
+          const response = await getPostDetail(postId);
+          if (response?.data?.post) {
+            if (navigationRef.isReady()) {
+              navigationRef.navigate("PostScreen", { postId: postId });
+            } else {
+              setTimeout(() => {
+                if (navigationRef.isReady()) {
+                  navigationRef.navigate("PostScreen", { postId: postId });
+                }
+              }, 500);
+            }
+          } else {
+            Alert.alert("Lỗi", "Không tìm thấy bài viết hoặc bạn không có quyền xem bài viết này.");
+          }
+        } catch (err) {
+          console.error("Deep link: failed to fetch post detail:", err);
+          Alert.alert("Lỗi", "Không tìm thấy bài viết hoặc bạn không có quyền xem bài viết này.");
+        }
+      } else if (action.type === "story") {
+        const { storyId } = action;
+        try {
+          const response = await getStories();
+          let found = false;
+          if (response?.data?.data) {
+            found = response.data.data.some(u => 
+              u.stories && u.stories.some(s => String(s.id) === String(storyId))
+            );
+          }
+          
+          if (found) {
+            if (navigationRef.isReady()) {
+              navigationRef.navigate("MainScreens", {
+                screen: "Home",
+                params: {
+                  highlightStoryId: storyId
+                }
+              });
+            } else {
+              setTimeout(() => {
+                if (navigationRef.isReady()) {
+                  navigationRef.navigate("MainScreens", {
+                    screen: "Home",
+                    params: {
+                      highlightStoryId: storyId
+                    }
+                  });
+                }
+              }, 500);
+            }
+          } else {
+            Alert.alert("Lỗi", "Không tìm thấy tin hoặc bạn không có quyền xem tin này.");
+          }
+        } catch (err) {
+          console.error("Deep link: failed to fetch stories:", err);
+          Alert.alert("Lỗi", "Không thể tải tin. Vui lòng thử lại sau.");
+        }
+      }
+    } catch (e) {
+      console.error("Error executing deep link action:", e);
+    }
+  };
+
+  const handleUrl = (url) => {
+    console.log("Deep Link URL intercepted:", url);
+    const parsed = parseDeepLink(url);
+    if (!parsed) return;
+
+    if (!isLoggedInRef.current) {
+      pendingDeepLinkRef.current = parsed;
+      Toast.show({
+        type: "info",
+        text1: "Yêu cầu đăng nhập",
+        text2: "Vui lòng đăng nhập để xem nội dung này.",
+        topOffset: 60,
+      });
+      return;
+    }
+
+    executeDeepLinkAction(parsed);
+  };
+
+  useEffect(() => {
+    Linking.getInitialURL()
+      .then((url) => {
+        if (url) {
+          handleUrl(url);
+        }
+      })
+      .catch((err) => console.error("Error getting initial URL:", err));
+
+    const subscription = Linking.addEventListener("url", (event) => {
+      if (event.url) {
+        handleUrl(event.url);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn && pendingDeepLinkRef.current) {
+      const action = pendingDeepLinkRef.current;
+      pendingDeepLinkRef.current = null;
+      setTimeout(() => {
+        executeDeepLinkAction(action);
+      }, 1000);
+    }
+  }, [isLoggedIn]);
 
   const handleSplashFinish = () => {
     setShowSplash(false);
@@ -99,7 +254,7 @@ const App = () => {
         translucent={true}
         animated={true}
       />
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Stack.Navigator
           screenOptions={{
             headerStyle: {

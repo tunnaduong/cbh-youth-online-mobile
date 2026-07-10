@@ -42,6 +42,14 @@
             {
               "scheme": "com.fatties.youth",
               "host": "oauth"
+            },
+            {
+              "scheme": "com.fatties.youth",
+              "host": "story"
+            },
+            {
+              "scheme": "com.fatties.youth",
+              "host": "post"
             }
           ],
           "category": [
