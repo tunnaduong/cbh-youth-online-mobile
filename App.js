@@ -5,6 +5,7 @@ import { View, Text, Platform, Alert, StatusBar, Linking } from "react-native";
 import { getPostDetail, getStories } from "./app/services/api/Api";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
+import CustomLoading from "./app/components/CustomLoading";
 
 if (Platform.OS === "android") {
   Alert.alert = CustomAlert.alert;
@@ -60,6 +61,8 @@ import { useTranslation } from "react-i18next";
 const Stack = createStackNavigator();
 const navigationRef = createNavigationContainerRef();
 
+const isBrowserIntentUrl = (url) => /^https?:\/\//i.test(url);
+
 const parseDeepLink = (url) => {
   if (!url) return null;
   try {
@@ -109,16 +112,22 @@ const App = () => {
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
+  const [showBrowserIntentLoading, setShowBrowserIntentLoading] = useState(false);
 
   const pendingDeepLinkRef = useRef(null);
+  const pendingDeepLinkIsBrowserRef = useRef(false);
   const isLoggedInRef = useRef(isLoggedIn);
 
   useEffect(() => {
     isLoggedInRef.current = isLoggedIn;
   }, [isLoggedIn]);
 
-  const executeDeepLinkAction = async (action) => {
+  const executeDeepLinkAction = async (action, showLoading = false) => {
     if (!action) return;
+
+    if (showLoading) {
+      setShowBrowserIntentLoading(true);
+    }
 
     try {
       if (action.type === "post") {
@@ -183,6 +192,10 @@ const App = () => {
       }
     } catch (e) {
       console.error("Error executing deep link action:", e);
+    } finally {
+      if (showLoading) {
+        setShowBrowserIntentLoading(false);
+      }
     }
   };
 
@@ -191,8 +204,11 @@ const App = () => {
     const parsed = parseDeepLink(url);
     if (!parsed) return;
 
+    const shouldShowBrowserLoading = isBrowserIntentUrl(url);
+
     if (!isLoggedInRef.current) {
       pendingDeepLinkRef.current = parsed;
+      pendingDeepLinkIsBrowserRef.current = shouldShowBrowserLoading;
       Toast.show({
         type: "info",
         text1: "Yêu cầu đăng nhập",
@@ -202,7 +218,7 @@ const App = () => {
       return;
     }
 
-    executeDeepLinkAction(parsed);
+    executeDeepLinkAction(parsed, shouldShowBrowserLoading);
   };
 
   useEffect(() => {
@@ -228,9 +244,11 @@ const App = () => {
   useEffect(() => {
     if (isLoggedIn && pendingDeepLinkRef.current) {
       const action = pendingDeepLinkRef.current;
+      const shouldShowBrowserLoading = pendingDeepLinkIsBrowserRef.current;
       pendingDeepLinkRef.current = null;
+      pendingDeepLinkIsBrowserRef.current = false;
       setTimeout(() => {
-        executeDeepLinkAction(action);
+        executeDeepLinkAction(action, shouldShowBrowserLoading);
       }, 1000);
     }
   }, [isLoggedIn]);
@@ -241,6 +259,17 @@ const App = () => {
 
   if (showSplash) {
     return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
+  if (showBrowserIntentLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background, paddingHorizontal: 24 }}>
+        <CustomLoading size={180} />
+        <Text style={{ color: theme.text, fontSize: 16, marginTop: 16, textAlign: "center" }}>
+          Đang tải nội dung...
+        </Text>
+      </View>
+    );
   }
 
   if (isLoading) {
