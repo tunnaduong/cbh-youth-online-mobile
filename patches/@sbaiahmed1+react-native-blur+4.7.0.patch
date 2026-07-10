@@ -9,6 +9,17 @@ diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/.transform
 new file mode 100644
 index 0000000..f7a840d
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/.transforms/21c24eac6e2b3f2ac72bb3ad9d727e9e/transformed/classes/classes_dex/classes.dex differ
+diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/.transforms/b791c44e3f8cfae8989d1facc0b58230/results.bin b/node_modules/@sbaiahmed1/react-native-blur/android/build/.transforms/b791c44e3f8cfae8989d1facc0b58230/results.bin
+new file mode 100644
+index 0000000..0d259dd
+--- /dev/null
++++ b/node_modules/@sbaiahmed1/react-native-blur/android/build/.transforms/b791c44e3f8cfae8989d1facc0b58230/results.bin
+@@ -0,0 +1 @@
++o/classes
+diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/.transforms/b791c44e3f8cfae8989d1facc0b58230/transformed/classes/classes_dex/classes.dex b/node_modules/@sbaiahmed1/react-native-blur/android/build/.transforms/b791c44e3f8cfae8989d1facc0b58230/transformed/classes/classes_dex/classes.dex
+new file mode 100644
+index 0000000..091580d
+Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/.transforms/b791c44e3f8cfae8989d1facc0b58230/transformed/classes/classes_dex/classes.dex differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/generated/source/buildConfig/debug/com/sbaiahmed1/reactnativeblur/BuildConfig.java b/node_modules/@sbaiahmed1/react-native-blur/android/build/generated/source/buildConfig/debug/com/sbaiahmed1/reactnativeblur/BuildConfig.java
 new file mode 100644
 index 0000000..7d6d365
@@ -1497,7 +1508,7 @@ index 0000000..9e26dfe
 \ No newline at end of file
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar b/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar
 new file mode 100644
-index 0000000..b488fe5
+index 0000000..a3be788
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/compile_library_classes_jar/debug/bundleLibCompileToJarDebug/classes.jar differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/compile_r_class_jar/debug/generateDebugRFile/R.jar b/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/compile_r_class_jar/debug/generateDebugRFile/R.jar
 new file mode 100644
@@ -1634,7 +1645,7 @@ index 0000000..08f4ebe
 \ No newline at end of file
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar b/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar
 new file mode 100644
-index 0000000..44888cc
+index 0000000..5af85db
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/runtime_library_classes_jar/debug/bundleLibRuntimeToJarDebug/classes.jar differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/symbol_list_with_package_name/debug/generateDebugRFile/package-aware-r.txt b/node_modules/@sbaiahmed1/react-native-blur/android/build/intermediates/symbol_list_with_package_name/debug/generateDebugRFile/package-aware-r.txt
 new file mode 100644
@@ -1645,27 +1656,27 @@ index 0000000..f26f5c2
 +com.sbaiahmed1.reactnativeblur
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab
 new file mode 100644
-index 0000000..37b8ef7
+index 0000000..1472269
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.keystream
 new file mode 100644
-index 0000000..11aae84
+index 0000000..55cea01
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.keystream.len
 new file mode 100644
-index 0000000..5ed5d0f
+index 0000000..4d082db
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.len
 new file mode 100644
-index 0000000..fa606b6
+index 0000000..eb0b8a0
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.values.at
 new file mode 100644
-index 0000000..1d84552
+index 0000000..ff1d04b
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab_i
 new file mode 100644
-index 0000000..dd3c5bc
+index 0000000..291d548
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab_i.len
 new file mode 100644
@@ -1673,27 +1684,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/inputs/source-to-output.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab
 new file mode 100644
-index 0000000..11b2dbd
+index 0000000..ad428ae
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.keystream
 new file mode 100644
-index 0000000..468e442
+index 0000000..978abfc
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.keystream.len
 new file mode 100644
-index 0000000..1227fe9
+index 0000000..b35bf90
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.len
 new file mode 100644
-index 0000000..cf8a30a
+index 0000000..385642d
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.values.at
 new file mode 100644
-index 0000000..63c4975
+index 0000000..70686e6
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab_i
 new file mode 100644
-index 0000000..b4f0b94
+index 0000000..05900cd
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab_i.len
 new file mode 100644
@@ -1701,27 +1712,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-attributes.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab
 new file mode 100644
-index 0000000..595359a
+index 0000000..5b19a56
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.keystream
 new file mode 100644
-index 0000000..468e442
+index 0000000..978abfc
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.keystream.len
 new file mode 100644
-index 0000000..1227fe9
+index 0000000..b35bf90
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.len
 new file mode 100644
-index 0000000..cf8a30a
+index 0000000..385642d
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.values.at
 new file mode 100644
-index 0000000..2a5eee6
+index 0000000..8626c37
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab_i
 new file mode 100644
-index 0000000..b4f0b94
+index 0000000..05900cd
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/class-fq-name-to-source.tab_i.len
 new file mode 100644
@@ -1757,27 +1768,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/constants.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab
 new file mode 100644
-index 0000000..589d82f
+index 0000000..c22ddce
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.keystream
 new file mode 100644
-index 0000000..d42a8e7
+index 0000000..14a752e
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.keystream.len
 new file mode 100644
-index 0000000..9819eac
+index 0000000..7c27443
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.len
 new file mode 100644
-index 0000000..385642d
+index 0000000..14f7c06
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.values.at
 new file mode 100644
-index 0000000..2173830
+index 0000000..3466fae
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab_i
 new file mode 100644
-index 0000000..375045b
+index 0000000..fad3c4f
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab_i.len
 new file mode 100644
@@ -1785,27 +1796,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/internal-name-to-source.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab
 new file mode 100644
-index 0000000..4d9e50f
+index 0000000..05c3bce
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.keystream
 new file mode 100644
-index 0000000..18fab84
+index 0000000..5376a46
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.keystream.len
 new file mode 100644
-index 0000000..11f37e3
+index 0000000..27c0919
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.len
 new file mode 100644
-index 0000000..9911af5
+index 0000000..09407ef
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.values.at
 new file mode 100644
-index 0000000..f7b17a3
+index 0000000..050c7d0
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab_i
 new file mode 100644
-index 0000000..97817c2
+index 0000000..9ba8bbc
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab_i.len
 new file mode 100644
@@ -1813,27 +1824,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/proto.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab
 new file mode 100644
-index 0000000..cf73bdc
+index 0000000..e5af228
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.keystream
 new file mode 100644
-index 0000000..11aae84
+index 0000000..55cea01
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.keystream.len
 new file mode 100644
-index 0000000..5ed5d0f
+index 0000000..4d082db
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.len
 new file mode 100644
-index 0000000..fa606b6
+index 0000000..eb0b8a0
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.values.at
 new file mode 100644
-index 0000000..c1801b1
+index 0000000..36059aa
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab_i
 new file mode 100644
-index 0000000..dd3c5bc
+index 0000000..291d548
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab_i.len
 new file mode 100644
@@ -1841,27 +1852,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/source-to-classes.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab
 new file mode 100644
-index 0000000..80a1e86
+index 0000000..ca61cf8
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.keystream
 new file mode 100644
-index 0000000..f6c2e41
+index 0000000..3462b42
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.keystream.len
 new file mode 100644
-index 0000000..1b7c1f8
+index 0000000..73e7fcf
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.len
 new file mode 100644
-index 0000000..eb0b8a0
+index 0000000..fd5292d
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.values.at
 new file mode 100644
-index 0000000..9496cea
+index 0000000..255eedf
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab_i
 new file mode 100644
-index 0000000..6e6d84a
+index 0000000..5a1ad5d
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab_i.len
 new file mode 100644
@@ -1869,27 +1880,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/subtypes.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab
 new file mode 100644
-index 0000000..8533f94
+index 0000000..f9ef4fe
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.keystream
 new file mode 100644
-index 0000000..d88ea6e
+index 0000000..902a261
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.keystream.len
 new file mode 100644
-index 0000000..5474405
+index 0000000..50705e6
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.len
 new file mode 100644
-index 0000000..fa606b6
+index 0000000..eb0b8a0
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.values.at
 new file mode 100644
-index 0000000..02c2593
+index 0000000..3f0e471
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab_i
 new file mode 100644
-index 0000000..bbf5d94
+index 0000000..8d6d453
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab_i.len
 new file mode 100644
@@ -1897,36 +1908,36 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/jvm/kotlin/supertypes.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/counters.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/counters.tab
 new file mode 100644
-index 0000000..f2c67d0
+index 0000000..9202d67
 --- /dev/null
 +++ b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/counters.tab
 @@ -0,0 +1,2 @@
-+8
++9
 +0
 \ No newline at end of file
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab
 new file mode 100644
-index 0000000..0391670
+index 0000000..5aeef5e
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.keystream
 new file mode 100644
-index 0000000..11aae84
+index 0000000..55cea01
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.keystream.len
 new file mode 100644
-index 0000000..5ed5d0f
+index 0000000..4d082db
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.len
 new file mode 100644
-index 0000000..fa606b6
+index 0000000..eb0b8a0
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.values.at
 new file mode 100644
-index 0000000..6a3671f
+index 0000000..a30ec1a
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab_i
 new file mode 100644
-index 0000000..dd3c5bc
+index 0000000..291d548
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab_i.len
 new file mode 100644
@@ -1934,27 +1945,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/file-to-id.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab
 new file mode 100644
-index 0000000..b81713b
+index 0000000..b4810d3
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.keystream
 new file mode 100644
-index 0000000..ce37c13
+index 0000000..afd1b6e
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.keystream.len
 new file mode 100644
-index 0000000..d9e6aa6
+index 0000000..9a6f654
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.len
 new file mode 100644
-index 0000000..fa606b6
+index 0000000..eb0b8a0
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.values.at
 new file mode 100644
-index 0000000..6d5f3de
+index 0000000..909ae3a
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab_i
 new file mode 100644
-index 0000000..37f0862
+index 0000000..cdf4c62
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab_i.len
 new file mode 100644
@@ -1962,27 +1973,27 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/id-to-file.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab
 new file mode 100644
-index 0000000..7b0f8cb
+index 0000000..3f8bacd
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.keystream b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.keystream
 new file mode 100644
-index 0000000..1d7e3d1
+index 0000000..a7182d2
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.keystream differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.keystream.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.keystream.len
 new file mode 100644
-index 0000000..1d77fbe
+index 0000000..66b0f81
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.keystream.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.len
 new file mode 100644
-index 0000000..59494f8
+index 0000000..ffeaba9
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.values.at b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.values.at
 new file mode 100644
-index 0000000..2062347
+index 0000000..863e561
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab.values.at differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab_i b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab_i
 new file mode 100644
-index 0000000..f4e7741
+index 0000000..efea1e0
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab_i differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab_i.len b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab_i.len
 new file mode 100644
@@ -1990,15 +2001,15 @@ index 0000000..131e265
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/caches-jvm/lookups/lookups.tab_i.len differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/last-build.bin b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/last-build.bin
 new file mode 100644
-index 0000000..8a50cea
+index 0000000..bb5fbdb
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/cacheable/last-build.bin differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/classpath-snapshot/shrunk-classpath-snapshot.bin b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/classpath-snapshot/shrunk-classpath-snapshot.bin
 new file mode 100644
-index 0000000..5daa6d9
+index 0000000..2ab0460
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/classpath-snapshot/shrunk-classpath-snapshot.bin differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/local-state/build-history.bin b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/local-state/build-history.bin
 new file mode 100644
-index 0000000..3c7b726
+index 0000000..cf00638
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/kotlin/compileDebugKotlin/local-state/build-history.bin differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/outputs/logs/manifest-merger-debug-report.txt b/node_modules/@sbaiahmed1/react-native-blur/android/build/outputs/logs/manifest-merger-debug-report.txt
 new file mode 100644
@@ -2054,21 +2065,25 @@ diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin
 new file mode 100644
 index 0000000..68a1982
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurSwitchManager.class differ
+diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurUtils.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurUtils.class
+new file mode 100644
+index 0000000..4ab78aa
+Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurUtils.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$Companion.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$Companion.class
 new file mode 100644
-index 0000000..76f4088
+index 0000000..417cccb
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$Companion.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$updateCornerRadius$1.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$updateCornerRadius$1.class
 new file mode 100644
-index 0000000..044dcbe
+index 0000000..a481354
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$updateCornerRadius$1.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$updateCornerRadius$2.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$updateCornerRadius$2.class
 new file mode 100644
-index 0000000..65b0770
+index 0000000..da01bc8
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView$updateCornerRadius$2.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView.class
 new file mode 100644
-index 0000000..fe4f11b
+index 0000000..5ac6a85
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurView.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewManager$Companion.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewManager$Companion.class
 new file mode 100644
@@ -2076,7 +2091,7 @@ index 0000000..7423e5f
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewManager$Companion.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewManager.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewManager.class
 new file mode 100644
-index 0000000..aabe674
+index 0000000..a218962
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewManager.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewPackage.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewPackage.class
 new file mode 100644
@@ -2084,11 +2099,11 @@ index 0000000..86b64de
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeBlurViewPackage.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurView$Companion.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurView$Companion.class
 new file mode 100644
-index 0000000..c8eb1bf
+index 0000000..cb64849
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurView$Companion.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurView.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurView.class
 new file mode 100644
-index 0000000..d039e22
+index 0000000..0b0d3f9
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurView.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurViewManager$Companion.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurViewManager$Companion.class
 new file mode 100644
@@ -2096,8 +2111,12 @@ index 0000000..2215948
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurViewManager$Companion.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurViewManager.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurViewManager.class
 new file mode 100644
-index 0000000..df8aae9
+index 0000000..e746b75
 Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ReactNativeProgressiveBlurViewManager.class differ
+diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ThrottledPreDrawListener.class b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ThrottledPreDrawListener.class
+new file mode 100644
+index 0000000..4b4a149
+Binary files /dev/null and b/node_modules/@sbaiahmed1/react-native-blur/android/build/tmp/kotlin-classes/debug/com/sbaiahmed1/reactnativeblur/ThrottledPreDrawListener.class differ
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/android/src/main/java/com/sbaiahmed1/reactnativeblur/ReactNativeBlurUtils.kt b/node_modules/@sbaiahmed1/react-native-blur/android/src/main/java/com/sbaiahmed1/reactnativeblur/ReactNativeBlurUtils.kt
 new file mode 100644
 index 0000000..4a423f8
@@ -2643,3 +2662,194 @@ index 11bff44..c6c6658 100644
    }
  
    /**
+diff --git a/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassContainer.mm b/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassContainer.mm
+index 9c95f98..50b90a6 100644
+--- a/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassContainer.mm
++++ b/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassContainer.mm
+@@ -68,17 +68,15 @@ using namespace facebook::react;
+   [super finalizeUpdates:updateMask];
+ 
+   // Apply border radius from layout metrics to the container view
+-  if (@available(iOS 26.0, *)) {
+-    const auto &props = *std::static_pointer_cast<ReactNativeLiquidGlassContainerProps const>(_props);
+-    const auto borderMetrics = props.resolveBorderMetrics(_layoutMetrics);
++  const auto &props = *std::static_pointer_cast<ReactNativeLiquidGlassContainerProps const>(_props);
++  const auto borderMetrics = props.resolveBorderMetrics(_layoutMetrics);
+ 
+-    // Use topLeft.horizontal same as React Native RCTViewComponentView implementation
+-    CGFloat radius = borderMetrics.borderRadii.topLeft.horizontal;
++  // Use topLeft.horizontal same as React Native RCTViewComponentView implementation
++  CGFloat radius = borderMetrics.borderRadii.topLeft.horizontal;
+ 
+-    if (radius > 0) {
+-      _containerView.layer.cornerRadius = radius;
+-      _containerView.layer.masksToBounds = YES;
+-    }
++  if (radius > 0) {
++    _containerView.layer.cornerRadius = radius;
++    _containerView.layer.masksToBounds = YES;
+   }
+ }
+ 
+diff --git a/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassView.mm b/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassView.mm
+index 94be8a5..87dfa26 100644
+--- a/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassView.mm
++++ b/node_modules/@sbaiahmed1/react-native-blur/ios/ReactNativeLiquidGlassView.mm
+@@ -275,16 +275,14 @@ using namespace facebook::react;
+   [super finalizeUpdates:updateMask];
+ 
+   // Apply border radius from layout metrics to the inner glass view (Callstack pattern)
+-  if (@available(iOS 26.0, *)) {
+-    const auto &props = *std::static_pointer_cast<ReactNativeLiquidGlassViewProps const>(_props);
+-    const auto borderMetrics = props.resolveBorderMetrics(_layoutMetrics);
++  const auto &props = *std::static_pointer_cast<ReactNativeLiquidGlassViewProps const>(_props);
++  const auto borderMetrics = props.resolveBorderMetrics(_layoutMetrics);
+ 
+-    // Use topLeft.horizontal same as React Native RCTViewComponentView implementation
+-    CGFloat radius = borderMetrics.borderRadii.topLeft.horizontal;
++  // Use topLeft.horizontal same as React Native RCTViewComponentView implementation
++  CGFloat radius = borderMetrics.borderRadii.topLeft.horizontal;
+ 
+-    if (radius > 0) {
+-      [_liquidGlassView setBorderRadius:radius];
+-    }
++  if (radius > 0) {
++    [_liquidGlassView setBorderRadius:radius];
+   }
+ }
+ 
+diff --git a/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift b/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift
+index f3f55fe..ea44131 100644
+--- a/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift
++++ b/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift
+@@ -7,6 +7,22 @@ import UIKit
+   private var glassEffect: Any?
+   private var currentGlassStyle: String = "clear" // Track current style
+ 
++  private let specularLayer: CAGradientLayer = {
++    let layer = CAGradientLayer()
++    layer.startPoint = CGPoint(x: 0.0, y: 0.0)
++    layer.endPoint = CGPoint(x: 1.0, y: 1.0)
++    return layer
++  }()
++
++  private let highlightStrokeLayer: CAGradientLayer = {
++    let layer = CAGradientLayer()
++    layer.startPoint = CGPoint(x: 0.0, y: 0.0)
++    layer.endPoint = CGPoint(x: 1.0, y: 1.0)
++    return layer
++  }()
++
++  private let strokeMask = CAShapeLayer()
++
+   @objc public var glassTintColor: UIColor = .clear {
+     didSet {
+       updateEffect()
+@@ -103,6 +119,11 @@ import UIKit
+     addSubview(effectView)
+     self.glassEffectView = effectView
+     
++    // Add specular and highlight layers to the visual effect view's content view
++    effectView.contentView.layer.addSublayer(specularLayer)
++    effectView.contentView.layer.addSublayer(highlightStrokeLayer)
++    highlightStrokeLayer.mask = strokeMask
++
+     updateEffect()
+   }
+ 
+@@ -113,7 +134,56 @@ import UIKit
+     updateBorderRadius()
+   }
+ 
++  private func isDarkColor(_ color: UIColor) -> Bool {
++    if color == .clear {
++      return false
++    }
++    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
++    if color.getRed(&r, green: &g, blue: &b, alpha: &a) {
++      if a == 0 { return false }
++      let luminance = 0.299 * r + 0.587 * g + 0.114 * b
++      return luminance < 0.5
++    }
++    var white: CGFloat = 0
++    if color.getWhite(&white, alpha: &a) {
++      if a == 0 { return false }
++      return white < 0.5
++    }
++    return false
++  }
++
++  private func updateSpecularAndStroke() {
++    let isDark = isDarkColor(glassTintColor)
++    if isDark {
++      specularLayer.colors = [
++        UIColor.white.withAlphaComponent(0.12).cgColor,
++        UIColor.white.withAlphaComponent(0.04).cgColor,
++        UIColor.clear.cgColor
++      ]
++      highlightStrokeLayer.colors = [
++        UIColor.white.withAlphaComponent(0.20).cgColor,
++        UIColor.white.withAlphaComponent(0.05).cgColor,
++        UIColor.clear.cgColor,
++        UIColor.white.withAlphaComponent(0.08).cgColor
++      ]
++    } else {
++      specularLayer.colors = [
++        UIColor.white.withAlphaComponent(0.24).cgColor,
++        UIColor.white.withAlphaComponent(0.08).cgColor,
++        UIColor.clear.cgColor
++      ]
++      highlightStrokeLayer.colors = [
++        UIColor.white.withAlphaComponent(0.40).cgColor,
++        UIColor.white.withAlphaComponent(0.10).cgColor,
++        UIColor.clear.cgColor,
++        UIColor.white.withAlphaComponent(0.15).cgColor
++      ]
++    }
++    highlightStrokeLayer.locations = [0.0, 0.3, 0.7, 1.0]
++  }
++
+   private func updateEffect() {
++    updateSpecularAndStroke()
+     // Check if we can use the new API (iOS 26+)
+     if #available(iOS 26.0, *) {
+       #if compiler(>=6.2)
+@@ -140,6 +210,7 @@ import UIKit
+   }
+ 
+   private func updateFallback() {
++    updateSpecularAndStroke()
+     if UIAccessibility.isReduceTransparencyEnabled {
+       backgroundColor = reducedTransparencyFallbackColor
+       glassEffectView?.effect = nil
+@@ -187,12 +258,30 @@ import UIKit
+       #endif
+     } else {
+       layer.cornerRadius = allBorderRadius
++      glassEffectView?.layer.cornerRadius = allBorderRadius
++      glassEffectView?.layer.masksToBounds = true
+     }
+   }
+ 
+   public override func layoutSubviews() {
+     super.layoutSubviews()
+     glassEffectView?.frame = bounds
++
++    CATransaction.begin()
++    CATransaction.setDisableActions(true)
++    specularLayer.frame = bounds
++    specularLayer.cornerRadius = allBorderRadius
++
++    highlightStrokeLayer.frame = bounds
++    highlightStrokeLayer.cornerRadius = allBorderRadius
++
++    let path = UIBezierPath(roundedRect: bounds, cornerRadius: allBorderRadius)
++    strokeMask.path = path.cgPath
++    strokeMask.frame = bounds
++    strokeMask.fillColor = UIColor.clear.cgColor
++    strokeMask.strokeColor = UIColor.black.cgColor
++    strokeMask.lineWidth = 1.5
++    CATransaction.commit()
+   }
+   
+   // For child view mounting
