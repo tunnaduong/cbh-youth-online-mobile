@@ -123,8 +123,8 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
 
   // Pill background
   const pillBg = isDarkMode
-    ? "rgba(28, 28, 30, 0.82)"
-    : "rgba(255, 255, 255, 0.82)";
+    ? `${theme.surface}CC`
+    : `${theme.background}F2`;
   const pillBorder = isDarkMode
     ? "rgba(255, 255, 255, 0.10)"
     : "rgba(0, 0, 0, 0.06)";
@@ -164,7 +164,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
   ];
 
   const renderMenu = () => {
-    if (isRealGlass) {
+    if (Platform.OS === "ios" && isRealGlass) {
       return (
         <LiquidGlassContainer
           spacing={BTN_GAP}
@@ -189,47 +189,6 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
       );
     }
 
-    if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
-      const isAndroid33 = Platform.Version >= 33;
-      const glassProps = isAndroid33 ? {
-        blurRadius: 5,
-        refractionAmount: 25,
-        refractionHeight: 12,
-        chromaticAberration: 0.1,
-        highlightAlpha: 0.15,
-        tint: isDarkMode ? "rgba(20, 20, 20, 0.35)" : "rgba(255, 255, 255, 0.30)",
-      } : {
-        blurRadius: 5,
-        refractionAmount: 0,
-        refractionHeight: 0,
-        chromaticAberration: 0,
-        highlightAlpha: 0.25,
-        tint: isDarkMode ? "rgba(20, 20, 20, 0.35)" : "rgba(255, 255, 255, 0.30)",
-      };
-
-      return (
-        <View style={styles.glassContainer}>
-          {menuButtons.map((btn, i) => (
-            <LiquidGlassViewAndroid
-              key={i}
-              providerId={currentRoute}
-              interactive={true}
-              {...glassProps}
-              style={[
-                styles.glassRow,
-                {
-                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                }
-              ]}
-            >
-              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
-            </LiquidGlassViewAndroid>
-          ))}
-        </View>
-      );
-    }
-
-    // Android / no glass fallback
     return (
       <View style={styles.columnContainer}>
         {menuButtons.map((btn, i) => (
