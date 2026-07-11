@@ -2623,7 +2623,7 @@ index 94be8a5..87dfa26 100644
  }
  
 diff --git a/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift b/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift
-index f3f55fe..6b3e9a7 100644
+index f3f55fe..ad6a7b9 100644
 --- a/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift
 +++ b/node_modules/@sbaiahmed1/react-native-blur/ios/Views/LiquidGlassContainerView.swift
 @@ -7,6 +7,22 @@ import UIKit
@@ -2735,10 +2735,19 @@ index f3f55fe..6b3e9a7 100644
      if UIAccessibility.isReduceTransparencyEnabled {
        backgroundColor = reducedTransparencyFallbackColor
        glassEffectView?.effect = nil
-@@ -187,12 +258,30 @@ import UIKit
+@@ -163,6 +234,7 @@ import UIKit
+     }
+ 
+     layer.cornerRadius = allBorderRadius
++    layer.masksToBounds = true
+     glassEffectView?.layer.cornerRadius = allBorderRadius
+     glassEffectView?.layer.masksToBounds = true
+   }
+@@ -187,12 +259,31 @@ import UIKit
        #endif
      } else {
        layer.cornerRadius = allBorderRadius
++      layer.masksToBounds = true
 +      glassEffectView?.layer.cornerRadius = allBorderRadius
 +      glassEffectView?.layer.masksToBounds = true
      }
