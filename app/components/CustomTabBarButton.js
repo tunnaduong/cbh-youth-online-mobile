@@ -235,28 +235,15 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
     );
 
     if (Platform.OS === "ios" && isRealGlass) {
+      // No nested LiquidGlassView here on purpose: this button already sits
+      // inside the parent's iosRightPill <LiquidGlassView> in index.js.
+      // Stacking a second glass layer on top doesn't merge with it (glass
+      // can't sample glass) and reads as a separate, disconnected blob
+      // instead of part of the floating tab bar.
       return (
         <Pressable style={styles.buttonContainer} onPress={handlePress}>
           <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
-            <LiquidGlassView
-              glassType="clear"
-              glassTintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
-              glassOpacity={1}
-              isInteractive={true}
-              style={[
-                styles.iconCircle,
-                {
-                  borderWidth: 0.5,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.08)",
-                  shadowColor: theme.primary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 12,
-                }
-              ]}
-            >
-              {circleContent}
-            </LiquidGlassView>
+            {circleContent}
           </Animated.View>
         </Pressable>
       );
