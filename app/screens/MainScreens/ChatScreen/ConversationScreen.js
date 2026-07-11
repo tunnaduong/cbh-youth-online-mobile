@@ -1268,7 +1268,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
     fontStyle: "italic",
-    flex: 1,
     flexWrap: "wrap",
   },
   inputContainer: {
