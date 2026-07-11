@@ -302,9 +302,13 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           <View style={[
             styles.iconCircle,
             {
-              backgroundColor: fallbackTint,
+              // Android fallback (no Liquid Glass): match the solid pill tint used
+              // by the create-button subtabs (pillBg/pillBorder above) instead of
+              // the near-transparent primary tint, which made the button invisible
+              // against busy backgrounds. iOS fallback is left untouched.
+              backgroundColor: Platform.OS === 'android' ? pillBg : fallbackTint,
               borderWidth: 1.0,
-              borderColor: fallbackBorderTint,
+              borderColor: Platform.OS === 'android' ? pillBorder : fallbackBorderTint,
             }
           ]}>
             {circleContent}

@@ -673,6 +673,12 @@ const CustomTabBar = ({
   const fallbackSurfaceTint = isDarkMode ? `${theme.primary}16` : `${theme.primary}10`;
   const fallbackBorderTint = isDarkMode ? `${theme.primary}33` : `${theme.primary}22`;
   const fallbackIndicatorTint = isDarkMode ? `${theme.primary}18` : `${theme.primary}12`;
+  // Android fallback only (no Liquid Glass support): the low-opacity primary tint
+  // above (~6-9% alpha) reads as an almost-transparent navbar over busy content.
+  // Use the same solid-ish neutral pill tint as the create-button subtabs
+  // (pillBg/pillBorder in CustomTabBarButton.js) instead, so the bar is legible.
+  const androidFallbackSurfaceTint = isDarkMode ? "rgba(18, 18, 18, 0.78)" : "rgba(255, 255, 255, 0.78)";
+  const androidFallbackBorderTint = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
 
   const renderButtons = useCallback(() => {
     return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
@@ -1017,20 +1023,36 @@ const CustomTabBar = ({
               ...StyleSheet.absoluteFillObject,
               borderRadius: 24.5,
               overflow: "hidden",
-              backgroundColor: (Platform.OS === "ios" && NativeBlurView)
-                ? "transparent"
-                : fallbackSurfaceTint,
+              backgroundColor: Platform.OS === 'android'
+                ? androidFallbackSurfaceTint
+                : ((Platform.OS === "ios" && NativeBlurView) ? "transparent" : fallbackSurfaceTint),
               borderWidth: 1.0,
-              borderColor: fallbackBorderTint,
+              borderColor: Platform.OS === 'android' ? androidFallbackBorderTint : fallbackBorderTint,
             }}
           >
             {Platform.OS === "ios" && NativeBlurView && (
               <NativeBlurView
-                style={{ ...StyleSheet.absoluteFillObject, borderRadius: 24.5, overflow: "hidden" }}
+                pointerEvents="none"
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 24.5,
+                  overflow: "hidden",
+                  zIndex: -1,
+                  elevation: -1,
+                }}
                 blurType={isDarkMode ? "dark" : "light"}
                 blurAmount={14}
               />
             )}
+            {/*
+              NativeBlurView's native UIVisualEffectView subview can get inserted
+              above RN's declared sibling order at the platform layer regardless
+              of JSX position — that's why buttons past Home were getting visually
+              covered by the blur on iOS 18 and below. Wrapping the real content in
+              its own explicitly-elevated, non-blocking layer forces it back above
+              the blur host view.
+            */}
+            <View pointerEvents="box-none" style={{ ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1 }}>
             {/*
               2-layer indicator architecture:
               - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
@@ -1103,6 +1125,7 @@ const CustomTabBar = ({
               </Animated.View>
             </Animated.View>
             {renderButtons()}
+            </View>
           </View>
         </View>
 
@@ -1113,27 +1136,39 @@ const CustomTabBar = ({
               ...StyleSheet.absoluteFillObject,
               borderRadius: 26.5,
               overflow: "hidden",
-              backgroundColor: (Platform.OS === "ios" && NativeBlurView)
-                ? "transparent"
-                : fallbackSurfaceTint,
+              backgroundColor: Platform.OS === 'android'
+                ? androidFallbackSurfaceTint
+                : ((Platform.OS === "ios" && NativeBlurView) ? "transparent" : fallbackSurfaceTint),
               borderWidth: 1.0,
-              borderColor: fallbackBorderTint,
+              borderColor: Platform.OS === 'android' ? androidFallbackBorderTint : fallbackBorderTint,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             {Platform.OS === "ios" && NativeBlurView && (
               <NativeBlurView
-                style={{ ...StyleSheet.absoluteFillObject, borderRadius: 26.5, overflow: "hidden" }}
+                pointerEvents="none"
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 26.5,
+                  overflow: "hidden",
+                  zIndex: -1,
+                  elevation: -1,
+                }}
                 blurType={isDarkMode ? "dark" : "light"}
                 blurAmount={14}
               />
             )}
-            <CustomTabBarButton
-              onPress={() => {}}
-              bottomOffset={bottomOffset}
-              currentRoute={activeRouteName}
-            />
+            <View
+              pointerEvents="box-none"
+              style={{ ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <CustomTabBarButton
+                onPress={() => {}}
+                bottomOffset={bottomOffset}
+                currentRoute={activeRouteName}
+              />
+            </View>
           </View>
         </View>
       </View>
