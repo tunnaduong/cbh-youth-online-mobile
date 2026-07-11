@@ -73,7 +73,7 @@
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth",
-      "versionCode": 276,
+      "versionCode": 310,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
