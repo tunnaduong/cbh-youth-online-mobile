@@ -1011,11 +1011,25 @@ const CustomTabBar = ({
             FIX (iOS <= 18 fallback, no Liquid Glass): the pill's shadow lives on the
             outer View (styles.iosLeftPill). Adding overflow:"hidden" there to clip
             content would also kill the iOS shadow. So clipping is done on this
-            separate inner absolute-fill layer instead — it carries the background,
-            border and borderRadius, and clips all children (indicator + buttons) to
-            the rounded shape. Without this wrapper, the indicator/buttons render as
-            square-cornered siblings that aren't clipped, which is why the navbar
-            looked square instead of pill-shaped on iOS 18 and below.
+            separate inner absolute-fill layer instead — it carries ONLY the
+            background, border, borderRadius and (iOS) blur, and clips those to the
+            rounded pill shape.
+
+            The indicator + tab buttons are intentionally rendered as a SEPARATE
+            sibling layer below (not nested inside this clipped view). Two reasons:
+            1) Nesting them inside an overflow:"hidden" + borderWidth:1 container
+               double-insets the indicator's top offset (the 1px border eats into
+               the box, then the indicator's own top:1 offset pushes it down again),
+               which is why the indicator sat a couple pixels below the top of the
+               pill and got its bottom clipped, instead of sitting flush like the
+               Liquid Glass version does.
+            2) The unread-count badge on the Notifications icon needs to render
+               slightly outside the icon's bounds — clipping it to the pill's
+               rounded rect cut it off. Keeping buttons/badges in an unclipped
+               sibling layer fixes both issues while the background layer above
+               still enforces the pill shape. The indicator already carries its own
+               borderRadius (23.5, ≈ its own height/2), so it still reads as fully
+               rounded without needing the parent to clip it too.
           */}
           <View
             collapsable={false}
@@ -1044,34 +1058,24 @@ const CustomTabBar = ({
                 blurAmount={14}
               />
             )}
-            {/*
-              NativeBlurView's native UIVisualEffectView subview can get inserted
-              above RN's declared sibling order at the platform layer regardless
-              of JSX position — that's why buttons past Home were getting visually
-              covered by the blur on iOS 18 and below. Wrapping the real content in
-              its own explicitly-elevated, non-blocking layer forces it back above
-              the blur host view. This is an iOS-only quirk: `elevation` is a REAL
-              native Z-compositing + drop-shadow property on Android (unlike iOS,
-              where it's ignored), so it must not be applied there — Android's
-              normal JSX sibling paint order already puts this content above the
-              plain-color background View with no extra styling needed.
+          </View>
+          {/*
+            flexDirection: 'row' here is NOT optional — RN Views default to
+            column direction. Without it, the 4 tab buttons rendered by
+            renderButtons() (each flex:1, height:'100%') stack vertically
+            instead of spreading across the pill, and since the pill clips at
+            49px tall, only the first (Home) button was ever fully visible —
+            the real cause behind "only Home shows" on both iOS and Android
+            fallback renders, unrelated to the blur z-index issue above.
 
-              flexDirection: 'row' here is NOT optional — RN Views default to
-              column direction. Without it, the 4 tab buttons rendered by
-              renderButtons() (each flex:1, height:'100%') stack vertically
-              instead of spreading across the pill, and since the pill clips at
-              49px tall, only the first (Home) button was ever fully visible —
-              the real cause behind "only Home shows" on both iOS and Android
-              fallback renders, unrelated to the blur z-index issue above.
-            */}
-            <View
-              pointerEvents="box-none"
-              style={
-                Platform.OS === "ios" && NativeBlurView
-                  ? { ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1, flexDirection: 'row', alignItems: 'center' }
-                  : { ...StyleSheet.absoluteFillObject, flexDirection: 'row', alignItems: 'center' }
-              }
-            >
+            This layer sits as a sibling (not a child) of the clipped background
+            layer above, so neither the indicator nor the badges get cut off —
+            see the comment on the background layer for why.
+          */}
+          <View
+            pointerEvents="box-none"
+            style={{ ...StyleSheet.absoluteFillObject, flexDirection: 'row', alignItems: 'center' }}
+          >
             {/*
               2-layer indicator architecture:
               - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
@@ -1144,7 +1148,6 @@ const CustomTabBar = ({
               </Animated.View>
             </Animated.View>
             {renderButtons()}
-            </View>
           </View>
         </View>
 
