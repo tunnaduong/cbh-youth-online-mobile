@@ -174,18 +174,75 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
             <LiquidGlassView
               key={i}
               glassType="regular"
-              glassTintColor={isDarkMode ? "#1E1E1E66" : "#FFFFFF40"}
+              glassTintColor={isDarkMode ? "#1E1E1E88" : "#FFFFFF55"}
               glassOpacity={1}
               isInteractive={true}
               style={[
                 styles.glassRow,
-                { marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0 }
+                {
+                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
+                  borderWidth: 0.5,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.06)",
+                  shadowColor: isDarkMode ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.15)",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 1,
+                  shadowRadius: 12,
+                  elevation: 8,
+                }
               ]}
             >
               {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
             </LiquidGlassView>
           ))}
         </LiquidGlassContainer>
+      );
+    }
+
+    if (Platform.OS === "android" && isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
+      const isAndroid33 = Platform.Version >= 33;
+      const subGlassProps = isAndroid33 ? {
+        blurRadius: 8,
+        refractionAmount: 30,
+        refractionHeight: 14,
+        chromaticAberration: 0.12,
+        highlightAlpha: 0.18,
+        tint: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.08)",
+      } : {
+        blurRadius: 6,
+        refractionAmount: 0,
+        refractionHeight: 0,
+        chromaticAberration: 0,
+        highlightAlpha: 0.12,
+        tint: isDarkMode ? "rgba(30, 30, 30, 0.2)" : "rgba(255, 255, 255, 0.08)",
+      };
+
+      return (
+        <View style={styles.columnContainer}>
+          {menuButtons.map((btn, i) => (
+            <LiquidGlassViewAndroid
+              key={i}
+              providerId={currentRoute}
+              interactive={isLiquidGlassSupportedAndroid}
+              {...subGlassProps}
+              style={[
+                styles.pillRow,
+                {
+                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
+                  backgroundColor: isLiquidGlassSupportedAndroid ? "transparent" : pillBg,
+                  borderWidth: 1.0,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.06)",
+                  shadowColor: isDarkMode ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.15)",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 1,
+                  shadowRadius: 12,
+                  elevation: 8,
+                }
+              ]}
+            >
+              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
+            </LiquidGlassViewAndroid>
+          ))}
+        </View>
       );
     }
 
@@ -212,6 +269,108 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           </Animated.View>
         ))}
       </View>
+    );
+  };
+
+  const renderButton = () => {
+    const circleContent = (
+      <MaterialCommunityIcons
+        name="plus"
+        size={38}
+        color={theme.primary}
+        style={styles.icon}
+      />
+    );
+
+    if (Platform.OS === "ios" && isRealGlass) {
+      return (
+        <Pressable style={styles.buttonContainer} onPress={handlePress}>
+          <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
+            <LiquidGlassView
+              glassType="regular"
+              glassTintColor={isDarkMode ? "#1E1E1E99" : "#FFFFFF66"}
+              glassOpacity={1}
+              isInteractive={true}
+              style={[
+                styles.iconCircle,
+                {
+                  borderWidth: 0.5,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.08)",
+                  shadowColor: theme.primary,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 12,
+                }
+              ]}
+            >
+              {circleContent}
+            </LiquidGlassView>
+          </Animated.View>
+        </Pressable>
+      );
+    }
+
+    if (Platform.OS === "android" && isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
+      const isAndroid33 = Platform.Version >= 33;
+      const btnGlassProps = isAndroid33 ? {
+        blurRadius: 8,
+        refractionAmount: 30,
+        refractionHeight: 14,
+        chromaticAberration: 0.12,
+        highlightAlpha: 0.18,
+        tint: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.08)",
+      } : {
+        blurRadius: 6,
+        refractionAmount: 0,
+        refractionHeight: 0,
+        chromaticAberration: 0,
+        highlightAlpha: 0.12,
+        tint: isDarkMode ? "rgba(30, 30, 30, 0.2)" : "rgba(255, 255, 255, 0.08)",
+      };
+
+      return (
+        <Pressable style={styles.buttonContainer} onPress={handlePress}>
+          <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
+            <LiquidGlassViewAndroid
+              providerId={currentRoute}
+              interactive={isLiquidGlassSupportedAndroid}
+              {...btnGlassProps}
+              style={[
+                styles.iconCircle,
+                {
+                  backgroundColor: isLiquidGlassSupportedAndroid ? "transparent" : "rgba(255,255,255,0.1)",
+                  borderWidth: 1.0,
+                  borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+                  shadowColor: theme.primary,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 12,
+                }
+              ]}
+            >
+              {circleContent}
+            </LiquidGlassViewAndroid>
+          </Animated.View>
+        </Pressable>
+      );
+    }
+
+    return (
+      <Pressable style={styles.buttonContainer} onPress={handlePress}>
+        <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
+          <View style={[
+            styles.iconCircle,
+            {
+              borderWidth: 1.0,
+              borderColor: isDarkMode
+                ? `${theme.primary}25`
+                : `${theme.primary}18`,
+            }
+          ]}>
+            {circleContent}
+          </View>
+        </Animated.View>
+      </Pressable>
     );
   };
 
@@ -247,26 +406,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
         </Animated.View>
       </Modal>
 
-      <Pressable style={styles.buttonContainer} onPress={handlePress}>
-        <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
-          <View style={[
-            styles.iconCircle,
-            {
-              borderWidth: 1.0,
-              borderColor: isDarkMode
-                ? `${theme.primary}25`
-                : `${theme.primary}18`,
-            }
-          ]}>
-            <MaterialCommunityIcons
-              name="plus"
-              size={38}
-              color={theme.primary}
-              style={styles.icon}
-            />
-          </View>
-        </Animated.View>
-      </Pressable>
+      {renderButton()}
     </View>
   );
 };

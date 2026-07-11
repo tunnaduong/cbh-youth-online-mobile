@@ -31,7 +31,6 @@ import {
 } from "../../components/GlassModules";
 
 const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View;
-const AnimatedIndicatorIOS = AnimatedLiquidGlassView || Animated.View;
 
 const ScreenWrapper = ({ children, routeName }) => {
   const { theme } = useTheme();
@@ -254,12 +253,8 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
           }}
         />
-        {/* Main Glass Indicator (neutral white/dark) */}
-        <AnimatedIndicatorIOS
-          glassType="regular"
-          glassTintColor={isDarkMode ? "#1E1E1E66" : "#FFFFFF40"}
-          glassOpacity={1}
-          isInteractive={false}
+        {/* Main Glass Indicator - sits on top of outer LiquidGlassView glass layer */}
+        <Animated.View
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
@@ -269,7 +264,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             left: 0,
             opacity,
             transform: [{ translateX: slideAnim }],
-            backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)"),
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
             shadowColor: isDarkMode ? "#fff" : "#000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: isDarkMode ? 0.3 : 0.15,
@@ -288,7 +283,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             end={{ x: 0, y: 1 }}
             style={StyleSheet.absoluteFillObject}
           />
-        </AnimatedIndicatorIOS>
+        </Animated.View>
       </LiquidGlassView>
     );
   }
@@ -912,50 +907,33 @@ const CustomTabBar = ({
                 transform: [{ translateX: nativeSlideAnim }],
               }}
             >
-              {AnimatedLiquidGlassView ? (
-                <AnimatedLiquidGlassView
-                  glassType="regular"
-                  glassTintColor={isDarkMode ? "#1E1E1E66" : "#FFFFFF40"}
-                  glassOpacity={1}
-                  isInteractive={false}
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 47,
-                    borderRadius: 23.5,
-                    backgroundColor: indicatorBg,
-                    opacity,
-                  }}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: indicatorAnimatedWidth,
+                  height: 47,
+                  borderRadius: 23.5,
+                  backgroundColor: indicatorBg,
+                  opacity,
+                  shadowColor: isDarkMode ? "#fff" : "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  overflow: "hidden",
+                }}
+              >
+                <LinearGradient
+                  colors={[
+                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                    "transparent"
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
                 />
-              ) : (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 47,
-                    borderRadius: 23.5,
-                    backgroundColor: indicatorBg,
-                    opacity,
-                    shadowColor: isDarkMode ? "#fff" : "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                    shadowRadius: 6,
-                    elevation: 3,
-                    overflow: "hidden",
-                  }}
-                >
-                  <LinearGradient
-                    colors={[
-                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                      "transparent"
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                </Animated.View>
-              )}
+              </Animated.View>
             </Animated.View>
             {renderButtons()}
           </View>
