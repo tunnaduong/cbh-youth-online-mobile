@@ -305,9 +305,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         ...StyleSheet.absoluteFillObject,
         borderRadius: 24.5,
         overflow: "hidden",
-        backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
+        backgroundColor: fallbackSurfaceTint,
         borderWidth: 1.0,
-        borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+        borderColor: fallbackBorderTint,
       }}
     >
       {/* Chromatic Aberration - Red channel shift (left offset) */}
@@ -384,6 +384,7 @@ const CustomTabBar = ({
   triggerChatScrollOrReload,
   triggerNotificationScrollOrReload,
   tabBarTranslateY,
+  onLayout,
 }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
@@ -427,20 +428,23 @@ const CustomTabBar = ({
   const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
   // useMemo prevents leftRoutes from being recreated on every render,
   // which was causing navigateToLeftIndex → useEffect → ref update chain on each tab press.
-  const leftRoutes = React.useMemo(() => leftRouteNames.map(name => {
-    const route = state.routes.find(r => r.name === name);
-    const index = state.routes.indexOf(route);
-    const descriptor = descriptors[route.key];
-    return { route, index, descriptor };
+  const leftRoutes = React.useMemo(() => {
+    return state.routes
+      .filter((route) => leftRouteNames.includes(route.name))
+      .map((route) => ({
+        route,
+        index: state.routes.indexOf(route),
+        descriptor: descriptors[route.key],
+      }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [state.routes, descriptors]);
+  }, [state.routes, descriptors]);
 
-  const activeRouteName = state.routes[state.index].name;
-  const activeLeftIndex = leftRouteNames.indexOf(activeRouteName);
+  const activeRouteName = state.routes[state.index]?.name;
+  const activeLeftIndex = leftRoutes.findIndex(({ route }) => route.name === activeRouteName);
   const activeLeftIndexRef = useRef(activeLeftIndex);
 
   const usableWidth = tabBarWidth;
-  const buttonWidth = usableWidth / 4;
+  const buttonWidth = usableWidth / Math.max(1, leftRoutes.length);
   const currentIndicatorWidth = buttonWidth;
   const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
@@ -672,10 +676,11 @@ const CustomTabBar = ({
 
   const renderButtons = useCallback(() => {
     return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
-      const isFocused = state.routes[state.index].key === route.key;
-      const { options } = descriptor;
+      if (!route) return null;
+      const isFocused = state.routes[state.index]?.key === route.key;
+      const options = descriptor?.options || {};
 
-  const onPress = () => {
+      const onPress = () => {
         if (isDragging.current) return;
         if (isFocused) {
           if (route.name === "Home") triggerHomeScrollOrReload();
@@ -980,6 +985,7 @@ const CustomTabBar = ({
 
   return (
     <Animated.View
+      onLayout={onLayout}
       style={{
         position: "absolute",
         bottom: 0,
@@ -1249,6 +1255,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 triggerChatScrollOrReload={triggerChatScrollOrReload}
                 triggerNotificationScrollOrReload={triggerNotificationScrollOrReload}
                 tabBarTranslateY={tabBarTranslateY}
+                onLayout={onTabBarLayout}
               />
             );
           }}
@@ -1397,9 +1404,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
                 }
               },
             }}
-            tabBar={(props) => (
-              <View onLayout={onTabBarLayout}>{props.tabBar(props)}</View>
-            )}
           >
             {(props) => (
               <ScreenWrapper routeName="Home">
@@ -1548,9 +1552,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   iosTabButton: {
-    width: '25%',
-    maxWidth: '25%',
-    minWidth: '25%',
+    flex: 1,
+    minWidth: 0,
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
