@@ -30,6 +30,16 @@ import {
   useIOSGlass,
 } from "../../components/GlassModules";
 
+// NativeBlurView: raw blur from the already-linked iOS library.
+// Only used on iOS < 26 (where useIOSGlass is false) as the pill background.
+// Imported defensively — null if the library isn't linked or named differently.
+let NativeBlurView = null;
+try {
+  NativeBlurView = require("@sbaiahmed1/react-native-blur").BlurView;
+} catch (e) {
+  // library not linked — fallback renders flat color instead
+}
+
 const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View;
 
 const ScreenWrapper = ({ children, routeName }) => {
@@ -993,15 +1003,25 @@ const CustomTabBar = ({
             looked square instead of pill-shaped on iOS 18 and below.
           */}
           <View
+            collapsable={false}
             style={{
               ...StyleSheet.absoluteFillObject,
               borderRadius: 24.5,
               overflow: "hidden",
-              backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
+              backgroundColor: (Platform.OS === "ios" && NativeBlurView)
+                ? "transparent"
+                : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
               borderWidth: 1.0,
               borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
             }}
           >
+            {Platform.OS === "ios" && NativeBlurView && (
+              <NativeBlurView
+                style={{ ...StyleSheet.absoluteFillObject, borderRadius: 24.5, overflow: "hidden" }}
+                blurType={isDarkMode ? "dark" : "light"}
+                blurAmount={14}
+              />
+            )}
             {/*
               2-layer indicator architecture:
               - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
@@ -1079,17 +1099,27 @@ const CustomTabBar = ({
 
         <View style={styles.iosRightPill}>
           <View
+            collapsable={false}
             style={{
               ...StyleSheet.absoluteFillObject,
               borderRadius: 26.5,
               overflow: "hidden",
-              backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
+              backgroundColor: (Platform.OS === "ios" && NativeBlurView)
+                ? "transparent"
+                : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
               borderWidth: 1.0,
               borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
+            {Platform.OS === "ios" && NativeBlurView && (
+              <NativeBlurView
+                style={{ ...StyleSheet.absoluteFillObject, borderRadius: 26.5, overflow: "hidden" }}
+                blurType={isDarkMode ? "dark" : "light"}
+                blurAmount={14}
+              />
+            )}
             <CustomTabBarButton
               onPress={() => {}}
               bottomOffset={bottomOffset}
