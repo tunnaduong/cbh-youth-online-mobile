@@ -15,7 +15,10 @@ let LiquidGlassContainer = null;
 let AnimatedLiquidGlassView = null;
 let AnimatedBlurView = null;
 
-if (Platform.OS === "ios") {
+const iosMajorVersion = Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
+const shouldUseIOSGlass = Platform.OS === "ios" && iosMajorVersion >= 26;
+
+if (Platform.OS === "ios" && shouldUseIOSGlass) {
   try {
     const Lib = require("@sbaiahmed1/react-native-blur");
     BlurView = Lib.BlurView;
@@ -24,6 +27,16 @@ if (Platform.OS === "ios") {
     if (LiquidGlassView) {
       AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
     }
+    if (BlurView) {
+      AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
+    }
+  } catch (error) {
+    console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
+  }
+} else if (Platform.OS === "ios") {
+  try {
+    const Lib = require("@sbaiahmed1/react-native-blur");
+    BlurView = Lib.BlurView;
     if (BlurView) {
       AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
@@ -61,8 +74,7 @@ if (Platform.OS === "android") {
 // what caused the square nav bar corners on iOS 18. So on iOS < 26 we report
 // useIOSGlass as false and let call sites use BlurView directly instead,
 // wrapped in a View that actually clips it.
-const iosMajorVersion = Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
-const useIOSGlass = Platform.OS === "ios" && iosMajorVersion >= 26 && !!LiquidGlassView && !!LiquidGlassContainer;
+const useIOSGlass = shouldUseIOSGlass && !!LiquidGlassView && !!LiquidGlassContainer;
 const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
 
 export {

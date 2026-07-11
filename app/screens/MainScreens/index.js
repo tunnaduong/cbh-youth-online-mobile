@@ -191,7 +191,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             left: 0,
             opacity,
             transform: [{ translateX: slideAnim }],
-            backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)"),
+            backgroundColor: isRealGlass ? "transparent" : fallbackIndicatorTint,
             shadowColor: isDarkMode ? "#fff" : "#000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: isDarkMode ? 0.3 : 0.15,
@@ -666,6 +666,9 @@ const CustomTabBar = ({
   ).current;
 
   const opacity = activeRouteName === "Create" ? 0 : 1;
+  const fallbackSurfaceTint = isDarkMode ? `${theme.primary}16` : `${theme.primary}10`;
+  const fallbackBorderTint = isDarkMode ? `${theme.primary}33` : `${theme.primary}22`;
+  const fallbackIndicatorTint = isDarkMode ? `${theme.primary}18` : `${theme.primary}12`;
 
   const renderButtons = useCallback(() => {
     return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
@@ -762,7 +765,7 @@ const CustomTabBar = ({
       tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
     };
 
-    const pillBg = isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)";
+    const pillBg = fallbackSurfaceTint;
 
     return (
       <Animated.View
@@ -858,7 +861,7 @@ const CustomTabBar = ({
                 borderRadius: 26.5,
                 backgroundColor: isRealGlass ? "transparent" : pillBg,
                 borderWidth: 1.0,
-                borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+                borderColor: fallbackBorderTint,
               }}
             />
             <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
@@ -1010,9 +1013,9 @@ const CustomTabBar = ({
               overflow: "hidden",
               backgroundColor: (Platform.OS === "ios" && NativeBlurView)
                 ? "transparent"
-                : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
+                : fallbackSurfaceTint,
               borderWidth: 1.0,
-              borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+              borderColor: fallbackBorderTint,
             }}
           >
             {Platform.OS === "ios" && NativeBlurView && (
@@ -1072,7 +1075,7 @@ const CustomTabBar = ({
                   borderRadius: 23.5,
                   opacity,
                   transform: [{ translateX: indicatorDragOffset }],
-                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                  backgroundColor: fallbackIndicatorTint,
                   shadowColor: isDarkMode ? "#fff" : "#000",
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: isDarkMode ? 0.3 : 0.15,
@@ -1106,9 +1109,9 @@ const CustomTabBar = ({
               overflow: "hidden",
               backgroundColor: (Platform.OS === "ios" && NativeBlurView)
                 ? "transparent"
-                : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
+                : fallbackSurfaceTint,
               borderWidth: 1.0,
-              borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+              borderColor: fallbackBorderTint,
               alignItems: 'center',
               justifyContent: 'center',
             }}

@@ -128,6 +128,8 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
   const pillBorder = isDarkMode
     ? "rgba(255, 255, 255, 0.12)"
     : "rgba(0, 0, 0, 0.08)";
+  const fallbackTint = isDarkMode ? `${theme.primary}16` : `${theme.primary}12`;
+  const fallbackBorderTint = isDarkMode ? `${theme.primary}33` : `${theme.primary}22`;
 
   const dynamicElevation = menuAnim.interpolate({
     inputRange: [0, 0.5, 1],
@@ -277,9 +279,9 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
               style={[
                 styles.iconCircle,
                 {
-                  backgroundColor: isLiquidGlassSupportedAndroid ? "transparent" : "rgba(255,255,255,0.1)",
+                  backgroundColor: isLiquidGlassSupportedAndroid ? "transparent" : fallbackTint,
                   borderWidth: 1.0,
-                  borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+                  borderColor: isDarkMode ? fallbackBorderTint : fallbackBorderTint,
                   shadowColor: theme.primary,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
@@ -300,10 +302,9 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           <View style={[
             styles.iconCircle,
             {
+              backgroundColor: fallbackTint,
               borderWidth: 1.0,
-              borderColor: isDarkMode
-                ? `${theme.primary}25`
-                : `${theme.primary}18`,
+              borderColor: fallbackBorderTint,
             }
           ]}>
             {circleContent}

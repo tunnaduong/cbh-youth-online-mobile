@@ -906,17 +906,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   // Handle story highlighting from notifications
   useEffect(() => {
-    if (route.params?.highlightStoryId && userStories.length > 0) {
-      const storyToHighlight = route.params.highlightStoryId;
-      const userWithStory = userStories.find((user) =>
-        user.stories.some((story) => story.storyId === storyToHighlight)
-      );
-      if (userWithStory) {
-        setTimeout(() => {
-          storyRef.current?.show(userWithStory.id);
-        }, 500);
-      }
-    }
+    if (!route.params?.highlightStoryId || userStories.length === 0) return;
+
+    const storyToHighlight = String(route.params.highlightStoryId);
+    const userWithStory = userStories.find((user) =>
+      user.stories.some((story) => String(story.storyId ?? story.id) === storyToHighlight)
+    );
+
+    if (!userWithStory) return;
+
+    const timer = setTimeout(() => {
+      storyRef.current?.show?.(userWithStory.id);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [route.params?.highlightStoryId, userStories]);
 
   // Handle deep link: com.fatties.youth://story/<storyId>
@@ -928,7 +931,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     // Find which user owns this story (story.id is numeric, compare as string)
     const userWithStory = userStories.find((user) =>
-      user.stories.some((story) => String(story.id) === targetId)
+      user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
     );
 
     if (userWithStory) {
