@@ -1268,6 +1268,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
     fontStyle: "italic",
+    maxWidth: "75%",
+    flexWrap: "wrap",
+    marginLeft: 4,
+    fontStyle: "italic",
     flexWrap: "wrap",
   },
   inputContainer: {
