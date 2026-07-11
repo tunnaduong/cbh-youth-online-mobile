@@ -174,7 +174,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
             <LiquidGlassView
               key={i}
               glassType="regular"
-              glassTintColor={isDarkMode ? "#1E1E1E88" : "#FFFFFF55"}
+              glassTintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
               glassOpacity={1}
               isInteractive={true}
               style={[
@@ -182,12 +182,12 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
                 {
                   marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
                   borderWidth: 0.5,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.06)",
-                  shadowColor: isDarkMode ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.15)",
-                  shadowOffset: { width: 0, height: 4 },
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                  shadowColor: isDarkMode ? "rgba(0, 0, 0, 0.6)" : "rgba(0, 0, 0, 0.2)",
+                  shadowOffset: { width: 0, height: 6 },
                   shadowOpacity: 1,
-                  shadowRadius: 12,
-                  elevation: 8,
+                  shadowRadius: 16,
+                  elevation: 10,
                 }
               ]}
             >
@@ -195,54 +195,6 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
             </LiquidGlassView>
           ))}
         </LiquidGlassContainer>
-      );
-    }
-
-    if (Platform.OS === "android" && isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
-      const isAndroid33 = Platform.Version >= 33;
-      const subGlassProps = isAndroid33 ? {
-        blurRadius: 8,
-        refractionAmount: 30,
-        refractionHeight: 14,
-        chromaticAberration: 0.12,
-        highlightAlpha: 0.18,
-        tint: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.08)",
-      } : {
-        blurRadius: 6,
-        refractionAmount: 0,
-        refractionHeight: 0,
-        chromaticAberration: 0,
-        highlightAlpha: 0.12,
-        tint: isDarkMode ? "rgba(30, 30, 30, 0.2)" : "rgba(255, 255, 255, 0.08)",
-      };
-
-      return (
-        <View style={styles.columnContainer}>
-          {menuButtons.map((btn, i) => (
-            <LiquidGlassViewAndroid
-              key={i}
-              providerId={currentRoute}
-              interactive={isLiquidGlassSupportedAndroid}
-              {...subGlassProps}
-              style={[
-                styles.pillRow,
-                {
-                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
-                  backgroundColor: isLiquidGlassSupportedAndroid ? "transparent" : pillBg,
-                  borderWidth: 1.0,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.06)",
-                  shadowColor: isDarkMode ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.15)",
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 1,
-                  shadowRadius: 12,
-                  elevation: 8,
-                }
-              ]}
-            >
-              {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
-            </LiquidGlassViewAndroid>
-          ))}
-        </View>
       );
     }
 
@@ -288,7 +240,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
             <LiquidGlassView
               glassType="regular"
-              glassTintColor={isDarkMode ? "#1E1E1E99" : "#FFFFFF66"}
+              glassTintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
               glassOpacity={1}
               isInteractive={true}
               style={[
@@ -313,19 +265,19 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
     if (Platform.OS === "android" && isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
       const isAndroid33 = Platform.Version >= 33;
       const btnGlassProps = isAndroid33 ? {
-        blurRadius: 8,
-        refractionAmount: 30,
-        refractionHeight: 14,
-        chromaticAberration: 0.12,
-        highlightAlpha: 0.18,
-        tint: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.08)",
+        blurRadius: 12,
+        refractionAmount: 40,
+        refractionHeight: 18,
+        chromaticAberration: 0.2,
+        highlightAlpha: 0.25,
+        tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
       } : {
-        blurRadius: 6,
+        blurRadius: 10,
         refractionAmount: 0,
         refractionHeight: 0,
         chromaticAberration: 0,
-        highlightAlpha: 0.12,
-        tint: isDarkMode ? "rgba(30, 30, 30, 0.2)" : "rgba(255, 255, 255, 0.08)",
+        highlightAlpha: 0.18,
+        tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
       };
 
       return (
