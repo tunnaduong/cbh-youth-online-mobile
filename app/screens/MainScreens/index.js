@@ -1055,13 +1055,21 @@ const CustomTabBar = ({
               where it's ignored), so it must not be applied there — Android's
               normal JSX sibling paint order already puts this content above the
               plain-color background View with no extra styling needed.
+
+              flexDirection: 'row' here is NOT optional — RN Views default to
+              column direction. Without it, the 4 tab buttons rendered by
+              renderButtons() (each flex:1, height:'100%') stack vertically
+              instead of spreading across the pill, and since the pill clips at
+              49px tall, only the first (Home) button was ever fully visible —
+              the real cause behind "only Home shows" on both iOS and Android
+              fallback renders, unrelated to the blur z-index issue above.
             */}
             <View
               pointerEvents="box-none"
               style={
                 Platform.OS === "ios" && NativeBlurView
-                  ? { ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1 }
-                  : StyleSheet.absoluteFillObject
+                  ? { ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1, flexDirection: 'row', alignItems: 'center' }
+                  : { ...StyleSheet.absoluteFillObject, flexDirection: 'row', alignItems: 'center' }
               }
             >
             {/*
