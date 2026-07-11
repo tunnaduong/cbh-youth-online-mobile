@@ -30,8 +30,17 @@ if (Platform.OS === "ios" && shouldUseIOSGlass) {
     if (BlurView) {
       AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
+    if (__DEV__) {
+      console.log(
+        `[GlassModules] iOS Liquid Glass: ${!!LiquidGlassView && !!LiquidGlassContainer ? "SUPPORTED" : "NOT supported"} ` +
+        `(iOS ${iosMajorVersion}, requires 26+; @sbaiahmed1/react-native-blur loaded: ${!!Lib})`
+      );
+    }
   } catch (error) {
     console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
+    if (__DEV__) {
+      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @sbaiahmed1/react-native-blur failed to load)`);
+    }
   }
 } else if (Platform.OS === "ios") {
   try {
@@ -40,8 +49,17 @@ if (Platform.OS === "ios" && shouldUseIOSGlass) {
     if (BlurView) {
       AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
+    if (__DEV__) {
+      console.log(
+        `[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, requires 26+; ` +
+        `using BlurView fallback, loaded: ${!!BlurView})`
+      );
+    }
   } catch (error) {
     console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
+    if (__DEV__) {
+      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @sbaiahmed1/react-native-blur failed to load)`);
+    }
   }
 }
 
@@ -53,17 +71,35 @@ let LiquidGlassViewAndroid = null;
 let isLiquidGlassSupportedAndroid = false;
 let AnimatedLiquidGlassViewAndroid = null;
 
+const androidApiLevel = Platform.OS === "android" ? Platform.Version : 0;
+// This app only wants liquid-glass-kit's real SHADER tier (API 33+). The
+// library's own isLiquidGlassSupported() reports "supported" all the way
+// down to API 21 via its SCRIM tier — a deliberately subtle translucent
+// scrim, not a real glass render — which was silently routing API 32 and
+// below (including Android 9) into the "glass supported" branch with only
+// that weak scrim/fallback tint showing, instead of our own fallback UI.
+const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 33;
+
 if (Platform.OS === "android") {
   try {
     const LiquidGlassKit = require("liquid-glass-kit");
     LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
     LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
-    isLiquidGlassSupportedAndroid = LiquidGlassKit.isLiquidGlassSupported;
+    isLiquidGlassSupportedAndroid = shouldUseAndroidGlass;
     if (LiquidGlassViewAndroid) {
       AnimatedLiquidGlassViewAndroid = Animated.createAnimatedComponent(LiquidGlassViewAndroid);
     }
+    if (__DEV__) {
+      console.log(
+        `[GlassModules] Android Liquid Glass: ${isLiquidGlassSupportedAndroid ? "SUPPORTED" : "NOT supported"} ` +
+        `(API ${androidApiLevel}, requires 33+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
+      );
+    }
   } catch (error) {
     console.warn("Failed to load liquid-glass-kit:", error);
+    if (__DEV__) {
+      console.log(`[GlassModules] Android Liquid Glass: NOT supported (API ${androidApiLevel}, liquid-glass-kit failed to load)`);
+    }
   }
 }
 

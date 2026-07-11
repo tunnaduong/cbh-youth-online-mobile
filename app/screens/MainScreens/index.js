@@ -1050,9 +1050,20 @@ const CustomTabBar = ({
               of JSX position — that's why buttons past Home were getting visually
               covered by the blur on iOS 18 and below. Wrapping the real content in
               its own explicitly-elevated, non-blocking layer forces it back above
-              the blur host view.
+              the blur host view. This is an iOS-only quirk: `elevation` is a REAL
+              native Z-compositing + drop-shadow property on Android (unlike iOS,
+              where it's ignored), so it must not be applied there — Android's
+              normal JSX sibling paint order already puts this content above the
+              plain-color background View with no extra styling needed.
             */}
-            <View pointerEvents="box-none" style={{ ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1 }}>
+            <View
+              pointerEvents="box-none"
+              style={
+                Platform.OS === "ios" && NativeBlurView
+                  ? { ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1 }
+                  : StyleSheet.absoluteFillObject
+              }
+            >
             {/*
               2-layer indicator architecture:
               - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
@@ -1161,7 +1172,11 @@ const CustomTabBar = ({
             )}
             <View
               pointerEvents="box-none"
-              style={{ ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1, alignItems: 'center', justifyContent: 'center' }}
+              style={
+                Platform.OS === "ios" && NativeBlurView
+                  ? { ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1, alignItems: 'center', justifyContent: 'center' }
+                  : { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' }
+              }
             >
               <CustomTabBarButton
                 onPress={() => {}}
