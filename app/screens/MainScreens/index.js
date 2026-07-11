@@ -980,106 +980,122 @@ const CustomTabBar = ({
         <View
           {...panResponder.panHandlers}
           onLayout={onLeftPillLayout}
-          style={[
-            styles.iosLeftPill,
-            {
+          style={styles.iosLeftPill}
+        >
+          {/*
+            FIX (iOS <= 18 fallback, no Liquid Glass): the pill's shadow lives on the
+            outer View (styles.iosLeftPill). Adding overflow:"hidden" there to clip
+            content would also kill the iOS shadow. So clipping is done on this
+            separate inner absolute-fill layer instead — it carries the background,
+            border and borderRadius, and clips all children (indicator + buttons) to
+            the rounded shape. Without this wrapper, the indicator/buttons render as
+            square-cornered siblings that aren't clipped, which is why the navbar
+            looked square instead of pill-shaped on iOS 18 and below.
+          */}
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              borderRadius: 24.5,
+              overflow: "hidden",
               backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
               borderWidth: 1.0,
               borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
-            }
-          ]}
-        >
-          {/*
-            2-layer indicator architecture:
-            - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
-            - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
-              nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
-          */}
-          <Animated.View
-            style={{
-              position: "absolute",
-              top: 1,
-              left: 0,
-              transform: [{ translateX: nativeSlideAnim }],
             }}
           >
-            {/* Chromatic Aberration - Red */}
+            {/*
+              2-layer indicator architecture:
+              - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
+              - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
+                nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
+            */}
             <Animated.View
               style={{
                 position: "absolute",
-                width: indicatorAnimatedWidth,
-                height: 47,
-                borderRadius: 23.5,
-                top: 0,
-                left: -0.8,
-                opacity: opacity * 0.15,
-                transform: [{ translateX: indicatorDragOffset }],
-                backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
-              }}
-            />
-            {/* Chromatic Aberration - Blue */}
-            <Animated.View
-              style={{
-                position: "absolute",
-                width: indicatorAnimatedWidth,
-                height: 47,
-                borderRadius: 23.5,
-                top: 0,
-                left: 0.8,
-                opacity: opacity * 0.15,
-                transform: [{ translateX: indicatorDragOffset }],
-                backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
-              }}
-            />
-            {/* Main Glass Indicator */}
-            <Animated.View
-              style={{
-                width: indicatorAnimatedWidth,
-                height: 47,
-                borderRadius: 23.5,
-                opacity,
-                transform: [{ translateX: indicatorDragOffset }],
-                backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-                shadowColor: isDarkMode ? "#fff" : "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                shadowRadius: 6,
-                elevation: 3,
-                overflow: "hidden",
+                top: 1,
+                left: 0,
+                transform: [{ translateX: nativeSlideAnim }],
               }}
             >
-              <LinearGradient
-                colors={[
-                  isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                  isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                  "transparent"
-                ]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
+              {/* Chromatic Aberration - Red */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: indicatorAnimatedWidth,
+                  height: 47,
+                  borderRadius: 23.5,
+                  top: 0,
+                  left: -0.8,
+                  opacity: opacity * 0.15,
+                  transform: [{ translateX: indicatorDragOffset }],
+                  backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
+                }}
               />
+              {/* Chromatic Aberration - Blue */}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: indicatorAnimatedWidth,
+                  height: 47,
+                  borderRadius: 23.5,
+                  top: 0,
+                  left: 0.8,
+                  opacity: opacity * 0.15,
+                  transform: [{ translateX: indicatorDragOffset }],
+                  backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
+                }}
+              />
+              {/* Main Glass Indicator */}
+              <Animated.View
+                style={{
+                  width: indicatorAnimatedWidth,
+                  height: 47,
+                  borderRadius: 23.5,
+                  opacity,
+                  transform: [{ translateX: indicatorDragOffset }],
+                  backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
+                  shadowColor: isDarkMode ? "#fff" : "#000",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
+                  shadowRadius: 6,
+                  elevation: 3,
+                  overflow: "hidden",
+                }}
+              >
+                <LinearGradient
+                  colors={[
+                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
+                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
+                    "transparent"
+                  ]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 0, y: 1 }}
+                  style={StyleSheet.absoluteFillObject}
+                />
+              </Animated.View>
             </Animated.View>
-          </Animated.View>
-          {renderButtons()}
+            {renderButtons()}
+          </View>
         </View>
 
-        <View
-          style={[
-            styles.iosRightPill,
-            {
+        <View style={styles.iosRightPill}>
+          <View
+            style={{
+              ...StyleSheet.absoluteFillObject,
+              borderRadius: 26.5,
+              overflow: "hidden",
               backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)",
               borderWidth: 1.0,
               borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
               alignItems: 'center',
               justifyContent: 'center',
-            }
-          ]}
-        >
-          <CustomTabBarButton
-            onPress={() => {}}
-            bottomOffset={bottomOffset}
-            currentRoute={activeRouteName}
-          />
+            }}
+          >
+            <CustomTabBarButton
+              onPress={() => {}}
+              bottomOffset={bottomOffset}
+              currentRoute={activeRouteName}
+            />
+          </View>
         </View>
       </View>
     </Animated.View>
