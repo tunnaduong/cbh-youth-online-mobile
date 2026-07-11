@@ -211,7 +211,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     const isRealGlass = useIOSGlass;
     return (
       <LiquidGlassView
-        glassType="regular"
+        glassType="clear"
         glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
         glassOpacity={1}
         isInteractive={isRealGlass}
@@ -887,7 +887,7 @@ const CustomTabBar = ({
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassView
-              glassType="regular"
+              glassType="clear"
               glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
               glassOpacity={1}
               isInteractive={isRealGlass}
@@ -939,7 +939,7 @@ const CustomTabBar = ({
           </View>
 
           <LiquidGlassView
-            glassType="regular"
+            glassType="clear"
             glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
             glassOpacity={1}
             isInteractive={isRealGlass}

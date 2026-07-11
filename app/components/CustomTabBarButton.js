@@ -173,7 +173,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           {menuButtons.map((btn, i) => (
             <LiquidGlassView
               key={i}
-              glassType="regular"
+              glassType="clear"
               glassTintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
               glassOpacity={1}
               isInteractive={true}
@@ -239,7 +239,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
         <Pressable style={styles.buttonContainer} onPress={handlePress}>
           <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
             <LiquidGlassView
-              glassType="regular"
+              glassType="clear"
               glassTintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
               glassOpacity={1}
               isInteractive={true}
