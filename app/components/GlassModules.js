@@ -54,8 +54,15 @@ if (Platform.OS === "android") {
   }
 }
 
-// True when the iOS glass components are available (iOS build linked correctly).
-const useIOSGlass = Platform.OS === "ios" && !!LiquidGlassView && !!LiquidGlassContainer;
+// True when the iOS glass components are available (iOS build linked correctly)
+// AND the OS actually supports real Liquid Glass (iOS 26+). Below that, the
+// library's LiquidGlassView silently falls back to a plain BlurView subview
+// that does NOT respect the parent's borderRadius/overflow clipping — that's
+// what caused the square nav bar corners on iOS 18. So on iOS < 26 we report
+// useIOSGlass as false and let call sites use BlurView directly instead,
+// wrapped in a View that actually clips it.
+const iosMajorVersion = Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
+const useIOSGlass = Platform.OS === "ios" && iosMajorVersion >= 26 && !!LiquidGlassView && !!LiquidGlassContainer;
 const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
 
 export {
