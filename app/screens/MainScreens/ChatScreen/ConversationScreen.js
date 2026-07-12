@@ -1257,6 +1257,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     flexWrap: "wrap",
+    width: "100%",
     marginBottom: 4,
     paddingHorizontal: 16,
     marginTop: 8,
@@ -1265,12 +1266,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   storyReplyText: {
+    flex: 1,
+    minWidth: 0,
     fontSize: 12,
     marginLeft: 4,
     fontStyle: "italic",
-    maxWidth: "85%",
-    flexShrink: 1,
     flexWrap: "wrap",
+    maxWidth: "100%",
   },
   inputContainer: {
     flexDirection: "row",
