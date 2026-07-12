@@ -950,7 +950,7 @@ const ConversationScreen = ({ navigation, route }) => {
             ]}
           >
             <Ionicons name="arrow-back" size={14} color={theme.subText} />
-            <Text style={[styles.storyReplyText, { color: theme.subText, flexShrink: 1 }]} numberOfLines={2}>
+            <Text style={[styles.storyReplyText, { color: theme.subText }]}>
               {item.is_myself
                 ? t("chatConversation.storyReply.you", { owner: storyOwnerName || t("chatConversation.anonymous") })
                 : t("chatConversation.storyReply.other", { sender: item.sender?.profile_name || item.sender?.username || t("chatConversation.anonymous") })}
@@ -1255,11 +1255,11 @@ const styles = StyleSheet.create({
   },
   storyReplyHeader: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
+    flexWrap: "wrap",
     marginBottom: 4,
     paddingHorizontal: 16,
     marginTop: 8,
-    flexShrink: 1,
   },
   storyReplyHeaderRight: {
     justifyContent: "flex-end",
@@ -1268,10 +1268,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 4,
     fontStyle: "italic",
-    maxWidth: "75%",
-    flexWrap: "wrap",
-    marginLeft: 4,
-    fontStyle: "italic",
+    maxWidth: "85%",
+    flexShrink: 1,
     flexWrap: "wrap",
   },
   inputContainer: {
