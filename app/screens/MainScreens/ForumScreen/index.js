@@ -370,6 +370,20 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         )}
         onMomentumScrollEnd={handlePageChange}
         keyExtractor={(item) => `category-${item.id}`}
+        getItemLayout={(data, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise((resolve) => setTimeout(resolve, 50));
+          wait.then(() => {
+            flatListRef.current?.scrollToOffset({
+              offset: width * info.index,
+              animated: false,
+            });
+          });
+        }}
         renderItem={({ item }) => (
           <ScrollView
             style={{ flex: 1, width, backgroundColor: theme.background }}
