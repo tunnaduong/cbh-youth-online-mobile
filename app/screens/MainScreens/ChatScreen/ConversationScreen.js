@@ -943,20 +943,42 @@ const ConversationScreen = ({ navigation, route }) => {
       >
         {/* Show story reply header */}
         {isStoryReply && (
-          <View
-            style={[
-              styles.storyReplyHeader,
-              item.is_myself && styles.storyReplyHeaderRight,
-            ]}
-          >
-            <Ionicons name="arrow-back" size={14} color={theme.subText} />
-            <Text style={[styles.storyReplyText, item.is_myself && styles.storyReplyTextRight, { color: theme.subText }]}>
-              {item.is_myself
-                ? t("chatConversation.storyReply.you", { owner: storyOwnerName || t("chatConversation.anonymous") })
-                : t("chatConversation.storyReply.other", { sender: item.sender?.profile_name || item.sender?.username || t("chatConversation.anonymous") })}
-            </Text>
-          </View>
-        )}
+            <View
+              style={[
+                styles.storyReplyHeader,
+                item.is_myself && styles.storyReplyHeaderRight,
+              ]}
+            >
+              {item.is_myself ? (
+                <>
+                  <Text
+                    style={[
+                      styles.storyReplyText,
+                      styles.storyReplyTextRight,
+                      { color: theme.subText },
+                    ]}
+                  >
+                    {t("chatConversation.storyReply.you", {
+                      owner: storyOwnerName || t("chatConversation.anonymous"),
+                    })}
+                  </Text>
+                  <Ionicons name="arrow-forward" size={14} color={theme.subText} />
+                </>
+              ) : (
+                <>
+                  <Ionicons name="arrow-back" size={14} color={theme.subText} />
+                  <Text style={[styles.storyReplyText, { color: theme.subText }]}>
+                    {t("chatConversation.storyReply.other", {
+                      sender:
+                        item.sender?.profile_name ||
+                        item.sender?.username ||
+                        t("chatConversation.anonymous"),
+                    })}
+                  </Text>
+                </>
+              )}
+            </View>
+          )}
         {/* Show sender name for group chats when sender changes */}
         {isGroupChat && !item.is_myself && senderChanged && (
           <Text style={[styles.senderName, { color: theme.subText }]}>
@@ -1277,6 +1299,8 @@ const styles = StyleSheet.create({
   },
   storyReplyTextRight: {
     textAlign: "right",
+    marginLeft: 0,
+    marginRight: 4,
   },
   inputContainer: {
     flexDirection: "row",
