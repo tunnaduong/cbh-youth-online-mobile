@@ -21,6 +21,10 @@
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
         "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
         "ITSAppUsesNonExemptEncryption": false,
+        "NSAppLinksUsageDescription": "Opening content from CBH Youth Online",
+        "NSUserActivityTypes": [
+          "NSUserActivityTypeBrowsingWeb"
+        ],
         "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": [
@@ -32,7 +36,11 @@
           "UIApplicationSupportsMultipleScenes": false,
           "UISceneConfigurations": {}
         }
-      }
+      },
+      "associatedDomains": [
+        "applinks:chuyenbienhoa.com",
+        "applinks:www.chuyenbienhoa.com"
+      ]
     },
     "android": {
       "intentFilters": [
