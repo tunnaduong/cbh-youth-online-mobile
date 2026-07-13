@@ -29,6 +29,7 @@ const FeatureHeader = ({
   onLogoPress,
   theme,
   isDarkMode,
+  providerId,
 }) => {
   const scrollAnim = useRef(new Animated.Value(0)).current;
 
@@ -68,7 +69,7 @@ const FeatureHeader = ({
         borderBottomWidth: 0,
       }
     ]}>
-      <LiquidButton size={40} onPress={() => setSetting((setting) => !setting)}>
+      <LiquidButton size={40} onPress={() => setSetting((setting) => !setting)} providerId={providerId}>
         <Ionicons name={"menu-outline"} size={22} color={theme.text} />
       </LiquidButton>
       {havingIcon ? (
@@ -104,7 +105,7 @@ const FeatureHeader = ({
       )}
 
       <View style={{ marginTop: -4 }}>
-        <LiquidButton size={40} onPress={action}>
+        <LiquidButton size={40} onPress={action} providerId={providerId}>
           <Ionicons name={icon} size={22} color={theme.text} />
         </LiquidButton>
       </View>

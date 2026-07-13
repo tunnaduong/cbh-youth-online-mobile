@@ -23,6 +23,7 @@ const LiquidButton = ({
   borderRadius,
   disabled = false,
   containerStyle,
+  providerId,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
@@ -53,7 +54,7 @@ const LiquidButton = ({
       if (isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
         return (
           <LiquidGlassViewAndroid
-            providerId="default"
+            providerId={providerId || "default"}
             style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}
             blurRadius={8}
             refractionAmount={20}

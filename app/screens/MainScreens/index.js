@@ -1450,6 +1450,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                     havingIcon
                     setSetting={setSetting}
                     onLogoPress={triggerHomeScrollOrReload}
+                    providerId="Home"
                   />
                 </View>
               ),

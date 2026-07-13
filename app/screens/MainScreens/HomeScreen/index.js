@@ -1891,6 +1891,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
+            paddingTop: 50 + insets.top,
             paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
           }}
