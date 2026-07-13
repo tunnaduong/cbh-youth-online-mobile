@@ -43,10 +43,18 @@ const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View
 
 const ScreenWrapper = ({ children, routeName }) => {
   const { theme } = useTheme();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      setRefreshKey(prev => prev + 1);
+    }, [])
+  );
+
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid providerId={routeName} style={StyleSheet.absoluteFill}>
+        <LiquidGlassProviderAndroid key={`provider-${refreshKey}`} providerId={routeName} style={StyleSheet.absoluteFill}>
           <View style={{ flex: 1, backgroundColor: theme.background }}>
             {children}
           </View>
@@ -1512,14 +1520,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
       {/* Floating Sidebar Content */}
       <Animated.View style={{
         position: 'absolute',
-        top: 0, bottom: 0, left: 0,
-        width: Dimensions.get('window').width * 0.75,
+        top: insets.top + 16, 
+        bottom: insets.bottom + 16, 
+        left: 16,
+        width: Dimensions.get('window').width * 0.7,
         zIndex: 101,
-        borderTopRightRadius: 24,
-        borderBottomRightRadius: 24,
         transform: [{ translateX: drawerTranslateX }]
       }}>
-        <Sidebar providerId={currentRoute} />
+        <Sidebar providerId={currentRoute} isOpen={setting} />
       </Animated.View>
     </View>
   );
