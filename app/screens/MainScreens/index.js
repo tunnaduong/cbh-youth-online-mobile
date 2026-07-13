@@ -43,18 +43,11 @@ const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View
 
 const ScreenWrapper = ({ children, routeName }) => {
   const { theme } = useTheme();
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useFocusEffect(
-    useCallback(() => {
-      setRefreshKey(prev => prev + 1);
-    }, [])
-  );
 
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid key={`provider-${refreshKey}`} providerId={routeName} style={StyleSheet.absoluteFill}>
+        <LiquidGlassProviderAndroid providerId={routeName} style={StyleSheet.absoluteFill}>
           <View style={{ flex: 1, backgroundColor: theme.background }}>
             {children}
           </View>
@@ -71,9 +64,11 @@ const DummyComponent = () => null;
 const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
   const [glassProviderId, setGlassProviderId] = useState(currentRoute);
+  const [glassKey, setGlassKey] = useState(0);
 
   useEffect(() => {
     setGlassProviderId(currentRoute);
+    setGlassKey(prev => prev + 1);
   }, [currentRoute]);
   const slideAnim = useRef(new Animated.Value(0)).current;
 
@@ -143,6 +138,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
 
     return (
       <LiquidGlassViewAndroid
+        key={glassKey}
         providerId={glassProviderId}
         interactive={isRealGlass}
         onLayout={onLayout}
@@ -150,7 +146,6 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: 24.5,
-          overflow: "hidden",
           backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
           borderWidth: 1.0,
           borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
@@ -1520,10 +1515,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
       {/* Floating Sidebar Content */}
       <Animated.View style={{
         position: 'absolute',
-        top: insets.top + 16, 
-        bottom: insets.bottom + 16, 
-        left: 16,
-        width: Dimensions.get('window').width * 0.7,
+        top: 0, bottom: 0, left: 0,
+        width: Dimensions.get('window').width * 0.75,
         zIndex: 101,
         transform: [{ translateX: drawerTranslateX }]
       }}>
