@@ -35,6 +35,7 @@ import {
   useIOSGlass,
   BlurView,
 } from "../../../components/GlassModules";
+import LiquidButton from "../../../components/LiquidButton";
 
 
 // Helper function to format notification message based on type and data
@@ -531,58 +532,25 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: theme.border }]}>
-        {Platform.OS === 'ios' ? (
-          useIOSGlass ? (
-            <LiquidGlassView
-              style={StyleSheet.absoluteFill}
-              glassType="clear"
-              glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
-              glassOpacity={1}
-            />
-          ) : BlurView ? (
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={10}
-            />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(30,30,30,0.85)' : 'rgba(240,240,240,0.85)' }]} />
-          )
-        ) : (
-          isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid ? (
-            <LiquidGlassViewAndroid
-              providerId="Notifications"
-              style={StyleSheet.absoluteFill}
-              blurRadius={10}
-              refractionAmount={20}
-              refractionHeight={12}
-              tint={isDarkMode ? "rgba(0,0,0,0.3)" : "rgba(240,240,240,0.3)"}
-            />
-          ) : (
-            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(30,30,30,0.7)' : 'rgba(240,240,240,0.7)' }]} />
-          )
-        )}
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
-        <TouchableOpacity
-          style={[
-            styles.readAllButton,
-            { backgroundColor: theme.primary },
-            unreadCount === 0 && (isDarkMode ? { backgroundColor: "#2e2e2e", elevation: 0, shadowOpacity: 0 } : styles.readAllButtonDisabled),
-          ]}
+      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent' }]} pointerEvents="box-none">
+        <Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }]}>{t('navigation.notifications')}</Text>
+        <LiquidButton
+          providerId="Notifications"
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
+          style={{ width: 'auto', paddingHorizontal: 12, height: 35 }}
+          borderRadius={30}
         >
           <Text
             style={[
               styles.readAllText,
-              { color: "#fff" },
+              { color: theme.text },
               unreadCount === 0 && (isDarkMode ? { color: "#666" } : styles.readAllTextDisabled),
             ]}
           >
             {t('notifications.readAll')} ({unreadCount})
           </Text>
-        </TouchableOpacity>
+        </LiquidButton>
       </View>
 
       {refreshing && (

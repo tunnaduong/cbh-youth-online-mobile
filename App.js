@@ -22,6 +22,8 @@ import ProfileScreen from "./app/screens/MainScreens/ProfileScreen";
 import LottieView from "lottie-react-native";
 import SplashScreen from "./app/components/SplashScreen";
 import LiquidHeaderBackground from "./app/components/LiquidHeaderBackground";
+import LiquidButton from "./app/components/LiquidButton";
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 import {
   SafeAreaProvider,
@@ -235,10 +237,13 @@ const App = () => {
                 name="PostScreen"
                 options={{
                   title: t('post.details'),
-                  headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: theme.primary,
+                  headerBackTitleVisible: false,
                   headerTransparent: true,
-                  headerBackground: () => <LiquidHeaderBackground providerId="PostScreen" />,
+                  headerLeft: (props) => (
+                    <LiquidButton size={40} providerId="PostScreen" onPress={props.onPress} containerStyle={{ marginLeft: Platform.OS === 'ios' ? 0 : 16 }}>
+                      <Ionicons name="arrow-back" size={22} color={theme.text} />
+                    </LiquidButton>
+                  ),
                   headerStyle: {
                     backgroundColor: "transparent",
                     elevation: 0,
@@ -248,6 +253,9 @@ const App = () => {
                   },
                   headerTitleStyle: {
                     color: theme.text,
+                    textShadowColor: isDarkMode ? '#000' : '#FFF',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
                   }
                 }}
                 component={PostScreen}
@@ -413,16 +421,25 @@ const App = () => {
                 component={ExploreScreen}
                 options={{
                   title: t('sidebar.explore'),
-                  headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: theme.primary,
+                  headerBackTitleVisible: false,
                   headerTransparent: true,
-                  headerBackground: () => <LiquidHeaderBackground providerId="ExploreScreen" />,
+                  headerLeft: (props) => (
+                    <LiquidButton size={40} providerId="ExploreScreen" onPress={props.onPress} containerStyle={{ marginLeft: Platform.OS === 'ios' ? 0 : 16 }}>
+                      <Ionicons name="arrow-back" size={22} color={theme.text} />
+                    </LiquidButton>
+                  ),
                   headerStyle: {
                     backgroundColor: "transparent",
                     borderBottomWidth: 0,
                     shadowOffset: { height: 0, width: 0 },
                     elevation: 0,
                   },
+                  headerTitleStyle: {
+                    color: theme.text,
+                    textShadowColor: isDarkMode ? '#000' : '#FFF',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
+                  }
                 }}
               />
               <Stack.Screen

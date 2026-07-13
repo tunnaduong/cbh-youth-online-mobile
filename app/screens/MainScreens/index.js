@@ -1515,6 +1515,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
         top: 0, bottom: 0, left: 0,
         width: Dimensions.get('window').width * 0.75,
         zIndex: 101,
+        borderTopRightRadius: 24,
+        borderBottomRightRadius: 24,
+        overflow: 'hidden',
         transform: [{ translateX: drawerTranslateX }]
       }}>
         <Sidebar providerId={currentRoute} />

@@ -218,7 +218,7 @@ const Sidebar = ({ providerId }) => {
           <LiquidGlassView
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             glassType="clear"
-            glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
+            glassTintColor={isDarkMode ? "rgba(18,18,18,0.75)" : "rgba(255,255,255,0.75)"}
             glassOpacity={1}
           />
         ) : BlurView ? (
@@ -238,7 +238,7 @@ const Sidebar = ({ providerId }) => {
             blurRadius={12}
             refractionAmount={30}
             refractionHeight={15}
-            tint={isDarkMode ? "rgba(0,0,0,0.4)" : "rgba(240,240,240,0.4)"}
+            tint={isDarkMode ? "rgba(18,18,18,0.75)" : "rgba(255,255,255,0.75)"}
           />
         ) : (
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.7)' : 'rgba(255,255,255,0.7)' }} />

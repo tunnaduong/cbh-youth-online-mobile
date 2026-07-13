@@ -33,7 +33,7 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import FastImage from "../../../components/FastImage";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
-import LiquidHeaderBackground from "../../../components/LiquidHeaderBackground";
+import LiquidButton from "../../../components/LiquidButton";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -443,11 +443,12 @@ const ProfileScreen = ({ route, navigation }) => {
       <View style={[styles.container, { backgroundColor: theme.background }]}>
         
         <View
+          pointerEvents="box-none"
           style={[styles.header, { 
             position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
             paddingTop: insets.top,
             height: 50 + insets.top, 
-            borderBottomColor: theme.border,
+            borderBottomColor: 'transparent',
             backgroundColor: 'transparent',
           }]}
           onLayout={(event) => {
@@ -455,25 +456,24 @@ const ProfileScreen = ({ route, navigation }) => {
             setHeaderHeight(height);
           }}
         >
-          <LiquidHeaderBackground providerId="ProfileScreen" />
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50 }}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color={theme.primary} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+          <View pointerEvents="box-none" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50 }}>
+            <LiquidButton size={40} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={22} color={theme.text} />
+            </LiquidButton>
+            <Text style={[styles.headerTitle, { color: theme.text, textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }]} numberOfLines={1}>
               {isCurrentUser ? t('profile.title') : userData?.profile.profile_name}
             </Text>
             {isCurrentUser ? (
-              <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-                <Ionicons name="settings-outline" size={24} color={theme.primary} />
-              </TouchableOpacity>
+              <LiquidButton size={40} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
+                <Ionicons name="settings-outline" size={22} color={theme.text} />
+              </LiquidButton>
             ) : (
-              <View style={{ width: 24 }}></View>
+              <View style={{ width: 40 }}></View>
             )}
             {!isCurrentUser && (
-              <TouchableOpacity onPress={showOptions} style={{ position: 'absolute', right: 16 }}>
-                <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
-              </TouchableOpacity>
+              <LiquidButton size={40} providerId="ProfileScreen" onPress={showOptions} containerStyle={{ position: 'absolute', right: 16 }}>
+                <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
+              </LiquidButton>
             )}
           </View>
         </View>
