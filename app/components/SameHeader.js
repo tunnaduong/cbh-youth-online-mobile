@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
   Image,
   Text,
   TouchableOpacity,
   View,
   StyleSheet,
+  Animated,
+  DeviceEventEmitter,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
@@ -17,7 +19,6 @@ const SimpleHeader = ({ title, theme }) => (
   </View>
 );
 
-// Feature-rich header component
 const FeatureHeader = ({
   title,
   icon,
@@ -28,51 +29,88 @@ const FeatureHeader = ({
   onLogoPress,
   theme,
   isDarkMode,
-}) => (
-  <View style={[
-    havingBorder ? styles.containerWithBorder : styles.container,
-    {
-      backgroundColor: "transparent",
-      borderColor: "transparent",
-      borderBottomWidth: 0,
-    }
-  ]}>
-    <LiquidButton size={40} onPress={() => setSetting((setting) => !setting)}>
-      <Ionicons name={"menu-outline"} size={22} color={theme.text} />
-    </LiquidButton>
-    {havingIcon ? (
-      <View style={{ marginTop: -4 }}>
-        <TouchableOpacity
-          onPress={onLogoPress}
-          activeOpacity={0.7}
-          style={styles.logoContainer}
-        >
-          <Image
-            style={styles.logo}
-            source={require("../assets/logo.png")}
-            resizeMode="contain"
-          />
-          <View style={{ marginLeft: 4 }}>
-            <Text style={{ color: theme.primary, fontWeight: "300" }}>
-              Diễn đàn học sinh
-            </Text>
-            <Text style={{ color: theme.primary, fontWeight: "bold", marginTop: -2 }}>
-              Chuyên Biên Hòa
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-    ) : (
-      <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
-    )}
+}) => {
+  const scrollAnim = useRef(new Animated.Value(0)).current;
 
-    <View style={{ marginTop: -4 }}>
-      <LiquidButton size={40} onPress={action}>
-        <Ionicons name={icon} size={22} color={theme.text} />
+  useEffect(() => {
+    if (!havingIcon) return;
+    const subscription = DeviceEventEmitter.addListener("HOME_SCROLL", (offsetY) => {
+      // Offset > 50 means we are scrolling down
+      scrollAnim.setValue(offsetY);
+    });
+    return () => subscription.remove();
+  }, [havingIcon, scrollAnim]);
+
+  const logoOpacity = scrollAnim.interpolate({
+    inputRange: [0, 50],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const logoTranslateY = scrollAnim.interpolate({
+    inputRange: [0, 50],
+    outputRange: [0, -20],
+    extrapolate: "clamp",
+  });
+
+  const logoWidth = scrollAnim.interpolate({
+    inputRange: [0, 50],
+    outputRange: [160, 0],
+    extrapolate: "clamp",
+  });
+
+  return (
+    <View style={[
+      havingBorder ? styles.containerWithBorder : styles.container,
+      {
+        backgroundColor: "transparent",
+        borderColor: "transparent",
+        borderBottomWidth: 0,
+      }
+    ]}>
+      <LiquidButton size={40} onPress={() => setSetting((setting) => !setting)}>
+        <Ionicons name={"menu-outline"} size={22} color={theme.text} />
       </LiquidButton>
+      {havingIcon ? (
+        <Animated.View style={{ 
+          marginTop: -4, 
+          opacity: logoOpacity, 
+          transform: [{ translateY: logoTranslateY }],
+          width: logoWidth,
+          overflow: "hidden"
+        }}>
+          <TouchableOpacity
+            onPress={onLogoPress}
+            activeOpacity={0.7}
+            style={styles.logoContainer}
+          >
+            <Image
+              style={styles.logo}
+              source={require("../assets/logo.png")}
+              resizeMode="contain"
+            />
+            <View style={{ marginLeft: 4 }}>
+              <Text style={{ color: theme.primary, fontWeight: "300", width: 120 }} numberOfLines={1}>
+                Diễn đàn học sinh
+              </Text>
+              <Text style={{ color: theme.primary, fontWeight: "bold", marginTop: -2, width: 120 }} numberOfLines={1}>
+                Chuyên Biên Hòa
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      ) : (
+        <Text style={[styles.title, { color: theme.text }]}>{title}</Text>
+      )}
+
+      <View style={{ marginTop: -4 }}>
+        <LiquidButton size={40} onPress={action}>
+          <Ionicons name={icon} size={22} color={theme.text} />
+        </LiquidButton>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 // Main component that decides which header to render
 const SameHeader = (props) => {

@@ -28,6 +28,14 @@ import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
+import {
+  LiquidGlassView,
+  LiquidGlassViewAndroid,
+  isLiquidGlassSupportedAndroid,
+  useIOSGlass,
+  BlurView,
+} from "../../../components/GlassModules";
+
 
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification, t) => {
@@ -523,7 +531,38 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: theme.border }]}>
+        {Platform.OS === 'ios' ? (
+          useIOSGlass ? (
+            <LiquidGlassView
+              style={StyleSheet.absoluteFill}
+              glassType="clear"
+              glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
+              glassOpacity={1}
+            />
+          ) : BlurView ? (
+            <BlurView
+              style={StyleSheet.absoluteFill}
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={10}
+            />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(30,30,30,0.85)' : 'rgba(240,240,240,0.85)' }]} />
+          )
+        ) : (
+          isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid ? (
+            <LiquidGlassViewAndroid
+              providerId="Notifications"
+              style={StyleSheet.absoluteFill}
+              blurRadius={10}
+              refractionAmount={20}
+              refractionHeight={12}
+              tint={isDarkMode ? "rgba(0,0,0,0.3)" : "rgba(240,240,240,0.3)"}
+            />
+          ) : (
+            <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(30,30,30,0.7)' : 'rgba(240,240,240,0.7)' }]} />
+          )
+        )}
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
         <TouchableOpacity
           style={[
@@ -577,6 +616,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           removeClippedSubviews={Platform.OS === 'android'}
           renderItem={renderItem}
           contentContainerStyle={{
+            paddingTop: 50 + insets.top,
             paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,
@@ -622,10 +662,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    height: 50,
-    marginTop: 0.3,
-    borderBottomWidth: 1,
+    height: 50 + 44, // roughly insets.top + 50
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#f0f0f0",
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 28,

@@ -53,6 +53,7 @@ const LiquidButton = ({
       if (isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
         return (
           <LiquidGlassViewAndroid
+            providerId="default"
             style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}
             blurRadius={8}
             refractionAmount={20}
@@ -70,7 +71,7 @@ const LiquidButton = ({
         style={[
           StyleSheet.absoluteFill, 
           { 
-            backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.8)",
+            backgroundColor: isDarkMode ? "rgba(40, 40, 40, 0.4)" : "rgba(240, 240, 240, 0.4)",
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
