@@ -1428,11 +1428,12 @@ export default function MainScreens({ navigation: stackNavigation }) {
             // Set a consistent header height for all tabs
             headerStyle: {
               height: 50 + insets.top, // Base height + top safe area inset
-              backgroundColor: theme.headerBackground,
+              backgroundColor: "transparent",
               elevation: 0,
               shadowOpacity: 0,
               borderBottomWidth: 0,
             },
+            headerTransparent: true,
           })}
         >
           <Tab.Screen

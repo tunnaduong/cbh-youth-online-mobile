@@ -22,6 +22,13 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
+import {
+  LiquidGlassView,
+  LiquidGlassViewAndroid,
+  isLiquidGlassSupportedAndroid,
+  useIOSGlass,
+  BlurView,
+} from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -205,7 +212,38 @@ const Sidebar = () => {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1 }}>
+      {Platform.OS === "ios" ? (
+        useIOSGlass ? (
+          <LiquidGlassView
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            glassType="clear"
+            glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
+            glassOpacity={1}
+          />
+        ) : BlurView ? (
+          <BlurView
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            blurType={isDarkMode ? "dark" : "light"}
+            blurAmount={15}
+          />
+        ) : (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)' }} />
+        )
+      ) : (
+        isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid ? (
+          <LiquidGlassViewAndroid
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            blurRadius={12}
+            refractionAmount={30}
+            refractionHeight={15}
+            tint={isDarkMode ? "rgba(0,0,0,0.4)" : "rgba(240,240,240,0.4)"}
+          />
+        ) : (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)' }} />
+        )
+      )}
+      <View style={{ flex: 1, backgroundColor: "transparent", paddingTop: insets.top }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
         showsVerticalScrollIndicator={false}
@@ -462,6 +500,7 @@ const Sidebar = () => {
             />
           </List.Section>
         </ScrollView>
+      </View>
     </View>
   );
 };

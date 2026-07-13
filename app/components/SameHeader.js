@@ -8,10 +8,11 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
+import LiquidButton from "./LiquidButton";
 
 // Simple header component
 const SimpleHeader = ({ title, theme }) => (
-  <View style={[styles.simpleContainer, { backgroundColor: theme.background }]}>
+  <View style={[styles.simpleContainer, { backgroundColor: "transparent" }]}>
     <Text style={[styles.simpleTitle, { color: theme.text }]}>{title}</Text>
   </View>
 );
@@ -31,14 +32,14 @@ const FeatureHeader = ({
   <View style={[
     havingBorder ? styles.containerWithBorder : styles.container,
     {
-      backgroundColor: theme.headerBackground,
-      borderColor: theme.border,
-      borderBottomWidth: havingBorder ? StyleSheet.hairlineWidth : 0,
+      backgroundColor: "transparent",
+      borderColor: "transparent",
+      borderBottomWidth: 0,
     }
   ]}>
-    <TouchableOpacity onPress={() => setSetting((setting) => !setting)}>
-      <Ionicons name={"menu-outline"} size={27} color={theme.text} />
-    </TouchableOpacity>
+    <LiquidButton size={40} onPress={() => setSetting((setting) => !setting)}>
+      <Ionicons name={"menu-outline"} size={22} color={theme.text} />
+    </LiquidButton>
     {havingIcon ? (
       <View style={{ marginTop: -4 }}>
         <TouchableOpacity
@@ -66,11 +67,9 @@ const FeatureHeader = ({
     )}
 
     <View style={{ marginTop: -4 }}>
-      <TouchableOpacity onPress={action}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.iconBackground }]}>
-          <Ionicons name={icon} size={23} color={theme.text} />
-        </View>
-      </TouchableOpacity>
+      <LiquidButton size={40} onPress={action}>
+        <Ionicons name={icon} size={22} color={theme.text} />
+      </LiquidButton>
     </View>
   </View>
 );
