@@ -216,35 +216,36 @@ const Sidebar = ({ providerId }) => {
       {Platform.OS === "ios" ? (
         useIOSGlass ? (
           <LiquidGlassView
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
             glassType="clear"
             glassTintColor={isDarkMode ? "rgba(18,18,18,0.75)" : "rgba(255,255,255,0.75)"}
             glassOpacity={1}
           />
         ) : BlurView ? (
           <BlurView
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
             blurType={isDarkMode ? "dark" : "light"}
             blurAmount={15}
+            reducedTransparencyFallbackColor={isDarkMode ? "#111111" : "#F8F8F8"}
           />
         ) : (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)' }} />
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)', borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
         )
       ) : (
         isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid ? (
           <LiquidGlassViewAndroid
             providerId={providerId || "default"}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' }}
             blurRadius={12}
             refractionAmount={30}
             refractionHeight={15}
             tint={isDarkMode ? "rgba(18,18,18,0.75)" : "rgba(255,255,255,0.75)"}
           />
         ) : (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.7)' : 'rgba(255,255,255,0.7)' }} />
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.7)' : 'rgba(255,255,255,0.7)', borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
         )
       )}
-      <View style={{ flex: 1, backgroundColor: "transparent", paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: "transparent", paddingTop: insets.top, borderTopRightRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
         showsVerticalScrollIndicator={false}

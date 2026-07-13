@@ -22,6 +22,7 @@ import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LottieView from "lottie-react-native";
+import LiquidButton from "../../../components/LiquidButton";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -243,44 +244,24 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      <View style={[styles.header, { marginTop: insets.top }]}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.title')}</Text>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("NewConversationScreen");
-          }}
-          style={{ flexShrink: 1 }}
+      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 50 + insets.top }]} pointerEvents="box-none">
+        <Text style={[styles.headerTitle, { color: theme.primary, textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }]}>{t('chat.title')}</Text>
+        <LiquidButton
+          providerId="Chat"
+          onPress={() => navigation.navigate("NewConversationScreen")}
+          style={{ width: 'auto', paddingHorizontal: 12, height: 35 }}
+          borderRadius={30}
         >
-          <View
-            className="flex-row items-center justify-center rounded-full px-3 py-2"
-            style={{
-              backgroundColor: theme.primary,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.22,
-              shadowRadius: 2.22,
-              elevation: 3,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              flexDirection: "row",
-              alignItems: "center",
-              borderRadius: 20,
-            }}
-          >
-            <Ionicons
-              name="add"
-              size={20}
-              color="#fff"
-              style={{ marginRight: 4, flexShrink: 0 }}
-            />
-            <Text
-              style={{ color: "#fff", fontWeight: "600" }}
-              numberOfLines={1}
-            >
-              {t('chat.newMessage')}
-            </Text>
-          </View>
-        </TouchableOpacity>
+          <Ionicons
+            name="add"
+            size={20}
+            color={theme.text}
+            style={{ marginRight: 4, flexShrink: 0 }}
+          />
+          <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
+            {t('chat.newMessage')}
+          </Text>
+        </LiquidButton>
       </View>
 
       {refreshing && (

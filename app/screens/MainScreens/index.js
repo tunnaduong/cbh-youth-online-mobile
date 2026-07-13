@@ -1517,7 +1517,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
         zIndex: 101,
         borderTopRightRadius: 24,
         borderBottomRightRadius: 24,
-        overflow: 'hidden',
         transform: [{ translateX: drawerTranslateX }]
       }}>
         <Sidebar providerId={currentRoute} />
