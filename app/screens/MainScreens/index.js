@@ -7,14 +7,12 @@ import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
 import MenuScreen from "./ForumScreen";
-import SideMenu from "@chakrahq/react-native-side-menu";
-import Sidebar from "../../components/Sidebar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import TabBarBadge from "../../components/TabBarBadge";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -191,7 +189,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             left: 0,
             opacity,
             transform: [{ translateX: slideAnim }],
-            backgroundColor: isRealGlass ? "transparent" : fallbackIndicatorTint,
+            backgroundColor: isRealGlass ? "transparent" : "rgba(255,255,255,0.1)",
             shadowColor: isDarkMode ? "#fff" : "#000",
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: isDarkMode ? 0.3 : 0.15,
@@ -305,9 +303,9 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
         ...StyleSheet.absoluteFillObject,
         borderRadius: 24.5,
         overflow: "hidden",
-        backgroundColor: fallbackSurfaceTint,
+        backgroundColor: isDarkMode ? `${theme.primary}16` : `${theme.primary}10`,
         borderWidth: 1.0,
-        borderColor: fallbackBorderTint,
+        borderColor: isDarkMode ? `${theme.primary}33` : `${theme.primary}22`,
       }}
     >
       {/* Chromatic Aberration - Red channel shift (left offset) */}
@@ -394,40 +392,25 @@ const CustomTabBar = ({
   const { t } = useTranslation();
   const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
 
-  // nativeSlideAnim: NATIVE DRIVER — chạy trên UI thread, không bị block bởi JS/React mount.
-  // Chỉ dùng cho Animated.timing/spring khi tap tab.
   const nativeSlideAnim = useRef(new Animated.Value(0)).current;
-  // jsSlideAnim: JS DRIVER — dùng riêng cho PanResponder drag (.setValue() trực tiếp).
-  // Tách 2 value tránh lỗi "mixing native and JS driven animations on same node".
   const jsSlideAnim = useRef(new Animated.Value(0)).current;
-  // slideAnim alias — trỏ vào jsSlideAnim để giữ tương thích với PanResponder code bên dưới
   const slideAnim = jsSlideAnim;
 
-  // stretchAnim / offsetAnim: liquid-glass stretch during *drag only*.
-  // These drive `width` which is not supported by native driver → JS-only.
   const stretchAnim = useRef(new Animated.Value(0)).current;
   const offsetAnim = useRef(new Animated.Value(0)).current;
 
-  // Stable base value for indicator width — JS driver (drives `width` style)
   const indicatorWidthBase = useRef(new Animated.Value(0)).current;
-  // indicatorAnimatedWidth: JS-driver composed value for width+stretch
   const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
-  // indicatorDragOffset: JS-driver composed value for stretch direction offset
   const indicatorDragOffset = useRef(offsetAnim).current;
-  // indicatorAnimatedTranslateX: uses jsSlideAnim (JS driver, for drag compatibility).
   const indicatorAnimatedTranslateX = useRef(jsSlideAnim).current;
 
-  // isDraggingAnim: switch display giữa native vs JS driver layer
   const isDragging = useRef(false);
   const dragStartX = useRef(0);
   const lastHapticIndex = useRef(-1);
   const tabBarWidthRef = useRef(tabBarWidth);
-  // Store buttonWidth at gesture-start so stretch math is consistent
   const bWidthAtGrant = useRef(0);
 
   const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
-  // useMemo prevents leftRoutes from being recreated on every render,
-  // which was causing navigateToLeftIndex → useEffect → ref update chain on each tab press.
   const leftRoutes = React.useMemo(() => {
     return state.routes
       .filter((route) => leftRouteNames.includes(route.name))
@@ -436,7 +419,6 @@ const CustomTabBar = ({
         index: state.routes.indexOf(route),
         descriptor: descriptors[route.key],
       }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.routes, descriptors]);
 
   const activeRouteName = state.routes[state.index]?.name;
@@ -448,7 +430,6 @@ const CustomTabBar = ({
   const currentIndicatorWidth = buttonWidth;
   const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
-  // Keep refs in sync
   useEffect(() => {
     tabBarWidthRef.current = tabBarWidth;
   }, [tabBarWidth]);
@@ -457,26 +438,18 @@ const CustomTabBar = ({
     activeLeftIndexRef.current = activeLeftIndex;
   }, [activeLeftIndex]);
 
-  // Keep the stable width base value in sync with layout-derived buttonWidth
   useEffect(() => {
     indicatorWidthBase.setValue(currentIndicatorWidth);
   }, [currentIndicatorWidth]);
 
-  // Animate indicator to committed tab position (when not dragging).
-  // nativeSlideAnim dùng useNativeDriver:true → chạy trên UI thread, không bị block bởi
-  // React mount màn hình mới trên Android. jsSlideAnim được sync ngay lập tức (setValue)
-  // để drag gesture sau đó có đúng vị trí xuất phát.
   useEffect(() => {
     if (isDragging.current) return;
-    // Native-driver animation cho visual indicator — mượt 60fps ngay cả khi JS bận
     Animated.timing(nativeSlideAnim, {
       toValue: currentIndicatorLeft,
       duration: 280,
       useNativeDriver: true,
     }).start();
-    // Sync JS value để PanResponder có đúng starting position khi drag
     jsSlideAnim.setValue(currentIndicatorLeft);
-    // Reset drag stretch & offset on tab commit
     Animated.spring(stretchAnim, {
       toValue: 0,
       useNativeDriver: false,
@@ -501,11 +474,8 @@ const CustomTabBar = ({
     }
   };
 
-  // Use a ref so the PanResponder (created once at mount) always calls the
-  // latest version of navigate without stale closure lag
   const navigateToLeftIndexRef = useRef(null);
 
-  // Navigate to a tab by left-route index
   const navigateToLeftIndex = useCallback((leftIdx) => {
     const target = leftRoutes[leftIdx];
     if (!target) return;
@@ -520,24 +490,20 @@ const CustomTabBar = ({
     }
   }, [leftRoutes, navigation]);
 
-  // Keep the ref in sync with the latest callback
   useEffect(() => {
     navigateToLeftIndexRef.current = navigateToLeftIndex;
   }, [navigateToLeftIndex]);
 
-  // PanResponder for drag-to-switch
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponderCapture: () => false, // Temporarily disabled drag-to-switch
+      onMoveShouldSetPanResponderCapture: () => false, 
       onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: () => false, // Temporarily disabled drag-to-switch
+      onMoveShouldSetPanResponder: () => false, 
       onPanResponderTerminationRequest: () => false,
-      // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
       onShouldBlockNativeResponder: () => false,
       onPanResponderGrant: (evt, gestureState) => {
         isDragging.current = true;
-        // Temporarily disable feed/tab scrolling on both Android and iOS to prevent interference
         DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", false);
         lastHapticIndex.current = activeLeftIndexRef.current;
         bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
@@ -565,7 +531,6 @@ const CustomTabBar = ({
         }
 
         slideAnim.setValue(clampedX);
-        // Sync native anim trong drag bằng duration:0 timing
         Animated.timing(nativeSlideAnim, {
           toValue: clampedX,
           duration: 0,
@@ -588,7 +553,6 @@ const CustomTabBar = ({
       },
       onPanResponderRelease: (evt, gestureState) => {
         isDragging.current = false;
-        // Re-enable feed/tab scrolling
         DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", true);
         const bWidth = bWidthAtGrant.current;
 
@@ -597,7 +561,6 @@ const CustomTabBar = ({
         const snappedIndex = Math.min(3, Math.max(0, Math.round(clampedX / bWidth)));
         const snapTarget = snappedIndex * bWidth;
 
-        // Sync JS anim (for internal state)
         Animated.spring(slideAnim, {
           toValue: snapTarget,
           useNativeDriver: false,
@@ -605,7 +568,6 @@ const CustomTabBar = ({
           damping: 30,
           mass: 0.6,
         }).start();
-        // Native anim snap — chạy trên UI thread
         Animated.spring(nativeSlideAnim, {
           toValue: snapTarget,
           useNativeDriver: true,
@@ -637,7 +599,6 @@ const CustomTabBar = ({
       },
       onPanResponderTerminate: () => {
         isDragging.current = false;
-        // Re-enable feed/tab scrolling
         DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", true);
         const bWidth = bWidthAtGrant.current || (tabBarWidthRef.current - 2) / 4;
         const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
@@ -673,10 +634,6 @@ const CustomTabBar = ({
   const fallbackSurfaceTint = isDarkMode ? `${theme.primary}16` : `${theme.primary}10`;
   const fallbackBorderTint = isDarkMode ? `${theme.primary}33` : `${theme.primary}22`;
   const fallbackIndicatorTint = isDarkMode ? `${theme.primary}18` : `${theme.primary}12`;
-  // Android fallback only (no Liquid Glass support): the low-opacity primary tint
-  // above (~6-9% alpha) reads as an almost-transparent navbar over busy content.
-  // Use the same solid-ish neutral pill tint as the create-button subtabs
-  // (pillBg/pillBorder in CustomTabBarButton.js) instead, so the bar is legible.
   const androidFallbackSurfaceTint = isDarkMode ? "rgba(18, 18, 18, 0.78)" : "rgba(255, 255, 255, 0.78)";
   const androidFallbackBorderTint = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
 
@@ -1007,30 +964,6 @@ const CustomTabBar = ({
           onLayout={onLeftPillLayout}
           style={styles.iosLeftPill}
         >
-          {/*
-            FIX (iOS <= 18 fallback, no Liquid Glass): the pill's shadow lives on the
-            outer View (styles.iosLeftPill). Adding overflow:"hidden" there to clip
-            content would also kill the iOS shadow. So clipping is done on this
-            separate inner absolute-fill layer instead — it carries ONLY the
-            background, border, borderRadius and (iOS) blur, and clips those to the
-            rounded pill shape.
-
-            The indicator + tab buttons are intentionally rendered as a SEPARATE
-            sibling layer below (not nested inside this clipped view). Two reasons:
-            1) Nesting them inside an overflow:"hidden" + borderWidth:1 container
-               double-insets the indicator's top offset (the 1px border eats into
-               the box, then the indicator's own top:1 offset pushes it down again),
-               which is why the indicator sat a couple pixels below the top of the
-               pill and got its bottom clipped, instead of sitting flush like the
-               Liquid Glass version does.
-            2) The unread-count badge on the Notifications icon needs to render
-               slightly outside the icon's bounds — clipping it to the pill's
-               rounded rect cut it off. Keeping buttons/badges in an unclipped
-               sibling layer fixes both issues while the background layer above
-               still enforces the pill shape. The indicator already carries its own
-               borderRadius (23.5, ≈ its own height/2), so it still reads as fully
-               rounded without needing the parent to clip it too.
-          */}
           <View
             collapsable={false}
             style={{
@@ -1059,29 +992,10 @@ const CustomTabBar = ({
               />
             )}
           </View>
-          {/*
-            flexDirection: 'row' here is NOT optional — RN Views default to
-            column direction. Without it, the 4 tab buttons rendered by
-            renderButtons() (each flex:1, height:'100%') stack vertically
-            instead of spreading across the pill, and since the pill clips at
-            49px tall, only the first (Home) button was ever fully visible —
-            the real cause behind "only Home shows" on both iOS and Android
-            fallback renders, unrelated to the blur z-index issue above.
-
-            This layer sits as a sibling (not a child) of the clipped background
-            layer above, so neither the indicator nor the badges get cut off —
-            see the comment on the background layer for why.
-          */}
           <View
             pointerEvents="box-none"
             style={{ ...StyleSheet.absoluteFillObject, flexDirection: 'row', alignItems: 'center' }}
           >
-            {/*
-              2-layer indicator architecture:
-              - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
-              - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
-                nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
-            */}
             <Animated.View
               style={{
                 position: "absolute",
@@ -1090,7 +1004,6 @@ const CustomTabBar = ({
                 transform: [{ translateX: nativeSlideAnim }],
               }}
             >
-              {/* Chromatic Aberration - Red */}
               <Animated.View
                 style={{
                   position: "absolute",
@@ -1104,7 +1017,6 @@ const CustomTabBar = ({
                   backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
                 }}
               />
-              {/* Chromatic Aberration - Blue */}
               <Animated.View
                 style={{
                   position: "absolute",
@@ -1118,7 +1030,6 @@ const CustomTabBar = ({
                   backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
                 }}
               />
-              {/* Main Glass Indicator */}
               <Animated.View
                 style={{
                   width: indicatorAnimatedWidth,
@@ -1208,7 +1119,24 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const insets = useSafeAreaInsets();
   const [currentRoute, setCurrentRoute] = useState("Home");
   const tabBarHeightRef = useRef(null);
-  const tabBarHeightForHide = useRef(200); // safe fallback
+  const tabBarHeightForHide = useRef(100);
+  const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(drawerTranslateX, {
+      toValue: setting ? 0 : -Dimensions.get('window').width,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    
+    Animated.timing(backdropOpacity, {
+      toValue: setting ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [setting, drawerTranslateX, backdropOpacity]);
+
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const tabNavigatorRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
@@ -1292,15 +1220,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
 
   return (
-    <SideMenu
-      menu={<Sidebar />}
-      menuPosition="left"
-      isOpen={setting}
-      onChange={(isOpen) => setSetting(isOpen)}
-      edgeHitWidth={100}
-      bounceBackOnOverdraw={false}
-      disableGestures={true}
-    >
+    <View style={{ flex: 1 }}>
       {(() => {
         const navContent = (
           <Tab.Navigator
@@ -1582,7 +1502,23 @@ export default function MainScreens({ navigation: stackNavigation }) {
         );
         return <View style={{ flex: 1, backgroundColor: theme.background }}>{navContent}</View>;
       })()}
-    </SideMenu>
+      
+      {/* Overlay Backdrop */}
+      <TouchableWithoutFeedback onPress={() => setSetting(false)}>
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, opacity: backdropOpacity }]} pointerEvents={setting ? "auto" : "none"} />
+      </TouchableWithoutFeedback>
+
+      {/* Floating Sidebar Content */}
+      <Animated.View style={{
+        position: 'absolute',
+        top: 0, bottom: 0, left: 0,
+        width: Dimensions.get('window').width * 0.75,
+        zIndex: 101,
+        transform: [{ translateX: drawerTranslateX }]
+      }}>
+        <Sidebar providerId={currentRoute} />
+      </Animated.View>
+    </View>
   );
 }
 

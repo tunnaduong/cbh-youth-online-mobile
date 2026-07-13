@@ -81,7 +81,7 @@ const CollapsibleMenuItem = ({
   );
 };
 
-const Sidebar = () => {
+const Sidebar = ({ providerId }) => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
@@ -233,7 +233,7 @@ const Sidebar = () => {
       ) : (
         isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid ? (
           <LiquidGlassViewAndroid
-            providerId="default"
+            providerId={providerId || "default"}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             blurRadius={12}
             refractionAmount={30}
