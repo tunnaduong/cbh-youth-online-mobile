@@ -21,6 +21,8 @@ import MultiContextProvider from "./app/contexts";
 import ProfileScreen from "./app/screens/MainScreens/ProfileScreen";
 import LottieView from "lottie-react-native";
 import SplashScreen from "./app/components/SplashScreen";
+import LiquidHeaderBackground from "./app/components/LiquidHeaderBackground";
+
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -235,8 +237,10 @@ const App = () => {
                   title: t('post.details'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
+                  headerTransparent: true,
+                  headerBackground: () => <LiquidHeaderBackground providerId="PostScreen" />,
                   headerStyle: {
-                    backgroundColor: theme.headerBackground,
+                    backgroundColor: "transparent",
                     elevation: 0,
                     shadowOpacity: 0,
                     borderBottomWidth: 0,
@@ -411,8 +415,10 @@ const App = () => {
                   title: t('sidebar.explore'),
                   headerBackButtonDisplayMode: "minimal",
                   headerTintColor: theme.primary,
+                  headerTransparent: true,
+                  headerBackground: () => <LiquidHeaderBackground providerId="ExploreScreen" />,
                   headerStyle: {
-                    backgroundColor: theme.headerBackground,
+                    backgroundColor: "transparent",
                     borderBottomWidth: 0,
                     shadowOffset: { height: 0, width: 0 },
                     elevation: 0,

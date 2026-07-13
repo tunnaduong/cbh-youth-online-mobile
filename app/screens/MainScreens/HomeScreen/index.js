@@ -1857,7 +1857,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           <View
             style={{
               position: "absolute",
-              top: 5,
+              top: 50 + insets.top,
               left: 0,
               right: 0,
               alignItems: "center",

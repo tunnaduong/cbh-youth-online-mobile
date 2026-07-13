@@ -1095,7 +1095,7 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           )}
           <ScrollView
-            contentContainerStyle={{
+            contentContainerStyle={{ paddingTop: 50 + insets.top,
               backgroundColor: theme.background,
             }}
             ref={scrollViewRef}

@@ -33,6 +33,7 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import FastImage from "../../../components/FastImage";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
+import LiquidHeaderBackground from "../../../components/LiquidHeaderBackground";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -281,9 +282,9 @@ const ProfileScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
         <CustomLoading />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -439,33 +440,42 @@ const ProfileScreen = ({ route, navigation }) => {
 
   return (
     <>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         
         <View
-          style={[styles.header, { height: 50, borderBottomColor: theme.border }]}
+          style={[styles.header, { 
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+            paddingTop: insets.top,
+            height: 50 + insets.top, 
+            borderBottomColor: theme.border,
+            backgroundColor: 'transparent',
+          }]}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout;
             setHeaderHeight(height);
           }}
         >
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={theme.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-            {isCurrentUser ? t('profile.title') : userData?.profile.profile_name}
-          </Text>
-          {isCurrentUser ? (
-            <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-              <Ionicons name="settings-outline" size={24} color={theme.primary} />
+          <LiquidHeaderBackground providerId="ProfileScreen" />
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={theme.primary} />
             </TouchableOpacity>
-          ) : (
-            <View style={{ width: 24 }}></View>
-          )}
-          {!isCurrentUser && (
-            <TouchableOpacity onPress={showOptions} style={{ position: 'absolute', right: 16 }}>
-              <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
-            </TouchableOpacity>
-          )}
+            <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+              {isCurrentUser ? t('profile.title') : userData?.profile.profile_name}
+            </Text>
+            {isCurrentUser ? (
+              <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
+                <Ionicons name="settings-outline" size={24} color={theme.primary} />
+              </TouchableOpacity>
+            ) : (
+              <View style={{ width: 24 }}></View>
+            )}
+            {!isCurrentUser && (
+              <TouchableOpacity onPress={showOptions} style={{ position: 'absolute', right: 16 }}>
+                <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
         <ReportModal
           visible={reportModalVisible}
@@ -483,13 +493,18 @@ const ProfileScreen = ({ route, navigation }) => {
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
+          contentContainerStyle={{ 
+            backgroundColor: theme.background, 
+            paddingTop: headerHeight > 0 ? headerHeight : 50 + insets.top,
+            paddingBottom: insets.bottom + 16 
+          }}
           refreshControl={
             <RefreshControl
               tintColor="transparent"
               colors={["transparent"]}
               progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
+              progressViewOffset={headerHeight > 0 ? headerHeight : 50 + insets.top}
               refreshing={refreshing}
               onRefresh={handleRefresh}
             />

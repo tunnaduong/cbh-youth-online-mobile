@@ -63,11 +63,11 @@ const ExploreScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: 50 + insets.top }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Top Section with Greeting and Image */}
