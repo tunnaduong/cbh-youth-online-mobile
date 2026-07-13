@@ -249,7 +249,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         <LiquidButton
           providerId="Chat"
           onPress={() => navigation.navigate("NewConversationScreen")}
-          style={{ width: 'auto', paddingHorizontal: 12, height: 35 }}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 40 }}
           borderRadius={30}
         >
           <Ionicons
