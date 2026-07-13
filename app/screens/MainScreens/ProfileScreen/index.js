@@ -818,7 +818,7 @@ const ProfileScreen = ({ route, navigation }) => {
             </View>
           )}
         </ScrollView>
-      </SafeAreaView >
+      </View>
     </>
   );
 };
