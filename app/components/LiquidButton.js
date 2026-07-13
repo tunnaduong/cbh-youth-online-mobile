@@ -55,7 +55,7 @@ const LiquidButton = ({
         return (
           <LiquidGlassViewAndroid
             providerId={providerId || "default"}
-            style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}
+            style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius }]}
             blurRadius={8}
             refractionAmount={20}
             refractionHeight={10}

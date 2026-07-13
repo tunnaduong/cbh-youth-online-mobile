@@ -235,7 +235,7 @@ const Sidebar = ({ providerId }) => {
         isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid ? (
           <LiquidGlassViewAndroid
             providerId={providerId || "default"}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24, overflow: 'hidden' }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
             blurRadius={12}
             refractionAmount={30}
             refractionHeight={15}
