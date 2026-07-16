@@ -19,23 +19,15 @@ import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import {
+  LiquidGlassView,
+  LiquidGlassContainer,
+  LiquidGlassViewAndroid,
+  isLiquidGlassSupportedAndroid,
+  useIOSGlass,
+} from "./GlassModules";
 
 const { width, height } = Dimensions.get("window");
-
-let LiquidGlassView = null;
-let LiquidGlassContainerView = null;
-let isLiquidGlassSupported = false;
-
-if (Platform.OS === 'ios') {
-  try {
-    const LiquidGlass = require('@callstack/liquid-glass');
-    LiquidGlassView = LiquidGlass.LiquidGlassView;
-    LiquidGlassContainerView = LiquidGlass.LiquidGlassContainerView;
-    isLiquidGlassSupported = LiquidGlass.isLiquidGlassSupported;
-  } catch (error) {
-    console.warn("Failed to load @callstack/liquid-glass:", error);
-  }
-}
 
 // Height of each sub-button row
 const BTN_HEIGHT = 50;
@@ -44,7 +36,7 @@ const BTN_GAP = Platform.OS === 'ios' ? 16 : 8;
 // Total height of 3-button column
 const COL_HEIGHT = BTN_HEIGHT * 3 + BTN_GAP * 2;
 
-const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
+const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
   const rotation = useRef(new Animated.Value(0)).current;
   // Single value drives the whole column: 0 = hidden (below anchor), 1 = visible
   const menuAnim = useRef(new Animated.Value(0)).current;
@@ -53,7 +45,7 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  const isRealGlass = Platform.OS === 'ios' && LiquidGlassView && LiquidGlassContainerView && isLiquidGlassSupported;
+  const isRealGlass = useIOSGlass;
 
   useEffect(() => {
     return () => {
@@ -70,11 +62,12 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
         damping: 24,
         mass: 0.8,
       }),
-      Animated.timing(rotation, {
+      Animated.spring(rotation, {
         toValue: 1,
-        duration: 220,
-        easing: Easing.out(Easing.back(1.4)),
         useNativeDriver: true,
+        stiffness: 280,
+        damping: 24,
+        mass: 0.8,
       }),
     ]).start();
   };
@@ -88,11 +81,12 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
         damping: 28,
         mass: 0.7,
       }),
-      Animated.timing(rotation, {
+      Animated.spring(rotation, {
         toValue: 0,
-        duration: 180,
-        easing: Easing.in(Easing.ease),
         useNativeDriver: true,
+        stiffness: 320,
+        damping: 28,
+        mass: 0.7,
       }),
     ]).start(() => setShowButtons(false));
   };
@@ -129,11 +123,13 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
 
   // Pill background
   const pillBg = isDarkMode
-    ? "rgba(28, 28, 30, 0.82)"
-    : "rgba(255, 255, 255, 0.82)";
+    ? "rgba(18, 18, 18, 0.78)"
+    : "rgba(255, 255, 255, 0.78)";
   const pillBorder = isDarkMode
-    ? "rgba(255, 255, 255, 0.10)"
-    : "rgba(0, 0, 0, 0.06)";
+    ? "rgba(255, 255, 255, 0.12)"
+    : "rgba(0, 0, 0, 0.08)";
+  const fallbackTint = isDarkMode ? `${theme.primary}16` : `${theme.primary}12`;
+  const fallbackBorderTint = isDarkMode ? `${theme.primary}33` : `${theme.primary}22`;
 
   const dynamicElevation = menuAnim.interpolate({
     inputRange: [0, 0.5, 1],
@@ -170,33 +166,40 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
   ];
 
   const renderMenu = () => {
-    if (isRealGlass) {
+    if (Platform.OS === "ios" && isRealGlass) {
       return (
-        <LiquidGlassContainerView
+        <LiquidGlassContainer
           spacing={BTN_GAP}
           style={styles.glassContainer}
         >
           {menuButtons.map((btn, i) => (
             <LiquidGlassView
               key={i}
-              effect="regular"
-              interactive={true}
-              colorScheme={isDarkMode ? 'dark' : 'light'}
-              tintColor={isDarkMode ? "rgba(30, 30, 30, 0.4)" : "rgba(255, 255, 255, 0.25)"}
+              glassType="clear"
+              glassTintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
+              glassOpacity={1}
+              isInteractive={true}
               style={[
                 styles.glassRow,
-                { marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0 }
+                {
+                  marginBottom: i < menuButtons.length - 1 ? BTN_GAP : 0,
+                  borderWidth: 0.5,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
+                  shadowColor: isDarkMode ? "rgba(0, 0, 0, 0.6)" : "rgba(0, 0, 0, 0.2)",
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: 1,
+                  shadowRadius: 16,
+                  elevation: 10,
+                }
               ]}
             >
               {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
             </LiquidGlassView>
           ))}
-        </LiquidGlassContainerView>
+        </LiquidGlassContainer>
       );
     }
 
-
-    // Android / no glass
     return (
       <View style={styles.columnContainer}>
         {menuButtons.map((btn, i) => (
@@ -223,6 +226,98 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
     );
   };
 
+  const renderButton = () => {
+    const circleContent = (
+      <MaterialCommunityIcons
+        name="plus"
+        size={38}
+        color={theme.primary}
+        style={styles.icon}
+      />
+    );
+
+    if (Platform.OS === "ios" && isRealGlass) {
+      // No nested LiquidGlassView here on purpose: this button already sits
+      // inside the parent's iosRightPill <LiquidGlassView> in index.js.
+      // Stacking a second glass layer on top doesn't merge with it (glass
+      // can't sample glass) and reads as a separate, disconnected blob
+      // instead of part of the floating tab bar.
+      return (
+        <Pressable style={styles.buttonContainer} onPress={handlePress}>
+          <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
+            {circleContent}
+          </Animated.View>
+        </Pressable>
+      );
+    }
+
+    if (Platform.OS === "android" && isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
+      const isAndroid33 = Platform.Version >= 33;
+      const btnGlassProps = isAndroid33 ? {
+        blurRadius: 12,
+        refractionAmount: 40,
+        refractionHeight: 18,
+        chromaticAberration: 0.2,
+        highlightAlpha: 0.25,
+        tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
+      } : {
+        blurRadius: 10,
+        refractionAmount: 0,
+        refractionHeight: 0,
+        chromaticAberration: 0,
+        highlightAlpha: 0.18,
+        tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
+      };
+
+      return (
+        <Pressable style={styles.buttonContainer} onPress={handlePress}>
+          <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
+            <LiquidGlassViewAndroid
+              providerId={currentRoute}
+              interactive={isLiquidGlassSupportedAndroid}
+              {...btnGlassProps}
+              style={[
+                styles.iconCircle,
+                {
+                  backgroundColor: isLiquidGlassSupportedAndroid ? "transparent" : fallbackTint,
+                  borderWidth: 1.0,
+                  borderColor: isDarkMode ? fallbackBorderTint : fallbackBorderTint,
+                  shadowColor: theme.primary,
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 12,
+                }
+              ]}
+            >
+              {circleContent}
+            </LiquidGlassViewAndroid>
+          </Animated.View>
+        </Pressable>
+      );
+    }
+
+    return (
+      <Pressable style={styles.buttonContainer} onPress={handlePress}>
+        <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
+          <View style={[
+            styles.iconCircle,
+            {
+              // Android fallback (no Liquid Glass): match the solid pill tint used
+              // by the create-button subtabs (pillBg/pillBorder above) instead of
+              // the near-transparent primary tint, which made the button invisible
+              // against busy backgrounds. iOS fallback is left untouched.
+              backgroundColor: Platform.OS === 'android' ? pillBg : fallbackTint,
+              borderWidth: 1.0,
+              borderColor: Platform.OS === 'android' ? pillBorder : fallbackBorderTint,
+            }
+          ]}>
+            {circleContent}
+          </View>
+        </Animated.View>
+      </Pressable>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <Modal
@@ -241,8 +336,8 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
           style={{
             position: "absolute",
             bottom: Platform.OS === 'ios'
-              ? (bottomOffset > 0 ? bottomOffset + 8 + 56 + 16 : 24 + 56 + 16)
-              : (bottomOffset > 0 ? bottomOffset + 8 + 56 + 16 : 12 + 56 + 16),
+              ? (bottomOffset > 0 ? bottomOffset + 8 + 53 + 16 : 24 + 53 + 16)
+              : (bottomOffset > 0 ? bottomOffset + 8 + 53 + 16 : 12 + 53 + 16),
             right: 20,
             width: 160,
             alignItems: 'flex-end',
@@ -255,32 +350,21 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0 }) => {
         </Animated.View>
       </Modal>
 
-      <Pressable style={styles.buttonContainer} onPress={handlePress}>
-        <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
-          <View style={styles.iconCircle}>
-            <MaterialCommunityIcons
-              name="plus"
-              size={38}
-              color={theme.primary}
-              style={styles.icon}
-            />
-          </View>
-        </Animated.View>
-      </Pressable>
+      {renderButton()}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    width: 56,
-    height: 56,
+    width: 53,
+    height: 53,
     alignItems: "center",
     justifyContent: "center",
   },
   buttonContainer: {
-    width: 56,
-    height: 56,
+    width: 53,
+    height: 53,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 3,
@@ -289,23 +373,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
-    // Compensate for Ionicons font alignment offset on both platforms
     transform: [
-      { translateY: Platform.OS === 'ios' ? -1.5 : -0.5 },
-      { translateX: Platform.OS === 'ios' ? 1.5 : 0.5 }
+      { translateX: Platform.OS === 'ios' ? 0 : 0 }
     ]
   },
   iconContainer: {
-    width: 56,
-    height: 56,
+    width: 53,
+    height: 53,
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: 28,
+    borderRadius: 26.5,
   },
   iconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 53,
+    height: 53,
+    borderRadius: 26.5,
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",

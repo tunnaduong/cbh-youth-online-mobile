@@ -380,8 +380,8 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           ) {
             navigation.navigate("PostScreen", { postId: 173336279 });
           } else if (item.type === "story_reacted") {
-            // Navigate to home screen to show stories (story will be highlighted)
-            navigation.navigate("HomeScreen", {
+            // Navigate to the Home tab so the story viewer can open the requested story.
+            navigation.navigate("Home", {
               highlightStoryId: item.data?.story_id,
             });
           } else if (item.type === "story_replied") {

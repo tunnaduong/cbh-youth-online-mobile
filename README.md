@@ -12,7 +12,7 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 - **Thiết lập cá nhân**: Trang cá nhân, chỉnh sửa hồ sơ, trang thông tin, Điều khoản và Chính sách riêng tư nội bộ.
 
 ## Ngăn xếp công nghệ
-- **Runtime**: React Native 0.79 + Expo SDK 53, dev client (`expo-dev-client`) cho thiết bị thật.
+- **Runtime**: React Native 0.81 + Expo SDK 54, dev client (`expo-dev-client`) cho thiết bị thật, có liquid glass cho supported devices.
 - **Điều hướng**: React Navigation Stack + Bottom Tabs + Drawer tùy biến (`@chakrahq/react-native-side-menu`).
 - **State & ngữ cảnh**: React Context API (`Auth`, `Feed`, `StatusBar`, `UnreadCounts`, `Notification`, `BottomSheet`) kết hợp AsyncStorage và MMKV.
 - **UI/UX**: `tailwindcss-react-native`, `react-native-vector-icons`, Lottie, LinearGradient, ActionSheet tùy biến.

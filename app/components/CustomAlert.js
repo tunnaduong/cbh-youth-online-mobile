@@ -180,10 +180,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dialogContainer: {
-    width: Dimensions.get("window").width - 56, // 28dp margins
+    width: Dimensions.get("window").width - 56,
     maxWidth: 320,
-    borderRadius: 28, // MD3 Rounded corners
-    padding: 24, // MD3 padding
+    borderRadius: 28,   // MD3 Rounded corners
+    padding: 24,        // MD3 padding
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 11 },
     shadowOpacity: 0.15,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginLeft: 8,
-    borderRadius: 100, // MD3 pill buttons
+    borderRadius: 100,  // MD3 pill buttons
   },
   buttonText: {
     fontSize: 14,

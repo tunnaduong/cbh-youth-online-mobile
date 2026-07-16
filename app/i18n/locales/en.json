@@ -334,6 +334,7 @@
   },
   "post": {
     "details": "Post Details",
+    "edited": "Edited",
     "like": "Like",
     "comment": "Comment",
     "share": "Share",
@@ -488,7 +489,7 @@
     "classViolationDesc": "Report violations related to the whole class such as: poor cleaning, class discipline...",
     "createReport": "Create report",
     "reportViolation": "Report violation",
-    "schoolName": "CBH High School for the Gifted",
+    "schoolName": "CBH High School for the Gifted - Ninh Binh",
     "step1Title": "Step 1: Select report subject",
     "continue": "Continue",
     "modalTitle": "Report violation",

@@ -17,6 +17,7 @@ import {
   ActionSheetIOS,
   KeyboardAvoidingView,
   RefreshControl,
+  Platform,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
@@ -41,6 +42,7 @@ import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+import { generatePostSlug } from "../../../utils/slugify";
 import LottieView from "lottie-react-native";
 
 const PostScreen = ({ route, navigation }) => {
@@ -110,7 +112,7 @@ const PostScreen = ({ route, navigation }) => {
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${post?.author?.username}/posts/${post?.id}?source=share`
+              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`
             );
             hideBottomSheet();
           }}
@@ -134,6 +136,7 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
+        */}
         {isCurrentUser && (
           <TouchableOpacity
             onPress={() => {
@@ -149,7 +152,6 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
-        */}
         <TouchableOpacity onPress={() => {
           hideBottomSheet();
           setReportModalVisible(true);
@@ -961,7 +963,7 @@ const PostScreen = ({ route, navigation }) => {
                 </Text>
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""} ·
+                    {comment.created_at ? formatTime(comment.created_at) : ""}{comment.is_edited ? ` (${t('post.edited')})` : ""} ·
                   </Text>
                   <TouchableOpacity
                     onPress={() =>

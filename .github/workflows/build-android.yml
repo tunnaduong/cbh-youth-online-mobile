@@ -1,0 +1,155 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - dhphuc
+  workflow_dispatch: # Keeps the manual trigger option available
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    # Cấp quyền ghi vào mục Release của repo
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          cache: 'gradle' # Tự động cache các gói phụ thuộc Java/Gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Tối ưu cấu hình Gradle (Tăng RAM)
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.parallel=false" >> ~/.gradle/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=512m" >> ~/.gradle/gradle.properties
+          echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
+          echo "org.gradle.workers.max=2" >> ~/.gradle/gradle.properties
+
+      - name: Build Android Release & Debug APK (arm64-v8a)
+        run: |
+          cd android
+          ./gradlew assembleRelease \
+          -PreactNativeArchitectures=arm64-v8a \
+          -x lint -x test \
+          -x lintVitalRelease -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
+          --no-daemon
+
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-apks
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+          retention-days: 7
+
+      # Cập nhật đè / Khởi tạo bản Prerelease lên GitHub Releases cho Android
+      - name: Create or Update Pre-release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/debug/*.apk
+          tag: "dhphuc-android"
+          name: "${{ github.sha }}"
+          body: |
+            ### 🤖 Android Build Details
+            - **Commit SHA:** `${{ github.sha }}`
+            - **Branch:** `${{ github.ref_name }}`
+            - **Changelog:** ${{ github.event.head_commit.message }}
+            
+            Tải trực tiếp file APK (Release & Debug arm64-v8a) ở phần **Assets** bên dưới để cài đặt.
+          prerelease: true
+          makeLatest: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tự động gửi thông báo an toàn qua Discord Webhook nhờ Python
+      - name: Send Discord Notification
+        if: always()
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_ANDROID }}
+          JOB_STATUS: ${{ job.status }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        shell: python
+        run: |
+          import os, json, urllib.request
+
+          status = os.environ.get('JOB_STATUS', '')
+          ref_name = os.environ.get('REF_NAME', '')
+          sha = os.environ.get('COMMIT_SHA', '')
+          run_number = os.environ.get('RUN_NUMBER', '')
+          webhook_url = os.environ.get('WEBHOOK_URL', '')
+          commit_message = os.environ.get('COMMIT_MESSAGE', 'No commit message')
+
+          if not webhook_url:
+              print("Webhook URL is empty. Skipping notification.")
+              exit(0)
+
+          if status == "success":
+              title = f"🟢 **NEW ANDROID BUILD AVAILABLE (Build #{run_number})**"
+              color = 3066993
+              description = (
+                  "📥 **Nhấp vào liên kết bên dưới để tải file APK trực tiếp về máy:**\n\n"
+                  "🔹 [**TẢI BẢN RELEASE APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-release.apk)\n"
+                  "🔸 [**TẢI BẢN DEBUG APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-debug.apk)\n\n"
+                  "---\n"
+                  "**Thông tin phiên bản:**\n"
+                  f"- **Nhánh (Branch):** `{ref_name}`\n"
+                  f"- **Mã commit:** `{sha}`\n"
+                  f"- **Changelog:** {commit_message}"
+              )
+          elif status == "failure":
+              title = f"🔴 **ANDROID BUILD FAILED (Build #{run_number})**"
+              color = 15158332
+              description = f"❌ Đã xảy ra lỗi trong quá trình build file APK.\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`\n- **Changelog:** {commit_message}"
+          else:
+              title = f"⚪ **ANDROID BUILD CANCELLED (Build #{run_number})**"
+              color = 9807270
+              description = f"⚠️ Quy trình build thứ `#{run_number}` đã bị hủy bỏ."
+
+          payload = {
+              "embeds": [{
+                  "title": title,
+                  "description": description,
+                  "color": color
+              }]
+          }
+
+          req = urllib.request.Request(
+              webhook_url, 
+              data=json.dumps(payload).encode('utf-8'), 
+              headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+          )
+          try:
+              with urllib.request.urlopen(req) as response:
+                  print("Notification sent successfully:", response.status)
+          except Exception as e:
+              print("Error sending notification:", e)
+

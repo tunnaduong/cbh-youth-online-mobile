@@ -72,39 +72,79 @@ const PostEditScreen = ({ navigation, route }) => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [subforumsRes, postRes] = await Promise.all([
-          getSubforums(),
+
+        const [postRes, subforumsRes] = await Promise.all([
           getPostDetail(route.params.postId),
+          getSubforums(),
         ]);
 
-        const translatedSubforums = subforumsRes.data.map(item => ({
-          ...item,
-          label: getCategoryName(item.label, t)
-        }));
+        // Handle both array-direct and data-wrapped responses
+        const d = subforumsRes.data;
+        const rawSubforums = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
+
+        const translatedSubforums = rawSubforums.map(item => {
+          const id = item.value ?? item.id;
+          const name = item.label || item.name || item.title || "";
+          return {
+            ...item,
+            value: id,
+            label: getCategoryName(name, t),
+          };
+        });
         setSubforums(translatedSubforums);
-        const post = postRes.data.post || postRes.data;
+
+        // ── Post data ─────────────────────────────────────────────────────────
+        const post = postRes.data?.post ?? postRes.data;
         setInitialPost(post);
 
-        // Set initial values
         setTitle(post.title || "");
         setPostContent(post.description || post.content || "");
         setIsAnonymous(!!post.anonymous);
-        
-        // Match the initial view option based on privacy
+
         const initialPrivacy = post.privacy || (post.visibility === 1 ? "private" : "public");
         const matchingOption = viewOptions.find(v => v.value === initialPrivacy) || viewOptions[0];
         setViewSelected(matchingOption);
 
-        if (post.subforum_id) {
-          setSelected(
-            translatedSubforums.find((s) => s.value === post.subforum_id)
+        // ── Category pre-selection ────────────────────────────────────────────
+        const subforumId =
+          post.subforum_id ??
+          post.subforum?.id ??
+          post.category_id ??
+          post.category?.id ??
+          null;
+
+        if (subforumId !== null && subforumId !== undefined) {
+          let matched = translatedSubforums.find(
+            (s) => String(s.value) === String(subforumId)
           );
+
+          // The v1.0 subforum list is role-filtered, so the post's current subforum
+          // might not be in the list. If missing, synthesize an entry from post.subforum
+          // so the dropdown always shows the correct pre-selected category.
+          if (!matched && (post.subforum || post.category)) {
+            const sf = post.subforum || post.category;
+            const syntheticLabel = getCategoryName(
+              sf.name || sf.title || String(subforumId),
+              t
+            );
+            matched = {
+              value: subforumId,
+              label: syntheticLabel,
+              category: sf.category?.name || sf.parent?.name || '',
+            };
+            // Prepend so it's visible at the top of the dropdown
+            setSubforums(prev => {
+              const alreadyIn = prev.some(s => String(s.value) === String(subforumId));
+              return alreadyIn ? prev : [matched, ...prev];
+            });
+          }
+
+          if (matched) setSelected(matched);
         }
 
         if (post.images && post.images.length > 0) {
           setSelectedImages(post.images.map(img => ({ id: img.id, uri: img.url })));
         } else if (post.cdn_image_id) {
-          // Fallback if images array is not present
           const imageUrls = post.cdn_image_id
             .split(",")
             .map((id) => ({ id: id, uri: `https://api.chuyenbienhoa.com/v1.0/cdn/${id}` }));
@@ -112,10 +152,10 @@ const PostEditScreen = ({ navigation, route }) => {
         }
 
         if (post.documents && post.documents.length > 0) {
-          setSelectedDocuments(post.documents.map(doc => ({ 
-            id: doc.id, 
-            uri: doc.url, 
-            name: doc.name || decodeURIComponent(doc.url.split('/').pop()).replace(/^\\d+_/, '') 
+          setSelectedDocuments(post.documents.map(doc => ({
+            id: doc.id,
+            uri: doc.url,
+            name: doc.name || decodeURIComponent(doc.url.split('/').pop()).replace(/^\d+_/, '')
           })));
         }
       } catch (error) {
@@ -265,26 +305,36 @@ const PostEditScreen = ({ navigation, route }) => {
         newDocIds.push(uploadResponse.data.id);
       }
 
+      // Get existing CDN IDs from kept IDs or fallback to parsing from URLs
+      const urlImageIds = selectedImages
+        .filter((img) => !img.id && img.uri && img.uri.includes("api.chuyenbienhoa.com"))
+        .map((img) => img.uri.split("/").pop());
+      const allCdnIds = [...new Set([...keptImageIds, ...urlImageIds, ...newCdnIds])];
+
+      const urlDocIds = selectedDocuments
+        .filter((doc) => !doc.id && doc.uri && doc.uri.includes("api.chuyenbienhoa.com"))
+        .map((doc) => doc.uri.split("/").pop());
+      const allDocIds = [...new Set([...keptDocumentIds, ...urlDocIds, ...newDocIds])];
+
       const response = await updatePost(route.params.postId, {
         title,
         description: postContent,
-        cdn_image_id: newCdnIds.length > 0 ? newCdnIds.join(",") : null,
-        cdn_document_id: newDocIds.length > 0 ? newDocIds.join(",") : null,
-        kept_image_ids: keptImageIds,
-        kept_document_ids: keptDocumentIds,
+        kept_image_ids: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
+        cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
+        kept_document_ids: allDocIds.length > 0 ? allDocIds.join(",") : null,
+        cdn_document_id: allDocIds.length > 0 ? allDocIds.join(",") : null,
         subforum_id: selected?.value ?? null,
         visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
         privacy: viewSelected?.value,
         anonymous: isAnonymous,
       });
 
-      if (viewSelected?.value === "public") {
-        setFeed((prevPosts) =>
-          prevPosts.map((post) =>
-            post.id === route.params.postId ? { ...response.data, is_mine: true, is_author: true, author: { ...userInfo, ...response.data?.author }, anonymous: response.data?.anonymous ?? isAnonymous } : post
-          )
-        );
-      }
+      const updatedPostData = response.data?.post || response.data;
+      setFeed((prevPosts) =>
+        prevPosts.map((post) =>
+          post.id === route.params.postId ? { ...post, ...updatedPostData, is_mine: true, is_author: true, author: { ...post.author, ...userInfo, ...updatedPostData?.author }, anonymous: updatedPostData?.anonymous ?? isAnonymous } : post
+        )
+      );
 
       navigation.dispatch(
         CommonActions.reset({
@@ -405,18 +455,24 @@ const PostEditScreen = ({ navigation, route }) => {
           }}
           pointerEvents="box-none"
         >
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={{
-              width: 70,
-              height: 70,
-              borderRadius: 35,
-              borderColor: theme.border,
-              borderWidth: 1,
-            }}
-          />
+          {isAnonymous ? (
+            <View style={{ width: 70, height: 70, backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9', borderRadius: 35, alignItems: 'center', justifyContent: 'center', borderColor: theme.border, borderWidth: 1 }}>
+              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 36 }}>?</Text>
+            </View>
+          ) : (
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={{
+                width: 70,
+                height: 70,
+                borderRadius: 35,
+                borderColor: theme.border,
+                borderWidth: 1,
+              }}
+            />
+          )}
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '500', fontSize: 18, color: theme.text }} numberOfLines={1}>
               {isAnonymous ? t('createPost.anonymousUser') : profileName}
@@ -484,35 +540,17 @@ const PostEditScreen = ({ navigation, route }) => {
             multiline
             textAlignVertical="top"
           />
-          <View
-            style={{
-              height: 0,
-              borderTopWidth: 1,
-              borderColor: theme.border,
-              marginHorizontal: 12,
-            }}
-          ></View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12 }}>
-            <View>
-              <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.text, marginBottom: 5 }}>{t('createPost.anonymous') || "Ẩn danh"}</Text>
-              <Text style={{ color: theme.subText, fontSize: 12 }}>{t('createPost.anonymousDesc') || "Đăng bài ẩn danh"}</Text>
-            </View>
-            <Switch
-              trackColor={{ false: '#767577', true: theme.primary }}
-              thumbColor={isAnonymous ? '#f4f3f4' : '#f4f3f4'}
-              onValueChange={() => {}}
-              value={isAnonymous}
-              disabled={true}
-            />
-          </View>
+
         </View>
         <View style={{ marginTop: 10, marginHorizontal: 16 }}>
+          {/* Category selector hidden — re-enable when backend supports subforum pre-selection
           <Dropdown
             options={subforums}
             placeholder={t('editPost.placeholderCategory')}
             selectedValue={selected}
             onValueChange={setSelected}
           />
+          */}
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <TouchableOpacity
               onPress={() => navigateToHelp(213057)}

@@ -17,7 +17,7 @@ jobs:
       - name: Set up Xcode version
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.0' 
+          xcode-version: '26.2'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -40,6 +40,7 @@ jobs:
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
 
+          # Giải mã dữ liệu mã hóa Base64 sang file vật lý trong thư mục tạm
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
           echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
 
@@ -102,6 +103,7 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
+      # Ép các biến môi trường loại bỏ Simulator ngay tại câu lệnh build xcodebuild
       - name: Build iOS Archive
         run: |
           cd ios
@@ -109,13 +111,17 @@ jobs:
           xcodebuild clean archive \
             -workspace "${{ env.APP_NAME }}.xcworkspace" \
             -scheme "${{ env.APP_NAME }}" \
+            -sdk iphoneos \
             -configuration Release \
+            -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
             DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="Apple Development" \
             PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}" \
             PROVISIONING_PROFILE="${{ env.PROVISIONING_PROFILE_UUID }}" \
+            SUPPORTED_PLATFORMS="iphoneos" \
+            EXCLUDED_ARCHS="x86_64 i386" \
             | xcbeautify --quiet --renderer github-actions
 
       - name: Export IPA
@@ -182,6 +188,7 @@ jobs:
             ### 🚀 iOS Build Details
             - **Commit SHA:** `${{ github.sha }}`
             - **Branch:** `${{ github.ref_name }}`
+            - **Changelog:** ${{ github.event.head_commit.message }}
             
             ### 🔗 Liên kết cài đặt trực tuyến (Mở bằng Safari trên iPhone)
             Nhấn vào link dưới đây để đến trang cài đặt ứng dụng dành cho thiết bị thật:
@@ -190,4 +197,74 @@ jobs:
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
-          
+
+  notify-discord:
+    name: Send Discord Notification
+    runs-on: ubuntu-latest
+    needs: [build-ios-real, publish-release]
+    if: always()
+    steps:
+      - name: Run Discord Notification Script
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_IOS }}
+          BUILD_RESULT: ${{ needs.build-ios-real.result }}
+          RELEASE_RESULT: ${{ needs.publish-release.result }}
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_NUMBER: ${{ github.run_number }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        shell: python
+        run: |
+          import os, json, urllib.request
+
+          build_ok = os.environ.get('BUILD_RESULT', '') == 'success'
+          release_ok = os.environ.get('RELEASE_RESULT', '') == 'success'
+          ref_name = os.environ.get('REF_NAME', '')
+          sha = os.environ.get('COMMIT_SHA', '')
+          run_number = os.environ.get('RUN_NUMBER', '')
+          webhook_url = os.environ.get('WEBHOOK_URL', '')
+          commit_message = os.environ.get('COMMIT_MESSAGE', 'No commit message')
+
+          if not webhook_url:
+              print("Webhook URL is empty. Skipping notification.")
+              exit(0)
+
+          if build_ok and release_ok:
+              title = f"🟢 **NEW IOS BUILD AVAILABLE (Build #{run_number})**"
+              color = 3066993
+              description = (
+                  "📲 **Vui lòng lựa chọn phương thức tải/cài đặt phù hợp:**\n\n"
+                  "🔗 **1. Cài đặt trực tuyến (Mở bằng Safari trên iPhone):**\n"
+                  "👉 [**BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT**](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)\n\n"
+                  "📦 **2. Tải trực tiếp file IPA về máy:**\n"
+                  "📥 [**TẢI FILE CBHOnline-signed.ipa**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-ios/CBHOnline-signed.ipa)\n\n"
+                  "---\n"
+                  "**Thông tin phiên bản:**\n"
+                  f"- **Nhánh (Branch):** `{ref_name}`\n"
+                  f"- **Mã commit:** `{sha}`\n"
+                  f"- **Changelog:** {commit_message}"
+              )
+          else:
+              title = f"🔴 **IOS BUILD FAILED (Build #{run_number})**"
+              color = 15158332
+              description = f"❌ Đã xảy ra lỗi trong quá trình build hoặc phát hành file IPA.\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`\n- **Changelog:** {commit_message}"
+
+          payload = {
+              "embeds": [{
+                  "title": title,
+                  "description": description,
+                  "color": color
+              }]
+          }
+
+          req = urllib.request.Request(
+              webhook_url, 
+              data=json.dumps(payload).encode('utf-8'), 
+              headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'}
+          )
+          try:
+              with urllib.request.urlopen(req) as response:
+                  print("Notification sent successfully:", response.status)
+          except Exception as e:
+              print("Error sending notification:", e)
+

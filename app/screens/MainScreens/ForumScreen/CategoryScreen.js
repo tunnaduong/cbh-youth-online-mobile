@@ -193,7 +193,7 @@ const CategoryScreen = ({ navigation, route }) => {
           ) : (
             <></>
           )}
-          <Text style={{ fontSize: 14, color: theme.subText }}>· {thread?.created_at ? formatTime(thread?.created_at) : ""}</Text>
+          <Text style={{ fontSize: 14, color: theme.subText }}>· {thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}</Text>
         </View>
         <Text style={{ fontSize: 16, fontWeight: "500", marginBottom: 12, color: theme.text }} numberOfLines={2}>
           {thread?.title}

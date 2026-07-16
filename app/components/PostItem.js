@@ -149,8 +149,7 @@ const PostItem = ({
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${item.author.username
-              }/posts/${generatePostSlug(item.id, item.title)}?source=share`
+              `https://chuyenbienhoa.com/${item.author.id}/posts/${generatePostSlug(item.id, item.title)}?source=share`
             );
           }}
         >
@@ -174,7 +173,7 @@ const PostItem = ({
             </View>
           </TouchableOpacity>
         )}
-        {false && isCurrentUser && (
+        {isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
               navigation.navigate("PostEditScreen", { postId: item.id });
@@ -568,7 +567,9 @@ const PostItem = ({
             </View>
           )}
         </Text>
-        <Text style={{ color: theme.subText }}> · {formatTime(item.created_at || item.time || item.created_at_human)}</Text>
+        <Text style={{ color: theme.subText }}>
+          {" · "}{formatTime(item.created_at || item.time || item.created_at_human)}{item.is_edited ? ` (${t('post.edited')})` : ""}
+        </Text>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
         <View style={{ gap: 12, flexDirection: "row", alignItems: "center", flex: 1 }}>

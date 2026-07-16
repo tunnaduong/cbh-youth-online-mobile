@@ -93,13 +93,22 @@ const CreatePostScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    getSubforums().then((res) => {
-      const translated = res.data.map((item) => ({
-        ...item,
-        label: getCategoryName(item.label, t),
-      }));
-      setSubforums(translated);
-    });
+    const loadSubforums = async () => {
+      try {
+        const res = await getSubforums();
+        const d = res.data;
+        const rawSubforums = Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : []);
+        const translated = rawSubforums.map((item) => {
+          const id = item.value ?? item.id;
+          const name = item.label || item.name || item.title || "";
+          return { ...item, value: id, label: getCategoryName(name, t) };
+        });
+        setSubforums(translated);
+      } catch (error) {
+        console.log("Error loading subforums:", error);
+      }
+    };
+    loadSubforums();
   }, [t]);
 
   const pickImage = async () => {

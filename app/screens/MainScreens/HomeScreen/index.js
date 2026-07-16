@@ -382,14 +382,15 @@ const StoryOptionsModal = ({
         </View>
         ) */}
 
-        {/* <Pressable
+        <Pressable
           style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
           onPress={async () => {
             actionSheetRef.current?.hide();
             try {
               const { Share } = require('react-native');
               await Share.share({
-                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://api.chuyenbienhoa.com/users/${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id}/story`,
+                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
+                url: `https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
               });
             } catch (error) {
               console.error(error.message);
@@ -418,38 +419,40 @@ const StoryOptionsModal = ({
               {t('home.copyLinkShare')}
             </Text>
           </View>
-        </Pressable> */}
+        </Pressable>
 
         {isOwnStory ? (
           <Pressable
             style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             onPress={() => {
               actionSheetRef.current?.hide();
-              Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
-                { text: t('settings.cancel') || "Hủy", style: "cancel" },
-                {
-                  text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
-                    try {
-                      const storyIdToDelete = currentStoryRef.current;
-                      if (storyIdToDelete) {
-                        await deleteStory(storyIdToDelete);
-                        dismissStoryModal();
-                        fetchStories();
+              setTimeout(() => {
+                Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
+                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                  {
+                    text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
+                      try {
+                        const storyIdToDelete = currentStoryRef.current;
+                        if (storyIdToDelete) {
+                          await deleteStory(storyIdToDelete);
+                          dismissStoryModal();
+                          fetchStories();
+                          Toast.show({
+                            type: "success",
+                            text1: t('home.deleteStorySuccess') || "Xóa thành công",
+                          });
+                        }
+                      } catch (e) {
                         Toast.show({
-                          type: "success",
-                          text1: t('home.deleteStorySuccess') || "Xóa thành công",
+                          type: "error",
+                          text1: t('common.error'),
+                          text2: e.message,
                         });
                       }
-                    } catch (e) {
-                      Toast.show({
-                        type: "error",
-                        text1: t('common.error'),
-                        text2: e.message,
-                      });
                     }
                   }
-                }
-              ]);
+                ]);
+              }, 300);
             }}
           >
             <View style={{
@@ -871,6 +874,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const isScrollingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "SET_FEED_SCROLL_ENABLED",
+      (enabled) => {
+        setScrollEnabled(enabled);
+      }
+    );
+    return () => subscription.remove();
+  }, []);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -892,20 +906,41 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   // Handle story highlighting from notifications
   useEffect(() => {
-    if (route.params?.highlightStoryId && userStories.length > 0) {
-      // Find the user and story to highlight
-      const storyToHighlight = route.params.highlightStoryId;
-      const userWithStory = userStories.find((user) =>
-        user.stories.some((story) => story.storyId === storyToHighlight)
-      );
-      if (userWithStory) {
-        // Open the story viewer for that user
-        setTimeout(() => {
-          storyRef.current?.show(userWithStory.id);
-        }, 500);
-      }
-    }
+    if (!route.params?.highlightStoryId || userStories.length === 0) return;
+
+    const storyToHighlight = String(route.params.highlightStoryId);
+    const userWithStory = userStories.find((user) =>
+      user.stories.some((story) => String(story.storyId ?? story.id) === storyToHighlight)
+    );
+
+    if (!userWithStory) return;
+
+    const timer = setTimeout(() => {
+      storyRef.current?.show?.(userWithStory.id);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [route.params?.highlightStoryId, userStories]);
+
+  // Handle deep link: com.fatties.youth://story/<storyId>
+  // App.js passes openStoryId param when user taps a story share link
+  useEffect(() => {
+    if (!route.params?.openStoryId || userStories.length === 0) return;
+
+    const targetId = String(route.params.openStoryId);
+
+    // Find which user owns this story (story.id is numeric, compare as string)
+    const userWithStory = userStories.find((user) =>
+      user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
+    );
+
+    if (userWithStory) {
+      // Small delay to let the screen finish mounting before opening viewer
+      setTimeout(() => {
+        storyRef.current?.show(userWithStory.id); // user.id = username string
+      }, 600);
+    }
+  }, [route.params?.openStoryId, userStories]);
 
   const currentStoryUserRef = useRef(null); // Ref to hold fresh user object for callbacks
 
@@ -1302,6 +1337,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           contentContainerStyle={{ gap: 10, paddingRight: 15 }}
           horizontal
           showsHorizontalScrollIndicator={false}
+          scrollEnabled={scrollEnabled}
         >
           {/* Story like Facebook component */}
           <TouchableHighlight

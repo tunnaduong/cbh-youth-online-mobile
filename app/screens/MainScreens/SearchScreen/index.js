@@ -121,7 +121,7 @@ export default function SearchScreen({ navigation }) {
         </Text>
         <View style={styles.postMeta}>
           <Text style={[styles.postAuthor, { color: theme.subText }]}>
-            {post.author.profile_name} • {post.created_at ? formatTime(post.created_at) : ""}
+            {post.author.profile_name} • {post.created_at ? formatTime(post.created_at) : ""}{post.is_edited ? ` (${t('post.edited')})` : ""}
           </Text>
         </View>
       </View>
