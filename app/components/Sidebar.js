@@ -24,8 +24,6 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import {
   LiquidGlassView,
-  LiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
   useIOSGlass,
   BlurView,
 } from "./GlassModules";
@@ -232,19 +230,17 @@ const Sidebar = ({ providerId, isOpen }) => {
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)', borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
         )
       ) : (
-        isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid ? (
-          <LiquidGlassViewAndroid
-            key={isOpen ? 'open' : 'closed'}
-            providerId={providerId || "default"}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
-            blurRadius={12}
-            refractionAmount={30}
-            refractionHeight={15}
-            tint={isDarkMode ? "rgba(18,18,18,0.75)" : "rgba(255,255,255,0.75)"}
-          />
-        ) : (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.7)' : 'rgba(255,255,255,0.7)', borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
-        )
+        // Android: OneUI-style transparent tint (no liquid glass for sidebar)
+        <View
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            borderTopRightRadius: 24,
+            borderBottomRightRadius: 24,
+            backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.88)' : 'rgba(255, 255, 255, 0.88)',
+            borderRightWidth: 1,
+            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          }}
+        />
       )}
       <View style={{ flex: 1, backgroundColor: "transparent", paddingTop: insets.top }}>
       <ScrollView

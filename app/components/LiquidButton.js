@@ -9,8 +9,6 @@ import {
 import { useTheme } from "../contexts/ThemeContext";
 import {
   LiquidGlassView,
-  LiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
   useIOSGlass,
   BlurView,
 } from "./GlassModules";
@@ -51,19 +49,20 @@ const LiquidButton = ({
         );
       }
     } else {
-      if (isLiquidGlassSupportedAndroid && LiquidGlassViewAndroid) {
-        return (
-          <LiquidGlassViewAndroid
-            providerId={providerId || "default"}
-            style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius }]}
-            blurRadius={8}
-            refractionAmount={20}
-            refractionHeight={10}
-            tint={isDarkMode ? "rgba(0,0,0,0.3)" : "rgba(240,240,240,0.3)"}
-            interactive={false}
-          />
-        );
-      }
+      // Android: OneUI-style tinted transparent button background
+      return (
+        <View
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
+              borderRadius: defaultRadius,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)",
+            }
+          ]}
+        />
+      );
     }
     
     // Fallback

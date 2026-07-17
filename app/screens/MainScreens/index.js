@@ -22,10 +22,6 @@ import {
   LiquidGlassView,
   LiquidGlassContainer,
   LiquidGlassProviderAndroid,
-  LiquidGlassViewAndroid,
-  AnimatedLiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
-  AnimatedLiquidGlassView,
   useIOSGlass,
 } from "../../components/GlassModules";
 
@@ -39,7 +35,6 @@ try {
   // library not linked — fallback renders flat color instead
 }
 
-const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View;
 
 const ScreenWrapper = ({ children, routeName }) => {
   const { theme } = useTheme();
@@ -117,73 +112,27 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
 
   const opacity = activeIndex === 2 ? 0 : 1;
 
-  if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
-    const isRealGlass = isLiquidGlassSupportedAndroid;
-    const isAndroid33 = Platform.Version >= 33;
-    const glassProps = isAndroid33 ? {
-      blurRadius: 5,
-      refractionAmount: 25,
-      refractionHeight: 12,
-      chromaticAberration: 0.1,
-      highlightAlpha: 0.15,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    } : {
-      blurRadius: 5,
-      refractionAmount: 0,
-      refractionHeight: 0,
-      chromaticAberration: 0,
-      highlightAlpha: 0.1,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    };
+  // Android: OneUI-style transparent tint for surrounding (tab background only)
+  if (Platform.OS === 'android') {
+    // OneUI-style tinted transparent surface
+    const androidSurface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";
+    const androidBorder = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
+    const androidIndicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
 
     return (
-      <LiquidGlassViewAndroid
-        key={glassKey}
-        providerId={glassProviderId}
-        interactive={isRealGlass}
+      <View
         onLayout={onLayout}
-        {...glassProps}
         style={{
           ...StyleSheet.absoluteFillObject,
           borderRadius: 24.5,
-          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
+          overflow: "hidden",
+          backgroundColor: androidSurface,
           borderWidth: 1.0,
-          borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+          borderColor: androidBorder,
         }}
       >
-        {/* Chromatic Aberration - Red channel shift (left offset) */}
+        {/* Active indicator */}
         <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: -0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
-          }}
-        />
-        {/* Chromatic Aberration - Blue channel shift (right offset) */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: 0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
-          }}
-        />
-        {/* Main Glass Indicator (neutral white/dark) */}
-        <AnimatedIndicatorAndroid
-          providerId={glassProviderId}
-          interactive={isRealGlass}
-          {...glassProps}
           style={{
             position: "absolute",
             width: currentIndicatorWidth,
@@ -193,27 +142,10 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
             left: 0,
             opacity,
             transform: [{ translateX: slideAnim }],
-            backgroundColor: isRealGlass ? "transparent" : "rgba(255,255,255,0.1)",
-            shadowColor: isDarkMode ? "#fff" : "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isDarkMode ? 0.3 : 0.15,
-            shadowRadius: 6,
-            elevation: 3,
-            overflow: "hidden",
+            backgroundColor: androidIndicator,
           }}
-        >
-          <LinearGradient
-            colors={[
-              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-              "transparent"
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </AnimatedIndicatorAndroid>
-      </LiquidGlassViewAndroid>
+        />
+      </View>
     );
   }
 
@@ -718,26 +650,11 @@ const CustomTabBar = ({
   }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
       triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
-  if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
-    const isRealGlass = isLiquidGlassSupportedAndroid;
-    const isAndroid33 = Platform.Version >= 33;
-    const glassProps = isAndroid33 ? {
-      blurRadius: 5,
-      refractionAmount: 25,
-      refractionHeight: 12,
-      chromaticAberration: 0.1,
-      highlightAlpha: 0.15,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    } : {
-      blurRadius: 5,
-      refractionAmount: 0,
-      refractionHeight: 0,
-      chromaticAberration: 0,
-      highlightAlpha: 0.1,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    };
-
-    const pillBg = fallbackSurfaceTint;
+  if (Platform.OS === 'android') {
+    // OneUI-style: transparent surface with tint, no liquid glass for surrounding components
+    const androidSurface = isDarkMode ? "rgba(18, 18, 18, 0.80)" : "rgba(255, 255, 255, 0.80)";
+    const androidBorder = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
+    const androidIndicatorBg = isDarkMode ? "rgba(255, 255, 255, 0.13)" : "rgba(0, 0, 0, 0.08)";
 
     return (
       <Animated.View
@@ -751,23 +668,23 @@ const CustomTabBar = ({
         }}
       >
         <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
+          {/* Left pill - OneUI tint style */}
           <View
             {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
-            <LiquidGlassViewAndroid
-              providerId={activeRouteName}
-              interactive={isRealGlass}
-              {...glassProps}
+            {/* Tinted transparent background */}
+            <View
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 24.5,
-                backgroundColor: isRealGlass ? "transparent" : pillBg,
+                backgroundColor: androidSurface,
                 borderWidth: 1.0,
-                borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
+                borderColor: androidBorder,
               }}
             />
+            {/* Active tab indicator */}
             <Animated.View
               style={{
                 position: "absolute",
@@ -776,64 +693,30 @@ const CustomTabBar = ({
                 transform: [{ translateX: nativeSlideAnim }],
               }}
             >
-              {isRealGlass ? (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 47,
-                    borderRadius: 23.5,
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
-                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
-                    opacity,
-                  }}
-                />
-              ) : (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 47,
-                    borderRadius: 23.5,
-                    borderWidth: 0,
-                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-                    opacity,
-                    shadowColor: isDarkMode ? "#fff" : "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                    shadowRadius: 6,
-                    elevation: 3,
-                    overflow: "hidden",
-                  }}
-                >
-                  <LinearGradient
-                    colors={[
-                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                      "transparent"
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                </Animated.View>
-              )}
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: indicatorAnimatedWidth,
+                  height: 47,
+                  borderRadius: 23.5,
+                  backgroundColor: androidIndicatorBg,
+                  opacity,
+                  transform: [{ translateX: indicatorDragOffset }],
+                }}
+              />
             </Animated.View>
             {renderButtons()}
           </View>
 
+          {/* Right pill (create button) - OneUI tint style */}
           <View style={styles.iosRightPill}>
-            <LiquidGlassViewAndroid
-              providerId={activeRouteName}
-              interactive={isRealGlass}
-              {...glassProps}
+            <View
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 26.5,
-                backgroundColor: isRealGlass ? "transparent" : pillBg,
+                backgroundColor: androidSurface,
                 borderWidth: 1.0,
-                borderColor: fallbackBorderTint,
+                borderColor: androidBorder,
               }}
             />
             <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
