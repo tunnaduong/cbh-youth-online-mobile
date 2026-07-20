@@ -16,6 +16,7 @@ import {
   Image,
   ActionSheetIOS,
   KeyboardAvoidingView,
+  Animated,
   RefreshControl,
   Platform,
 } from "react-native";
@@ -33,6 +34,7 @@ import {
   deleteComment,
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
+import LiquidButton from "../../../components/LiquidButton";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem from "../../../components/PostItem";
@@ -75,9 +77,22 @@ const PostScreen = ({ route, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const lottieRef = useRef(null);
 
-  React.useEffect(() => {
-    navigation.setOptions({ title: t('post.details') });
-  }, [navigation, t]);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   React.useEffect(() => {
     fetchData();
@@ -228,19 +243,6 @@ const PostScreen = ({ route, navigation }) => {
       ]
     );
   };
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={handleOpenBottomSheet}
-          style={{ marginRight: 16 }}
-        >
-          <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, isSaved, post]);
 
   const fetchData = async () => {
     try {
@@ -1062,6 +1064,27 @@ const PostScreen = ({ route, navigation }) => {
     }
   );
 
+  // Froggy loading animation
+  const bounceValue = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (post == null) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceValue, {
+            toValue: -20,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceValue, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [post]);
+
   return post == null ? (
     <View
       style={{
@@ -1070,7 +1093,17 @@ const PostScreen = ({ route, navigation }) => {
         backgroundColor: theme.background,
         flex: 1,
       }}
-    ></View>
+    >
+      <Animated.Image
+        source={require("../../../assets/sad_frog.png")}
+        style={{
+          width: 80,
+          height: 80,
+          transform: [{ translateY: bounceValue }],
+        }}
+        resizeMode="contain"
+      />
+    </View>
   ) : (
     <>
       <KeyboardAvoidingView
@@ -1083,6 +1116,48 @@ const PostScreen = ({ route, navigation }) => {
             flex: 1,
           }}
         >
+          {/* Floating header */}
+          <View
+            pointerEvents="box-none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+            }}
+          >
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: theme.background,
+                opacity: headerBgOpacity,
+              }}
+            />
+            <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+              <View style={{ width: 44 }}>
+                <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+                  <Ionicons name="chevron-back" size={24} color={theme.primary} />
+                </LiquidButton>
+              </View>
+              <Animated.Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "600",
+                  color: theme.primary,
+                  flex: 1,
+                  textAlign: 'center',
+                  opacity: headerTitleOpacity,
+                }}
+                numberOfLines={1}
+              >
+                {t('post.details')}
+              </Animated.Text>
+              <View style={{ width: 44, alignItems: "flex-end" }}>
+                <LiquidButton size={44} scrollY={scrollY} onPress={handleOpenBottomSheet}>
+                  <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
+                </LiquidButton>
+              </View>
+            </View>
+          </View>
+
           {refreshing && (
             <View style={{ position: "absolute", top: 15, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
               <LottieView
@@ -1094,8 +1169,14 @@ const PostScreen = ({ route, navigation }) => {
               />
             </View>
           )}
-          <ScrollView
-            contentContainerStyle={{ paddingTop: 50 + insets.top,
+          <Animated.ScrollView
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: false }
+            )}
+            contentContainerStyle={{ paddingTop: 64 + insets.top,
               backgroundColor: theme.background,
             }}
             ref={scrollViewRef}
@@ -1136,7 +1217,7 @@ const PostScreen = ({ route, navigation }) => {
                 ))
               )}
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
           {(parentId || editingCommentId) && (
             <View
               style={{

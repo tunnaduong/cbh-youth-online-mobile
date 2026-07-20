@@ -334,9 +334,10 @@ const PostItem = ({
           // Single view: no navigation, just show title
           <Text style={{
             fontWeight: "bold",
-            fontSize: 21,
+            fontSize: 28,
             paddingHorizontal: 15,
-            marginTop: 15,
+            marginTop: 25,
+            marginBottom: 10,
             flex: 1,
             color: theme.text
           }}>
@@ -572,11 +573,11 @@ const PostItem = ({
         </Text>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
-        <View style={{ gap: 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <View style={{ gap: single ? 16 : 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
           <Pressable onPress={() => handleVote(1)}>
             <Ionicons
               name="arrow-up-outline"
-              size={28}
+              size={single ? 34 : 28}
               color={
                 currentVotes.some(
                   (vote) => vote?.username === username && vote.vote_value === 1
@@ -598,7 +599,7 @@ const PostItem = ({
                 )
                   ? { color: "#ef4444" } // Apply red color for downvotes
                   : { color: theme.subText }, // Default themed color
-              { fontSize: 20, fontWeight: "600" }, // Additional styles
+              { fontSize: single ? 24 : 20, fontWeight: "600" }, // Additional styles
             ]}
           >
             {currentVotes.reduce(
@@ -609,7 +610,7 @@ const PostItem = ({
           <Pressable onPress={() => handleVote(-1)}>
             <Ionicons
               name="arrow-down-outline"
-              size={28}
+              size={single ? 34 : 28}
               color={
                 currentVotes.some(
                   (vote) =>
@@ -624,9 +625,9 @@ const PostItem = ({
             onPress={handleSavePost}
             style={[
               {
-                borderRadius: 8, // Rounded corners
-                width: 33.6, // Width of the button
-                height: 33.6, // Height of the button
+                borderRadius: single ? 10 : 8, // Rounded corners
+                width: single ? 42 : 33.6, // Width of the button
+                height: single ? 42 : 33.6, // Height of the button
                 alignItems: "center", // Center the content horizontally
                 justifyContent: "center", // Center the content vertically
               },
@@ -637,24 +638,24 @@ const PostItem = ({
           >
             <Ionicons
               name="bookmark"
-              size={20}
+              size={single ? 24 : 20}
               color={currentSaved ? theme.primary : theme.subText} // Green icon when saved, themed when not saved
             />
           </Pressable>
           <View style={{ flex: 1, flexDirection: "row-reverse", alignItems: "center" }}>
-            <Text style={{ color: theme.subText }}>
+            <Text style={{ color: theme.subText, fontSize: single ? 16 : undefined }}>
               {item.view_count ?? item.views_count ?? item.views ?? 0}
             </Text>
-            <View style={{ marginRight: 4, marginLeft: 8 }}>
-              <Ionicons name="eye-outline" size={20} color={theme.subText} />
+            <View style={{ marginRight: 4, marginLeft: single ? 12 : 8 }}>
+              <Ionicons name="eye-outline" size={single ? 24 : 20} color={theme.subText} />
             </View>
             {single ? (
               // Single view: just show comment count, no navigation
               <View style={{ flexDirection: "row-reverse", alignItems: "center" }}>
-                <Text style={{ color: theme.subText, marginLeft: 4 }}>
+                <Text style={{ color: theme.subText, marginLeft: 4, fontSize: 16 }}>
                   {item.reply_count ?? item.comments ?? 0}
                 </Text>
-                <Ionicons name="chatbox-outline" size={20} color={theme.subText} />
+                <Ionicons name="chatbox-outline" size={24} color={theme.subText} />
               </View>
             ) : (
               // Feed view: clickable comment count that navigates

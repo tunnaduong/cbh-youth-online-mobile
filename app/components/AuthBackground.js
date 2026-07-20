@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef } from 'react';
-import { View, StyleSheet, Image, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, Image, Animated, Dimensions, AppState } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 
 const { width, height } = Dimensions.get('window');
@@ -94,8 +94,7 @@ const FloatingElement = ({ config, theme, isDarkMode }) => {
 const AuthBackground = () => {
   const { theme, isDarkMode } = useTheme();
 
-  // Generate a random composition ONCE per mount to keep layout stable while typing
-  const elements = useMemo(() => {
+    const generateElements = () => {
     // Always 1 or 2 logos
     const numLogos = Math.random() > 0.5 ? 2 : 1;
     // Plus 2 to 3 beautiful shapes
@@ -106,7 +105,7 @@ const AuthBackground = () => {
     // 1. Generate Logos
     for (let i = 0; i < numLogos; i++) {
       items.push({
-        id: `logo-${i}`,
+        id: `logo-${i}-${Date.now()}`,
         type: 'logo',
         size: random(120, 250),
         top: random(-50, height - 150),
@@ -121,7 +120,7 @@ const AuthBackground = () => {
     // 2. Generate Material Shapes
     for (let i = 0; i < numShapes; i++) {
       items.push({
-        id: `shape-${i}`,
+        id: `shape-${i}-${Date.now()}`,
         type: Math.random() > 0.5 ? 'circle' : 'rounded-rect',
         size: random(180, 400),
         top: random(-100, height - 150),
@@ -134,6 +133,20 @@ const AuthBackground = () => {
     }
 
     return items;
+  };
+
+  const [elements, setElements] = React.useState(generateElements());
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (nextAppState === 'active') {
+        setElements(generateElements());
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   return (
