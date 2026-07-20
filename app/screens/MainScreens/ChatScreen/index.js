@@ -9,6 +9,7 @@ import {
   TextInput,
   DeviceEventEmitter,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -44,9 +45,24 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const lastScrollYRef = useRef(0);
   const lottieRef = useRef(null);
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
+
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
     const diff = offsetY - lastScrollYRef.current;
     if (offsetY < 50) {
@@ -245,7 +261,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
       <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 50 + insets.top }]} pointerEvents="box-none">
-        <Text style={[styles.headerTitle, { color: theme.primary, textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }]}>{t('chat.title')}</Text>
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('chat.title')}</Animated.Text>
         <LiquidButton
           providerId="Chat"
           onPress={() => navigation.navigate("NewConversationScreen")}

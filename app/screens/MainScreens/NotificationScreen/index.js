@@ -107,6 +107,20 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const lottieRef = useRef(null);
   const { t } = useTranslation();
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
@@ -237,6 +251,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -533,7 +548,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
       <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent' }]} pointerEvents="box-none">
-        <Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }]}>{t('navigation.notifications')}</Text>
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('navigation.notifications')}</Animated.Text>
         <LiquidButton
           providerId="Notifications"
           onPress={handleMarkAllAsRead}
