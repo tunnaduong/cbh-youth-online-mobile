@@ -23,6 +23,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../components/LiquidButton";
+import AuthBackground from "../../components/AuthBackground";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -174,6 +175,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <AuthBackground />
       <ProgressHUD loadText={t("auth.loggingIn")} visible={loading} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

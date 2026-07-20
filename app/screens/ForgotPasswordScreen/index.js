@@ -19,6 +19,7 @@ import { forgotPassword } from "../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
+import AuthBackground from "../../components/AuthBackground";
 import { useRef } from "react";
 
 const ForgotPasswordScreen = ({ navigation }) => {
@@ -70,6 +71,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <AuthBackground />
       <ProgressHUD loadText={t("forgotPassword.loading")} visible={loading} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}

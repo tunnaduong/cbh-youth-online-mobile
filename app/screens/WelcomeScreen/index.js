@@ -4,6 +4,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import LoginCarousel from "../../components/LoginCarousel";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
+import AuthBackground from "../../components/AuthBackground";
 
 const WelcomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
@@ -11,6 +12,7 @@ const WelcomeScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <AuthBackground />
       <View style={styles.carouselContainer}>
         <LoginCarousel />
       </View>

@@ -24,6 +24,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
+import AuthBackground from "../../components/AuthBackground";
 
 const SignupScreen = ({ navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -204,6 +205,7 @@ const SignupScreen = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <AuthBackground />
       <ProgressHUD loadText={t("signup.loading")} visible={loading} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
