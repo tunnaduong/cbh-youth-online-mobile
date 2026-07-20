@@ -8,22 +8,27 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
   Alert,
+  Animated,
+  KeyboardAvoidingView,
   Platform,
-  StatusBar,
-  ScrollView,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import ProgressHUD from "../../components/ProgressHUD";
-import Icon from "react-native-vector-icons/Ionicons";
 import { forgotPassword } from "../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
+import LiquidButton from "../../components/LiquidButton";
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // scrollY for LiquidButton (static screen — always show button border)
+  const scrollY = new Animated.Value(60);
 
   const handleSendResetLink = async () => {
     if (!email) {
@@ -31,7 +36,6 @@ const ForgotPasswordScreen = ({ navigation }) => {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert(t("forgotPassword.invalidEmailTitle"), t("forgotPassword.invalidEmailBody"));
@@ -42,34 +46,22 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
     try {
       const response = await forgotPassword({ email });
-      console.log("Forgot password response:", response.data);
 
       if (response.data && response.data.status === "success") {
         Alert.alert(
           t("forgotPassword.successTitle"),
           t("forgotPassword.successBody") || response.data.message,
-          [
-            {
-              text: t("common.ok"),
-              onPress: () => {},
-              style: "default",
-            },
-          ]
+          [{ text: t("common.ok"), onPress: () => {}, style: "default" }]
         );
       } else {
-        throw new Error(
-          response.data?.message || t("common.error")
-        );
+        throw new Error(response.data?.message || t("common.error"));
       }
     } catch (error) {
-      console.log("Forgot password failed:", error);
-
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
         t("common.error");
-
       Alert.alert(t("forgotPassword.failureTitle"), errorMessage);
     } finally {
       setLoading(false);
@@ -79,56 +71,92 @@ const ForgotPasswordScreen = ({ navigation }) => {
   return (
     <>
       <ProgressHUD loadText={t("forgotPassword.loading")} visible={loading} />
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-          <TouchableOpacity
-            className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
-            onPress={() => {
-              navigation.goBack();
-            }}
-          >
-            <Icon name="chevron-back-outline" color="white" size={30} />
-          </TouchableOpacity>
-          <ScrollView style={styles.content}>
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.text }]}>{t("forgotPassword.title")}</Text>
-              <Text style={[styles.subtitle, { color: theme.subText }]}>{t("forgotPassword.subtitle")}</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={[styles.container, { backgroundColor: theme.background }]}>
+
+            {/* Floating back button */}
+            <View style={[styles.headerRow, { paddingTop: insets.top + 8 }]}>
+              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
             </View>
 
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("forgotPassword.email")}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-                  placeholder="hello@example.com"
-                  placeholderTextColor={theme.subText}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                />
+            {/* Scrollable content */}
+            <Animated.ScrollView
+              style={styles.scroll}
+              contentContainerStyle={[
+                styles.content,
+                { paddingBottom: insets.bottom + 32 },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Header text */}
+              <View style={styles.headerText}>
+                <Text style={[styles.title, { color: theme.text }]}>
+                  {t("forgotPassword.title")}
+                </Text>
+                <Text style={[styles.subtitle, { color: theme.subText }]}>
+                  {t("forgotPassword.subtitle")}
+                </Text>
               </View>
 
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleSendResetLink}
+              {/* Email card */}
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
               >
-                <Text style={styles.submitButtonText}>{t("forgotPassword.sendLink")}</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={theme.primary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[styles.input, { color: theme.text }]}
+                    placeholder="hello@example.com"
+                    placeholderTextColor={theme.subText}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                  />
+                </View>
+              </View>
+
+              {/* Submit button */}
+              <TouchableOpacity
+                style={[styles.submitButton, { backgroundColor: theme.primary }]}
+                onPress={handleSendResetLink}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.submitButtonText}>
+                  {t("forgotPassword.sendLink")}
+                </Text>
               </TouchableOpacity>
 
+              {/* Back to login */}
               <TouchableOpacity
-                onPress={() => {
-                  navigation.navigate("Login");
-                }}
+                onPress={() => navigation.navigate("Login")}
                 style={styles.backToLogin}
+                activeOpacity={0.7}
               >
-                <Text style={styles.backToLoginText}>{t("forgotPassword.backToLogin")}</Text>
+                <Text style={[styles.backToLoginText, { color: theme.primary }]}>
+                  {t("forgotPassword.backToLogin")}
+                </Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </TouchableWithoutFeedback>
+            </Animated.ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </>
   );
 };
@@ -136,50 +164,57 @@ const ForgotPasswordScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+  },
+  headerRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
-  header: {
-    marginBottom: 32,
+  headerText: {
+    marginBottom: 28,
+    marginTop: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
     marginTop: 8,
+    lineHeight: 22,
   },
-  form: {
-    gap: 20,
+  card: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    marginBottom: 20,
   },
-  inputContainer: {
-    gap: 8,
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    height: 52,
   },
-  label: {
-    fontSize: 16,
-    color: "#000",
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    flex: 1,
     fontSize: 16,
-    backgroundColor: "#FBFFFB",
-    color: "#000",
   },
   submitButton: {
-    backgroundColor: "#319527",
-    height: 50,
+    height: 52,
     borderRadius: 38,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 16,
   },
   submitButtonText: {
     color: "#fff",
@@ -188,11 +223,11 @@ const styles = StyleSheet.create({
   },
   backToLogin: {
     alignSelf: "center",
-    marginTop: 8,
+    paddingVertical: 8,
   },
   backToLoginText: {
-    color: "#319527",
     fontSize: 14,
+    fontWeight: "500",
   },
 });
 
