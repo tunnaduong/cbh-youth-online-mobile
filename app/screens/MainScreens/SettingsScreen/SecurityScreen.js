@@ -15,13 +15,14 @@ import {
 } from "react-native";
 import React, { useContext, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import { deleteAccount, updateProfile, changePassword } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
 
 const SettingItem = ({
   icon,
@@ -33,16 +34,16 @@ const SettingItem = ({
   lastItem = false,
   color,
   theme,
-  isDarkMode,
 }) => (
   <TouchableOpacity
     style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}
     onPress={onPress}
     disabled={isSwitch}
+    activeOpacity={0.7}
   >
     <View style={styles.settingItemLeft}>
-      <View style={[styles.settingItemIcon, { backgroundColor: isDarkMode ? "#374151" : "#F1F1F1" }]}>
-        <Ionicons name={icon} size={22} color={color === "#FF3B30" ? color : theme.subText} />
+      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+        <Ionicons name={icon} size={20} color={color === "#FF3B30" ? color : theme.primary} />
       </View>
       <Text style={[styles.settingItemText, { color: color || theme.text }]}>{title}</Text>
     </View>
@@ -56,29 +57,28 @@ const SettingItem = ({
       <View style={styles.settingItemRight}>
         <Text style={[styles.valueText, { color: theme.subText }]}>{value}</Text>
         {chevron && (
-          <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+          <Ionicons name="chevron-forward" size={18} color={theme.subText} />
         )}
       </View>
     ) : (
-      chevron && <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+      chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />
     )}
   </TouchableOpacity>
 );
 
-const SettingSection = ({ title, children, titleColor, theme, isDarkMode }) => {
+const SettingSection = ({ title, children, titleColor, theme }) => {
   const childrenArray = React.Children.toArray(children);
 
   return (
-    <View style={[styles.settingSection, { backgroundColor: isDarkMode ? "#1f2937" : "#FAFAFA" }]}>
+    <View style={styles.sectionWrapper}>
       <Text style={[styles.sectionTitle, { color: titleColor || theme.primary }]}>
         {title}
       </Text>
-      <View style={styles.sectionContent}>
+      <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
             theme,
-            isDarkMode,
           })
         )}
       </View>
@@ -291,15 +291,15 @@ export default function SecurityScreen({ navigation }) {
       
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
+        <LiquidButton size={40} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={22} color={theme.primary} />
+        </LiquidButton>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('security.title')}</Text>
-        <View style={{ width: 24 }} />
+        <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView style={styles.content}>
-        <SettingSection title={t('security.personalInfo')} theme={theme} isDarkMode={isDarkMode}>
+      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
+        <SettingSection title={t('security.personalInfo')} theme={theme}>
           <SettingItem
             icon="person-outline"
             title={t('security.username')}
@@ -309,7 +309,6 @@ export default function SecurityScreen({ navigation }) {
               setUsernameModalVisible(true);
             }}
             theme={theme}
-            isDarkMode={isDarkMode}
           />
           <SettingItem
             icon="mail-outline"
@@ -320,17 +319,15 @@ export default function SecurityScreen({ navigation }) {
               setEmailModalVisible(true);
             }}
             theme={theme}
-            isDarkMode={isDarkMode}
           />
         </SettingSection>
 
-        <SettingSection title={t('security.loginSecurity')} theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('security.loginSecurity')} theme={theme}>
           <SettingItem
             icon="key-outline"
             title={t('security.changePassword')}
             onPress={() => setPasswordModalVisible(true)}
             theme={theme}
-            isDarkMode={isDarkMode}
           />
           <SettingItem
             icon="shield-checkmark-outline"
@@ -342,11 +339,10 @@ export default function SecurityScreen({ navigation }) {
               });
             }}
             theme={theme}
-            isDarkMode={isDarkMode}
           />
         </SettingSection>
 
-        <SettingSection title={t('security.dangerZone')} titleColor="#FF3B30" theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('security.dangerZone')} titleColor="#FF3B30" theme={theme}>
           <SettingItem
             icon="trash-outline"
             title={t('security.deleteAccount')}
@@ -354,7 +350,6 @@ export default function SecurityScreen({ navigation }) {
             chevron={false}
             onPress={handleDeleteAccount}
             theme={theme}
-            isDarkMode={isDarkMode}
           />
         </SettingSection>
       </ScrollView>
@@ -616,9 +611,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    height: 50,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 56,
   },
   headerTitle: {
     fontSize: 18,
@@ -627,33 +621,37 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  settingSection: {
+  sectionWrapper: {
+    marginHorizontal: 16,
     marginBottom: 24,
-    margin: 15,
-    borderRadius: 15,
-    paddingTop: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
-    marginLeft: 16,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     marginBottom: 8,
+    marginLeft: 4,
   },
-  sectionContent: {
-    // backgroundColor: "#fff",
+  settingSection: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
   settingItemIcon: {
-    padding: 7,
-    borderRadius: 30,
-    marginRight: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
   },
   settingItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   lastSettingItem: {
     borderBottomWidth: 0,
@@ -661,9 +659,12 @@ const styles = StyleSheet.create({
   settingItemLeft: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
   settingItemText: {
     fontSize: 16,
+    marginLeft: 12,
+    flexShrink: 1,
   },
   settingItemRight: {
     flexDirection: "row",
