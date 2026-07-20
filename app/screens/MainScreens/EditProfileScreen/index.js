@@ -278,9 +278,9 @@ const EditProfileScreen = ({ navigation }) => {
               opacity: headerBgOpacity,
             }}
           />
-          <View style={{ paddingTop: insets.top, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 + insets.top, justifyContent: 'space-between' }}>
+          <View style={{ paddingTop: insets.top + 10, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 76 + insets.top, justifyContent: 'space-between' }}>
             <View style={{ width: 60, alignItems: 'flex-start' }}>
-              <LiquidButton size={44} onPress={() => navigation.goBack()}>
+              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
                 <Ionicons name="close" size={24} color={theme.primary} />
               </LiquidButton>
             </View>
@@ -296,7 +296,7 @@ const EditProfileScreen = ({ navigation }) => {
               {t('settings.editProfile')}
             </Animated.Text>
             <View style={{ width: 60, alignItems: 'flex-end' }}>
-              <LiquidButton size={44} onPress={handleUpdateProfile} disabled={loading}>
+              <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdateProfile} disabled={loading}>
                 {loading ? (
                   <ActivityIndicator size="small" color={theme.primary} />
                 ) : (
@@ -316,7 +316,7 @@ const EditProfileScreen = ({ navigation }) => {
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: false }
           )}
-          contentContainerStyle={{ paddingTop: 56 + insets.top, paddingBottom: insets.bottom + 16 }}
+          contentContainerStyle={{ paddingTop: 76 + insets.top, paddingBottom: insets.bottom + 16 }}
         >
           <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateAvatar')}</Text>
           {/* Avatar Section */}

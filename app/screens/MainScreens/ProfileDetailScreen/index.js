@@ -234,8 +234,8 @@ const ProfileDetailScreen = ({ navigation, route }) => {
             opacity: headerBgOpacity,
           }}
         />
-        <View style={{ paddingTop: insets.top, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 + insets.top, justifyContent: 'space-between' }}>
-          <LiquidButton size={44} onPress={() => navigation.goBack()}>
+        <View style={{ paddingTop: insets.top + 10, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 76 + insets.top, justifyContent: 'space-between' }}>
+          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
           <Animated.Text
@@ -250,11 +250,11 @@ const ProfileDetailScreen = ({ navigation, route }) => {
             {t('profile.title')}
           </Animated.Text>
           {isCurrentUser ? (
-            <LiquidButton size={44} onPress={() => navigation.navigate("EditProfileScreen")}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("EditProfileScreen")}>
               <Ionicons name="create-outline" size={24} color={theme.primary} />
             </LiquidButton>
           ) : (
-            <LiquidButton size={44} onPress={showOptions}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={showOptions}>
               <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
             </LiquidButton>
           )}
@@ -269,7 +269,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
         )}
-        contentContainerStyle={{ paddingTop: 56 + insets.top, paddingBottom: insets.bottom + 16 }}
+        contentContainerStyle={{ paddingTop: 76 + insets.top, paddingBottom: insets.bottom + 16 }}
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>

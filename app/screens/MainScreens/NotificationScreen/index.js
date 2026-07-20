@@ -547,7 +547,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 50 + insets.top }]} pointerEvents="box-none">
+      <View style={[styles.header, { paddingTop: insets.top + 10, paddingBottom: 10, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 70 + insets.top }]} pointerEvents="box-none">
         <Animated.Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('navigation.notifications')}</Animated.Text>
         <LiquidButton
           providerId="Notifications"
@@ -601,7 +601,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           removeClippedSubviews={Platform.OS === 'android'}
           renderItem={renderItem}
           contentContainerStyle={{
-            paddingTop: 50 + insets.top,
+            paddingTop: 70 + insets.top,
             paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,

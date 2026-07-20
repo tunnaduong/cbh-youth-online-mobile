@@ -115,10 +115,10 @@ export default function SettingsScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
       <View
-        style={[styles.header, { paddingTop: insets.top, height: 50 + insets.top }]}
+        style={[styles.header, { paddingTop: insets.top + 10, paddingBottom: 10, height: 70 + insets.top }]}
         pointerEvents="box-none"
       >
-        <LiquidButton size={44} onPress={() => navigation.goBack()}>
+        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
 
@@ -127,7 +127,7 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <Animated.ScrollView
-        contentContainerStyle={{ paddingTop: 50 + insets.top, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingTop: 70 + insets.top, paddingBottom: insets.bottom + 32 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }

@@ -67,9 +67,12 @@ const FeatureHeader = ({
         backgroundColor: "transparent",
         borderColor: "transparent",
         borderBottomWidth: 0,
+        height: 70,
+        paddingBottom: 10,
+        paddingTop: 10,
       }
     ]}>
-      <LiquidButton size={44} onPress={() => setSetting((setting) => !setting)} providerId={providerId}>
+      <LiquidButton size={44} scrollY={scrollAnim} onPress={() => setSetting((setting) => !setting)} providerId={providerId}>
         <Ionicons name={"menu-outline"} size={22} color={theme.text} />
       </LiquidButton>
       {havingIcon ? (
@@ -105,7 +108,7 @@ const FeatureHeader = ({
       )}
 
       <View style={{ marginTop: -4 }}>
-        <LiquidButton size={44} onPress={action} providerId={providerId}>
+        <LiquidButton size={44} scrollY={scrollAnim} onPress={action} providerId={providerId}>
           <Ionicons name={icon} size={22} color={theme.text} />
         </LiquidButton>
       </View>
