@@ -56,10 +56,10 @@ const LiquidButton = ({
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
+            backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)",
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)",
+            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
           }
         ]}
       />
