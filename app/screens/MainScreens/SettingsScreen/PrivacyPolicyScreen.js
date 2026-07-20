@@ -10,11 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
 
-const Section = ({ title, children, theme, isDarkMode }) => (
-  <View style={[styles.section, { backgroundColor: isDarkMode ? "#1f2937" : "#F2F9F2" }]}>
+const Section = ({ title, children, theme }) => (
+  <View style={styles.sectionWrapper}>
     <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-    <View style={styles.sectionContent}>{children}</View>
+    <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      {children}
+    </View>
   </View>
 );
 
@@ -28,19 +31,19 @@ export default function PrivacyPolicyScreen({ navigation }) {
       
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
+        <LiquidButton size={40} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={22} color={theme.primary} />
+        </LiquidButton>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t("privacy.headerTitle")}</Text>
-        <View style={{ width: 24, height: 24 }}></View>
+        <View style={{ width: 40 }}></View>
       </View>
 
-      <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
         <Text style={[styles.introText, { color: theme.text }]}>
           {t("privacy.intro")}
         </Text>
 
-        <Section title={t("privacy.s1Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s1Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s1Text1")}
           </Text>
@@ -58,7 +61,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s2Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s2Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s2Text1")}
           </Text>
@@ -79,7 +82,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s3Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s3Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s3Text1")}
           </Text>
@@ -94,7 +97,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s4Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s4Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s4Text1")}
           </Text>
@@ -106,7 +109,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s5Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s5Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s5Text1")}
           </Text>
@@ -121,7 +124,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s6Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s6Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s6Text1")}
           </Text>
@@ -130,7 +133,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s7Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s7Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s7Text1")}
           </Text>
@@ -139,7 +142,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s8Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s8Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s8Text1")}
           </Text>
@@ -151,7 +154,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
 
-        <Section title={t("privacy.s9Title")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("privacy.s9Title")} theme={theme}>
           <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("privacy.s9Text1")}
           </Text>
@@ -179,33 +182,38 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    height: 50,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 56,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
   },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
   introText: {
     fontSize: 14,
     lineHeight: 20,
     marginBottom: 20,
+    marginTop: 16,
     textAlign: "justify",
+    marginHorizontal: 16,
   },
-  section: {
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
+  sectionWrapper: {
+    marginHorizontal: 16,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     marginBottom: 8,
+    marginLeft: 4,
+  },
+  settingSection: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    padding: 16,
   },
   sectionText: {
     fontSize: 14,

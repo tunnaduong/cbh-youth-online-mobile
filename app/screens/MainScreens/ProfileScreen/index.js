@@ -625,14 +625,14 @@ const ProfileScreen = ({ route, navigation }) => {
             )}
           </View>
 
-          <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: isDarkMode ? "#1f2937" : "#f5f5f5", padding: 16, borderRadius: 12 }}>
+          <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: theme.surface, padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border }}>
             <Text style={{ fontWeight: "600", fontSize: 18, color: theme.text }}>{t('profile.title')}</Text>
             {userData?.profile?.bio && (
               <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8, marginBottom: 12 }}>
                 {userData?.profile?.bio}
               </Text>
             )}
-            <View style={{ gap: 2 }}>
+            <View style={{ gap: 4, marginTop: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Ionicons name="school-outline" size={16} color={theme.subText} />
                 <Text style={{ fontSize: 14, color: theme.text }}>
@@ -662,24 +662,17 @@ const ProfileScreen = ({ route, navigation }) => {
                 </View>
               )}
             </View>
-            <TouchableOpacity
-              style={{ position: "absolute", bottom: 20, right: 16 }}
-              onPress={() =>
-                navigation.navigate("ProfileDetailScreen", {
-                  username: userData?.username,
-                })
-              }
-            >
-              <Text style={{ color: theme.primary }}>{t('profile.viewDetail')}</Text>
-              <View
-                style={{
-                  height: 1,
-                  width: "100%",
-                  backgroundColor: theme.primary,
-                  marginTop: 1,
-                }}
-              />
-            </TouchableOpacity>
+            <View style={{ alignItems: "flex-end", marginTop: 12 }}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("ProfileDetailScreen", {
+                    username: userData?.username,
+                  })
+                }
+              >
+                <Text style={{ color: theme.primary, fontWeight: "500" }}>{t('profile.viewDetail')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View

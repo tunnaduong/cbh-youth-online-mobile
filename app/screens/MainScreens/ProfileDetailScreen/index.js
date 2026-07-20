@@ -17,6 +17,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
 
 const ProfileDetailScreen = ({ navigation, route }) => {
   const {
@@ -206,20 +207,18 @@ const ProfileDetailScreen = ({ navigation, route }) => {
       
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
+        <LiquidButton size={40} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={22} color={theme.primary} />
+        </LiquidButton>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('profile.title')}</Text>
         {isCurrentUser ? (
-          <TouchableOpacity
-            onPress={() => navigation.navigate("EditProfileScreen")}
-          >
-            <Ionicons name="create-outline" size={24} color={theme.primary} />
-          </TouchableOpacity>
+          <LiquidButton size={40} onPress={() => navigation.navigate("EditProfileScreen")}>
+            <Ionicons name="create-outline" size={22} color={theme.primary} />
+          </LiquidButton>
         ) : (
-          <TouchableOpacity onPress={showOptions}>
-            <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
-          </TouchableOpacity>
+          <LiquidButton size={40} onPress={showOptions}>
+            <Ionicons name="ellipsis-vertical" size={22} color={theme.primary} />
+          </LiquidButton>
         )}
       </View>
 
@@ -283,9 +282,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    height: 50,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 56,
   },
   headerTitle: {
     fontSize: 18,
