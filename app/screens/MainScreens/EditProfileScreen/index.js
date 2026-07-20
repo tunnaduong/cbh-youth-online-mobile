@@ -11,6 +11,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -295,13 +296,13 @@ const EditProfileScreen = ({ navigation }) => {
               {t('settings.editProfile')}
             </Animated.Text>
             <View style={{ width: 60, alignItems: 'flex-end' }}>
-              <TouchableOpacity onPress={handleUpdateProfile} disabled={loading} style={{ height: 44, justifyContent: 'center' }}>
-                <Text
-                  style={[styles.saveButton, { color: theme.primary }, loading && styles.saveButtonDisabled]}
-                >
-                  {loading ? t('editProfile.saving') : t('settings.save')}
-                </Text>
-              </TouchableOpacity>
+              <LiquidButton size={44} onPress={handleUpdateProfile} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <Ionicons name="checkmark" size={24} color={theme.primary} />
+                )}
+              </LiquidButton>
             </View>
           </View>
         </View>
