@@ -22,7 +22,10 @@ import {
   LiquidGlassView,
   LiquidGlassContainer,
   LiquidGlassProviderAndroid,
+  LiquidGlassViewAndroid,
   useIOSGlass,
+  useAndroidGlass,
+  isLiquidGlassSupportedAndroid,
 } from "../../components/GlassModules";
 
 // NativeBlurView: raw blur from the already-linked iOS library.
@@ -119,6 +122,23 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
     const androidBorder = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
     const androidIndicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
 
+    const isAndroid33 = Platform.Version >= 33;
+    const glassProps = isAndroid33 ? {
+      blurRadius: 12,
+      refractionAmount: 40,
+      refractionHeight: 18,
+      chromaticAberration: 0.2,
+      highlightAlpha: 0.25,
+      tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
+    } : {
+      blurRadius: 10,
+      refractionAmount: 0,
+      refractionHeight: 0,
+      chromaticAberration: 0,
+      highlightAlpha: 0.18,
+      tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
+    };
+
     return (
       <View
         onLayout={onLayout}
@@ -126,11 +146,19 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
           ...StyleSheet.absoluteFillObject,
           borderRadius: 24.5,
           overflow: "hidden",
-          backgroundColor: androidSurface,
+          backgroundColor: useAndroidGlass ? "transparent" : androidSurface,
           borderWidth: 1.0,
           borderColor: androidBorder,
         }}
       >
+        {useAndroidGlass && (
+          <LiquidGlassViewAndroid
+            providerId={currentRoute}
+            interactive={isLiquidGlassSupportedAndroid}
+            {...glassProps}
+            style={StyleSheet.absoluteFillObject}
+          />
+        )}
         {/* Active indicator */}
         <Animated.View
           style={{
@@ -651,10 +679,27 @@ const CustomTabBar = ({
       triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
 
   if (Platform.OS === 'android') {
-    // OneUI-style: transparent surface with tint, no liquid glass for surrounding components
+    // OneUI-style: transparent surface with tint, fallback when liquid glass is disabled or unsupported
     const androidSurface = isDarkMode ? "rgba(18, 18, 18, 0.80)" : "rgba(255, 255, 255, 0.80)";
     const androidBorder = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
     const androidIndicatorBg = isDarkMode ? "rgba(255, 255, 255, 0.13)" : "rgba(0, 0, 0, 0.08)";
+
+    const isAndroid33 = Platform.Version >= 33;
+    const glassProps = isAndroid33 ? {
+      blurRadius: 12,
+      refractionAmount: 40,
+      refractionHeight: 18,
+      chromaticAberration: 0.2,
+      highlightAlpha: 0.25,
+      tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
+    } : {
+      blurRadius: 10,
+      refractionAmount: 0,
+      refractionHeight: 0,
+      chromaticAberration: 0,
+      highlightAlpha: 0.18,
+      tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
+    };
 
     return (
       <Animated.View
@@ -668,22 +713,35 @@ const CustomTabBar = ({
         }}
       >
         <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-          {/* Left pill - OneUI tint style */}
+          {/* Left pill */}
           <View
             {...panResponder.panHandlers}
             onLayout={onLeftPillLayout}
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
-            {/* Tinted transparent background */}
-            <View
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 24.5,
-                backgroundColor: androidSurface,
-                borderWidth: 1.0,
-                borderColor: androidBorder,
-              }}
-            />
+            {useAndroidGlass ? (
+              <LiquidGlassViewAndroid
+                providerId={activeRouteName}
+                interactive={isLiquidGlassSupportedAndroid}
+                {...glassProps}
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 24.5,
+                  borderWidth: 1.0,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 24.5,
+                  backgroundColor: androidSurface,
+                  borderWidth: 1.0,
+                  borderColor: androidBorder,
+                }}
+              />
+            )}
             {/* Active tab indicator */}
             <Animated.View
               style={{
@@ -708,17 +766,31 @@ const CustomTabBar = ({
             {renderButtons()}
           </View>
 
-          {/* Right pill (create button) - OneUI tint style */}
+          {/* Right pill (create button) */}
           <View style={styles.iosRightPill}>
-            <View
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 26.5,
-                backgroundColor: androidSurface,
-                borderWidth: 1.0,
-                borderColor: androidBorder,
-              }}
-            />
+            {useAndroidGlass ? (
+              <LiquidGlassViewAndroid
+                providerId={activeRouteName}
+                interactive={isLiquidGlassSupportedAndroid}
+                {...glassProps}
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 26.5,
+                  borderWidth: 1.0,
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  ...StyleSheet.absoluteFillObject,
+                  borderRadius: 26.5,
+                  backgroundColor: androidSurface,
+                  borderWidth: 1.0,
+                  borderColor: androidBorder,
+                }}
+              />
+            )}
             <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
               <CustomTabBarButton
                 onPress={() => {}}

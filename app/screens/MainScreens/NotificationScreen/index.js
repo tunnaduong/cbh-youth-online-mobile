@@ -538,8 +538,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           providerId="Notifications"
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 40 }}
-          borderRadius={30}
+          size={44}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44 }}
+          borderRadius={22}
         >
           <Text
             style={[

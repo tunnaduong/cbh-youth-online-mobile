@@ -17,7 +17,7 @@ const LiquidButton = ({
   onPress,
   children,
   style,
-  size = 40,
+  size = 44,
   borderRadius,
   disabled = false,
   containerStyle,
@@ -25,7 +25,7 @@ const LiquidButton = ({
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
-  
+
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
       if (useIOSGlass) {
@@ -48,74 +48,71 @@ const LiquidButton = ({
           />
         );
       }
-    } else {
-      // Android: OneUI-style tinted transparent button background
-      return (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
-              borderRadius: defaultRadius,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)",
-            }
-          ]}
-        />
-      );
     }
-    
-    // Fallback
+
+    // Android & fallbacks: OneUI-style tinted transparent button background
     return (
-      <View 
+      <View
         style={[
-          StyleSheet.absoluteFill, 
-          { 
-            backgroundColor: isDarkMode ? "rgba(40, 40, 40, 0.4)" : "rgba(240, 240, 240, 0.4)",
+          StyleSheet.absoluteFill,
+          {
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.06)",
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+            borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.07)",
           }
-        ]} 
+        ]}
       />
     );
   };
 
+  const scaleValue = React.useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.92,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+  };
+
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.7}
-      style={[
-        {
-          width: size,
-          height: size,
-          justifyContent: "center",
-          alignItems: "center",
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 2,
-        },
-        containerStyle
-      ]}
-    >
-      {renderGlassBackground()}
-      <View style={[
-        {
-          width: size,
-          height: size,
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: defaultRadius,
-        },
-        style
-      ]}>
+    <Animated.View style={[{ transform: [{ scale: scaleValue }] }, containerStyle]}>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={disabled}
+        style={[
+          styles.button,
+          {
+            width: size,
+            height: size,
+            borderRadius: defaultRadius,
+          },
+          style,
+        ]}
+      >
+        {renderGlassBackground()}
         {children}
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 };
+
+const styles = StyleSheet.create({
+  button: {
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+});
 
 export default LiquidButton;

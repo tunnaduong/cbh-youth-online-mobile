@@ -457,21 +457,21 @@ const ProfileScreen = ({ route, navigation }) => {
           }}
         >
           <View pointerEvents="box-none" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 50 }}>
-            <LiquidButton size={40} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
+            <LiquidButton size={44} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={22} color={theme.text} />
             </LiquidButton>
             <Text style={[styles.headerTitle, { color: theme.text, textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }]} numberOfLines={1}>
               {isCurrentUser ? t('profile.title') : userData?.profile.profile_name}
             </Text>
             {isCurrentUser ? (
-              <LiquidButton size={40} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
+              <LiquidButton size={44} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
                 <Ionicons name="settings-outline" size={22} color={theme.text} />
               </LiquidButton>
             ) : (
-              <View style={{ width: 40 }}></View>
+              <View style={{ width: 44 }}></View>
             )}
             {!isCurrentUser && (
-              <LiquidButton size={40} providerId="ProfileScreen" onPress={showOptions} containerStyle={{ position: 'absolute', right: 16 }}>
+              <LiquidButton size={44} providerId="ProfileScreen" onPress={showOptions} containerStyle={{ position: 'absolute', right: 16 }}>
                 <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
               </LiquidButton>
             )}

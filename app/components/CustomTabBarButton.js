@@ -25,6 +25,7 @@ import {
   LiquidGlassViewAndroid,
   isLiquidGlassSupportedAndroid,
   useIOSGlass,
+  useAndroidGlass,
 } from "./GlassModules";
 
 const { width, height } = Dimensions.get("window");
@@ -241,6 +242,20 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
       // inside the parent's iosRightPill <LiquidGlassView> in index.js.
       // Stacking a second glass layer on top doesn't merge with it (glass
       // can't sample glass) and reads as a separate, disconnected blob
+      // instead of part of the floating tab bar.
+      return (
+        <Pressable style={styles.buttonContainer} onPress={handlePress}>
+          <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
+            {circleContent}
+          </Animated.View>
+        </Pressable>
+      );
+    }
+
+    if (Platform.OS === "android" && useAndroidGlass) {
+      // No nested LiquidGlassViewAndroid here: this button already sits
+      // inside the parent's iosRightPill <LiquidGlassViewAndroid> in index.js.
+      // Stacking a second glass layer on top reads as a separate, disconnected blob
       // instead of part of the floating tab bar.
       return (
         <Pressable style={styles.buttonContainer} onPress={handlePress}>
