@@ -40,12 +40,17 @@ try {
 
 
 const ScreenWrapper = ({ children, routeName }) => {
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  const themeKey = isDarkMode ? 'dark' : 'light';
 
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid providerId={routeName} style={StyleSheet.absoluteFill}>
+        <LiquidGlassProviderAndroid
+          key={`provider-${routeName}-${themeKey}`}
+          providerId={routeName}
+          style={StyleSheet.absoluteFill}
+        >
           <View style={{ flex: 1, backgroundColor: theme.background }}>
             {children}
           </View>
@@ -153,6 +158,7 @@ const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, th
       >
         {useAndroidGlass && (
           <LiquidGlassViewAndroid
+            key={`tabbg-${currentRoute}-${isDarkMode ? 'dark' : 'light'}`}
             providerId={currentRoute}
             interactive={isLiquidGlassSupportedAndroid}
             {...glassProps}
@@ -721,6 +727,7 @@ const CustomTabBar = ({
           >
             {useAndroidGlass ? (
               <LiquidGlassViewAndroid
+                key={`leftpill-${activeRouteName}-${isDarkMode ? 'dark' : 'light'}`}
                 providerId={activeRouteName}
                 interactive={isLiquidGlassSupportedAndroid}
                 {...glassProps}
@@ -770,6 +777,7 @@ const CustomTabBar = ({
           <View style={styles.iosRightPill}>
             {useAndroidGlass ? (
               <LiquidGlassViewAndroid
+                key={`rightpill-${activeRouteName}-${isDarkMode ? 'dark' : 'light'}`}
                 providerId={activeRouteName}
                 interactive={isLiquidGlassSupportedAndroid}
                 {...glassProps}
