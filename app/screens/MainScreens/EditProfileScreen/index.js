@@ -10,6 +10,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Animated,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,12 +29,27 @@ import RadioGroup from "react-native-radio-buttons-group";
 import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
+import LiquidButton from "../../../components/LiquidButton";
 
 const EditProfileScreen = ({ navigation }) => {
   const { username, userInfo, setUserInfo, bumpAvatarVersion } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
+
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
   const [loading, setLoading] = useState(false);
   const [loadingFirst, setLoadingFirst] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -244,28 +260,62 @@ const EditProfileScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView behavior={"padding"} style={{ flex: 1 }}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={24} color={theme.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('settings.editProfile')}</Text>
-          <TouchableOpacity onPress={handleUpdateProfile} disabled={loading}>
-            <Text
-              style={[styles.saveButton, { color: theme.primary }, loading && styles.saveButtonDisabled]}
+        {/* Floating Header */}
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+          }}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: theme.background,
+              opacity: headerBgOpacity,
+            }}
+          />
+          <View style={{ paddingTop: insets.top, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 + insets.top, justifyContent: 'space-between' }}>
+            <View style={{ width: 60, alignItems: 'flex-start' }}>
+              <LiquidButton size={44} onPress={() => navigation.goBack()}>
+                <Ionicons name="close" size={24} color={theme.primary} />
+              </LiquidButton>
+            </View>
+            <Animated.Text
+              style={[styles.headerTitle, {
+                color: theme.primary,
+                flex: 1,
+                textAlign: 'center',
+                opacity: headerTitleOpacity,
+              }]}
+              numberOfLines={1}
             >
-              {loading ? t('editProfile.saving') : t('settings.save')}
-            </Text>
-          </TouchableOpacity>
+              {t('settings.editProfile')}
+            </Animated.Text>
+            <View style={{ width: 60, alignItems: 'flex-end' }}>
+              <TouchableOpacity onPress={handleUpdateProfile} disabled={loading} style={{ height: 44, justifyContent: 'center' }}>
+                <Text
+                  style={[styles.saveButton, { color: theme.primary }, loading && styles.saveButtonDisabled]}
+                >
+                  {loading ? t('editProfile.saving') : t('settings.save')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
-        <ScrollView
+        <Animated.ScrollView
           scrollEnabled={true}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          contentContainerStyle={{ paddingTop: 56 + insets.top, paddingBottom: insets.bottom + 16 }}
         >
           <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateAvatar')}</Text>
           {/* Avatar Section */}
@@ -409,9 +459,9 @@ const EditProfileScreen = ({ navigation }) => {
               />
             </View>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import FastImage from "../../../components/FastImage";
@@ -34,6 +35,19 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const isBlocked = blockedUsers?.includes(username);
   const { t } = useTranslation();
+
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   useFocusEffect(
     React.useCallback(() => {
@@ -203,26 +217,60 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <LiquidButton size={44} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('profile.title')}</Text>
-        {isCurrentUser ? (
-          <LiquidButton size={44} onPress={() => navigation.navigate("EditProfileScreen")}>
-            <Ionicons name="create-outline" size={24} color={theme.primary} />
+      {/* Floating Header */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        }}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: theme.background,
+            opacity: headerBgOpacity,
+          }}
+        />
+        <View style={{ paddingTop: insets.top, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 + insets.top, justifyContent: 'space-between' }}>
+          <LiquidButton size={44} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
-        ) : (
-          <LiquidButton size={44} onPress={showOptions}>
-            <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
-          </LiquidButton>
-        )}
+          <Animated.Text
+            style={[styles.headerTitle, {
+              color: theme.primary,
+              flex: 1,
+              textAlign: 'center',
+              opacity: headerTitleOpacity,
+            }]}
+            numberOfLines={1}
+          >
+            {t('profile.title')}
+          </Animated.Text>
+          {isCurrentUser ? (
+            <LiquidButton size={44} onPress={() => navigation.navigate("EditProfileScreen")}>
+              <Ionicons name="create-outline" size={24} color={theme.primary} />
+            </LiquidButton>
+          ) : (
+            <LiquidButton size={44} onPress={showOptions}>
+              <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
+            </LiquidButton>
+          )}
+        </View>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
+      <Animated.ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        contentContainerStyle={{ paddingTop: 56 + insets.top, paddingBottom: insets.bottom + 16 }}
+      >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           <FastImage
@@ -263,7 +311,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           {renderInfoItem("mail-outline", t('profile.email'), profileData?.email)}
           {renderInfoItem("time-outline", t('profile.joined'), profileData?.joined_at)}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };
@@ -294,13 +342,14 @@ const styles = StyleSheet.create({
   },
   profileHeader: {
     alignItems: "center",
-    paddingVertical: 20,
+    paddingTop: 8,
+    paddingBottom: 20,
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   profileName: {
     fontSize: 24,
