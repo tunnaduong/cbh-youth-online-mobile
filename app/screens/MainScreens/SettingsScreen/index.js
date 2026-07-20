@@ -20,6 +20,7 @@ import Toast from "react-native-toast-message";
 import * as Application from "expo-application";
 import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../../i18n";
+import LiquidButton from "../../../components/LiquidButton";
 
 const SettingItem = ({
   icon,
@@ -110,13 +111,6 @@ export default function SettingsScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
-  // Compact header title (appears when scrolled past large title)
-  const compactTitleOpacity = scrollY.interpolate({
-    inputRange: [40, 70],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
@@ -124,24 +118,12 @@ export default function SettingsScreen({ navigation }) {
         style={[styles.header, { paddingTop: insets.top, height: 50 + insets.top }]}
         pointerEvents="box-none"
       >
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)" }]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
+        <LiquidButton size={44} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color={theme.primary} />
-        </TouchableOpacity>
-
-        {/* Compact title shown when scrolled */}
-        <Animated.Text
-          style={[styles.compactTitle, { color: theme.text, opacity: compactTitleOpacity }]}
-          numberOfLines={1}
-        >
-          {t("settings.title")}
-        </Animated.Text>
+        </LiquidButton>
 
         {/* Spacer to balance back button */}
-        <View style={{ width: 36 }} />
+        <View style={{ width: 44 }} />
       </View>
 
       <Animated.ScrollView
@@ -438,7 +420,7 @@ const styles = StyleSheet.create({
   settingItemIcon: {
     width: 34,
     height: 34,
-    borderRadius: 10,
+    borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
   },
