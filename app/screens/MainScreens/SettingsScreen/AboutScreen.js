@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -42,7 +43,7 @@ export default function AboutScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      
+
       {/* Floating header */}
       <View
         pointerEvents="box-none"
@@ -79,8 +80,8 @@ export default function AboutScreen({ navigation }) {
         </View>
       </View>
 
-      <Animated.ScrollView 
-        style={{ flex: 1 }} 
+      <Animated.ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
@@ -92,8 +93,8 @@ export default function AboutScreen({ navigation }) {
         {/* School Info */}
         <View style={styles.schoolInfo}>
           <Image
-            source={require("../../../assets/school-logo.jpg")}
-            style={[styles.schoolLogo, { resizeMode: 'contain', backgroundColor: 'white' }]}
+            source={require("../../../assets/school-logo-removebg.png")}
+            style={[styles.schoolLogo, { resizeMode: 'contain' }]}
           />
           <Text style={[styles.schoolName, { color: theme.primary }]}>{t("about.schoolName")}</Text>
         </View>
@@ -107,13 +108,13 @@ export default function AboutScreen({ navigation }) {
         </Text>
 
         <Section title={t("about.historyTitle")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.historyDesc")}
           </Text>
         </Section>
 
         <Section title={t("about.activitiesTitle")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.activitiesDesc")}
           </Text>
         </Section>
@@ -150,19 +151,19 @@ export default function AboutScreen({ navigation }) {
         </Text>
 
         <Section title={t("about.feature1Title")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.feature1Desc")}
           </Text>
         </Section>
 
         <Section title={t("about.feature2Title")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.feature2Desc")}
           </Text>
         </Section>
 
         <Section title={t("about.feature3Title")} theme={theme}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.feature3Desc")}
           </Text>
         </Section>
