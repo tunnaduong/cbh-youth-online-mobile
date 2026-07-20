@@ -579,8 +579,8 @@ const ProfileScreen = ({ route, navigation }) => {
                   </View>
                 ) : null}
               </View>
-              <View style={{ paddingBottom: 6, flex: 1 }}>
-                <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
+              <View style={{ paddingBottom: 16, flex: 1 }}>
+                <Text style={[styles.name, { color: theme.text, marginTop: 0 }]} numberOfLines={2}>
                   {userData?.profile?.profile_name}
                   {userData?.profile?.verified && (
                     <View>
