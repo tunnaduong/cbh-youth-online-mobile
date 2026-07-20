@@ -547,12 +547,13 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent' }]} pointerEvents="box-none">
+      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 50 + insets.top }]} pointerEvents="box-none">
         <Animated.Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('navigation.notifications')}</Animated.Text>
         <LiquidButton
           providerId="Notifications"
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
+          scrollY={scrollY}
           size={44}
           style={{ width: 'auto', paddingHorizontal: 16, height: 44 }}
           borderRadius={22}
@@ -646,7 +647,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    height: 50 + 44, // roughly insets.top + 50
+    gap: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#f0f0f0",
     position: 'absolute',

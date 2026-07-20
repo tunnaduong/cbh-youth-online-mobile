@@ -22,9 +22,20 @@ const LiquidButton = ({
   disabled = false,
   containerStyle,
   providerId,
+  scrollY,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
+
+  // When scrollY is provided, background fades in as user scrolls (0→40px).
+  // At the top the button appears label-only (no visible pill/circle).
+  const bgOpacity = scrollY
+    ? scrollY.interpolate({
+        inputRange: [0, 40],
+        outputRange: [0, 1],
+        extrapolate: "clamp",
+      })
+    : 1;
 
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
@@ -100,7 +111,16 @@ const LiquidButton = ({
           style,
         ]}
       >
-        {renderGlassBackground()}
+        {/* Background fades in based on scrollY */}
+        <Animated.View
+          style={[
+            StyleSheet.absoluteFill,
+            { borderRadius: defaultRadius, overflow: "hidden", opacity: bgOpacity },
+          ]}
+          pointerEvents="none"
+        >
+          {renderGlassBackground()}
+        </Animated.View>
         {children}
       </TouchableOpacity>
     </Animated.View>
