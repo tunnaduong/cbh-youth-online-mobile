@@ -115,7 +115,7 @@ export default function SettingsScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
       <View
-        style={[styles.header, { paddingTop: insets.top + 10, paddingBottom: 10, height: 70 + insets.top }]}
+        style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, height: 58 + insets.top }]}
         pointerEvents="box-none"
       >
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
@@ -127,7 +127,7 @@ export default function SettingsScreen({ navigation }) {
       </View>
 
       <Animated.ScrollView
-        contentContainerStyle={{ paddingTop: 70 + insets.top, paddingBottom: insets.bottom + 32 }}
+        contentContainerStyle={{ paddingTop: 58 + insets.top, paddingBottom: insets.bottom + 32 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }

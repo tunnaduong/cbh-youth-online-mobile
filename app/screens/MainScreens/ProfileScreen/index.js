@@ -479,10 +479,10 @@ const ProfileScreen = ({ route, navigation }) => {
           />
 
           {/* Header content */}
-          <View style={{ paddingTop: insets.top, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 + insets.top }}>
+          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
             {/* Left: Back button */}
             <View style={{ width: 44 }}>
-              <LiquidButton size={44} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
+              <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
                 <Ionicons name="chevron-back" size={24} color={theme.text} />
               </LiquidButton>
             </View>
@@ -503,11 +503,11 @@ const ProfileScreen = ({ route, navigation }) => {
             {/* Right: Settings or options button */}
             <View style={{ width: 44, alignItems: 'flex-end' }}>
               {isCurrentUser ? (
-                <LiquidButton size={44} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
+                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
                   <Ionicons name="settings-outline" size={22} color={theme.text} />
                 </LiquidButton>
               ) : (
-                <LiquidButton size={44} providerId="ProfileScreen" onPress={showOptions}>
+                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={showOptions}>
                   <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
                 </LiquidButton>
               )}

@@ -58,7 +58,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
             opacity: headerBgOpacity,
           }}
         />
-        <View style={{ paddingTop: insets.top + 10, paddingBottom: 10, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 76 + insets.top }}>
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
           <View style={{ width: 44 }}>
             <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
               <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -87,7 +87,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: false }
         )}
-        contentContainerStyle={{ paddingTop: 76 + insets.top, paddingBottom: insets.bottom + 16 }}
+        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
       >
         <Text style={[styles.introText, { color: theme.text }]}>
           {t("privacy.intro")}

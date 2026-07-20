@@ -67,9 +67,8 @@ const FeatureHeader = ({
         backgroundColor: "transparent",
         borderColor: "transparent",
         borderBottomWidth: 0,
-        height: 70,
-        paddingBottom: 10,
-        paddingTop: 10,
+        height: 58,
+        paddingBottom: 8,
       }
     ]}>
       <LiquidButton size={44} scrollY={scrollAnim} onPress={() => setSetting((setting) => !setting)} providerId={providerId}>
