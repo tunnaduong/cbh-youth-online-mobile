@@ -56,10 +56,11 @@ const ProfileScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Scroll-driven header: bg + title START visible at top, fade OUT quickly as user begins scrolling
+  // Scroll-driven header: title START visible at top, fade OUT quickly as user begins scrolling
+  // Background is always transparent to let the page color show through
   const headerBgOpacity = scrollY.interpolate({
     inputRange: [0, 10, 60],
-    outputRange: [1, 1, 0],
+    outputRange: [0, 0, 0],
     extrapolate: "clamp",
   });
   const headerTitleOpacity = scrollY.interpolate({
