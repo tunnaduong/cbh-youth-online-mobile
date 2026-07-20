@@ -441,11 +441,10 @@ const styles = StyleSheet.create({
   dropdownRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 6,
+    paddingVertical: 13,
     paddingLeft: 16,
-    paddingRight: 8,
+    paddingRight: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    minHeight: 52,
   },
   versionText: {
     fontSize: 13,
