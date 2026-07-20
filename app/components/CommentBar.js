@@ -10,7 +10,7 @@ import {
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { BlurView } from "expo-blur";
+import { BlurView, LiquidGlassView, useIOSGlass } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
 
@@ -55,8 +55,8 @@ const CommentBar = React.forwardRef(
             backgroundColor: isIOS
               ? "transparent"
               : isDarkMode
-              ? "rgba(30,30,30,0.9)"
-              : "rgba(255,255,255,0.9)",
+              ? "rgba(18, 18, 18, 0.85)"
+              : "rgba(255, 255, 255, 0.75)",
             borderRadius: 30, // floating pill shape
             padding: 5,
             borderWidth: StyleSheet.hairlineWidth,
@@ -69,10 +69,19 @@ const CommentBar = React.forwardRef(
             elevation: 5,
           }}
         >
-          {isIOS && (
+          {isIOS && useIOSGlass && LiquidGlassView && (
+            <LiquidGlassView
+              style={StyleSheet.absoluteFill}
+              glassType="clear"
+              glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
+              glassOpacity={1}
+              isInteractive={false}
+            />
+          )}
+          {isIOS && !useIOSGlass && BlurView && (
             <BlurView
-              intensity={70}
-              tint={isDarkMode ? "dark" : "light"}
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={10}
               style={StyleSheet.absoluteFill}
             />
           )}
