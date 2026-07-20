@@ -56,14 +56,14 @@ const ProfileScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  // Scroll-driven header: bg + title START visible at top, fade OUT as user scrolls past cover (170px)
+  // Scroll-driven header: bg + title START visible at top, fade OUT quickly as user begins scrolling
   const headerBgOpacity = scrollY.interpolate({
-    inputRange: [0, 80, 170],
+    inputRange: [0, 10, 60],
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
   const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 60, 120],
+    inputRange: [0, 10, 50],
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
@@ -478,7 +478,7 @@ const ProfileScreen = ({ route, navigation }) => {
           />
 
           {/* Header content */}
-          <View style={{ paddingTop: insets.top, height: 56 + insets.top, flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 16, paddingBottom: 6 }}>
+          <View style={{ paddingTop: insets.top, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 + insets.top }}>
             {/* Left: Back button */}
             <View style={{ width: 44 }}>
               <LiquidButton size={44} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
