@@ -119,7 +119,7 @@ export default function SettingsScreen({ navigation }) {
         pointerEvents="box-none"
       >
         <LiquidButton size={44} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={22} color={theme.primary} />
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
 
         {/* Spacer to balance back button */}

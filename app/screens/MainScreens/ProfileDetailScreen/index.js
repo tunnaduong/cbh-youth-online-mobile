@@ -207,17 +207,17 @@ const ProfileDetailScreen = ({ navigation, route }) => {
       
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <LiquidButton size={40} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={22} color={theme.primary} />
+        <LiquidButton size={44} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('profile.title')}</Text>
         {isCurrentUser ? (
-          <LiquidButton size={40} onPress={() => navigation.navigate("EditProfileScreen")}>
-            <Ionicons name="create-outline" size={22} color={theme.primary} />
+          <LiquidButton size={44} onPress={() => navigation.navigate("EditProfileScreen")}>
+            <Ionicons name="create-outline" size={24} color={theme.primary} />
           </LiquidButton>
         ) : (
-          <LiquidButton size={40} onPress={showOptions}>
-            <Ionicons name="ellipsis-vertical" size={22} color={theme.primary} />
+          <LiquidButton size={44} onPress={showOptions}>
+            <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
           </LiquidButton>
         )}
       </View>

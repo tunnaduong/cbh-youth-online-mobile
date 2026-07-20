@@ -483,7 +483,7 @@ const ProfileScreen = ({ route, navigation }) => {
             {/* Left: Back button */}
             <View style={{ width: 44 }}>
               <LiquidButton size={44} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
-                <Ionicons name="chevron-back" size={22} color={theme.text} />
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
               </LiquidButton>
             </View>
 

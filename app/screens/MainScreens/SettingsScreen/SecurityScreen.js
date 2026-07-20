@@ -320,8 +320,8 @@ export default function SecurityScreen({ navigation }) {
         />
         <View style={{ paddingTop: insets.top, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 56 + insets.top }}>
           <View style={{ width: 44 }}>
-            <LiquidButton size={40} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={22} color={theme.primary} />
+            <LiquidButton size={44} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
           <Animated.Text
