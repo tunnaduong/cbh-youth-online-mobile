@@ -19,6 +19,7 @@ import { forgotPassword } from "../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
+import { useRef } from "react";
 
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -27,8 +28,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  // scrollY for LiquidButton (static screen — always show button border)
-  const scrollY = new Animated.Value(60);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const handleSendResetLink = async () => {
     if (!email) {
@@ -69,17 +69,17 @@ const ForgotPasswordScreen = ({ navigation }) => {
   };
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ProgressHUD loadText={t("forgotPassword.loading")} visible={loading} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={[styles.container, { backgroundColor: theme.background }]}>
+          <View style={styles.container}>
 
             {/* Floating back button */}
-            <View style={[styles.headerRow, { paddingTop: insets.top + 8 }]}>
+            <View style={[styles.headerRow, { paddingTop: insets.top + 8, position: "absolute", top: 0, left: 0, zIndex: 10 }]} pointerEvents="box-none">
               <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
                 <Ionicons name="chevron-back" size={24} color={theme.primary} />
               </LiquidButton>
@@ -90,10 +90,15 @@ const ForgotPasswordScreen = ({ navigation }) => {
               style={styles.scroll}
               contentContainerStyle={[
                 styles.content,
-                { paddingBottom: insets.bottom + 32 },
+                { paddingBottom: insets.bottom + 32, paddingTop: insets.top + 60 },
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                { useNativeDriver: false }
+              )}
             >
               {/* Header text */}
               <View style={styles.headerText}>
@@ -157,7 +162,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </>
+    </View>
   );
 };
 
