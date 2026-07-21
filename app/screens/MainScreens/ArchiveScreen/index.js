@@ -192,9 +192,12 @@ const ArchiveScreen = ({ route, navigation }) => {
           >
             <TouchableOpacity
               onPress={() => {
-                setTimeout(() => {
-                  DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", story.id);
-                }, 100);
+                // Only show viewers for stories that belong to the current user
+                if (username === currentUsername) {
+                  setTimeout(() => {
+                    DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", story.id);
+                  }, 100);
+                }
               }}
               style={{
                 flexDirection: "row",
