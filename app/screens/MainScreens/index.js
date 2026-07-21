@@ -619,14 +619,14 @@ const CustomTabBar = ({
       let iconName;
       let badgeCount = null;
       if (route.name === "Home") {
-        iconName = isFocused ? "home" : "home-outline";
+        iconName = "home";
       } else if (route.name === "Forum") {
-        iconName = isFocused ? "people" : "people-outline";
+        iconName = "people";
       } else if (route.name === "Chat") {
-        iconName = isFocused ? "chatbubble" : "chatbubble-outline";
+        iconName = "chatbubble";
         badgeCount = chatUnreadCount;
       } else if (route.name === "Notifications") {
-        iconName = isFocused ? "notifications" : "notifications-outline";
+        iconName = "notifications";
         badgeCount = notificationUnreadCount;
       }
 
@@ -1204,14 +1204,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
               let badgeCount = null;
 
               if (route.name === "Home") {
-                iconName = focused ? "home" : "home-outline";
+                iconName = "home";
               } else if (route.name === "Forum") {
-                iconName = focused ? "people" : "people-outline";
+                iconName = "people";
               } else if (route.name === "Notifications") {
-                iconName = focused ? "notifications" : "notifications-outline";
+                iconName = "notifications";
                 badgeCount = notificationUnreadCount;
               } else if (route.name === "Chat") {
-                iconName = focused ? "chatbubble" : "chatbubble-outline";
+                iconName = "chatbubble";
                 badgeCount = chatUnreadCount;
               }
 
@@ -1224,7 +1224,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             },
             tabBarShowLabel: !hideTabLabels,
             tabBarActiveTintColor: theme.primary,
-            tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
+            tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "#E8E8E8",
             tabBarButton: (props) => {
               if (route.name === "Create") {
                 return props.children;
