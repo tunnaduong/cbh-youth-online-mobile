@@ -1171,7 +1171,7 @@ const PostScreen = ({ route, navigation }) => {
           )}
           contentContainerStyle={{
             paddingTop: 64 + insets.top,
-            paddingBottom: 200 + insets.bottom,
+            paddingBottom: insets.bottom,
             backgroundColor: theme.background,
             flexGrow: 1,
           }}
@@ -1264,7 +1264,14 @@ const PostScreen = ({ route, navigation }) => {
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
-          style={{ backgroundColor: theme.background }}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'transparent',
+            zIndex: 5,
+          }}
         >
           <CommentBar
             value={editingCommentId ? editingCommentText : commentText}
