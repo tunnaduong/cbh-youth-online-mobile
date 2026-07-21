@@ -84,8 +84,8 @@ const Sidebar = ({ providerId, isOpen }) => {
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
-  // subtle tint for glass/background depending on theme
-  const sidebarTint = isDarkMode ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
+  // stronger tint for glass/background depending on theme (more contrast)
+  const sidebarTint = isDarkMode ? "rgba(0,0,0,0.72)" : "rgba(255,255,255,0.92)";
   const iosMajorVersion = Platform.OS === 'ios' ? parseInt(Platform.Version, 10) : 0;
   const [collapsedSections, setCollapsedSections] = useState({
     community: true,
@@ -234,8 +234,8 @@ const Sidebar = ({ providerId, isOpen }) => {
             <BlurView
               style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
               blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={15}
-              reducedTransparencyFallbackColor={isDarkMode ? "#0B0B0B" : "#FFFFFF"}
+              blurAmount={22}
+              reducedTransparencyFallbackColor={isDarkMode ? "#050505" : "#FFFFFF"}
             />
             {/* Overlay to guarantee readable contrast over blur */}
             <View
