@@ -303,6 +303,7 @@ const StoryOptionsModal = ({
   const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
   const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
   const insets = useSafeAreaInsets();
+  const isOpeningReportRef = useRef(false);
 
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
 
@@ -325,6 +326,10 @@ const StoryOptionsModal = ({
         marginTop: 10,
       }}
       onClose={() => {
+        if (isOpeningReportRef.current) {
+          isOpeningReportRef.current = false;
+          return;
+        }
         storyRef.current?.resume?.(); // Resume story timer when sheet closes
       }}
       gestureEnabled={true}
@@ -482,8 +487,10 @@ const StoryOptionsModal = ({
             <Pressable
               style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
               onPress={() => {
-                actionSheetRef.current?.hide();
+                isOpeningReportRef.current = true;
+                storyRef.current?.pause?.();
                 setReportModalVisible(true);
+                actionSheetRef.current?.hide();
               }}
             >
               <View style={{
@@ -2319,6 +2326,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           visible={reportModalVisible}
           onClose={() => {
             setReportModalVisible(false);
+            if (isStoryVisible) {
+              storyRef.current?.resume?.();
+            }
           }}
           onSubmit={handleReportSubmit}
         />
