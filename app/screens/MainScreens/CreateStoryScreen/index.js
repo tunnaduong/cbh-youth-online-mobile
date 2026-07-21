@@ -668,16 +668,16 @@ const CreateStoryScreen = ({ navigation }) => {
 
       const formData = new FormData();
 
-      if (isTextOnly && text) {
-        formData.append("content", text);
-      } else if (!isTextOnly && storyTexts.length > 0) {
-        const combinedText = storyTexts
+      const contentText =
+        (isTextOnly && text ? text : "") ||
+        storyTexts
           .filter((item) => item.text)
           .map((item) => item.text)
-          .join("\n");
-        if (combinedText) {
-          formData.append("content", combinedText);
-        }
+          .join("\n")
+          .trim();
+
+      if (contentText) {
+        formData.append("content", contentText);
       }
 
       try {
@@ -703,12 +703,15 @@ const CreateStoryScreen = ({ navigation }) => {
         }
 
         if (selectedMediaType === "video") {
-          formData.append("media_type", "video");
-          formData.append("media_file", {
+          const storyFile = {
             uri: finalImageUri,
             type: fileType,
             name: fileName,
-          });
+          };
+
+          formData.append("media_type", "video");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
           formData.append("is_muted", isMuted ? "true" : "false");
           // If there are text overlays or drawing data, include them as metadata so the server
           // can persist and the viewer can render overlays on top of the original video.
@@ -724,20 +727,26 @@ const CreateStoryScreen = ({ navigation }) => {
             console.warn("Failed to append overlays metadata:", e?.message || e);
           }
         } else if (selectedImage) {
-          formData.append("media_type", "image");
-          formData.append("media_file", {
+          const storyFile = {
             uri: finalImageUri,
             type: "image/jpeg",
             name: "story_image.jpg",
-          });
+          };
+
+          formData.append("media_type", "image");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
         } else if (isTextOnly) {
           // For text-only stories, we'll send both the text content and the captured image
-          formData.append("media_type", "text");
-          formData.append("media_file", {
+          const storyFile = {
             uri: finalImageUri,
             type: "image/jpeg",
             name: "story_text.jpg",
-          });
+          };
+
+          formData.append("media_type", "text");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
           // Add background color for text-only stories
           if (textBackground && textBackground.length >= 2) {
             formData.append("background_color", JSON.stringify(textBackground));
@@ -746,7 +755,33 @@ const CreateStoryScreen = ({ navigation }) => {
 
         formData.append("privacy", "public");
 
-        await createStory(formData);
+        const requestSummary = {
+          contentLength: contentText?.length || 0,
+          isTextOnly,
+          selectedMediaType,
+          hasMediaFile: Boolean(finalImageUri),
+          isMuted,
+          storyTextCount: storyTexts?.length || 0,
+          hasDrawing: Boolean(
+            drawingRef.current?.getDrawingData?.()?.paths?.length
+          ),
+        };
+
+        console.log("[CreateStory] submitting story", requestSummary);
+
+        try {
+          await createStory(formData);
+        } catch (error) {
+          console.error("[CreateStory] server rejected story upload", {
+            message: error?.message,
+            status: error?.response?.status,
+            statusText: error?.response?.statusText,
+            url: error?.config?.url,
+            requestSummary,
+            responseData: error?.response?.data,
+          });
+          throw error;
+        }
 
         Toast.show({
           type: "success",
@@ -774,11 +809,23 @@ const CreateStoryScreen = ({ navigation }) => {
           ],
         });
       } catch (imageError) {
+        const serverMessage =
+          imageError?.response?.data?.message ||
+          imageError?.response?.data?.error ||
+          imageError?.response?.data?.errors ||
+          imageError?.message;
+
         console.error("Error processing story content:", imageError);
+        console.error("Story upload server details:", {
+          status: imageError?.response?.status,
+          statusText: imageError?.response?.statusText,
+          data: imageError?.response?.data,
+        });
+
         Toast.show({
           type: "error",
           text1: t("story.contentError"),
-          text2: t("story.contentErrorDesc"),
+          text2: serverMessage || t("story.contentErrorDesc"),
         });
         return;
       }

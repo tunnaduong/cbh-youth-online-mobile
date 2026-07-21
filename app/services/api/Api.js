@@ -301,8 +301,19 @@ export const getStories = () => {
   return Api.getRequest("/v1.0/stories");
 };
 
-export const createStory = (formData) => {
-  return Api.postFormDataRequest("/v1.0/stories", formData);
+export const createStory = async (formData) => {
+  try {
+    return await Api.postFormDataRequest("/v1.0/stories", formData);
+  } catch (error) {
+    console.error("[Api] createStory failed", {
+      message: error?.message,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      url: error?.config?.url,
+      responseData: error?.response?.data,
+    });
+    throw error;
+  }
 };
 
 export const deleteStory = (id) => {
@@ -415,8 +426,20 @@ export const getExpoPushTokens = () => {
   return Api.getRequest("/v1.0/notifications/expo/tokens");
 };
 
-export const reportUser = (params) => {
-  return Api.postRequest("/v1.0/reports", params);
+export const reportUser = async (params) => {
+  try {
+    return await Api.postRequest("/v1.0/reports", params);
+  } catch (error) {
+    console.error("[Api] reportUser failed", {
+      message: error?.message,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      url: error?.config?.url,
+      responseData: error?.response?.data,
+      params,
+    });
+    throw error;
+  }
 };
 
 export const blockUser = (userId) => {
