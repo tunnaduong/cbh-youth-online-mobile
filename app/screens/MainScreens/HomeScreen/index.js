@@ -1248,33 +1248,73 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         },
         stories: user.stories.map((story) => {
           const mediaUrl = story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : null;
+          const textContent = story.text_content || story.content || story.text || '';
+          let gradientColors = ['#1a1a1a'];
+          
+          // Parse background color (it's a JSON string of array)
+          if (story.background_color) {
+            try {
+              const parsed = JSON.parse(story.background_color);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                gradientColors = parsed;
+              } else if (typeof parsed === 'string') {
+                gradientColors = [parsed];
+              }
+            } catch {
+              gradientColors = [story.background_color] || ['#1a1a1a'];
+            }
+          }
+          
           return {
           id: story.id,
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            uri: mediaUrl,
+            uri: mediaUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1" height="1"%3E%3Crect fill="' + encodeURIComponent(gradientColors[0] || '%23000000') + '" width="1" height="1"/%3E%3C/svg%3E',
           },
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
-          media_type: story.media_type,
-          content: story.content,
-          text: story.text,
+          media_type: story.type,
+          text_content: textContent,
           background_color: story.background_color,
-          renderContent: () => mediaUrl ? (
-            <ZoomableStoryImage
-              uri={mediaUrl}
-              style={{
-                width: SCREEN_WIDTH,
-                height: SCREEN_HEIGHT,
-              }}
-            />
-          ) : (
-            <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, justifyContent: 'center', alignItems: 'center', backgroundColor: story.background_color || '#000' }}>
-              <Text style={{ color: '#fff', fontSize: 18, textAlign: 'center', paddingHorizontal: 20 }}>{story.content || story.text || ''}</Text>
-            </View>
-          ),
+          gradient_colors: gradientColors,
+          renderContent: (() => {
+            const colors = gradientColors;
+            const text = textContent;
+            
+            return () => mediaUrl ? (
+              <ZoomableStoryImage
+                uri={mediaUrl}
+                style={{
+                  width: SCREEN_WIDTH,
+                  height: SCREEN_HEIGHT,
+                }}
+              />
+            ) : (
+              <View style={{ 
+                width: SCREEN_WIDTH, 
+                height: SCREEN_HEIGHT, 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                backgroundColor: colors[0] || '#1a1a1a',
+                paddingHorizontal: 30,
+              }}>
+                <Text style={{ 
+                  color: '#ffffff', 
+                  fontSize: 24, 
+                  fontWeight: '600',
+                  textAlign: 'center',
+                  textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                  textShadowOffset: { width: 1, height: 1 },
+                  textShadowRadius: 3,
+                  includeFontPadding: false,
+                }}>
+                  {text}
+                </Text>
+              </View>
+            );
+          })(),
           renderFooter: () => (
             <ReplyBar
               storyId={story.id}
