@@ -13,6 +13,8 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryArchive } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
+import { DeviceEventEmitter } from "react-native";
+import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
@@ -190,11 +192,8 @@ const ArchiveScreen = ({ route, navigation }) => {
           >
             <TouchableOpacity
               onPress={() => {
-                storyRef.current?.hide();
                 setTimeout(() => {
-                  navigation.navigate("StoryViewersScreen", {
-                    storyId: story.id,
-                  });
+                  DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", story.id);
                 }, 100);
               }}
               style={{
@@ -366,6 +365,8 @@ const ArchiveScreen = ({ route, navigation }) => {
           onHide={() => setSelectedStories(null)}
         />
       )}
+
+      <StoryViewersSheet />
     </SafeAreaView>
   );
 };

@@ -64,6 +64,7 @@ import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
+import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 
@@ -743,16 +744,22 @@ const ReplyBar = ({
 
   const handleViewCountPress = () => {
     if (navigation && storyId) {
-      if (onDismissStory) {
-        onDismissStory();
-      }
       setTimeout(() => {
-        navigation.navigate("StoryViewersScreen", {
-          storyId: storyId,
-        });
+        DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", storyId);
       }, 100);
     }
   };
+
+  // Broadcast story changes so the viewers sheet can update without closing the story
+  useEffect(() => {
+    if (currentStory) {
+      try {
+        DeviceEventEmitter.emit("STORY_CHANGED", currentStory);
+      } catch (e) {
+        console.warn("Failed to emit STORY_CHANGED", e?.message || e);
+      }
+    }
+  }, [currentStory]);
 
   if (isOwnStory) {
     return (
@@ -2297,6 +2304,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           onSubmit={handleReportSubmit}
         />
         <ResendVerificationModal />
+        <StoryViewersSheet />
       </View>
     </>
   );
