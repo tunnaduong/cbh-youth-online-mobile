@@ -1198,6 +1198,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       const response = await getStories();
       if (response?.data) {
         console.log("Stories fetched:", response.data.data?.length);
+        console.log("Full story response:", JSON.stringify(response.data.data, null, 2));
         const formattedStories = transformStoriesData(response);
         setUserStories(formattedStories);
 
@@ -1206,7 +1207,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           const prefetchUrls = [];
           formattedStories.forEach((user) => {
             user.stories?.forEach((story) => {
-              if (story.source?.uri) {
+              if (story.source?.uri && !story.source.uri.includes('null')) {
                 prefetchUrls.push(story.source.uri);
               }
             });
@@ -1245,24 +1246,34 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
-        stories: user.stories.map((story) => ({
+        stories: user.stories.map((story) => {
+          const mediaUrl = story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : null;
+          return {
           id: story.id,
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+            uri: mediaUrl,
           },
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
-          renderContent: () => (
+          media_type: story.media_type,
+          content: story.content,
+          text: story.text,
+          background_color: story.background_color,
+          renderContent: () => mediaUrl ? (
             <ZoomableStoryImage
-              uri={`https://api.chuyenbienhoa.com${story.media_url}`}
+              uri={mediaUrl}
               style={{
                 width: SCREEN_WIDTH,
                 height: SCREEN_HEIGHT,
               }}
             />
+          ) : (
+            <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, justifyContent: 'center', alignItems: 'center', backgroundColor: story.background_color || '#000' }}>
+              <Text style={{ color: '#fff', fontSize: 18, textAlign: 'center', paddingHorizontal: 20 }}>{story.content || story.text || ''}</Text>
+            </View>
           ),
           renderFooter: () => (
             <ReplyBar
@@ -1282,7 +1293,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setCurrentStory(story.id);
             setCurrentStoryUser({ id: user.id, username: user.username });
           },
-        })),
+          };
+        }),
       }));
   };
 
