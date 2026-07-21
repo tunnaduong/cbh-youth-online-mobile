@@ -1147,6 +1147,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryHide = () => {
+    // Don't close story view if report modal is open - keep it for user to continue reporting or close manually
+    if (reportModalVisible) {
+      return;
+    }
+    
     setIsStoryVisible(false);
     if (Platform.OS === "android") StatusBar.setHidden(false);
     // Restore previous status bar style
@@ -2037,7 +2042,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             <>
               <ReportModal
                 visible={reportModalVisible}
-                onClose={() => setReportModalVisible(false)}
+                onClose={() => {
+                  setReportModalVisible(false);
+                  // Close story after report modal is closed
+                  dismissStoryModal();
+                }}
                 onSubmit={handleReportSubmit}
               />
               <StoryOptionsModal
