@@ -1106,97 +1106,87 @@ const PostScreen = ({ route, navigation }) => {
     </View>
   ) : (
     <>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: theme.background }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
-        extraScrollHeight={24}
-      >
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {/* Floating header */}
         <View
+          pointerEvents="box-none"
           style={{
-            flex: 1,
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
           }}
         >
-          {/* Floating header */}
-          <View
-            pointerEvents="box-none"
+          <Animated.View
+            pointerEvents="none"
             style={{
-              position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: theme.background,
+              opacity: headerBgOpacity,
             }}
-          >
-            <Animated.View
-              pointerEvents="none"
+          />
+          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+            <View style={{ width: 44 }}>
+              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
+            </View>
+            <Animated.Text
               style={{
-                position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                backgroundColor: theme.background,
-                opacity: headerBgOpacity,
+                fontSize: 18,
+                fontWeight: "600",
+                color: theme.primary,
+                flex: 1,
+                textAlign: 'center',
+                opacity: headerTitleOpacity,
               }}
-            />
-            <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
-              <View style={{ width: 44 }}>
-                <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-                  <Ionicons name="chevron-back" size={24} color={theme.primary} />
-                </LiquidButton>
-              </View>
-              <Animated.Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "600",
-                  color: theme.primary,
-                  flex: 1,
-                  textAlign: 'center',
-                  opacity: headerTitleOpacity,
-                }}
-                numberOfLines={1}
-              >
-                {t('post.details')}
-              </Animated.Text>
-              <View style={{ width: 44, alignItems: "flex-end" }}>
-                <LiquidButton size={44} scrollY={scrollY} onPress={handleOpenBottomSheet}>
-                  <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
-                </LiquidButton>
-              </View>
+              numberOfLines={1}
+            >
+              {t('post.details')}
+            </Animated.Text>
+            <View style={{ width: 44, alignItems: "flex-end" }}>
+              <LiquidButton size={44} scrollY={scrollY} onPress={handleOpenBottomSheet}>
+                <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
+              </LiquidButton>
             </View>
           </View>
+        </View>
 
-          {refreshing && (
-            <View style={{ position: "absolute", top: 15, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-              <LottieView
-                source={require("../../../assets/refresh.json")}
-                style={{ width: 40, height: 40 }}
-                ref={lottieRef}
-                loop
-                autoPlay
-              />
-            </View>
+        {refreshing && (
+          <View style={{ position: "absolute", top: 15, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+            <LottieView
+              source={require("../../../assets/refresh.json")}
+              style={{ width: 40, height: 40 }}
+              ref={lottieRef}
+              loop
+              autoPlay
+            />
+          </View>
+        )}
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
           )}
-          <Animated.ScrollView
-            showsVerticalScrollIndicator={false}
-            scrollEventThrottle={16}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="interactive"
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: false }
-            )}
-            contentContainerStyle={{
-              paddingTop: 64 + insets.top,
-              paddingBottom: (parentId || editingCommentId ? 200 : 120) + insets.bottom,
-              backgroundColor: theme.background,
-            }}
-            ref={scrollViewRef}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="transparent"
-                colors={["transparent"]}
-                progressBackgroundColor="transparent"
-                style={{ backgroundColor: "transparent" }}
-                progressViewOffset={-1000}
-              />
-            }
-          >
+          contentContainerStyle={{
+            paddingTop: 64 + insets.top,
+            paddingBottom: 200 + insets.bottom,
+            backgroundColor: theme.background,
+            flexGrow: 1,
+          }}
+          ref={scrollViewRef}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="transparent"
+              colors={["transparent"]}
+              progressBackgroundColor="transparent"
+              style={{ backgroundColor: "transparent" }}
+            />
+          }
+        >
             <PostItem
               navigation={navigation}
               item={post}
@@ -1265,38 +1255,31 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          <View
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              paddingBottom: insets.bottom,
-              backgroundColor: "transparent",
-              zIndex: 20,
-            }}
-          >
-            <CommentBar
-              value={editingCommentId ? editingCommentText : commentText}
-              onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
-              placeholderText={t('post.commentPlaceholder')}
-              onSubmit={onSubmit}
-              ref={commentInputRef}
-              isSubmitting={isSubmitting}
-              disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
-              isAnonymous={isAnonymousComment}
-              onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
-              anonymousDisabled={!!editingCommentId}
-            />
-          </View>
-
           <ReportModal
             visible={reportModalVisible}
             onClose={() => setReportModalVisible(false)}
             onSubmit={handleReportSubmit}
           />
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+          style={{ backgroundColor: theme.background }}
+        >
+          <CommentBar
+            value={editingCommentId ? editingCommentText : commentText}
+            onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
+            placeholderText={t('post.commentPlaceholder')}
+            onSubmit={onSubmit}
+            ref={commentInputRef}
+            isSubmitting={isSubmitting}
+            disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
+            isAnonymous={isAnonymousComment}
+            onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
+            anonymousDisabled={!!editingCommentId}
+          />
+        </KeyboardAvoidingView>
         </View>
-      </KeyboardAvoidingView>
     </>
   );
 };
