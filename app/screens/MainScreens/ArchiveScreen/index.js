@@ -155,13 +155,24 @@ const ArchiveScreen = ({ route, navigation }) => {
       avatarSource: {
         uri: `https://api.chuyenbienhoa.com/users/${username}/avatar`,
       },
-      stories: stories.map((story) => ({
+      stories: stories.map((story) => {
+        const mediaUrl = resolveStoryMediaUrl(story);
+        const storyType = String(story?.type || story?.media_type || "").toLowerCase();
+        const isVideoStory = Boolean(mediaUrl) && (
+          storyType === "video" ||
+          /\.(mp4|mov|m4v|avi)$/i.test(mediaUrl)
+        );
+
+        return {
         id: story.id,
         storyId: story.id,
         source: {
-          uri: resolveStoryMediaUrl(story) || getStoryPlaceholderUri(),
+          uri: mediaUrl || getStoryPlaceholderUri(),
         },
         duration: 10,
+        mediaType: isVideoStory ? "video" : undefined,
+        media_type: isVideoStory ? "video" : storyType || "image",
+        is_muted: story.is_muted || false,
         date: formatTime(story.created_at || story.created_at_human),
         renderFooter: () => (
           <View
@@ -206,7 +217,8 @@ const ArchiveScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         ),
-      })),
+        };
+      }),
     };
   };
 

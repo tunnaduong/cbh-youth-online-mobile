@@ -47,6 +47,7 @@ import { captureRef } from "react-native-view-shot";
 import { createStory } from "../../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
@@ -482,6 +483,9 @@ const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedMediaType, setSelectedMediaType] = useState(null);
+  const [selectedMediaAsset, setSelectedMediaAsset] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
   const [text, setText] = useState("");
   const [textPosition, setTextPosition] = useState({
     x: 0,
@@ -578,6 +582,9 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
+    setSelectedMediaType(null);
+    setSelectedMediaAsset(null);
+    setIsMuted(false);
     setIsTextOnly(true);
     setIsEditing(true);
     setText("");
@@ -658,9 +665,14 @@ const CreateStoryScreen = ({ navigation }) => {
 
       try {
         let finalImageUri = null;
+        let fileName = "story_image.jpg";
+        let fileType = "image/jpeg";
 
-        // For both image stories and text-only stories, capture the view
-        if (selectedImage || isTextOnly) {
+        if (selectedMediaType === "video") {
+          finalImageUri = selectedImage;
+          fileName = selectedMediaAsset?.fileName || "story_video.mp4";
+          fileType = selectedMediaAsset?.mimeType || "video/mp4";
+        } else if (selectedImage || isTextOnly) {
           // Dismiss keyboard and stop editing first so that overlays are properly rendered in their final state
           Keyboard.dismiss();
           setEditingTextId(null);
@@ -673,7 +685,15 @@ const CreateStoryScreen = ({ navigation }) => {
           }
         }
 
-        if (selectedImage) {
+        if (selectedMediaType === "video") {
+          formData.append("media_type", "video");
+          formData.append("media_file", {
+            uri: finalImageUri,
+            type: fileType,
+            name: fileName,
+          });
+          formData.append("is_muted", isMuted ? "true" : "false");
+        } else if (selectedImage) {
           formData.append("media_type", "image");
           formData.append("media_file", {
             uri: finalImageUri,
@@ -766,6 +786,9 @@ const CreateStoryScreen = ({ navigation }) => {
             setText("");
           } else if (type === "image") {
             setSelectedImage(null);
+            setSelectedMediaType(null);
+            setSelectedMediaAsset(null);
+            setIsMuted(false);
             setText("");
             setIsEditing(false);
             setStoryTexts([]);
@@ -794,6 +817,9 @@ const CreateStoryScreen = ({ navigation }) => {
               setText("");
             } else if (type === "image") {
               setSelectedImage(null);
+              setSelectedMediaType(null);
+              setSelectedMediaAsset(null);
+              setIsMuted(false);
               setText("");
               setIsEditing(false);
               setStoryTexts([]);
@@ -815,14 +841,20 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       aspect: [9, 16],
       quality: 1,
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      const mediaType = asset?.type === "video" ? "video" : "image";
+      setSelectedMediaType(mediaType);
+      setSelectedMediaAsset(asset);
+      setSelectedImage(asset.uri);
+      setIsMuted(false);
     }
   };
 
@@ -883,16 +915,65 @@ const CreateStoryScreen = ({ navigation }) => {
         return;
       }
     }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [9, 16],
-      quality: 1,
-    });
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+    const openCameraPicker = async (preferredType = "image") => {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes:
+          preferredType === "video"
+            ? ImagePicker.MediaTypeOptions.Videos
+            : ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [9, 16],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const asset = result.assets?.[0];
+        if (!asset?.uri) return;
+        const mediaType = asset?.type === "video" ? "video" : "image";
+        setSelectedMediaType(mediaType);
+        setSelectedMediaAsset(asset);
+        setSelectedImage(asset.uri);
+        setIsMuted(false);
+      }
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [
+            t("story.takePhoto"),
+            t("story.recordVideo"),
+            t("common.cancel"),
+          ],
+          cancelButtonIndex: 2,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            openCameraPicker("image");
+          } else if (buttonIndex === 1) {
+            openCameraPicker("video");
+          }
+        }
+      );
+      return;
     }
+
+    Alert.alert(
+      t("story.chooseMedia", "Choose media"),
+      t("story.chooseMediaDesc", "Take a photo or record a video"),
+      [
+        {
+          text: t("story.takePhoto"),
+          onPress: () => openCameraPicker("image"),
+        },
+        {
+          text: t("story.recordVideo"),
+          onPress: () => openCameraPicker("video"),
+        },
+        { text: t("common.cancel"), style: "cancel" },
+      ]
+    );
   };
 
   const handleBackPress = useCallback(() => {
@@ -1011,11 +1092,24 @@ const CreateStoryScreen = ({ navigation }) => {
                     </LinearGradient>
                   ) : (
                     <>
-                      <FastImage
-                        source={{ uri: selectedImage }}
-                        style={StyleSheet.absoluteFill}
-                        resizeMode={FastImage.resizeMode.contain}
-                      />
+                      {selectedMediaType === "video" ? (
+                        <View style={[StyleSheet.absoluteFill, styles.mediaPreviewContainer]}>
+                          <Video
+                            source={{ uri: selectedImage }}
+                            style={styles.videoPreview}
+                            resizeMode="cover"
+                            repeat={false}
+                            paused={false}
+                            muted={isMuted}
+                          />
+                        </View>
+                      ) : (
+                        <FastImage
+                          source={{ uri: selectedImage }}
+                          style={StyleSheet.absoluteFill}
+                          resizeMode={FastImage.resizeMode.contain}
+                        />
+                      )}
 
                       {savedDrawingData && !isDrawing && (
                         <Image
@@ -1023,6 +1117,19 @@ const CreateStoryScreen = ({ navigation }) => {
                           style={StyleSheet.absoluteFill}
                           resizeMode="cover"
                         />
+                      )}
+
+                      {selectedMediaType === "video" && (
+                        <TouchableOpacity
+                          style={styles.videoMuteButton}
+                          onPress={() => setIsMuted((prev) => !prev)}
+                        >
+                          <Ionicons
+                            name={isMuted ? "volume-mute-outline" : "volume-high-outline"}
+                            size={20}
+                            color="#fff"
+                          />
+                        </TouchableOpacity>
                       )}
 
                       {isDrawing && (
@@ -1135,7 +1242,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       style={{ marginBottom: 3 }}
                     />
                     <Text style={{ color: theme.text }} className="text-md font-semibold">
-                      {t("story.takePhoto")}
+                      {t("story.takePhotoOrVideo")}
                     </Text>
                   </View>
                 </TouchableHighlight>
@@ -1161,7 +1268,7 @@ const CreateStoryScreen = ({ navigation }) => {
                 <View style={styles.imagePickerContent}>
                   <Ionicons name="image" size={40} color={theme.text} />
                   <Text style={[styles.imagePickerText, { color: theme.text }]}>
-                    {t("story.pickFromGallery")}
+                    {t("story.pickPhotoOrVideo")}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -1213,6 +1320,26 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  mediaPreviewContainer: {
+    overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  videoPreview: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+  },
+  videoMuteButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
   },
   textInputContainer2: {
     position: "absolute",

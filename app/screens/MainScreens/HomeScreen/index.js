@@ -1,3 +1,4 @@
+import Video from 'react-native-video';
 import React, {
   useCallback,
   useContext,
@@ -875,6 +876,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [clientMuted, setClientMuted] = useState({});
+
+  const toggleClientMute = (storyId) => {
+    setClientMuted((prev) => ({
+      ...prev,
+      [storyId]: !prev[storyId],
+    }));
+  };
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(
@@ -1238,6 +1247,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     fetchStories();
   }, [blockedUsers]);
 
+  const [clientMuted, setClientMuted] = useState({});
+
+  const toggleClientMute = (storyId) => {
+    setClientMuted((prev) => ({
+      ...prev,
+      [storyId]: !prev[storyId],
+    }));
+  };
+
   const resolveStoryMediaUrl = (story) => {
     const candidates = [
       story?.media_url,
@@ -1331,7 +1349,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           const mediaUrl = resolveStoryMediaUrl(story);
           const textContent = story.text_content || story.content || story.text || '';
           const storyType = String(story?.type || story?.media_type || "").toLowerCase();
-          const shouldRenderAsImage = Boolean(mediaUrl) && (
+          const isVideoStory = Boolean(mediaUrl) && (
+            storyType === "video" ||
+            storyType === "mp4" ||
+            storyType === "mov" ||
+            /\.(mp4|mov|m4v|avi)$/i.test(mediaUrl)
+          );
+          const shouldRenderAsImage = Boolean(mediaUrl) && !isVideoStory && (
             storyType === "image" ||
             storyType === "mobile" ||
             storyType === "upload" ||
@@ -1367,21 +1391,69 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           backgroundColor: shouldRenderAsImage ? undefined : gradientColors[0],
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
-          media_type: shouldRenderAsImage ? "image" : storyType || "text",
+          media_type: isVideoStory ? "video" : shouldRenderAsImage ? "image" : storyType || "text",
+          mediaType: isVideoStory ? "video" : undefined,
           text_content: textContent,
           background_color: story.background_color,
           gradient_colors: gradientColors,
+          is_muted: story.is_muted || false,
           renderContent: (() => {
             // Capture values in closure
             const colors = gradientColors;
             const text = textContent;
+            const videoUrl = mediaUrl;
+            const storyId = story.id;
+            const isMutedByUploader = story.is_muted;
             
             // Return the render function
             return () => {
-              if (shouldRenderAsImage && mediaUrl) {
+              if (isVideoStory && videoUrl) {
+                return (
+                  <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: '#000' }}>
+                    <Video
+                      source={{ uri: videoUrl }}
+                      style={{
+                        width: SCREEN_WIDTH,
+                        height: SCREEN_HEIGHT,
+                      }}
+                      controls={false}
+                      paused={false}
+                      muted={clientMuted[storyId] || isMutedByUploader}
+                      repeat={true}
+                      resizeMode="cover"
+                      onError={(e) => console.log('Video error:', e)}
+                    />
+                    {!isMutedByUploader && (
+                      <TouchableOpacity
+                        onPress={() => toggleClientMute(storyId)}
+                        style={{
+                          position: 'absolute',
+                          top: 16,
+                          right: 16,
+                          zIndex: 999,
+                          width: 40,
+                          height: 40,
+                          borderRadius: 20,
+                          backgroundColor: 'rgba(0,0,0,0.5)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Ionicons
+                          name={clientMuted[storyId] ? 'volume-mute-outline' : 'volume-high-outline'}
+                          size={18}
+                          color="#fff"
+                        />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                );
+              }
+
+              if (shouldRenderAsImage && videoUrl) {
                 return (
                   <ZoomableStoryImage
-                    uri={mediaUrl}
+                    uri={videoUrl}
                     style={{
                       width: SCREEN_WIDTH,
                       height: SCREEN_HEIGHT,
