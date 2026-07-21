@@ -216,12 +216,19 @@ const Sidebar = ({ providerId, isOpen }) => {
     <View style={{ flex: 1 }}>
       {Platform.OS === "ios" ? (
         useIOSGlass ? (
-          <LiquidGlassView
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
-            glassType="clear"
-            glassTintColor={sidebarTint}
-            glassOpacity={1}
-          />
+          <>
+            <LiquidGlassView
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
+              glassType="clear"
+              glassTintColor={sidebarTint}
+              glassOpacity={1}
+            />
+            {/* Overlay to guarantee readable contrast over liquid glass */}
+            <View
+              pointerEvents="none"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24, backgroundColor: sidebarTint }}
+            />
+          </>
         ) : BlurView ? (
           <>
             <BlurView
@@ -230,13 +237,11 @@ const Sidebar = ({ providerId, isOpen }) => {
               blurAmount={15}
               reducedTransparencyFallbackColor={isDarkMode ? "#0B0B0B" : "#FFFFFF"}
             />
-            {/* For older iOS (<=18) ensure a consistent tint overlay above the blur */}
-            {Platform.OS === 'ios' && iosMajorVersion <= 18 && (
-              <View
-                pointerEvents="none"
-                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24, backgroundColor: sidebarTint }}
-              />
-            )}
+            {/* Overlay to guarantee readable contrast over blur */}
+            <View
+              pointerEvents="none"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24, backgroundColor: sidebarTint }}
+            />
           </>
         ) : (
           <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: sidebarTint, borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
