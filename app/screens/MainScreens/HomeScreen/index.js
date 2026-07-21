@@ -1213,7 +1213,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           formattedStories.forEach((user) => {
             user.stories?.forEach((story) => {
               if (story.source?.uri && !story.source.uri.includes('null')) {
-                prefetchUrls.push(story.source.uri);
+                const uri = story.source.uri;
+                if (typeof uri === 'string' && /^https?:\/\//i.test(uri)) {
+                  prefetchUrls.push(uri);
+                }
               }
             });
           });
@@ -1235,6 +1238,79 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     fetchStories();
   }, [blockedUsers]);
 
+  const resolveStoryMediaUrl = (story) => {
+    const candidates = [
+      story?.media_url,
+      story?.thumbnail_url,
+      story?.thumbnail,
+      story?.thumb_url,
+      story?.preview_url,
+      story?.file_url,
+      story?.image_url,
+      story?.media?.url,
+      story?.media?.thumbnail,
+      story?.image?.url,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        const normalized = candidate.trim();
+        if (/^https?:\/\//i.test(normalized)) {
+          return normalized;
+        }
+        if (normalized.startsWith("/")) {
+          return `https://api.chuyenbienhoa.com${normalized}`;
+        }
+        return `https://api.chuyenbienhoa.com/${normalized.replace(/^\/+/, "")}`;
+      }
+    }
+
+    return null;
+  };
+
+  const shadeHex = (hex, percent) => {
+    try {
+      let h = hex.replace('#', '').trim();
+      if (h.length === 3) {
+        h = h.split('').map((c) => c + c).join('');
+      }
+      const num = parseInt(h, 16);
+      let r = (num >> 16) + Math.round(255 * (percent / 100));
+      let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+      let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+      r = Math.max(0, Math.min(255, r));
+      g = Math.max(0, Math.min(255, g));
+      b = Math.max(0, Math.min(255, b));
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    } catch (e) {
+      return hex;
+    }
+  };
+
+  const normalizeGradientColors = (story) => {
+    if (!story) return ['#0f172a'];
+    if (Array.isArray(story.gradient_colors) && story.gradient_colors.length > 0) {
+      return story.gradient_colors.map((c) => String(c));
+    }
+    if (story.background_color) {
+      try {
+        const parsed = JSON.parse(story.background_color);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map((c) => String(c));
+        if (typeof parsed === 'string') return [String(parsed)];
+      } catch {
+        // not JSON
+        if (typeof story.background_color === 'string' && story.background_color.trim()) {
+          return [story.background_color.trim()];
+        }
+      }
+    }
+    return ['#0f172a'];
+  };
+
+  const getStoryPlaceholderUri = () => {
+    return "https://placehold.co/1080x1920/111827/ffffff.png?text=Story";
+  };
+
   const transformStoriesData = (apiResponse) => {
     if (!apiResponse?.data) return [];
 
@@ -1252,8 +1328,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
         stories: user.stories.map((story) => {
-          const mediaUrl = story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : null;
+          const mediaUrl = resolveStoryMediaUrl(story);
           const textContent = story.text_content || story.content || story.text || '';
+          const storyType = String(story?.type || story?.media_type || "").toLowerCase();
+          const shouldRenderAsImage = Boolean(mediaUrl) && (
+            storyType === "image" ||
+            storyType === "mobile" ||
+            storyType === "upload" ||
+            storyType === "story" ||
+            storyType === "text" ||
+            storyType === "text_story" ||
+            storyType === "textstory"
+          );
           let gradientColors = ['#1a1a1a'];
           
           // Parse background color (it's a JSON string of array)
@@ -1276,14 +1362,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            // For text stories, use a solid color placeholder
-            // Create a 1x1 colored pixel as base64
-            uri: mediaUrl || `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`,
+            uri: mediaUrl || getStoryPlaceholderUri(),
           },
-          backgroundColor: !mediaUrl ? gradientColors[0] : undefined,
+          backgroundColor: shouldRenderAsImage ? undefined : gradientColors[0],
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
-          media_type: story.type,
+          media_type: shouldRenderAsImage ? "image" : storyType || "text",
           text_content: textContent,
           background_color: story.background_color,
           gradient_colors: gradientColors,
@@ -1294,7 +1378,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             
             // Return the render function
             return () => {
-              if (mediaUrl) {
+              if (shouldRenderAsImage && mediaUrl) {
                 return (
                   <ZoomableStoryImage
                     uri={mediaUrl}
@@ -1307,31 +1391,35 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               } else {
                 // Text story
                 return (
-                  <View style={{ 
-                    width: SCREEN_WIDTH, 
-                    height: SCREEN_HEIGHT, 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
-                    backgroundColor: colors[0] || '#1a1a1a',
+                <LinearGradient
+                  colors={colors.length > 1 ? colors : [colors[0] || '#1a1a1a', shadeHex(colors[0] || '#1a1a1a', -12)]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{
+                    width: SCREEN_WIDTH,
+                    height: SCREEN_HEIGHT,
+                    justifyContent: 'center',
+                    alignItems: 'center',
                     paddingHorizontal: 30,
+                  }}
+                >
+                  <Text style={{ 
+                    color: '#ffffff', 
+                    fontSize: 24, 
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 3,
+                    includeFontPadding: false,
                   }}>
-                    <Text style={{ 
-                      color: '#ffffff', 
-                      fontSize: 24, 
-                      fontWeight: '600',
-                      textAlign: 'center',
-                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                      textShadowOffset: { width: 1, height: 1 },
-                      textShadowRadius: 3,
-                      includeFontPadding: false,
-                    }}>
-                      {text}
-                    </Text>
-                  </View>
-                );
-              }
-            };
-          })(),
+                    {text}
+                  </Text>
+                </LinearGradient>
+              );
+            }
+          };
+        })(),
           renderFooter: () => (
             <ReplyBar
               storyId={story.id}
@@ -1476,10 +1564,44 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             >
               <View>
                 {/* Story Image */}
-                <Image
-                  source={{ uri: user.stories[0].source.uri }}
-                  style={{ width: 100, height: 160 }}
-                />
+                {(() => {
+                  const firstStory = user.stories[0];
+                  const placeholderUri = getStoryPlaceholderUri && getStoryPlaceholderUri();
+                  const uriStr = firstStory?.source?.uri || '';
+                  const isImage = firstStory && (
+                    firstStory.media_type === 'image' ||
+                    (/^https?:\/\//i.test(uriStr) && uriStr !== placeholderUri)
+                  );
+                  if (isImage) {
+                    return (
+                      <Image
+                        source={{ uri: firstStory.source.uri }}
+                        style={{ width: 100, height: 160 }}
+                      />
+                    );
+                  }
+
+                  // Render text-only story thumbnail to resemble mobile uploads (text near bottom)
+                  const gradientColors = normalizeGradientColors(firstStory);
+                  const finalColors = gradientColors.length > 1 ? gradientColors : [gradientColors[0], shadeHex(gradientColors[0], -12)];
+                  const previewText = (firstStory?.text_content || firstStory?.title || '').trim();
+
+                  return (
+                    <LinearGradient
+                      colors={finalColors}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={{ width: 100, height: 160, padding: 8, justifyContent: 'center', alignItems: 'center' }}
+                    >
+                      <Text
+                        numberOfLines={2}
+                        style={{ color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center', lineHeight: 18 }}
+                      >
+                        {previewText || 'Story'}
+                      </Text>
+                    </LinearGradient>
+                  );
+                })()}
 
                 {/* Avatar */}
                 <View style={{ position: "absolute", top: 8, left: 8 }}>
@@ -2057,29 +2179,25 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }}
           toast={<Toast topOffset={60} />}
           footerComponent={
-            <>
-              <ReportModal
-                visible={reportModalVisible}
-                onClose={() => {
-                  setReportModalVisible(false);
-                  // Close story after report modal is closed
-                  dismissStoryModal();
-                }}
-                onSubmit={handleReportSubmit}
-              />
-              <StoryOptionsModal
-                actionSheetRef={actionSheetRef}
-                storyRef={storyRef}
-                setReportModalVisible={setReportModalVisible}
-                currentStoryUserRef={currentStoryUserRef}
-                currentStory={currentStory}
-                currentStoryRef={currentStoryRef}
-                userStories={userStories}
-                dismissStoryModal={dismissStoryModal}
-                fetchStories={fetchStories}
-              />
-            </>
+            <StoryOptionsModal
+              actionSheetRef={actionSheetRef}
+              storyRef={storyRef}
+              setReportModalVisible={setReportModalVisible}
+              currentStoryUserRef={currentStoryUserRef}
+              currentStory={currentStory}
+              currentStoryRef={currentStoryRef}
+              userStories={userStories}
+              dismissStoryModal={dismissStoryModal}
+              fetchStories={fetchStories}
+            />
           }
+        />
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => {
+            setReportModalVisible(false);
+          }}
+          onSubmit={handleReportSubmit}
         />
         <ResendVerificationModal />
       </View>

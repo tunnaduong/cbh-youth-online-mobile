@@ -13,6 +13,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryArchive } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
+import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -55,6 +56,36 @@ const ArchiveScreen = ({ route, navigation }) => {
     fetchArchive();
   }, []);
 
+  const resolveStoryMediaUrl = (story) => {
+    const candidates = [
+      story?.media_url,
+      story?.thumbnail_url,
+      story?.thumbnail,
+      story?.thumb_url,
+      story?.preview_url,
+      story?.file_url,
+      story?.image_url,
+      story?.media?.url,
+      story?.media?.thumbnail,
+      story?.image?.url,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        const normalized = candidate.trim();
+        if (/^https?:\/\//i.test(normalized)) {
+          return normalized;
+        }
+        if (normalized.startsWith("/")) {
+          return `https://api.chuyenbienhoa.com${normalized}`;
+        }
+        return `https://api.chuyenbienhoa.com/${normalized.replace(/^\/+/, "")}`;
+      }
+    }
+
+    return null;
+  };
+
   const fetchArchive = async () => {
     try {
       setLoading(true);
@@ -74,6 +105,48 @@ const ArchiveScreen = ({ route, navigation }) => {
     }
   };
 
+  const getStoryPlaceholderUri = () => {
+    return "https://placehold.co/1080x1920/111827/ffffff.png?text=Story";
+  };
+
+  const shadeHex = (hex, percent) => {
+    try {
+      let h = hex.replace('#', '').trim();
+      if (h.length === 3) {
+        h = h.split('').map((c) => c + c).join('');
+      }
+      const num = parseInt(h, 16);
+      let r = (num >> 16) + Math.round(255 * (percent / 100));
+      let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+      let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+      r = Math.max(0, Math.min(255, r));
+      g = Math.max(0, Math.min(255, g));
+      b = Math.max(0, Math.min(255, b));
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    } catch (e) {
+      return hex;
+    }
+  };
+
+  const normalizeGradientColors = (story) => {
+    if (!story) return ['#0f172a'];
+    if (Array.isArray(story.gradient_colors) && story.gradient_colors.length > 0) {
+      return story.gradient_colors.map((c) => String(c));
+    }
+    if (story.background_color) {
+      try {
+        const parsed = JSON.parse(story.background_color);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map((c) => String(c));
+        if (typeof parsed === 'string') return [String(parsed)];
+      } catch {
+        if (typeof story.background_color === 'string' && story.background_color.trim()) {
+          return [story.background_color.trim()];
+        }
+      }
+    }
+    return ['#0f172a'];
+  };
+
   const transformStoriesForViewer = (stories) => {
     return {
       uid: "archive",
@@ -86,7 +159,7 @@ const ArchiveScreen = ({ route, navigation }) => {
         id: story.id,
         storyId: story.id,
         source: {
-          uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+          uri: resolveStoryMediaUrl(story) || getStoryPlaceholderUri(),
         },
         duration: 10,
         date: formatTime(story.created_at || story.created_at_human),
@@ -153,18 +226,36 @@ const ArchiveScreen = ({ route, navigation }) => {
         style={styles.storyItem}
         onPress={() => handleStoryPress([story], 0)}
       >
-        {story.media_url ? (
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com${story.media_url}`,
-            }}
-            style={styles.storyImage}
-          />
-        ) : (
-          <View style={[styles.storyImage, styles.storyPlaceholder]}>
-            <Ionicons name="text" size={32} color="#999" />
-          </View>
-        )}
+        {(() => {
+          const mediaUri = resolveStoryMediaUrl(story);
+          if (mediaUri) {
+            return (
+              <FastImage
+                source={{ uri: mediaUri }}
+                style={styles.storyImage}
+              />
+            );
+          }
+
+          // Render a styled thumbnail for text-only web stories
+          const gradientColorsRaw = normalizeGradientColors(story);
+          const finalColors = gradientColorsRaw.length > 1 ? gradientColorsRaw : [gradientColorsRaw[0], shadeHex(gradientColorsRaw[0], -12)];
+
+          const previewText = (story.text_content || story.content || '').trim();
+
+          return (
+            <LinearGradient
+              colors={finalColors}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={[styles.storyImage, { justifyContent: 'center', alignItems: 'center' }]}
+            >
+              <Text numberOfLines={3} style={{ color: '#fff', fontWeight: '700', textAlign: 'center', paddingHorizontal: 8 }}>
+                {previewText || 'Story'}
+              </Text>
+            </LinearGradient>
+          );
+        })()}
         {isExpired && (
           <View style={styles.expiredOverlay}>
             <Ionicons name="lock-closed" size={16} color="#fff" />
