@@ -1122,15 +1122,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryOptions = (userId) => {
-    // If the library passes the userId here, let's use it to ensure context is set!
+    // Ensure we have the correct user context
+    let user = null;
+    
     if (userId) {
       console.log("handleStoryOptions called with userId:", userId);
-      const user = userStories.find((u) => u.id === userId || u.uid === userId);
-      if (user) {
-        updateCurrentStoryUser({ id: user.uid, username: user.id });
-      }
+      user = userStories.find((u) => u.id === userId || u.uid === userId);
+    }
+    
+    // If we didn't find user by passed ID, try to use currentStoryUser
+    if (!user && currentStoryUserRef.current) {
+      user = userStories.find((u) => u.id === currentStoryUserRef.current.username || u.uid === currentStoryUserRef.current.id);
+    }
+    
+    if (user) {
+      updateCurrentStoryUser({ id: user.uid, username: user.id });
     } else {
-      console.log("handleStoryOptions called without userId, relying on currentStoryUser state");
+      console.warn("Could not find user context for story options");
     }
 
     storyRef.current?.pause?.(); // Pause the story timer
@@ -1161,6 +1169,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       if (story) {
         setCurrentStory(story.id); // or story.storyId
         updateCurrentStoryUser({ id: user.uid, username: user.id }); // user.id is username string
+        // Emit STORY_CHANGED event to update viewers sheet
+        DeviceEventEmitter.emit("STORY_CHANGED", storyId);
       }
     }
 
@@ -1182,6 +1192,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
     
     setIsStoryVisible(false);
+    // Reset current story and user context when hiding
+    setCurrentStory(null);
+    setCurrentStoryUser(null);
+    
     if (Platform.OS === "android") StatusBar.setHidden(false);
     // Restore previous status bar style
     updateStatusBar(
@@ -2219,7 +2233,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <View style={[{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }] }>
                 <Pressable
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
-                  onPress={() => onStoryHeaderPress?.(userId)}
+                  onPress={() => {
+                    if (userId) {
+                      const user = userStories.find((u) => u.id === userId || u.uid === userId);
+                      if (user) {
+                        updateCurrentStoryUser({ id: user.uid, username: user.id });
+                      }
+                    }
+                    onStoryHeaderPress?.(userId);
+                  }}
                 >
                   {avatarSource && (
                     <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
@@ -2303,7 +2325,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               const story = user.stories.find((s) => s.id === item.id);
               if (story) {
                 setCurrentStory(story.storyId);
-                setCurrentStoryUser({ id: user.uid, username: user.id });
+                updateCurrentStoryUser({ id: user.uid, username: user.id });
+                // Emit event to update viewers sheet
+                DeviceEventEmitter.emit("STORY_CHANGED", story.storyId);
               }
             }
           }}

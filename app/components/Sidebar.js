@@ -84,6 +84,9 @@ const Sidebar = ({ providerId, isOpen }) => {
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  // subtle tint for glass/background depending on theme
+  const sidebarTint = isDarkMode ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.6)";
+  const iosMajorVersion = Platform.OS === 'ios' ? parseInt(Platform.Version, 10) : 0;
   const [collapsedSections, setCollapsedSections] = useState({
     community: true,
     reports: true,
@@ -216,18 +219,27 @@ const Sidebar = ({ providerId, isOpen }) => {
           <LiquidGlassView
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
             glassType="clear"
-            glassTintColor={isDarkMode ? "rgba(18,18,18,0.75)" : "rgba(255,255,255,0.75)"}
+            glassTintColor={sidebarTint}
             glassOpacity={1}
           />
         ) : BlurView ? (
-          <BlurView
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
-            blurType={isDarkMode ? "dark" : "light"}
-            blurAmount={15}
-            reducedTransparencyFallbackColor={isDarkMode ? "#111111" : "#F8F8F8"}
-          />
+          <>
+            <BlurView
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={15}
+              reducedTransparencyFallbackColor={isDarkMode ? "#0B0B0B" : "#FFFFFF"}
+            />
+            {/* For older iOS (<=18) ensure a consistent tint overlay above the blur */}
+            {Platform.OS === 'ios' && iosMajorVersion <= 18 && (
+              <View
+                pointerEvents="none"
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24, backgroundColor: sidebarTint }}
+              />
+            )}
+          </>
         ) : (
-          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)', borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: sidebarTint, borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
         )
       ) : (
         // Android: OneUI-style transparent tint (no liquid glass for sidebar)
@@ -236,7 +248,7 @@ const Sidebar = ({ providerId, isOpen }) => {
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
             borderTopRightRadius: 24,
             borderBottomRightRadius: 24,
-            backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.88)' : 'rgba(255, 255, 255, 0.88)',
+            backgroundColor: sidebarTint,
             borderRightWidth: 1,
             borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
           }}

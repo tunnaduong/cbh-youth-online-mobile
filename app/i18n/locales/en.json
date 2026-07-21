@@ -748,7 +748,8 @@
   "storyViewers": {
     "title": "Viewers",
     "loadError": "Could not load viewer list.",
-    "empty": "No viewers yet"
+    "empty": "No viewers yet",
+    "noReactions": "No reaction"
   },
   "archive": {
     "title": "Archive",
@@ -887,10 +888,10 @@
     "stayTuned": "Please stay tuned for this feature",
     "requestingCameraPermission": "Requesting camera permission...",
     "openSettings": "Open Settings",
-    "takePhoto": "Take Photo",
-    "recordVideo": "Record Video",
-    "takePhotoOrVideo": "Take photo / record video",
-    "pickPhotoOrVideo": "Choose photo / video from library",
+    "takePhoto": "Capture",
+    "recordVideo": "Capture",
+    "takePhotoOrVideo": "Capture",
+    "pickPhotoOrVideo": "Choose media from library",
     "chooseMedia": "Choose photo or video",
     "chooseMediaDesc": "Take a photo or record a video",
     "cameraPermissionDenied": "Camera permission is required to take photos",

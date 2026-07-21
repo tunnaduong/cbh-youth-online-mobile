@@ -18,6 +18,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 
+// Map reaction types to emojis
+const reactionToEmoji = {
+  "like": "👍",
+  "love": "❤️",
+  "haha": "😆",
+  "wow": "😮",
+  "sad": "😢",
+  "angry": "😡",
+};
+
 const StoryViewersSheet = () => {
   const actionSheetRef = useRef(null);
   const [storyId, setStoryId] = useState(null);
@@ -26,6 +36,7 @@ const StoryViewersSheet = () => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const fetchAbortControllerRef = useRef(null);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener("SHOW_STORY_VIEWERS", (id) => {
@@ -40,10 +51,16 @@ const StoryViewersSheet = () => {
     const sub2 = DeviceEventEmitter.addListener("STORY_CHANGED", (id) => {
       if (!id) return;
       setStoryId(id);
-      // If sheet is visible, refresh viewers for the new story
+      // Cancel previous fetch if in progress
+      if (fetchAbortControllerRef.current) {
+        fetchAbortControllerRef.current.abort();
+      }
+      // Reset viewers immediately when story changes
+      setViewers([]);
+      setLoading(false);
+      // Close the sheet when story changes to prevent stale data
       try {
-        // Some ActionSheet implementations expose visible state; we'll optimistically fetch
-        fetchViewers(id);
+        actionSheetRef.current?.hide?.();
       } catch (e) {
         // ignore
       }
@@ -52,26 +69,52 @@ const StoryViewersSheet = () => {
     return () => {
       sub.remove();
       sub2.remove();
+      // Cancel any pending fetch on unmount
+      if (fetchAbortControllerRef.current) {
+        fetchAbortControllerRef.current.abort();
+      }
     };
   }, []);
 
   useEffect(() => {
     if (!storyId) return;
-    fetchViewers(storyId);
+    
+    // Cancel previous fetch
+    if (fetchAbortControllerRef.current) {
+      fetchAbortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this fetch
+    fetchAbortControllerRef.current = new AbortController();
+    fetchViewers(storyId, fetchAbortControllerRef.current.signal);
   }, [storyId]);
 
-  const fetchViewers = async (id) => {
+  const fetchViewers = async (id, signal) => {
     try {
       setLoading(true);
       const response = await getStoryViewers(id);
+      
+      // Check if this fetch was cancelled
+      if (signal?.aborted) {
+        return;
+      }
+      
       if (response?.data?.data) {
         setViewers(response.data.data.viewers || []);
       }
     } catch (error) {
+      // Ignore abort errors
+      if (error?.name === 'AbortError') {
+        return;
+      }
+      
       console.error("Error fetching viewers (sheet):", error);
       Toast.show({ type: "error", text1: t("common.error"), text2: t("storyViewers.loadError") });
     } finally {
-      setLoading(false);
+      // Only update loading if not aborted
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   };
 
@@ -96,13 +139,13 @@ const StoryViewersSheet = () => {
         {item.reactions && item.reactions.length > 0 ? (
           <View style={styles.reactionsWrap}>
             {item.reactions.slice(0, 3).map((reaction, index) => (
-              <View key={`${reaction.type}-${index}`} style={[styles.reactionChip, { backgroundColor: isDarkMode ? "rgba(99,102,241,0.16)" : "rgba(99,102,241,0.08)" }]}>
-                <Text style={[styles.reactionChipText, { color: theme.primary }]}>{reaction.type}</Text>
-              </View>
+              <Text key={`${reaction.type}-${index}`} style={styles.reactionEmoji}>
+                {reactionToEmoji[reaction.type] || "👍"}
+              </Text>
             ))}
           </View>
         ) : (
-          <Text style={[styles.reactionsText, { color: theme.subText }]}>{t("storyViewers.empty")}</Text>
+          <Text style={[styles.reactionsText, { color: theme.subText }]}>{t("storyViewers.noReactions")}</Text>
         )}
       </View>
       {item.viewed_at ? (
@@ -132,10 +175,9 @@ const StoryViewersSheet = () => {
       onClose={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_CLOSED")}
     >
       <LinearGradient
-        colors={isDarkMode ? ["rgba(99,102,241,0.24)", "rgba(99,102,241,0.06)"] : ["rgba(99,102,241,0.12)", "rgba(255,255,255,0)"]}
-        style={[styles.header, { paddingTop: insets.top + 12, borderBottomColor: theme.border }]}
+        colors={isDarkMode ? ["rgba(16, 185, 129, 0.24)", "rgba(16, 185, 129, 0.06)"] : ["rgba(16, 185, 129, 0.12)", "rgba(255,255,255,0)"]}
+        style={[styles.header, { paddingTop: 6, borderBottomColor: theme.border }]}
       >
-        <View style={styles.dragHandle} />
         <View style={styles.headerContent}>
           <View style={styles.titleWrap}>
             <View style={[styles.iconBadge, { backgroundColor: accentColor }]}>
@@ -143,8 +185,8 @@ const StoryViewersSheet = () => {
             </View>
             <View>
               <Text style={[styles.title, { color: theme.text }]}>{t("storyViewers.title")}</Text>
-              <Text style={[styles.subtitle, { color: theme.subText }]}> 
-                {loading ? (t("common.loading") || "Loading...") : viewers.length > 0 ? `${viewers.length} ${t("home.views", { count: viewers.length })}` : t("storyViewers.empty")}
+              <Text style={[styles.subtitle, { color: theme.subText }]}>
+                {loading ? (t("common.loading") || "Loading...") : viewers.length > 0 ? t("home.views", { count: viewers.length }) : t("storyViewers.empty")}
               </Text>
             </View>
           </View>
@@ -205,12 +247,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   dragHandle: {
-    alignSelf: "center",
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "rgba(0,0,0,0.2)",
-    marginBottom: 10,
+    display: "none",
   },
   title: { fontSize: 16, fontWeight: "700" },
   subtitle: { fontSize: 12, marginTop: 2 },
@@ -246,13 +283,8 @@ const styles = StyleSheet.create({
   avatar: { width: 46, height: 46, borderRadius: 23, marginRight: 12 },
   viewerInfo: { flex: 1 },
   viewerName: { fontSize: 15, fontWeight: "700" },
-  reactionsWrap: { flexDirection: "row", flexWrap: "wrap", marginTop: 6, gap: 6 },
-  reactionChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  reactionChipText: { fontSize: 12, fontWeight: "600" },
+  reactionsWrap: { flexDirection: "row", flexWrap: "wrap", marginTop: 6, gap: 4, alignItems: "center" },
+  reactionEmoji: { fontSize: 20 },
   reactionsText: { marginTop: 4, fontSize: 13 },
   metaWrap: {
     alignItems: "flex-end",

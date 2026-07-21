@@ -736,7 +736,8 @@
   "storyViewers": {
     "title": "Người xem",
     "loadError": "Không thể tải danh sách người xem.",
-    "empty": "Chưa có người xem"
+    "empty": "Chưa có người xem",
+    "noReactions": "Không có cảm xúc"
   },
   "archive": {
     "title": "Kho lưu trữ",
@@ -878,7 +879,7 @@
     "takePhoto": "Chụp ảnh",
     "recordVideo": "Quay video",
     "takePhotoOrVideo": "Chụp ảnh / quay video",
-    "pickPhotoOrVideo": "Chọn ảnh / video từ thư viện",
+    "pickPhotoOrVideo": "Chọn media từ thư viện",
     "chooseMedia": "Chọn ảnh hoặc video",
     "chooseMediaDesc": "Chụp ảnh hoặc quay video",
     "cameraPermissionDenied": "Cần quyền truy cập camera để chụp ảnh",

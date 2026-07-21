@@ -760,7 +760,8 @@
   "storyViewers": {
     "title": "Просмотрели",
     "loadError": "Не удалось загрузить список просмотров.",
-    "empty": "Пока никто не просмотрел"
+    "empty": "Пока никто не просмотрел",
+    "noReactions": "Нет реакций"
   },
   "archive": {
     "title": "Архив",
@@ -902,10 +903,10 @@
     "stayTuned": "Следите за обновлениями",
     "requestingCameraPermission": "Запрос разрешения на камеру...",
     "openSettings": "Открыть настройки",
-    "takePhoto": "Сделать фото",
-    "recordVideo": "Записать видео",
-    "takePhotoOrVideo": "Сделать фото / записать видео",
-    "pickPhotoOrVideo": "Выбрать фото / видео из галереи",
+    "takePhoto": "Запись",
+    "recordVideo": "Запись",
+    "takePhotoOrVideo": "Запись",
+    "pickPhotoOrVideo": "Выбрать медиа из галереи",
     "chooseMedia": "Выберите фото или видео",
     "chooseMediaDesc": "Сделайте фото или снимите видео",
     "cameraPermissionDenied": "Для съемки фото требуется разрешение на камеру",
