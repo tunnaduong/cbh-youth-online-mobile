@@ -40,7 +40,7 @@ const CommentBar = React.forwardRef(
         style={[
           {
             paddingHorizontal: 20, // narrower width
-            paddingBottom: 15, // float from bottom
+            paddingBottom: Platform.OS === 'ios' ? 10 : 15, // slightly smaller on iOS to better align with safe area
             paddingTop: 5,
             width: "100%",
             backgroundColor: "transparent",

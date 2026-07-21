@@ -1291,8 +1291,8 @@ const PostScreen = ({ route, navigation }) => {
           />
 
         <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+          behavior={Platform.OS === "ios" ? "position" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight + insets.bottom : 0}
           style={{
             position: 'absolute',
             bottom: 0,
@@ -1300,6 +1300,7 @@ const PostScreen = ({ route, navigation }) => {
             right: 0,
             backgroundColor: 'transparent',
             zIndex: 5,
+            paddingBottom: insets.bottom,
           }}
         >
           <CommentBar
