@@ -1,27 +1,29 @@
-import React, { useState, useContext, useRef, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Image,
   Keyboard,
   TouchableWithoutFeedback,
   Alert,
+  Animated,
+  KeyboardAvoidingView,
   Platform,
-  StatusBar,
-  ScrollView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
-import Icon from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../components/LiquidButton";
+import AuthBackground from "../../components/AuthBackground";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -31,14 +33,16 @@ const LoginScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    AppleAuthentication.isAvailableAsync().then((available) => {
-      console.log("Apple Auth Available:", available);
-      setIsAppleAuthAvailable(available);
-    }).catch((e) => console.log("Apple Auth Check Error:", e));
+    AppleAuthentication.isAvailableAsync()
+      .then((available) => setIsAppleAuthAvailable(available))
+      .catch((e) => console.log("Apple Auth Check Error:", e));
   }, []);
 
   const handleLogin = async () => {
@@ -48,20 +52,14 @@ const LoginScreen = ({ navigation }) => {
     }
 
     setLoading(true);
-
     try {
       const response = await loginRequest({ username: email, password });
-
-      // Save token and user info
       if (!response?.data?.token || !response?.data?.user) {
         throw new Error(t("auth.invalidServerResponse"));
       }
       signIn(response.data.token, response.data.user);
     } catch (error) {
-      // Show an error message to the user
       let errorMessage = error.message || t("common.error");
-
-      // Provide a helpful hint for bcrypt algorithm errors (old account hashing incompatibility)
       if (
         errorMessage &&
         (errorMessage.toLowerCase().includes("bcrypt") ||
@@ -72,79 +70,38 @@ const LoginScreen = ({ navigation }) => {
             errorMessage +
             "\n\n" +
             t("auth.tryForgotPassword", {
-              defaultValue:
-                "Vui lòng thử dùng 'Quên mật khẩu' để đặt lại mật khẩu.",
+              defaultValue: "Vui lòng thử dùng 'Quên mật khẩu' để đặt lại mật khẩu.",
             }),
         });
       }
-
       Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
-      setLoading(false); // Ensure loading stops even if there's an error
+      setLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    // Prevent multiple clicks
-    if (loading) {
-      console.log("Google OAuth: Already processing, ignoring duplicate click");
-      return;
-    }
-
+    if (loading) return;
     setLoading(true);
     try {
-      console.log("Starting Google OAuth login...");
       const oauthResult = await loginWithGoogle();
-
-      console.log("Google OAuth result received:", {
-        provider: oauthResult.provider,
-        hasAccessToken: !!oauthResult.accessToken,
-        hasIdToken: !!oauthResult.idToken,
-        hasProfile: !!oauthResult.profile,
-      });
-
-      console.log("Calling backend API with OAuth data...");
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
         idToken: oauthResult.idToken,
         profile: oauthResult.profile,
       });
-
-      console.log("Backend API response:", {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        headers: response.headers,
-      });
-
       if (response.data && response.data.token) {
-        console.log("OAuth login successful, signing in user...");
         signIn(response.data.token, response.data.user);
       } else {
-        console.error(
-          "Backend response missing token or user data:",
-          response.data
-        );
         throw new Error(t("auth.invalidServerResponse"));
       }
     } catch (error) {
-      console.error("Google OAuth login failed - Full error:", {
-        message: error.message,
-        response: error.response,
-        responseData: error.response?.data,
-        responseStatus: error.response?.status,
-        responseHeaders: error.response?.headers,
-        stack: error.stack,
-        error: error,
-      });
-
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
         t("auth.googleLoginError");
-
       Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false);
@@ -152,68 +109,27 @@ const LoginScreen = ({ navigation }) => {
   };
 
   const handleFacebookLogin = async () => {
-    // Prevent multiple clicks
-    if (loading) {
-      console.log(
-        "Facebook OAuth: Already processing, ignoring duplicate click"
-      );
-      return;
-    }
-
+    if (loading) return;
     setLoading(true);
     try {
-      console.log("Starting Facebook OAuth login...");
       const oauthResult = await loginWithFacebook();
-
-      console.log("Facebook OAuth result received:", {
-        provider: oauthResult.provider,
-        hasAccessToken: !!oauthResult.accessToken,
-        hasIdToken: !!oauthResult.idToken,
-        hasProfile: !!oauthResult.profile,
-      });
-
-      console.log("Calling backend API with OAuth data...");
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
         idToken: oauthResult.idToken,
         profile: oauthResult.profile,
       });
-
-      console.log("Backend API response:", {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        headers: response.headers,
-      });
-
       if (response.data && response.data.token) {
-        console.log("OAuth login successful, signing in user...");
         signIn(response.data.token, response.data.user);
       } else {
-        console.error(
-          "Backend response missing token or user data:",
-          response.data
-        );
         throw new Error(t("auth.invalidServerResponse"));
       }
     } catch (error) {
-      console.error("Facebook OAuth login failed - Full error:", {
-        message: error.message,
-        response: error.response,
-        responseData: error.response?.data,
-        responseStatus: error.response?.status,
-        responseHeaders: error.response?.headers,
-        stack: error.stack,
-        error: error,
-      });
-
       const errorMessage =
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
         t("auth.facebookLoginError");
-
       Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false);
@@ -230,7 +146,6 @@ const LoginScreen = ({ navigation }) => {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-
       const response = await loginWithOAuth({
         provider: "apple",
         idToken: credential.identityToken,
@@ -239,16 +154,13 @@ const LoginScreen = ({ navigation }) => {
         fullName: credential.fullName,
         user: credential.user,
       });
-
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
         throw new Error(t("auth.invalidServerResponse"));
       }
     } catch (error) {
-      if (error.code === "ERR_REQUEST_CANCELED") {
-        // User canceled, do nothing
-      } else {
+      if (error.code !== "ERR_REQUEST_CANCELED") {
         const errorMessage =
           error.response?.data?.message ||
           error.response?.data?.error ||
@@ -262,275 +174,309 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <AuthBackground />
       <ProgressHUD loadText={t("auth.loggingIn")} visible={loading} />
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-          <TouchableOpacity
-            className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
-            onPress={() => {
-              navigation.goBack();
-            }}
-            style={{
-              marginTop:
-                Platform.OS === "android" ? StatusBar.currentHeight + 10 : 0,
-            }}
-          >
-            <Icon name="chevron-back-outline" color="white" size={30} />
-          </TouchableOpacity>
-          <ScrollView style={styles.content}>
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.text }]}>{t("auth.login")}</Text>
-              <Text style={[styles.subtitle, { color: theme.subText }]}>
-                {t("auth.welcome")}
-              </Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.container}>
+
+            {/* Floating back button */}
+            <View style={[styles.headerRow, { paddingTop: insets.top + 8, position: "absolute", top: 0, left: 0, zIndex: 10 }]} pointerEvents="box-none">
+              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
             </View>
 
-            <View style={styles.form}>
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("auth.usernameOrEmail")}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-                  placeholder="hello@example.com"
-                  placeholderTextColor={theme.subText}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
+            <Animated.ScrollView
+              style={styles.scroll}
+              contentContainerStyle={[
+                styles.content,
+                { paddingBottom: insets.bottom + 32, paddingTop: insets.top + 60 },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                { useNativeDriver: false }
+              )}
+            >
+              {/* Header */}
+              <View style={styles.headerText}>
+                <Text style={[styles.title, { color: theme.text }]}>
+                  {t("auth.login")}
+                </Text>
+                <Text style={[styles.subtitle, { color: theme.subText }]}>
+                  {t("auth.welcome")}
+                </Text>
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("auth.password")}</Text>
-                <View style={styles.passwordContainer}>
+              {/* Credentials card */}
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
+                {/* Username / Email row */}
+                <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
+                  <Ionicons
+                    name="person-outline"
+                    size={20}
+                    color={theme.primary}
+                    style={styles.inputIcon}
+                  />
                   <TextInput
-                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
+                    style={[styles.input, { color: theme.text }]}
+                    placeholder="hello@example.com"
+                    placeholderTextColor={theme.subText}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="username"
+                    textContentType="username"
+                    importantForAutofill="yes"
+                  />
+                </View>
+
+                {/* Password row */}
+                <View style={styles.inputRow}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={theme.primary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="••••••••••••"
                     placeholderTextColor={theme.subText}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
                     textContentType="password"
-                    autoComplete="password"
+                    autoComplete="current-password"
+                    importantForAutofill="yes"
                     autoCorrect={false}
                     autoCapitalize="none"
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeIcon}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Icon
+                    <Ionicons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
-                      size={24}
+                      size={22}
                       color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={styles.forgotPassword}
-                  onPress={() => navigation.navigate("ForgotPassword")}
-                >
-                  <Text style={styles.forgotPasswordText}>{t("auth.forgotPasswordLink")}</Text>
-                </TouchableOpacity>
               </View>
 
+              {/* Forgot password */}
               <TouchableOpacity
-                style={styles.loginButton}
+                style={styles.forgotPassword}
+                onPress={() => navigation.navigate("ForgotPassword")}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.forgotPasswordText, { color: theme.primary }]}>
+                  {t("auth.forgotPasswordLink")}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Login button */}
+              <TouchableOpacity
+                style={[styles.loginButton, { backgroundColor: theme.primary }]}
                 onPress={handleLogin}
+                activeOpacity={0.85}
               >
                 <Text style={styles.loginButtonText}>{t("auth.login")}</Text>
               </TouchableOpacity>
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 16,
-                }}
-              >
-                <View style={[styles.line, { backgroundColor: theme.border, borderColor: theme.border }]} />
-                <Text style={[styles.orText, { color: theme.subText }]}>{t("auth.orLoginWith")}</Text>
-                <View style={[styles.line, { backgroundColor: theme.border, borderColor: theme.border }]} />
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+                <Text style={[styles.orText, { color: theme.subText }]}>
+                  {t("auth.orLoginWith")}
+                </Text>
+                <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
               </View>
 
+              {/* Social buttons */}
               {isAppleAuthAvailable && (
                 <TouchableOpacity
-                  style={[styles.appleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                  style={[
+                    styles.socialButton,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                  ]}
                   onPress={handleAppleLogin}
+                  activeOpacity={0.8}
                 >
-                  <Icon name="logo-apple" size={24} color={theme.text} />
-                  <Text style={[styles.appleButtonText, { color: theme.text }]}>{t("auth.continueWithApple")}</Text>
+                  <Ionicons name="logo-apple" size={22} color={theme.text} />
+                  <Text style={[styles.socialButtonText, { color: theme.text }]}>
+                    {t("auth.continueWithApple")}
+                  </Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={[styles.googleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                style={[
+                  styles.socialButton,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
                 onPress={handleGoogleLogin}
+                activeOpacity={0.8}
               >
                 <Image
                   source={require("../../assets/google.png")}
-                  style={{ width: 24, height: 24 }}
+                  style={{ width: 22, height: 22 }}
                 />
-                <Text style={[styles.googleButtonText, { color: theme.text }]}>{t("auth.continueWithGoogle")}</Text>
+                <Text style={[styles.socialButtonText, { color: theme.text }]}>
+                  {t("auth.continueWithGoogle")}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.facebookButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                style={[
+                  styles.socialButton,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
                 onPress={handleFacebookLogin}
+                activeOpacity={0.8}
               >
-                <Icon name="logo-facebook" size={24} color="#1877F2" />
-                <Text style={[styles.facebookButtonText, { color: theme.text }]}>
+                <Ionicons name="logo-facebook" size={22} color="#1877F2" />
+                <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("auth.continueWithFacebook")}
                 </Text>
               </TouchableOpacity>
 
+              {/* Sign up */}
               <TouchableOpacity
-                onPress={() => {
-                  navigation.navigate("Signup");
-                }}
+                onPress={() => navigation.navigate("Signup")}
+                style={styles.signupLink}
+                activeOpacity={0.7}
               >
-                <Text className="mt-1 text-center text-base text-[#319527] font-semibold">
+                <Text style={[styles.signupText, { color: theme.primary }]}>
                   {t("auth.createAccount")}
                 </Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </SafeAreaView>
-      </TouchableWithoutFeedback>
-    </>
+            </Animated.ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+  },
+  headerRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
-  header: {
-    marginBottom: 32,
+  headerText: {
+    marginBottom: 28,
+    marginTop: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
     marginTop: 8,
+    lineHeight: 22,
   },
-  form: {
-    gap: 20,
+  card: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    marginBottom: 12,
   },
-  inputContainer: {
-    gap: 8,
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    height: 52,
   },
-  label: {
-    fontSize: 16,
-    color: "#000",
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    flex: 1,
     fontSize: 16,
-    backgroundColor: "#FBFFFB",
-    color: "#000",
-  },
-  passwordContainer: {
-    position: "relative",
-  },
-  passwordInput: {
-    paddingRight: 50,
-  },
-  eyeIcon: {
-    position: "absolute",
-    right: 12,
-    top: 12,
   },
   forgotPassword: {
     alignSelf: "flex-end",
+    paddingVertical: 4,
+    marginBottom: 20,
   },
   forgotPasswordText: {
-    color: "#319527",
     fontSize: 14,
+    fontWeight: "500",
   },
   loginButton: {
-    backgroundColor: "#319527",
-    height: 50,
+    height: 52,
     borderRadius: 38,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 8,
   },
   loginButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
-  orText: {
-    textAlign: "center",
-    color: "#666",
-    fontSize: 14,
-    paddingHorizontal: 16,
-  },
-  googleButton: {
-    marginTop: -5,
-    height: 48,
-    borderRadius: 38,
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+  dividerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    marginVertical: 20,
   },
-  googleButtonText: {
-    fontSize: 16,
-    color: "#666",
-  },
-  facebookButton: {
-    marginTop: -5,
-    height: 48,
-    borderRadius: 38,
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  facebookButtonText: {
-    fontSize: 16,
-    color: "#666",
-  },
-  line: {
+  dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: "#E2E8F0",
-    borderWidth: 0.5,
-    borderColor: "#E2E8F0",
+    height: StyleSheet.hairlineWidth,
   },
-  appleButton: {
-    height: 48,
+  orText: {
+    fontSize: 13,
+    paddingHorizontal: 12,
+  },
+  socialButton: {
+    height: 52,
     borderRadius: 38,
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
+    gap: 10,
+    marginBottom: 12,
   },
-  appleButtonText: {
-    fontSize: 16,
-    color: "#666",
+  socialButtonText: {
+    fontSize: 15,
+    fontWeight: "500",
+  },
+  signupLink: {
+    alignSelf: "center",
+    marginTop: 4,
+    paddingVertical: 8,
+  },
+  signupText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
 

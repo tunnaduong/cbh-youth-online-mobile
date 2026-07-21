@@ -3,18 +3,16 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Dimensions,
   Image,
   TextInput,
   TouchableHighlight,
   ScrollView,
   Platform,
-  StatusBar,
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
@@ -123,7 +121,7 @@ export default function SearchScreen({ navigation }) {
         </Text>
         <View style={styles.postMeta}>
           <Text style={[styles.postAuthor, { color: theme.subText }]}>
-            {post.author.profile_name} • {post.created_at ? formatTime(post.created_at) : ""}
+            {post.author.profile_name} • {post.created_at ? formatTime(post.created_at) : ""}{post.is_edited ? ` (${t('post.edited')})` : ""}
           </Text>
         </View>
       </View>
@@ -191,7 +189,7 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <View style={{ flex: 1 }}>
         <View style={{ paddingTop: inset.top }}>
           <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
@@ -225,7 +223,7 @@ export default function SearchScreen({ navigation }) {
 
         {query.trim() && renderFilterChips()}
 
-        <ScrollView style={styles.resultsContainer}>
+        <ScrollView style={styles.resultsContainer} contentContainerStyle={{ paddingBottom: inset.bottom + 16 }}>
           {!query.trim() ? (
             <View style={styles.searchImage}>
               <Image

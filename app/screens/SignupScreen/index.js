@@ -1,26 +1,30 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  Alert,
   Image,
+  Keyboard,
+  TouchableWithoutFeedback,
+  Alert,
+  Animated,
+  KeyboardAvoidingView,
   Platform,
-  StatusBar,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../contexts/AuthContext";
 import ProgressHUD from "../../components/ProgressHUD";
-import Icon from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 import CheckBox from "react-native-check-box";
 import { signupRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
+import LiquidButton from "../../components/LiquidButton";
+import AuthBackground from "../../components/AuthBackground";
 
 const SignupScreen = ({ navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -34,15 +38,17 @@ const SignupScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
 
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isAppleAuthAvailable, setIsAppleAuthAvailable] = useState(false);
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    AppleAuthentication.isAvailableAsync().then((available) => {
-      console.log("Apple Auth Available:", available);
-      setIsAppleAuthAvailable(available);
-    }).catch((e) => console.log("Apple Auth Check Error:", e));
+    AppleAuthentication.isAvailableAsync()
+      .then((available) => setIsAppleAuthAvailable(available))
+      .catch((e) => console.log("Apple Auth Check Error:", e));
   }, []);
 
   const handleSignup = async () => {
@@ -51,13 +57,7 @@ const SignupScreen = ({ navigation }) => {
       return;
     }
 
-    if (
-      username === "" ||
-      name === "" ||
-      email === "" ||
-      password === "" ||
-      confirmPassword === ""
-    ) {
+    if (!username || !name || !email || !password || !confirmPassword) {
       Alert.alert(t("common.error"), t("signup.missingInfo"));
       return;
     }
@@ -105,14 +105,10 @@ const SignupScreen = ({ navigation }) => {
   };
 
   const handleGoogleSignup = async () => {
-    if (loading) {
-      return;
-    }
-
+    if (loading) return;
     setLoading(true);
     try {
       const oauthResult = await loginWithGoogle();
-
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
@@ -139,15 +135,10 @@ const SignupScreen = ({ navigation }) => {
   };
 
   const handleFacebookSignup = async () => {
-    // Prevent multiple clicks
-    if (loading) {
-      return;
-    }
-
+    if (loading) return;
     setLoading(true);
     try {
       const oauthResult = await loginWithFacebook();
-
       const response = await loginWithOAuth({
         provider: oauthResult.provider,
         accessToken: oauthResult.accessToken,
@@ -171,7 +162,6 @@ const SignupScreen = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
-
   };
 
   const handleAppleSignup = async () => {
@@ -200,9 +190,7 @@ const SignupScreen = ({ navigation }) => {
         throw new Error(t("signup.invalidResponse"));
       }
     } catch (error) {
-      if (error.code === "ERR_REQUEST_CANCELED") {
-        // User canceled, do nothing
-      } else {
+      if (error.code !== "ERR_REQUEST_CANCELED") {
         const errorMessage =
           error.response?.data?.message ||
           error.response?.data?.error ||
@@ -216,109 +204,156 @@ const SignupScreen = ({ navigation }) => {
   };
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <AuthBackground />
       <ProgressHUD loadText={t("signup.loading")} visible={loading} />
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-        <TouchableOpacity
-          className="mx-6 bg-gray-400 mt-3 h-[40px] w-[40px] rounded-full items-center justify-center"
-          onPress={() => {
-            navigation.goBack();
-          }}
-          style={{
-            marginTop:
-              Platform.OS === "android" ? StatusBar.currentHeight + 10 : 0,
-          }}
-        >
-          <Icon name="chevron-back-outline" color="white" size={30} />
-        </TouchableOpacity>
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.content}>
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.text }]}>{t("signup.title")}</Text>
-              <Text style={[styles.subtitle, { color: theme.subText }]}>{t("signup.subtitle")}</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.container}>
+            
+            {/* Floating back button */}
+            <View style={[styles.headerRow, { paddingTop: insets.top + 8, position: "absolute", top: 0, left: 0, zIndex: 10 }]} pointerEvents="box-none">
+              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
             </View>
 
-            <View style={styles.form}>
+            <Animated.ScrollView
+              style={styles.scroll}
+              contentContainerStyle={[
+                styles.content,
+                { paddingBottom: insets.bottom + 32, paddingTop: insets.top + 60 },
+              ]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              scrollEventThrottle={16}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                { useNativeDriver: false }
+              )}
+            >
+              {/* Header Text */}
+              <View style={styles.headerText}>
+                <Text style={[styles.title, { color: theme.text }]}>
+                  {t("signup.title")}
+                </Text>
+                <Text style={[styles.subtitle, { color: theme.subText }]}>
+                  {t("signup.subtitle")}
+                </Text>
+              </View>
 
+              {/* Social buttons First */}
               {isAppleAuthAvailable && (
                 <TouchableOpacity
-                  style={[styles.appleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                  style={[
+                    styles.socialButton,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                  ]}
                   onPress={handleAppleSignup}
+                  activeOpacity={0.8}
                 >
-                  <Icon name="logo-apple" size={24} color={theme.text} />
-                  <Text style={[styles.appleButtonText, { color: theme.text }]}>{t("signup.apple")}</Text>
+                  <Ionicons name="logo-apple" size={22} color={theme.text} />
+                  <Text style={[styles.socialButtonText, { color: theme.text }]}>
+                    {t("signup.apple")}
+                  </Text>
                 </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={[styles.googleButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                style={[
+                  styles.socialButton,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
                 onPress={handleGoogleSignup}
+                activeOpacity={0.8}
               >
                 <Image
                   source={require("../../assets/google.png")}
-                  style={{ width: 24, height: 24 }}
+                  style={{ width: 22, height: 22 }}
                 />
-                <Text style={[styles.googleButtonText, { color: theme.text }]}>{t("signup.google")}</Text>
+                <Text style={[styles.socialButtonText, { color: theme.text }]}>
+                  {t("signup.google")}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.facebookButton, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                style={[
+                  styles.socialButton,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
                 onPress={handleFacebookSignup}
+                activeOpacity={0.8}
               >
-                <Icon name="logo-facebook" size={24} color="#1877F2" />
-                <Text style={[styles.facebookButtonText, { color: theme.text }]}>
+                <Ionicons name="logo-facebook" size={22} color="#1877F2" />
+                <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("signup.facebook")}
                 </Text>
               </TouchableOpacity>
 
-              <View style={styles.orContainer}>
-                <View style={[styles.orLine, { backgroundColor: theme.border }]} />
-                <Text style={[styles.orText, { color: theme.subText }]}>{t("signup.or")}</Text>
-                <View style={[styles.orLine, { backgroundColor: theme.border }]} />
+              {/* Divider */}
+              <View style={styles.dividerRow}>
+                <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
+                <Text style={[styles.orText, { color: theme.subText }]}>
+                  {t("signup.or")}
+                </Text>
+                <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
               </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("signup.username")}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-                  placeholder="john_doe"
-                  placeholderTextColor={theme.subText}
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("signup.fullName")}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-                  placeholder="John Doe"
-                  placeholderTextColor={theme.subText}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("signup.email")}</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
-                  placeholder="hello@example.com"
-                  placeholderTextColor={theme.subText}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("signup.password")}</Text>
-                <View style={styles.passwordContainer}>
+              {/* Inputs Card */}
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+              >
+                {/* Username */}
+                <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
+                  <Ionicons name="at-outline" size={20} color={theme.primary} style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
+                    style={[styles.input, { color: theme.text }]}
+                    placeholder="john_doe"
+                    placeholderTextColor={theme.subText}
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                {/* Full Name */}
+                <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
+                  <Ionicons name="person-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { color: theme.text }]}
+                    placeholder="John Doe"
+                    placeholderTextColor={theme.subText}
+                    value={name}
+                    onChangeText={setName}
+                    autoCapitalize="words"
+                  />
+                </View>
+
+                {/* Email */}
+                <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
+                  <Ionicons name="mail-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { color: theme.text }]}
+                    placeholder="hello@example.com"
+                    placeholderTextColor={theme.subText}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                {/* Password */}
+                <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <TextInput
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="••••••••••••"
                     placeholderTextColor={theme.subText}
                     value={password}
@@ -328,22 +363,21 @@ const SignupScreen = ({ navigation }) => {
                   />
                   <TouchableOpacity
                     onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeIcon}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Icon
+                    <Ionicons
                       name={showPassword ? "eye-off-outline" : "eye-outline"}
-                      size={24}
+                      size={22}
                       color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
-              </View>
 
-              <View style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.text }]}>{t("signup.confirmPassword")}</Text>
-                <View style={styles.passwordContainer}>
+                {/* Confirm Password */}
+                <View style={styles.inputRow}>
+                  <Ionicons name="lock-closed-outline" size={20} color={theme.primary} style={styles.inputIcon} />
                   <TextInput
-                    style={[styles.input, styles.passwordInput, { backgroundColor: theme.cardBackground, color: theme.text, borderColor: theme.border }]}
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="••••••••••••"
                     placeholderTextColor={theme.subText}
                     value={confirmPassword}
@@ -353,38 +387,35 @@ const SignupScreen = ({ navigation }) => {
                   />
                   <TouchableOpacity
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={styles.eyeIcon}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Icon
-                      name={
-                        showConfirmPassword ? "eye-off-outline" : "eye-outline"
-                      }
-                      size={24}
+                    <Ionicons
+                      name={showConfirmPassword ? "eye-off-outline" : "eye-outline"}
+                      size={22}
                       color={theme.subText}
                     />
                   </TouchableOpacity>
                 </View>
               </View>
 
+              {/* Terms Checkbox */}
               <View style={styles.checkboxContainer}>
                 <CheckBox
                   isChecked={agreeToTerms}
-                  onClick={() => {
-                    setAgreeToTerms(!agreeToTerms);
-                  }}
-                  checkBoxColor="#319527"
+                  onClick={() => setAgreeToTerms(!agreeToTerms)}
+                  checkBoxColor={theme.primary}
                 />
                 <Text style={[styles.checkboxLabel, { color: theme.subText }]}>
                   {t("signup.agreePrefix")} {" "}
                   <Text
-                    style={styles.link}
+                    style={[styles.link, { color: theme.primary }]}
                     onPress={() => navigation.navigate("TermsOfServiceScreen")}
                   >
                     {t("signup.terms")}
-                  </Text>{" "}
+                  </Text>
                   {" "}{t("signup.and")}{" "}
                   <Text
-                    style={styles.link}
+                    style={[styles.link, { color: theme.primary }]}
                     onPress={() => navigation.navigate("PrivacyPolicyScreen")}
                   >
                     {t("signup.privacy")}
@@ -392,185 +423,149 @@ const SignupScreen = ({ navigation }) => {
                 </Text>
               </View>
 
+              {/* Signup Button */}
               <TouchableOpacity
-                style={styles.signUpButton}
+                style={[styles.signUpButton, { backgroundColor: theme.primary }]}
                 onPress={handleSignup}
+                activeOpacity={0.85}
               >
                 <Text style={styles.signUpButtonText}>{t("signup.createAccount")}</Text>
               </TouchableOpacity>
 
-
-
+              {/* Login Prompt */}
               <View style={styles.loginPrompt}>
-                <Text style={[styles.loginPromptText, { color: theme.subText }]}>{t("signup.hasAccount")}</Text>
+                <Text style={[styles.loginPromptText, { color: theme.subText }]}>
+                  {t("signup.hasAccount")}
+                </Text>
                 <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                  <Text style={styles.loginLink}>{t("signup.login")}</Text>
+                  <Text style={[styles.loginLink, { color: theme.primary }]}>
+                    {t("signup.login")}
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
+
+            </Animated.ScrollView>
           </View>
-        </ScrollView>
-      </SafeAreaView>
-    </>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
-  scrollContent: {
-    flexGrow: 1,
+  headerRow: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  scroll: {
+    flex: 1,
   },
   content: {
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
-  header: {
-    marginBottom: 32,
+  headerText: {
+    marginBottom: 28,
+    marginTop: 4,
   },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#000",
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
     marginTop: 8,
+    lineHeight: 22,
   },
-  form: {
-    gap: 20,
+  socialButton: {
+    height: 52,
+    borderRadius: 38,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 12,
   },
-  inputContainer: {
-    gap: 8,
+  socialButtonText: {
+    fontSize: 15,
+    fontWeight: "500",
   },
-  label: {
-    fontSize: 16,
-    color: "#000",
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+  },
+  orText: {
+    fontSize: 13,
+    paddingHorizontal: 12,
+  },
+  card: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    height: 52,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    height: 48,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    flex: 1,
     fontSize: 16,
-    backgroundColor: "#FBFFFB",
-    color: "#000",
-  },
-  passwordContainer: {
-    position: "relative",
-  },
-  passwordInput: {
-    paddingRight: 50,
-  },
-  eyeIcon: {
-    position: "absolute",
-    right: 12,
-    top: 12,
   },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    marginBottom: 20,
+    paddingHorizontal: 4,
   },
   checkboxLabel: {
     fontSize: 14,
-    color: "#666",
     flex: 1,
+    marginLeft: 8,
   },
   link: {
-    color: "#319527",
+    fontWeight: "500",
   },
   signUpButton: {
-    backgroundColor: "#319527",
-    height: 50,
+    height: 52,
     borderRadius: 38,
     justifyContent: "center",
     alignItems: "center",
+    marginBottom: 16,
   },
   signUpButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
-  orContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 16,
-  },
-  orLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E2E8F0",
-  },
-  orText: {
-    paddingHorizontal: 16,
-    color: "#666",
-    fontSize: 14,
-  },
-  googleButton: {
-    marginTop: -5,
-    height: 48,
-    borderRadius: 38,
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    color: "#666",
-  },
-  facebookButton: {
-    marginTop: -5,
-    height: 48,
-    borderRadius: 38,
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  facebookButtonText: {
-    fontSize: 16,
-    color: "#666",
-  },
   loginPrompt: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
+    paddingVertical: 8,
   },
   loginPromptText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 15,
   },
   loginLink: {
-    fontSize: 14,
-    color: "#319527",
+    fontSize: 15,
     fontWeight: "600",
-  },
-  appleButton: {
-    height: 48,
-    borderRadius: 38,
-    backgroundColor: "#f5f5f5",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  appleButtonText: {
-    fontSize: 16,
-    color: "#666",
   },
 });
 

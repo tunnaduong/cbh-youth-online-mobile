@@ -19,7 +19,6 @@ import {
   Pressable,
   TextInput,
   StyleSheet,
-  SafeAreaView,
   TouchableWithoutFeedback,
   Keyboard,
   Modal,
@@ -31,6 +30,7 @@ import {
   Alert,
   DeviceEventEmitter,
   StatusBar,
+  PanResponder,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -42,14 +42,17 @@ import {
   removeStoryReaction,
   replyToStory,
   getStoryViewers,
-  markStoryAsViewed,
   blockUser,
   reportUser,
+  deleteStory,
+  markStoryAsViewed,
+  unfollowUser,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { storage } from "../../../global/storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
@@ -61,7 +64,9 @@ import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
+import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 
 const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
@@ -130,23 +135,184 @@ const FloatingEmoji = ({ emoji, onComplete }) => {
   );
 };
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const MIN_SCALE = 1;
+const MAX_SCALE = 4;
+
+const ZoomableStoryImage = ({ uri, style }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  // Store raw values for calculations
+  const scaleValue = useRef(1);
+  const lastScale = useRef(1);
+  const translateXValue = useRef(0);
+  const translateYValue = useRef(0);
+  const lastTranslateX = useRef(0);
+  const lastTranslateY = useRef(0);
+
+  // Track initial distance for pinch gesture
+  const initialDistance = useRef(null);
+  const initialMidpoint = useRef({ x: 0, y: 0 });
+
+  const getDistance = (touches) => {
+    const [t1, t2] = touches;
+    return Math.sqrt(
+      Math.pow(t2.pageX - t1.pageX, 2) + Math.pow(t2.pageY - t1.pageY, 2)
+    );
+  };
+
+  const getMidpoint = (touches) => {
+    const [t1, t2] = touches;
+    return {
+      x: (t1.pageX + t2.pageX) / 2,
+      y: (t1.pageY + t2.pageY) / 2,
+    };
+  };
+
+  const clampTranslate = (tx, ty, currentScale) => {
+    const maxX = (SCREEN_WIDTH * (currentScale - 1)) / 2;
+    const maxY = (SCREEN_HEIGHT * (currentScale - 1)) / 2;
+    return {
+      x: Math.max(-maxX, Math.min(maxX, tx)),
+      y: Math.max(-maxY, Math.min(maxY, ty)),
+    };
+  };
+
+  const resetTransform = () => {
+    scaleValue.current = 1;
+    lastScale.current = 1;
+    translateXValue.current = 0;
+    translateYValue.current = 0;
+    lastTranslateX.current = 0;
+    lastTranslateY.current = 0;
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true }),
+      Animated.spring(translateX, { toValue: 0, useNativeDriver: true }),
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (evt) => evt.nativeEvent.touches.length > 1 || scaleValue.current > 1,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Capture if zoomed in or if 2 fingers used
+        return scaleValue.current > 1 || gestureState.numberActiveTouches > 1;
+      },
+      onPanResponderGrant: () => {
+        lastTranslateX.current = translateXValue.current;
+        lastTranslateY.current = translateYValue.current;
+        lastScale.current = scaleValue.current;
+        initialDistance.current = null;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        const touches = evt.nativeEvent.touches;
+
+        if (touches.length === 2) {
+          // Pinch to zoom
+          const dist = getDistance(touches);
+          const mid = getMidpoint(touches);
+
+          if (initialDistance.current === null) {
+            initialDistance.current = dist;
+            initialMidpoint.current = mid;
+          }
+
+          const newScale = Math.max(
+            MIN_SCALE,
+            Math.min(MAX_SCALE, lastScale.current * (dist / initialDistance.current))
+          );
+
+          scaleValue.current = newScale;
+          scale.setValue(newScale);
+
+          // Pan while pinching (follow midpoint)
+          const dx = mid.x - initialMidpoint.current.x;
+          const dy = mid.y - initialMidpoint.current.y;
+          const clamped = clampTranslate(
+            lastTranslateX.current + dx,
+            lastTranslateY.current + dy,
+            newScale
+          );
+          translateXValue.current = clamped.x;
+          translateYValue.current = clamped.y;
+          translateX.setValue(clamped.x);
+          translateY.setValue(clamped.y);
+        } else if (touches.length === 1 && scaleValue.current > 1) {
+          // Pan when zoomed in
+          const clamped = clampTranslate(
+            lastTranslateX.current + gestureState.dx,
+            lastTranslateY.current + gestureState.dy,
+            scaleValue.current
+          );
+          translateXValue.current = clamped.x;
+          translateYValue.current = clamped.y;
+          translateX.setValue(clamped.x);
+          translateY.setValue(clamped.y);
+        }
+      },
+      onPanResponderRelease: () => {
+        lastTranslateX.current = translateXValue.current;
+        lastTranslateY.current = translateYValue.current;
+        lastScale.current = scaleValue.current;
+        initialDistance.current = null;
+
+        // Snap back to MIN_SCALE if below threshold
+        if (scaleValue.current < MIN_SCALE + 0.1) {
+          resetTransform();
+        }
+      },
+      onPanResponderTerminationRequest: () => false,
+    })
+  ).current;
+
+  return (
+    <Animated.Image
+      source={{ uri }}
+      style={[
+        style,
+        {
+          transform: [
+            { scale },
+            { translateX },
+            { translateY },
+          ],
+        },
+      ]}
+      resizeMode="cover"
+      {...panResponder.panHandlers}
+    />
+  );
+};
+
 const StoryOptionsModal = ({
   actionSheetRef,
   storyRef,
   setReportModalVisible,
   currentStoryUserRef,
   currentStory,
+  currentStoryRef,
   userStories,
   dismissStoryModal,
   fetchStories,
 }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
-  const { blockUser: blockUserInContext } = useContext(AuthContext);
+  const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
+  const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
+  const insets = useSafeAreaInsets();
+
+  const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
+
+  // When opening the modal for a new user, you might want to reset or set the initial state
+  // based on some actual user data. For now, we'll let it maintain local state.
 
   return (
     <ActionSheet
       ref={actionSheetRef}
+      isModal={false}
       containerStyle={{
         borderTopLeftRadius: 15,
         borderTopRightRadius: 15,
@@ -163,11 +329,12 @@ const StoryOptionsModal = ({
       }}
       gestureEnabled={true}
     >
-      <View style={{ paddingVertical: 8, backgroundColor: theme.cardBackground }}>
-        <View style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
+      <View style={{ paddingVertical: 8, paddingBottom: insets.bottom || 20, backgroundColor: theme.cardBackground }}>
+        {/* !isOwnStory && (
+          <View style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
           paddingVertical: 16,
           marginHorizontal: 20,
           borderBottomWidth: 1,
@@ -196,29 +363,39 @@ const StoryOptionsModal = ({
             </View>
           </View>
           <Switch
-            value={false}
+            value={isNotificationsEnabled}
             onValueChange={(value) => {
-              actionSheetRef.current?.hide();
-              Toast.show({
-                type: "info",
-                text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
-                text2: value
-                  ? t('home.receiveNotifications')
-                  : t('home.stopNotifications'),
-              });
+              setIsNotificationsEnabled(value);
+              // Delay hiding so user sees the toggle animation
+              setTimeout(() => {
+                actionSheetRef.current?.hide();
+                Toast.show({
+                  type: "info",
+                  text1: value ? t('home.followNotificationsOn') : t('home.followNotificationsOff'),
+                  text2: value
+                    ? t('home.receiveNotifications')
+                    : t('home.stopNotifications'),
+                });
+              }, 300);
             }}
             trackColor={{ false: "#767577", true: theme.primary }}
           />
         </View>
+        ) */}
 
-        <TouchableOpacity
-          onPress={() => {
+        <Pressable
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+          onPress={async () => {
             actionSheetRef.current?.hide();
-            Toast.show({
-              type: "info",
-              text1: t('home.share'),
-              text2: t('home.linkCopied'),
-            });
+            try {
+              const { Share } = require('react-native');
+              await Share.share({
+                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
+                url: `https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
+              });
+            } catch (error) {
+              console.error(error.message);
+            }
           }}
         >
           <View style={{
@@ -243,146 +420,229 @@ const StoryOptionsModal = ({
               {t('home.copyLinkShare')}
             </Text>
           </View>
-        </TouchableOpacity>
+        </Pressable>
 
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            setReportModalVisible(true);
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20,
-            borderBottomWidth: 1,
-            borderBottomColor: theme.border
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="warning-outline" size={23} color={theme.subText} />
-            </View>
-            <View style={{ marginLeft: 12 }}>
-              <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
-              <Text style={{ color: theme.subText, fontSize: 13 }}>
-                {t('home.reportStoryDesc')}
-              </Text>
-            </View>
-            <View style={{ marginLeft: "auto" }}>
-              <Ionicons
-                name="chevron-forward-outline"
-                size={23}
-                color="#D1D1D1"
-              />
-            </View>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            Toast.show({
-              type: "info",
-              text1: t('home.unfollowPerson'),
-              text2: t('home.unfollowed'),
-            });
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20
-          }}>
-            <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
-            }}>
-              <Ionicons name="close-outline" size={23} color={theme.text} />
-            </View>
-            <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
-              {t('home.unfollowPerson')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => {
-            actionSheetRef.current?.hide();
-            Alert.alert(t('home.blockedTitle'), t('home.blockedBody'), [
-              { text: t('settings.cancel'), style: "cancel" },
-              {
-                text: t('home.blockPerson'), style: "destructive", onPress: async () => {
-                  const userToBlockRef = currentStoryUserRef.current;
-                  console.log("Blocking user (ref)...", userToBlockRef);
-
-                  try {
-                    let userToBlock = userToBlockRef;
-
-                    if (!userToBlock && currentStory) {
-                      const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStory));
-                      if (foundUser) {
-                        userToBlock = { id: foundUser.uid, username: foundUser.id };
+        {isOwnStory ? (
+          <Pressable
+            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+            onPress={() => {
+              actionSheetRef.current?.hide();
+              setTimeout(() => {
+                Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
+                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                  {
+                    text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
+                      try {
+                        const storyIdToDelete = currentStoryRef.current;
+                        if (storyIdToDelete) {
+                          await deleteStory(storyIdToDelete);
+                          dismissStoryModal();
+                          fetchStories();
+                          Toast.show({
+                            type: "success",
+                            text1: t('home.deleteStorySuccess') || "Xóa thành công",
+                          });
+                        }
+                      } catch (e) {
+                        Toast.show({
+                          type: "error",
+                          text1: t('common.error'),
+                          text2: e.message,
+                        });
                       }
                     }
-
-                    if (userToBlock) {
-                      await blockUser(userToBlock.id || userToBlock.uid);
-
-                      const usernameToBlock = userToBlock.username || userToBlock.id;
-                      await blockUserInContext(usernameToBlock);
-
-                      dismissStoryModal();
-                      setTimeout(() => {
-                        Alert.alert(t('home.blockedSuccessTitle'), t('home.blockedSuccessMessage'));
-                      }, 500);
-
-                      fetchStories();
-                    } else {
-                      console.error("No user found to block");
-                      Alert.alert(t('home.blockedErrorTitle'), t('home.blockedErrorMessage'));
-                    }
-                  } catch (e) {
-                    console.error("Block error:", e);
-                    Alert.alert(t('common.error'), e.message || t('common.unknownError'));
                   }
-                }
-              }
-            ]);
-          }}
-        >
-          <View style={{
-            flexDirection: "row",
-            alignItems: "center",
-            paddingVertical: 16,
-            marginHorizontal: 20
-          }}>
+                ]);
+              }, 300);
+            }}
+          >
             <View style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: theme.iconBackground,
-              justifyContent: "center",
-              alignItems: "center"
+              flexDirection: "row",
+              alignItems: "center",
+              paddingVertical: 16,
+              marginHorizontal: 20
             }}>
-              <Ionicons name="ban-outline" size={23} color="#ef4444" />
+              <View style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: theme.iconBackground,
+                justifyContent: "center",
+                alignItems: "center"
+              }}>
+                <Ionicons name="trash-outline" size={23} color="#ef4444" />
+              </View>
+              <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
+                {t('home.deleteStory') || "Xóa story"}
+              </Text>
             </View>
-            <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
-              {t('home.blockPerson')}
-            </Text>
-          </View>
-        </TouchableOpacity>
+          </Pressable>
+        ) : (
+          <>
+            <Pressable
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+              onPress={() => {
+                actionSheetRef.current?.hide();
+                setReportModalVisible(true);
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                marginHorizontal: 20,
+                borderBottomWidth: 1,
+                borderBottomColor: theme.border
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.iconBackground,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <Ionicons name="warning-outline" size={23} color={theme.subText} />
+                </View>
+                <View style={{ marginLeft: 12 }}>
+                  <Text style={{ fontSize: 17, color: theme.text }}>{t('home.reportStory')}</Text>
+                  <Text style={{ color: theme.subText, fontSize: 13 }}>
+                    {t('home.reportStoryDesc')}
+                  </Text>
+                </View>
+                <View style={{ marginLeft: "auto" }}>
+                  <Ionicons
+                    name="chevron-forward-outline"
+                    size={23}
+                    color="#D1D1D1"
+                  />
+                </View>
+              </View>
+            </Pressable>
+
+            {/* Temporarily hidden unfollow button
+            {currentStoryUserRef.current?.isFollowed && (
+              <TouchableOpacity
+                onPress={async () => {
+                  actionSheetRef.current?.hide();
+                  try {
+                    const userToUnfollow = currentStoryUserRef.current;
+                    if (userToUnfollow && userToUnfollow.id) {
+                      await unfollowUser(userToUnfollow.id);
+                      fetchStories(); // Update the UI if needed
+                      Toast.show({
+                        type: "success",
+                        text1: t('home.unfollowPerson'),
+                        text2: t('home.unfollowed'),
+                      });
+                    }
+                  } catch (error) {
+                    console.error("Failed to unfollow user from stories:", error);
+                    Toast.show({
+                      type: "error",
+                      text1: t('common.error'),
+                      text2: error.message || "Failed to unfollow",
+                    });
+                  }
+                }}
+              >
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 16,
+                  marginHorizontal: 20
+                }}>
+                  <View style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    backgroundColor: theme.iconBackground,
+                    justifyContent: "center",
+                    alignItems: "center"
+                  }}>
+                    <Ionicons name="close-outline" size={23} color={theme.text} />
+                  </View>
+                  <Text style={{ marginLeft: 12, fontSize: 17, color: theme.text }}>
+                    {t('home.unfollowPerson')}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+            */}
+
+            <Pressable
+              style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+              onPress={() => {
+                actionSheetRef.current?.hide();
+                Alert.alert(t('home.blockedTitle') || "Chặn người dùng?", t('home.blockedBody') || "Bạn sẽ không thấy tin của người này nữa.", [
+                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                  {
+                    text: t('home.blockPerson') || "Chặn", style: "destructive", onPress: async () => {
+                      const userToBlockRef = currentStoryUserRef.current;
+                      console.log("Blocking user (ref)...", userToBlockRef);
+
+                      try {
+                        let userToBlock = userToBlockRef;
+
+                        if (!userToBlock && currentStoryRef.current) {
+                          const foundUser = userStories.find(u => u.stories.some(s => s.id === currentStoryRef.current));
+                          if (foundUser) {
+                            userToBlock = { id: foundUser.uid, username: foundUser.id };
+                          }
+                        }
+
+                        if (userToBlock) {
+                          await blockUser(userToBlock.id || userToBlock.uid);
+                          const usernameToBlock = userToBlock.username || userToBlock.id;
+                          
+                          try {
+                            await blockUserInContext(usernameToBlock);
+                          } catch (ctxErr) {
+                            console.error("Error updating block context:", ctxErr);
+                          }
+
+                          dismissStoryModal();
+                          setTimeout(() => {
+                            Alert.alert(t('home.blockedSuccessTitle') || "Thành công", t('home.blockedSuccessMessage') || "Đã chặn người dùng");
+                          }, 500);
+
+                          fetchStories();
+                        } else {
+                          console.error("No user found to block");
+                          Alert.alert(t('home.blockedErrorTitle') || "Lỗi", t('home.blockedErrorMessage') || "Không tìm thấy thông tin");
+                        }
+                      } catch (e) {
+                        console.error("Block error:", e);
+                        Alert.alert(t('common.error'), e.message || t('common.unknownError'));
+                      }
+                    }
+                  }
+                ]);
+              }}
+            >
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingVertical: 16,
+                marginHorizontal: 20
+              }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.iconBackground,
+                  justifyContent: "center",
+                  alignItems: "center"
+                }}>
+                  <Ionicons name="ban-outline" size={23} color="#ef4444" />
+                </View>
+                <Text style={{ marginLeft: 12, fontSize: 17, color: "#ef4444" }}>
+                  {t('home.blockPerson')}
+                </Text>
+              </View>
+            </Pressable>
+          </>
+        )}
       </View>
     </ActionSheet>
   );
@@ -400,6 +660,7 @@ const ReplyBar = ({
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const { userInfo } = useContext(AuthContext);
+  const insets = useSafeAreaInsets();
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -483,20 +744,15 @@ const ReplyBar = ({
 
   const handleViewCountPress = () => {
     if (navigation && storyId) {
-      if (onDismissStory) {
-        onDismissStory();
-      }
       setTimeout(() => {
-        navigation.navigate("StoryViewersScreen", {
-          storyId: storyId,
-        });
+        DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", storyId);
       }, 100);
     }
   };
 
   if (isOwnStory) {
     return (
-      <SafeAreaView>
+      <View style={{ paddingBottom: insets.bottom }}>
         <View style={styles.viewCountBar}>
           <TouchableOpacity
             onPress={handleViewCountPress}
@@ -508,7 +764,7 @@ const ReplyBar = ({
             </Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -521,14 +777,14 @@ const ReplyBar = ({
           onComplete={() => handleAnimationComplete(id)}
         />
       ))}
-      <SafeAreaView>
-        <View className="flex-row items-center gap-2 justify-center">
+      <View style={{ paddingBottom: insets.bottom }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6, paddingHorizontal: 8 }}>
           {emojis.map((emoji) => (
             <TouchableOpacity
               key={emoji}
               onPress={() => handleEmojiPress(emoji)}
             >
-              <Text className="text-[40px]">{emoji}</Text>
+              <Text style={{ fontSize: 28 }}>{emoji}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -564,7 +820,7 @@ const ReplyBar = ({
             )}
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </KeyboardStickyView>
   );
 };
@@ -582,8 +838,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
   const [currentStory, setCurrentStory] = useState(null);
+  const currentStoryRef = useRef(null);
+  useEffect(() => {
+    currentStoryRef.current = currentStory;
+  }, [currentStory]);
   const [currentStoryUser, setCurrentStoryUser] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isStoryVisible, setIsStoryVisible] = useState(false);
   const {
     username,
     isLoggedIn,
@@ -596,6 +857,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
   const { theme, isDarkMode } = useTheme();
+  const insets = useSafeAreaInsets();
   const previousStatusBarStyle = useRef({
     barStyle: "dark-content",
     backgroundColor: "#ffffff",
@@ -608,6 +870,43 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const isScrollingRef = useRef(false);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [clientMuted, setClientMuted] = useState({});
+
+  const toggleClientMute = (storyId) => {
+    setClientMuted((prev) => ({
+      ...prev,
+      [storyId]: !prev[storyId],
+    }));
+  };
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "SET_FEED_SCROLL_ENABLED",
+      (enabled) => {
+        setScrollEnabled(enabled);
+      }
+    );
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const openSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_OPENED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.pause?.();
+      }
+    });
+    const closeSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_CLOSED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.resume?.();
+      }
+    });
+
+    return () => {
+      openSub.remove();
+      closeSub.remove();
+    };
+  }, [isStoryVisible]);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -629,20 +928,41 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   // Handle story highlighting from notifications
   useEffect(() => {
-    if (route.params?.highlightStoryId && userStories.length > 0) {
-      // Find the user and story to highlight
-      const storyToHighlight = route.params.highlightStoryId;
-      const userWithStory = userStories.find((user) =>
-        user.stories.some((story) => story.storyId === storyToHighlight)
-      );
-      if (userWithStory) {
-        // Open the story viewer for that user
-        setTimeout(() => {
-          storyRef.current?.show(userWithStory.id);
-        }, 500);
-      }
-    }
+    if (!route.params?.highlightStoryId || userStories.length === 0) return;
+
+    const storyToHighlight = String(route.params.highlightStoryId);
+    const userWithStory = userStories.find((user) =>
+      user.stories.some((story) => String(story.storyId ?? story.id) === storyToHighlight)
+    );
+
+    if (!userWithStory) return;
+
+    const timer = setTimeout(() => {
+      storyRef.current?.show?.(userWithStory.id);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [route.params?.highlightStoryId, userStories]);
+
+  // Handle deep link: com.fatties.youth://story/<storyId>
+  // App.js passes openStoryId param when user taps a story share link
+  useEffect(() => {
+    if (!route.params?.openStoryId || userStories.length === 0) return;
+
+    const targetId = String(route.params.openStoryId);
+
+    // Find which user owns this story (story.id is numeric, compare as string)
+    const userWithStory = userStories.find((user) =>
+      user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
+    );
+
+    if (userWithStory) {
+      // Small delay to let the screen finish mounting before opening viewer
+      setTimeout(() => {
+        storyRef.current?.show(userWithStory.id); // user.id = username string
+      }, 600);
+    }
+  }, [route.params?.openStoryId, userStories]);
 
   const currentStoryUserRef = useRef(null); // Ref to hold fresh user object for callbacks
 
@@ -653,13 +973,29 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleFetchFeed = async (page = 1) => {
     try {
+      if (page === 1) {
+        const cachedStr = storage.getString("cached_feed");
+        if (cachedStr) {
+          try {
+            const parsed = JSON.parse(cachedStr);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setFeed((prev) => prev ? prev : parsed);
+            }
+          } catch(e) {}
+        }
+        setRefreshing(true);
+      }
+
       const response = await getHomePosts(page);
       const posts = response?.data?.data;
-      // Guard: only set feed if we received a valid array from the server
-      setFeed(Array.isArray(posts) ? posts : []);
+      const validPosts = Array.isArray(posts) ? posts : [];
+      setFeed(validPosts);
+
+      if (page === 1 && validPosts.length > 0) {
+        storage.set("cached_feed", JSON.stringify(validPosts));
+      }
     } catch (error) {
       console.log("Error fetching newsfeed:", error);
-      // Don't leave feed as null on error if it was already loaded
       setFeed((prev) => prev ?? []);
       Toast.show({
         type: "error",
@@ -669,6 +1005,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         visibilityTime: 5000,
         topOffset: 60,
       });
+    } finally {
+      if (page === 1) {
+        setTimeout(() => {
+          setRefreshing(false);
+        }, 1000);
+      }
     }
   };
 
@@ -789,11 +1131,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryShow = (userId) => {
-  if (Platform.OS === "android") StatusBar.setHidden(true, "fade");
-    // Save current status bar style
+    setIsStoryVisible(true);
+    // Save current status bar style so we can restore it on hide
     previousStatusBarStyle.current = { barStyle, backgroundColor };
-    // Change to light content (white text) for dark background
-    updateStatusBar("light-content", "#000000");
+    if (Platform.OS === "android") {
+      StatusBar.setHidden(false);
+      updateStatusBar("light-content", "#000000");
+    } else {
+      updateStatusBar("light-content", "#000000");
+    }
   };
 
   const handleStoryStart = async (userId, storyId) => {
@@ -823,7 +1169,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleStoryHide = () => {
-  if (Platform.OS === "android") StatusBar.setHidden(false, "fade");
+    // Don't close story view if report modal is open - keep it for user to continue reporting or close manually
+    if (reportModalVisible) {
+      return;
+    }
+    
+    setIsStoryVisible(false);
+    if (Platform.OS === "android") StatusBar.setHidden(false);
     // Restore previous status bar style
     updateStatusBar(
       previousStatusBarStyle.current.barStyle,
@@ -841,7 +1193,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const handleReportSubmit = async (reason) => {
     try {
       if (!currentStoryUser) return;
-      await reportUser({ story_id: currentStory, reported_user_id: currentStoryUser.uid || currentStoryUser.id, reason });
+      await reportUser({ reported_user_id: currentStoryUser.id, reason });
       Toast.show({
         type: "success",
         text1: t('home.reportSentTitle'),
@@ -873,6 +1225,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       const response = await getStories();
       if (response?.data) {
         console.log("Stories fetched:", response.data.data?.length);
+        console.log("Full story response:", JSON.stringify(response.data.data, null, 2));
         const formattedStories = transformStoriesData(response);
         setUserStories(formattedStories);
 
@@ -881,8 +1234,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           const prefetchUrls = [];
           formattedStories.forEach((user) => {
             user.stories?.forEach((story) => {
-              if (story.source?.uri) {
-                prefetchUrls.push(story.source.uri);
+              if (story.source?.uri && !story.source.uri.includes('null')) {
+                const uri = story.source.uri;
+                if (typeof uri === 'string' && /^https?:\/\//i.test(uri)) {
+                  prefetchUrls.push(uri);
+                }
               }
             });
           });
@@ -904,6 +1260,79 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     fetchStories();
   }, [blockedUsers]);
 
+  const resolveStoryMediaUrl = (story) => {
+    const candidates = [
+      story?.media_url,
+      story?.thumbnail_url,
+      story?.thumbnail,
+      story?.thumb_url,
+      story?.preview_url,
+      story?.file_url,
+      story?.image_url,
+      story?.media?.url,
+      story?.media?.thumbnail,
+      story?.image?.url,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        const normalized = candidate.trim();
+        if (/^https?:\/\//i.test(normalized)) {
+          return normalized;
+        }
+        if (normalized.startsWith("/")) {
+          return `https://api.chuyenbienhoa.com${normalized}`;
+        }
+        return `https://api.chuyenbienhoa.com/${normalized.replace(/^\/+/, "")}`;
+      }
+    }
+
+    return null;
+  };
+
+  const shadeHex = (hex, percent) => {
+    try {
+      let h = hex.replace('#', '').trim();
+      if (h.length === 3) {
+        h = h.split('').map((c) => c + c).join('');
+      }
+      const num = parseInt(h, 16);
+      let r = (num >> 16) + Math.round(255 * (percent / 100));
+      let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+      let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+      r = Math.max(0, Math.min(255, r));
+      g = Math.max(0, Math.min(255, g));
+      b = Math.max(0, Math.min(255, b));
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    } catch (e) {
+      return hex;
+    }
+  };
+
+  const normalizeGradientColors = (story) => {
+    if (!story) return ['#0f172a'];
+    if (Array.isArray(story.gradient_colors) && story.gradient_colors.length > 0) {
+      return story.gradient_colors.map((c) => String(c));
+    }
+    if (story.background_color) {
+      try {
+        const parsed = JSON.parse(story.background_color);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed.map((c) => String(c));
+        if (typeof parsed === 'string') return [String(parsed)];
+      } catch {
+        // not JSON
+        if (typeof story.background_color === 'string' && story.background_color.trim()) {
+          return [story.background_color.trim()];
+        }
+      }
+    }
+    return ['#0f172a'];
+  };
+
+  const getStoryPlaceholderUri = () => {
+    return "https://placehold.co/1080x1920/111827/ffffff.png?text=Story";
+  };
+
   const transformStoriesData = (apiResponse) => {
     if (!apiResponse?.data) return [];
 
@@ -916,19 +1345,119 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         uid: user.id,
         id: user.username,
         name: user.name,
+        isFollowed: user.is_following,
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
-        stories: user.stories.map((story) => ({
+        stories: user.stories.map((story) => {
+          const mediaUrl = resolveStoryMediaUrl(story);
+          const textContent = story.text_content || story.content || story.text || '';
+          const storyType = String(story?.type || story?.media_type || "").toLowerCase();
+          const isVideoStory = Boolean(mediaUrl) && (
+            storyType === "video" ||
+            storyType === "mp4" ||
+            storyType === "mov" ||
+            /\.(mp4|mov|m4v|avi)$/i.test(mediaUrl)
+          );
+          const shouldRenderAsImage = Boolean(mediaUrl) && !isVideoStory && (
+            storyType === "image" ||
+            storyType === "mobile" ||
+            storyType === "upload" ||
+            storyType === "story" ||
+            storyType === "text" ||
+            storyType === "text_story" ||
+            storyType === "textstory"
+          );
+          let gradientColors = ['#1a1a1a'];
+          
+          // Parse background color (it's a JSON string of array)
+          if (story.background_color) {
+            try {
+              const parsed = JSON.parse(story.background_color);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                gradientColors = parsed;
+              } else if (typeof parsed === 'string') {
+                gradientColors = [parsed];
+              }
+            } catch {
+              gradientColors = [story.background_color] || ['#1a1a1a'];
+            }
+          }
+          
+          return {
           id: story.id,
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+            uri: mediaUrl || getStoryPlaceholderUri(),
           },
+          backgroundColor: shouldRenderAsImage ? undefined : gradientColors[0],
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
+          media_type: isVideoStory ? "video" : shouldRenderAsImage ? "image" : storyType || "text",
+          mediaType: isVideoStory ? "video" : undefined,
+          text_content: textContent,
+          background_color: story.background_color,
+          gradient_colors: gradientColors,
+          overlays: story.overlays || undefined,
+          is_muted: story.is_muted || false,
+          renderContent: (() => {
+            // Capture values in closure
+            const colors = gradientColors;
+            const text = textContent;
+            const videoUrl = mediaUrl;
+            const storyId = story.id;
+            const isMutedByUploader = story.is_muted;
+            
+            // Return the render function
+            return () => {
+              if (isVideoStory && videoUrl) {
+                return null;
+              }
+
+              if (shouldRenderAsImage && videoUrl) {
+                return (
+                  <ZoomableStoryImage
+                    uri={videoUrl}
+                    style={{
+                      width: SCREEN_WIDTH,
+                      height: SCREEN_HEIGHT,
+                    }}
+                  />
+                );
+              } else {
+                // Text story
+                return (
+                <LinearGradient
+                  colors={colors.length > 1 ? colors : [colors[0] || '#1a1a1a', shadeHex(colors[0] || '#1a1a1a', -12)]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{
+                    width: SCREEN_WIDTH,
+                    height: SCREEN_HEIGHT,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingHorizontal: 30,
+                  }}
+                >
+                  <Text style={{ 
+                    color: '#ffffff', 
+                    fontSize: 24, 
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 3,
+                    includeFontPadding: false,
+                  }}>
+                    {text}
+                  </Text>
+                </LinearGradient>
+              );
+            }
+          };
+        })(),
           renderFooter: () => (
             <ReplyBar
               storyId={story.id}
@@ -947,7 +1476,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setCurrentStory(story.id);
             setCurrentStoryUser({ id: user.id, username: user.username });
           },
-        })),
+          };
+        }),
       }));
   };
 
@@ -1002,6 +1532,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           contentContainerStyle={{ gap: 10, paddingRight: 15 }}
           horizontal
           showsHorizontalScrollIndicator={false}
+          scrollEnabled={scrollEnabled}
         >
           {/* Story like Facebook component */}
           <TouchableHighlight
@@ -1071,10 +1602,44 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             >
               <View>
                 {/* Story Image */}
-                <Image
-                  source={{ uri: user.stories[0].source.uri }}
-                  style={{ width: 100, height: 160 }}
-                />
+                {(() => {
+                  const firstStory = user.stories[0];
+                  const placeholderUri = getStoryPlaceholderUri && getStoryPlaceholderUri();
+                  const uriStr = firstStory?.source?.uri || '';
+                  const isImage = firstStory && (
+                    firstStory.media_type === 'image' ||
+                    (/^https?:\/\//i.test(uriStr) && uriStr !== placeholderUri)
+                  );
+                  if (isImage) {
+                    return (
+                      <Image
+                        source={{ uri: firstStory.source.uri }}
+                        style={{ width: 100, height: 160 }}
+                      />
+                    );
+                  }
+
+                  // Render text-only story thumbnail to resemble mobile uploads (text near bottom)
+                  const gradientColors = normalizeGradientColors(firstStory);
+                  const finalColors = gradientColors.length > 1 ? gradientColors : [gradientColors[0], shadeHex(gradientColors[0], -12)];
+                  const previewText = (firstStory?.text_content || firstStory?.title || '').trim();
+
+                  return (
+                    <LinearGradient
+                      colors={finalColors}
+                      start={{ x: 0.5, y: 0 }}
+                      end={{ x: 0.5, y: 1 }}
+                      style={{ width: 100, height: 160, padding: 8, justifyContent: 'center', alignItems: 'center' }}
+                    >
+                      <Text
+                        numberOfLines={2}
+                        style={{ color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center', lineHeight: 18 }}
+                      >
+                        {previewText || 'Story'}
+                      </Text>
+                    </LinearGradient>
+                  );
+                })()}
 
                 {/* Avatar */}
                 <View style={{ position: "absolute", top: 8, left: 8 }}>
@@ -1126,6 +1691,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
     isScrollingRef.current = false;
+    
+    DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -1519,7 +2086,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           <View
             style={{
               position: "absolute",
-              top: 5,
+              top: 50 + insets.top,
               left: 0,
               right: 0,
               alignItems: "center",
@@ -1548,8 +2115,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           data={filteredFeed}
           extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
+          initialNumToRender={5}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
-            paddingBottom: 110,
+            paddingTop: 50 + insets.top,
+            paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (
@@ -1586,10 +2158,36 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         />
 
         <InstagramStories
+          key={filteredStories.map(u => u.stories.length).join('-')}
           ref={storyRef}
           stories={filteredStories}
           hideAvatarList={true}
           showName={true}
+          statusBarTranslucent={false}
+          backgroundColor="#000000"
+          mediaContainerStyle={{ backgroundColor: "#000000" }}
+          imageProps={{ resizeMode: "cover" }}
+          imageStyles={StyleSheet.absoluteFillObject}
+          videoProps={{
+            resizeMode: "contain",
+            repeat: false,
+            muted: Boolean(currentStory && (clientMuted[currentStory] || (() => {
+              // if server marked story as muted by uploader, respect it
+              try {
+                const user = userStories.find((u) => u.stories.some((s) => s.storyId === currentStory || s.id === currentStory));
+                if (!user) return false;
+                const story = user.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                return story?.is_muted;
+              } catch (e) {
+                return false;
+              }
+            })())),
+            style: {
+              width: SCREEN_WIDTH,
+              height: SCREEN_HEIGHT,
+              backgroundColor: '#000000',
+            },
+          }}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -1597,11 +2195,82 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             textShadowRadius: 1.5,
             fontWeight: "600",
           }}
+          imageOverlayView={<OverlayRenderer currentStory={currentStory} userStories={userStories} />}
           progressColor="#a4a4a4"
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           storyAvatarSize={30}
+          renderCustomContent={(story) => {
+            if (story.renderContent && story.mediaType !== 'video' && story.media_type !== 'video') {
+              return story.renderContent();
+            }
+            return null;
+          }}
+          renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId, ...rest }) => {
+            return (
+              <View style={[{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }] }>
+                <Pressable
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                  onPress={() => onStoryHeaderPress?.(userId)}
+                >
+                  {avatarSource && (
+                    <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
+                      <Image source={avatarSource} style={{ width: 28, height: 28 }} />
+                    </View>
+                  )}
+                  <View style={{ flexDirection: 'column' }}>
+                    {name && <Text style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
+                    {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12 }}>{date}</Text>}
+                  </View>
+                </Pressable>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {(() => {
+                    // only show mute button for video stories
+                    try {
+                      const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
+                      if (!u) return null;
+                      const st = u.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                      if (st && (st.mediaType === 'video' || st.media_type === 'video')) {
+                        const isServerMuted = Boolean(st?.is_muted);
+                        const isAudioMuted = Boolean(currentStory && (clientMuted[currentStory] || isServerMuted));
+                        return (
+                          <TouchableOpacity
+                            disabled={isServerMuted}
+                            onPress={() => {
+                              if (!isServerMuted) {
+                                toggleClientMute(currentStory);
+                              }
+                            }}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 18,
+                              backgroundColor: 'rgba(0,0,0,0.35)',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: isServerMuted ? 0.7 : 1,
+                            }}
+                          >
+                            <Ionicons name={isAudioMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
+                          </TouchableOpacity>
+                        );
+                      }
+                    } catch (e) {
+                      return null;
+                    }
+                    return null;
+                  })()}
+                  {onMore && (
+                    <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                      <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            );
+          }}
           onStoryHeaderPress={(userId) => {
             console.log("Global Story Header Pressed for:", userId);
             if (userId) {
@@ -1632,28 +2301,29 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           }}
           toast={<Toast topOffset={60} />}
-          containerStyle={{
-            height:
-              Dimensions.get("window").height -
-              (Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0),
-          }}
+          footerComponent={
+            <StoryOptionsModal
+              actionSheetRef={actionSheetRef}
+              storyRef={storyRef}
+              setReportModalVisible={setReportModalVisible}
+              currentStoryUserRef={currentStoryUserRef}
+              currentStory={currentStory}
+              currentStoryRef={currentStoryRef}
+              userStories={userStories}
+              dismissStoryModal={dismissStoryModal}
+              fetchStories={fetchStories}
+            />
+          }
         />
-        <ResendVerificationModal />
         <ReportModal
           visible={reportModalVisible}
-          onClose={() => setReportModalVisible(false)}
+          onClose={() => {
+            setReportModalVisible(false);
+          }}
           onSubmit={handleReportSubmit}
         />
-        <StoryOptionsModal
-          actionSheetRef={actionSheetRef}
-          storyRef={storyRef}
-          setReportModalVisible={setReportModalVisible}
-          currentStoryUserRef={currentStoryUserRef}
-          currentStory={currentStory}
-          userStories={userStories}
-          dismissStoryModal={dismissStoryModal}
-          fetchStories={fetchStories}
-        />
+        <ResendVerificationModal />
+        <StoryViewersSheet />
       </View>
     </>
   );
@@ -1696,6 +2366,63 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingVertical: 10,
   },
+  storyMuteOverlay: {
+    position: 'absolute',
+    top: 12,
+    right: 56,
+    zIndex: 999,
+    pointerEvents: 'box-none',
+  },
+  storyMuteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
+
+// Overlay renderer: draws saved text overlays (and optionally drawing images) on top of active story
+const OverlayRenderer = ({ currentStory, userStories }) => {
+  if (!currentStory || !userStories) return null;
+
+  // Find the story object matching currentStory id
+  let foundStory = null;
+  for (const user of userStories) {
+    const s = user.stories.find((st) => String(st.storyId) === String(currentStory) || String(st.id) === String(currentStory));
+    if (s) {
+      foundStory = s;
+      break;
+    }
+  }
+
+  if (!foundStory || !foundStory.overlays) return null;
+
+  const overlays = foundStory.overlays;
+
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
+      {/* Render drawing image if backend returned a base64 image */}
+      {overlays.drawing && overlays.drawing.imageBase64 && (
+        <Image
+          source={{ uri: overlays.drawing.imageBase64 }}
+          style={{ position: 'absolute', left: 0, top: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+          resizeMode="contain"
+        />
+      )}
+      {/* Render text overlays */}
+      {Array.isArray(overlays.texts) && overlays.texts.map((txt) => (
+        txt && txt.text ? (
+          <View key={txt.id || txt.text} style={{ position: 'absolute', left: txt.x || 0, top: txt.y || 0 }}>
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }}>
+              {txt.text}
+            </Text>
+          </View>
+        ) : null
+      ))}
+    </View>
+  );
+};
 
 export default HomeScreen;

@@ -1,0 +1,53 @@
+name: npm
+
+on:
+  workflow_dispatch: # Allows manual triggering
+  # You can also add other triggers here, e.g.:
+  # push:
+  #   branches: [ main ]
+
+jobs:
+  install-and-commit:
+    runs-on: ubuntu-latest
+    
+    # Explicitly grant write access to repository contents
+    permissions:
+      contents: write
+
+    steps:
+      # 1. Checkout the repository, specifically targeting the dhphuc branch
+      - name: Checkout dhphuc branch
+        uses: actions/checkout@v4
+        with:
+          ref: dhphuc
+          # Fetch all history so git can push properly
+          fetch-depth: 0 
+
+      # 2. Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*' 
+          cache: 'npm'          
+
+      # 3. Run npm install
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Commit and push changes back to dhphuc if any exist
+      - name: Commit and push changes
+        run: |
+          # Configure Git with GitHub Actions Bot credentials
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Stage only package.json and package-lock.json
+          git add package.json package-lock.json
+          
+          # Check if there are actually any changes staged to commit
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update package.json and package-lock.json after npm install [skip ci]"
+            git push origin dhphuc
+          else
+            echo "No changes detected in package files. Skipping commit."
+          fi

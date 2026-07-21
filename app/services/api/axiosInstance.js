@@ -21,6 +21,37 @@ axiosInstance.interceptors.request.use(
         // Attach the token to the request header
         config.headers.Authorization = `Bearer ${token}`;
       }
+      try {
+        const url = config?.url || "";
+        const isReportEndpoint =
+          (url && url.toLowerCase().includes("/v1.0/reports")) ||
+          (url && url.toLowerCase().includes("report"));
+
+        if (isReportEndpoint) {
+          let dataPreview = null;
+          try {
+            if (config.data && config.data._parts) {
+              dataPreview = "FormData";
+            } else if (config.data) {
+              dataPreview = JSON.stringify(config.data);
+              if (dataPreview && dataPreview.length > 1000)
+                dataPreview = dataPreview.slice(0, 1000) + "...";
+            }
+          } catch (e) {
+            dataPreview = "<unserializable>";
+          }
+
+          console.log("[API REQUEST] REPORT ->", {
+            method: config.method,
+            url: config.url,
+            hasAuthorizationHeader: !!config.headers?.Authorization,
+            dataPreview,
+          });
+        }
+      } catch (e) {
+        // non-fatal logging error
+        console.warn("[API REQUEST] report logging failed", e?.message || e);
+      }
     } catch (error) {
       console.error("Error retrieving token from AsyncStorage:", error);
     }
@@ -61,9 +92,51 @@ axiosInstance.interceptors.response.use(
       }
       console.error("----------------------------------");
     }
+    try {
+      const url = response?.config?.url || "";
+      const isReportEndpoint =
+        (url && url.toLowerCase().includes("/v1.0/reports")) ||
+        (url && url.toLowerCase().includes("report"));
+
+      if (isReportEndpoint) {
+        console.log("[API RESPONSE] REPORT <-", {
+          url: response.config.url,
+          status: response.status,
+          data: response.data,
+        });
+      }
+    } catch (e) {
+      console.warn("[API RESPONSE] report logging failed", e?.message || e);
+    }
+
     return response;
   },
   (error) => {
+    try {
+      const cfg = error?.config || {};
+      const url = cfg.url || "";
+      const isReportEndpoint =
+        (url && url.toLowerCase().includes("/v1.0/reports")) ||
+        (url && url.toLowerCase().includes("report"));
+
+      const logObj = {
+        url,
+        method: cfg.method,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        responseData: error?.response?.data,
+        hasAuthorizationHeader: !!cfg.headers?.Authorization,
+      };
+
+      console.error("[API ERROR]", logObj);
+
+      if (isReportEndpoint) {
+        console.error("[API ERROR] REPORT DETAILS ->", logObj);
+      }
+    } catch (e) {
+      console.error("[API ERROR] failed to log error details", e?.message || e);
+    }
+
     return Promise.reject(error);
   }
 );

@@ -47,14 +47,14 @@ const PostItem = ({
   onSave: onSaveCallback, // Callback for single view save updates
 }) => {
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
-  const { username } = useContext(AuthContext);
+  const { username, userInfo } = useContext(AuthContext);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const isCurrentUser = item?.author?.username === username;
+  const isCurrentUser = item?.is_owner === true || item?.topic?.is_owner === true || item?.author?.username === username || String(item?.author?.id) === String(userInfo?.id) || String(item?.user_id) === String(userInfo?.id) || String(item?.uid) === String(userInfo?.id) || String(item?.userid) === String(userInfo?.id) || item?.is_mine === true || item?.is_author === true;
 
   // Use external state if provided (for single view), otherwise use item props
   const currentVotes =
@@ -103,7 +103,7 @@ const PostItem = ({
           style: "default",
           onPress: () => {
             if (navigation) {
-              navigation.navigate("EditPostScreen", { postId: item.id });
+              navigation.navigate("PostEditScreen", { postId: item.id });
             }
             hideBottomSheet();
           },
@@ -118,7 +118,8 @@ const PostItem = ({
 
   const handleReportSubmit = async (reason) => {
     try {
-      await reportUser({ topic_id: item.id, reason });
+      const reportedUserId = item?.author?.id || item?.user_id || item?.uid || item?.userid;
+      await reportUser({ reported_user_id: reportedUserId, topic_id: item.id, reason });
       Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
       Alert.alert(t('profile.errorTitle'), e.response?.data?.message || e.message || t('post.reportError'));
@@ -148,8 +149,7 @@ const PostItem = ({
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${item.author.username
-              }/posts/${generatePostSlug(item.id, item.title)}?source=share`
+              `https://chuyenbienhoa.com/${item.author.id}/posts/${generatePostSlug(item.id, item.title)}?source=share`
             );
           }}
         >
@@ -158,8 +158,13 @@ const PostItem = ({
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
-        {isCurrentUser && (
-          <TouchableOpacity onPress={() => console.log("Privacy", item.id)}>
+        {false && isCurrentUser && (
+          <TouchableOpacity onPress={() => {
+            if (navigation) {
+              navigation.navigate("PostEditScreen", { postId: item.id });
+            }
+            hideBottomSheet();
+          }}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
@@ -171,7 +176,7 @@ const PostItem = ({
         {isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
-              navigation.navigate("EditPostScreen", { postId: item.id });
+              navigation.navigate("PostEditScreen", { postId: item.id });
             }
             hideBottomSheet();
           }}>
@@ -329,9 +334,10 @@ const PostItem = ({
           // Single view: no navigation, just show title
           <Text style={{
             fontWeight: "bold",
-            fontSize: 21,
+            fontSize: 28,
             paddingHorizontal: 15,
-            marginTop: 15,
+            marginTop: 25,
+            marginBottom: 10,
             flex: 1,
             color: theme.text
           }}>
@@ -562,14 +568,16 @@ const PostItem = ({
             </View>
           )}
         </Text>
-        <Text style={{ color: theme.subText }}> · {formatTime(item.created_at || item.time || item.created_at_human)}</Text>
+        <Text style={{ color: theme.subText }}>
+          {" · "}{formatTime(item.created_at || item.time || item.created_at_human)}{item.is_edited ? ` (${t('post.edited')})` : ""}
+        </Text>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
-        <View style={{ gap: 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <View style={{ gap: single ? 16 : 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
           <Pressable onPress={() => handleVote(1)}>
             <Ionicons
               name="arrow-up-outline"
-              size={28}
+              size={single ? 34 : 28}
               color={
                 currentVotes.some(
                   (vote) => vote?.username === username && vote.vote_value === 1
@@ -591,7 +599,7 @@ const PostItem = ({
                 )
                   ? { color: "#ef4444" } // Apply red color for downvotes
                   : { color: theme.subText }, // Default themed color
-              { fontSize: 20, fontWeight: "600" }, // Additional styles
+              { fontSize: single ? 24 : 20, fontWeight: "600" }, // Additional styles
             ]}
           >
             {currentVotes.reduce(
@@ -602,7 +610,7 @@ const PostItem = ({
           <Pressable onPress={() => handleVote(-1)}>
             <Ionicons
               name="arrow-down-outline"
-              size={28}
+              size={single ? 34 : 28}
               color={
                 currentVotes.some(
                   (vote) =>
@@ -617,9 +625,9 @@ const PostItem = ({
             onPress={handleSavePost}
             style={[
               {
-                borderRadius: 8, // Rounded corners
-                width: 33.6, // Width of the button
-                height: 33.6, // Height of the button
+                borderRadius: single ? 10 : 8, // Rounded corners
+                width: single ? 42 : 33.6, // Width of the button
+                height: single ? 42 : 33.6, // Height of the button
                 alignItems: "center", // Center the content horizontally
                 justifyContent: "center", // Center the content vertically
               },
@@ -630,24 +638,24 @@ const PostItem = ({
           >
             <Ionicons
               name="bookmark"
-              size={20}
+              size={single ? 24 : 20}
               color={currentSaved ? theme.primary : theme.subText} // Green icon when saved, themed when not saved
             />
           </Pressable>
           <View style={{ flex: 1, flexDirection: "row-reverse", alignItems: "center" }}>
-            <Text style={{ color: theme.subText }}>
+            <Text style={{ color: theme.subText, fontSize: single ? 16 : undefined }}>
               {item.view_count ?? item.views_count ?? item.views ?? 0}
             </Text>
-            <View style={{ marginRight: 4, marginLeft: 8 }}>
-              <Ionicons name="eye-outline" size={20} color={theme.subText} />
+            <View style={{ marginRight: 4, marginLeft: single ? 12 : 8 }}>
+              <Ionicons name="eye-outline" size={single ? 24 : 20} color={theme.subText} />
             </View>
             {single ? (
               // Single view: just show comment count, no navigation
               <View style={{ flexDirection: "row-reverse", alignItems: "center" }}>
-                <Text style={{ color: theme.subText, marginLeft: 4 }}>
+                <Text style={{ color: theme.subText, marginLeft: 4, fontSize: 16 }}>
                   {item.reply_count ?? item.comments ?? 0}
                 </Text>
-                <Ionicons name="chatbox-outline" size={20} color={theme.subText} />
+                <Ionicons name="chatbox-outline" size={24} color={theme.subText} />
               </View>
             ) : (
               // Feed view: clickable comment count that navigates

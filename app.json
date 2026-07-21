@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "2.7.4",
+    "version": "3.1.0",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -16,19 +16,31 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "274",
+      "buildNumber": "310",
       "infoPlist": {
+        "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
+        "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
         "ITSAppUsesNonExemptEncryption": false,
+        "NSAppLinksUsageDescription": "Opening content from CBH Youth Online",
+        "NSUserActivityTypes": [
+          "NSUserActivityTypeBrowsingWeb"
+        ],
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["com.fatties.youth"]
+            "CFBundleURLSchemes": [
+              "com.fatties.youth"
+            ]
           }
         ],
         "UIApplicationSceneManifest": {
           "UIApplicationSupportsMultipleScenes": false,
           "UISceneConfigurations": {}
         }
-      }
+      },
+      "associatedDomains": [
+        "applinks:chuyenbienhoa.com",
+        "applinks:www.chuyenbienhoa.com"
+      ]
     },
     "android": {
       "intentFilters": [
@@ -44,6 +56,23 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.fatties.youth",
+              "host": "post"
+            },
+            {
+              "scheme": "com.fatties.youth",
+              "host": "story"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
@@ -52,7 +81,7 @@
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth",
-      "versionCode": 274,
+      "versionCode": 310,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -71,11 +100,11 @@
       [
         "expo-splash-screen",
         {
-          "image": "./app/assets/adaptive-icon.png",
+          "image": "./app/assets/cbh-youth-iOS-Default-1024x1024@1x.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
-            "image": "./app/assets/adaptive-icon.png",
+            "image": "./app/assets/cbh-youth-iOS-Dark-1024x1024@1x.png",
             "backgroundColor": "#000000"
           }
         }
@@ -99,7 +128,15 @@
       "expo-web-browser",
       "expo-apple-authentication",
       "expo-localization",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification.png",

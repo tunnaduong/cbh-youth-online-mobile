@@ -37,31 +37,25 @@ export const colors = {
 
 export const ThemeProvider = ({ children }) => {
   const systemColorScheme = useColorScheme();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [useSystemTheme, setUseSystemTheme] = useState(false);
-  const [hideTabLabels, setHideTabLabelsState] = useState(false);
 
-  useEffect(() => {
+  // Read saved theme SYNCHRONOUSLY on first render (MMKV is sync)
+  // so there is no flash of wrong background color
+  const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = storage.getString("theme");
-    if (savedTheme) {
-      if (savedTheme === "system") {
-        setIsDarkMode(systemColorScheme === "dark");
-        setUseSystemTheme(true);
-      } else {
-        setIsDarkMode(savedTheme === "dark");
-        setUseSystemTheme(false);
-      }
-    } else {
-      setIsDarkMode(systemColorScheme === "dark");
-      setUseSystemTheme(true);
-      storage.set("theme", "system");
-    }
+    if (savedTheme === "dark") return true;
+    if (savedTheme === "light") return false;
+    // "system" or no saved value → follow device theme
+    return systemColorScheme === "dark";
+  });
 
-    const savedHideTabLabels = storage.getBoolean("hideTabLabels");
-    if (savedHideTabLabels !== undefined) {
-      setHideTabLabelsState(savedHideTabLabels);
-    }
-  }, []);
+  const [useSystemTheme, setUseSystemTheme] = useState(() => {
+    const savedTheme = storage.getString("theme");
+    return !savedTheme || savedTheme === "system";
+  });
+
+  const [hideTabLabels, setHideTabLabelsState] = useState(() => {
+    return storage.getBoolean("hideTabLabels") ?? false;
+  });
 
   useEffect(() => {
     if (useSystemTheme) {

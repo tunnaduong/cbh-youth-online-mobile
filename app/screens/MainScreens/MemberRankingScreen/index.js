@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getMemberRanking } from "../../../services/api/Api";
@@ -177,7 +176,7 @@ export default function MemberRankingScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -194,7 +193,7 @@ export default function MemberRankingScreen({ navigation }) {
         keyExtractor={(item) => item.username}
         renderItem={renderItem}
         ListHeaderComponent={renderTop3}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 20 + (insets?.bottom || 0) }]}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 

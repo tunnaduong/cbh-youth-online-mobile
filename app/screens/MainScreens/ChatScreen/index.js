@@ -3,16 +3,16 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   Image,
   TextInput,
-  StatusBar,
   DeviceEventEmitter,
+  RefreshControl,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { getConversations } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
@@ -22,6 +22,8 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LottieView from "lottie-react-native";
+import LiquidButton from "../../../components/LiquidButton";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -41,10 +43,26 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
   const lastScrollYRef = useRef(0);
+  const lottieRef = useRef(null);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
     const diff = offsetY - lastScrollYRef.current;
     if (offsetY < 50) {
@@ -88,6 +106,15 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     }
   }, []);
 
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    fetchConversations().finally(() => {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 1000);
+    });
+  }, []);
+
   React.useEffect(() => {
     if (scrollTriggerRef) {
       scrollTriggerRef(scrollToTopOrReload);
@@ -106,7 +133,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (cached) {
       setConversations(JSON.parse(cached));
     }
-    fetchConversations();
+    setRefreshing(true);
+    fetchConversations().finally(() => {
+      setTimeout(() => setRefreshing(false), 1000);
+    });
   }, []);
 
   const fetchConversations = async () => {
@@ -229,36 +259,40 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <View style={[styles.header, { marginTop: insets.top }]}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.title')}</Text>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("NewConversationScreen");
-          }}
+      
+      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 50 + insets.top }]} pointerEvents="box-none">
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('chat.title')}</Animated.Text>
+        <LiquidButton
+          providerId="Chat"
+          onPress={() => navigation.navigate("NewConversationScreen")}
+          scrollY={scrollY}
+          size={44}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44 }}
+          borderRadius={22}
         >
-          <View
-            className="flex-row items-center justify-center rounded-full px-3 py-2"
-            style={{
-              backgroundColor: theme.primary,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.22,
-              shadowRadius: 2.22,
-              elevation: 3,
-              height: 35,
-            }}
-          >
-            <Ionicons
-              name="add"
-              size={20}
-              color="#fff"
-              style={{ marginRight: 6 }}
-            />
-            <Text style={{ color: "#fff", fontWeight: "600" }}>{t('chat.newMessage')}</Text>
-          </View>
-        </TouchableOpacity>
+          <Ionicons
+            name="add"
+            size={20}
+            color={theme.text}
+            style={{ marginRight: 4, flexShrink: 0 }}
+          />
+          <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
+            {t('chat.newMessage')}
+          </Text>
+        </LiquidButton>
       </View>
+
+      {refreshing && (
+        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <LottieView
+            source={require("../../../assets/refresh.json")}
+            style={{ width: 40, height: 40 }}
+            ref={lottieRef}
+            loop
+            autoPlay
+          />
+        </View>
+      )}
 
       <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
         <Ionicons
@@ -284,8 +318,19 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         renderItem={renderItem}
         onScroll={handleScroll}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="transparent"
+            colors={["transparent"]}
+            progressBackgroundColor="transparent"
+            style={{ backgroundColor: "transparent" }}
+            progressViewOffset={-1000}
+          />
+        }
         contentContainerStyle={{
-          paddingBottom: 110,
+          paddingBottom: 110 + insets.bottom,
           flex: filteredConversations.length === 0 ? 1 : undefined,
         }}
         ItemSeparatorComponent={() => (
@@ -321,11 +366,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: "space-between",
     height: 50,
+    gap: 8,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    flex: 1,
+    flexShrink: 1,
   },
   searchContainer: {
     flexDirection: "row",

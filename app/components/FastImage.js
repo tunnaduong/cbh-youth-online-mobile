@@ -31,6 +31,8 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, ...props }, ref
       source={mappedSource}
       contentFit={contentFit}
       priority={priority}
+      cachePolicy="memory-disk"
+      transition={200}
       style={style}
       {...props}
     />

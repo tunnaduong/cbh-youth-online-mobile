@@ -8,21 +8,21 @@ import React, {
 import {
   View,
   ScrollView,
-  SafeAreaView,
   TouchableOpacity,
   Share,
   Alert,
   Text,
   Pressable,
   Image,
-  Platform,
   ActionSheetIOS,
   KeyboardAvoidingView,
+  Animated,
+  RefreshControl,
+  Platform,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+  useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
@@ -34,6 +34,7 @@ import {
   deleteComment,
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
+import LiquidButton from "../../../components/LiquidButton";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem from "../../../components/PostItem";
@@ -43,6 +44,8 @@ import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+import { generatePostSlug } from "../../../utils/slugify";
+import LottieView from "lottie-react-native";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -55,6 +58,7 @@ const PostScreen = ({ route, navigation }) => {
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
   const [commentText, setCommentText] = useState("");
+  const [isAnonymousComment, setIsAnonymousComment] = useState(false);
   const [parentId, setParentId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,15 +69,30 @@ const PostScreen = ({ route, navigation }) => {
   const commentRefs = useRef({});
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
-  const isCurrentUser = post?.author?.username === username;
+  const isCurrentUser = post?.is_owner === true || post?.topic?.is_owner === true || post?.author?.username === username || String(post?.author?.id) === String(userInfo?.id) || String(post?.user_id) === String(userInfo?.id) || String(post?.uid) === String(userInfo?.id) || String(post?.userid) === String(userInfo?.id) || post?.is_mine === true || post?.is_author === true;
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
   const { t } = useTranslation();
+  const [refreshing, setRefreshing] = useState(false);
+  const lottieRef = useRef(null);
 
-  React.useEffect(() => {
-    navigation.setOptions({ title: t('post.details') });
-  }, [navigation, t]);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   React.useEffect(() => {
     fetchData();
@@ -108,7 +127,7 @@ const PostScreen = ({ route, navigation }) => {
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${post?.author?.username}/posts/${post?.id}?source=share`
+              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`
             );
             hideBottomSheet();
           }}
@@ -118,20 +137,25 @@ const PostScreen = ({ route, navigation }) => {
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
+        {/*
         {isCurrentUser && (
-          <TouchableOpacity onPress={() => console.log("Privacy", post?.id)}>
+          <TouchableOpacity onPress={() => {
+            navigation.navigate("PostEditScreen", { postId: post?.id });
+            hideBottomSheet();
+          }}>
             <View className="flex-row items-center">
-              <Ionicons name="lock-closed-outline" size={23} />
-              <Text style={{ padding: 12, fontSize: 17 }}>
+              <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
+              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
                 {t('post.privacy')}
               </Text>
             </View>
           </TouchableOpacity>
         )}
+        */}
         {isCurrentUser && (
           <TouchableOpacity
             onPress={() => {
-              navigation.navigate("EditPostScreen", { postId: post?.id });
+              navigation.navigate("PostEditScreen", { postId: post?.id });
               hideBottomSheet();
             }}
           >
@@ -208,7 +232,7 @@ const PostScreen = ({ route, navigation }) => {
           text: t('post.editAction'),
           style: "default",
           onPress: () => {
-            navigation.navigate("EditPostScreen", { postId: post.id });
+            navigation.navigate("PostEditScreen", { postId: post.id });
             hideBottomSheet();
           },
         },
@@ -219,19 +243,6 @@ const PostScreen = ({ route, navigation }) => {
       ]
     );
   };
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={handleOpenBottomSheet}
-          style={{ marginRight: 16 }}
-        >
-          <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, isSaved, post]);
 
   const fetchData = async () => {
     try {
@@ -247,10 +258,18 @@ const PostScreen = ({ route, navigation }) => {
       setVotes(topic?.votes ?? []); // Update votes state
       setIsSaved(topic?.is_saved ?? false); // Update saved status
       setComments(comments ?? []);
-      console.log(JSON.stringify(comments, null, 2));
     } catch (error) {
       console.error("Error fetching data:", error);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData().finally(() => {
+      setTimeout(() => {
+        setRefreshing(false);
+      }, 1000);
+    });
   };
 
   const focusCommentInput = (id, name) => {
@@ -385,10 +404,12 @@ const PostScreen = ({ route, navigation }) => {
         comment: commentText.trim(),
         topic_id: post.id,
         replying_to: replyingToId,
+        is_anonymous: isAnonymousComment,
       });
 
       // Reset input state
       setCommentText("");
+      setIsAnonymousComment(false);
       setParentId(null);
       setReplyingTo(null);
 
@@ -453,7 +474,8 @@ const PostScreen = ({ route, navigation }) => {
 
   const handleReportSubmit = async (reason) => {
     try {
-      await reportUser({ topic_id: post.id, reason });
+      const reportedUserId = post?.author?.id || post?.user_id || post?.uid || post?.userid;
+      await reportUser({ reported_user_id: reportedUserId, topic_id: post.id, reason });
       Alert.alert(
         t('post.reportSuccessTitle'),
         t('post.reportSuccessBody')
@@ -626,6 +648,7 @@ const PostScreen = ({ route, navigation }) => {
             // Edit comment
             setEditingCommentId(commentId);
             setEditingCommentText(comment.content || "");
+            setIsAnonymousComment(!!comment.is_anonymous);
             setParentId(null);
             setReplyingTo(null);
             if (commentInputRef.current) {
@@ -651,6 +674,7 @@ const PostScreen = ({ route, navigation }) => {
             onPress: () => {
               setEditingCommentId(commentId);
               setEditingCommentText(comment.content || "");
+              setIsAnonymousComment(!!comment.is_anonymous);
               setParentId(null);
               setReplyingTo(null);
               if (commentInputRef.current) {
@@ -748,11 +772,13 @@ const PostScreen = ({ route, navigation }) => {
     try {
       await updateComment(editingCommentId, {
         comment: editingCommentText.trim(),
+        is_anonymous: isAnonymousComment,
       });
 
       // Reset editing state
       setEditingCommentId(null);
       setEditingCommentText("");
+      setIsAnonymousComment(false);
 
       // Refresh comments
       const response = await getPostDetail(postId);
@@ -850,11 +876,12 @@ const PostScreen = ({ route, navigation }) => {
             >
               <Pressable
                 onPress={() =>
-                  author.username &&
+                  author.username && !comment.is_anonymous &&
                   navigation.navigate("ProfileScreen", {
                     username: author.username,
                   })
                 }
+                disabled={!author.username || !!comment.is_anonymous}
               >
                 <View
                   style={{
@@ -865,30 +892,37 @@ const PostScreen = ({ route, navigation }) => {
                     overflow: "hidden",
                     borderWidth: 1,
                     borderColor: theme.border,
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
-                  {author.username && (
+                  {comment.is_anonymous ? (
+                    <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
+                    </View>
+                  ) : author.username ? (
                     <Image
                       source={{
                         uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
                       }}
                       style={{ width: 40, height: 40, borderRadius: 30 }}
                     />
-                  )}
+                  ) : null}
                 </View>
               </Pressable>
               <View style={{ flexShrink: 1 }}>
                 <Pressable
                   onPress={() =>
-                    author.username &&
+                    author.username && !comment.is_anonymous &&
                     navigation.navigate("ProfileScreen", {
                       username: author.username,
                     })
                   }
+                  disabled={!author.username || !!comment.is_anonymous}
                 >
                   <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                    {author.profile_name || author.username || t('post.anonymous')}
-                    {author.verified && (
+                    {comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || "")}
+                    {author.verified && !comment.is_anonymous && (
                       <View>
                         <Verified
                           width={15}
@@ -931,13 +965,13 @@ const PostScreen = ({ route, navigation }) => {
                 </Text>
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""} ·
+                    {comment.created_at ? formatTime(comment.created_at) : ""}{comment.is_edited ? ` (${t('post.edited')})` : ""} ·
                   </Text>
                   <TouchableOpacity
                     onPress={() =>
                       focusCommentInput(
                         comment.id,
-                        author.profile_name || author.username || "",
+                        comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || ""),
                         level
                       )
                     }
@@ -1030,6 +1064,27 @@ const PostScreen = ({ route, navigation }) => {
     }
   );
 
+  // Froggy loading animation
+  const bounceValue = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (post == null) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceValue, {
+            toValue: -20,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceValue, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [post]);
+
   return post == null ? (
     <View
       style={{
@@ -1038,25 +1093,100 @@ const PostScreen = ({ route, navigation }) => {
         backgroundColor: theme.background,
         flex: 1,
       }}
-    ></View>
+    >
+      <Animated.Image
+        source={require("../../../assets/sad_frog.png")}
+        style={{
+          width: 80,
+          height: 80,
+          transform: [{ translateY: bounceValue }],
+        }}
+        resizeMode="contain"
+      />
+    </View>
   ) : (
     <>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: theme.background }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={headerHeight}
-      >
-        <SafeAreaView
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {/* Floating header */}
+        <View
+          pointerEvents="box-none"
           style={{
-            flex: 1,
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
           }}
         >
-          <ScrollView
-            contentContainerStyle={{
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
               backgroundColor: theme.background,
+              opacity: headerBgOpacity,
             }}
-            ref={scrollViewRef}
-          >
+          />
+          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+            <View style={{ width: 44 }}>
+              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
+            </View>
+            <Animated.Text
+              style={{
+                fontSize: 18,
+                fontWeight: "600",
+                color: theme.primary,
+                flex: 1,
+                textAlign: 'center',
+                opacity: headerTitleOpacity,
+              }}
+              numberOfLines={1}
+            >
+              {t('post.details')}
+            </Animated.Text>
+            <View style={{ width: 44, alignItems: "flex-end" }}>
+              <LiquidButton size={44} scrollY={scrollY} onPress={handleOpenBottomSheet}>
+                <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
+              </LiquidButton>
+            </View>
+          </View>
+        </View>
+
+        {refreshing && (
+          <View style={{ position: "absolute", top: 15, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+            <LottieView
+              source={require("../../../assets/refresh.json")}
+              style={{ width: 40, height: 40 }}
+              ref={lottieRef}
+              loop
+              autoPlay
+            />
+          </View>
+        )}
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          contentContainerStyle={{
+            paddingTop: 64 + insets.top,
+            paddingBottom: insets.bottom,
+            backgroundColor: theme.background,
+            flexGrow: 1,
+          }}
+          ref={scrollViewRef}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="transparent"
+              colors={["transparent"]}
+              progressBackgroundColor="transparent"
+              style={{ backgroundColor: "transparent" }}
+            />
+          }
+        >
             <PostItem
               navigation={navigation}
               item={post}
@@ -1082,17 +1212,23 @@ const PostScreen = ({ route, navigation }) => {
                 ))
               )}
             </View>
-          </ScrollView>
+            {/* Spacer to prevent comment bar from covering last comments */}
+            <View style={{ height: 50, backgroundColor: 'transparent' }} />
+          </Animated.ScrollView>
           {(parentId || editingCommentId) && (
             <View
               style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 72 + insets.bottom,
                 flexDirection: "row",
                 alignItems: "center",
                 paddingHorizontal: 15,
-                paddingVertical: 10,
-                backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6",
-                borderTopWidth: 1,
-                borderTopColor: theme.border,
+                paddingVertical: 8,
+                backgroundColor: "transparent",
+                borderTopWidth: 0,
+                zIndex: 20,
               }}
             >
               <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }}>
@@ -1107,6 +1243,7 @@ const PostScreen = ({ route, navigation }) => {
                   setEditingCommentId(null);
                   setEditingCommentText("");
                   setCommentText("");
+                  setIsAnonymousComment(false);
                 }}
                 style={{
                   marginLeft: 10,
@@ -1120,23 +1257,38 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          <CommentBar
-            value={commentText}
-            onChangeText={setCommentText}
-            placeholderText={t('post.commentPlaceholder')}
-            onSubmit={onSubmit}
-            ref={commentInputRef}
-            isSubmitting={isSubmitting}
-            disabled={!commentText.trim() || isSubmitting}
-          />
-
           <ReportModal
             visible={reportModalVisible}
             onClose={() => setReportModalVisible(false)}
             onSubmit={handleReportSubmit}
           />
-        </SafeAreaView>
-      </KeyboardAvoidingView>
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'transparent',
+            zIndex: 5,
+          }}
+        >
+          <CommentBar
+            value={editingCommentId ? editingCommentText : commentText}
+            onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
+            placeholderText={t('post.commentPlaceholder')}
+            onSubmit={onSubmit}
+            ref={commentInputRef}
+            isSubmitting={isSubmitting}
+            disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
+            isAnonymous={isAnonymousComment}
+            onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
+            anonymousDisabled={!!editingCommentId}
+          />
+        </KeyboardAvoidingView>
+        </View>
     </>
   );
 };

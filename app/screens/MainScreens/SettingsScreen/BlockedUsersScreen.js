@@ -2,7 +2,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Alert,
@@ -13,9 +12,9 @@ import {
   Platform,
   Switch,
   Image,
-  StatusBar,
+  Animated,
 } from "react-native";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -30,6 +29,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
 
 const SettingItem = ({
   icon,
@@ -99,6 +99,19 @@ export default function BlockedUsersScreen({ navigation }) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState([]);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -161,15 +174,42 @@ export default function BlockedUsersScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('blockedUsers.title')}</Text>
-        <View style={{ width: 24 }} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      
+      {/* Floating header */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        }}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: theme.background,
+            opacity: headerBgOpacity,
+          }}
+        />
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+          <View style={{ width: 44 }}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, {
+              color: theme.primary,
+              flex: 1,
+              textAlign: 'center',
+              opacity: headerTitleOpacity,
+            }]}
+            numberOfLines={1}
+          >
+            {t('blockedUsers.title')}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
       {loading ? (
@@ -182,7 +222,16 @@ export default function BlockedUsersScreen({ navigation }) {
           <Text style={{ marginTop: 10, color: theme.subText }}>{t('blockedUsers.empty')}</Text>
         </View>
       ) : (
-        <ScrollView style={styles.content}>
+        <Animated.ScrollView 
+          style={styles.content} 
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
+        >
           {blockedUsers.map((user) => (
             <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -203,10 +252,10 @@ export default function BlockedUsersScreen({ navigation }) {
               </TouchableOpacity>
             </View>
           ))}
-        </ScrollView>
+        </Animated.ScrollView>
       )}
       <Toast topOffset={60} />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -219,9 +268,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    height: 50,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 56,
   },
   headerTitle: {
     fontSize: 18,

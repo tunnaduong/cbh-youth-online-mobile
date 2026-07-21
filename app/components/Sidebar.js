@@ -4,7 +4,6 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   ActionSheetIOS,
   Animated,
@@ -23,6 +22,11 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
+import {
+  LiquidGlassView,
+  useIOSGlass,
+  BlurView,
+} from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -75,7 +79,7 @@ const CollapsibleMenuItem = ({
   );
 };
 
-const Sidebar = () => {
+const Sidebar = ({ providerId, isOpen }) => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
@@ -206,7 +210,39 @@ const Sidebar = () => {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
+    <View style={{ flex: 1 }}>
+      {Platform.OS === "ios" ? (
+        useIOSGlass ? (
+          <LiquidGlassView
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
+            glassType="clear"
+            glassTintColor={isDarkMode ? "rgba(18,18,18,0.75)" : "rgba(255,255,255,0.75)"}
+            glassOpacity={1}
+          />
+        ) : BlurView ? (
+          <BlurView
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderTopRightRadius: 24, borderBottomRightRadius: 24 }}
+            blurType={isDarkMode ? "dark" : "light"}
+            blurAmount={15}
+            reducedTransparencyFallbackColor={isDarkMode ? "#111111" : "#F8F8F8"}
+          />
+        ) : (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: isDarkMode ? 'rgba(18,18,18,0.85)' : 'rgba(255,255,255,0.85)', borderTopRightRadius: 24, borderBottomRightRadius: 24 }} />
+        )
+      ) : (
+        // Android: OneUI-style transparent tint (no liquid glass for sidebar)
+        <View
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            borderTopRightRadius: 24,
+            borderBottomRightRadius: 24,
+            backgroundColor: isDarkMode ? 'rgba(18, 18, 18, 0.88)' : 'rgba(255, 255, 255, 0.88)',
+            borderRightWidth: 1,
+            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          }}
+        />
+      )}
+      <View style={{ flex: 1, backgroundColor: "transparent", paddingTop: insets.top }}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
         showsVerticalScrollIndicator={false}
@@ -463,6 +499,7 @@ const Sidebar = () => {
             />
           </List.Section>
         </ScrollView>
+      </View>
     </View>
   );
 };

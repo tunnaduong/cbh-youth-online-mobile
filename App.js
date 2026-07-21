@@ -1,7 +1,7 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, StatusBar, Alert } from "react-native";
+import { View, Text, Platform, Alert, StatusBar, Linking } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 
@@ -21,6 +21,10 @@ import MultiContextProvider from "./app/contexts";
 import ProfileScreen from "./app/screens/MainScreens/ProfileScreen";
 import LottieView from "lottie-react-native";
 import SplashScreen from "./app/components/SplashScreen";
+import LiquidHeaderBackground from "./app/components/LiquidHeaderBackground";
+import LiquidButton from "./app/components/LiquidButton";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -58,6 +62,45 @@ import { useTranslation } from "react-i18next";
 
 const Stack = createStackNavigator();
 
+/**
+ * Parse a custom-scheme deep link and return navigation target.
+ * Supported formats:
+ *   com.fatties.youth://post/<postId>          → PostScreen
+ *   com.fatties.youth://post/<postId>-<slug>   → PostScreen
+ *   com.fatties.youth://story/<storyId>        → HomeScreen (storyId param)
+ */
+const parseDeepLink = (url) => {
+  if (!url) return null;
+  try {
+    // Strip scheme prefix to get  host + path
+    // e.g. "com.fatties.youth://post/366199398-phong-canh"
+    const withoutScheme = url.replace(/^[a-z.]+:\/\//, ""); // "post/366199398-phong-canh"
+    const [host, ...rest] = withoutScheme.split("/");
+    const pathSegment = rest.join("/"); // everything after host
+
+    if (host === "post" && pathSegment) {
+      // Extract numeric post ID from the beginning of the slug (e.g. "366199398-phong-canh" → 366199398)
+      const postId = parseInt(pathSegment.split("-")[0], 10);
+      if (!isNaN(postId)) return { screen: "PostScreen", params: { postId, item: null } };
+    }
+
+    if (host === "story" && pathSegment) {
+      const storyId = pathSegment.split("?")[0]; // strip query if any
+      if (storyId) return {
+        // Story lives inside the Home tab of MainScreens
+        screen: "MainScreens",
+        params: {
+          screen: "Home",
+          params: { openStoryId: storyId },
+        },
+      };
+    }
+  } catch (e) {
+    console.warn("[DeepLink] parse error:", e);
+  }
+  return null;
+};
+
 // Main App component
 const App = () => {
   const { theme, isDarkMode } = useTheme();
@@ -65,6 +108,56 @@ const App = () => {
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
+  const navigationRef = useRef(null);
+  const pendingDeepLink = useRef(null);
+
+  // Handle deep links (custom scheme: com.fatties.youth://post/<id> or story/<id>)
+  useEffect(() => {
+    // App opened from a cold start via deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        const target = parseDeepLink(url);
+        if (target) pendingDeepLink.current = target;
+      }
+    });
+
+    // App brought to foreground via deep link while already running
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      const target = parseDeepLink(url);
+      if (target && navigationRef.current) {
+        navigationRef.current.navigate(target.screen, target.params);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  // Once nav is ready + user is logged in, flush the pending deep link
+  const handleNavigationReady = () => {
+    if (pendingDeepLink.current && isLoggedIn) {
+      navigationRef.current?.navigate(
+        pendingDeepLink.current.screen,
+        pendingDeepLink.current.params
+      );
+      pendingDeepLink.current = null;
+    }
+  };
+
+  // Also flush when user logs in after app was already open (e.g. opened link while logged out)
+  useEffect(() => {
+    if (isLoggedIn && pendingDeepLink.current && navigationRef.current) {
+      // Small delay to ensure navigator is fully mounted after login
+      setTimeout(() => {
+        if (pendingDeepLink.current) {
+          navigationRef.current?.navigate(
+            pendingDeepLink.current.screen,
+            pendingDeepLink.current.params
+          );
+          pendingDeepLink.current = null;
+        }
+      }, 500);
+    }
+  }, [isLoggedIn]);
 
   const handleSplashFinish = () => {
     setShowSplash(false);
@@ -95,14 +188,14 @@ const App = () => {
     <>
       <StatusBar
         barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={Platform.OS === "android" ? theme.headerBackground : "transparent"}
-        translucent={Platform.OS === "android"}
+        backgroundColor="transparent"
+        translucent={true}
+        animated={true}
       />
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
         <Stack.Navigator
           screenOptions={{
             headerStyle: {
-              height: 50 + insets.top,
               backgroundColor: theme.headerBackground,
               elevation: 0,
               shadowOpacity: 0,
@@ -144,11 +237,15 @@ const App = () => {
                 name="PostScreen"
                 options={{
                   title: t('post.details'),
-                  headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: theme.primary,
+                  headerBackTitleVisible: false,
+                  headerTransparent: true,
+                  headerLeft: (props) => (
+                    <LiquidButton size={40} providerId="PostScreen" onPress={props.onPress} containerStyle={{ marginLeft: Platform.OS === 'ios' ? 0 : 16 }}>
+                      <Ionicons name="arrow-back" size={22} color={theme.text} />
+                    </LiquidButton>
+                  ),
                   headerStyle: {
-                    height: 50 + insets.top,
-                    backgroundColor: theme.headerBackground,
+                    backgroundColor: "transparent",
                     elevation: 0,
                     shadowOpacity: 0,
                     borderBottomWidth: 0,
@@ -156,6 +253,9 @@ const App = () => {
                   },
                   headerTitleStyle: {
                     color: theme.text,
+                    textShadowColor: isDarkMode ? '#000' : '#FFF',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
                   }
                 }}
                 component={PostScreen}
@@ -320,16 +420,26 @@ const App = () => {
                 name="ExploreScreen"
                 component={ExploreScreen}
                 options={{
-                  title: t('home.explore'),
-                  headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: theme.primary,
+                  title: t('sidebar.explore'),
+                  headerBackTitleVisible: false,
+                  headerTransparent: true,
+                  headerLeft: (props) => (
+                    <LiquidButton size={40} providerId="ExploreScreen" onPress={props.onPress} containerStyle={{ marginLeft: Platform.OS === 'ios' ? 0 : 16 }}>
+                      <Ionicons name="arrow-back" size={22} color={theme.text} />
+                    </LiquidButton>
+                  ),
                   headerStyle: {
-                    height: 50 + insets.top,
-                    backgroundColor: theme.headerBackground,
+                    backgroundColor: "transparent",
                     borderBottomWidth: 0,
                     shadowOffset: { height: 0, width: 0 },
                     elevation: 0,
                   },
+                  headerTitleStyle: {
+                    color: theme.text,
+                    textShadowColor: isDarkMode ? '#000' : '#FFF',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
+                  }
                 }}
               />
               <Stack.Screen

@@ -1,15 +1,13 @@
-import React, { useContext } from "react";
+import React, { useContext, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   Switch,
   Image,
-  Alert,
   Linking,
-  StatusBar,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -19,9 +17,10 @@ import { ScrollView } from "react-native";
 import Dropdown from "../../../components/Dropdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import * as Application from 'expo-application';
+import * as Application from "expo-application";
 import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../../i18n";
+import LiquidButton from "../../../components/LiquidButton";
 
 const SettingItem = ({
   icon,
@@ -37,14 +36,15 @@ const SettingItem = ({
     style={[
       styles.settingItem,
       lastItem && styles.lastSettingItem,
-      { borderBottomColor: theme.border }
+      { borderBottomColor: theme.border },
     ]}
     onPress={onPress}
     disabled={isSwitch}
+    activeOpacity={0.7}
   >
     <View style={styles.settingItemLeft}>
       <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-        <Ionicons name={icon} size={22} color={theme.subText} />
+        <Ionicons name={icon} size={20} color={theme.primary} />
       </View>
       <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
     </View>
@@ -56,31 +56,21 @@ const SettingItem = ({
       />
     ) : value ? (
       <View style={styles.settingItemRight}>
-        <View style={styles.languageContainer}>
-          <Image
-            source={require("../../../assets/vietnam.png")}
-            style={styles.flagIcon}
-          />
-          <Text style={[styles.languageText, { color: theme.subText }]}>{value}</Text>
-        </View>
-        {chevron && (
-          <Ionicons name="chevron-forward" size={20} color={theme.subText} />
-        )}
+        <Text style={[styles.settingValueText, { color: theme.subText }]}>{value}</Text>
+        {chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />}
       </View>
     ) : (
-      chevron && <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+      chevron && <Ionicons name="chevron-forward" size={18} color={theme.subText} />
     )}
   </TouchableOpacity>
 );
 
 const SettingSection = ({ title, children, theme }) => {
-  // Convert children to array to check for last item
   const childrenArray = React.Children.toArray(children);
-
   return (
-    <View style={[styles.settingSection, { backgroundColor: theme.sectionBackground }]}>
+    <View style={styles.sectionWrapper}>
       <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-      <View style={styles.sectionContent}>
+      <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
@@ -94,164 +84,227 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
+  if (!userInfo) return null;
+
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
-  const languageCode = i18n.language?.split('-')[0] || 'vi';
-  const currentLanguage = languageCode === 'ru' ? 'ru' : languageCode === 'en' ? 'en' : 'vi';
-  const currentThemeLabel = useSystemTheme ? t('settings.auto') : (isDarkMode ? t('settings.dark') : t('settings.light'));
+  const languageCode = i18n.language?.split("-")[0] || "vi";
+  const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
+  const currentThemeLabel = useSystemTheme
+    ? t("settings.auto")
+    : isDarkMode
+    ? t("settings.dark")
+    : t("settings.light");
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
 
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border, backgroundColor: theme.headerBackground }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('settings.title')}</Text>
-        <View className="w-6 h-6"></View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Floating header */}
+      <View
+        style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, height: 58 + insets.top }]}
+        pointerEvents="box-none"
+      >
+        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+        </LiquidButton>
+
+        {/* Spacer to balance back button */}
+        <View style={{ width: 44 }} />
       </View>
 
-      <ScrollView>
-        {/* Profile Section */}
-        <View style={[styles.profileSection, { backgroundColor: theme.background }]}>
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingTop: 58 + insets.top, paddingBottom: insets.bottom + 32 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Large title */}
+        <Animated.Text
+          style={[
+            styles.largeTitle,
+            { color: theme.primary, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] },
+          ]}
+        >
+          {t("settings.title")}
+        </Animated.Text>
+
+        {/* Profile Card */}
+        <TouchableOpacity
+          style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          onPress={() => navigation.navigate("ProfileScreen", { username: userInfo.username })}
+          activeOpacity={0.8}
+        >
           <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar`,
-            }}
+            source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar` }}
             style={styles.avatar}
           />
           <View style={styles.profileInfo}>
             <Text style={[styles.profileName, { color: theme.text }]}>{userInfo.profile_name}</Text>
-            {/* <Text style={styles.profileClass}>Lớp 12 Toán</Text> */}
-            <TouchableOpacity
-              style={styles.viewProfileButton}
-              onPress={() =>
-                navigation.navigate("ProfileScreen", {
-                  username: userInfo.username,
-                })
-              }
-            >
-              <Text style={[styles.viewProfileText, { color: theme.primary }]}>{t('settings.editProfile')}</Text>
-            </TouchableOpacity>
+            <Text style={[styles.profileUsername, { color: theme.subText }]}>@{userInfo.username}</Text>
           </View>
-        </View>
+          <View style={[styles.profileChevronWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
+            <Ionicons name="chevron-forward" size={18} color={theme.subText} />
+          </View>
+        </TouchableOpacity>
 
-        {/* Settings List */}
-        <SettingSection title={t('settings.account')} theme={theme}>
+        {/* Account Section */}
+        <SettingSection title={t("settings.account")} theme={theme}>
           <SettingItem
             icon="person-outline"
-            title={t('settings.editProfile')}
-            onPress={() =>
-              navigation.navigate("ProfileDetailScreen", {
-                username: userInfo.username,
-              })
-            }
+            title={t("settings.editProfile")}
+            onPress={() => navigation.navigate("ProfileDetailScreen", { username: userInfo.username })}
           />
           <SettingItem
             icon="lock-closed-outline"
-            title={t('settings.security')}
+            title={t("settings.security")}
             onPress={() => navigation.navigate("SecurityScreen")}
           />
           <SettingItem
             icon="notifications-outline"
-            title={t('settings.notifications')}
+            title={t("settings.notifications")}
             onPress={() => navigation.navigate("NotificationSettingsScreen")}
           />
         </SettingSection>
 
-        <SettingSection title={t('settings.application')} theme={theme}>
-          <View style={{ borderBottomWidth: 0.5, borderBottomColor: theme.border }}>
+        {/* App Section */}
+        <SettingSection title={t("settings.application")} theme={theme}>
+          {/* Theme dropdown */}
+          <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons name="moon-outline" size={20} color={theme.primary} />
+              </View>
+              <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.theme")}</Text>
+            </View>
             <Dropdown
               options={[
-                { label: t('settings.auto'), value: "system" },
-                { label: t('settings.light'), value: "light" },
-                { label: t('settings.dark'), value: "dark" },
+                { label: t("settings.auto"), value: "system" },
+                { label: t("settings.light"), value: "light" },
+                { label: t("settings.dark"), value: "dark" },
               ]}
               selectedValue={{
                 label: currentThemeLabel,
-                value: useSystemTheme ? "system" : (isDarkMode ? "dark" : "light")
+                value: useSystemTheme ? "system" : isDarkMode ? "dark" : "light",
               }}
               onValueChange={(item) => setThemeMode(item.value)}
-              style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0, backgroundColor: 'transparent' }}
-              containerStyle={{ marginVertical: 0 }}
-              textStyle={{ color: theme.subText, fontSize: 16, textAlign: 'right' }}
-              leftIcon={
-                <View style={styles.settingItemLeft}>
-                  <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                    <Ionicons name="moon-outline" size={22} color={theme.subText} />
-                  </View>
-                  <Text style={[styles.settingItemText, { color: theme.text }]}>{t('settings.theme')}</Text>
-                </View>
-              }
+              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
+              containerStyle={{ marginVertical: 0, minWidth: 100 }}
+              textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
             />
           </View>
 
-          <View style={{ borderBottomWidth: 0.5, borderBottomColor: theme.border }}>
+          {/* Language dropdown */}
+          <View style={[styles.dropdownRow, { borderBottomColor: theme.border }]}>
+            <View style={styles.settingItemLeft}>
+              <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons name="language-outline" size={20} color={theme.primary} />
+              </View>
+              <Text style={[styles.settingItemText, { color: theme.text }]}>{t("settings.language")}</Text>
+            </View>
             <Dropdown
               options={[
-                { label: `🇻🇳 ${t('settings.vietnamese')}`, value: "vi" },
-                { label: `🇬🇧 ${t('settings.english')}`, value: "en" },
-                { label: `🇷🇺 ${t('settings.russian')}`, value: "ru" },
+                { label: `🇻🇳 ${t("settings.vietnamese")}`, value: "vi" },
+                { label: `🇬🇧 ${t("settings.english")}`, value: "en" },
+                { label: `🇷🇺 ${t("settings.russian")}`, value: "ru" },
               ]}
               selectedValue={{
-                label: currentLanguage === "ru" ? `🇷🇺 ${t('settings.russian')}` : currentLanguage === "en" ? `🇬🇧 ${t('settings.english')}` : `🇻🇳 ${t('settings.vietnamese')}`,
-                value: currentLanguage
+                label:
+                  currentLanguage === "ru"
+                    ? `🇷🇺 ${t("settings.russian")}`
+                    : currentLanguage === "en"
+                    ? `🇬🇧 ${t("settings.english")}`
+                    : `🇻🇳 ${t("settings.vietnamese")}`,
+                value: currentLanguage,
               }}
               onValueChange={(item) => changeLanguage(item.value)}
-              style={{ borderWidth: 0, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 0, backgroundColor: 'transparent' }}
-              containerStyle={{ marginVertical: 0 }}
-              textStyle={{ color: theme.subText, fontSize: 16, textAlign: 'right' }}
-              leftIcon={
-                <View style={styles.settingItemLeft}>
-                  <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
-                    <Ionicons name="language-outline" size={22} color={theme.subText} />
-                  </View>
-                  <Text style={[styles.settingItemText, { color: theme.text }]}>{t('settings.language')}</Text>
-                </View>
-              }
+              style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}
+              containerStyle={{ marginVertical: 0, minWidth: 120 }}
+              textStyle={{ color: theme.subText, fontSize: 15, textAlign: "right" }}
             />
           </View>
+
           <SettingItem
             icon="ban-outline"
-            title={t('settings.blockedUsers')}
-            onPress={() => {
-              navigation.navigate("BlockedUsersScreen");
-            }}
+            title={t("settings.blockedUsers")}
+            onPress={() => navigation.navigate("BlockedUsersScreen")}
           />
           <SettingItem
             icon="information-circle-outline"
-            title={t('settings.about')}
+            title={t("settings.about")}
             onPress={() => navigation.navigate("AboutScreen")}
           />
         </SettingSection>
 
-        <Text style={[styles.versionText, { color: theme.subText }]}>
-          {t('settings.version', {
-            appVersion: Application.nativeApplicationVersion,
-            buildVersion: Application.nativeBuildVersion,
-          })}
-        </Text>
+        {/* Version & Social */}
+        <TouchableOpacity
+          activeOpacity={0.7}
+          onPress={() => {
+            const lines = [
+              "Diễn đàn hs Chuyên Biên Hòa là sân chơi của chuyên Nga :)))",
+              "1 trong 2 người tạo ra là chuyên Nga K60",
+              "Quản lý page chính Nga K67",
+              "Developer chăm chỉ Nga K67 :))",
+              "Phát triển Discord Nga K68",
+              "Thank you Dương Tùng Anh",
+              "Mãi mãi là chuyên Nga!!",
+              "Em yêu chuyên Nga",
+              "Cảm ơn bạn đã dùng app",
+              "Chúc bạn có trải nghiệm thật tuyệt vời và đáng nhớ",
+              "Chúc bạn có một ngày vui vẻ!",
+              "Cảm ơn bạn đã sử dụng app",
+              "Test app là 1 cách để đóng góp cho dự án",
+              "Cảm ơn bạn A lớp sử giấu tên đã test ở iOS nhé! Thank you >3",
+              "Mãi yêu a Tùng Anh",
+            ];
+            Toast.show({
+              type: "success",
+              text1: "Lời nhắn từ nhà phát triển app",
+              text2: lines[Math.floor(Math.random() * lines.length)],
+              visibilityTime: 3000,
+            });
+          }}
+        >
+          <Text style={[styles.versionText, { color: theme.subText }]}>
+            {t("settings.version", {
+              appVersion: Application.nativeApplicationVersion,
+              buildVersion: Application.nativeBuildVersion,
+            })}
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.socialContainer}>
           <TouchableOpacity
-            onPress={() =>
-              Linking.openURL("https://github.com/tunnaduong/cbh-youth-online-mobile")
-            }
-            style={styles.socialButton}
+            onPress={() => Linking.openURL("https://github.com/tunnaduong/cbh-youth-online-mobile")}
+            style={[styles.socialButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
           >
-            <Ionicons name="logo-github" size={24} color={theme.text} />
+            <Ionicons name="logo-github" size={22} color={theme.text} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => Linking.openURL("https://facebook.com/CBHYouthOnline")}
-            style={styles.socialButton}
+            style={[styles.socialButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
           >
-            <Ionicons name="logo-facebook" size={24} color="#1877F2" />
+            <Ionicons name="logo-facebook" size={22} color="#1877F2" />
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
@@ -259,76 +312,102 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // Floating transparent header
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    height: 50,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  profileSection: {
-    flexDirection: "row",
-    padding: 16,
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
-    marginBottom: 16,
+    justifyContent: "center",
+  },
+  compactTitle: {
+    fontSize: 17,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
+  },
+  largeTitle: {
+    fontSize: 30,
+    fontWeight: "bold",
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    marginTop: 8,
+  },
+  // Profile card
+  profileCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   profileInfo: {
-    marginLeft: 16,
     flex: 1,
+    marginLeft: 14,
   },
   profileName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 3,
   },
-  profileClass: {
+  profileUsername: {
     fontSize: 14,
-    marginBottom: 8,
   },
-  viewProfileButton: {
-    alignSelf: "flex-start",
+  profileChevronWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  viewProfileText: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  settingSection: {
+  // Section
+  sectionWrapper: {
+    marginHorizontal: 16,
     marginBottom: 24,
-    margin: 15,
-    borderRadius: 15,
-    paddingTop: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
-    marginLeft: 16,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     marginBottom: 8,
+    marginLeft: 4,
   },
-  sectionContent: {
-    // backgroundColor: "#fff",
-  },
-  settingItemIcon: {
-    padding: 7,
-    borderRadius: 30,
+  settingSection: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
   settingItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   lastSettingItem: {
     borderBottomWidth: 0,
@@ -338,6 +417,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  settingItemIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   settingItemText: {
     fontSize: 16,
     marginLeft: 12,
@@ -346,22 +432,22 @@ const styles = StyleSheet.create({
   settingItemRight: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 4,
   },
-  languageContainer: {
+  settingValueText: {
+    fontSize: 15,
+  },
+  // Dropdown row (theme/language) — custom layout so dropdown aligns right
+  dropdownRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 8,
-  },
-  flagIcon: {
-    width: 20,
-    height: 14,
-    marginRight: 6,
-  },
-  languageText: {
-    fontSize: 14,
+    paddingVertical: 13,
+    paddingLeft: 16,
+    paddingRight: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   versionText: {
-    fontSize: 14,
+    fontSize: 13,
     textAlign: "center",
     marginBottom: 16,
   },
@@ -369,10 +455,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 30,
-    gap: 20,
+    marginBottom: 16,
+    gap: 16,
   },
   socialButton: {
-    padding: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

@@ -21,7 +21,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.7.4</string>
+    <string>3.1.0</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -40,13 +40,15 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>274</string>
+    <string>310</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    <key>NSAppLinksUsageDescription</key>
+    <string>Opening content from CBH Youth Online</string>
     <key>NSAppTransportSecurity</key>
     <dict>
       <key>NSAllowsArbitraryLoads</key>
@@ -59,7 +61,11 @@
     <key>NSMicrophoneUsageDescription</key>
     <string>Cho phép CBH Youth Online truy cập microphone của bạn</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your photos</string>
+    <string>Cho phép CBH Youth Online truy cập thư viện ảnh của bạn</string>
+    <key>NSUserActivityTypes</key>
+    <array>
+      <string>NSUserActivityTypeBrowsingWeb</string>
+    </array>
     <key>RCTNewArchEnabled</key>
     <true/>
     <key>UIApplicationSceneManifest</key>

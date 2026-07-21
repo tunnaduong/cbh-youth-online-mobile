@@ -250,8 +250,22 @@ export const getSubforums = () => {
   return Api.getRequest("/v1.0/forum/subforums");
 };
 
+// Role-aware subforum list — recommended for Create/Edit post screens
+// Returns [{label, value, category}] directly without wrapping
+// export const getSubforumsForEdit = () => {
+//   return Api.getRequest("/api/forum/subforums");
+// };
+
 export const deletePost = (id) => {
   return Api.deleteRequest("/v1.0/topics/" + id);
+};
+
+export const getPost = (id) => {
+  return Api.getRequest("/v1.0/topics/" + id);
+};
+
+export const updatePost = (id, params) => {
+  return Api.putRequest("/v1.0/topics/" + id, params);
 };
 
 export const getOnlineStatus = (username) => {
@@ -287,8 +301,19 @@ export const getStories = () => {
   return Api.getRequest("/v1.0/stories");
 };
 
-export const createStory = (formData) => {
-  return Api.postFormDataRequest("/v1.0/stories", formData);
+export const createStory = async (formData) => {
+  try {
+    return await Api.postFormDataRequest("/v1.0/stories", formData);
+  } catch (error) {
+    console.error("[Api] createStory failed", {
+      message: error?.message,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      url: error?.config?.url,
+      responseData: error?.response?.data,
+    });
+    throw error;
+  }
 };
 
 export const deleteStory = (id) => {
@@ -401,8 +426,20 @@ export const getExpoPushTokens = () => {
   return Api.getRequest("/v1.0/notifications/expo/tokens");
 };
 
-export const reportUser = (params) => {
-  return Api.postRequest("/v1.0/reports", params);
+export const reportUser = async (params) => {
+  try {
+    return await Api.postRequest("/v1.0/reports", params);
+  } catch (error) {
+    console.error("[Api] reportUser failed", {
+      message: error?.message,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      url: error?.config?.url,
+      responseData: error?.response?.data,
+      params,
+    });
+    throw error;
+  }
 };
 
 export const blockUser = (userId) => {

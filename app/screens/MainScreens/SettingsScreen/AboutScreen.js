@@ -3,21 +3,23 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   Image,
-  StatusBar,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
 
-const Section = ({ title, children, theme, isDarkMode }) => (
-  <View style={[styles.section, { backgroundColor: isDarkMode ? "#1f2937" : "#F2F9F2" }]}>
+const Section = ({ title, children, theme }) => (
+  <View style={[styles.sectionWrapper]}>
     <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-    <View style={styles.sectionContent}>{children}</View>
+    <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      {children}
+    </View>
   </View>
 );
 
@@ -26,24 +28,73 @@ export default function AboutScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
   return (
-    <SafeAreaView style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t("about.title")}</Text>
-        <View style={{ width: 24, height: 24 }}></View>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+
+      {/* Floating header */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        }}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: theme.background,
+            opacity: headerBgOpacity,
+          }}
+        />
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+          <View style={{ width: 44 }}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, {
+              color: theme.primary,
+              flex: 1,
+              textAlign: 'center',
+              opacity: headerTitleOpacity,
+            }]}
+            numberOfLines={1}
+          >
+            {t("about.title")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
-      <ScrollView style={styles.content}>
+      <Animated.ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
+      >
         {/* School Info */}
         <View style={styles.schoolInfo}>
           <Image
-            source={require("../../../assets/school-logo.jpg")}
-            style={styles.schoolLogo}
+            source={require("../../../assets/school-logo-removebg.png")}
+            style={[styles.schoolLogo, { resizeMode: 'contain' }]}
           />
           <Text style={[styles.schoolName, { color: theme.primary }]}>{t("about.schoolName")}</Text>
         </View>
@@ -56,19 +107,19 @@ export default function AboutScreen({ navigation }) {
           {t("about.schoolDesc2")}
         </Text>
 
-        <Section title={t("about.historyTitle")} theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+        <Section title={t("about.historyTitle")} theme={theme}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.historyDesc")}
           </Text>
         </Section>
 
-        <Section title={t("about.activitiesTitle")} theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+        <Section title={t("about.activitiesTitle")} theme={theme}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.activitiesDesc")}
           </Text>
         </Section>
 
-        <Section title={t("about.goalsTitle")} theme={theme} isDarkMode={isDarkMode}>
+        <Section title={t("about.goalsTitle")} theme={theme}>
           <View style={styles.bulletPoints}>
             <Text style={[styles.bulletPoint, { color: theme.text }]}>
               • {t("about.goals1")}
@@ -86,7 +137,7 @@ export default function AboutScreen({ navigation }) {
         <View style={[styles.schoolInfo, { marginTop: 40 }]}>
           <Image
             source={require("../../../assets/logo.png")}
-            style={styles.schoolLogo}
+            style={[styles.schoolLogo, { resizeMode: 'contain' }]}
           />
           <Text style={[styles.schoolName, { color: theme.primary }]}>{t("about.appName")}</Text>
         </View>
@@ -99,20 +150,20 @@ export default function AboutScreen({ navigation }) {
           {t("about.appDesc2")}
         </Text>
 
-        <Section title={t("about.feature1Title")} theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+        <Section title={t("about.feature1Title")} theme={theme}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.feature1Desc")}
           </Text>
         </Section>
 
-        <Section title={t("about.feature2Title")} theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+        <Section title={t("about.feature2Title")} theme={theme}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.feature2Desc")}
           </Text>
         </Section>
 
-        <Section title={t("about.feature3Title")} theme={theme} isDarkMode={isDarkMode}>
-          <Text style={[styles.sectionText, { color: theme.text }]}> 
+        <Section title={t("about.feature3Title")} theme={theme}>
+          <Text style={[styles.sectionText, { color: theme.text }]}>
             {t("about.feature3Desc")}
           </Text>
         </Section>
@@ -120,8 +171,8 @@ export default function AboutScreen({ navigation }) {
         <Text style={[styles.copyright, { color: theme.subText }]}>
           {t("about.copyright")}
         </Text>
-      </ScrollView>
-    </SafeAreaView>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
@@ -134,29 +185,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    height: 50,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 56,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    flex: 1,
-    textAlign: "center",
-  },
-  content: {
-    flex: 1,
-    padding: 16,
   },
   schoolInfo: {
     alignItems: "center",
     marginBottom: 20,
+    marginTop: 16,
   },
   schoolLogo: {
-    width: 64,
-    height: 64,
+    width: 80,
+    height: 80,
     marginBottom: 12,
-    borderRadius: 35,
+    borderRadius: 20,
   },
   schoolName: {
     fontSize: 18,
@@ -168,16 +213,25 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16,
     textAlign: "justify",
+    marginHorizontal: 16,
   },
-  section: {
-    borderRadius: 12,
-    padding: 16,
-    marginVertical: 8,
+  sectionWrapper: {
+    marginHorizontal: 16,
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     marginBottom: 8,
+    marginLeft: 4,
+  },
+  settingSection: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    padding: 16,
   },
   sectionText: {
     fontSize: 14,

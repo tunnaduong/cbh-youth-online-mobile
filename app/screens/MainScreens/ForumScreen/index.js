@@ -5,26 +5,26 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Image,
   RefreshControl,
   Animated,
   FlatList,
   Dimensions,
-  StatusBar,
   DeviceEventEmitter,
+  Platform,
 } from "react-native";
 import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getForumCategories } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import LottieView from "lottie-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
+import { storage } from "../../../global/storage";
 
 const { width } = Dimensions.get("window");
 
@@ -92,7 +92,18 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const tabScrollViewRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+  const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(
+      "SET_FEED_SCROLL_ENABLED",
+      (enabled) => {
+        setScrollEnabled(enabled);
+      }
+    );
+    return () => subscription.remove();
+  }, []);
 
   const handleTabScroll = (index) => {
     const tabWidth = 180;
@@ -176,11 +187,30 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   const fetchForumData = async () => {
     try {
+      const cachedStr = storage.getString("cached_forum");
+      if (cachedStr) {
+        try {
+          const parsed = JSON.parse(cachedStr);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCategories(parsed);
+            setLoading(false);
+            setRefreshing(true);
+          }
+        } catch(e) {}
+      }
+
       const response = await getForumCategories();
-      setCategories(response.data);
+      const categoriesData = response?.data;
+      if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+        setCategories(categoriesData);
+        storage.set("cached_forum", JSON.stringify(categoriesData));
+      }
       setLoading(false);
+      setTimeout(() => setRefreshing(false), 1000);
     } catch (error) {
       console.log(error);
+      setLoading(false);
+      setTimeout(() => setRefreshing(false), 1000);
     }
   };
 
@@ -216,13 +246,13 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   if (loading) {
     return (
-      <SafeAreaView
+      <View
         style={[
           { flex: 1, backgroundColor: theme.background },
           { paddingTop: insets.top },
         ]}
       >
-        <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+        
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
           <TouchableOpacity
@@ -242,15 +272,15 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           <CustomLoading />
           <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView
+    <View
       style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
     >
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <TouchableOpacity
@@ -271,36 +301,36 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.tabContainer, { backgroundColor: theme.background }]}>
-        <ScrollView
-          ref={tabScrollViewRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.tabScrollContent}
-        >
-          {categories.map((cat, index) => (
-            <TouchableOpacity
-              key={`cat-${cat.id}`}
-              onPress={() => handleActiveCategory(cat.id, index)}
+      <ScrollView
+        ref={tabScrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabScrollContent}
+        scrollEnabled={scrollEnabled}
+        style={[styles.tabContainer, { backgroundColor: theme.background }]}
+      >
+        {categories.map((cat, index) => (
+          <TouchableOpacity
+            key={`cat-${cat.id}`}
+            onPress={() => handleActiveCategory(cat.id, index)}
+            style={[
+              styles.tab,
+              { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
+              activeCategory === cat.id && (isDarkMode ? { backgroundColor: "#2e4e2a" } : styles.tabActive),
+            ]}
+          >
+            <Text
               style={[
-                styles.tab,
-                { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" },
-                activeCategory === cat.id && (isDarkMode ? { backgroundColor: "#2e4e2a" } : styles.tabActive),
+                styles.tabText,
+                { color: theme.text },
+                activeCategory === cat.id && styles.tabTextActive,
               ]}
             >
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: theme.text },
-                  activeCategory === cat.id && styles.tabTextActive,
-                ]}
-              >
-                {getCategoryName(cat.name, t)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+              {getCategoryName(cat.name, t)}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
       <AnimatedLottieView
         source={require("../../../assets/refresh.json")}
@@ -321,7 +351,12 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         extraData={{ t, theme, isDarkMode }}
         horizontal
         pagingEnabled
+        scrollEnabled={scrollEnabled}
         showsHorizontalScrollIndicator={false}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           {
@@ -335,51 +370,64 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         )}
         onMomentumScrollEnd={handlePageChange}
         keyExtractor={(item) => `category-${item.id}`}
+        getItemLayout={(data, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
+        onScrollToIndexFailed={(info) => {
+          const wait = new Promise((resolve) => setTimeout(resolve, 50));
+          wait.then(() => {
+            flatListRef.current?.scrollToOffset({
+              offset: width * info.index,
+              animated: false,
+            });
+          });
+        }}
         renderItem={({ item }) => (
-          <View style={{ width, backgroundColor: theme.background }}>
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{
-                backgroundColor: theme.background,
-                paddingHorizontal: 16,
-                paddingBottom: 20,
-                paddingTop: 5,
-              }}
-              showsVerticalScrollIndicator={false}
-              onScroll={(e) => {
-                const offsetY = e.nativeEvent.contentOffset.y;
-                if (item.id === activeCategory) {
-                  scrollPositionRef.current = Math.max(0, offsetY);
-                }
-                handleScroll(e);
-              }}
-              ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor="transparent"
-                  colors={["transparent"]}
-                  progressBackgroundColor="transparent"
-                  style={{ backgroundColor: "transparent" }}
-                />
+          <ScrollView
+            style={{ flex: 1, width, backgroundColor: theme.background }}
+            contentContainerStyle={{
+              backgroundColor: theme.background,
+              paddingHorizontal: 16,
+              paddingBottom: 110 + insets.bottom,
+              paddingTop: 5,
+            }}
+            showsVerticalScrollIndicator={false}
+            onScroll={(e) => {
+              const offsetY = e.nativeEvent.contentOffset.y;
+              if (item.id === activeCategory) {
+                scrollPositionRef.current = Math.max(0, offsetY);
               }
-            >
-              {item.subforums.map((section) => (
-                  <ForumSection
-                    key={section.id}
-                    section={section}
-                    navigation={navigation}
-                    theme={theme}
-                    isDarkMode={isDarkMode}
-                    t={t}
-                  />
-              ))}
-            </ScrollView>
-          </View>
+              handleScroll(e);
+            }}
+            ref={(ref) => { if (ref) innerScrollRefs.current[item.id] = ref; }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="transparent"
+                colors={["transparent"]}
+                progressBackgroundColor="transparent"
+                style={{ backgroundColor: "transparent" }}
+                progressViewOffset={-1000}
+              />
+            }
+          >
+            {item.subforums.map((section) => (
+              <ForumSection
+                key={section.id}
+                section={section}
+                navigation={navigation}
+                theme={theme}
+                isDarkMode={isDarkMode}
+                t={t}
+              />
+            ))}
+          </ScrollView>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

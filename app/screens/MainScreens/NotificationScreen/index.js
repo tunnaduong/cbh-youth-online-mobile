@@ -3,19 +3,18 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   FlatList,
   TouchableOpacity,
   Image,
   Modal,
-  StatusBar,
   RefreshControl,
   Animated,
   DeviceEventEmitter,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import LottieView from "lottie-react-native";
 import {
   getNotifications,
@@ -27,7 +26,17 @@ import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { useFocusEffect } from "@react-navigation/native";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
+import {
+  LiquidGlassView,
+  LiquidGlassViewAndroid,
+  isLiquidGlassSupportedAndroid,
+  useIOSGlass,
+  BlurView,
+} from "../../../components/GlassModules";
+import LiquidButton from "../../../components/LiquidButton";
+
 
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification, t) => {
@@ -98,6 +107,20 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const lottieRef = useRef(null);
   const { t } = useTranslation();
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
@@ -107,6 +130,20 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const fetchNotifications = useCallback(
     async (pageNum = 1, append = false) => {
       try {
+        if (pageNum === 1 && !append) {
+          const cachedStr = storage.getString("cached_notifications");
+          if (cachedStr) {
+            try {
+              const parsed = JSON.parse(cachedStr);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setNotifications(parsed);
+                setLoading(false);
+              }
+            } catch(e) {}
+          }
+          setRefreshing(true);
+        }
+
         const response = await getNotifications(pageNum, 20);
 
         // Check if response has data property (some APIs wrap in data)
@@ -152,7 +189,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         if (append) {
           setNotifications((prev) => {
             const newNotifications = [...prev, ...formattedNotifications];
-            // Update unread count when loading more
             const localUnreadCount = newNotifications.filter(
               (n) => !n.is_read
             ).length;
@@ -161,6 +197,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           });
         } else {
           setNotifications(formattedNotifications);
+          if (formattedNotifications.length > 0) {
+            storage.set("cached_notifications", JSON.stringify(formattedNotifications));
+          }
         }
 
         // Check if there are more pages
@@ -212,6 +251,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -336,10 +376,13 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   };
 
   const renderItem = ({ item }) => {
-    const isSystemMessage = item.type === "system_message" || !item.actor;
+    const isAnonymous = (item.actor && item.actor.id === null) || item.data?.is_anonymous === true || item.data?.anonymous === true;
+    const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
     const userName = isSystemMessage
       ? t('notifications.system')
-      : item.actor?.profile_name || item.actor?.username || t('notifications.user');
+      : isAnonymous
+        ? (item.actor?.profile_name || t('createPost.anonymousUser') || "Ẩn danh")
+        : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
     const displayContent = formatNotificationMessage(item.raw || item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
@@ -361,8 +404,8 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           ) {
             navigation.navigate("PostScreen", { postId: 173336279 });
           } else if (item.type === "story_reacted") {
-            // Navigate to home screen to show stories (story will be highlighted)
-            navigation.navigate("HomeScreen", {
+            // Navigate to the Home tab so the story viewer can open the requested story.
+            navigation.navigate("Home", {
               highlightStoryId: item.data?.story_id,
             });
           } else if (item.type === "story_replied") {
@@ -379,23 +422,29 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.data?.post_id) {
             navigation.navigate("PostScreen", { postId: item.data.post_id });
-          } else if (item.actor?.username) {
+          } else if (item.actor?.username && !isAnonymous) {
             navigation.navigate("ProfileScreen", {
               username: item.actor.username,
             });
           }
         }}
       >
-        <Image
-          source={
-            !isSystemMessage
-              ? {
-                uri: item.user.avatar,
-              }
-              : require("../../../assets/logo.png")
-          }
-          style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
-        />
+        {isAnonymous ? (
+          <View style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border, backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9', alignItems: 'center', justifyContent: 'center' }]}>
+             <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
+          </View>
+        ) : (
+          <Image
+            source={
+              !isSystemMessage
+                ? {
+                  uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
+                }
+                : require("../../../assets/logo.png")
+            }
+            style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
+          />
+        )}
         <View style={styles.content}>
           <Text style={[styles.message, { color: theme.text }]}>
             {isSystemMessage ? (
@@ -497,29 +546,41 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
-      <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
-        <TouchableOpacity
-          style={[
-            styles.readAllButton,
-            { backgroundColor: theme.primary },
-            unreadCount === 0 && (isDarkMode ? { backgroundColor: "#2e2e2e", elevation: 0, shadowOpacity: 0 } : styles.readAllButtonDisabled),
-          ]}
+      
+      <View style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 58 + insets.top }]} pointerEvents="box-none">
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('navigation.notifications')}</Animated.Text>
+        <LiquidButton
+          providerId="Notifications"
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
+          scrollY={scrollY}
+          size={44}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44 }}
+          borderRadius={22}
         >
           <Text
             style={[
               styles.readAllText,
-              { color: "#fff" },
+              { color: theme.text },
               unreadCount === 0 && (isDarkMode ? { color: "#666" } : styles.readAllTextDisabled),
             ]}
           >
             {t('notifications.readAll')} ({unreadCount})
           </Text>
-        </TouchableOpacity>
+        </LiquidButton>
       </View>
+
+      {refreshing && (
+        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <LottieView
+            source={require("../../../assets/refresh.json")}
+            style={{ width: 40, height: 40 }}
+            ref={lottieRef}
+            loop
+            autoPlay
+          />
+        </View>
+      )}
 
       {loading && notifications.length === 0 ? (
         <View
@@ -534,9 +595,14 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           data={notifications}
           extraData={{ t, theme, isDarkMode }}
           keyExtractor={(item) => item.id.toString()}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           renderItem={renderItem}
           contentContainerStyle={{
-            paddingBottom: 110,
+            paddingTop: 58 + insets.top,
+            paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,
           }}
@@ -549,6 +615,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               colors={["transparent"]}
               progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
+              progressViewOffset={-1000}
             />
           }
           onEndReached={loadMore}
@@ -580,10 +647,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    height: 50,
-    marginTop: 0.3,
-    borderBottomWidth: 1,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#f0f0f0",
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 28,
