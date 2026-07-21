@@ -1276,8 +1276,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            uri: mediaUrl || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1" height="1"%3E%3Crect fill="' + encodeURIComponent(gradientColors[0] || '%23000000') + '" width="1" height="1"/%3E%3C/svg%3E',
+            // For text stories, use a solid color placeholder
+            // Create a 1x1 colored pixel as base64
+            uri: mediaUrl || `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`,
           },
+          backgroundColor: !mediaUrl ? gradientColors[0] : undefined,
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
           media_type: story.type,
@@ -1285,40 +1288,49 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           background_color: story.background_color,
           gradient_colors: gradientColors,
           renderContent: (() => {
+            // Capture values in closure
             const colors = gradientColors;
             const text = textContent;
             
-            return () => mediaUrl ? (
-              <ZoomableStoryImage
-                uri={mediaUrl}
-                style={{
-                  width: SCREEN_WIDTH,
-                  height: SCREEN_HEIGHT,
-                }}
-              />
-            ) : (
-              <View style={{ 
-                width: SCREEN_WIDTH, 
-                height: SCREEN_HEIGHT, 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                backgroundColor: colors[0] || '#1a1a1a',
-                paddingHorizontal: 30,
-              }}>
-                <Text style={{ 
-                  color: '#ffffff', 
-                  fontSize: 24, 
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  textShadowColor: 'rgba(0, 0, 0, 0.3)',
-                  textShadowOffset: { width: 1, height: 1 },
-                  textShadowRadius: 3,
-                  includeFontPadding: false,
-                }}>
-                  {text}
-                </Text>
-              </View>
-            );
+            // Return the render function
+            return () => {
+              if (mediaUrl) {
+                return (
+                  <ZoomableStoryImage
+                    uri={mediaUrl}
+                    style={{
+                      width: SCREEN_WIDTH,
+                      height: SCREEN_HEIGHT,
+                    }}
+                  />
+                );
+              } else {
+                // Text story
+                return (
+                  <View style={{ 
+                    width: SCREEN_WIDTH, 
+                    height: SCREEN_HEIGHT, 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    backgroundColor: colors[0] || '#1a1a1a',
+                    paddingHorizontal: 30,
+                  }}>
+                    <Text style={{ 
+                      color: '#ffffff', 
+                      fontSize: 24, 
+                      fontWeight: '600',
+                      textAlign: 'center',
+                      textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                      textShadowOffset: { width: 1, height: 1 },
+                      textShadowRadius: 3,
+                      includeFontPadding: false,
+                    }}>
+                      {text}
+                    </Text>
+                  </View>
+                );
+              }
+            };
           })(),
           renderFooter: () => (
             <ReplyBar
@@ -2008,6 +2020,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           storyAvatarSize={30}
+          renderCustomContent={(story) => {
+            if (!story.source?.uri?.includes('http') && story.renderContent) {
+              return story.renderContent();
+            }
+            return null;
+          }}
           onStoryHeaderPress={(userId) => {
             console.log("Global Story Header Pressed for:", userId);
             if (userId) {
