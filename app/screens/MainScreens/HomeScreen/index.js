@@ -2232,13 +2232,28 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       if (!u) return null;
                       const st = u.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
                       if (st && (st.mediaType === 'video' || st.media_type === 'video')) {
+                        const isServerMuted = Boolean(st?.is_muted);
+                        const isAudioMuted = Boolean(currentStory && (clientMuted[currentStory] || isServerMuted));
                         return (
                           <TouchableOpacity
-                            onPress={() => toggleClientMute(currentStory)}
+                            disabled={isServerMuted}
+                            onPress={() => {
+                              if (!isServerMuted) {
+                                toggleClientMute(currentStory);
+                              }
+                            }}
                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' }}
+                            style={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 18,
+                              backgroundColor: 'rgba(0,0,0,0.35)',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              opacity: isServerMuted ? 0.7 : 1,
+                            }}
                           >
-                            <Ionicons name={currentStory && clientMuted[currentStory] ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
+                            <Ionicons name={isAudioMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
                           </TouchableOpacity>
                         );
                       }
