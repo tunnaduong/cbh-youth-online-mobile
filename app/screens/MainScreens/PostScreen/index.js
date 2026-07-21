@@ -75,6 +75,7 @@ const PostScreen = ({ route, navigation }) => {
   const headerHeight = 50 + insets.top;
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingPost, setLoadingPost] = useState(false);
   const lottieRef = useRef(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -246,6 +247,7 @@ const PostScreen = ({ route, navigation }) => {
 
   const fetchData = async () => {
     try {
+      setLoadingPost(true);
       const response = await getPostDetail(postId); // Fetch post data from API
       const { post: topic, comments } = response.data;
 
@@ -260,6 +262,8 @@ const PostScreen = ({ route, navigation }) => {
       setComments(comments ?? []);
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setLoadingPost(false);
     }
   };
 
@@ -1084,6 +1088,29 @@ const PostScreen = ({ route, navigation }) => {
       ).start();
     }
   }, [post]);
+
+  if (loadingPost) {
+    return (
+      <View
+        style={{
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.background,
+          flex: 1,
+        }}
+      >
+        <Animated.Image
+          source={require("../../../assets/sad_frog.png")}
+          style={{
+            width: 80,
+            height: 80,
+            transform: [{ translateY: bounceValue }],
+          }}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
 
   return post == null ? (
     <View

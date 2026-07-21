@@ -44,11 +44,11 @@ const ScreenWrapper = ({ children, routeName }) => {
   const themeKey = isDarkMode ? 'dark' : 'light';
 
   if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+    // Mount a single stable provider (avoid remounts when routeName/theme changes)
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <LiquidGlassProviderAndroid
-          key={`provider-${routeName}-${themeKey}`}
-          providerId={routeName}
+          providerId={"main"}
           style={StyleSheet.absoluteFill}
         >
           <View style={{ flex: 1, backgroundColor: theme.background }}>
