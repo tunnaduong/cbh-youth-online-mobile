@@ -1108,8 +1108,9 @@ const PostScreen = ({ route, navigation }) => {
     <>
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: theme.background }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={headerHeight}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+        extraScrollHeight={24}
       >
         <View
           style={{
@@ -1172,11 +1173,15 @@ const PostScreen = ({ route, navigation }) => {
           <Animated.ScrollView
             showsVerticalScrollIndicator={false}
             scrollEventThrottle={16}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { y: scrollY } } }],
               { useNativeDriver: false }
             )}
-            contentContainerStyle={{ paddingTop: 64 + insets.top,
+            contentContainerStyle={{
+              paddingTop: 64 + insets.top,
+              paddingBottom: (parentId || editingCommentId ? 200 : 120) + insets.bottom,
               backgroundColor: theme.background,
             }}
             ref={scrollViewRef}
@@ -1221,13 +1226,17 @@ const PostScreen = ({ route, navigation }) => {
           {(parentId || editingCommentId) && (
             <View
               style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 72 + insets.bottom,
                 flexDirection: "row",
                 alignItems: "center",
                 paddingHorizontal: 15,
-                paddingVertical: 10,
-                backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6",
-                borderTopWidth: 1,
-                borderTopColor: theme.border,
+                paddingVertical: 8,
+                backgroundColor: "transparent",
+                borderTopWidth: 0,
+                zIndex: 20,
               }}
             >
               <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }}>
@@ -1256,7 +1265,17 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           )}
 
-          <View style={{ paddingBottom: insets.bottom }}>
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              paddingBottom: insets.bottom,
+              backgroundColor: "transparent",
+              zIndex: 20,
+            }}
+          >
             <CommentBar
               value={editingCommentId ? editingCommentText : commentText}
               onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
