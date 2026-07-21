@@ -1,4 +1,3 @@
-import Video from 'react-native-video';
 import React, {
   useCallback,
   useContext,
@@ -1247,15 +1246,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     fetchStories();
   }, [blockedUsers]);
 
-  const [clientMuted, setClientMuted] = useState({});
-
-  const toggleClientMute = (storyId) => {
-    setClientMuted((prev) => ({
-      ...prev,
-      [storyId]: !prev[storyId],
-    }));
-  };
-
   const resolveStoryMediaUrl = (story) => {
     const candidates = [
       story?.media_url,
@@ -1396,6 +1386,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           text_content: textContent,
           background_color: story.background_color,
           gradient_colors: gradientColors,
+          overlays: story.overlays || undefined,
           is_muted: story.is_muted || false,
           renderContent: (() => {
             // Capture values in closure
@@ -1408,46 +1399,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             // Return the render function
             return () => {
               if (isVideoStory && videoUrl) {
-                return (
-                  <View style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT, backgroundColor: '#000' }}>
-                    <Video
-                      source={{ uri: videoUrl }}
-                      style={{
-                        width: SCREEN_WIDTH,
-                        height: SCREEN_HEIGHT,
-                      }}
-                      controls={false}
-                      paused={false}
-                      muted={clientMuted[storyId] || isMutedByUploader}
-                      repeat={true}
-                      resizeMode="cover"
-                      onError={(e) => console.log('Video error:', e)}
-                    />
-                    {!isMutedByUploader && (
-                      <TouchableOpacity
-                        onPress={() => toggleClientMute(storyId)}
-                        style={{
-                          position: 'absolute',
-                          top: 16,
-                          right: 16,
-                          zIndex: 999,
-                          width: 40,
-                          height: 40,
-                          borderRadius: 20,
-                          backgroundColor: 'rgba(0,0,0,0.5)',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Ionicons
-                          name={clientMuted[storyId] ? 'volume-mute-outline' : 'volume-high-outline'}
-                          size={18}
-                          color="#fff"
-                        />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
+                return null;
               }
 
               if (shouldRenderAsImage && videoUrl) {
@@ -2202,6 +2154,26 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           imageProps={{ resizeMode: "cover" }}
           imageStyles={StyleSheet.absoluteFillObject}
+          videoProps={{
+            resizeMode: "contain",
+            repeat: false,
+            muted: Boolean(currentStory && (clientMuted[currentStory] || (() => {
+              // if server marked story as muted by uploader, respect it
+              try {
+                const user = userStories.find((u) => u.stories.some((s) => s.storyId === currentStory || s.id === currentStory));
+                if (!user) return false;
+                const story = user.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                return story?.is_muted;
+              } catch (e) {
+                return false;
+              }
+            })())),
+            style: {
+              width: SCREEN_WIDTH,
+              height: SCREEN_HEIGHT,
+              backgroundColor: '#000000',
+            },
+          }}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -2209,16 +2181,69 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             textShadowRadius: 1.5,
             fontWeight: "600",
           }}
+          imageOverlayView={<OverlayRenderer currentStory={currentStory} userStories={userStories} />}
           progressColor="#a4a4a4"
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           storyAvatarSize={30}
           renderCustomContent={(story) => {
-            if (!story.source?.uri?.includes('http') && story.renderContent) {
+            if (story.renderContent && story.mediaType !== 'video' && story.media_type !== 'video') {
               return story.renderContent();
             }
             return null;
+          }}
+          renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId, ...rest }) => {
+            return (
+              <View style={[{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }] }>
+                <Pressable
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                  onPress={() => onStoryHeaderPress?.(userId)}
+                >
+                  {avatarSource && (
+                    <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
+                      <Image source={avatarSource} style={{ width: 28, height: 28 }} />
+                    </View>
+                  )}
+                  <View style={{ flexDirection: 'column' }}>
+                    {name && <Text style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
+                    {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12 }}>{date}</Text>}
+                  </View>
+                </Pressable>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  {(() => {
+                    // only show mute button for video stories
+                    try {
+                      const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
+                      if (!u) return null;
+                      const st = u.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                      if (st && (st.mediaType === 'video' || st.media_type === 'video')) {
+                        return (
+                          <TouchableOpacity
+                            onPress={() => toggleClientMute(currentStory)}
+                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Ionicons name={currentStory && clientMuted[currentStory] ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
+                          </TouchableOpacity>
+                        );
+                      }
+                    } catch (e) {
+                      return null;
+                    }
+                    return null;
+                  })()}
+                  {onMore && (
+                    <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                      <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={onClose} hitSlop={16}>
+                    <Ionicons name="close" size={22} color={rest.closeColor || '#c4c4c4'} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
           }}
           onStoryHeaderPress={(userId) => {
             console.log("Global Story Header Pressed for:", userId);
@@ -2314,6 +2339,63 @@ const styles = StyleSheet.create({
   modalContent: {
     paddingVertical: 10,
   },
+  storyMuteOverlay: {
+    position: 'absolute',
+    top: 12,
+    right: 56,
+    zIndex: 999,
+    pointerEvents: 'box-none',
+  },
+  storyMuteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
+
+// Overlay renderer: draws saved text overlays (and optionally drawing images) on top of active story
+const OverlayRenderer = ({ currentStory, userStories }) => {
+  if (!currentStory || !userStories) return null;
+
+  // Find the story object matching currentStory id
+  let foundStory = null;
+  for (const user of userStories) {
+    const s = user.stories.find((st) => String(st.storyId) === String(currentStory) || String(st.id) === String(currentStory));
+    if (s) {
+      foundStory = s;
+      break;
+    }
+  }
+
+  if (!foundStory || !foundStory.overlays) return null;
+
+  const overlays = foundStory.overlays;
+
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0 }}>
+      {/* Render drawing image if backend returned a base64 image */}
+      {overlays.drawing && overlays.drawing.imageBase64 && (
+        <Image
+          source={{ uri: overlays.drawing.imageBase64 }}
+          style={{ position: 'absolute', left: 0, top: 0, width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+          resizeMode="contain"
+        />
+      )}
+      {/* Render text overlays */}
+      {Array.isArray(overlays.texts) && overlays.texts.map((txt) => (
+        txt && txt.text ? (
+          <View key={txt.id || txt.text} style={{ position: 'absolute', left: txt.x || 0, top: txt.y || 0 }}>
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600', textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 2 }}>
+              {txt.text}
+            </Text>
+          </View>
+        ) : null
+      ))}
+    </View>
+  );
+};
 
 export default HomeScreen;

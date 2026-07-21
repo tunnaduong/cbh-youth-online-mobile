@@ -444,7 +444,7 @@ const TrashZone = memo(({ visible, isOver, t }) => {
   );
 });
 
-const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, t }) => {
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, selectedMediaType, isMuted, toggleMute, t }) => {
   const handleTextPress = () => {
     if (onAddText) {
       onAddText();
@@ -459,21 +459,38 @@ const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage,
 
   return (
   <View style={styles.toolsContainer}>
-    <TouchableOpacity style={styles.toolButton} onPress={handleTextPress}>
-      <Ionicons name="text" size={24} color="#fff" />
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
-      <Ionicons name="image" size={24} color="#fff" />
-    </TouchableOpacity>
-    <TouchableOpacity style={[styles.toolButton, isDrawing && styles.activeToolButton]} onPress={() => setIsDrawing(!isDrawing)}>
-      <Ionicons name="brush" size={24} color="#fff" />
-    </TouchableOpacity>
-    <TouchableOpacity
-      style={styles.toolButton}
-      onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
-    >
-      <Ionicons name="musical-notes" size={24} color="#fff" />
-    </TouchableOpacity>
+    {/* If editing a video, only show music and mute controls */}
+    {selectedMediaType === 'video' ? (
+      <>
+        <TouchableOpacity
+          style={styles.toolButton}
+          onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+        >
+          <Ionicons name="musical-notes" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.toolButton} onPress={toggleMute}>
+          <Ionicons name={isMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={24} color="#fff" />
+        </TouchableOpacity>
+      </>
+    ) : (
+      <>
+        <TouchableOpacity style={styles.toolButton} onPress={handleTextPress}>
+          <Ionicons name="text" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
+          <Ionicons name="image" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.toolButton, isDrawing && styles.activeToolButton]} onPress={() => setIsDrawing(!isDrawing)}>
+          <Ionicons name="brush" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.toolButton}
+          onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+        >
+          <Ionicons name="musical-notes" size={24} color="#fff" />
+        </TouchableOpacity>
+      </>
+    )}
   </View>
   );
 };
@@ -693,6 +710,19 @@ const CreateStoryScreen = ({ navigation }) => {
             name: fileName,
           });
           formData.append("is_muted", isMuted ? "true" : "false");
+          // If there are text overlays or drawing data, include them as metadata so the server
+          // can persist and the viewer can render overlays on top of the original video.
+          try {
+            if (storyTexts && storyTexts.length > 0) {
+              formData.append("overlays[texts]", JSON.stringify(storyTexts));
+            }
+            const drawingData = drawingRef.current?.getDrawingData?.();
+            if (drawingData && drawingData.paths && drawingData.paths.length > 0) {
+              formData.append("overlays[drawing]", JSON.stringify(drawingData));
+            }
+          } catch (e) {
+            console.warn("Failed to append overlays metadata:", e?.message || e);
+          }
         } else if (selectedImage) {
           formData.append("media_type", "image");
           formData.append("media_file", {
@@ -1119,18 +1149,7 @@ const CreateStoryScreen = ({ navigation }) => {
                         />
                       )}
 
-                      {selectedMediaType === "video" && (
-                        <TouchableOpacity
-                          style={styles.videoMuteButton}
-                          onPress={() => setIsMuted((prev) => !prev)}
-                        >
-                          <Ionicons
-                            name={isMuted ? "volume-mute-outline" : "volume-high-outline"}
-                            size={20}
-                            color="#fff"
-                          />
-                        </TouchableOpacity>
-                      )}
+                      {/* video mute control moved into sidebar ToolsBar; no inline overlay here */}
 
                       {isDrawing && (
                         <DrawingCanvas
@@ -1179,6 +1198,9 @@ const CreateStoryScreen = ({ navigation }) => {
                     setIsDrawing={setIsDrawing}
                     pickImage={pickImage}
                     onAddText={addStoryText}
+                    selectedMediaType={selectedMediaType}
+                    isMuted={isMuted}
+                    toggleMute={() => setIsMuted((p) => !p)}
                     t={t}
                   />
                   {editingTextId && editingTextItem && (
