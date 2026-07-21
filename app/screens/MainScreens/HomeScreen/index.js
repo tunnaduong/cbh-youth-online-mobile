@@ -750,17 +750,6 @@ const ReplyBar = ({
     }
   };
 
-  // Broadcast story changes so the viewers sheet can update without closing the story
-  useEffect(() => {
-    if (currentStory) {
-      try {
-        DeviceEventEmitter.emit("STORY_CHANGED", currentStory);
-      } catch (e) {
-        console.warn("Failed to emit STORY_CHANGED", e?.message || e);
-      }
-    }
-  }, [currentStory]);
-
   if (isOwnStory) {
     return (
       <View style={{ paddingBottom: insets.bottom }}>
@@ -900,6 +889,24 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    const openSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_OPENED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.pause?.();
+      }
+    });
+    const closeSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_CLOSED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.resume?.();
+      }
+    });
+
+    return () => {
+      openSub.remove();
+      closeSub.remove();
+    };
+  }, [isStoryVisible]);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -2245,9 +2252,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
                     </TouchableOpacity>
                   )}
-                  <TouchableOpacity onPress={onClose} hitSlop={16}>
-                    <Ionicons name="close" size={22} color={rest.closeColor || '#c4c4c4'} />
-                  </TouchableOpacity>
                 </View>
               </View>
             );

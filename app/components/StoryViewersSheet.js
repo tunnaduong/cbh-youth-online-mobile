@@ -108,6 +108,8 @@ const StoryViewersSheet = () => {
       }}
       gestureEnabled
       defaultOverlayOpacity={0.5}
+      onOpen={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_OPENED")}
+      onClose={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_CLOSED")}
     >
       <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: theme.border }]}> 
         <View style={styles.dragHandle} />
