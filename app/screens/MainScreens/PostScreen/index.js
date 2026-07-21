@@ -35,6 +35,7 @@ import {
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
 import LiquidButton from "../../../components/LiquidButton";
+import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem from "../../../components/PostItem";
@@ -1099,15 +1100,7 @@ const PostScreen = ({ route, navigation }) => {
           flex: 1,
         }}
       >
-        <Animated.Image
-          source={require("../../../assets/sad_frog.png")}
-          style={{
-            width: 80,
-            height: 80,
-            transform: [{ translateY: bounceValue }],
-          }}
-          resizeMode="contain"
-        />
+        <CustomLoading size={90} />
       </View>
     );
   }
@@ -1121,15 +1114,7 @@ const PostScreen = ({ route, navigation }) => {
         flex: 1,
       }}
     >
-      <Animated.Image
-        source={require("../../../assets/sad_frog.png")}
-        style={{
-          width: 80,
-          height: 80,
-          transform: [{ translateY: bounceValue }],
-        }}
-        resizeMode="contain"
-      />
+      <CustomLoading size={90} />
     </View>
   ) : (
     <>
