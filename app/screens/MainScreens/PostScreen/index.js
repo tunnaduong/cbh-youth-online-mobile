@@ -1212,6 +1212,8 @@ const PostScreen = ({ route, navigation }) => {
                 ))
               )}
             </View>
+            {/* Spacer to prevent comment bar from covering last comments */}
+            <View style={{ height: 50, backgroundColor: 'transparent' }} />
           </Animated.ScrollView>
           {(parentId || editingCommentId) && (
             <View
