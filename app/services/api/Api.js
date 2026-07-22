@@ -1,4 +1,5 @@
 import * as Api from "./ApiByAxios";
+import axiosInstance from "./axiosInstance";
 import i18n from "../../i18n";
 
 // Authentication
@@ -156,6 +157,45 @@ export const uploadFile = (formData) => {
   return Api.postFormDataRequest("/v1.0/upload", formData);
 };
 
+// Study materials / marketplace
+export const getStudyMaterials = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return Api.getRequest(`/v1.0/study-materials${query ? `?${query}` : ""}`);
+};
+
+export const getStudyMaterial = (id) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}`);
+};
+
+export const getStudyMaterialCategories = () => {
+  return Api.getRequest("/v1.0/study-material-categories");
+};
+
+export const purchaseMaterial = (id) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/purchase`);
+};
+
+export const getMaterialRatings = (id) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}/ratings`);
+};
+
+export const rateMaterial = (id, params) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/ratings`, params);
+};
+
+export const downloadMaterial = (id) => {
+  return axiosInstance.get(`/v1.0/study-materials/${id}/download`, {
+    responseType: "blob",
+    headers: {
+      Accept: "application/octet-stream",
+    },
+  });
+};
+
+export const viewMaterial = (id) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/view`);
+};
+
 export const forgotPasswordVerify = async (params) => {
   try {
     console.log("forgotPasswordVerify: Sending request with params:", {
@@ -212,6 +252,10 @@ export const getForumCategories = () => {
 
 export const getCurrentUser = () => {
   return Api.getRequest("/v1.0/user");
+};
+
+export const getCurrentPoints = () => {
+  return Api.getRequest("/v1.0/user/current-points");
 };
 
 export const deleteAccount = async (password) => {

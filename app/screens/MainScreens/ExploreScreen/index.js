@@ -56,6 +56,11 @@ const ExploreScreen = ({ navigation }) => {
   const { t } = useTranslation();
 
   const handleCardPress = (card) => {
+    if (card.key === "examDocuments") {
+      navigation.navigate("StudyMaterialScreen");
+      return;
+    }
+
     Toast.show({
       type: "info",
       text1: t("exploreScreen.underDevelopment"),
