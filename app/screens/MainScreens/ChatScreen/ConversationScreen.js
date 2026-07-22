@@ -1140,22 +1140,29 @@ const ConversationScreen = ({ navigation, route }) => {
               getHeaderAvatar() === "local:chat.jpg"
                 ? require("../../../assets/chat.jpg")
                 : {
-                  uri:
-                    getHeaderAvatar() ||
-                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                }
+                    uri:
+                      getHeaderAvatar() ||
+                      "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+                  }
             }
-            style={styles.headerAvatar}
+            style={styles.headerAvatarLarge}
           />
-          <Text style={[styles.headerName, { color: theme.text }]}>
-            {isNewConversation
-              ? selectedUser.profile_name
-              : currentConversation?.type === "group"
+          <View style={{ marginLeft: 12, alignItems: "center" }}>
+            <Text style={[styles.headerName, { color: theme.text }]}> 
+              {isNewConversation
+                ? selectedUser.profile_name
+                : currentConversation?.type === "group"
                 ? currentConversation?.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh"
                   ? t("chatConversation.casualGroupName")
                   : currentConversation?.name || t("chatConversation.casualGroupName")
                 : currentConversation?.participants[0]?.profile_name}
-          </Text>
+            </Text>
+            <Text style={[styles.headerSubtitle, { color: theme.subText }]}> 
+              {currentConversation?.type === "group"
+                ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
+                : otherUser?.username || ""}
+            </Text>
+          </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={showOptions}>
           <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
@@ -1221,10 +1228,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   headerProfile: {
-    flex: 1,
-    flexDirection: "row",
+    position: "absolute",
+    left: 56,
+    right: 56,
     alignItems: "center",
-    marginLeft: 12,
+    justifyContent: "center",
+    flexDirection: "row",
   },
   headerAvatar: {
     width: 36,
@@ -1232,9 +1241,20 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     marginRight: 12,
   },
+  headerAvatarLarge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
   headerName: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+    opacity: 0.9,
   },
   messagesList: {
     padding: 16,
