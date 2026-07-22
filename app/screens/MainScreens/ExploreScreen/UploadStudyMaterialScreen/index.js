@@ -28,7 +28,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { userInfo } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -44,6 +44,83 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
   useEffect(() => {
     loadCategories();
   }, []);
+
+  const getCategoryLabel = (category) => {
+    const rawName = (category?.name || "").toString().trim();
+    const slug = (category?.slug || "").toString().trim();
+
+    const normalize = (value) =>
+      value
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+
+    const candidates = [slug, rawName]
+      .map((value) => normalize(value))
+      .filter(Boolean);
+
+    const directKey = candidates.find((candidate) => {
+      const translated = t(`studyMaterial.categoriesList.${candidate}`, { defaultValue: "" });
+      return Boolean(translated);
+    });
+
+    if (directKey) {
+      return t(`studyMaterial.categoriesList.${directKey}`);
+    }
+
+    const aliasMap = {
+      math: t("studyMaterial.categoriesList.mathematics"),
+      maths: t("studyMaterial.categoriesList.mathematics"),
+      mathematics: t("studyMaterial.categoriesList.mathematics"),
+      toan: t("studyMaterial.categoriesList.mathematics"),
+      "toan-hoc": t("studyMaterial.categoriesList.mathematics"),
+      science: t("studyMaterial.categoriesList.science"),
+      "khoa-hoc": t("studyMaterial.categoriesList.science"),
+      literature: t("studyMaterial.categoriesList.literature"),
+      "van-hoc": t("studyMaterial.categoriesList.literature"),
+      history: t("studyMaterial.categoriesList.history"),
+      "lich-su": t("studyMaterial.categoriesList.history"),
+      english: t("studyMaterial.categoriesList.english"),
+      "tieng-anh": t("studyMaterial.categoriesList.english"),
+      exam: t("studyMaterial.categoriesList.exam"),
+      "on-thi": t("studyMaterial.categoriesList.exam"),
+      general: t("studyMaterial.categoriesList.general"),
+      other: t("studyMaterial.categoriesList.other"),
+      technology: t("studyMaterial.categoriesList.technology"),
+      "cong-nghe": t("studyMaterial.categoriesList.technology"),
+      physics: t("studyMaterial.categoriesList.physics"),
+      "vat-ly": t("studyMaterial.categoriesList.physics"),
+      chemistry: t("studyMaterial.categoriesList.chemistry"),
+      "hoa-hoc": t("studyMaterial.categoriesList.chemistry"),
+      biology: t("studyMaterial.categoriesList.biology"),
+      "sinh-hoc": t("studyMaterial.categoriesList.biology"),
+      geography: t("studyMaterial.categoriesList.geography"),
+      "dia-ly": t("studyMaterial.categoriesList.geography"),
+      "computer-science": t("studyMaterial.categoriesList.computer-science"),
+      "tin-hoc": t("studyMaterial.categoriesList.computer-science"),
+      "social-science": t("studyMaterial.categoriesList.social-science"),
+      "khoa-hoc-xa-hoi": t("studyMaterial.categoriesList.social-science"),
+      "foreign-language": t("studyMaterial.categoriesList.foreign-language"),
+      "ngoai-ngu": t("studyMaterial.categoriesList.foreign-language"),
+      economics: t("studyMaterial.categoriesList.economics"),
+      "kinh-te": t("studyMaterial.categoriesList.economics"),
+      business: t("studyMaterial.categoriesList.business"),
+      "kinh-doanh": t("studyMaterial.categoriesList.business"),
+      law: t("studyMaterial.categoriesList.law"),
+      "luat": t("studyMaterial.categoriesList.law"),
+      medicine: t("studyMaterial.categoriesList.medicine"),
+      "y-hoc": t("studyMaterial.categoriesList.medicine"),
+      engineering: t("studyMaterial.categoriesList.engineering"),
+      "ky-thuat": t("studyMaterial.categoriesList.engineering"),
+      art: t("studyMaterial.categoriesList.art"),
+      "my-thuat": t("studyMaterial.categoriesList.art"),
+    };
+
+    const normalizedName = normalize(rawName);
+    return aliasMap[normalizedName] || rawName || t("studyMaterial.categoriesList.default");
+  };
 
   const loadCategories = async () => {
     try {
@@ -217,7 +294,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
                     ]}
                   >
                     <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>
-                      {category.name}
+                      {getCategoryLabel(category)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -264,7 +341,12 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
               <Text style={[styles.optionTitle, { color: theme.text }]}>{t("studyMaterial.freeMaterial")}</Text>
               <Text style={[styles.optionText, { color: theme.subText }]}>{t("studyMaterial.freeMaterialHint")}</Text>
             </View>
-            <Switch value={isFree} onValueChange={setIsFree} thumbColor={theme.primary} />
+            <Switch
+              value={isFree}
+              onValueChange={setIsFree}
+              thumbColor={isFree ? theme.primary : "#9CA3AF"}
+              trackColor={{ false: "#D1D5DB", true: theme.primary + "55" }}
+            />
           </View>
 
           {!isFree ? (
