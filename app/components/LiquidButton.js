@@ -23,9 +23,16 @@ const LiquidButton = ({
   containerStyle,
   providerId,
   scrollY,
+  alwaysBorder = false,
+  backgroundColor,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
+
+  const visibleBorderColor = isDarkMode
+    ? "rgba(255,255,255,0.28)"
+    : "rgba(17,24,39,0.22)";
+  const transparentBorderColor = "transparent";
 
   // When scrollY is provided, background fades in as user scrolls (0→40px).
   // At the top the button appears label-only (no visible pill/circle).
@@ -37,12 +44,31 @@ const LiquidButton = ({
       })
     : 1;
 
+  const borderColor = alwaysBorder
+    ? visibleBorderColor
+    : scrollY
+      ? scrollY.interpolate({
+          inputRange: [0, 40],
+          outputRange: [transparentBorderColor, visibleBorderColor],
+          extrapolate: "clamp",
+        })
+      : transparentBorderColor;
+  const staticBorderColor = alwaysBorder ? visibleBorderColor : transparentBorderColor;
+
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
       if (useIOSGlass) {
         return (
           <LiquidGlassView
-            style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: defaultRadius,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: staticBorderColor,
+              },
+            ]}
             glassType="clear"
             glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
             glassOpacity={1}
@@ -53,7 +79,15 @@ const LiquidButton = ({
       if (BlurView) {
         return (
           <BlurView
-            style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: defaultRadius,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: staticBorderColor,
+              },
+            ]}
             blurType={isDarkMode ? "dark" : "light"}
             blurAmount={10}
           />
@@ -67,10 +101,10 @@ const LiquidButton = ({
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)",
+            backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            borderColor: staticBorderColor,
           }
         ]}
       />
@@ -93,6 +127,18 @@ const LiquidButton = ({
     }).start();
   };
 
+  const buttonStyle = [
+    styles.button,
+    {
+      width: size,
+      height: size,
+      borderRadius: defaultRadius,
+      borderWidth: 1,
+      borderColor: alwaysBorder ? visibleBorderColor : transparentBorderColor,
+    },
+    style,
+  ];
+
   return (
     <Animated.View style={[{ transform: [{ scale: scaleValue }] }, containerStyle]}>
       <TouchableOpacity
@@ -101,15 +147,7 @@ const LiquidButton = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
-        style={[
-          styles.button,
-          {
-            width: size,
-            height: size,
-            borderRadius: defaultRadius,
-          },
-          style,
-        ]}
+        style={buttonStyle}
       >
         {/* Background fades in based on scrollY */}
         <Animated.View
@@ -120,6 +158,17 @@ const LiquidButton = ({
           pointerEvents="none"
         >
           {renderGlassBackground()}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: defaultRadius,
+                borderWidth: 1,
+                borderColor,
+              },
+            ]}
+          />
         </Animated.View>
         {children}
       </TouchableOpacity>

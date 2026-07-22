@@ -195,7 +195,7 @@ const ArchiveScreen = ({ route, navigation }) => {
                 // Only show viewers for stories that belong to the current user
                 if (username === currentUsername) {
                   setTimeout(() => {
-                    DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", story.id);
+                    DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", { storyId: story.id, isOwn: true });
                   }, 100);
                 }
               }}

@@ -266,6 +266,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           providerId="Chat"
           onPress={() => navigation.navigate("NewConversationScreen")}
           scrollY={scrollY}
+          alwaysBorder
           size={44}
           style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center' }}
           borderRadius={22}
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     marginHorizontal: 16,
-    marginTop: 10,
+    marginTop: 14,
     marginBottom: 6,
     height: 40,
   },

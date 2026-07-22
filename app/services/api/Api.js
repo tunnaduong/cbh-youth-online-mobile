@@ -107,6 +107,10 @@ export const votePost = (id, params) => {
   return Api.postRequest("/v1.0/topics/" + id + "/votes", params);
 };
 
+export const getPostVotes = (id) => {
+  return Api.getRequest("/v1.0/topics/" + id + "/votes");
+};
+
 export const savePost = (id) => {
   return Api.postRequest("/v1.0/user/saved-topics", { topic_id: id });
 };

@@ -1021,5 +1021,20 @@
     "underDevelopment": "Функция находится в разработке",
     "greeting": "Привет, что ты хочешь ",
     "question": "делать сегодня...?"
+  },
+  "voteModal": {
+    "upvote": "За",
+    "downvote": "Против",
+    "vote": "Голос",
+    "loadError": "Не удалось загрузить список проголосовавших",
+    "defaultUser": "Пользователь",
+    "title": "Кто проголосовал за пост",
+    "postTitleFallback": "Пост",
+    "voteCount_one": "{{count}} человек проголосовал",
+    "voteCount_few": "{{count}} человека проголосовало",
+    "voteCount_many": "{{count}} человек проголосовали",
+    "voteCount_other": "{{count}} человек проголосовало",
+    "score": "Счёт: {{value}}",
+    "empty": "Пока нет голосов"
   }
 }

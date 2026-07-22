@@ -943,6 +943,24 @@ const ConversationScreen = ({ navigation, route }) => {
       >
         {/* Show story reply header */}
         {isStoryReply && (
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              const storyId = item.metadata?.story_id ?? item.metadata?.storyId;
+              if (storyId) {
+                navigation.navigate("MainScreens", {
+                  screen: "Home",
+                  params: { openStoryId: storyId },
+                });
+              } else {
+                Toast.show({
+                  type: "info",
+                  text1: t("common.error"),
+                  text2: t("chatConversation.storyNotAvailable"),
+                });
+              }
+            }}
+          >
             <View
               style={[
                 styles.storyReplyHeader,
@@ -978,7 +996,8 @@ const ConversationScreen = ({ navigation, route }) => {
                 </>
               )}
             </View>
-          )}
+          </TouchableOpacity>
+        )}
         {/* Show sender name for group chats when sender changes */}
         {isGroupChat && !item.is_myself && senderChanged && (
           <Text style={[styles.senderName, { color: theme.subText }]}>

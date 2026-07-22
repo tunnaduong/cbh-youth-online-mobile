@@ -31,6 +31,7 @@ const reactionToEmoji = {
 const StoryViewersSheet = () => {
   const actionSheetRef = useRef(null);
   const [storyId, setStoryId] = useState(null);
+  const [isOwnStory, setIsOwnStory] = useState(false);
   const [viewers, setViewers] = useState([]);
   const [loading, setLoading] = useState(false);
   const { t } = useTranslation();
@@ -39,18 +40,37 @@ const StoryViewersSheet = () => {
   const fetchAbortControllerRef = useRef(null);
 
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener("SHOW_STORY_VIEWERS", (id) => {
-      setStoryId(id);
-      try {
-        actionSheetRef.current?.setModalVisible(true);
-      } catch (e) {
-        // ignore
+    const sub = DeviceEventEmitter.addListener("SHOW_STORY_VIEWERS", (payload) => {
+      // Handle both old format (storyId as string) and new format (object)
+      if (typeof payload === 'string') {
+        setStoryId(payload);
+        setIsOwnStory(false);
+      } else if (typeof payload === 'object' && payload.storyId) {
+        setStoryId(payload.storyId);
+        setIsOwnStory(payload.isOwn ?? false);
+      }
+      
+      // Only open sheet if it's own story
+      if (typeof payload === 'object' && payload.isOwn) {
+        try {
+          actionSheetRef.current?.setModalVisible(true);
+        } catch (e) {
+          // ignore
+        }
+      } else if (typeof payload === 'string') {
+        // Legacy support - always open for old format
+        try {
+          actionSheetRef.current?.setModalVisible(true);
+        } catch (e) {
+          // ignore
+        }
       }
     });
 
     const sub2 = DeviceEventEmitter.addListener("STORY_CHANGED", (id) => {
       if (!id) return;
       setStoryId(id);
+      setIsOwnStory(false);
       // Cancel previous fetch if in progress
       if (fetchAbortControllerRef.current) {
         fetchAbortControllerRef.current.abort();
@@ -77,7 +97,7 @@ const StoryViewersSheet = () => {
   }, []);
 
   useEffect(() => {
-    if (!storyId) return;
+    if (!storyId || !isOwnStory) return;
     
     // Cancel previous fetch
     if (fetchAbortControllerRef.current) {
@@ -87,7 +107,7 @@ const StoryViewersSheet = () => {
     // Create new abort controller for this fetch
     fetchAbortControllerRef.current = new AbortController();
     fetchViewers(storyId, fetchAbortControllerRef.current.signal);
-  }, [storyId]);
+  }, [storyId, isOwnStory]);
 
   const fetchViewers = async (id, signal) => {
     try {

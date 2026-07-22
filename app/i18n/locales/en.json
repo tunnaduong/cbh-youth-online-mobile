@@ -1006,5 +1006,18 @@
     "underDevelopment": "Feature under development",
     "greeting": "Hello, what do you want to ",
     "question": "do today...?"
+  },
+  "voteModal": {
+    "upvote": "Upvote",
+    "downvote": "Downvote",
+    "vote": "Vote",
+    "loadError": "Could not load voters list",
+    "defaultUser": "User",
+    "title": "Who voted on the post",
+    "postTitleFallback": "Post",
+    "voteCount_one": "{{count}} person voted",
+    "voteCount_other": "{{count}} people voted",
+    "score": "Score: {{value}}",
+    "empty": "No votes yet"
   }
 }

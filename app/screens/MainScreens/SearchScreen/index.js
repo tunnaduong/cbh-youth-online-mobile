@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,17 @@ import {
   Dimensions,
   Image,
   TextInput,
-  TouchableHighlight,
   ScrollView,
   Platform,
   TouchableOpacity,
-  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
+import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
@@ -26,6 +26,8 @@ export default function SearchScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -128,57 +130,62 @@ export default function SearchScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderFilterChips = () => (
-    <View style={[styles.filterContainer, { borderBottomColor: theme.border }]}>
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const renderFilterMenu = () => (
+    <View
+      style={[
+        styles.filterMenu,
+        { backgroundColor: theme.cardBackground, borderColor: theme.border },
+      ]}
+    >
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "all" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("all")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("all");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "all" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "all" ? theme.primary : theme.text },
           ]}
         >
           {t('search.all')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "user" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("user")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("user");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "user" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "user" ? theme.primary : theme.text },
           ]}
         >
           {t('search.users')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "post" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("post")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("post");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "post" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "post" ? theme.primary : theme.text },
           ]}
         >
           {t('search.posts')}
@@ -189,18 +196,36 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      
-      <View style={{ flex: 1 }}>
-        <View style={{ paddingTop: inset.top }}>
-          <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
-            <TouchableHighlight
-              style={styles.backButton}
-              underlayColor={isDarkMode ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .05)"}
-              onPress={() => navigation.goBack()}
+      <Animated.View
+        style={[
+          styles.headerShell,
+          {
+            paddingTop: inset.top,
+          },
+        ]}
+      >
+        <View style={styles.topBar}>
+          <LiquidButton
+            providerId="SearchScreen"
+            onPress={() => navigation.goBack()}
+            scrollY={scrollY}
+            size={40}
+            style={{ marginLeft: 8 }}
+            borderRadius={20}
+          >
+            <Ionicons name="chevron-back-outline" color={theme.text} size={21} />
+          </LiquidButton>
+          <View style={styles.searchControls}>
+            <View
+              style={[
+                styles.searchInputContainer,
+                {
+                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
+                  borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
+                },
+              ]}
             >
-              <Ionicons name="chevron-back-outline" color={theme.text} size={30} />
-            </TouchableHighlight>
-            <View style={[styles.searchInputContainer, { backgroundColor: isDarkMode ? "#374151" : "#DFDEDD" }]}>
+              <Ionicons name="search" size={17} color={theme.subText} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
                 placeholder={t('search.placeholder')}
@@ -214,16 +239,33 @@ export default function SearchScreen({ navigation }) {
                   style={styles.clearButton}
                   onPress={() => setQuery("")}
                 >
-                  <Ionicons name="close-circle" size={20} color={theme.subText} />
+                  <Ionicons name="close-circle" size={17} color={theme.subText} />
                 </TouchableOpacity>
               )}
             </View>
+            <LiquidButton
+              providerId="SearchScreenFilter"
+              onPress={() => setShowFilterMenu((prev) => !prev)}
+              scrollY={scrollY}
+              size={40}
+              borderRadius={20}
+            >
+              <Ionicons name="options-outline" size={19} color={theme.text} />
+            </LiquidButton>
           </View>
         </View>
+        {showFilterMenu && renderFilterMenu()}
+      </Animated.View>
 
-        {query.trim() && renderFilterChips()}
-
-        <ScrollView style={styles.resultsContainer} contentContainerStyle={{ paddingBottom: inset.bottom + 16 }}>
+      <Animated.ScrollView
+        style={styles.resultsContainer}
+        contentContainerStyle={{ paddingTop: 40 + inset.top, paddingBottom: inset.bottom + 16 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
           {!query.trim() ? (
             <View style={styles.searchImage}>
               <Image
@@ -244,7 +286,7 @@ export default function SearchScreen({ navigation }) {
             !results.posts?.length ? (
             <View style={styles.noResults}>
               <Image
-                source={require("../../../assets/sad_frog.png")}
+                source={require("../../../assets/search-main.png")}
                 style={styles.noResultsImage}
               />
               <Text style={[styles.noResultsText, { color: theme.subText }]}>
@@ -265,7 +307,7 @@ export default function SearchScreen({ navigation }) {
                       : activeFilter === "user" && (
                         <View style={styles.sectionNoResults}>
                           <Image
-                            source={require("../../../assets/sad_frog.png")}
+                            source={require("../../../assets/search-main.png")}
                             style={styles.sectionNoResultsImage}
                           />
                           <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
@@ -290,7 +332,7 @@ export default function SearchScreen({ navigation }) {
                           : activeFilter === "post" && (
                             <View style={styles.sectionNoResults}>
                               <Image
-                                source={require("../../../assets/sad_frog.png")}
+                                source={require("../../../assets/search-main.png")}
                                 style={styles.sectionNoResultsImage}
                               />
                               <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
@@ -307,7 +349,7 @@ export default function SearchScreen({ navigation }) {
                 !results.posts?.length && (
                   <View style={styles.noResults}>
                     <Image
-                      source={require("../../../assets/sad_frog.png")}
+                      source={require("../../../assets/search-main.png")}
                       style={styles.noResultsImage}
                     />
                     <Text style={[styles.noResultsText, { color: theme.subText }]}>
@@ -317,54 +359,64 @@ export default function SearchScreen({ navigation }) {
                 )}
             </>
           )}
-        </ScrollView>
-      </View>
+        </Animated.ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    backgroundColor: "rgba(0, 0, 0, 0)",
-    width: 40,
-    height: 40,
-    borderRadius: 35,
-    marginLeft: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  headerShell: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    paddingBottom: 2,
+    backgroundColor: "transparent",
+  },
+  headerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingRight: 20,
-    paddingBottom: 7,
-    paddingTop: 10,
-    borderBottomWidth: 1,
-    minHeight: 55,
+    paddingRight: 16,
+    paddingBottom: 3,
+    paddingTop: 3,
+    minHeight: 44,
+  },
+  searchControls: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+    gap: 6,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 50,
-    paddingHorizontal: 13,
-    paddingVertical: Platform.OS === "android" ? 0 : 4,
-    minHeight: 40,
+    borderRadius: 14,
+    paddingHorizontal: 6,
+    paddingVertical: Platform.OS === "android" ? 0 : 2,
+    minHeight: 34,
+    borderWidth: 1,
   },
   searchInput: {
     flex: 1,
-    fontSize: 17,
-    paddingLeft: 8,
-    paddingRight: 35,
+    fontSize: 14,
+    paddingLeft: 6,
+    paddingRight: 2,
     paddingVertical: 0,
-    minHeight: 30,
+    minHeight: 24,
     includeFontPadding: false,
     textAlignVertical: "center",
   },
   clearButton: {
-    padding: 5,
-    position: "absolute",
-    right: 5,
+    padding: 4,
+    marginLeft: 2,
   },
   loadingIndicator: {
     paddingRight: 10,
@@ -386,6 +438,7 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     flex: 1,
+    backgroundColor: "transparent",
   },
   section: {
     paddingVertical: 10,
@@ -474,23 +527,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
   },
-  filterContainer: {
-    flexDirection: "row",
+  filterMenu: {
+    position: "absolute",
+    top: 52,
+    right: 16,
+    minWidth: 140,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 4,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+  },
+  filterMenuItem: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    gap: 8,
+    paddingVertical: 10,
   },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  filterText: {
+  filterMenuText: {
     fontSize: 14,
-  },
-  activeFilterText: {
-    color: "#fff",
     fontWeight: "500",
   },
   sectionNoResults: {
