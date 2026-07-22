@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
 import axiosInstance from "../../../../services/api/axiosInstance";
 import WebView from "react-native-webview";
@@ -38,6 +39,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { isLoggedIn, userInfo, refreshUserInfo } = useAuthContext();
+  const { t } = useTranslation();
 
   const [material, setMaterial] = useState(null);
   const [ratings, setRatings] = useState([]);
@@ -71,8 +73,8 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Không thể tải chi tiết tài liệu",
-        text2: error?.message || "Vui lòng thử lại",
+        text1: t("studyMaterial.loadDetailError"),
+        text2: error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setLoading(false);
@@ -95,8 +97,10 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
   const priceLabel = useMemo(() => {
     if (!material) return "";
-    return material.is_free || material.price === 0 ? "Miễn phí" : `${material.price || 0} điểm`;
-  }, [material]);
+    return material.is_free || material.price === 0
+      ? t("studyMaterial.free")
+      : t("studyMaterial.points", { value: material.price || 0 });
+  }, [material, t]);
 
   const loadUserBalance = async (shouldRefreshContext = true) => {
     if (!isLoggedIn) {
@@ -161,14 +165,14 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
   const handlePurchase = async () => {
     if (!isLoggedIn) {
-      Toast.show({ type: "info", text1: "Vui lòng đăng nhập để mua tài liệu" });
+      Toast.show({ type: "info", text1: t("studyMaterial.loginToBuy") });
       return;
     }
 
     if (!material) return;
 
     if (currentBalance < purchasePrice) {
-      Toast.show({ type: "error", text1: "Không đủ điểm để mua tài liệu" });
+      Toast.show({ type: "error", text1: t("studyMaterial.insufficientPoints") });
       setShowPurchaseModal(false);
       return;
     }
@@ -181,15 +185,15 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
       Toast.show({
         type: "success",
-        text1: "Mua tài liệu thành công",
-        text2: `Số dư còn lại: ${refreshedBalance} điểm`,
+        text1: t("studyMaterial.purchaseSuccess"),
+        text2: t("studyMaterial.remainingBalanceValue", { value: refreshedBalance }),
       });
       await loadMaterial();
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Mua tài liệu thất bại",
-        text2: error?.message || "Vui lòng thử lại",
+        text1: t("studyMaterial.purchaseError"),
+        text2: error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setProcessing(false);
@@ -200,25 +204,25 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
     if (!material) return;
 
     if (!isLoggedIn) {
-      Toast.show({ type: "info", text1: "Vui lòng đăng nhập để đánh giá tài liệu" });
+      Toast.show({ type: "info", text1: t("studyMaterial.loginToReview") });
       return;
     }
 
     if (ratingValue === 0) {
-      Toast.show({ type: "info", text1: "Vui lòng chọn số sao" });
+      Toast.show({ type: "info", text1: t("studyMaterial.selectRating") });
       return;
     }
 
     try {
       setSubmittingRate(true);
       await rateMaterial(materialId, { rating: ratingValue, comment: ratingComment });
-      Toast.show({ type: "success", text1: "Cảm ơn bạn đã đánh giá" });
+      Toast.show({ type: "success", text1: t("studyMaterial.reviewSuccess") });
       await loadMaterial();
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Đánh giá thất bại",
-        text2: error?.message || "Vui lòng thử lại",
+        text1: t("studyMaterial.reviewError"),
+        text2: error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setSubmittingRate(false);
@@ -248,27 +252,27 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       if (result?.status === 200) {
         Toast.show({
           type: "success",
-          text1: "Đã tải xuống thành công",
-          text2: "Bạn có thể lưu vào Files hoặc chia sẻ ngay bây giờ",
+          text1: t("studyMaterial.downloadSuccess"),
+          text2: t("studyMaterial.downloadSuccessHint"),
         });
 
         try {
           await Share.share({
             url: result.uri,
-            title: material?.title || "Study material",
-            message: `Tài liệu: ${material?.title || "study material"}`,
+            title: material?.title || t("studyMaterial.material"),
+            message: t("studyMaterial.shareMessage", { title: material?.title || t("studyMaterial.material") }),
           });
         } catch (shareError) {
           console.warn("Unable to launch share sheet", shareError);
         }
       } else {
-        Toast.show({ type: "error", text1: "Tải tài liệu thất bại", text2: "Không nhận được file hợp lệ" });
+        Toast.show({ type: "error", text1: t("studyMaterial.downloadError"), text2: t("studyMaterial.invalidFile") });
       }
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Tải tài liệu thất bại",
-        text2: error?.message || "Vui lòng thử lại",
+        text1: t("studyMaterial.downloadError"),
+        text2: error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setProcessing(false);
@@ -283,7 +287,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
-          Chi tiết tài liệu
+          {t("studyMaterial.detailTitle")}
         </Animated.Text>
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("MainScreens", { screen: "Home" })}>
           <Ionicons name="home-outline" size={22} color={theme.primary} />
@@ -293,11 +297,11 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={theme.primary} />
-          <Text style={[styles.loadingText, { color: theme.subText }]}>Đang tải thông tin...</Text>
+          <Text style={[styles.loadingText, { color: theme.subText }]}>{t("studyMaterial.loadingDetails")}</Text>
         </View>
       ) : !material ? (
         <View style={styles.centered}>
-          <Text style={[styles.emptyText, { color: theme.text }]}>Không tìm thấy tài liệu</Text>
+          <Text style={[styles.emptyText, { color: theme.text }]}>{t("studyMaterial.notFound")}</Text>
         </View>
       ) : (
         <Animated.ScrollView
@@ -307,55 +311,55 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           showsVerticalScrollIndicator={false}
         >
           <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -10], extrapolate: "clamp" }) }] }]}>
-            Chi tiết tài liệu
+            {t("studyMaterial.detailTitle")}
           </Animated.Text>
           <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }]}> 
             <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
-              <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name || "Tài liệu"}</Text>
+              <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name || t("studyMaterial.material")}</Text>
             </View>
             <Text style={[styles.titleText, { color: theme.text }]}>{material.title}</Text>
-            <Text style={[styles.descriptionText, { color: theme.subText }]}>{material.description || "Không có mô tả"}</Text>
+            <Text style={[styles.descriptionText, { color: theme.subText }]}>{material.description || t("studyMaterial.noDescription")}</Text>
             <View style={styles.rowBetween}>
               <Text style={[styles.metaText, { color: theme.primary }]}>{priceLabel}</Text>
               <Text style={[styles.metaText, { color: theme.subText }]}>⭐ {material.average_rating || 0}/5</Text>
             </View>
           </View>
 
-          <View style={styles.infoCard}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Thông tin chi tiết</Text>
+          <View style={[styles.infoCard, { borderColor: theme.border, backgroundColor: theme.surface }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.details")}</Text>
             <View style={styles.infoRow}>
               <Ionicons name="person-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>Tác giả: {material?.author?.profile_name || material?.author?.username || "Thành viên"}</Text>
+              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.author", { value: material?.author?.profile_name || material?.author?.username || t("studyMaterial.member") })}</Text>
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="download-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>Lượt tải: {material.download_count || 0}</Text>
+              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.downloadCount", { value: material.download_count || 0 })}</Text>
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="eye-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>Lượt xem: {material.view_count || 0}</Text>
+              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.viewCount", { value: material.view_count || 0 })}</Text>
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>Ngày đăng: {new Date(material.created_at).toLocaleDateString("vi-VN")}</Text>
+              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.createdAt", { value: new Date(material.created_at).toLocaleDateString() })}</Text>
             </View>
           </View>
 
           <View style={styles.actionRow}>
             {!material.is_purchased && !material.is_free && material.price > 0 ? (
               <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={() => setShowPurchaseModal(true)} disabled={processing}>
-                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Mua tài liệu</Text>}
+                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("studyMaterial.buy")}</Text>}
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.primary }]} onPress={handleDownload} disabled={processing}>
-                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Tải xuống</Text>}
+                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("studyMaterial.download")}</Text>}
               </TouchableOpacity>
             )}
           </View>
 
           {pdfViewerUrl || officeViewerUrl ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground }]}> 
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Xem trước tài liệu</Text>
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
               <View style={styles.webviewContainer}>
                 <WebView
                   source={{ uri: pdfViewerUrl || officeViewerUrl }}
@@ -370,15 +374,15 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           ) : null}
 
           {material.preview_content ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground }]}> 
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Tóm tắt nội dung</Text>
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.summary")}</Text>
               <Text style={[styles.previewText, { color: theme.subText }]}>{material.preview_content}</Text>
             </View>
           ) : null}
 
-          <View style={[styles.previewCard, { backgroundColor: theme.cardBackground }]}> 
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>Đánh giá tài liệu</Text>
-            <Text style={[styles.helperText, { color: theme.subText }]}>Chọn số sao và để lại nhận xét cho tài liệu này.</Text>
+          <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.reviews")}</Text>
+            <Text style={[styles.helperText, { color: theme.subText }]}>{t("studyMaterial.reviewHint")}</Text>
             <View style={styles.starsRow}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity key={star} onPress={() => setRatingValue(star)} disabled={submittingRate}>
@@ -390,7 +394,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
               style={[styles.input, { color: theme.text, borderColor: theme.subText + "55" }]}
               value={ratingComment}
               onChangeText={setRatingComment}
-              placeholder="Nhận xét của bạn..."
+              placeholder={t("studyMaterial.reviewPlaceholder")}
               placeholderTextColor={theme.subText}
               multiline
               numberOfLines={4}
@@ -401,16 +405,16 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
               onPress={handleRate}
               disabled={submittingRate || ratingValue === 0}
             >
-              {submittingRate ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Gửi đánh giá</Text>}
+              {submittingRate ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{t("studyMaterial.submitReview")}</Text>}
             </TouchableOpacity>
             {userRating ? (
-              <Text style={[styles.helperText, { color: theme.primary, marginTop: 8 }]}>Bạn đã đánh giá {userRating.rating}/5 sao.</Text>
+              <Text style={[styles.helperText, { color: theme.primary, marginTop: 8 }]}>{t("studyMaterial.reviewed", { value: userRating.rating })}</Text>
             ) : null}
           </View>
 
           {ratings.length > 0 ? (
-            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground }]}> 
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>Nhận xét từ cộng đồng</Text>
+            <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.communityReviews")}</Text>
               {ratings.map((item) => {
                 const avatarUrl = item?.user?.username
                   ? `${axiosInstance.defaults.baseURL?.replace(/\/$/, "")}/v1.0/users/${item.user.username}/avatar`
@@ -425,12 +429,12 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                         ) : (
                           <View style={[styles.avatarFallback, { backgroundColor: theme.primary + "20" }]}> 
                             <Text style={[styles.avatarFallbackText, { color: theme.primary }]}>
-                              {(item?.user?.profile?.profile_name || item?.user?.username || "U").charAt(0).toUpperCase()}
+                              {(item?.user?.profile?.profile_name || item?.user?.username || t("studyMaterial.member")).charAt(0).toUpperCase()}
                             </Text>
                           </View>
                         )}
                         <View style={styles.ratingUserInfo}>
-                          <Text style={[styles.ratingUser, { color: theme.text }]}>{item?.user?.profile?.profile_name || item?.user?.username || "Người dùng"}</Text>
+                          <Text style={[styles.ratingUser, { color: theme.text }]}>{item?.user?.profile?.profile_name || item?.user?.username || t("studyMaterial.member")}</Text>
                           <View style={styles.starsRow}>
                             {[1, 2, 3, 4, 5].map((star) => (
                               <Ionicons key={star} name={star <= (item?.rating || 0) ? "star" : "star-outline"} size={14} color="#f59e0b" />
@@ -456,28 +460,28 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: theme.cardBackground }]}> 
-            <Text style={[styles.modalTitle, { color: theme.text }]}>Xác nhận mua tài liệu</Text>
-            <Text style={[styles.modalText, { color: theme.subText }]}>Bạn có chắc muốn mua tài liệu <Text style={{ fontWeight: "700", color: theme.text }}>{material?.title}</Text> với giá <Text style={{ fontWeight: "700", color: theme.primary }}>{purchasePrice} điểm</Text>?</Text>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>{t("studyMaterial.purchaseTitle")}</Text>
+            <Text style={[styles.modalText, { color: theme.subText }]}>{t("studyMaterial.purchaseMessage", { title: material?.title, price: purchasePrice })}</Text>
             <View style={[styles.balanceBox, { backgroundColor: theme.primary + "12" }]}> 
-              <Text style={[styles.balanceLabel, { color: theme.subText }]}>Số dư hiện tại</Text>
+              <Text style={[styles.balanceLabel, { color: theme.subText }]}>{t("studyMaterial.currentBalance")}</Text>
               <Text style={[styles.balanceValue, { color: theme.primary }]}> 
-                {balanceLoading ? "Đang tải..." : `${currentBalance} điểm`}
+                {balanceLoading ? t("studyMaterial.balanceLoading") : t("studyMaterial.points", { value: currentBalance })}
               </Text>
             </View>
             <View style={[styles.balanceBox, { backgroundColor: theme.background }]}> 
-              <Text style={[styles.balanceLabel, { color: theme.subText }]}>Số dư còn lại sau khi mua</Text>
-              <Text style={[styles.balanceValue, { color: theme.text }]}>{balanceLoading ? "Đang tải..." : `${remainingBalance} điểm`}</Text>
+              <Text style={[styles.balanceLabel, { color: theme.subText }]}>{t("studyMaterial.remainingBalance")}</Text>
+              <Text style={[styles.balanceValue, { color: theme.text }]}>{balanceLoading ? t("studyMaterial.balanceLoading") : t("studyMaterial.points", { value: remainingBalance })}</Text>
             </View>
             <View style={styles.modalActions}>
               <TouchableOpacity style={[styles.modalSecondaryButton, { borderColor: theme.subText + "55" }]} onPress={() => setShowPurchaseModal(false)}>
-                <Text style={[styles.modalSecondaryText, { color: theme.text }]}>Hủy</Text>
+                <Text style={[styles.modalSecondaryText, { color: theme.text }]}>{t("studyMaterial.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalPrimaryButton, { backgroundColor: currentBalance < purchasePrice ? "#9ca3af" : theme.primary }]}
                 onPress={handlePurchase}
                 disabled={processing || currentBalance < purchasePrice}
               >
-                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalPrimaryText}>Mua ngay</Text>}
+                {processing ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalPrimaryText}>{t("studyMaterial.buyNow")}</Text>}
               </TouchableOpacity>
             </View>
           </View>

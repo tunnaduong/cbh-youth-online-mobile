@@ -26,16 +26,16 @@ import {
 } from "../../../../services/api/Api";
 
 const filterOptions = [
-  { key: "all", label: "Tất cả" },
-  { key: "free", label: "Miễn phí" },
-  { key: "paid", label: "Có phí" },
+  { key: "all", labelKey: "all" },
+  { key: "free", labelKey: "free" },
+  { key: "paid", labelKey: "paid" },
 ];
 
 const sortOptions = [
-  { key: "newest", label: "Mới nhất" },
-  { key: "rating", label: "Đánh giá" },
-  { key: "downloads", label: "Tải nhiều" },
-  { key: "views", label: "Xem nhiều" },
+  { key: "newest", labelKey: "newest" },
+  { key: "rating", labelKey: "rating" },
+  { key: "downloads", labelKey: "downloads" },
+  { key: "views", labelKey: "views" },
 ];
 
 const StudyMaterialScreen = ({ navigation }) => {
@@ -96,14 +96,14 @@ const StudyMaterialScreen = ({ navigation }) => {
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Không tải được danh sách tài liệu",
-        text2: error?.message || "Vui lòng thử lại",
+        text1: t("studyMaterial.loadError"),
+        text2: error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [search, selectedCategory, selectedFilter, selectedSort]);
+  }, [search, selectedCategory, selectedFilter, selectedSort, t]);
 
   useEffect(() => {
     loadCategories();
@@ -123,9 +123,11 @@ const StudyMaterialScreen = ({ navigation }) => {
 
   const renderItem = ({ item }) => {
     const priceLabel = item?.is_free || item?.price === 0
-      ? "Miễn phí"
-      : `${item?.price || 0} điểm`;
-    const ratingLabel = item?.average_rating ? `${item.average_rating}/5` : "Chưa có đánh giá";
+      ? t("studyMaterial.free")
+      : t("studyMaterial.points", { value: item?.price || 0 });
+    const ratingLabel = item?.average_rating
+      ? `${item.average_rating}/5`
+      : t("studyMaterial.noRating");
 
     return (
       <TouchableOpacity
@@ -135,17 +137,17 @@ const StudyMaterialScreen = ({ navigation }) => {
       >
         <View style={styles.cardHeader}>
           <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}>
-            <Text style={[styles.badgeText, { color: theme.primary }]}>{item?.category?.name || "Tài liệu"}</Text>
+            <Text style={[styles.badgeText, { color: theme.primary }]}>{item?.category?.name || t("studyMaterial.material")}</Text>
           </View>
           <Text style={[styles.priceText, { color: theme.primary }]}>{priceLabel}</Text>
         </View>
 
         <Text style={[styles.titleText, { color: theme.text }]} numberOfLines={2}>
-          {item?.title || "Tiêu đề tài liệu"}
+          {item?.title || t("studyMaterial.untitled")}
         </Text>
 
         <Text style={[styles.descriptionText, { color: theme.subText }]} numberOfLines={3}>
-          {item?.description || "Không có mô tả"}
+          {item?.description || t("studyMaterial.noDescription")}
         </Text>
 
         <View style={styles.metaRow}>
@@ -165,7 +167,7 @@ const StudyMaterialScreen = ({ navigation }) => {
 
         <View style={styles.authorRow}>
           <Ionicons name="person-circle-outline" size={18} color={theme.primary} />
-          <Text style={[styles.authorText, { color: theme.subText }]}>Bởi {item?.author?.profile_name || item?.author?.username || "Thành viên"}</Text>
+          <Text style={[styles.authorText, { color: theme.subText }]}>{t("studyMaterial.byAuthor", { author: item?.author?.profile_name || item?.author?.username || t("studyMaterial.member") })}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -202,17 +204,17 @@ const StudyMaterialScreen = ({ navigation }) => {
         <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -10], extrapolate: "clamp" }) }] }]}>
           {headerTitle}
         </Animated.Text>
-        <View style={styles.heroCard}>
-          <Text style={[styles.heroTitle, { color: theme.text }]}>Khám phá tài liệu ôn thi</Text>
-          <Text style={[styles.heroText, { color: theme.subText }]}>Tìm tài liệu mới, được đánh giá bởi cộng đồng và tải ngay trên ứng dụng.</Text>
+        <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.heroTitle, { color: theme.text }]}>{t("studyMaterial.heroTitle")}</Text>
+          <Text style={[styles.heroText, { color: theme.subText }]}>{t("studyMaterial.heroText")}</Text>
         </View>
 
-        <View style={styles.searchBox}>
+        <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Ionicons name="search-outline" size={18} color={theme.subText} />
           <TextInput
             value={search}
             onChangeText={setSearch}
-            placeholder="Tìm tài liệu, chủ đề..."
+            placeholder={t("studyMaterial.searchPlaceholder")}
             placeholderTextColor={theme.placeholder}
             style={[styles.searchInput, { color: theme.text }]}
           />
@@ -227,20 +229,20 @@ const StudyMaterialScreen = ({ navigation }) => {
                 onPress={() => setSelectedFilter(filter.key)}
                 style={[styles.chip, active ? { backgroundColor: theme.primary } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
               >
-                <Text style={[styles.chipText, active ? { color: "#fff" } : { color: theme.text }]}>{filter.label}</Text>
+                <Text style={[styles.chipText, active ? { color: "#fff" } : { color: theme.text }]}>{t(`studyMaterial.filters.${filter.labelKey}`)}</Text>
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
         <View style={styles.categoryRow}>
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>Danh mục</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.categories")}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <TouchableOpacity
               onPress={() => setSelectedCategory(null)}
               style={[styles.categoryChip, !selectedCategory ? { backgroundColor: theme.primary } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
             >
-              <Text style={[styles.categoryChipText, !selectedCategory ? { color: "#fff" } : { color: theme.text }]}>Tất cả</Text>
+              <Text style={[styles.categoryChipText, !selectedCategory ? { color: "#fff" } : { color: theme.text }]}>{t("studyMaterial.filters.all")}</Text>
             </TouchableOpacity>
             {categories.map((category) => {
               const active = selectedCategory === category.id;
@@ -266,7 +268,7 @@ const StudyMaterialScreen = ({ navigation }) => {
                 onPress={() => setSelectedSort(sort.key)}
                 style={[styles.sortChip, active ? { backgroundColor: theme.primary + "15" } : { backgroundColor: "transparent" }]}
               >
-                <Text style={[styles.sortChipText, active ? { color: theme.primary } : { color: theme.subText }]}>{sort.label}</Text>
+                <Text style={[styles.sortChipText, active ? { color: theme.primary } : { color: theme.subText }]}>{t(`studyMaterial.sort.${sort.labelKey}`)}</Text>
               </TouchableOpacity>
             );
           })}
@@ -275,13 +277,13 @@ const StudyMaterialScreen = ({ navigation }) => {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={[styles.loadingText, { color: theme.subText }]}>Đang tải tài liệu...</Text>
+            <Text style={[styles.loadingText, { color: theme.subText }]}>{t("studyMaterial.loading")}</Text>
           </View>
         ) : materials.length === 0 ? (
           <View style={styles.emptyState}>
             <Ionicons name="library-outline" size={48} color={theme.placeholder} />
-            <Text style={[styles.emptyTitle, { color: theme.text }]}>Chưa có tài liệu phù hợp</Text>
-            <Text style={[styles.emptyText, { color: theme.subText }]}>Thử đổi bộ lọc hoặc từ khóa tìm kiếm.</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>{t("studyMaterial.emptyTitle")}</Text>
+            <Text style={[styles.emptyText, { color: theme.subText }]}>{t("studyMaterial.emptyText")}</Text>
           </View>
         ) : (
           <View style={styles.listWrapper}>
@@ -350,7 +352,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
-    backgroundColor: "#F6FFF2",
+    borderWidth: 1,
   },
   heroTitle: {
     fontSize: 18,
@@ -370,7 +372,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
   },
   searchInput: {
     flex: 1,

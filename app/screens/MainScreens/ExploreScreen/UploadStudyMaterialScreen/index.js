@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 import {
   createStudyMaterial,
   getStudyMaterialCategories,
@@ -27,6 +28,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { userInfo } = useAuthContext();
+  const { t } = useTranslation();
 
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -70,31 +72,31 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       setSelectedDocument(asset);
       Toast.show({
         type: "success",
-        text1: "Đã chọn tài liệu",
-        text2: asset.name || "Bạn có thể đăng ngay",
+        text1: t("studyMaterial.fileSelected"),
+        text2: asset.name || t("studyMaterial.readyToPublish"),
       });
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Không thể chọn tài liệu",
-        text2: error?.message || "Vui lòng thử lại",
+        text1: t("studyMaterial.fileSelectError"),
+        text2: error?.message || t("studyMaterial.tryAgain"),
       });
     }
   };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      Toast.show({ type: "error", text1: "Vui lòng nhập tiêu đề tài liệu" });
+      Toast.show({ type: "error", text1: t("studyMaterial.titleRequired") });
       return;
     }
 
     if (!selectedDocument) {
-      Toast.show({ type: "error", text1: "Vui lòng chọn một tệp tài liệu" });
+      Toast.show({ type: "error", text1: t("studyMaterial.fileRequired") });
       return;
     }
 
     if (!isFree && (!price || Number(price) < 1)) {
-      Toast.show({ type: "error", text1: "Vui lòng nhập giá điểm hợp lệ" });
+      Toast.show({ type: "error", text1: t("studyMaterial.priceRequired") });
       return;
     }
 
@@ -112,7 +114,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       const fileId = uploadResponse?.data?.id;
 
       if (!fileId) {
-        throw new Error("Không nhận được ID tệp sau khi upload");
+        throw new Error(t("studyMaterial.uploadIdMissing"));
       }
 
       await createStudyMaterial({
@@ -128,15 +130,15 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
 
       Toast.show({
         type: "success",
-        text1: "Đăng tài liệu thành công",
-        text2: "Tài liệu của bạn đã được chia sẻ với cộng đồng",
+        text1: t("studyMaterial.publishSuccess"),
+        text2: t("studyMaterial.publishSuccessHint"),
       });
       navigation.goBack();
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Đăng tài liệu thất bại",
-        text2: error?.message || "Vui lòng thử lại",
+        text1: t("studyMaterial.publishError"),
+        text2: error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setSubmitting(false);
@@ -153,7 +155,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Đăng tài liệu mới</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t("studyMaterial.uploadTitle")}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -163,27 +165,27 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.heroCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}> 
-          <Text style={[styles.heroTitle, { color: theme.text }]}>Chia sẻ tài liệu học tập</Text>
-          <Text style={[styles.heroText, { color: theme.subText }]}>Đăng tài liệu, chọn danh mục và quyết định miễn phí hay bán bằng điểm.</Text>
+          <Text style={[styles.heroTitle, { color: theme.text }]}>{t("studyMaterial.uploadHeroTitle")}</Text>
+          <Text style={[styles.heroText, { color: theme.subText }]}>{t("studyMaterial.uploadHeroText")}</Text>
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Tiêu đề tài liệu</Text>
+          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.titleLabel")}</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder="Ví dụ: Tổng hợp công thức Toán 12"
+            placeholder={t("studyMaterial.titlePlaceholder")}
             placeholderTextColor={theme.placeholder}
             style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
           />
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Mô tả ngắn</Text>
+          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.descriptionLabel")}</Text>
           <TextInput
             value={description}
             onChangeText={setDescription}
-            placeholder="Giới thiệu tài liệu, đối tượng học, nội dung chính..."
+            placeholder={t("studyMaterial.descriptionPlaceholder")}
             placeholderTextColor={theme.placeholder}
             multiline
             numberOfLines={4}
@@ -193,7 +195,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Danh mục</Text>
+          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.categories")}</Text>
           {loadingCategories ? (
             <ActivityIndicator color={theme.primary} />
           ) : (
@@ -220,25 +222,25 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Tệp tài liệu</Text>
+          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.fileLabel")}</Text>
           <TouchableOpacity
             onPress={pickDocument}
             style={[styles.uploadBox, { borderColor: theme.border, backgroundColor: theme.cardBackground }]}
           >
             <Ionicons name="cloud-upload-outline" size={24} color={theme.primary} />
             <Text style={[styles.uploadText, { color: theme.text }]}>
-              {selectedDocument ? selectedDocument.name : "Chọn tệp từ máy"}
+              {selectedDocument ? selectedDocument.name : t("studyMaterial.chooseFile")}
             </Text>
-            <Text style={[styles.uploadHint, { color: theme.subText }]}>.pdf, .doc, .docx, .txt, .xlsx, .xls</Text>
+            <Text style={[styles.uploadHint, { color: theme.subText }]}>{t("studyMaterial.fileTypes")}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.formGroup}>
-          <Text style={[styles.label, { color: theme.text }]}>Nội dung xem trước</Text>
+          <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.previewContentLabel")}</Text>
           <TextInput
             value={previewContent}
             onChangeText={setPreviewContent}
-            placeholder="Nhập một đoạn nội dung nổi bật để người dùng xem trước..."
+            placeholder={t("studyMaterial.previewContentPlaceholder")}
             placeholderTextColor={theme.placeholder}
             multiline
             numberOfLines={5}
@@ -250,15 +252,15 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         <View style={[styles.optionCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}> 
           <View style={styles.optionRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.optionTitle, { color: theme.text }]}>Tài liệu miễn phí</Text>
-              <Text style={[styles.optionText, { color: theme.subText }]}>Nếu bật, người dùng có thể tải không mất điểm.</Text>
+              <Text style={[styles.optionTitle, { color: theme.text }]}>{t("studyMaterial.freeMaterial")}</Text>
+              <Text style={[styles.optionText, { color: theme.subText }]}>{t("studyMaterial.freeMaterialHint")}</Text>
             </View>
             <Switch value={isFree} onValueChange={setIsFree} thumbColor={theme.primary} />
           </View>
 
           {!isFree ? (
             <View style={{ marginTop: 12 }}>
-              <Text style={[styles.label, { color: theme.text }]}>Giá điểm</Text>
+              <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.priceLabel")}</Text>
               <TextInput
                 value={price}
                 onChangeText={setPrice}
@@ -276,7 +278,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
           disabled={submitting}
           style={[styles.submitButton, { backgroundColor: theme.primary }]}
         >
-          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Đăng tài liệu ngay</Text>}
+          {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{t("studyMaterial.publish")}</Text>}
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
