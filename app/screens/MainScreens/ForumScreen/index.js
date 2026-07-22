@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  ImageBackground,
   StyleSheet,
   Image,
   RefreshControl,
@@ -20,6 +21,7 @@ import CustomLoading from "../../../components/CustomLoading";
 import LottieView from "lottie-react-native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
@@ -41,41 +43,57 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
       },
     ]}
   >
-    <View style={styles.sectionHeader}>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>{getCategoryName(section.name, t)}</Text>
-        <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>
-          {section.post_count} {t('forum.posts').toLowerCase()} · {section.comment_count} {t('forum.comments').toLowerCase()}
-        </Text>
-      </View>
-      <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}>
-        <Ionicons name="chevron-forward" size={16} color={theme.primary} />
-      </View>
-    </View>
-
-    <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.1)" : "rgba(49,149,39,0.06)" }]}> 
-      {section.latest_post ? (
-        <TouchableOpacity
-          onPress={() => navigation.navigate("PostScreen", { postId: section.latest_post.id })}
-          activeOpacity={0.8}
-        >
-          <View style={styles.latestMetaRow}>
-            <Text style={[styles.latestLabel, { color: theme.primary }]}>{t('forum.latest')}</Text>
-            <Text style={[styles.latestTime, { color: theme.subText }]}> 
-              {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
+    {/* {console.log(section)} */}
+    <ImageBackground
+      source={{ uri: "https://www.chuyenbienhoa.com/images/" + section.background_image }}
+      resizeMode="cover"
+      style={styles.sectionBackground}
+      imageStyle={styles.sectionBackgroundImage}
+    >
+      <LinearGradient
+        colors={[theme.background, "transparent"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 3, y: 0 }}
+        style={{ position: "absolute", width: "150%", height: "400%", transform: [{rotate: '-35deg'}, {translateY: -150}] }}
+      />
+      <View style={styles.sectionContent}>
+        <View style={styles.sectionHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{getCategoryName(section.name, t)}</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>
+              {section.post_count} {t('forum.posts').toLowerCase()} · {section.comment_count} {t('forum.comments').toLowerCase()}
             </Text>
           </View>
-          <Text style={[styles.latestContent, { color: theme.text }]} numberOfLines={2}> 
-            <Text style={[styles.latestAuthor, { color: theme.primary }]}> 
-              {section.latest_post.user.name}:
-            </Text>{" "}
-            {section.latest_post.title}
-          </Text>
-        </TouchableOpacity>
-      ) : (
-        <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
-      )}
-    </View>
+          <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}> 
+            <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+          </View>
+        </View>
+
+        <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.1)" : "rgba(49,149,39,0.06)" }]}> 
+          {section.latest_post ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("PostScreen", { postId: section.latest_post.id })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.latestMetaRow}>
+                <Text style={[styles.latestLabel, { color: theme.primary }]}>{t('forum.latest')}</Text>
+                <Text style={[styles.latestTime, { color: theme.subText }]}> 
+                  {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
+                </Text>
+              </View>
+              <Text style={[styles.latestContent, { color: theme.text }]} numberOfLines={2}> 
+                <Text style={[styles.latestAuthor, { color: theme.primary }]}> 
+                  {section.latest_post.user.name}:
+                </Text>{" "}
+                {section.latest_post.title}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
+          )}
+        </View>
+      </View>
+    </ImageBackground>
   </TouchableOpacity>
 )
 
@@ -461,7 +479,6 @@ const styles = StyleSheet.create({
   sectionBox: {
     borderWidth: 1,
     borderRadius: 16,
-    padding: 14,
     marginBottom: 14,
   },
   sectionHeader: {
@@ -476,6 +493,11 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     fontSize: 13,
+  },
+  sectionBackground: {
+    padding: 14,
+    borderRadius: 15,
+    overflow: "hidden"
   },
   sectionBadge: {
     width: 30,
