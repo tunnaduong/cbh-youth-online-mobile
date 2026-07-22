@@ -43,7 +43,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
@@ -188,11 +188,11 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
           </View>
 
           <View style={styles.summaryRow}>
-            <View style={[styles.summaryPill, { backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6" }]}>              
-              <Text style={[styles.summaryText, { color: theme.text }]}>{t("voteModal.voteCount", { count: voteSummary.voteCount })}</Text>
+            <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+              <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.voteCount", { count: voteSummary.voteCount })}</Text>
             </View>
-            <View style={[styles.summaryPill, { backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6" }]}>              
-              <Text style={[styles.summaryText, { color: theme.text }]}>{t("voteModal.score", { value: voteSummary.totalVotes })}</Text>
+            <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+              <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.score", { value: voteSummary.totalVotes })}</Text>
             </View>
           </View>
 
@@ -261,17 +261,19 @@ const styles = StyleSheet.create({
   },
   summaryRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   summaryPill: {
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 999,
+    borderWidth: 1,
   },
   summaryText: {
     fontSize: 13,
+    fontWeight: "700",
   },
   loadingWrapper: {
     minHeight: 180,
