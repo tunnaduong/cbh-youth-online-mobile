@@ -445,6 +445,9 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                   javaScriptEnabled
                   domStorageEnabled
                   originWhitelist={["*"]}
+                  allowsBackForwardNavigationGestures={false}
+                  scrollEnabled={false}
+                  nestedScrollEnabled={false}
                 />
               </View>
             </View>
@@ -727,11 +730,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   webviewContainer: {
-    height: 420,
+    height: 320,
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "#E5E5E5",
+    marginTop: 8,
   },
   webview: {
     flex: 1,

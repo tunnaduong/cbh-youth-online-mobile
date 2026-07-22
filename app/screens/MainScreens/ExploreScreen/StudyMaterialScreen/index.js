@@ -214,7 +214,7 @@ const StudyMaterialScreen = ({ navigation }) => {
       >
         <View style={styles.cardHeader}>
           <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}>
-            <Text style={[styles.badgeText, { color: theme.primary }]}>{item?.category?.name || t("studyMaterial.material")}</Text>
+            <Text style={[styles.badgeText, { color: theme.primary }]}>{item?.category ? getCategoryLabel(item.category) : t("studyMaterial.material")}</Text>
           </View>
           <Text style={[styles.priceText, { color: theme.primary }]}>{priceLabel}</Text>
         </View>
