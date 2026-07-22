@@ -44,7 +44,16 @@ const LiquidButton = ({
       })
     : 1;
 
-  const borderColor = alwaysBorder ? visibleBorderColor : transparentBorderColor;
+  const borderColor = alwaysBorder
+    ? visibleBorderColor
+    : scrollY
+      ? scrollY.interpolate({
+          inputRange: [0, 40],
+          outputRange: [transparentBorderColor, visibleBorderColor],
+          extrapolate: "clamp",
+        })
+      : transparentBorderColor;
+  const staticBorderColor = alwaysBorder ? visibleBorderColor : transparentBorderColor;
 
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
@@ -57,7 +66,7 @@ const LiquidButton = ({
                 borderRadius: defaultRadius,
                 overflow: "hidden",
                 borderWidth: 1,
-                borderColor,
+                borderColor: staticBorderColor,
               },
             ]}
             glassType="clear"
@@ -76,7 +85,7 @@ const LiquidButton = ({
                 borderRadius: defaultRadius,
                 overflow: "hidden",
                 borderWidth: 1,
-                borderColor,
+                borderColor: staticBorderColor,
               },
             ]}
             blurType={isDarkMode ? "dark" : "light"}
@@ -95,7 +104,7 @@ const LiquidButton = ({
             backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor,
+            borderColor: staticBorderColor,
           }
         ]}
       />
@@ -149,6 +158,17 @@ const LiquidButton = ({
           pointerEvents="none"
         >
           {renderGlassBackground()}
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: defaultRadius,
+                borderWidth: 1,
+                borderColor,
+              },
+            ]}
+          />
         </Animated.View>
         {children}
       </TouchableOpacity>

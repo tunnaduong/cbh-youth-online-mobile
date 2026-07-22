@@ -26,7 +26,6 @@ export default function SearchScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
-  const [isHeaderElevated, setIsHeaderElevated] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [results, setResults] = useState({ users: [], posts: [] });
@@ -137,57 +136,56 @@ export default function SearchScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
-  const renderFilterChips = () => (
-    <View style={[styles.filterContainer, { borderBottomColor: theme.border }]}>
+  const renderFilterMenu = () => (
+    <View
+      style={[
+        styles.filterMenu,
+        { backgroundColor: theme.cardBackground, borderColor: theme.border },
+      ]}
+    >
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "all" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("all")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("all");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "all" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "all" ? theme.primary : theme.text },
           ]}
         >
           {t('search.all')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "user" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("user")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("user");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "user" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "user" ? theme.primary : theme.text },
           ]}
         >
           {t('search.users')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "post" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("post")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("post");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "post" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "post" ? theme.primary : theme.text },
           ]}
         >
           {t('search.posts')}
@@ -203,8 +201,6 @@ export default function SearchScreen({ navigation }) {
           styles.headerShell,
           {
             paddingTop: inset.top,
-            borderBottomColor: isHeaderElevated ? theme.border : "transparent",
-            borderBottomWidth: isHeaderElevated ? 1 : 0,
           },
         ]}
       >
@@ -213,63 +209,60 @@ export default function SearchScreen({ navigation }) {
             providerId="SearchScreen"
             onPress={() => navigation.goBack()}
             scrollY={scrollY}
-            alwaysBorder
-            size={42}
-            style={{ marginLeft: 10 }}
+            size={40}
+            style={{ marginLeft: 8 }}
             borderRadius={20}
           >
-            <Ionicons name="chevron-back-outline" color={theme.text} size={22} />
+            <Ionicons name="chevron-back-outline" color={theme.text} size={21} />
           </LiquidButton>
-          <View
-            style={[
-              styles.searchInputContainer,
-              {
-                backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
-                borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
-                borderWidth: 1,
-              },
-            ]}
-          >
-            <Ionicons name="search" size={18} color={theme.subText} />
-            <TextInput
-              style={[styles.searchInput, { color: theme.text }]}
-              placeholder={t('search.placeholder')}
-              placeholderTextColor={theme.subText}
-              onChangeText={setQuery}
-              value={query}
-              autoFocus
-            />
-            {query.length > 0 && (
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={() => setQuery("")}
-              >
-                <Ionicons name="close-circle" size={16} color={theme.subText} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setShowFilterMenu((prev) => !prev)}
+          <View style={styles.searchControls}>
+            <View
+              style={[
+                styles.searchInputContainer,
+                {
+                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
+                  borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
+                },
+              ]}
             >
-              <Ionicons name="options-outline" size={18} color={theme.text} />
-            </TouchableOpacity>
+              <Ionicons name="search" size={17} color={theme.subText} />
+              <TextInput
+                style={[styles.searchInput, { color: theme.text }]}
+                placeholder={t('search.placeholder')}
+                placeholderTextColor={theme.subText}
+                onChangeText={setQuery}
+                value={query}
+                autoFocus
+              />
+              {query.length > 0 && (
+                <TouchableOpacity
+                  style={styles.clearButton}
+                  onPress={() => setQuery("")}
+                >
+                  <Ionicons name="close-circle" size={17} color={theme.subText} />
+                </TouchableOpacity>
+              )}
+            </View>
+            <LiquidButton
+              providerId="SearchScreenFilter"
+              onPress={() => setShowFilterMenu((prev) => !prev)}
+              scrollY={scrollY}
+              size={40}
+              borderRadius={20}
+            >
+              <Ionicons name="options-outline" size={19} color={theme.text} />
+            </LiquidButton>
           </View>
         </View>
         {showFilterMenu && renderFilterMenu()}
-        <View style={{ opacity: isHeaderElevated ? 0 : 1 }} pointerEvents={isHeaderElevated ? "none" : "auto"}>
-          {renderFilterChips()}
-        </View>
       </Animated.View>
 
       <Animated.ScrollView
         style={styles.resultsContainer}
-        contentContainerStyle={{ paddingTop: 116 + inset.top, paddingBottom: inset.bottom + 16 }}
+        contentContainerStyle={{ paddingTop: 40 + inset.top, paddingBottom: inset.bottom + 16 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          {
-            useNativeDriver: true,
-            listener: (event) => setIsHeaderElevated(event.nativeEvent.contentOffset.y > 4),
-          }
+          { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
       >
@@ -378,7 +371,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 20,
-    paddingBottom: 4,
+    paddingBottom: 2,
     backgroundColor: "transparent",
   },
   headerBackdrop: {
@@ -390,34 +383,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingRight: 16,
-    paddingBottom: 6,
-    paddingTop: 6,
-    minHeight: 46,
+    paddingBottom: 3,
+    paddingTop: 3,
+    minHeight: 44,
+  },
+  searchControls: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+    gap: 6,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 14,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: Platform.OS === "android" ? 0 : 2,
-    minHeight: 32,
-    marginLeft: 8,
+    minHeight: 34,
+    borderWidth: 1,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     paddingLeft: 6,
-    paddingRight: 26,
+    paddingRight: 2,
     paddingVertical: 0,
     minHeight: 24,
     includeFontPadding: false,
     textAlignVertical: "center",
   },
   clearButton: {
-    padding: 3,
-    position: "absolute",
-    right: 4,
+    padding: 4,
+    marginLeft: 2,
   },
   loadingIndicator: {
     paddingRight: 10,
@@ -528,23 +527,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
   },
-  filterContainer: {
-    flexDirection: "row",
+  filterMenu: {
+    position: "absolute",
+    top: 52,
+    right: 16,
+    minWidth: 140,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 4,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+  },
+  filterMenuItem: {
     paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 8,
-    gap: 8,
+    paddingVertical: 10,
   },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  filterText: {
+  filterMenuText: {
     fontSize: 14,
-  },
-  activeFilterText: {
-    color: "#fff",
     fontWeight: "500",
   },
   sectionNoResults: {
