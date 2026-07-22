@@ -296,9 +296,6 @@ const StudyMaterialScreen = ({ navigation }) => {
           {headerTitle}
         </Animated.Text>
         <View style={styles.headerActions}>
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("MainScreens", { screen: "Home" })}>
-            <Ionicons name="home-outline" size={22} color={theme.primary} />
-          </LiquidButton>
           <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("UploadStudyMaterialScreen")}>
             <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
           </LiquidButton>
