@@ -1350,12 +1350,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           const prefetchUrls = [];
           formattedStories.forEach((user) => {
             user.stories?.forEach((story) => {
-              if (story.source?.uri && !story.source.uri.includes('null')) {
-                const uri = story.source.uri;
+              [story.source?.uri, story.thumbnailSource?.uri].forEach((uri) => {
+                if (!uri || uri.includes('null')) return;
                 if (typeof uri === 'string' && /^https?:\/\//i.test(uri)) {
                   prefetchUrls.push(uri);
                 }
-              }
+              });
             });
           });
           if (prefetchUrls.length > 0) {
@@ -1404,6 +1404,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
 
     return null;
+  };
+
+  const resolveStoryThumbnailUrl = (story) => {
+    if (story?.video_first_frame_url) {
+      return resolveStoryMediaUrl({
+        ...story,
+        media_url: story.video_first_frame_url,
+      });
+    }
+
+    return resolveStoryMediaUrl(story);
   };
 
   const shadeHex = (hex, percent) => {
@@ -1467,6 +1478,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         },
         stories: user.stories.map((story) => {
           const mediaUrl = resolveStoryMediaUrl(story);
+          const thumbnailUrl = resolveStoryThumbnailUrl(story);
           const textContent = story.text_content || story.content || story.text || '';
           const storyType = String(story?.type || story?.media_type || "").toLowerCase();
           const isVideoStory = Boolean(mediaUrl) && (
@@ -1507,6 +1519,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           username: user.username, // Store username
           source: {
             uri: mediaUrl || getStoryPlaceholderUri(),
+          },
+          thumbnailSource: {
+            uri: thumbnailUrl || getStoryPlaceholderUri(),
           },
           backgroundColor: shouldRenderAsImage ? undefined : gradientColors[0],
           duration: story.duration,
@@ -1721,7 +1736,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 {(() => {
                   const firstStory = user.stories[0];
                   const placeholderUri = getStoryPlaceholderUri && getStoryPlaceholderUri();
-                  const uriStr = firstStory?.source?.uri || '';
+                  const uriStr = firstStory?.thumbnailSource?.uri || firstStory?.source?.uri || '';
                   const isImage = firstStory && (
                     firstStory.media_type === 'image' ||
                     (/^https?:\/\//i.test(uriStr) && uriStr !== placeholderUri)
@@ -1729,7 +1744,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   if (isImage) {
                     return (
                       <Image
-                        source={{ uri: firstStory.source.uri }}
+                        source={{ uri: uriStr }}
                         style={{ width: 100, height: 160 }}
                       />
                     );
