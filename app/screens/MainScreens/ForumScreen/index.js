@@ -30,53 +30,53 @@ const { width } = Dimensions.get("window");
 
 
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
-  <View style={[styles.sectionBox, { borderColor: theme.primary, backgroundColor: theme.cardBackground, shadowColor: isDarkMode ? "#000" : theme.primary }]}>
-    <TouchableOpacity
-      onPress={() =>
-        navigation.navigate("CategoryScreen", { categoryId: section.id })
-      }
-    >
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{getCategoryName(section.name, t)}</Text>
-      <View style={styles.sectionStats}>
-        <Text style={[styles.statText, { color: theme.text }]}>
-          {t('forum.posts')}: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
-        </Text>
-        <Text style={[styles.statText, { color: theme.text }]}>
-          {t('forum.comments')}:{" "}
-          <Text style={[styles.statBold, { color: theme.text }]}>{section.comment_count}</Text>
+  <TouchableOpacity
+    onPress={() => navigation.navigate("CategoryScreen", { categoryId: section.id })}
+    activeOpacity={0.9}
+    style={[
+      styles.sectionBox,
+      {
+        borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+        backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.7)",
+      },
+    ]}
+  >
+    <View style={styles.sectionHeader}>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>{getCategoryName(section.name, t)}</Text>
+        <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>
+          {section.post_count} {t('forum.posts').toLowerCase()} · {section.comment_count} {t('forum.comments').toLowerCase()}
         </Text>
       </View>
-    </TouchableOpacity>
-    <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
+      <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}>
+        <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+      </View>
+    </View>
+
+    <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.1)" : "rgba(49,149,39,0.06)" }]}> 
       {section.latest_post ? (
-        <>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("PostScreen", {
-                postId: section.latest_post.id,
-              })
-            }
-          >
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.latest')}</Text>
-              <Text style={[styles.latestTime, { color: theme.subText }]}>
-                {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
-              </Text>
-            </View>
-            <Text style={[styles.latestContent, { color: theme.text }]}>
-              <Text style={[styles.latestAuthor, { color: theme.primary }]}>
-                {section.latest_post.user.name}:
-              </Text>{" "}
-              {section.latest_post.title}
+        <TouchableOpacity
+          onPress={() => navigation.navigate("PostScreen", { postId: section.latest_post.id })}
+          activeOpacity={0.8}
+        >
+          <View style={styles.latestMetaRow}>
+            <Text style={[styles.latestLabel, { color: theme.primary }]}>{t('forum.latest')}</Text>
+            <Text style={[styles.latestTime, { color: theme.subText }]}> 
+              {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
             </Text>
-          </TouchableOpacity>
-        </>
+          </View>
+          <Text style={[styles.latestContent, { color: theme.text }]} numberOfLines={2}> 
+            <Text style={[styles.latestAuthor, { color: theme.primary }]}> 
+              {section.latest_post.user.name}:
+            </Text>{" "}
+            {section.latest_post.title}
+          </Text>
+        </TouchableOpacity>
       ) : (
         <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
       )}
     </View>
-  </View>
-);
+  </TouchableOpacity>
 
 export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
@@ -477,45 +477,53 @@ const styles = StyleSheet.create({
   },
   sectionBox: {
     borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: "bold",
-    marginBottom: 6,
+    fontWeight: "700",
+    marginBottom: 4,
   },
-  sectionStats: {
-    flexDirection: "row",
-    marginBottom: 8,
-    gap: 18,
+  sectionSubtitle: {
+    fontSize: 13,
   },
-  statText: {
-    fontSize: 14,
-  },
-  statBold: {
-    fontWeight: "bold",
+  sectionBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
   },
   latestBox: {
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 2,
+    borderRadius: 12,
+    padding: 10,
+  },
+  latestMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
   latestLabel: {
     fontSize: 13,
-    fontWeight: "bold",
-    marginBottom: 2,
+    fontWeight: "700",
   },
   latestContent: {
     fontSize: 14,
-    marginBottom: 2,
+    lineHeight: 20,
   },
   latestAuthor: {
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   latestTime: {
     fontSize: 12,
-    marginLeft: "auto",
   },
 });

@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  TextInput,
   Platform,
   ActivityIndicator,
 } from "react-native";
@@ -21,6 +20,7 @@ import {
   reportUser,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
+import CommentBar from "../../../components/CommentBar";
 import { Alert, ActionSheetIOS } from "react-native";
 import Toast from "react-native-toast-message";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
@@ -1168,35 +1168,26 @@ const ConversationScreen = ({ navigation, route }) => {
 
       {/* Input Bar */}
       <KeyboardAvoidingView behavior={"padding"}>
-        <SafeAreaView style={{ backgroundColor: theme.background }}>
-          <View style={[styles.inputContainer, { backgroundColor: theme.background, borderTopColor: theme.border }]}>
-            <TouchableOpacity
-              style={styles.attachButton}
-              onPress={pickImage}
-              disabled={sending}
-            >
-              <Ionicons name="image-outline" size={24} color={theme.subText} />
-            </TouchableOpacity>
-            <TextInput
-              ref={inputRef}
-              style={[styles.input, { backgroundColor: isDarkMode ? "#1f2937" : "#f5f5f5", color: theme.text }]}
-              placeholder={t("chat.typeMessage")}
-              placeholderTextColor={theme.subText}
-              value={message}
-              onChangeText={setMessage}
-              multiline
-            />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                { backgroundColor: message.trim() ? theme.primary : (isDarkMode ? "#374151" : "#ccc") },
-              ]}
-              disabled={!message.trim() || sending}
-              onPress={handleSendMessage}
-            >
-              <Ionicons name="send" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
+        <SafeAreaView style={{ backgroundColor: "transparent" }}>
+          <CommentBar
+            ref={inputRef}
+            placeholderText={t("chat.typeMessage")}
+            onSubmit={handleSendMessage}
+            onChangeText={setMessage}
+            value={message}
+            disabled={!message.trim() || sending}
+            isSubmitting={sending}
+            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 8 : 12, paddingTop: 8 }}
+            leftAccessory={
+              <TouchableOpacity
+                style={styles.attachButton}
+                onPress={pickImage}
+                disabled={sending}
+              >
+                <Ionicons name="image-outline" size={20} color={theme.subText} />
+              </TouchableOpacity>
+            }
+          />
         </SafeAreaView>
       </KeyboardAvoidingView>
     </View>
@@ -1328,7 +1319,9 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   attachButton: {
-    padding: 8,
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: "rgba(49,149,39,0.12)",
   },
   input: {
     flex: 1,

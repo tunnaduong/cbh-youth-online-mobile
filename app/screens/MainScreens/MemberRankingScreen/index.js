@@ -143,7 +143,7 @@ export default function MemberRankingScreen({ navigation }) {
 
     return (
       <TouchableOpacity
-        style={[styles.rankItem, { borderBottomColor: theme.border }]}
+        style={[styles.rankItem, { borderBottomColor: theme.border, backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.7)" }]}
         onPress={() =>
           navigation.navigate("ProfileScreen", { username: item.username })
         }
@@ -239,8 +239,10 @@ const styles = StyleSheet.create({
   top3Container: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 30,
+    paddingVertical: 28,
+    marginHorizontal: 16,
     marginBottom: 10,
+    borderRadius: 20,
   },
   top3Item: {
     alignItems: "center",

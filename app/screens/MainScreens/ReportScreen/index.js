@@ -98,14 +98,14 @@ export default function ReportScreen({ navigation }) {
 
       <View
         style={{
-          backgroundColor: isDarkMode ? "#312e16" : "#FFF3CD",
+          backgroundColor: isDarkMode ? "rgba(255,193,7,0.18)" : "rgba(255,193,7,0.1)",
           borderLeftWidth: 4,
           borderLeftColor: "#FFC107",
           padding: 12,
           marginHorizontal: 15,
           marginTop: 10,
           marginBottom: 5,
-          borderRadius: 4,
+          borderRadius: 12,
           flexDirection: "row",
           alignItems: "center",
         }}
@@ -125,13 +125,13 @@ export default function ReportScreen({ navigation }) {
 
       <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{t('report.reportViolation')}</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.subText }]}> 
             {t('report.schoolName')}
           </Text>
         </View>
-        <View style={styles.warningIcon}>
-          <Ionicons name="warning" size={24} color="#fff" />
+        <View style={[styles.warningIcon, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}> 
+          <Ionicons name="warning" size={24} color={theme.primary} />
         </View>
       </View>
 
@@ -151,8 +151,8 @@ export default function ReportScreen({ navigation }) {
             key={type.id}
             style={[
               styles.card,
-              { backgroundColor: theme.cardBackground, borderColor: theme.border },
-              selectedType === type.id && [styles.selectedCard, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }],
+              { backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "rgba(255,255,255,0.72)", borderColor: theme.border },
+              selectedType === type.id && [styles.selectedCard, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.08)", borderColor: theme.primary }],
             ]}
             onPress={() => setSelectedType(type.id)}
           >
@@ -171,7 +171,7 @@ export default function ReportScreen({ navigation }) {
 
       {/* Continue Button */}
       <TouchableOpacity
-        style={[styles.continueButton, { backgroundColor: theme.primary, opacity: selectedType ? 1 : 0.5 }]}
+        style={[styles.continueButton, { backgroundColor: theme.primary, opacity: selectedType ? 1 : 0.55 }]}
         disabled={!selectedType}
         onPress={() => {
           navigation.navigate("Step2", {
@@ -202,20 +202,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 22,
+    fontWeight: "700",
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#fff",
     opacity: 0.8,
   },
   warningIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },

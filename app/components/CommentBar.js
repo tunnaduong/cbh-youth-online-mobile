@@ -29,6 +29,7 @@ const CommentBar = React.forwardRef(
       onToggleAnonymous,
       anonymousDisabled = false,
       style,
+      leftAccessory,
     },
     ref
   ) => {
@@ -98,8 +99,14 @@ const CommentBar = React.forwardRef(
               paddingHorizontal: 15,
               flexDirection: "row",
               flex: 1,
+              alignItems: "center",
             }}
           >
+            {leftAccessory ? (
+              <View style={{ marginRight: 8, alignItems: "center", justifyContent: "center" }}>
+                {leftAccessory}
+              </View>
+            ) : null}
             <TextInput
               style={{
                 fontSize: 14,

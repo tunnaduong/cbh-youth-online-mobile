@@ -32,15 +32,15 @@ export default function Success({ navigation }) {
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
+<View style={[styles.header, { backgroundColor: isDarkMode ? "#1f2937" : "#F3FDF1" }]}> 
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.headerTitle, { color: theme.text }]}>{t('report.reportViolation')}</Text>
+          <Text style={[styles.headerSubtitle, { color: theme.subText }]}> 
             {t('report.schoolName')}
           </Text>
         </View>
-        <View style={styles.warningIcon}>
-          <Ionicons name="warning" size={24} color="#fff" />
+        <View style={[styles.warningIcon, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}> 
+          <Ionicons name="warning" size={24} color={theme.primary} />
         </View>
       </View>
 
@@ -117,20 +117,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 22,
+    fontWeight: "700",
   },
   headerSubtitle: {
     fontSize: 14,
-    color: "#fff",
     opacity: 0.8,
   },
   warningIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
   },

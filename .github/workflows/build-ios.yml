@@ -1,4 +1,4 @@
-name: Build Unsigned iOS IPA
+name: Build iOS Signed IPA
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-ios-real:
-    name: Build & Pack Unsigned IPA
+    name: Build & Sign Real Device IPA
     runs-on: macos-latest
     steps:
       - name: Checkout repository
@@ -30,20 +30,53 @@ jobs:
           sudo ln -sf $(which node) /usr/local/bin/node
           echo "export NODE_BINARY=$(which node)" > ios/.xcode.env.local
 
-      # =========================================================================
-      # # ĐÃ VÔ HIỆU HÓA: Phần cài đặt chứng chỉ & Provisioning Profile cũ (Signed)
-      # =========================================================================
-      # - name: Install Apple Certificate and Provisioning Profile (Disabled for Unsigned)
-      #   env:
-      #     BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-      #     P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-      #     BUILD_PROVISIONING_PROFILE_BASE64: ${{ secrets.BUILD_PROVISIONING_PROFILE_BASE64 }}
-      #   run: |
-      #     CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-      #     PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
-      #     KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
-      #     ... (Logic cũ được giữ lại ở đây để tiện bật lại sau)
-      # =========================================================================
+      - name: Install Apple Certificate and Provisioning Profile
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          BUILD_PROVISIONING_PROFILE_BASE64: ${{ secrets.BUILD_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
+
+          # Giải mã dữ liệu mã hóa Base64 sang file vật lý trong thư mục tạm
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+
+          security create-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
+
+          security list-keychains -d user -s $KEYCHAIN_PATH $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH \
+            -k $KEYCHAIN_PATH \
+            -P "$P12_PASSWORD" \
+            -t cert \
+            -f pkcs12 \
+            -A
+
+          security set-key-partition-list -S apple-tool:,apple: -s -k "github-actions-pwd" $KEYCHAIN_PATH
+
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+
+          security cms -D -i $PP_PATH > $RUNNER_TEMP/profile.plist
+          TEAM_ID=$(plutil -extract TeamIdentifier.0 raw $RUNNER_TEMP/profile.plist || plutil -extract Entitlements.com.apple.developer.team-identifier raw $RUNNER_TEMP/profile.plist)
+          UUID=$(plutil -extract UUID raw $RUNNER_TEMP/profile.plist)
+          PROFILE_NAME=$(plutil -extract Name raw $RUNNER_TEMP/profile.plist)
+          FULL_APP_ID=$(plutil -extract Entitlements.application-identifier raw $RUNNER_TEMP/profile.plist)
+          BUNDLE_ID="${FULL_APP_ID#*.}"
+          if [ "$BUNDLE_ID" = "*" ]; then
+            BUNDLE_ID="com.fatties.youth"
+          fi
+
+          echo "DEVELOPMENT_TEAM=$TEAM_ID" >> $GITHUB_ENV
+          echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
+          echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
+          echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: npm ci
@@ -70,7 +103,8 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
-      - name: Build iOS Archive (Unsigned)
+      # Ép các biến môi trường loại bỏ Simulator ngay tại câu lệnh build xcodebuild
+      - name: Build iOS Archive
         run: |
           cd ios
           set -o pipefail
@@ -81,30 +115,53 @@ jobs:
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
+            CODE_SIGN_STYLE="Manual" \
+            CODE_SIGN_IDENTITY="Apple Development" \
+            PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}" \
+            PROVISIONING_PROFILE="${{ env.PROVISIONING_PROFILE_UUID }}" \
             SUPPORTED_PLATFORMS="iphoneos" \
             EXCLUDED_ARCHS="x86_64 i386" \
             | xcbeautify --quiet --renderer github-actions
 
-      - name: Pack Unsigned App into IPA
+      - name: Export IPA
         run: |
-          # Tạo cấu trúc thư mục Payload tiêu chuẩn của một file IPA
-          mkdir -p $RUNNER_TEMP/Payload
-          
-          # Copy tệp .app từ archive vào trong Payload
-          cp -R "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive/Products/Applications/"*.app $RUNNER_TEMP/Payload/
-          
-          # Nén thư mục Payload thành tệp .ipa
-          cd $RUNNER_TEMP
-          zip -r ${{ env.APP_NAME }}-unsigned.ipa Payload
+          cat <<EOF > $RUNNER_TEMP/ExportOptions.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>development</string>
+              <key>compileBitcode</key>
+              <false/>
+              <key>destination</key>
+              <string>export</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>teamID</key>
+              <string>${{ env.DEVELOPMENT_TEAM }}</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>${{ env.BUNDLE_ID }}</key>
+                  <string>${{ env.PROVISIONING_PROFILE_NAME }}</string>
+              </dict>
+          </dict>
+          </plist>
+          EOF
 
-      - name: Upload Unsigned IPA Artifact
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
+            -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
+            -exportPath $RUNNER_TEMP/exported_ipa
+
+          mv $RUNNER_TEMP/exported_ipa/*.ipa $RUNNER_TEMP/${{ env.APP_NAME }}-signed.ipa
+
+      - name: Upload Real IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-unsigned-ipa
-          path: ${{ runner.temp }}/*-unsigned.ipa
+          name: app-release-signed-ipa
+          path: ${{ runner.temp }}/*-signed.ipa
           retention-days: 1
 
   publish-release:
@@ -117,7 +174,7 @@ jobs:
       - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
-          name: app-release-unsigned-ipa
+          name: app-release-signed-ipa
           path: ${{ github.workspace }}/release_artifacts
 
       - name: Create or Update Pre-release
@@ -128,12 +185,15 @@ jobs:
           tag: "dhphuc-ios"
           name: "${{ github.sha }}"
           body: |
-            ### 🚀 iOS Unsigned IPA Build Details
+            ### 🚀 iOS Build Details
             - **Commit SHA:** `${{ github.sha }}`
             - **Branch:** `${{ github.ref_name }}`
             - **Changelog:** ${{ github.event.head_commit.message }}
             
-            > ⚠️ Đây là bản build định dạng **IPA (Unsigned)**, dùng để phục vụ cho các công cụ ký lại thủ công (side-loading/re-signing).
+            ### 🔗 Liên kết cài đặt trực tuyến (Mở bằng Safari trên iPhone)
+            Nhấn vào link dưới đây để đến trang cài đặt ứng dụng dành cho thiết bị thật:
+            
+            👉 **[BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)**
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -170,12 +230,14 @@ jobs:
               exit(0)
 
           if build_ok and release_ok:
-              title = f"🟢 **NEW IOS UNSIGNED IPA AVAILABLE (Build #{run_number})**"
+              title = f"🟢 **NEW IOS BUILD AVAILABLE (Build #{run_number})**"
               color = 3066993
               description = (
-                  "⚠️ **Lưu ý:** Đây là gói build **Unsigned IPA** (không kèm chứng chỉ).\n\n"
-                  "📦 **Tải trực tiếp file IPA:**\n"
-                  "📥 [**TẢI FILE IPA (UNSIGNED)**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-ios/CBHOnline-unsigned.ipa)\n\n"
+                  "📲 **Vui lòng lựa chọn phương thức tải/cài đặt phù hợp:**\n\n"
+                  "🔗 **1. Cài đặt trực tuyến (Mở bằng Safari trên iPhone):**\n"
+                  "👉 [**BẤM VÀO ĐÂY ĐỂ CÀI ĐẶT**](https://huanhoahongso3-collab.github.io/autosignipacert/20260620-092352/)\n\n"
+                  "📦 **2. Tải trực tiếp file IPA về máy:**\n"
+                  "📥 [**TẢI FILE CBHOnline-signed.ipa**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-ios/CBHOnline-signed.ipa)\n\n"
                   "---\n"
                   "**Thông tin phiên bản:**\n"
                   f"- **Nhánh (Branch):** `{ref_name}`\n"
@@ -183,9 +245,9 @@ jobs:
                   f"- **Changelog:** {commit_message}"
               )
           else:
-              title = f"🔴 **IOS UNSIGNED IPA BUILD FAILED (Build #{run_number})**"
+              title = f"🔴 **IOS BUILD FAILED (Build #{run_number})**"
               color = 15158332
-              description = f"❌ Đã xảy ra lỗi trong quá trình build file IPA không ký.\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`\n- **Changelog:** {commit_message}"
+              description = f"❌ Đã xảy ra lỗi trong quá trình build hoặc phát hành file IPA.\n- **Nhánh (Branch):** `{ref_name}`\n- **Mã commit:** `{sha}`\n- **Changelog:** {commit_message}"
 
           payload = {
               "embeds": [{
