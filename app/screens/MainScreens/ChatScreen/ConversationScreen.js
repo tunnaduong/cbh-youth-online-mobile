@@ -1186,10 +1186,10 @@ const ConversationScreen = ({ navigation, route }) => {
       {/* Input Bar - positioned above messages */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 2 : 0}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}
       >
-        <View style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? Math.max(insets.bottom - 2, 0) : Math.max(insets.bottom - 4, 0) }}>
+        <View style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? Math.max(insets.bottom - 8, 0) : Math.max(insets.bottom - 4, 0) }}>
           <CommentBar
             ref={inputRef}
             placeholderText={t("chat.typeMessage")}
@@ -1198,7 +1198,7 @@ const ConversationScreen = ({ navigation, route }) => {
             value={message}
             disabled={!message.trim() || sending}
             isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 4 : 0, paddingTop: Platform.OS === "ios" ? 4 : 0, backgroundColor: "transparent", marginTop: Platform.OS === "ios" ? 2 : 0 }}
+            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 2 : 0, paddingTop: Platform.OS === "ios" ? 2 : 0, backgroundColor: "transparent", marginTop: Platform.OS === "ios" ? 0 : 0 }}
             leftAccessory={
               <TouchableOpacity
                 style={styles.attachButton}

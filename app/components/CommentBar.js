@@ -46,8 +46,8 @@ const CommentBar = React.forwardRef(
         style={[
           {
             paddingHorizontal: 20, // narrower width
-            paddingBottom: Platform.OS === 'ios' ? 6 : 8,
-            paddingTop: Platform.OS === 'ios' ? 6 : 4,
+            paddingBottom: Platform.OS === 'ios' ? 4 : 8,
+            paddingTop: Platform.OS === 'ios' ? 2 : 4,
             width: "100%",
             backgroundColor: "transparent",
           },
