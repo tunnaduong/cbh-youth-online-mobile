@@ -43,6 +43,9 @@
       ]
     },
     "android": {
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",

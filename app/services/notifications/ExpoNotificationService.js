@@ -16,6 +16,15 @@ Notifications.setNotificationHandler({
  */
 export async function requestNotificationPermissions() {
   try {
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "CBH Online",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#319527",
+      });
+    }
+
     // Check if running on physical device (simulators/emulators can't receive push notifications)
     // For Expo, we'll just try to get permissions and let it fail gracefully if on simulator
     const { status: existingStatus } =
