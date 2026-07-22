@@ -7,6 +7,7 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -37,12 +38,12 @@ const CommentBar = React.forwardRef(
     const { t } = useTranslation();
 
     return (
-      <View
+      <KeyboardStickyView
         style={[
           {
             paddingHorizontal: 20, // narrower width
-            paddingBottom: Platform.OS === 'ios' ? 10 : 15, // slightly smaller on iOS to better align with safe area
-            paddingTop: 5,
+            paddingBottom: Platform.OS === 'ios' ? 4 : 8,
+            paddingTop: 4,
             width: "100%",
             backgroundColor: "transparent",
           },
@@ -59,15 +60,15 @@ const CommentBar = React.forwardRef(
               ? "rgba(18, 18, 18, 0.85)"
               : "rgba(255, 255, 255, 0.75)",
             borderRadius: 30, // floating pill shape
-            padding: 5,
+            padding: 4,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: theme.border,
             overflow: "hidden",
             shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 10,
-            elevation: 5,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 3,
           }}
         >
           {isIOS && useIOSGlass && LiquidGlassView && (
@@ -188,7 +189,7 @@ const CommentBar = React.forwardRef(
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardStickyView>
     );
   }
 );

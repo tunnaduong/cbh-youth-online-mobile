@@ -112,6 +112,8 @@ const LiquidButton = ({
       width: size,
       height: size,
       borderRadius: defaultRadius,
+      borderWidth: alwaysBorder ? 1 : 0,
+      borderColor: alwaysBorder ? theme.primary : "transparent",
     },
     style,
   ];

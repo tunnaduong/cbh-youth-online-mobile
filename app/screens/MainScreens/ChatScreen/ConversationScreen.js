@@ -23,7 +23,7 @@ import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
 import { Alert, ActionSheetIOS } from "react-native";
 import Toast from "react-native-toast-message";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import "dayjs/locale/ru";
@@ -1111,9 +1111,11 @@ const ConversationScreen = ({ navigation, route }) => {
           styles.header,
           {
             paddingTop: insets.top,
-            height: 74 + insets.top,
+            height: 54 + insets.top,
+            paddingBottom: 4,
             backgroundColor: theme.background,
-            borderBottomWidth: 0,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.border,
             elevation: 0,
             shadowOpacity: 0,
           },
@@ -1182,15 +1184,11 @@ const ConversationScreen = ({ navigation, route }) => {
         onEndReachedThreshold={0.3}
       />
 
-      {/* Input Bar - positioned above messages and transparent */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "position" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}
-      >
+      {/* Input Bar - positioned above messages and sticky with keyboard */}
+      <KeyboardStickyView style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}>
         <SafeAreaView
           edges={["bottom"]}
-          style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: insets.bottom }}
+          style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom - 4, 0) }}
         >
           <CommentBar
             ref={inputRef}
@@ -1200,7 +1198,7 @@ const ConversationScreen = ({ navigation, route }) => {
             value={message}
             disabled={!message.trim() || sending}
             isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 8 : 12, paddingTop: 8, backgroundColor: "transparent", marginTop: 4 }}
+            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 6 : 10, paddingTop: 6, backgroundColor: "transparent", marginTop: 2 }}
             leftAccessory={
               <TouchableOpacity
                 style={styles.attachButton}
@@ -1212,7 +1210,7 @@ const ConversationScreen = ({ navigation, route }) => {
             }
           />
         </SafeAreaView>
-      </KeyboardAvoidingView>
+      </KeyboardStickyView>
     </View>
   );
 };

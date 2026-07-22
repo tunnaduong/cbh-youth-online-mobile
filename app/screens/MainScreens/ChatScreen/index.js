@@ -268,7 +268,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           scrollY={scrollY}
           alwaysBorder
           size={44}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center' }}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: theme.primary, backgroundColor: 'transparent' }}
           borderRadius={22}
         >
           <Ionicons
