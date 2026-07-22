@@ -49,6 +49,9 @@ import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
+import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
+import StudyMaterialDetailScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialDetailScreen";
+import UploadStudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/UploadStudyMaterialScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
@@ -549,6 +552,21 @@ const App = () => {
                     textShadowRadius: 4,
                   }
                 }}
+              />
+              <Stack.Screen
+                name="StudyMaterialScreen"
+                component={StudyMaterialScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="StudyMaterialDetailScreen"
+                component={StudyMaterialDetailScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="UploadStudyMaterialScreen"
+                component={UploadStudyMaterialScreen}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="StoryViewersScreen"

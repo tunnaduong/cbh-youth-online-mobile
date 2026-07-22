@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   logoutRequest,
@@ -9,6 +9,14 @@ import {
 import { storage } from "../global/storage";
 
 export const AuthContext = createContext();
+
+export const useAuthContext = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
+  }
+  return context;
+};
 
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
@@ -74,6 +82,12 @@ export const AuthProvider = ({ children }) => {
               setBlockedUsers(JSON.parse(storedBlockedUsers));
             }
           }
+
+          try {
+            await refreshUserInfo();
+          } catch (refreshError) {
+            console.error("Failed to refresh current user info:", refreshError);
+          }
         } else {
           // Not logged in, clear or blocked users irrelevant
           setBlockedUsers([]);
@@ -109,6 +123,20 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (e) {
       console.error("Error fetching blocked users on login:", e);
+    }
+
+    try {
+      const currentUserResponse = await getCurrentUser();
+      if (currentUserResponse?.data) {
+        const user = currentUserResponse.data;
+        setUsername(user.username || null);
+        setProfileName(user.profile_name || null);
+        setUserInfo(user);
+        setEmailVerifiedAt(user.email_verified_at || null);
+        await AsyncStorage.setItem("user_info", JSON.stringify(user));
+      }
+    } catch (e) {
+      console.error("Error fetching current user profile on login:", e);
     }
   };
 
@@ -178,7 +206,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUserInfo = async () => {
-    if (!isLoggedIn) {
+    const token = await AsyncStorage.getItem("auth_token");
+    if (!token) {
       return;
     }
 
@@ -186,6 +215,7 @@ export const AuthProvider = ({ children }) => {
       const response = await getCurrentUser();
       if (response?.data) {
         const user = response.data;
+        setIsLoggedIn(true);
         setUsername(user.username || null);
         setProfileName(user.profile_name || null);
         setUserInfo(user);
