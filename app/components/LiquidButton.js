@@ -30,11 +30,12 @@ const LiquidButton = ({
   const defaultRadius = borderRadius ?? size / 2;
 
   // When scrollY is provided, background fades in as user scrolls (0→40px).
-  // At the top the button appears label-only (no visible pill/circle).
+  // At the top, buttons with alwaysBorder still keep a subtle translucent pill.
+  const startOpacity = alwaysBorder ? 0.22 : 0;
   const bgOpacity = scrollY
     ? scrollY.interpolate({
         inputRange: [0, 40],
-        outputRange: [0, 1],
+        outputRange: [startOpacity, 1],
         extrapolate: "clamp",
       })
     : 1;

@@ -1185,7 +1185,7 @@ const ConversationScreen = ({ navigation, route }) => {
       {/* Input Bar - positioned above messages and transparent */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "position" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 64 + insets.top : 0}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
         style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}
       >
         <SafeAreaView

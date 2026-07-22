@@ -54,9 +54,10 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
         colors={[theme.background, "transparent"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 3, y: 0 }}
-        style={{ position: "absolute", width: "150%", height: "400%", transform: [{rotate: '-35deg'}, {translateY: -150}] }}
+        style={StyleSheet.absoluteFill}
       />
-      <View style={styles.sectionContent}>
+      <View style={styles.sectionContentWrapper}>
+        <View style={styles.sectionContent}>
         <View style={styles.sectionHeader}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{getCategoryName(section.name, t)}</Text>
@@ -92,6 +93,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
             <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
           )}
         </View>
+      </View>
       </View>
     </ImageBackground>
   </TouchableOpacity>
@@ -478,10 +480,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   sectionBox: {
+    width: "100%",
     borderWidth: 1,
     borderRadius: 16,
     marginBottom: 14,
     overflow: "hidden",
+    alignSelf: "stretch",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -498,9 +502,26 @@ const styles = StyleSheet.create({
   },
   sectionBackground: {
     width: "100%",
-    padding: 14,
-    borderRadius: 15,
+    borderRadius: 16,
     overflow: "hidden",
+    minHeight: 188,
+    position: "relative",
+  },
+  sectionBackgroundImage: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 16,
+    resizeMode: "cover",
+  },
+  sectionContentWrapper: {
+    flex: 1,
+    padding: 14,
+  },
+  sectionContent: {
+    flex: 1,
   },
   sectionBadge: {
     width: 30,

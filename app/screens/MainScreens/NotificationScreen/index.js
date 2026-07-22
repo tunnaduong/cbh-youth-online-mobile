@@ -561,6 +561,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           size={44}
           style={{ width: 'auto', paddingHorizontal: 16, height: 44 }}
           borderRadius={22}
+          backgroundColor={isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)"}
         >
           <Text
             style={[
