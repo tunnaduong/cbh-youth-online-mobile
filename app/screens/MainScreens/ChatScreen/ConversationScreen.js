@@ -1025,11 +1025,18 @@ const ConversationScreen = ({ navigation, route }) => {
           <View
             style={[
               styles.messageBubble,
-              item.is_myself
+              item.type === "image"
+                ? styles.imageMessageBubble
+                : item.type === "chat" || item.type === "part"
+                ? [
+                    item.is_myself ? styles.myMessageBubble : styles.theirMessageBubble,
+                    styles.chatMessageBubble,
+                    { borderColor: isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)" },
+                  ]
+                : item.is_myself
                 ? [styles.myMessageBubble, { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" }]
                 : [styles.theirMessageBubble, { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" }],
               !item.is_myself && !isLastInGroup && { marginLeft: 40 },
-              item.type === "image" && styles.imageMessageBubble,
             ]}
           >
             {item.type === "image" && item.file_url ? (
@@ -1102,7 +1109,14 @@ const ConversationScreen = ({ navigation, route }) => {
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top, height: 60 + insets.top, backgroundColor: theme.background, borderBottomColor: theme.border },
+          {
+            paddingTop: insets.top,
+            height: 64 + insets.top,
+            backgroundColor: theme.background,
+            borderBottomWidth: 0,
+            elevation: 0,
+            shadowOpacity: 0,
+          },
         ]}
       >
         <TouchableOpacity
@@ -1157,18 +1171,19 @@ const ConversationScreen = ({ navigation, route }) => {
       <FlatList
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) =>
-          item.is_myself ? "my" + item.id : "their" + item.id
-        }
-        contentContainerStyle={styles.messagesList}
+        keyExtractor={(item) => (item.is_myself ? "my" + item.id : "their" + item.id)}
+        contentContainerStyle={[
+          styles.messagesList,
+          { paddingBottom: 120 + insets.bottom },
+        ]}
         inverted={true}
         onEndReached={() => !refreshing && fetchMessages()}
         onEndReachedThreshold={0.3}
       />
 
-      {/* Input Bar */}
-      <KeyboardAvoidingView behavior={"padding"}>
-        <SafeAreaView style={{ backgroundColor: "transparent" }}>
+      {/* Input Bar - positioned above messages and transparent */}
+      <KeyboardAvoidingView behavior={"padding"} style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
+        <SafeAreaView edges={["bottom"]} style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: insets.bottom }}>
           <CommentBar
             ref={inputRef}
             placeholderText={t("chat.typeMessage")}
@@ -1177,7 +1192,7 @@ const ConversationScreen = ({ navigation, route }) => {
             value={message}
             disabled={!message.trim() || sending}
             isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 8 : 12, paddingTop: 8 }}
+            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 8 : 12, paddingTop: 8, backgroundColor: 'transparent' }}
             leftAccessory={
               <TouchableOpacity
                 style={styles.attachButton}
@@ -1201,8 +1216,9 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: 12,
+    justifyContent: "space-between",
+    borderBottomWidth: 0,
   },
   headerProfile: {
     flex: 1,
@@ -1251,6 +1267,11 @@ const styles = StyleSheet.create({
   },
   theirMessageBubble: {
     borderBottomLeftRadius: 4,
+  },
+  chatMessageBubble: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderRadius: 20,
   },
   imageMessageBubble: {
     padding: 0,

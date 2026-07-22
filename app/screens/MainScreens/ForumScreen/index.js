@@ -308,7 +308,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabScrollContent}
         scrollEnabled={scrollEnabled}
-        style={[styles.tabContainer, { backgroundColor: theme.background }]}
+        style={[styles.tabContainer, { backgroundColor: "transparent" }]}
       >
         {categories.map((cat, index) => (
           <TouchableOpacity
@@ -387,9 +387,9 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         }}
         renderItem={({ item }) => (
           <ScrollView
-            style={{ flex: 1, width, backgroundColor: theme.background }}
+            style={{ flex: 1, width, backgroundColor: "transparent" }}
             contentContainerStyle={{
-              backgroundColor: theme.background,
+              backgroundColor: "transparent",
               paddingHorizontal: 16,
               paddingBottom: 110 + insets.bottom,
               paddingTop: 5,

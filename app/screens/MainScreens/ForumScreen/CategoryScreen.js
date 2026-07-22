@@ -265,7 +265,7 @@ const CategoryScreen = ({ navigation, route }) => {
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
       >
         {/* Category Header */}
-        <View style={{ backgroundColor: theme.background, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <View style={{ backgroundColor: "transparent", borderBottomWidth: 1, borderBottomColor: theme.border }}>
           <ImageBackground
             source={{ uri: forumData.subforum.background }}
             resizeMode="cover"
