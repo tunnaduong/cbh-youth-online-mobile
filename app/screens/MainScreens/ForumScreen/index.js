@@ -77,6 +77,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
       )}
     </View>
   </TouchableOpacity>
+)
 
 export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
