@@ -30,7 +30,7 @@ import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import * as ImagePicker from "expo-image-picker";
-import Api from "../../../services/api/ApiByAxios";
+import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
