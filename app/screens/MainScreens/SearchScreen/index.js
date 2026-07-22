@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,17 +6,17 @@ import {
   Dimensions,
   Image,
   TextInput,
-  TouchableHighlight,
   ScrollView,
   Platform,
   TouchableOpacity,
-  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
+import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
@@ -26,6 +26,8 @@ export default function SearchScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
+  const [isHeaderElevated, setIsHeaderElevated] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -128,6 +130,12 @@ export default function SearchScreen({ navigation }) {
     </TouchableOpacity>
   );
 
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
   const renderFilterChips = () => (
     <View style={[styles.filterContainer, { borderBottomColor: theme.border }]}>
       <TouchableOpacity
@@ -189,41 +197,84 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      
-      <View style={{ flex: 1 }}>
-        <View style={{ paddingTop: inset.top }}>
-          <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
-            <TouchableHighlight
-              style={styles.backButton}
-              underlayColor={isDarkMode ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .05)"}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="chevron-back-outline" color={theme.text} size={30} />
-            </TouchableHighlight>
-            <View style={[styles.searchInputContainer, { backgroundColor: isDarkMode ? "#374151" : "#DFDEDD" }]}>
-              <TextInput
-                style={[styles.searchInput, { color: theme.text }]}
-                placeholder={t('search.placeholder')}
-                placeholderTextColor={theme.subText}
-                onChangeText={setQuery}
-                value={query}
-                autoFocus
-              />
-              {query.length > 0 && (
-                <TouchableOpacity
-                  style={styles.clearButton}
-                  onPress={() => setQuery("")}
-                >
-                  <Ionicons name="close-circle" size={20} color={theme.subText} />
-                </TouchableOpacity>
-              )}
-            </View>
+      <Animated.View
+        style={[
+          styles.headerShell,
+          {
+            paddingTop: inset.top,
+            borderBottomColor: isHeaderElevated ? theme.border : "transparent",
+            borderBottomWidth: isHeaderElevated ? 1 : 0,
+          },
+        ]}
+      >
+        <Animated.View
+          style={[
+            styles.headerBackdrop,
+            {
+              opacity: headerBgOpacity,
+              backgroundColor: isDarkMode ? "rgba(12, 12, 12, 0.72)" : "rgba(255, 255, 255, 0.76)",
+            },
+          ]}
+        />
+
+        <View style={styles.topBar}>
+          <LiquidButton
+            providerId="SearchScreen"
+            onPress={() => navigation.goBack()}
+            scrollY={scrollY}
+            alwaysBorder
+            size={36}
+            style={{ marginLeft: 10 }}
+            borderRadius={18}
+          >
+            <Ionicons name="chevron-back-outline" color={theme.text} size={22} />
+          </LiquidButton>
+          <View
+            style={[
+              styles.searchInputContainer,
+              {
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.55)",
+                borderColor: isDarkMode ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)",
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <TextInput
+              style={[styles.searchInput, { color: theme.text }]}
+              placeholder={t('search.placeholder')}
+              placeholderTextColor={theme.subText}
+              onChangeText={setQuery}
+              value={query}
+              autoFocus
+            />
+            {query.length > 0 && (
+              <TouchableOpacity
+                style={styles.clearButton}
+                onPress={() => setQuery("")}
+              >
+                <Ionicons name="close-circle" size={16} color={theme.subText} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {renderFilterChips()}
+        <View style={{ opacity: isHeaderElevated ? 0 : 1 }} pointerEvents={isHeaderElevated ? "none" : "auto"}>
+          {renderFilterChips()}
+        </View>
+      </Animated.View>
 
-        <ScrollView style={styles.resultsContainer} contentContainerStyle={{ paddingBottom: inset.bottom + 16 }}>
+      <Animated.ScrollView
+        style={styles.resultsContainer}
+        contentContainerStyle={{ paddingTop: 110 + inset.top, paddingBottom: inset.bottom + 16 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          {
+            useNativeDriver: true,
+            listener: (event) => setIsHeaderElevated(event.nativeEvent.contentOffset.y > 4),
+          }
+        )}
+        scrollEventThrottle={16}
+      >
           {!query.trim() ? (
             <View style={styles.searchImage}>
               <Image
@@ -317,54 +368,58 @@ export default function SearchScreen({ navigation }) {
                 )}
             </>
           )}
-        </ScrollView>
-      </View>
+        </Animated.ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    backgroundColor: "rgba(0, 0, 0, 0)",
-    width: 40,
-    height: 40,
-    borderRadius: 35,
-    marginLeft: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  headerShell: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    paddingBottom: 4,
+    backgroundColor: "transparent",
+  },
+  headerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingRight: 20,
-    paddingBottom: 7,
-    paddingTop: 10,
-    borderBottomWidth: 1,
-    minHeight: 55,
+    paddingRight: 16,
+    paddingBottom: 6,
+    paddingTop: 6,
+    minHeight: 46,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 50,
-    paddingHorizontal: 13,
-    paddingVertical: Platform.OS === "android" ? 0 : 4,
-    minHeight: 40,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: Platform.OS === "android" ? 0 : 2,
+    minHeight: 34,
+    marginLeft: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 17,
-    paddingLeft: 8,
-    paddingRight: 35,
+    fontSize: 14,
+    paddingLeft: 4,
+    paddingRight: 28,
     paddingVertical: 0,
-    minHeight: 30,
+    minHeight: 26,
     includeFontPadding: false,
     textAlignVertical: "center",
   },
   clearButton: {
-    padding: 5,
+    padding: 3,
     position: "absolute",
-    right: 5,
+    right: 4,
   },
   loadingIndicator: {
     paddingRight: 10,
@@ -386,6 +441,7 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     flex: 1,
+    backgroundColor: "transparent",
   },
   section: {
     paddingVertical: 10,
@@ -477,7 +533,8 @@ const styles = StyleSheet.create({
   filterContainer: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 6,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     gap: 8,
   },

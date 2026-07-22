@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     marginHorizontal: 16,
-    marginTop: 10,
+    marginTop: 14,
     marginBottom: 6,
     height: 40,
   },

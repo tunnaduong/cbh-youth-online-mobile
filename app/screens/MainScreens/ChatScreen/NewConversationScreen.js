@@ -5,8 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  FlatList,
-  ActivityIndicator,
+  ScrollView,
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,6 +26,7 @@ const NewConversationScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isHeaderElevated, setIsHeaderElevated] = useState(false);
   const { t } = useTranslation();
 
   const handleSearch = async (query) => {
@@ -129,7 +129,13 @@ const NewConversationScreen = ({ navigation }) => {
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top, height: 50 + insets.top, backgroundColor: theme.background, borderBottomColor: theme.border },
+          {
+            paddingTop: insets.top,
+            height: 50 + insets.top,
+            backgroundColor: theme.background,
+            borderBottomColor: theme.border,
+            borderBottomWidth: isHeaderElevated ? 1 : 0,
+          },
         ]}
       >
         <TouchableOpacity
@@ -143,7 +149,7 @@ const NewConversationScreen = ({ navigation }) => {
       </View>
 
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { borderBottomColor: theme.border }]}>
+      <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? "#1f2937" : "#F3FDF1", borderColor: theme.border }]}>
         <Ionicons
           name="search"
           size={20}
@@ -162,7 +168,12 @@ const NewConversationScreen = ({ navigation }) => {
       </View>
 
       {/* Results */}
-      <View style={styles.resultsContainer}>
+      <ScrollView
+        style={styles.resultsContainer}
+        contentContainerStyle={styles.resultsContentContainer}
+        onScroll={(event) => setIsHeaderElevated(event.nativeEvent.contentOffset.y > 4)}
+        scrollEventThrottle={16}
+      >
         {loading ? (
           <View style={styles.centerContainer}>
             <CustomLoading />
@@ -188,7 +199,7 @@ const NewConversationScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -202,7 +213,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
   },
   headerTitle: {
     fontSize: 18,
@@ -211,19 +221,31 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 12,
-    borderBottomWidth: 1,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
+    paddingVertical: 0,
   },
   resultsContainer: {
     flex: 1,
-    padding: 16,
+  },
+  resultsContentContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
   userItem: {
     flexDirection: "row",
@@ -251,6 +273,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    minHeight: 260,
   },
   noResults: {
     fontSize: 16,

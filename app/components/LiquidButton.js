@@ -24,6 +24,7 @@ const LiquidButton = ({
   providerId,
   scrollY,
   alwaysBorder = false,
+  backgroundColor,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
@@ -91,7 +92,7 @@ const LiquidButton = ({
         style={[
           StyleSheet.absoluteFill,
           {
-            backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)",
+            backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
             borderColor,
