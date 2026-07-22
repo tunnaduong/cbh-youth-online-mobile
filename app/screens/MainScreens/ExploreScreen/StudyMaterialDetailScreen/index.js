@@ -139,15 +139,20 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const purchasePrice = Number(material?.price || 0);
   const remainingBalance = Math.max(0, currentBalance - purchasePrice);
 
-  const officePreviewExtensions = ["pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx"];
+  const officePreviewExtensions = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"];
   const fileExtension = material?.file?.file_name?.split(".").pop()?.toLowerCase();
+  const isPdf = fileExtension === "pdf";
   const isOfficePreviewable = officePreviewExtensions.includes(fileExtension);
   const previewBaseUrl = axiosInstance.defaults.baseURL || "https://api.chuyenbienhoa.com/";
-  const documentViewUrl = material?.id && material?.preview_key
-    ? `${previewBaseUrl.replace(/\/$/, "")}/v1.0/study-materials/documents/view?id=${material.id}&key=${material.preview_key}`
+  const directPreviewUrl = material?.file_url
+    || (material?.file?.file_path
+      ? `${previewBaseUrl.replace(/\/$/, "")}/storage/${material.file.file_path.replace(/^\/+/, "")}`
+      : null);
+  const officeViewerUrl = isOfficePreviewable && directPreviewUrl && (material?.is_free || material?.is_purchased)
+    ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(directPreviewUrl)}`
     : null;
-  const officeViewerUrl = isOfficePreviewable && documentViewUrl && (material?.is_free || material?.is_purchased)
-    ? `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(documentViewUrl)}`
+  const pdfViewerUrl = isPdf && directPreviewUrl && (material?.is_free || material?.is_purchased)
+    ? directPreviewUrl
     : null;
 
   const handlePurchase = async () => {
@@ -331,12 +336,12 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
             )}
           </View>
 
-          {officeViewerUrl ? (
+          {pdfViewerUrl || officeViewerUrl ? (
             <View style={[styles.previewCard, { backgroundColor: theme.cardBackground }]}> 
               <Text style={[styles.sectionTitle, { color: theme.text }]}>Xem trước tài liệu</Text>
               <View style={styles.webviewContainer}>
                 <WebView
-                  source={{ uri: officeViewerUrl }}
+                  source={{ uri: pdfViewerUrl || officeViewerUrl }}
                   style={styles.webview}
                   startInLoadingState
                   javaScriptEnabled

@@ -174,7 +174,13 @@ const StudyMaterialScreen = ({ navigation }) => {
           <Ionicons name="arrow-back" size={22} color={theme.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.text }]}>{headerTitle}</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          style={styles.headerAction}
+          onPress={() => navigation.navigate("UploadStudyMaterialScreen")}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -299,6 +305,13 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  headerAction: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
   },
   scrollView: {
     flex: 1,

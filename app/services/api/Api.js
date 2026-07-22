@@ -171,6 +171,10 @@ export const getStudyMaterialCategories = () => {
   return Api.getRequest("/v1.0/study-material-categories");
 };
 
+export const createStudyMaterial = (params) => {
+  return Api.postRequest("/v1.0/study-materials", params);
+};
+
 export const purchaseMaterial = (id) => {
   return Api.postRequest(`/v1.0/study-materials/${id}/purchase`);
 };
