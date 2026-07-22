@@ -17,12 +17,14 @@ import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
 
-const SavedPostItem = ({ item, navigation, onOptionsPress, t }) => (
+const SavedPostItem = ({ item, navigation, onOptionsPress, t, theme }) => (
   <TouchableOpacity
     onPress={() => navigation.navigate("PostScreen", { postId: item.topic.id })}
-    className="flex-row p-4 border-b border-gray-100"
+    className="flex-row p-4"
+    style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}
   >
     <FastImage
       source={{
@@ -35,23 +37,23 @@ const SavedPostItem = ({ item, navigation, onOptionsPress, t }) => (
       resizeMode={FastImage.resizeMode.cover}
     />
     <View className="flex-1 ml-3 pr-2">
-      <Text numberOfLines={2} className="text-[15px] font-medium leading-5">
+      <Text numberOfLines={2} className="text-[15px] font-medium leading-5" style={{ color: theme.text }}>
         {item.topic.title}
       </Text>
       <View className="flex-row items-center mt-1">
         {item.topic.image_urls.length > 0 && (
           <>
-            <Text className="text-gray-500 text-[13px]">
+            <Text className="text-[13px]" style={{ color: theme.subText }}>
               {t("savedPosts.postedPhotos", { count: item.topic.image_urls?.length || 1 })}
             </Text>
-            <Text className="text-gray-500 text-[13px] mx-1">•</Text>
+            <Text className="text-[13px] mx-1" style={{ color: theme.subText }}>•</Text>
           </>
         )}
-        <Text className="text-gray-500 text-[13px]">
+        <Text className="text-[13px]" style={{ color: theme.subText }}>
           {item.topic.author.profile_name}
         </Text>
       </View>
-      <Text className="text-gray-500 text-[13px] mt-0.5">
+      <Text className="text-[13px] mt-0.5" style={{ color: theme.subText }}>
         {t("savedPosts.savedTime", { time: item.created_at ? formatTime(item.created_at) : "" })}
       </Text>
     </View>
@@ -59,7 +61,7 @@ const SavedPostItem = ({ item, navigation, onOptionsPress, t }) => (
       onPress={() => onOptionsPress(item)}
       className="px-2 py-1"
     >
-      <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+      <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
     </TouchableOpacity>
   </TouchableOpacity>
 );
@@ -70,6 +72,7 @@ const SavedPostsScreen = ({ navigation }) => {
   const { isLoggedIn } = useContext(AuthContext);
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   const fetchSavedPosts = async () => {
     try {
@@ -123,8 +126,8 @@ const SavedPostsScreen = ({ navigation }) => {
   };
 
   const ListHeader = () => (
-    <View className="px-4 py-3 border-b border-gray-100">
-      <Text className="text-[17px] font-medium">{t("savedPosts.recentlySaved")}</Text>
+    <View className="px-4 py-3" style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}>
+      <Text className="text-[17px] font-medium" style={{ color: theme.text }}>{t("savedPosts.recentlySaved")}</Text>
     </View>
   );
 
@@ -134,7 +137,7 @@ const SavedPostsScreen = ({ navigation }) => {
         source={require("../../../assets/sad_frog.png")}
         style={{ width: 130, height: 130 }}
       />
-      <Text className="text-gray-500 text-center mt-4">
+      <Text className="text-center mt-4" style={{ color: theme.subText }}>
         {t('savedPosts.empty')}
       </Text>
     </View>
@@ -142,8 +145,8 @@ const SavedPostsScreen = ({ navigation }) => {
 
   if (!isLoggedIn) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <Text className="text-gray-500 mb-4">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
+        <Text className="mb-4" style={{ color: theme.subText }}>
           {t('savedPosts.loginPrompt')}
         </Text>
       </View>
@@ -152,7 +155,7 @@ const SavedPostsScreen = ({ navigation }) => {
 
   if (savedPosts === null) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
         <LottieView
           source={require("../../../assets/refresh.json")}
           style={{
@@ -162,22 +165,22 @@ const SavedPostsScreen = ({ navigation }) => {
           loop
           autoPlay
         />
-        <Text className="mt-4">{t('savedPosts.loading')}</Text>
+        <Text className="mt-4" style={{ color: theme.text }}>{t('savedPosts.loading')}</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.background }}>
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: theme.headerBackground,
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 16,
           paddingVertical: 10,
           borderBottomWidth: 1,
-          borderBottomColor: "#f0f0f0",
+          borderBottomColor: theme.border,
           height: 50,
         }}
       >
@@ -219,6 +222,7 @@ const SavedPostsScreen = ({ navigation }) => {
             navigation={navigation}
             onOptionsPress={handleOptionsPress}
             t={t}
+            theme={theme}
           />
         )}
         ListHeaderComponent={ListHeader}

@@ -22,6 +22,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import formatTime from "../../../utils/formatTime";
+import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width } = Dimensions.get("window");
 const STORY_SIZE = (width - 48) / 3; // 3 columns with padding
@@ -35,6 +36,7 @@ const ArchiveScreen = ({ route, navigation }) => {
   const username = route.params?.username || currentUsername;
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
 
   const formatDateHeader = (dateStr) => {
     if (!dateStr) return "";
@@ -246,7 +248,7 @@ const ArchiveScreen = ({ route, navigation }) => {
             return (
               <FastImage
                 source={{ uri: mediaUri }}
-                style={styles.storyImage}
+                style={[styles.storyImage, { backgroundColor: theme.surface }]}
               />
             );
           }
@@ -277,11 +279,11 @@ const ArchiveScreen = ({ route, navigation }) => {
         )}
         <View style={styles.storyInfo}>
           <View style={styles.storyStats}>
-            <Ionicons name="eye-outline" size={12} color="#666" />
+            <Ionicons name="eye-outline" size={12} color={theme.subText} />
             <Text style={styles.storyStatText}>{story.viewers_count}</Text>
           </View>
           <View style={styles.storyStats}>
-            <Ionicons name="heart-outline" size={12} color="#666" />
+            <Ionicons name="heart-outline" size={12} color={theme.subText} />
             <Text style={styles.storyStatText}>{story.reactions_count}</Text>
           </View>
         </View>
@@ -294,7 +296,7 @@ const ArchiveScreen = ({ route, navigation }) => {
 
     return (
       <View style={styles.dateSection}>
-        <Text style={styles.dateTitle}>{formatDateHeader(dateGroup.date)}</Text>
+        <Text style={[styles.dateTitle, { color: theme.text }]}>{formatDateHeader(dateGroup.date)}</Text>
         <FlatList
           data={stories}
           renderItem={renderStoryItem}
@@ -308,8 +310,8 @@ const ArchiveScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.headerBackground, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#319527" />
         </TouchableOpacity>
@@ -318,21 +320,21 @@ const ArchiveScreen = ({ route, navigation }) => {
       </View>
 
       {/* Privacy notice */}
-      <View style={styles.privacyNotice}>
-        <Ionicons name="lock-closed-outline" size={16} color="#666" />
-        <Text style={styles.privacyText}>
+      <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+        <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
+        <Text style={[styles.privacyText, { color: theme.subText }]}>
           {t('archive.privacyNotice')}
         </Text>
       </View>
 
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
           <ActivityIndicator size="large" color="#319527" />
         </View>
       ) : archiveData.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="archive-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>{t('archive.empty')}</Text>
+        <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
+          <Ionicons name="archive-outline" size={64} color={theme.placeholder} />
+          <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.empty')}</Text>
         </View>
       ) : (
         <FlatList

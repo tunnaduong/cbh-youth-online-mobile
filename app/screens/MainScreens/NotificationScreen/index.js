@@ -42,6 +42,10 @@ import LiquidButton from "../../../components/LiquidButton";
 const formatNotificationMessage = (notification, t) => {
   const { type, data, actor } = notification;
 
+  if (type === "payment_received") {
+    return data?.message || data?.title || t('notifications.newNotification');
+  }
+
   // System messages don't have an actor
   if (type === "system_message") {
     return data?.message || t('notifications.newNotification');
@@ -421,6 +425,12 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               // Fallback to chat screen if conversation_id is missing
               navigation.navigate("Chat");
             }
+          } else if (
+            item.type === "payment_received" ||
+            item.raw?.url === "/wallet" ||
+            item.data?.url === "/wallet"
+          ) {
+            navigation.navigate("PointWalletScreen");
           } else if (item.data?.topic_id) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.data?.post_id) {

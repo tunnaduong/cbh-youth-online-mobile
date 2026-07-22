@@ -16,13 +16,15 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 
-const PostItem = ({ item, navigation }) => {
+import { useTheme } from "../../../contexts/ThemeContext";
+const PostItem = ({ item, navigation, theme }) => {
   return (
     <TouchableOpacity
       onPress={() =>
         navigation.navigate("PostScreen", { postId: item.topic.id })
       }
-      className="flex-row p-4 border-b border-gray-100"
+      className="flex-row p-4"
+      style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}
     >
       <FastImage
         source={{
@@ -36,17 +38,18 @@ const PostItem = ({ item, navigation }) => {
       />
       <View className="flex-1">
         <Text
-          className="text-[15px] font-medium text-gray-900 leading-5"
+          className="text-[15px] font-medium leading-5"
+          style={{ color: theme.text }}
           numberOfLines={2}
         >
           {item.topic.title}
         </Text>
         <View className="flex-row items-center mt-1">
-          <Text className="text-[13px] text-gray-500">
+          <Text className="text-[13px]" style={{ color: theme.subText }}>
             {item.topic.author.profile_name}
           </Text>
-          <Text className="text-gray-400 mx-1">•</Text>
-          <Text className="text-[13px] text-gray-500">{item.updated_at}</Text>
+          <Text className="mx-1" style={{ color: theme.subText }}>•</Text>
+          <Text className="text-[13px]" style={{ color: theme.subText }}>{item.updated_at}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -61,6 +64,7 @@ const LikedPostsScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
+  const { theme } = useTheme();
   const fetchLikedPosts = async () => {
     try {
       const response = await getLikedPosts();
@@ -117,8 +121,8 @@ const LikedPostsScreen = ({ navigation }) => {
 
   if (!isLoggedIn) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <Text className="text-gray-500 mb-4">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
+        <Text className="mb-4" style={{ color: theme.subText }}>
           {t('likedPosts.loginPrompt')}
         </Text>
       </View>
@@ -127,14 +131,14 @@ const LikedPostsScreen = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
         <LottieView
           source={require("../../../assets/refresh.json")}
           style={{ width: 70, height: 70 }}
           loop
           autoPlay
         />
-        <Text className="mt-4">{t('likedPosts.loading')}</Text>
+        <Text className="mt-4" style={{ color: theme.text }}>{t('likedPosts.loading')}</Text>
       </View>
     );
   }
@@ -146,23 +150,23 @@ const LikedPostsScreen = ({ navigation }) => {
         style={{ width: 130, height: 130 }}
         resizeMode={FastImage.resizeMode.contain}
       />
-      <Text className="text-gray-500 text-center mt-4">
+      <Text className="text-center mt-4" style={{ color: theme.subText }}>
         {t('likedPosts.empty')}
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: theme.background }}>
       <View
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: theme.headerBackground,
           flexDirection: "row",
           alignItems: "center",
           paddingHorizontal: 16,
           paddingVertical: 10,
           borderBottomWidth: 1,
-          borderBottomColor: "#f0f0f0",
+          borderBottomColor: theme.border,
           height: 50,
         }}
       >
@@ -198,7 +202,7 @@ const LikedPostsScreen = ({ navigation }) => {
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item }) => (
-          <PostItem item={item} navigation={navigation} />
+          <PostItem item={item} navigation={navigation} theme={theme} />
         )}
         refreshControl={
           <RefreshControl 

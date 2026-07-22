@@ -16,8 +16,9 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
+import { useTheme } from "../../../contexts/ThemeContext";
 
-const ActivityItem = ({ item, navigation }) => {
+const ActivityItem = ({ item, navigation, theme }) => {
   const { t } = useTranslation();
   const truncateText = (text, maxLength = 30) => {
     if (!text) return "";
@@ -117,21 +118,22 @@ const ActivityItem = ({ item, navigation }) => {
           navigation.navigate("PostScreen", { postId: item.topic.id });
         }
       }}
-      className="flex-row p-4 border-b border-gray-100"
+      className="flex-row p-4"
+      style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}
     >
-      <View className="w-10 h-10 rounded-full bg-gray-50 justify-center items-center">
+      <View className="w-10 h-10 rounded-full justify-center items-center" style={{ backgroundColor: theme.iconBackground }}>
         {getActivityIcon(item.type)}
       </View>
       <View className="flex-1 ml-3">
-        <Text className="text-[15px] leading-5">
-          <Text className="font-medium">Bạn</Text> {getActivityText(item)}
+        <Text className="text-[15px] leading-5" style={{ color: theme.text }}>
+          <Text className="font-medium" style={{ color: theme.text }}>Bạn</Text> {getActivityText(item)}
         </Text>
         {item.topic && (
-          <Text className="text-[15px] font-medium mt-1 text-gray-900">
+          <Text className="text-[15px] font-medium mt-1" style={{ color: theme.text }}>
             {item.topic?.title}
           </Text>
         )}
-        <Text className="text-gray-500 text-[13px] mt-0.5">
+        <Text className="text-[13px] mt-0.5" style={{ color: theme.subText }}>
           {item.updated_at}
         </Text>
       </View>
@@ -168,6 +170,7 @@ const ActivityScreen = ({ navigation }) => {
   const [isLoading, setIsLoading] = useState(true);
   const { isLoggedIn } = useContext(AuthContext);
   const { t } = useTranslation();
+  const { theme } = useTheme();
 
   const fetchActivities = async () => {
     try {
@@ -235,8 +238,8 @@ const ActivityScreen = ({ navigation }) => {
 
   if (!isLoggedIn) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <Text className="text-gray-500 mb-4">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
+        <Text className="mb-4" style={{ color: theme.subText }}>
           Vui lòng đăng nhập để xem hoạt động
         </Text>
       </View>
@@ -245,14 +248,14 @@ const ActivityScreen = ({ navigation }) => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
         <LottieView
           source={require("../../../assets/refresh.json")}
           style={{ width: 70, height: 70 }}
           loop
           autoPlay
         />
-        <Text className="mt-4">Đang tải hoạt động...</Text>
+        <Text className="mt-4" style={{ color: theme.text }}>Đang tải hoạt động...</Text>
       </View>
     );
   }
@@ -264,7 +267,7 @@ const ActivityScreen = ({ navigation }) => {
         style={{ width: 130, height: 130 }}
         resizeMode={FastImage.resizeMode.contain}
       />
-      <Text className="text-gray-500 text-center mt-4">
+      <Text className="text-center mt-4" style={{ color: theme.subText }}>
         Chưa có hoạt động nào
       </Text>
     </View>
@@ -272,7 +275,7 @@ const ActivityScreen = ({ navigation }) => {
 
   return (
     <View
-      style={{ flex: 1, backgroundColor: "#fff", paddingTop: insets.top }}
+      style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}
     >
       {/* Header */}
       <View
@@ -282,9 +285,9 @@ const ActivityScreen = ({ navigation }) => {
           paddingHorizontal: 16,
           paddingVertical: 10,
           borderBottomWidth: 1,
-          borderBottomColor: "#f0f0f0",
+          borderBottomColor: theme.border,
           height: 50,
-          backgroundColor: "#fff",
+          backgroundColor: theme.headerBackground,
         }}
       >
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -313,7 +316,7 @@ const ActivityScreen = ({ navigation }) => {
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
         renderItem={({ item }) => (
-          <ActivityItem item={item} navigation={navigation} />
+          <ActivityItem item={item} navigation={navigation} theme={theme} />
         )}
         refreshControl={
           <RefreshControl 
