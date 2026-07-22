@@ -1007,6 +1007,17 @@
     "heroText": "Tìm tài liệu mới, được đánh giá bởi cộng đồng và tải ngay trên ứng dụng.",
     "searchPlaceholder": "Tìm tài liệu, chủ đề...",
     "categories": "Danh mục",
+    "filters": {
+      "all": "Tất cả",
+      "free": "Miễn phí",
+      "paid": "Có phí"
+    },
+    "sort": {
+      "newest": "Mới nhất",
+      "rating": "Đánh giá",
+      "downloads": "Tải nhiều",
+      "views": "Xem nhiều"
+    },
     "loading": "Đang tải tài liệu...",
     "emptyTitle": "Chưa có tài liệu phù hợp",
     "emptyText": "Thử đổi bộ lọc hoặc từ khóa tìm kiếm.",
@@ -1084,6 +1095,7 @@
     "freeMaterial": "Tài liệu miễn phí",
     "freeMaterialHint": "Nếu bật, người dùng có thể tải không mất điểm.",
     "priceLabel": "Giá điểm",
+    "pricePlaceholder": "Ví dụ: 50",
     "publish": "Đăng tài liệu ngay"
   },
   "voteModal": {

@@ -164,9 +164,14 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.heroCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}> 
-          <Text style={[styles.heroTitle, { color: theme.text }]}>{t("studyMaterial.uploadHeroTitle")}</Text>
-          <Text style={[styles.heroText, { color: theme.subText }]}>{t("studyMaterial.uploadHeroText")}</Text>
+        <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
+          <View style={[styles.heroIcon, { backgroundColor: theme.primary + "15" }]}> 
+            <Ionicons name="documents-outline" size={24} color={theme.primary} />
+          </View>
+          <View style={styles.heroContent}>
+            <Text style={[styles.heroTitle, { color: theme.text }]}>{t("studyMaterial.uploadHeroTitle")}</Text>
+            <Text style={[styles.heroText, { color: theme.subText }]}>{t("studyMaterial.uploadHeroText")}</Text>
+          </View>
         </View>
 
         <View style={styles.formGroup}>
@@ -225,13 +230,17 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
           <Text style={[styles.label, { color: theme.text }]}>{t("studyMaterial.fileLabel")}</Text>
           <TouchableOpacity
             onPress={pickDocument}
-            style={[styles.uploadBox, { borderColor: theme.border, backgroundColor: theme.cardBackground }]}
+            style={[styles.uploadBox, { borderColor: theme.border, backgroundColor: theme.surface }]}
           >
-            <Ionicons name="cloud-upload-outline" size={24} color={theme.primary} />
-            <Text style={[styles.uploadText, { color: theme.text }]}>
+            <View style={[styles.uploadIcon, { backgroundColor: theme.primary + "15" }]}> 
+              <Ionicons name={selectedDocument ? "checkmark-circle-outline" : "cloud-upload-outline"} size={24} color={theme.primary} />
+            </View>
+            <Text style={[styles.uploadText, { color: theme.text }]} numberOfLines={2}>
               {selectedDocument ? selectedDocument.name : t("studyMaterial.chooseFile")}
             </Text>
-            <Text style={[styles.uploadHint, { color: theme.subText }]}>{t("studyMaterial.fileTypes")}</Text>
+            <Text style={[styles.uploadHint, { color: theme.subText }]}>
+              {selectedDocument ? t("studyMaterial.readyToPublish") : t("studyMaterial.fileTypes")}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -249,7 +258,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
           />
         </View>
 
-        <View style={[styles.optionCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}> 
+        <View style={[styles.optionCard, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
           <View style={styles.optionRow}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.optionTitle, { color: theme.text }]}>{t("studyMaterial.freeMaterial")}</Text>
@@ -264,7 +273,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
               <TextInput
                 value={price}
                 onChangeText={setPrice}
-                placeholder="Ví dụ: 50"
+                placeholder={t("studyMaterial.pricePlaceholder")}
                 placeholderTextColor={theme.placeholder}
                 keyboardType="number-pad"
                 style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.cardBackground }]}
@@ -322,6 +331,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  heroIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  heroContent: {
+    flex: 1,
   },
   heroTitle: {
     fontSize: 18,
@@ -379,6 +401,14 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: "center",
     justifyContent: "center",
+  },
+  uploadIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
   uploadText: {
     fontSize: 14,

@@ -1019,6 +1019,17 @@
     "heroText": "Find new materials, reviewed by the community, and download them in the app.",
     "searchPlaceholder": "Search materials, topics...",
     "categories": "Categories",
+    "filters": {
+      "all": "All",
+      "free": "Free",
+      "paid": "Paid"
+    },
+    "sort": {
+      "newest": "Newest",
+      "rating": "Rating",
+      "downloads": "Most downloaded",
+      "views": "Most viewed"
+    },
     "loading": "Loading materials...",
     "emptyTitle": "No matching materials",
     "emptyText": "Try changing the filters or search keyword.",
@@ -1096,6 +1107,7 @@
     "freeMaterial": "Free material",
     "freeMaterialHint": "When enabled, users can download it without spending points.",
     "priceLabel": "Point price",
+    "pricePlaceholder": "Example: 50",
     "publish": "Publish material"
   },
   "voteModal": {
