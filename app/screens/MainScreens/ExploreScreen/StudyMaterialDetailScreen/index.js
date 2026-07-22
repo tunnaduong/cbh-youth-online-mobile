@@ -1,11 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Modal,
   Share,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
+import LiquidButton from "../../../../components/LiquidButton";
 import axiosInstance from "../../../../services/api/axiosInstance";
 import WebView from "react-native-webview";
 import {
@@ -33,7 +36,7 @@ import {
 const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const { materialId } = route.params || {};
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { isLoggedIn, userInfo, refreshUserInfo } = useAuthContext();
 
   const [material, setMaterial] = useState(null);
@@ -47,6 +50,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(0);
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const loadMaterial = async () => {
     try {
@@ -272,13 +276,18 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}> 
-      <View style={[styles.header, { paddingTop: 8 }]}> 
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Ionicons name="arrow-back" size={22} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Chi tiết tài liệu</Text>
-        <View style={styles.headerSpacer} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
+        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+        </LiquidButton>
+        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
+          Chi tiết tài liệu
+        </Animated.Text>
+        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("MainScreens", { screen: "Home" })}>
+          <Ionicons name="home-outline" size={22} color={theme.primary} />
+        </LiquidButton>
       </View>
 
       {loading ? (
@@ -291,7 +300,15 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           <Text style={[styles.emptyText, { color: theme.text }]}>Không tìm thấy tài liệu</Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}>
+        <Animated.ScrollView
+          contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: 40 + insets.bottom }}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+        >
+          <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -10], extrapolate: "clamp" }) }] }]}>
+            Chi tiết tài liệu
+          </Animated.Text>
           <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }]}> 
             <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
               <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name || "Tài liệu"}</Text>
@@ -428,7 +445,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
               })}
             </View>
           ) : null}
-        </ScrollView>
+        </Animated.ScrollView>
       )}
 
       <Modal
@@ -466,7 +483,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -477,7 +494,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
   },
   backButton: {
     width: 40,
@@ -492,6 +513,12 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  largeTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   centered: {
     flex: 1,

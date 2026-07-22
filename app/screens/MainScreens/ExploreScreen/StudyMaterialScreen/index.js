@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   FlatList,
   RefreshControl,
   SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -17,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../../components/LiquidButton";
 import {
   getStudyMaterialCategories,
   getStudyMaterials,
@@ -37,7 +40,7 @@ const sortOptions = [
 
 const StudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
   const [materials, setMaterials] = useState([]);
@@ -48,6 +51,7 @@ const StudyMaterialScreen = ({ navigation }) => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [selectedSort, setSelectedSort] = useState("newest");
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const loadCategories = useCallback(async () => {
     try {
@@ -168,26 +172,36 @@ const StudyMaterialScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { paddingTop: 8}]}> 
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
-          <Ionicons name="arrow-back" size={22} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>{headerTitle}</Text>
-        <TouchableOpacity
-          style={styles.headerAction}
-          onPress={() => navigation.navigate("UploadStudyMaterialScreen")}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
-        </TouchableOpacity>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
+      <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
+        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+        </LiquidButton>
+        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
+          {headerTitle}
+        </Animated.Text>
+        <View style={styles.headerActions}>
+          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("MainScreens", { screen: "Home" })}>
+            <Ionicons name="home-outline" size={22} color={theme.primary} />
+          </LiquidButton>
+          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("UploadStudyMaterialScreen")}>
+            <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
+          </LiquidButton>
+        </View>
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
+        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: 40 + insets.bottom }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadMaterials({ refresh: true })} colors={[theme.primary]} tintColor={theme.primary} />}
       >
+        <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -10], extrapolate: "clamp" }) }] }]}>
+          {headerTitle}
+        </Animated.Text>
         <View style={styles.heroCard}>
           <Text style={[styles.heroTitle, { color: theme.text }]}>Khám phá tài liệu ôn thi</Text>
           <Text style={[styles.heroText, { color: theme.subText }]}>Tìm tài liệu mới, được đánh giá bởi cộng đồng và tải ngay trên ứng dụng.</Text>
@@ -276,8 +290,8 @@ const StudyMaterialScreen = ({ navigation }) => {
             ))}
           </View>
         )}
-      </ScrollView>
-    </SafeAreaView>
+      </Animated.ScrollView>
+    </View>
   );
 };
 
@@ -290,7 +304,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
   },
   backButton: {
     width: 40,
@@ -305,6 +323,17 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  largeTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   headerAction: {
     width: 40,
