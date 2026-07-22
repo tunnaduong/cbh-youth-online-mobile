@@ -31,6 +31,7 @@ import {
   DeviceEventEmitter,
   StatusBar,
   PanResponder,
+  InteractionManager,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -949,11 +950,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   // Handle story highlighting from notifications
   const openStoryById = (storyId) => {
     const targetId = String(storyId);
+    console.log("[HomeScreen] openStoryById called", targetId, "userStories.length", userStories.length, "storyRef", !!storyRef.current);
     const userWithStory = userStories.find((user) =>
       user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
     );
 
     if (!userWithStory) {
+      console.log("[HomeScreen] openStoryById no user found for", targetId);
       return false;
     }
 
@@ -961,10 +964,52 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       String(story.storyId ?? story.id) === targetId
     );
 
-    if (storyIndex >= 0 && storyRef.current?.goToSpecificStory) {
-      storyRef.current?.goToSpecificStory(userWithStory.id, storyIndex);
+    console.log("[HomeScreen] openStoryById found user", userWithStory.id, "storyIndex", storyIndex);
+
+    if (storyRef.current?.show) {
+      console.log("[HomeScreen] openStoryById show user", userWithStory.id);
+      storyRef.current.show(userWithStory.id);
+
+      if (storyRef.current?.getCurrentStory) {
+        setTimeout(() => {
+          console.log("[HomeScreen] currentStory after initial show", storyRef.current?.getCurrentStory());
+        }, 200);
+      }
+
+      if (storyIndex > 0 && storyRef.current?.goToSpecificStory) {
+        console.log("[HomeScreen] openStoryById after show goToSpecificStory", storyIndex);
+        setTimeout(() => {
+          if (storyRef.current?.goToSpecificStory) {
+            storyRef.current.goToSpecificStory(userWithStory.id, storyIndex);
+            console.log("[HomeScreen] openStoryById called goToSpecificStory", userWithStory.id, storyIndex);
+          }
+          if (storyRef.current?.getCurrentStory) {
+            setTimeout(() => {
+              console.log("[HomeScreen] currentStory after goToSpecificStory", storyRef.current?.getCurrentStory());
+            }, 200);
+          }
+        }, 250);
+      }
+
+      setTimeout(() => {
+        console.log("[HomeScreen] openStoryById verify show again", userWithStory.id, "storyIndex", storyIndex);
+        if (storyRef.current?.show) {
+          storyRef.current.show(userWithStory.id);
+        }
+        if (storyIndex > 0 && storyRef.current?.goToSpecificStory) {
+          storyRef.current.goToSpecificStory(userWithStory.id, storyIndex);
+        }
+        if (storyRef.current?.getCurrentStory) {
+          setTimeout(() => {
+            console.log("[HomeScreen] currentStory after verify", storyRef.current?.getCurrentStory());
+          }, 200);
+        }
+      }, 800);
+    } else if (storyIndex >= 0 && storyRef.current?.goToSpecificStory) {
+      console.log("[HomeScreen] openStoryById no show method, using goToSpecificStory");
+      storyRef.current.goToSpecificStory(userWithStory.id, storyIndex);
     } else {
-      storyRef.current?.show(userWithStory.id);
+      console.log("[HomeScreen] openStoryById no storyRef methods available", storyRef.current);
     }
 
     return true;
@@ -976,12 +1021,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const storyToHighlight = String(route.params.highlightStoryId);
 
     const timer = setTimeout(() => {
+      console.log("[HomeScreen] highlightStoryId effect", storyToHighlight);
       if (!openStoryById(storyToHighlight)) {
         const userWithStory = userStories.find((user) =>
           user.stories.some((story) => String(story.storyId ?? story.id) === storyToHighlight)
         );
-        if (userWithStory) {
-          storyRef.current?.show(userWithStory.id);
+        if (userWithStory && storyRef.current?.show) {
+          console.log("[HomeScreen] highlightStoryId fallback show user", userWithStory.id);
+          storyRef.current.show(userWithStory.id);
         }
       }
     }, 500);
@@ -989,25 +1036,34 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return () => clearTimeout(timer);
   }, [route.params?.highlightStoryId, userStories]);
 
-  // Handle deep link: com.fatties.youth://story/<storyId>
-  // App.js passes openStoryId param when user taps a story share link
+  const lastOpenedStoryParamRef = useRef(null);
+
   useEffect(() => {
-    if (!route.params?.openStoryId || userStories.length === 0) return;
+    const storyParam = route.params?.openStoryId;
+    if (!storyParam || userStories.length === 0) return;
 
-    const targetId = String(route.params.openStoryId);
+    const targetId = String(storyParam);
+    if (lastOpenedStoryParamRef.current === targetId) return;
 
-    const timer = setTimeout(() => {
+    lastOpenedStoryParamRef.current = targetId;
+    console.log("[HomeScreen] openStoryId effect", targetId, "route.params", route.params);
+
+    const runOpen = () => {
       if (!openStoryById(targetId)) {
         const userWithStory = userStories.find((user) =>
           user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
         );
-        if (userWithStory) {
-          storyRef.current?.show(userWithStory.id);
+        if (userWithStory && storyRef.current?.show) {
+          console.log("[HomeScreen] openStoryId fallback show user", userWithStory.id);
+          storyRef.current.show(userWithStory.id);
         }
       }
-    }, 600);
+    };
 
-    return () => clearTimeout(timer);
+    InteractionManager.runAfterInteractions(() => {
+      console.log("[HomeScreen] openStoryId runAfterInteractions", targetId, "storyRef", !!storyRef.current);
+      setTimeout(runOpen, 800);
+    });
   }, [route.params?.openStoryId, userStories]);
 
   const currentStoryUserRef = useRef(null); // Ref to hold fresh user object for callbacks

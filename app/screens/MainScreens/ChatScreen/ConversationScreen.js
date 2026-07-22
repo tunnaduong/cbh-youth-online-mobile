@@ -948,7 +948,10 @@ const ConversationScreen = ({ navigation, route }) => {
             onPress={() => {
               const storyId = item.metadata?.story_id ?? item.metadata?.storyId;
               if (storyId) {
-                navigation.navigate("Home", { openStoryId: storyId });
+                navigation.navigate("MainScreens", {
+                  screen: "Home",
+                  params: { openStoryId: storyId },
+                });
               } else {
                 Toast.show({
                   type: "info",

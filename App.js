@@ -71,29 +71,119 @@ const Stack = createStackNavigator();
  */
 const parseDeepLink = (url) => {
   if (!url) return null;
-  try {
-    // Strip scheme prefix to get  host + path
-    // e.g. "com.fatties.youth://post/366199398-phong-canh"
-    const withoutScheme = url.replace(/^[a-z.]+:\/\//, ""); // "post/366199398-phong-canh"
-    const [host, ...rest] = withoutScheme.split("/");
-    const pathSegment = rest.join("/"); // everything after host
 
-    if (host === "post" && pathSegment) {
-      // Extract numeric post ID from the beginning of the slug (e.g. "366199398-phong-canh" → 366199398)
-      const postId = parseInt(pathSegment.split("-")[0], 10);
-      if (!isNaN(postId)) return { screen: "PostScreen", params: { postId, item: null } };
+  const routeToStory = (storyId) => {
+    if (!storyId) return null;
+    return {
+      screen: "MainScreens",
+      params: {
+        screen: "Home",
+        params: { openStoryId: storyId },
+      },
+    };
+  };
+
+  const parseSearchParams = (query) => {
+    const params = {};
+    if (!query) return params;
+    const queryString = query.replace(/^\?/, "").split("#")[0];
+    queryString.split("&").forEach((pair) => {
+      const [key, value] = pair.split("=");
+      if (key) params[decodeURIComponent(key)] = decodeURIComponent(value || "");
+    });
+    return params;
+  };
+
+  const normalizeIntentUrl = (urlString) => {
+    let normalized = urlString;
+    const intentIndex = normalized.indexOf("#Intent");
+    if (intentIndex >= 0) {
+      normalized = normalized.slice(0, intentIndex);
+    }
+    return normalized;
+  };
+
+  try {
+    let scheme = "";
+    let host = "";
+    let pathSegment = "";
+    let query = "";
+
+    const normalizedUrl = normalizeIntentUrl(url);
+    console.log("[DeepLink] normalize input", normalizedUrl);
+
+    try {
+      const parsedUrl = new URL(normalizedUrl);
+      scheme = parsedUrl.protocol.replace(":", "");
+      host = parsedUrl.hostname;
+      pathSegment = parsedUrl.pathname.replace(/^\//, "");
+      query = parsedUrl.search;
+    } catch (e) {
+      const match = normalizedUrl.match(/^([a-zA-Z0-9+.-]+):\/\/([^/?#]+)(?:\/([^?#]*))?(?:\?([^#]*))?$/);
+      if (match) {
+        scheme = match[1];
+        const firstSegment = match[2].split("?")[0];
+        const restPath = match[3] || "";
+        const queryPart = match[4] || "";
+
+        if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
+          if (firstSegment === "post" || firstSegment === "story") {
+            pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
+            host = "";
+          } else {
+            host = firstSegment;
+            pathSegment = restPath;
+          }
+        } else {
+          host = firstSegment;
+          pathSegment = restPath;
+        }
+
+        query = queryPart ? `?${queryPart}` : "";
+      }
     }
 
-    if (host === "story" && pathSegment) {
-      const storyId = pathSegment.split("?")[0]; // strip query if any
-      if (storyId) return {
-        // Story lives inside the Home tab of MainScreens
-        screen: "MainScreens",
-        params: {
-          screen: "Home",
-          params: { openStoryId: storyId },
-        },
-      };
+    if (scheme === "intent") {
+      const intentMatch = url.match(/scheme=([^;]+)/);
+      if (intentMatch) {
+        scheme = intentMatch[1];
+      }
+    }
+
+    console.log("[DeepLink] parsed fields", { scheme, host, pathSegment, query, original: url });
+
+    const params = parseSearchParams(query);
+    const storyIdFromQuery = params.storyId || params.story_id;
+    if (storyIdFromQuery) return routeToStory(storyIdFromQuery);
+
+    if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
+      if (pathSegment.startsWith("post/")) {
+        const postSlug = pathSegment.slice(5).split("?")[0];
+        const postId = parseInt(postSlug.split("-")[0], 10);
+        if (!isNaN(postId)) {
+          return { screen: "PostScreen", params: { postId, item: null } };
+        }
+        return { screen: "PostScreen", params: { postId: null, item: null, slug: postSlug } };
+      }
+      if (pathSegment.startsWith("story/")) {
+        const storyId = pathSegment.slice(6).split("?")[0];
+        return routeToStory(storyId);
+      }
+      if (pathSegment && !pathSegment.includes("/")) {
+        const storyId = pathSegment;
+        return routeToStory(storyId);
+      }
+    }
+
+    if ((scheme === "https" || scheme === "http") && (host === "chuyenbienhoa.com" || host === "www.chuyenbienhoa.com")) {
+      if (pathSegment.startsWith("post/")) {
+        const postId = parseInt(pathSegment.slice(5).split("-")[0], 10);
+        if (!isNaN(postId)) return { screen: "PostScreen", params: { postId, item: null } };
+      }
+      if (pathSegment.startsWith("story/")) {
+        const storyId = pathSegment.slice(6).split("?")[0];
+        return routeToStory(storyId);
+      }
     }
   } catch (e) {
     console.warn("[DeepLink] parse error:", e);
@@ -109,52 +199,67 @@ const App = () => {
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
   const navigationRef = useRef(null);
-  const pendingDeepLink = useRef(null);
+  const pendingDeepLinkQueue = useRef([]);
+
+  const enqueueDeepLinkTarget = (target) => {
+    if (!target) return;
+    pendingDeepLinkQueue.current.push(target);
+  };
+
+  const flushPendingDeepLinks = () => {
+    if (!isLoggedIn || !navigationRef.current) return;
+
+    while (pendingDeepLinkQueue.current.length > 0) {
+      const nextTarget = pendingDeepLinkQueue.current.shift();
+      if (nextTarget) {
+        navigationRef.current.navigate(nextTarget.screen, nextTarget.params);
+      }
+    }
+  };
 
   // Handle deep links (custom scheme: com.fatties.youth://post/<id> or story/<id>)
   useEffect(() => {
     // App opened from a cold start via deep link
     Linking.getInitialURL().then((url) => {
       if (url) {
+        console.log("[DeepLink] getInitialURL", url);
         const target = parseDeepLink(url);
-        if (target) pendingDeepLink.current = target;
+        console.log("[DeepLink] parsed initial target", target);
+        if (target) {
+          enqueueDeepLinkTarget(target);
+          flushPendingDeepLinks();
+        }
       }
     });
 
     // App brought to foreground via deep link while already running
     const subscription = Linking.addEventListener("url", ({ url }) => {
+      console.log("[DeepLink] Linking event url", url);
       const target = parseDeepLink(url);
-      if (target && navigationRef.current) {
+      console.log("[DeepLink] parsed event target", target);
+      if (!target) return;
+
+      if (isLoggedIn && navigationRef.current) {
         navigationRef.current.navigate(target.screen, target.params);
+      } else {
+        enqueueDeepLinkTarget(target);
       }
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [isLoggedIn]);
 
-  // Once nav is ready + user is logged in, flush the pending deep link
+  // Once nav is ready + user is logged in, flush the pending deep links
   const handleNavigationReady = () => {
-    if (pendingDeepLink.current && isLoggedIn) {
-      navigationRef.current?.navigate(
-        pendingDeepLink.current.screen,
-        pendingDeepLink.current.params
-      );
-      pendingDeepLink.current = null;
-    }
+    flushPendingDeepLinks();
   };
 
   // Also flush when user logs in after app was already open (e.g. opened link while logged out)
   useEffect(() => {
-    if (isLoggedIn && pendingDeepLink.current && navigationRef.current) {
+    if (isLoggedIn) {
       // Small delay to ensure navigator is fully mounted after login
       setTimeout(() => {
-        if (pendingDeepLink.current) {
-          navigationRef.current?.navigate(
-            pendingDeepLink.current.screen,
-            pendingDeepLink.current.params
-          );
-          pendingDeepLink.current = null;
-        }
+        flushPendingDeepLinks();
       }, 500);
     }
   }, [isLoggedIn]);
