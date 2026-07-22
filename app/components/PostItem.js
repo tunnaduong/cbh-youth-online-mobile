@@ -689,7 +689,7 @@ const PostItem = ({
         visible={votesModalVisible}
         onClose={() => setVotesModalVisible(false)}
         postId={item.id}
-        postTitle={item.title || item?.topic?.title || "Bài viết"}
+        postTitle={item.title || item?.topic?.title || t("voteModal.postTitleFallback")}
         navigation={navigation}
       />
     </View >

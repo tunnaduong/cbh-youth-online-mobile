@@ -11,12 +11,13 @@ import {
   StyleSheet,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 import { getPostVotes } from "../services/api/Api";
 
-const getVoteLabel = (voteValue) => {
-  if (voteValue === 1) return "Upvote";
-  if (voteValue === -1) return "Downvote";
-  return "Vote";
+const getVoteLabel = (t, voteValue) => {
+  if (voteValue === 1) return t("voteModal.upvote");
+  if (voteValue === -1) return t("voteModal.downvote");
+  return t("voteModal.vote");
 };
 
 const getAvatarUri = (vote) => {
@@ -40,6 +41,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!visible || !postId) {
@@ -63,7 +65,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
           setError(
             err?.response?.data?.message ||
               err?.message ||
-              "Không thể tải danh sách người vote"
+              t("voteModal.loadError")
           );
           setVotes([]);
         }
@@ -91,9 +93,9 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
   }, [votes]);
 
   const renderItem = ({ item }) => {
-    const profileName = item.profile_name || item.username || "Người dùng";
+    const profileName = item.profile_name || item.username || t("voteModal.defaultUser");
     const avatarUri = getAvatarUri(item);
-    const voteLabel = getVoteLabel(item.vote_value);
+    const voteLabel = getVoteLabel(t, item.vote_value);
 
     const handlePress = () => {
       if (navigation && item.username) {
@@ -160,22 +162,22 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
         <View style={[styles.modalContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>          
           <View style={styles.header}>
             <View style={styles.headerText}>
-              <Text style={[styles.title, { color: theme.text }]}>Người đã vote bài viết</Text>
+              <Text style={[styles.title, { color: theme.text }]}>{t("voteModal.title")}</Text>
               <Text style={[styles.subtitle, { color: theme.subText }]} numberOfLines={1}>
-                {postTitle || "Bài viết"}
+                {postTitle || t("voteModal.postTitleFallback")}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Text style={[styles.closeButtonText, { color: theme.primary }]}>Đóng</Text>
+              <Text style={[styles.closeButtonText, { color: theme.primary }]}>{t("common.close")}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.summaryRow}>
             <View style={[styles.summaryPill, { backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6" }]}>              
-              <Text style={[styles.summaryText, { color: theme.text }]}>{voteSummary.voteCount} người đã vote</Text>
+              <Text style={[styles.summaryText, { color: theme.text }]}>{t("voteModal.voteCount", { count: voteSummary.voteCount })}</Text>
             </View>
             <View style={[styles.summaryPill, { backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6" }]}>              
-              <Text style={[styles.summaryText, { color: theme.text }]}>Tổng điểm: {voteSummary.totalVotes}</Text>
+              <Text style={[styles.summaryText, { color: theme.text }]}>{t("voteModal.score", { value: voteSummary.totalVotes })}</Text>
             </View>
           </View>
 
@@ -189,7 +191,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
             </View>
           ) : votes.length === 0 ? (
             <View style={styles.emptyWrapper}>
-              <Text style={[styles.emptyText, { color: theme.subText }]}>Chưa có lượt vote nào</Text>
+              <Text style={[styles.emptyText, { color: theme.subText }]}>{t("voteModal.empty")}</Text>
             </View>
           ) : (
             <FlatList

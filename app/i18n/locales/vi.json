@@ -994,5 +994,17 @@
     "underDevelopment": "Tính năng đang được phát triển",
     "greeting": "Chào bạn, hôm nay bạn muốn ",
     "question": "làm gì...?"
+  },
+  "voteModal": {
+    "upvote": "Upvote",
+    "downvote": "Downvote",
+    "vote": "Bình chọn",
+    "loadError": "Không thể tải danh sách người vote",
+    "defaultUser": "Người dùng",
+    "title": "Người đã vote bài viết",
+    "postTitleFallback": "Bài viết",
+    "voteCount": "{{count}} người đã vote",
+    "score": "Tổng điểm: {{value}}",
+    "empty": "Chưa có lượt vote nào"
   }
 }
