@@ -72,6 +72,12 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
 
     const aliasMap = {
       math: t("studyMaterial.categoriesList.mathematics"),
+      "địa-lý": t("studyMaterial.categoriesList.geography"),
+      "đia-ly": t("studyMaterial.categoriesList.geography"),
+      "dia-ly": t("studyMaterial.categoriesList.geography"),
+      "địa-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      geography: t("studyMaterial.categoriesList.geography"),
       maths: t("studyMaterial.categoriesList.mathematics"),
       mathematics: t("studyMaterial.categoriesList.mathematics"),
       toan: t("studyMaterial.categoriesList.mathematics"),
@@ -92,6 +98,23 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       geography: t("studyMaterial.categoriesList.geography"),
       "dia-ly": t("studyMaterial.categoriesList.geography"),
       "đia-ly": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-1": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-1": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-2": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-2": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-3": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-3": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-4": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-4": t("studyMaterial.categoriesList.geography"),
+      "diai-ly": t("studyMaterial.categoriesList.geography"),
+      "đia-lyh": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      "geography-1": t("studyMaterial.categoriesList.geography"),
+      "địa-lý": t("studyMaterial.categoriesList.geography"),
+      "địa lý": t("studyMaterial.categoriesList.geography"),
+      "dia ly": t("studyMaterial.categoriesList.geography"),
+      "đia lý": t("studyMaterial.categoriesList.geography"),
       exam: t("studyMaterial.categoriesList.exam"),
       "on-thi": t("studyMaterial.categoriesList.exam"),
       general: t("studyMaterial.categoriesList.general"),
@@ -128,7 +151,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       "my-thuat": t("studyMaterial.categoriesList.art"),
     };
 
-    const normalizedName = normalize(rawName);
+    const normalizedName = candidates[0] || "";
     return aliasMap[normalizedName] || rawName || t("studyMaterial.categoriesList.default");
   };
 

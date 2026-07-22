@@ -136,6 +136,12 @@ const StudyMaterialScreen = ({ navigation }) => {
 
     const aliasMap = {
       math: t("studyMaterial.categoriesList.mathematics"),
+      "địa-lý": t("studyMaterial.categoriesList.geography"),
+      "đia-ly": t("studyMaterial.categoriesList.geography"),
+      "dia-ly": t("studyMaterial.categoriesList.geography"),
+      "địa-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      geography: t("studyMaterial.categoriesList.geography"),
       maths: t("studyMaterial.categoriesList.mathematics"),
       mathematics: t("studyMaterial.categoriesList.mathematics"),
       toan: t("studyMaterial.categoriesList.mathematics"),
@@ -173,6 +179,23 @@ const StudyMaterialScreen = ({ navigation }) => {
       geography: t("studyMaterial.categoriesList.geography"),
       "dia-ly": t("studyMaterial.categoriesList.geography"),
       "đia-ly": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-1": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-1": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-2": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-2": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-3": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-3": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-4": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-4": t("studyMaterial.categoriesList.geography"),
+      "diai-ly": t("studyMaterial.categoriesList.geography"),
+      "đia-lyh": t("studyMaterial.categoriesList.geography"),
+      "dia-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      "đia-ly-hoc": t("studyMaterial.categoriesList.geography"),
+      "geography-1": t("studyMaterial.categoriesList.geography"),
+      "địa-lý": t("studyMaterial.categoriesList.geography"),
+      "địa lý": t("studyMaterial.categoriesList.geography"),
+      "dia ly": t("studyMaterial.categoriesList.geography"),
+      "đia lý": t("studyMaterial.categoriesList.geography"),
       "computer-science": t("studyMaterial.categoriesList.computer-science"),
       "tin-hoc": t("studyMaterial.categoriesList.computer-science"),
       "social-science": t("studyMaterial.categoriesList.social-science"),
@@ -193,7 +216,7 @@ const StudyMaterialScreen = ({ navigation }) => {
       "my-thuat": t("studyMaterial.categoriesList.art"),
     };
 
-    const normalizedName = normalize(rawName);
+    const normalizedName = candidates[0] || "";
     return aliasMap[normalizedName] || rawName || t("studyMaterial.categoriesList.default");
   };
 
