@@ -358,6 +358,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         maxToRenderPerBatch={5}
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
+        style={{ backgroundColor: theme.background }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           {
@@ -387,9 +388,9 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         }}
         renderItem={({ item }) => (
           <ScrollView
-            style={{ flex: 1, width, backgroundColor: "transparent" }}
+            style={{ flex: 1, width, backgroundColor: theme.background }}
             contentContainerStyle={{
-              backgroundColor: "transparent",
+              backgroundColor: theme.background,
               paddingHorizontal: 16,
               paddingBottom: 110 + insets.bottom,
               paddingTop: 5,
@@ -410,7 +411,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
                 tintColor="transparent"
                 colors={["transparent"]}
                 progressBackgroundColor="transparent"
-                style={{ backgroundColor: "transparent" }}
+                style={{ backgroundColor: theme.background }}
                 progressViewOffset={-1000}
               />
             }
@@ -480,6 +481,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 16,
     marginBottom: 14,
+    overflow: "hidden",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -495,9 +497,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   sectionBackground: {
+    width: "100%",
     padding: 14,
     borderRadius: 15,
-    overflow: "hidden"
+    overflow: "hidden",
   },
   sectionBadge: {
     width: 30,

@@ -1111,7 +1111,7 @@ const ConversationScreen = ({ navigation, route }) => {
           styles.header,
           {
             paddingTop: insets.top,
-            height: 64 + insets.top,
+            height: 74 + insets.top,
             backgroundColor: theme.background,
             borderBottomWidth: 0,
             elevation: 0,
@@ -1122,32 +1122,26 @@ const ConversationScreen = ({ navigation, route }) => {
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={styles.headerIconLeft}
         >
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.headerProfile}
-          onPress={() => {
-            if (otherUser) {
-              navigation.navigate("ProfileScreen", {
-                username: otherUser.username,
-              });
-            }
-          }}
-        >
-          <Image
-            source={
-              getHeaderAvatar() === "local:chat.jpg"
-                ? require("../../../assets/chat.jpg")
-                : {
-                    uri:
-                      getHeaderAvatar() ||
-                      "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                  }
-            }
-            style={styles.headerAvatarLarge}
-          />
-          <View style={{ marginLeft: 12, alignItems: "center" }}>
+        <View style={styles.headerTitleContainer}>
+          <View style={styles.headerAvatarWrapper}>
+            <Image
+              source={
+                getHeaderAvatar() === "local:chat.jpg"
+                  ? require("../../../assets/chat.jpg")
+                  : {
+                      uri:
+                        getHeaderAvatar() ||
+                        "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+                    }
+              }
+              style={styles.headerAvatarLarge}
+            />
+          </View>
+          <View style={styles.headerTextContainer}>
             <Text style={[styles.headerName, { color: theme.text }]}> 
               {isNewConversation
                 ? selectedUser.profile_name
@@ -1163,8 +1157,8 @@ const ConversationScreen = ({ navigation, route }) => {
                 : otherUser?.username || ""}
             </Text>
           </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={showOptions}>
+        </View>
+        <TouchableOpacity onPress={showOptions} style={styles.headerIconRight}>
           <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
         </TouchableOpacity>
       </View>
@@ -1181,7 +1175,7 @@ const ConversationScreen = ({ navigation, route }) => {
         keyExtractor={(item) => (item.is_myself ? "my" + item.id : "their" + item.id)}
         contentContainerStyle={[
           styles.messagesList,
-          { paddingBottom: 120 + insets.bottom },
+          { paddingTop: 120 + insets.bottom },
         ]}
         inverted={true}
         onEndReached={() => !refreshing && fetchMessages()}
@@ -1189,8 +1183,15 @@ const ConversationScreen = ({ navigation, route }) => {
       />
 
       {/* Input Bar - positioned above messages and transparent */}
-      <KeyboardAvoidingView behavior={"padding"} style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
-        <SafeAreaView edges={["bottom"]} style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: insets.bottom }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "position" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 64 + insets.top : 0}
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}
+      >
+        <SafeAreaView
+          edges={["bottom"]}
+          style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: insets.bottom }}
+        >
           <CommentBar
             ref={inputRef}
             placeholderText={t("chat.typeMessage")}
@@ -1199,7 +1200,7 @@ const ConversationScreen = ({ navigation, route }) => {
             value={message}
             disabled={!message.trim() || sending}
             isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 8 : 12, paddingTop: 8, backgroundColor: 'transparent' }}
+            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 8 : 12, paddingTop: 8, backgroundColor: "transparent", marginTop: 4 }}
             leftAccessory={
               <TouchableOpacity
                 style={styles.attachButton}
@@ -1235,26 +1236,55 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexDirection: "row",
   },
-  headerAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginRight: 12,
+  headerTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
   },
-  headerAvatarLarge: {
+  headerAvatarWrapper: {
     width: 44,
     height: 44,
     borderRadius: 22,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+    backgroundColor: "rgba(255,255,255,0.08)",
+  },
+  headerAvatarLarge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  headerTextContainer: {
+    alignItems: "flex-start",
+    justifyContent: "center",
+  },
+  headerIconLeft: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerIconRight: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
   headerName: {
     fontSize: 16,
     fontWeight: "700",
-    textAlign: "center",
+    textAlign: "left",
   },
   headerSubtitle: {
     fontSize: 12,
     marginTop: 2,
-    opacity: 0.9,
+    opacity: 0.85,
+    textTransform: "capitalize",
   },
   messagesList: {
     padding: 16,
