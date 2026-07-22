@@ -66,7 +66,7 @@ const CommentBar = React.forwardRef(
               borderRadius: 22,
               borderWidth: StyleSheet.hairlineWidth,
               borderColor: theme.border,
-              backgroundColor: isDarkMode ? "rgba(15, 23, 42, 0.95)" : "rgba(255,255,255,0.95)",
+              backgroundColor: isDarkMode ? "rgba(52, 148, 44, 0.95)" : "rgba(255,255,255,0.95)",
             }}
           >
             <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }} numberOfLines={1}>
