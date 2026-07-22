@@ -23,6 +23,7 @@ import {
   reportUser,
 } from "../services/api/Api";
 import ReportModal from "./ReportModal";
+import PostVotesModal from "./PostVotesModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
@@ -51,6 +52,7 @@ const PostItem = ({
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [votesModalVisible, setVotesModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -587,26 +589,28 @@ const PostItem = ({
               }
             />
           </Pressable>
-          <Text
-            style={[
-              currentVotes.some(
-                (vote) => vote?.username === username && vote.vote_value === 1
-              )
-                ? { color: "#22c55e" } // Apply green color for upvotes
-                : currentVotes.some(
-                  (vote) =>
-                    vote?.username === username && vote.vote_value === -1
+          <Pressable onPress={() => setVotesModalVisible(true)} style={{ justifyContent: "center" }}>
+            <Text
+              style={[
+                currentVotes.some(
+                  (vote) => vote?.username === username && vote.vote_value === 1
                 )
-                  ? { color: "#ef4444" } // Apply red color for downvotes
-                  : { color: theme.subText }, // Default themed color
-              { fontSize: single ? 24 : 20, fontWeight: "600" }, // Additional styles
-            ]}
-          >
-            {currentVotes.reduce(
-              (acc, vote) => acc + (vote.vote_value || 0),
-              0
-            ) || 0}
-          </Text>
+                  ? { color: "#22c55e" } // Apply green color for upvotes
+                  : currentVotes.some(
+                      (vote) =>
+                        vote?.username === username && vote.vote_value === -1
+                    )
+                    ? { color: "#ef4444" } // Apply red color for downvotes
+                    : { color: theme.subText }, // Default themed color
+                { fontSize: single ? 24 : 20, fontWeight: "600" }, // Additional styles
+              ]}
+            >
+              {currentVotes.reduce(
+                (acc, vote) => acc + (vote.vote_value || 0),
+                0
+              ) || 0}
+            </Text>
+          </Pressable>
           <Pressable onPress={() => handleVote(-1)}>
             <Ionicons
               name="arrow-down-outline"
@@ -680,6 +684,13 @@ const PostItem = ({
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
+      />
+      <PostVotesModal
+        visible={votesModalVisible}
+        onClose={() => setVotesModalVisible(false)}
+        postId={item.id}
+        postTitle={item.title || item?.topic?.title || "Bài viết"}
+        navigation={navigation}
       />
     </View >
   );
