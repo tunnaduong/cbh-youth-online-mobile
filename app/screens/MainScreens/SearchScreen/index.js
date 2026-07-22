@@ -221,7 +221,7 @@ export default function SearchScreen({ navigation }) {
           </View>
         </View>
 
-        {query.trim() && renderFilterChips()}
+        {renderFilterChips()}
 
         <ScrollView style={styles.resultsContainer} contentContainerStyle={{ paddingBottom: inset.bottom + 16 }}>
           {!query.trim() ? (
@@ -244,7 +244,7 @@ export default function SearchScreen({ navigation }) {
             !results.posts?.length ? (
             <View style={styles.noResults}>
               <Image
-                source={require("../../../assets/sad_frog.png")}
+                source={require("../../../assets/search-main.png")}
                 style={styles.noResultsImage}
               />
               <Text style={[styles.noResultsText, { color: theme.subText }]}>
@@ -265,7 +265,7 @@ export default function SearchScreen({ navigation }) {
                       : activeFilter === "user" && (
                         <View style={styles.sectionNoResults}>
                           <Image
-                            source={require("../../../assets/sad_frog.png")}
+                            source={require("../../../assets/search-main.png")}
                             style={styles.sectionNoResultsImage}
                           />
                           <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
@@ -290,7 +290,7 @@ export default function SearchScreen({ navigation }) {
                           : activeFilter === "post" && (
                             <View style={styles.sectionNoResults}>
                               <Image
-                                source={require("../../../assets/sad_frog.png")}
+                                source={require("../../../assets/search-main.png")}
                                 style={styles.sectionNoResultsImage}
                               />
                               <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
@@ -307,7 +307,7 @@ export default function SearchScreen({ navigation }) {
                 !results.posts?.length && (
                   <View style={styles.noResults}>
                     <Image
-                      source={require("../../../assets/sad_frog.png")}
+                      source={require("../../../assets/search-main.png")}
                       style={styles.noResultsImage}
                     />
                     <Text style={[styles.noResultsText, { color: theme.subText }]}>

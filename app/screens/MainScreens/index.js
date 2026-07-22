@@ -142,7 +142,6 @@ const TabBarBackgroundComponent = memo(
         >
           {useAndroidGlass && (
             <LiquidGlassViewAndroid
-              key={`tabbg-${currentRoute}-${isDarkMode ? 'dark' : 'light'}`}
               providerId={currentRoute}
               interactive={isLiquidGlassSupportedAndroid}
               {...glassProps}
@@ -711,7 +710,6 @@ const CustomTabBar = ({
           >
             {useAndroidGlass ? (
               <LiquidGlassViewAndroid
-                key={`leftpill-${activeRouteName}-${isDarkMode ? 'dark' : 'light'}`}
                 providerId={activeRouteName}
                 interactive={isLiquidGlassSupportedAndroid}
                 {...glassProps}
@@ -761,7 +759,6 @@ const CustomTabBar = ({
           <View style={styles.iosRightPill}>
             {useAndroidGlass ? (
               <LiquidGlassViewAndroid
-                key={`rightpill-${activeRouteName}-${isDarkMode ? 'dark' : 'light'}`}
                 providerId={activeRouteName}
                 interactive={isLiquidGlassSupportedAndroid}
                 {...glassProps}

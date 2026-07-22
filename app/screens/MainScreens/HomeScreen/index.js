@@ -304,6 +304,7 @@ const StoryOptionsModal = ({
   const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
   const insets = useSafeAreaInsets();
   const isOpeningReportRef = useRef(false);
+  const isOpeningDeleteRef = useRef(false);
 
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
 
@@ -326,8 +327,9 @@ const StoryOptionsModal = ({
         marginTop: 10,
       }}
       onClose={() => {
-        if (isOpeningReportRef.current) {
+        if (isOpeningReportRef.current || isOpeningDeleteRef.current) {
           isOpeningReportRef.current = false;
+          isOpeningDeleteRef.current = false;
           return;
         }
         storyRef.current?.resume?.(); // Resume story timer when sheet closes
@@ -395,7 +397,7 @@ const StoryOptionsModal = ({
             try {
               const { Share } = require('react-native');
               await Share.share({
-                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
+                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online!`,
                 url: `https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
               });
             } catch (error) {
@@ -431,12 +433,22 @@ const StoryOptionsModal = ({
           <Pressable
             style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             onPress={() => {
+              isOpeningDeleteRef.current = true;
+              storyRef.current?.pause?.();
               actionSheetRef.current?.hide();
               setTimeout(() => {
                 Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
-                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
                   {
-                    text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
+                    text: t('settings.cancel') || "Hủy",
+                    style: "cancel",
+                    onPress: () => {
+                      storyRef.current?.resume?.();
+                    },
+                  },
+                  {
+                    text: t('home.deleteStory') || "Xóa",
+                    style: "destructive",
+                    onPress: async () => {
                       try {
                         const storyIdToDelete = currentStoryRef.current;
                         if (storyIdToDelete) {
@@ -449,6 +461,7 @@ const StoryOptionsModal = ({
                           });
                         }
                       } catch (e) {
+                        storyRef.current?.resume?.();
                         Toast.show({
                           type: "error",
                           text1: t('common.error'),
@@ -752,7 +765,7 @@ const ReplyBar = ({
   const handleViewCountPress = () => {
     if (navigation && storyId) {
       setTimeout(() => {
-        DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", storyId);
+        DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", { storyId, isOwn: true });
       }, 100);
     }
   };
@@ -934,18 +947,43 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   }, [route.params?.refresh]);
 
   // Handle story highlighting from notifications
+  const openStoryById = (storyId) => {
+    const targetId = String(storyId);
+    const userWithStory = userStories.find((user) =>
+      user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
+    );
+
+    if (!userWithStory) {
+      return false;
+    }
+
+    const storyIndex = userWithStory.stories.findIndex((story) =>
+      String(story.storyId ?? story.id) === targetId
+    );
+
+    if (storyIndex >= 0 && storyRef.current?.goToSpecificStory) {
+      storyRef.current?.goToSpecificStory(userWithStory.id, storyIndex);
+    } else {
+      storyRef.current?.show(userWithStory.id);
+    }
+
+    return true;
+  };
+
   useEffect(() => {
     if (!route.params?.highlightStoryId || userStories.length === 0) return;
 
     const storyToHighlight = String(route.params.highlightStoryId);
-    const userWithStory = userStories.find((user) =>
-      user.stories.some((story) => String(story.storyId ?? story.id) === storyToHighlight)
-    );
-
-    if (!userWithStory) return;
 
     const timer = setTimeout(() => {
-      storyRef.current?.show?.(userWithStory.id);
+      if (!openStoryById(storyToHighlight)) {
+        const userWithStory = userStories.find((user) =>
+          user.stories.some((story) => String(story.storyId ?? story.id) === storyToHighlight)
+        );
+        if (userWithStory) {
+          storyRef.current?.show(userWithStory.id);
+        }
+      }
     }, 500);
 
     return () => clearTimeout(timer);
@@ -958,17 +996,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     const targetId = String(route.params.openStoryId);
 
-    // Find which user owns this story (story.id is numeric, compare as string)
-    const userWithStory = userStories.find((user) =>
-      user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
-    );
+    const timer = setTimeout(() => {
+      if (!openStoryById(targetId)) {
+        const userWithStory = userStories.find((user) =>
+          user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
+        );
+        if (userWithStory) {
+          storyRef.current?.show(userWithStory.id);
+        }
+      }
+    }, 600);
 
-    if (userWithStory) {
-      // Small delay to let the screen finish mounting before opening viewer
-      setTimeout(() => {
-        storyRef.current?.show(userWithStory.id); // user.id = username string
-      }, 600);
-    }
+    return () => clearTimeout(timer);
   }, [route.params?.openStoryId, userStories]);
 
   const currentStoryUserRef = useRef(null); // Ref to hold fresh user object for callbacks

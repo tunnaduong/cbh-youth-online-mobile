@@ -23,9 +23,17 @@ const LiquidButton = ({
   containerStyle,
   providerId,
   scrollY,
+  alwaysBorder = false,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
+
+  const visibleBorderColor = isDarkMode
+    ? "rgba(255,255,255,0.23)"
+    : "rgba(0,0,0,0.14)";
+  const subtleBorderColor = isDarkMode
+    ? "rgba(255,255,255,0.18)"
+    : "rgba(0,0,0,0.08)";
 
   // When scrollY is provided, background fades in as user scrolls (0→40px).
   // At the top the button appears label-only (no visible pill/circle).
@@ -42,7 +50,15 @@ const LiquidButton = ({
       if (useIOSGlass) {
         return (
           <LiquidGlassView
-            style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: defaultRadius,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
+              },
+            ]}
             glassType="clear"
             glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
             glassOpacity={1}
@@ -53,7 +69,15 @@ const LiquidButton = ({
       if (BlurView) {
         return (
           <BlurView
-            style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: defaultRadius,
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
+              },
+            ]}
             blurType={isDarkMode ? "dark" : "light"}
             blurAmount={10}
           />
@@ -70,7 +94,7 @@ const LiquidButton = ({
             backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)",
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
           }
         ]}
       />
@@ -93,6 +117,18 @@ const LiquidButton = ({
     }).start();
   };
 
+  const buttonStyle = [
+    styles.button,
+    {
+      width: size,
+      height: size,
+      borderRadius: defaultRadius,
+      borderWidth: 1,
+      borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
+    },
+    style,
+  ];
+
   return (
     <Animated.View style={[{ transform: [{ scale: scaleValue }] }, containerStyle]}>
       <TouchableOpacity
@@ -101,15 +137,7 @@ const LiquidButton = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
-        style={[
-          styles.button,
-          {
-            width: size,
-            height: size,
-            borderRadius: defaultRadius,
-          },
-          style,
-        ]}
+        style={buttonStyle}
       >
         {/* Background fades in based on scrollY */}
         <Animated.View

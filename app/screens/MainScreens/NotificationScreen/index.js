@@ -406,7 +406,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           } else if (item.type === "story_reacted") {
             // Navigate to the Home tab so the story viewer can open the requested story.
             navigation.navigate("Home", {
-              highlightStoryId: item.data?.story_id,
+              openStoryId: item.data?.story_id ?? item.data?.storyId,
             });
           } else if (item.type === "story_replied") {
             // Navigate to conversation screen
@@ -554,6 +554,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
           scrollY={scrollY}
+          alwaysBorder
           size={44}
           style={{ width: 'auto', paddingHorizontal: 16, height: 44 }}
           borderRadius={22}
