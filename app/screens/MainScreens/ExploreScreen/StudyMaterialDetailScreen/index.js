@@ -400,9 +400,6 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
         <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
           {t("studyMaterial.detailTitle")}
         </Animated.Text>
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("MainScreens", { screen: "Home" })}>
-          <Ionicons name="home-outline" size={22} color={theme.primary} />
-        </LiquidButton>
       </View>
 
       {loading ? (
