@@ -111,6 +111,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
         .toLowerCase()
         .normalize("NFKD")
         .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "");
 
@@ -210,6 +211,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
     const normalizedName = candidates[0] || "";
     return aliasMap[normalizedName] || rawName || t("studyMaterial.categoriesList.default");
+  };
 
   const loadUserBalance = async (shouldRefreshContext = true) => {
     if (!isLoggedIn) {
