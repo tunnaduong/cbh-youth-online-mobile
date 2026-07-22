@@ -27,6 +27,7 @@ export default function SearchScreen({ navigation }) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [isHeaderElevated, setIsHeaderElevated] = useState(false);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
@@ -207,25 +208,15 @@ export default function SearchScreen({ navigation }) {
           },
         ]}
       >
-        <Animated.View
-          style={[
-            styles.headerBackdrop,
-            {
-              opacity: headerBgOpacity,
-              backgroundColor: isDarkMode ? "rgba(12, 12, 12, 0.72)" : "rgba(255, 255, 255, 0.76)",
-            },
-          ]}
-        />
-
         <View style={styles.topBar}>
           <LiquidButton
             providerId="SearchScreen"
             onPress={() => navigation.goBack()}
             scrollY={scrollY}
             alwaysBorder
-            size={36}
+            size={42}
             style={{ marginLeft: 10 }}
-            borderRadius={18}
+            borderRadius={20}
           >
             <Ionicons name="chevron-back-outline" color={theme.text} size={22} />
           </LiquidButton>
@@ -233,12 +224,13 @@ export default function SearchScreen({ navigation }) {
             style={[
               styles.searchInputContainer,
               {
-                backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.55)",
-                borderColor: isDarkMode ? "rgba(255,255,255,0.14)" : "rgba(0,0,0,0.08)",
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
+                borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
                 borderWidth: 1,
               },
             ]}
           >
+            <Ionicons name="search" size={18} color={theme.subText} />
             <TextInput
               style={[styles.searchInput, { color: theme.text }]}
               placeholder={t('search.placeholder')}
@@ -255,9 +247,15 @@ export default function SearchScreen({ navigation }) {
                 <Ionicons name="close-circle" size={16} color={theme.subText} />
               </TouchableOpacity>
             )}
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setShowFilterMenu((prev) => !prev)}
+            >
+              <Ionicons name="options-outline" size={18} color={theme.text} />
+            </TouchableOpacity>
           </View>
         </View>
-
+        {showFilterMenu && renderFilterMenu()}
         <View style={{ opacity: isHeaderElevated ? 0 : 1 }} pointerEvents={isHeaderElevated ? "none" : "auto"}>
           {renderFilterChips()}
         </View>
@@ -265,7 +263,7 @@ export default function SearchScreen({ navigation }) {
 
       <Animated.ScrollView
         style={styles.resultsContainer}
-        contentContainerStyle={{ paddingTop: 110 + inset.top, paddingBottom: inset.bottom + 16 }}
+        contentContainerStyle={{ paddingTop: 116 + inset.top, paddingBottom: inset.bottom + 16 }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           {
@@ -400,19 +398,19 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    paddingHorizontal: 10,
+    borderRadius: 14,
+    paddingHorizontal: 8,
     paddingVertical: Platform.OS === "android" ? 0 : 2,
-    minHeight: 34,
+    minHeight: 32,
     marginLeft: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    paddingLeft: 4,
-    paddingRight: 28,
+    paddingLeft: 6,
+    paddingRight: 26,
     paddingVertical: 0,
-    minHeight: 26,
+    minHeight: 24,
     includeFontPadding: false,
     textAlignVertical: "center",
   },
@@ -535,7 +533,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 6,
     paddingBottom: 8,
-    borderBottomWidth: 1,
     gap: 8,
   },
   filterChip: {
