@@ -333,7 +333,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       Toast.show({
         type: "error",
         text1: t("studyMaterial.reviewError"),
-        text2: error?.message || t("studyMaterial.tryAgain"),
+        text2: error?.response?.data?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setSubmittingRate(false);
