@@ -112,34 +112,37 @@ const parseDeepLink = (url) => {
     const normalizedUrl = normalizeIntentUrl(url);
     console.log("[DeepLink] normalize input", normalizedUrl);
 
-    try {
-      const parsedUrl = new URL(normalizedUrl);
-      scheme = parsedUrl.protocol.replace(":", "");
-      host = parsedUrl.hostname;
-      pathSegment = parsedUrl.pathname.replace(/^\//, "");
-      query = parsedUrl.search;
-    } catch (e) {
-      const match = normalizedUrl.match(/^([a-zA-Z0-9+.-]+):\/\/([^/?#]+)(?:\/([^?#]*))?(?:\?([^#]*))?$/);
-      if (match) {
-        scheme = match[1];
-        const firstSegment = match[2].split("?")[0];
-        const restPath = match[3] || "";
-        const queryPart = match[4] || "";
+    const customSchemeMatch = normalizedUrl.match(/^([a-zA-Z0-9+.-]+):\/\/([^/?#]+)(?:\/([^?#]*))?(?:\?([^#]*))?$/);
 
-        if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
-          if (firstSegment === "post" || firstSegment === "story") {
-            pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
-            host = "";
-          } else {
-            host = firstSegment;
-            pathSegment = restPath;
-          }
+    if (customSchemeMatch) {
+      scheme = customSchemeMatch[1];
+      const firstSegment = customSchemeMatch[2].split("?")[0];
+      const restPath = customSchemeMatch[3] || "";
+      const queryPart = customSchemeMatch[4] || "";
+
+      if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
+        if (firstSegment === "post" || firstSegment === "story") {
+          pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
+          host = "";
         } else {
           host = firstSegment;
           pathSegment = restPath;
         }
+      } else {
+        host = firstSegment;
+        pathSegment = restPath;
+      }
 
-        query = queryPart ? `?${queryPart}` : "";
+      query = queryPart ? `?${queryPart}` : "";
+    } else {
+      try {
+        const parsedUrl = new URL(normalizedUrl);
+        scheme = parsedUrl.protocol.replace(":", "");
+        host = parsedUrl.hostname;
+        pathSegment = parsedUrl.pathname.replace(/^\//, "");
+        query = parsedUrl.search;
+      } catch (e) {
+        console.warn("[DeepLink] failed to parse URL", normalizedUrl, e);
       }
     }
 
