@@ -30,8 +30,8 @@ const LiquidButton = ({
   const defaultRadius = borderRadius ?? size / 2;
 
   const visibleBorderColor = isDarkMode
-    ? "rgba(255,255,255,0.23)"
-    : "rgba(0,0,0,0.14)";
+    ? "rgba(255,255,255,0.28)"
+    : "rgba(17,24,39,0.22)";
   const transparentBorderColor = "transparent";
 
   // When scrollY is provided, background fades in as user scrolls (0→40px).
