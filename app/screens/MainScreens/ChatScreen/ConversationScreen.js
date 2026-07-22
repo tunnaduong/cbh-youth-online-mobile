@@ -21,7 +21,7 @@ import {
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
-import { Alert, ActionSheetIOS } from "react-native";
+import { Alert, ActionSheetIOS, KeyboardAvoidingView } from "react-native";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -1184,11 +1184,12 @@ const ConversationScreen = ({ navigation, route }) => {
       />
 
       {/* Input Bar - positioned above messages */}
-      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}>
-        <SafeAreaView
-          edges={["bottom"]}
-          style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom - 4, 0) }}
-        >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "position" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 8 : 0}
+        style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}
+      >
+        <View style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? Math.max(insets.bottom - 2, 0) : Math.max(insets.bottom - 4, 0) }}>
           <CommentBar
             ref={inputRef}
             placeholderText={t("chat.typeMessage")}
@@ -1197,7 +1198,7 @@ const ConversationScreen = ({ navigation, route }) => {
             value={message}
             disabled={!message.trim() || sending}
             isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: 0, paddingTop: 0, backgroundColor: "transparent", marginTop: 0 }}
+            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 4 : 0, paddingTop: Platform.OS === "ios" ? 4 : 0, backgroundColor: "transparent", marginTop: Platform.OS === "ios" ? 2 : 0 }}
             leftAccessory={
               <TouchableOpacity
                 style={styles.attachButton}
@@ -1208,8 +1209,8 @@ const ConversationScreen = ({ navigation, route }) => {
               </TouchableOpacity>
             }
           />
-        </SafeAreaView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 };
