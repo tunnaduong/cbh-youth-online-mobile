@@ -55,6 +55,9 @@ import UploadStudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/U
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
+import PointWalletScreen from "./app/screens/MainScreens/PointWalletScreen";
+import DepositScreen from "./app/screens/MainScreens/PointWalletScreen/DepositScreen";
+import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/WithdrawScreen";
 
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
@@ -510,6 +513,21 @@ const App = () => {
               <Stack.Screen
                 name="MemberRankingScreen"
                 component={MemberRankingScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="PointWalletScreen"
+                component={PointWalletScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="DepositScreen"
+                component={DepositScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="WithdrawScreen"
+                component={WithdrawScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

@@ -179,6 +179,31 @@ export const purchaseMaterial = (id) => {
   return Api.postRequest(`/v1.0/study-materials/${id}/purchase`);
 };
 
+// Points wallet
+export const getWalletBalance = () => {
+  return Api.getRequest("/v1.0/wallet/balance");
+};
+
+export const getWalletTransactions = (params = {}) => {
+  return Api.getRequest("/v1.0/wallet/transactions", params);
+};
+
+export const getWithdrawalRequests = () => {
+  return Api.getRequest("/v1.0/wallet/withdrawal-requests");
+};
+
+export const createDepositRequest = (params) => {
+  return Api.postRequest("/v1.0/wallet/deposit-request", params);
+};
+
+export const requestWithdrawal = (params) => {
+  return Api.postRequest("/v1.0/wallet/withdrawal-request", params);
+};
+
+export const cancelWithdrawalRequest = (id) => {
+  return Api.postRequest(`/v1.0/wallet/withdrawal-requests/${id}/cancel`);
+};
+
 export const getMaterialRatings = (id) => {
   return Api.getRequest(`/v1.0/study-materials/${id}/ratings`);
 };

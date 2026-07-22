@@ -494,6 +494,31 @@ const Sidebar = ({ providerId, isOpen }) => {
                 />
               )}
             />
+            <List.Item
+              title={t("sidebar.pointWallet")}
+              titleStyle={{ color: theme.text }}
+              onPress={() => navigation.navigate("PointWalletScreen")}
+              left={() => (
+                <Ionicons
+                  name="wallet-outline"
+                  size={24}
+                  color={theme.text}
+                  style={{ marginLeft: 14, marginRight: -5 }}
+                />
+              )}
+              right={() => (
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  color={theme.subText}
+                  style={{
+                    marginRight: -10,
+                    marginTop: 3,
+                    transform: [{ rotate: "-90deg" }],
+                  }}
+                />
+              )}
+            />
           </List.Section>
           <List.Section>
             <List.Subheader

@@ -265,13 +265,11 @@ const CategoryScreen = ({ navigation, route }) => {
         contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
       >
         {/* Category Header */}
-        {console.log(forumData.subforum.background)}
-        <View style={{ marginHorizontal: 12, backgroundColor: "transparent", borderBottomWidth: 1, borderBottomColor: theme.border, borderRadius: 16, overflow: "hidden" }}>
+        <View style={{ backgroundColor: "transparent", borderBottomWidth: 1, borderBottomColor: theme.border, overflow: "hidden" }}>
           <ImageBackground
             source={{ uri: forumData.subforum.background }}
             resizeMode="cover"
-            style={{ width: "100%", padding: 16, justifyContent: "center" }}
-            imageStyle={{ borderRadius: 16 }}
+            style={{ width: "100%", justifyContent: "center" }}
           >
             <LinearGradient
               colors={[theme.background, "transparent"]}
