@@ -2,6 +2,7 @@ import React from "react";
 import {
   TouchableOpacity,
   View,
+  Text,
   TextInput,
   ActivityIndicator,
   Platform,
@@ -30,6 +31,8 @@ const CommentBar = React.forwardRef(
       isAnonymous = false,
       onToggleAnonymous,
       anonymousDisabled = false,
+      statusText,
+      onClearStatus,
       style,
       leftAccessory,
     },
@@ -51,6 +54,42 @@ const CommentBar = React.forwardRef(
           style,
         ]}
       >
+        {statusText ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 8,
+              paddingHorizontal: 16,
+              paddingVertical: 10,
+              borderRadius: 22,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: theme.border,
+              backgroundColor: isDarkMode ? "rgba(15, 23, 42, 0.95)" : "rgba(255,255,255,0.95)",
+            }}
+          >
+            <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }} numberOfLines={1}>
+              {statusText}
+            </Text>
+            {onClearStatus ? (
+              <TouchableOpacity
+                onPress={onClearStatus}
+                style={{
+                  marginLeft: 10,
+                  width: 32,
+                  height: 32,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 16,
+                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                }}
+              >
+                <Ionicons name="close" size={16} color={theme.subText} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
         <View
           style={{
             flexDirection: "row",
@@ -191,7 +230,7 @@ const CommentBar = React.forwardRef(
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardStickyView>
+      </RootView>
     );
   }
 );

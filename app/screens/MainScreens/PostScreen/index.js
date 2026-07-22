@@ -1227,53 +1227,11 @@ const PostScreen = ({ route, navigation }) => {
             {/* Spacer to prevent comment bar from covering last comments */}
             <View style={{ height: 50, backgroundColor: 'transparent' }} />
           </Animated.ScrollView>
-          {(parentId || editingCommentId) && (
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 72 + insets.bottom,
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 15,
-                paddingVertical: 8,
-                backgroundColor: "transparent",
-                borderTopWidth: 0,
-                zIndex: 20,
-              }}
-            >
-              <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }}>
-                {editingCommentId
-                  ? t('post.editingComment')
-                  : t('post.replyingTo', { username: replyingTo })}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setParentId(null);
-                  setReplyingTo(null);
-                  setEditingCommentId(null);
-                  setEditingCommentText("");
-                  setCommentText("");
-                  setIsAnonymousComment(false);
-                }}
-                style={{
-                  marginLeft: 10,
-                  padding: 5,
-                  backgroundColor: isDarkMode ? "#374151" : "#e5e7eb",
-                  borderRadius: 50,
-                }}
-              >
-                <Ionicons name="close" size={16} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <ReportModal
-            visible={reportModalVisible}
-            onClose={() => setReportModalVisible(false)}
-            onSubmit={handleReportSubmit}
-          />
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "position" : "height"}
@@ -1289,6 +1247,15 @@ const PostScreen = ({ route, navigation }) => {
           }}
         >
           <CommentBar
+            statusText={parentId || editingCommentId ? (editingCommentId ? t('post.editingComment') : t('post.replyingTo', { username: replyingTo })) : null}
+            onClearStatus={() => {
+              setParentId(null);
+              setReplyingTo(null);
+              setEditingCommentId(null);
+              setEditingCommentText("");
+              setCommentText("");
+              setIsAnonymousComment(false);
+            }}
             value={editingCommentId ? editingCommentText : commentText}
             onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
             placeholderText={t('post.commentPlaceholder')}
