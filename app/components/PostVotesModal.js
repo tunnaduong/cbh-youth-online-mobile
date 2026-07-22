@@ -1,17 +1,19 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
-  Modal,
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
   Image,
   Pressable,
   StyleSheet,
+  useWindowDimensions,
 } from "react-native";
+import ActionSheet from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getPostVotes } from "../services/api/Api";
 
 const getVoteLabel = (t, voteValue) => {
@@ -37,11 +39,22 @@ const getInitials = (name) => {
 };
 
 export default function PostVotesModal({ visible, onClose, postId, postTitle, navigation }) {
+  const actionSheetRef = useRef(null);
   const [votes, setVotes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+
+  useEffect(() => {
+    if (visible) {
+      actionSheetRef.current?.setModalVisible(true);
+    } else {
+      actionSheetRef.current?.hide();
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (!visible || !postId) {
@@ -151,15 +164,17 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
   };
 
   return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      animationType="fade"
-      onRequestClose={onClose}
+    <ActionSheet
+      ref={actionSheetRef}
+      gestureEnabled
+      defaultOverlayOpacity={0.45}
+      onClose={onClose}
+      containerStyle={[
+        styles.sheetContainer,
+        { backgroundColor: theme.cardBackground },
+      ]}
     >
-      <View style={styles.overlay}>
-        <Pressable style={styles.overlay} onPress={onClose} />
-        <View style={[styles.modalContainer, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>          
+        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>          
           <View style={styles.header}>
             <View style={styles.headerText}>
               <Text style={[styles.title, { color: theme.text }]}>{t("voteModal.title")}</Text>
@@ -167,7 +182,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
                 {postTitle || t("voteModal.postTitleFallback")}
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <TouchableOpacity onPress={() => actionSheetRef.current?.hide()} style={styles.closeButton}>
               <Text style={[styles.closeButtonText, { color: theme.primary }]}>{t("common.close")}</Text>
             </TouchableOpacity>
           </View>
@@ -198,29 +213,23 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
               data={votes}
               keyExtractor={(item) => item.user_id?.toString() || item.username || JSON.stringify(item)}
               renderItem={renderItem}
-              style={styles.list}
+              style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
             />
           )}
         </View>
-      </View>
-    </Modal>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
+  sheetContainer: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
   },
   modalContainer: {
-    width: "90%",
-    maxHeight: "80%",
-    borderRadius: 18,
-    borderWidth: 1,
     padding: 16,
   },
   header: {
@@ -287,7 +296,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   list: {
-    maxHeight: 360,
+    width: "100%",
   },
   listContent: {
     paddingBottom: 8,
