@@ -88,7 +88,6 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const [loading, setLoading] = useState(true);
   const [forumSections, setForumSections] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const lottieRef = useRef(null);
   const flatListRef = useRef(null);
   const tabScrollViewRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -132,10 +131,6 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
     }
     lastScrollYRef.current = offsetY;
-
-    if (!refreshing) {
-      lottieRef.current?.play();
-    }
   };
 
   const scrollToTopOrReload = React.useCallback(() => {
@@ -332,19 +327,6 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           </TouchableOpacity>
         ))}
       </ScrollView>
-
-      <AnimatedLottieView
-        source={require("../../../assets/refresh.json")}
-        style={{
-          width: 40,
-          height: 40,
-          position: "absolute",
-          zIndex: 0,
-          alignSelf: "center",
-          top: 50 + insets.top + 10 + 45,
-        }}
-        ref={lottieRef}
-      />
 
       <FlatList
         ref={flatListRef}

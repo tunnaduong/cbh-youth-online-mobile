@@ -429,7 +429,8 @@
     },
     "anonymous": "Ẩn danh",
     "am": "SA",
-    "pm": "CH"
+    "pm": "CH",
+    "members":"thành viên"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
