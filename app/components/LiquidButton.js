@@ -31,9 +31,7 @@ const LiquidButton = ({
   const visibleBorderColor = isDarkMode
     ? "rgba(255,255,255,0.23)"
     : "rgba(0,0,0,0.14)";
-  const subtleBorderColor = isDarkMode
-    ? "rgba(255,255,255,0.18)"
-    : "rgba(0,0,0,0.08)";
+  const transparentBorderColor = "transparent";
 
   // When scrollY is provided, background fades in as user scrolls (0→40px).
   // At the top the button appears label-only (no visible pill/circle).
@@ -44,6 +42,8 @@ const LiquidButton = ({
         extrapolate: "clamp",
       })
     : 1;
+
+  const borderColor = alwaysBorder ? visibleBorderColor : transparentBorderColor;
 
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
@@ -56,7 +56,7 @@ const LiquidButton = ({
                 borderRadius: defaultRadius,
                 overflow: "hidden",
                 borderWidth: 1,
-                borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
+                borderColor,
               },
             ]}
             glassType="clear"
@@ -75,7 +75,7 @@ const LiquidButton = ({
                 borderRadius: defaultRadius,
                 overflow: "hidden",
                 borderWidth: 1,
-                borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
+                borderColor,
               },
             ]}
             blurType={isDarkMode ? "dark" : "light"}
@@ -94,7 +94,7 @@ const LiquidButton = ({
             backgroundColor: isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)",
             borderRadius: defaultRadius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
+            borderColor,
           }
         ]}
       />
@@ -124,7 +124,7 @@ const LiquidButton = ({
       height: size,
       borderRadius: defaultRadius,
       borderWidth: 1,
-      borderColor: alwaysBorder ? visibleBorderColor : subtleBorderColor,
+      borderColor: alwaysBorder ? visibleBorderColor : transparentBorderColor,
     },
     style,
   ];

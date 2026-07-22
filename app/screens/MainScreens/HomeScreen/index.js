@@ -397,7 +397,7 @@ const StoryOptionsModal = ({
             try {
               const { Share } = require('react-native');
               await Share.share({
-                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online!`,
+                message: `Check out this story from ${currentStoryUserRef.current?.username || currentStoryUserRef.current?.id} on CBH Youth Online! https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
                 url: `https://chuyenbienhoa.com/?storyId=${currentStoryRef.current}`,
               });
             } catch (error) {
