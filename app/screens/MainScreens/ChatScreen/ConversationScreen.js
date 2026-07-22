@@ -23,7 +23,6 @@ import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
 import { Alert, ActionSheetIOS } from "react-native";
 import Toast from "react-native-toast-message";
-import { KeyboardStickyView } from "react-native-keyboard-controller";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
 import "dayjs/locale/ru";
@@ -1184,8 +1183,8 @@ const ConversationScreen = ({ navigation, route }) => {
         onEndReachedThreshold={0.3}
       />
 
-      {/* Input Bar - positioned above messages and sticky with keyboard */}
-      <KeyboardStickyView style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}>
+      {/* Input Bar - positioned above messages */}
+      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}>
         <SafeAreaView
           edges={["bottom"]}
           style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom - 4, 0) }}
@@ -1198,7 +1197,7 @@ const ConversationScreen = ({ navigation, route }) => {
             value={message}
             disabled={!message.trim() || sending}
             isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 6 : 10, paddingTop: 6, backgroundColor: "transparent", marginTop: 2 }}
+            style={{ paddingHorizontal: 12, paddingBottom: 0, paddingTop: 0, backgroundColor: "transparent", marginTop: 0 }}
             leftAccessory={
               <TouchableOpacity
                 style={styles.attachButton}
@@ -1210,7 +1209,7 @@ const ConversationScreen = ({ navigation, route }) => {
             }
           />
         </SafeAreaView>
-      </KeyboardStickyView>
+      </View>
     </View>
   );
 };
