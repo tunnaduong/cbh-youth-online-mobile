@@ -286,7 +286,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Floating header */}
-      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
+      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent", backgroundColor: "transparent" }]} pointerEvents="box-none">
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <View style={styles.headerActions}>
           <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("MemberRankingScreen")}>
@@ -378,10 +378,10 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           <ScrollView
             style={{ flex: 1, width, backgroundColor: theme.background }}
             contentContainerStyle={{
-              backgroundColor: theme.background,
+              backgroundColor: "transparent",
               paddingHorizontal: 16,
               paddingBottom: 110 + insets.bottom,
-              paddingTop: 5,
+              paddingTop: 8,
             }}
             showsVerticalScrollIndicator={false}
             onScroll={(e) => {

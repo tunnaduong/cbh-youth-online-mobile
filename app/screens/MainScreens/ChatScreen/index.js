@@ -293,10 +293,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
       <View
-        style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
+        style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
         pointerEvents="box-none"
       >
-        <View style={{ width: 44 }} />
+        <Text style={[styles.headerTitleText, { color: theme.primary }]}>{t('chat.title')}</Text>
         <LiquidButton
           providerId="Chat"
           onPress={() => navigation.navigate("NewConversationScreen")}
@@ -350,24 +350,12 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           />
         }
         contentContainerStyle={{
-          paddingTop: headerHeight,
+          paddingTop: headerHeight + 8,
           paddingBottom: 110 + insets.bottom,
           flex: filteredConversations.length === 0 ? 1 : undefined,
         }}
         ListHeaderComponent={
           <>
-            <Animated.Text
-              style={[
-                styles.largeTitle,
-                {
-                  color: theme.primary,
-                  opacity: titleOpacity,
-                  transform: [{ translateY: titleTranslateY }],
-                },
-              ]}
-            >
-              {t('chat.title')}
-            </Animated.Text>
             <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               <Ionicons
                 name="search"
@@ -424,11 +412,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 8,
   },
-  largeTitle: {
-    fontSize: 30,
-    fontWeight: "bold",
-    paddingHorizontal: 16,
-    marginBottom: 16,
+  headerTitleText: {
+    fontSize: 24,
+    fontWeight: "700",
+    flex: 1,
   },
   searchContainer: {
     flexDirection: "row",
