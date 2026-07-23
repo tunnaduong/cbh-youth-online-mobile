@@ -27,6 +27,7 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
 import { storage } from "../../../global/storage";
+import LiquidButton from "../../../components/LiquidButton";
 
 const { width } = Dimensions.get("window");
 
@@ -109,6 +110,8 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = 58 + insets.top;
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(
@@ -135,6 +138,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -257,28 +261,20 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   if (loading) {
     return (
-      <View
-        style={[
-          { flex: 1, backgroundColor: theme.background },
-          { paddingTop: insets.top },
-        ]}
-      >
-        
-        <View style={styles.header}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
           <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("ProfileScreen", { username })}
-          >
+          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("ProfileScreen", { username })} style={{ padding: 2 }}>
             <FastImage
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}
-              style={[styles.avatar, { borderColor: theme.border }]}
+              style={styles.avatar}
             />
-          </TouchableOpacity>
+          </LiquidButton>
         </View>
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
+          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background, paddingTop: headerHeight }}
         >
           <CustomLoading />
           <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
@@ -288,28 +284,23 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   }
 
   return (
-    <View
-      style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
-    >
-      
-      <View style={styles.header}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Floating header */}
+      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("MemberRankingScreen")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="trophy-outline" size={26} color={theme.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("ProfileScreen", { username })}
-        >
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={[styles.avatar, { borderColor: theme.border }]}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("MemberRankingScreen")}>
+            <Ionicons name="trophy-outline" size={22} color={theme.primary} />
+          </LiquidButton>
+          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("ProfileScreen", { username })} style={{ padding: 2 }}>
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={styles.avatar}
+            />
+          </LiquidButton>
+        </View>
       </View>
 
       <ScrollView
@@ -434,19 +425,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16,
-    height: 50,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
     flex: 1,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   avatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 2,
   },
   tabContainer: {
     height: 45,

@@ -1,68 +1,58 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Platform } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext";
+import LiquidButton from "./LiquidButton";
 
 export default function ReportHeader({ navigation, title, rightButton }) {
-  const insets = useSafeAreaInsets();
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
 
   return (
     <View
-      style={[
-        {
-          flexDirection: "row",
-          alignItems: "center",
-          paddingHorizontal: 16,
-          height: 50,
-          borderBottomColor: theme.border,
-          borderBottomWidth: 0.8,
-          backgroundColor: theme.background,
-        },
-        Platform.OS === "android"
-          ? { marginTop: 0 }
-          : { height: "auto", paddingVertical: 12 },
-      ]}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 16,
+        paddingTop: 8,
+        paddingBottom: 8,
+        backgroundColor: theme.background,
+      }}
     >
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Ionicons name="chevron-back-circle" size={25} color={theme.subText} />
-      </TouchableOpacity>
+      <LiquidButton size={44} onPress={() => navigation.goBack()}>
+        <Ionicons name="chevron-back" size={24} color={theme.primary} />
+      </LiquidButton>
       <Text
         style={{
-          fontSize: 20,
-          fontWeight: "bold",
-          marginLeft: 16,
+          fontSize: 18,
+          fontWeight: "600",
+          marginLeft: 12,
           color: theme.primary,
+          flex: 1,
         }}
+        numberOfLines={1}
       >
         {title}
       </Text>
       {rightButton && (
-        <TouchableOpacity
-          style={[
-            {
-              marginLeft: "auto",
-              paddingHorizontal: 25,
-              paddingVertical: 10,
-              backgroundColor: theme.primary,
-              borderRadius: 20,
-            },
-            Platform.OS === "android" && { paddingVertical: 8 },
-          ]}
+        <LiquidButton
+          alwaysBorder
+          size={44}
+          style={{ width: "auto", paddingHorizontal: 16, height: 44, borderWidth: 1, borderColor: theme.primary, backgroundColor: "transparent" }}
+          borderRadius={22}
           onPress={rightButton.onPress}
         >
           <Text
             style={{
-              color: "white",
+              color: theme.text,
               lineHeight: 20,
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: "600",
             }}
+            numberOfLines={1}
           >
             {rightButton.text}
           </Text>
-        </TouchableOpacity>
+        </LiquidButton>
       )}
     </View>
   );

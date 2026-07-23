@@ -895,7 +895,7 @@ const PostScreen = ({ route, navigation }) => {
                 },
                 border && {
                   borderLeftWidth: 3,
-                  borderLeftColor: isDarkMode ? "#2e4e2a" : "#e4eee3",
+                  borderLeftColor: theme.border,
                   paddingLeft: 10,
                 },
               ]}
@@ -986,7 +986,7 @@ const PostScreen = ({ route, navigation }) => {
                       marginVertical: 8,
                       paddingHorizontal: 12,
                       paddingVertical: 8,
-                      backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6",
+                      backgroundColor: theme.iconBackground,
                       borderRadius: 8,
                       borderWidth: 1,
                       borderColor: theme.border,

@@ -287,11 +287,16 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     </TouchableOpacity>
   );
 
+  const headerHeight = 58 + insets.top;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      
-      <View style={[styles.header, { paddingTop: insets.top, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 50 + insets.top }]} pointerEvents="box-none">
-        <Animated.Text style={[styles.headerTitle, { color: theme.primary, textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('chat.title')}</Animated.Text>
+      {/* Floating header */}
+      <View
+        style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
+        pointerEvents="box-none"
+      >
+        <View style={{ width: 44 }} />
         <LiquidButton
           providerId="Chat"
           onPress={() => navigation.navigate("NewConversationScreen")}
@@ -314,7 +319,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       </View>
 
       {refreshing && (
-        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+        <View style={{ position: "absolute", top: headerHeight, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
           <LottieView
             source={require("../../../assets/refresh.json")}
             style={{ width: 40, height: 40 }}
@@ -324,22 +329,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           />
         </View>
       )}
-
-      <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
-        <Ionicons
-          name="search"
-          size={20}
-          color={theme.subText}
-          style={{ marginLeft: 10 }}
-        />
-        <TextInput
-          style={[styles.searchInput, { color: theme.text }]}
-          placeholder={t('chat.search')}
-          placeholderTextColor="#A0A0A0"
-          value={search}
-          onChangeText={setSearch}
-        />
-      </View>
 
       <FlatList
         ref={flatListRef}
@@ -361,9 +350,41 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           />
         }
         contentContainerStyle={{
+          paddingTop: headerHeight,
           paddingBottom: 110 + insets.bottom,
           flex: filteredConversations.length === 0 ? 1 : undefined,
         }}
+        ListHeaderComponent={
+          <>
+            <Animated.Text
+              style={[
+                styles.largeTitle,
+                {
+                  color: theme.primary,
+                  opacity: titleOpacity,
+                  transform: [{ translateY: titleTranslateY }],
+                },
+              ]}
+            >
+              {t('chat.title')}
+            </Animated.Text>
+            <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Ionicons
+                name="search"
+                size={18}
+                color={theme.subText}
+                style={{ marginLeft: 12 }}
+              />
+              <TextInput
+                style={[styles.searchInput, { color: theme.text }]}
+                placeholder={t('chat.search')}
+                placeholderTextColor={theme.placeholder}
+                value={search}
+                onChangeText={setSearch}
+              />
+            </View>
+          </>
+        }
         ItemSeparatorComponent={() => (
           <View
             style={{ height: 1, backgroundColor: theme.border, marginLeft: 80 }}
@@ -392,30 +413,35 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     justifyContent: "space-between",
-    height: 50,
     gap: 8,
   },
-  headerTitle: {
-    fontSize: 28,
+  largeTitle: {
+    fontSize: 30,
     fontWeight: "bold",
-    flexShrink: 1,
+    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 10,
+    borderRadius: 14,
+    borderWidth: 1,
     marginHorizontal: 16,
-    marginTop: 14,
-    marginBottom: 6,
-    height: 40,
+    marginBottom: 10,
+    height: 44,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     paddingHorizontal: 10,
     backgroundColor: "transparent",
   },

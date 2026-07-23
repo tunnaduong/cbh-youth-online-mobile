@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
   Switch,
+  Animated,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -31,6 +32,7 @@ import FastImage from "../../../components/FastImage";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
 
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
@@ -45,7 +47,14 @@ const PostEditScreen = ({ navigation, route }) => {
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
-  
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = 64 + insets.top;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [viewSelected, setViewSelected] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -386,64 +395,53 @@ const PostEditScreen = ({ navigation, route }) => {
 
   return (
     <>
-      
       <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
-      <View
-        style={[
-          {
-            flexDirection: "row",
-            alignItems: "center",
-            paddingHorizontal: 16,
-            height: 50,
-            borderBottomColor: theme.border,
-            borderBottomWidth: 0.8,
-            backgroundColor: theme.background,
-          },
-          Platform.OS === "android"
-            ? { marginTop: insets.top }
-            : { height: "auto", paddingVertical: 12 },
-        ]}
-      >
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back-circle" size={25} color={theme.subText} />
-        </TouchableOpacity>
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: "bold",
-            marginLeft: 16,
-            color: theme.primary,
-          }}
-        >
-          {t('editPost.title')}
-        </Text>
-        <TouchableOpacity
-          style={[
-            {
-              marginLeft: "auto",
-              paddingHorizontal: 25,
-              paddingVertical: 10,
-              backgroundColor: theme.primary,
-              borderRadius: 20,
-            },
-            Platform.OS === "android" && { paddingVertical: 8 },
-          ]}
-          onPress={handleUpdate}
-        >
-          <Text
+
+      {/* Floating header */}
+      <View pointerEvents="box-none" style={styles.floatingHeader}>
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
+          <View style={{ width: 44 }}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
             style={{
-              color: "white",
-              lineHeight: 20,
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: "600",
+              color: theme.primary,
+              flex: 1,
+              textAlign: "center",
+              opacity: headerTitleOpacity,
             }}
+            numberOfLines={1}
           >
-            {t('editPost.save')}
-          </Text>
-        </TouchableOpacity>
+            {t('editPost.title')}
+          </Animated.Text>
+          <LiquidButton
+            scrollY={scrollY}
+            alwaysBorder
+            size={44}
+            style={{ width: "auto", paddingHorizontal: 16, height: 44, borderWidth: 1, borderColor: theme.primary, backgroundColor: "transparent" }}
+            borderRadius={22}
+            onPress={handleUpdate}
+          >
+            <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
+              {t('editPost.save')}
+            </Text>
+          </LiquidButton>
+        </View>
       </View>
 
-      <ScrollView style={[styles.container, { backgroundColor: theme.background }]} contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.background }]}
+        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
+      >
         <View
           style={{
             flexDirection: "row",
@@ -456,7 +454,7 @@ const PostEditScreen = ({ navigation, route }) => {
           pointerEvents="box-none"
         >
           {isAnonymous ? (
-            <View style={{ width: 70, height: 70, backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9', borderRadius: 35, alignItems: 'center', justifyContent: 'center', borderColor: theme.border, borderWidth: 1 }}>
+            <View style={{ width: 70, height: 70, backgroundColor: theme.iconBackground, borderRadius: 35, alignItems: 'center', justifyContent: 'center', borderColor: theme.border, borderWidth: 1 }}>
               <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 36 }}>?</Text>
             </View>
           ) : (
@@ -494,7 +492,7 @@ const PostEditScreen = ({ navigation, route }) => {
               onValueChange={setViewSelected}
               style={{
                 borderWidth: 0,
-                backgroundColor: isDarkMode ? "#374151" : "#f3f4f6",
+                backgroundColor: theme.iconBackground,
                 padding: 6,
                 borderRadius: 8,
                 gap: 3,
@@ -515,7 +513,7 @@ const PostEditScreen = ({ navigation, route }) => {
             />
           </View>
         </View>
-        <View style={[styles.inputContainer, { backgroundColor: isDarkMode ? "#1f2937" : "#fafafa", borderColor: theme.border }]}>
+        <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <TextInput
             style={[styles.titleInput, { color: theme.text }]}
             placeholder={t('editPost.placeholderTitle')}
@@ -716,6 +714,13 @@ const PostEditScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
   },
   loadingContainer: {
     flex: 1,

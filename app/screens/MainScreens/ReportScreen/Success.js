@@ -32,7 +32,7 @@ export default function Success({ navigation }) {
       {/* Header */}
       <ReportHeader navigation={navigation} title={t('report.createReport')} />
 
-<View style={[styles.header, { backgroundColor: isDarkMode ? "#1f2937" : "#F3FDF1" }]}> 
+      <View style={[styles.header, { backgroundColor: theme.iconBackground, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth }]}>
         <View style={styles.headerContent}>
           <Text style={[styles.headerTitle, { color: theme.text }]}>{t('report.reportViolation')}</Text>
           <Text style={[styles.headerSubtitle, { color: theme.subText }]}> 
@@ -78,7 +78,9 @@ export default function Success({ navigation }) {
       <View style={styles.successContent}>
         <View
           style={{
-            backgroundColor: isDarkMode ? "#064e3b" : "#F3FBF2",
+            backgroundColor: theme.surface,
+            borderColor: theme.border,
+            borderWidth: StyleSheet.hairlineWidth,
             paddingVertical: 60,
             borderRadius: 16,
             justifyContent: "center",
