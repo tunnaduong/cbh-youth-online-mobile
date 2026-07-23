@@ -36,6 +36,7 @@ import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
+import { BlurView, LiquidGlassView, useIOSGlass } from "../../../components/GlassModules";
 import {
   KeyboardChatScrollView,
   KeyboardStickyView,
@@ -1417,6 +1418,33 @@ const ConversationScreen = ({ navigation, route }) => {
               paddingBottom: Math.max(insets.bottom - 8, 0),
             }}
           >
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderRadius: 30,
+                overflow: "hidden",
+              }}
+            >
+              {useIOSGlass && LiquidGlassView ? (
+                <LiquidGlassView
+                  style={StyleSheet.absoluteFill}
+                  glassType="clear"
+                  glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
+                  glassOpacity={1}
+                  isInteractive={false}
+                />
+              ) : null}
+              {(!useIOSGlass && BlurView) ? (
+                <BlurView
+                  blurType={isDarkMode ? "dark" : "light"}
+                  blurAmount={10}
+                  style={StyleSheet.absoluteFill}
+                />
+              ) : null}
+            </View>
             <CommentBar
               ref={inputRef}
               placeholderText={t("chat.typeMessage")}
