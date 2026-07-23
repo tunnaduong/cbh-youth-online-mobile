@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { BlurView, LiquidGlassView, useIOSGlass } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
+const isAndroid = Platform.OS === "android";
 const RootView = View;
 
 const CommentBar = React.forwardRef(
@@ -46,8 +47,8 @@ const CommentBar = React.forwardRef(
         style={[
           {
             paddingHorizontal: 20, // narrower width
-            paddingBottom: isIOS ? 4 : 0,
-            paddingTop: isIOS ? 2 : 0,
+            paddingBottom: isAndroid ? 14 : isIOS ? 4 : 0,
+            paddingTop: isAndroid ? 14 : isIOS ? 2 : 0,
             width: "100%",
             backgroundColor: "transparent",
           },
@@ -154,9 +155,10 @@ const CommentBar = React.forwardRef(
                 flex: 1,
                 padding: 2,
                 color: theme.text,
-                minHeight: 28,
+                minHeight: isAndroid ? 34 : 28,
                 textAlignVertical: "center",
-                paddingTop: 5,
+                paddingTop: isIOS ? 5 : 8,
+                paddingBottom: isAndroid ? 6 : 2,
               }}
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}

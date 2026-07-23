@@ -1357,94 +1357,26 @@ const ConversationScreen = ({ navigation, route }) => {
         </KeyboardChatScrollView>
 
         {/* Input Bar - positioned above messages */}
-        {!isAndroid ? (
-          <KeyboardStickyView
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "transparent",
-              zIndex: 10,
-              paddingBottom: insets.bottom,
-            }}
-            offset={{ opened: 20 }}
-          >
-            <View
-              style={{
-                backgroundColor: "transparent",
-                paddingHorizontal: 12,
-                paddingTop: 0,
-                paddingBottom: 0,
-              }}
-            >
-              <CommentBar
-                ref={inputRef}
-                placeholderText={t("chat.typeMessage")}
-                onSubmit={handleSendMessage}
-                onChangeText={setMessage}
-                value={message}
-                disabled={!message.trim() || sending}
-                isSubmitting={sending}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingBottom: 0,
-                  paddingTop: 0,
-                  backgroundColor: "transparent",
-                  marginTop: 0,
-                }}
-                leftAccessory={
-                  <TouchableOpacity
-                    style={styles.attachButton}
-                    onPress={pickImage}
-                    disabled={sending}
-                  >
-                    <Ionicons
-                      name="image-outline"
-                      size={20}
-                      color={theme.subText}
-                    />
-                  </TouchableOpacity>
-                }
-                nativeID="chat-input"
-              />
-            </View>
-          </KeyboardStickyView>
-        ) : (
+        <KeyboardStickyView
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "transparent",
+            zIndex: 10,
+            paddingBottom: insets.bottom,
+          }}
+          offset={{ opened: 20 }}
+        >
           <View
             style={{
               backgroundColor: "transparent",
               paddingHorizontal: 12,
-              paddingBottom: Math.max(insets.bottom - 8, 0),
+              paddingTop: 0,
+              paddingBottom: 0,
             }}
           >
-            <View
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderRadius: 30,
-                overflow: "hidden",
-              }}
-            >
-              {useIOSGlass && LiquidGlassView ? (
-                <LiquidGlassView
-                  style={StyleSheet.absoluteFill}
-                  glassType="clear"
-                  glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
-                  glassOpacity={1}
-                  isInteractive={false}
-                />
-              ) : null}
-              {(!useIOSGlass && BlurView) ? (
-                <BlurView
-                  blurType={isDarkMode ? "dark" : "light"}
-                  blurAmount={10}
-                  style={StyleSheet.absoluteFill}
-                />
-              ) : null}
-            </View>
             <CommentBar
               ref={inputRef}
               placeholderText={t("chat.typeMessage")}
@@ -1455,8 +1387,8 @@ const ConversationScreen = ({ navigation, route }) => {
               isSubmitting={sending}
               style={{
                 paddingHorizontal: 12,
-                paddingBottom: 2,
-                paddingTop: 2,
+                paddingBottom: isAndroid ? 14 : 0,
+                paddingTop: isAndroid ? 10 : 0,
                 backgroundColor: "transparent",
                 marginTop: 0,
               }}
@@ -1476,7 +1408,7 @@ const ConversationScreen = ({ navigation, route }) => {
               nativeID="chat-input"
             />
           </View>
-        )}
+        </KeyboardStickyView>
       </KeyboardGestureArea>
       <KeyboardEffects>
         <View style={{ flex: 1, backgroundColor: "#868585" }} />
