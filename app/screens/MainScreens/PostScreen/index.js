@@ -22,7 +22,9 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
-  useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+  useSafeAreaInsets,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
@@ -47,6 +49,10 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
 import LottieView from "lottie-react-native";
+import {
+  KeyboardChatScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -54,7 +60,7 @@ const PostScreen = ({ route, navigation }) => {
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
   const [isSaved, setIsSaved] = useState(
-    item?.saved ?? item?.is_saved ?? false
+    item?.saved ?? item?.is_saved ?? false,
   );
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
@@ -70,7 +76,16 @@ const PostScreen = ({ route, navigation }) => {
   const commentRefs = useRef({});
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
-  const isCurrentUser = post?.is_owner === true || post?.topic?.is_owner === true || post?.author?.username === username || String(post?.author?.id) === String(userInfo?.id) || String(post?.user_id) === String(userInfo?.id) || String(post?.uid) === String(userInfo?.id) || String(post?.userid) === String(userInfo?.id) || post?.is_mine === true || post?.is_author === true;
+  const isCurrentUser =
+    post?.is_owner === true ||
+    post?.topic?.is_owner === true ||
+    post?.author?.username === username ||
+    String(post?.author?.id) === String(userInfo?.id) ||
+    String(post?.user_id) === String(userInfo?.id) ||
+    String(post?.uid) === String(userInfo?.id) ||
+    String(post?.userid) === String(userInfo?.id) ||
+    post?.is_mine === true ||
+    post?.is_author === true;
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
@@ -122,21 +137,23 @@ const PostScreen = ({ route, navigation }) => {
               color={isSaved ? theme.primary : theme.text}
             />
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {isSaved ? t('post.unsave') : t('post.save')}
+              {isSaved ? t("post.unsave") : t("post.save")}
             </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`
+              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`,
             );
             hideBottomSheet();
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
+              {t("post.share")}
+            </Text>
           </View>
         </TouchableOpacity>
         {/*
@@ -164,22 +181,24 @@ const PostScreen = ({ route, navigation }) => {
             <View className="flex-row items-center">
               <Ionicons name="create-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t('post.edit')}
+                {t("post.edit")}
               </Text>
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => {
-          hideBottomSheet();
-          setReportModalVisible(true);
-        }}>
+        <TouchableOpacity
+          onPress={() => {
+            hideBottomSheet();
+            setReportModalVisible(true);
+          }}
+        >
           <View className="flex-row items-center">
             <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
             <Text
               style={{ padding: 12, fontSize: 17 }}
               className="text-red-500"
             >
-              {t('post.report')}
+              {t("post.report")}
             </Text>
           </View>
         </TouchableOpacity>
@@ -191,12 +210,12 @@ const PostScreen = ({ route, navigation }) => {
                 style={{ padding: 12, fontSize: 17 }}
                 className="text-red-500"
               >
-                {t('post.delete')}
+                {t("post.delete")}
               </Text>
             </View>
           </TouchableOpacity>
         )}
-      </View>
+      </View>,
     );
   };
 
@@ -211,39 +230,35 @@ const PostScreen = ({ route, navigation }) => {
   };
 
   const handleDeletePost = async () => {
-    Alert.alert(
-      t('post.deleteConfirmTitle'),
-      t('post.deleteConfirmBody'),
-      [
-        {
-          text: t('post.deleteAction'),
-          style: "destructive",
-          onPress: async () => {
-            await deletePost(post.id);
-            // refresh the post list
-            setFeed((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
-            if (screenName)
-              setRecentPostsProfile((prevPosts) =>
-                prevPosts.filter((p) => p.id !== post.id)
-              );
-            hideBottomSheet();
-            navigation.goBack();
-          },
+    Alert.alert(t("post.deleteConfirmTitle"), t("post.deleteConfirmBody"), [
+      {
+        text: t("post.deleteAction"),
+        style: "destructive",
+        onPress: async () => {
+          await deletePost(post.id);
+          // refresh the post list
+          setFeed((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
+          if (screenName)
+            setRecentPostsProfile((prevPosts) =>
+              prevPosts.filter((p) => p.id !== post.id),
+            );
+          hideBottomSheet();
+          navigation.goBack();
         },
-        {
-          text: t('post.editAction'),
-          style: "default",
-          onPress: () => {
-            navigation.navigate("PostEditScreen", { postId: post.id });
-            hideBottomSheet();
-          },
+      },
+      {
+        text: t("post.editAction"),
+        style: "default",
+        onPress: () => {
+          navigation.navigate("PostEditScreen", { postId: post.id });
+          hideBottomSheet();
         },
-        {
-          text: t('settings.cancel'),
-          style: "cancel",
-        },
-      ]
-    );
+      },
+      {
+        text: t("settings.cancel"),
+        style: "cancel",
+      },
+    ]);
   };
 
   const fetchData = async () => {
@@ -317,7 +332,7 @@ const PostScreen = ({ route, navigation }) => {
         (x, y) => {
           scrollViewRef.current.scrollTo({ y, animated: true });
         },
-        () => console.log("Error measuring layout")
+        () => console.log("Error measuring layout"),
       );
     }
   };
@@ -329,15 +344,15 @@ const PostScreen = ({ route, navigation }) => {
     // Update the FeedContext
     setFeed((prevFeed) =>
       prevFeed.map((post) =>
-        post.id === postId ? { ...post, votes: newVotes } : post
-      )
+        post.id === postId ? { ...post, votes: newVotes } : post,
+      ),
     );
 
     if (screenName)
       setRecentPostsProfile((prevFeed) =>
         prevFeed.map((post) =>
-          post.id === postId ? { ...post, votes: newVotes } : post
-        )
+          post.id === postId ? { ...post, votes: newVotes } : post,
+        ),
       );
 
     setPost((prevPost) => ({
@@ -352,15 +367,15 @@ const PostScreen = ({ route, navigation }) => {
     // Update the FeedContext
     setFeed((prevFeed) =>
       prevFeed.map((post) =>
-        post.id === postId ? { ...post, saved: newSavedStatus } : post
-      )
+        post.id === postId ? { ...post, saved: newSavedStatus } : post,
+      ),
     );
 
     if (screenName)
       setRecentPostsProfile((prevPosts) =>
         prevPosts.map((post) =>
-          post.id === postId ? { ...post, saved: newSavedStatus } : post
-        )
+          post.id === postId ? { ...post, saved: newSavedStatus } : post,
+        ),
       );
 
     setPost((prevPost) => ({
@@ -380,7 +395,7 @@ const PostScreen = ({ route, navigation }) => {
         const parentId = findParentIdForReply(
           comment.replies,
           targetId,
-          comment.id
+          comment.id,
         );
         if (parentId !== null) {
           return parentId;
@@ -434,19 +449,19 @@ const PostScreen = ({ route, navigation }) => {
           prevFeed.map((feedItem) =>
             feedItem.id === postId
               ? {
-                ...feedItem,
-                comments:
-                  roundToNearestFive(
-                    response.data.comments
-                      ? response.data.comments.length
-                      : parseInt(
-                        updatedPostData.comments?.replace(/\D/g, ""),
-                        10
-                      ) || 0
-                  ) + "+",
-              }
-              : feedItem
-          )
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                            updatedPostData.comments?.replace(/\D/g, ""),
+                            10,
+                          ) || 0,
+                    ) + "+",
+                }
+              : feedItem,
+          ),
         );
 
         if (screenName) {
@@ -454,19 +469,19 @@ const PostScreen = ({ route, navigation }) => {
             prevFeed.map((feedItem) =>
               feedItem.id === postId
                 ? {
-                  ...feedItem,
-                  comments:
-                    roundToNearestFive(
-                      response.data.comments
-                        ? response.data.comments.length
-                        : parseInt(
-                          updatedPostData.comments?.replace(/\D/g, ""),
-                          10
-                        ) || 0
-                    ) + "+",
-                }
-                : feedItem
-            )
+                    ...feedItem,
+                    comments:
+                      roundToNearestFive(
+                        response.data.comments
+                          ? response.data.comments.length
+                          : parseInt(
+                              updatedPostData.comments?.replace(/\D/g, ""),
+                              10,
+                            ) || 0,
+                      ) + "+",
+                  }
+                : feedItem,
+            ),
           );
         }
       }
@@ -479,16 +494,18 @@ const PostScreen = ({ route, navigation }) => {
 
   const handleReportSubmit = async (reason) => {
     try {
-      const reportedUserId = post?.author?.id || post?.user_id || post?.uid || post?.userid;
-      await reportUser({ reported_user_id: reportedUserId, topic_id: post.id, reason });
-      Alert.alert(
-        t('post.reportSuccessTitle'),
-        t('post.reportSuccessBody')
-      );
+      const reportedUserId =
+        post?.author?.id || post?.user_id || post?.uid || post?.userid;
+      await reportUser({
+        reported_user_id: reportedUserId,
+        topic_id: post.id,
+        reason,
+      });
+      Alert.alert(t("post.reportSuccessTitle"), t("post.reportSuccessBody"));
     } catch (e) {
       Alert.alert(
-        t('profile.errorTitle'),
-        e.response?.data?.message || e.message || t('post.reportError')
+        t("profile.errorTitle"),
+        e.response?.data?.message || e.message || t("post.reportError"),
       );
     }
   };
@@ -517,7 +534,7 @@ const PostScreen = ({ route, navigation }) => {
             if (comment.id === commentId) {
               const votes = comment.votes ?? [];
               const existingVote = votes.find(
-                (vote) => vote.username === username
+                (vote) => vote.username === username,
               );
 
               let newVotes = [...votes];
@@ -531,7 +548,7 @@ const PostScreen = ({ route, navigation }) => {
                   newVotes = votes.map((vote) =>
                     vote.username === username
                       ? { ...vote, vote_value: voteValue }
-                      : vote
+                      : vote,
                   );
                 }
               } else {
@@ -586,7 +603,7 @@ const PostScreen = ({ route, navigation }) => {
                 // Apply the same voting logic to the reply
                 const votes = reply.votes ?? [];
                 const existingVote = votes.find(
-                  (vote) => vote.username === username
+                  (vote) => vote.username === username,
                 );
 
                 let newVotes = [...votes];
@@ -595,14 +612,14 @@ const PostScreen = ({ route, navigation }) => {
                   if (existingVote.vote_value === voteValue) {
                     // User is undoing their vote
                     newVotes = votes.filter(
-                      (vote) => vote.username !== username
+                      (vote) => vote.username !== username,
                     );
                   } else {
                     // User is changing their vote
                     newVotes = votes.map((vote) =>
                       vote.username === username
                         ? { ...vote, vote_value: voteValue }
-                        : vote
+                        : vote,
                     );
                   }
                 } else {
@@ -617,7 +634,7 @@ const PostScreen = ({ route, navigation }) => {
           };
         }
         return comment;
-      })
+      }),
     );
   };
 
@@ -644,7 +661,11 @@ const PostScreen = ({ route, navigation }) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [t('settings.cancel'), t('post.editComment'), t('post.deleteComment')],
+          options: [
+            t("settings.cancel"),
+            t("post.editComment"),
+            t("post.deleteComment"),
+          ],
           destructiveButtonIndex: 2,
           cancelButtonIndex: 0,
         },
@@ -663,19 +684,19 @@ const PostScreen = ({ route, navigation }) => {
             // Delete comment
             handleDeleteComment(commentId);
           }
-        }
+        },
       );
     } else {
       Alert.alert(
-        t('post.optionsTitle'),
-        t('post.selectAction'),
+        t("post.optionsTitle"),
+        t("post.selectAction"),
         [
           {
-            text: t('settings.cancel'),
+            text: t("settings.cancel"),
             style: "cancel",
           },
           {
-            text: t('post.editComment'),
+            text: t("post.editComment"),
             onPress: () => {
               setEditingCommentId(commentId);
               setEditingCommentText(comment.content || "");
@@ -688,24 +709,24 @@ const PostScreen = ({ route, navigation }) => {
             },
           },
           {
-            text: t('post.deleteComment'),
+            text: t("post.deleteComment"),
             style: "destructive",
             onPress: () => handleDeleteComment(commentId),
           },
         ],
-        { cancelable: true }
+        { cancelable: true },
       );
     }
   };
 
   const handleDeleteComment = async (commentId) => {
-    Alert.alert(t('post.deleteComment'), t('post.deleteCommentConfirm'), [
+    Alert.alert(t("post.deleteComment"), t("post.deleteCommentConfirm"), [
       {
-        text: t('settings.cancel'),
+        text: t("settings.cancel"),
         style: "cancel",
       },
       {
-        text: t('post.deleteAction'),
+        text: t("post.deleteAction"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -722,19 +743,19 @@ const PostScreen = ({ route, navigation }) => {
                 prevFeed.map((feedItem) =>
                   feedItem.id === postId
                     ? {
-                      ...feedItem,
-                      comments:
-                        roundToNearestFive(
-                          response.data.comments
-                            ? response.data.comments.length
-                            : parseInt(
-                              updatedPostData.comments?.replace(/\D/g, ""),
-                              10
-                            ) || 0
-                        ) + "+",
-                    }
-                    : feedItem
-                )
+                        ...feedItem,
+                        comments:
+                          roundToNearestFive(
+                            response.data.comments
+                              ? response.data.comments.length
+                              : parseInt(
+                                  updatedPostData.comments?.replace(/\D/g, ""),
+                                  10,
+                                ) || 0,
+                          ) + "+",
+                      }
+                    : feedItem,
+                ),
               );
 
               if (screenName) {
@@ -742,28 +763,28 @@ const PostScreen = ({ route, navigation }) => {
                   prevFeed.map((feedItem) =>
                     feedItem.id === postId
                       ? {
-                        ...feedItem,
-                        comments:
-                          roundToNearestFive(
-                            response.data.comments
-                              ? response.data.comments.length
-                              : parseInt(
-                                updatedPostData.comments?.replace(
-                                  /\D/g,
-                                  ""
-                                ),
-                                10
-                              ) || 0
-                          ) + "+",
-                      }
-                      : feedItem
-                  )
+                          ...feedItem,
+                          comments:
+                            roundToNearestFive(
+                              response.data.comments
+                                ? response.data.comments.length
+                                : parseInt(
+                                    updatedPostData.comments?.replace(
+                                      /\D/g,
+                                      "",
+                                    ),
+                                    10,
+                                  ) || 0,
+                            ) + "+",
+                        }
+                      : feedItem,
+                  ),
                 );
               }
             }
           } catch (error) {
             console.error("Error deleting comment:", error);
-            Alert.alert(t('profile.errorTitle'), t('post.deleteCommentError'));
+            Alert.alert(t("profile.errorTitle"), t("post.deleteCommentError"));
           }
         },
       },
@@ -797,19 +818,19 @@ const PostScreen = ({ route, navigation }) => {
           prevFeed.map((feedItem) =>
             feedItem.id === postId
               ? {
-                ...feedItem,
-                comments:
-                  roundToNearestFive(
-                    response.data.comments
-                      ? response.data.comments.length
-                      : parseInt(
-                        updatedPostData.comments?.replace(/\D/g, ""),
-                        10
-                      ) || 0
-                  ) + "+",
-              }
-              : feedItem
-          )
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                            updatedPostData.comments?.replace(/\D/g, ""),
+                            10,
+                          ) || 0,
+                    ) + "+",
+                }
+              : feedItem,
+          ),
         );
 
         if (screenName) {
@@ -817,25 +838,25 @@ const PostScreen = ({ route, navigation }) => {
             prevFeed.map((feedItem) =>
               feedItem.id === postId
                 ? {
-                  ...feedItem,
-                  comments:
-                    roundToNearestFive(
-                      response.data.comments
-                        ? response.data.comments.length
-                        : parseInt(
-                          updatedPostData.comments?.replace(/\D/g, ""),
-                          10
-                        ) || 0
-                    ) + "+",
-                }
-                : feedItem
-            )
+                    ...feedItem,
+                    comments:
+                      roundToNearestFive(
+                        response.data.comments
+                          ? response.data.comments.length
+                          : parseInt(
+                              updatedPostData.comments?.replace(/\D/g, ""),
+                              10,
+                            ) || 0,
+                      ) + "+",
+                  }
+                : feedItem,
+            ),
           );
         }
       }
     } catch (error) {
       console.error("Error updating comment:", error);
-      Alert.alert(t('profile.errorTitle'), t('post.editCommentError'));
+      Alert.alert(t("profile.errorTitle"), t("post.editCommentError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -881,7 +902,8 @@ const PostScreen = ({ route, navigation }) => {
             >
               <Pressable
                 onPress={() =>
-                  author.username && !comment.is_anonymous &&
+                  author.username &&
+                  !comment.is_anonymous &&
                   navigation.navigate("ProfileScreen", {
                     username: author.username,
                   })
@@ -902,8 +924,24 @@ const PostScreen = ({ route, navigation }) => {
                   }}
                 >
                   {comment.is_anonymous ? (
-                    <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
+                    <View
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        backgroundColor: theme.iconBackground,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: theme.text,
+                          fontWeight: "bold",
+                          fontSize: 20,
+                        }}
+                      >
+                        ?
+                      </Text>
                     </View>
                   ) : author.username ? (
                     <Image
@@ -918,7 +956,8 @@ const PostScreen = ({ route, navigation }) => {
               <View style={{ flexShrink: 1 }}>
                 <Pressable
                   onPress={() =>
-                    author.username && !comment.is_anonymous &&
+                    author.username &&
+                    !comment.is_anonymous &&
                     navigation.navigate("ProfileScreen", {
                       username: author.username,
                     })
@@ -926,7 +965,9 @@ const PostScreen = ({ route, navigation }) => {
                   disabled={!author.username || !!comment.is_anonymous}
                 >
                   <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                    {comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || "")}
+                    {comment.is_anonymous
+                      ? t("post.anonymousUser")
+                      : author.profile_name || author.username || ""}
                     {author.verified && !comment.is_anonymous && (
                       <View>
                         <Verified
@@ -952,11 +993,13 @@ const PostScreen = ({ route, navigation }) => {
                     }}
                   >
                     <Text style={{ fontSize: 12, color: theme.subText }}>
-                      {t('post.replyDeletedPrefix')}{" "}
+                      {t("post.replyDeletedPrefix")}{" "}
                       <Text style={{ fontWeight: "600", color: theme.text }}>
-                        {author.profile_name || author.username || t('post.anonymous')}
+                        {author.profile_name ||
+                          author.username ||
+                          t("post.anonymous")}
                       </Text>{" "}
-                      {t('post.replyDeletedSuffix')}
+                      {t("post.replyDeletedSuffix")}
                     </Text>
                   </View>
                 )}
@@ -970,20 +1013,29 @@ const PostScreen = ({ route, navigation }) => {
                 </Text>
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""}{comment.is_edited ? ` (${t('post.edited')})` : ""} ·
+                    {comment.created_at ? formatTime(comment.created_at) : ""}
+                    {comment.is_edited ? ` (${t("post.edited")})` : ""} ·
                   </Text>
                   <TouchableOpacity
                     onPress={() =>
                       focusCommentInput(
                         comment.id,
-                        comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || ""),
-                        level
+                        comment.is_anonymous
+                          ? t("post.anonymousUser")
+                          : author.profile_name || author.username || "",
+                        level,
                       )
                     }
                   >
-                    <Text style={{ color: theme.subText, fontWeight: "bold", fontSize: 12 }}>
+                    <Text
+                      style={{
+                        color: theme.subText,
+                        fontWeight: "bold",
+                        fontSize: 12,
+                      }}
+                    >
                       {" "}
-                      {t('post.reply')}
+                      {t("post.reply")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -999,7 +1051,7 @@ const PostScreen = ({ route, navigation }) => {
                       color={
                         votes.some(
                           (vote) =>
-                            vote.username === username && vote.vote_value === 1
+                            vote.username === username && vote.vote_value === 1,
                         )
                           ? "#22c55e"
                           : theme.subText
@@ -1012,21 +1064,21 @@ const PostScreen = ({ route, navigation }) => {
                       { color: theme.subText, textAlign: "center" },
                       votes.some(
                         (vote) =>
-                          vote.username === username && vote.vote_value === 1
+                          vote.username === username && vote.vote_value === 1,
                       )
                         ? { color: "#22c55e" }
                         : votes.some(
-                          (vote) =>
-                            vote.username === username &&
-                            vote.vote_value === -1
-                        )
+                              (vote) =>
+                                vote.username === username &&
+                                vote.vote_value === -1,
+                            )
                           ? { color: "#ef4444" }
                           : { color: theme.subText },
                     ]}
                   >
                     {votes.reduce(
                       (acc, vote) => acc + (vote.vote_value || 0),
-                      0
+                      0,
                     )}
                   </Text>
                   <TouchableOpacity
@@ -1038,7 +1090,8 @@ const PostScreen = ({ route, navigation }) => {
                       color={
                         votes.some(
                           (vote) =>
-                            vote.username === username && vote.vote_value === -1
+                            vote.username === username &&
+                            vote.vote_value === -1,
                         )
                           ? "#ef4444"
                           : theme.subText
@@ -1066,7 +1119,7 @@ const PostScreen = ({ route, navigation }) => {
           )}
         </View>
       );
-    }
+    },
   );
 
   // Froggy loading animation
@@ -1085,7 +1138,7 @@ const PostScreen = ({ route, navigation }) => {
             duration: 300,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     }
   }, [post]);
@@ -1123,20 +1176,41 @@ const PostScreen = ({ route, navigation }) => {
         <View
           pointerEvents="box-none"
           style={{
-            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
           }}
         >
           <Animated.View
             pointerEvents="none"
             style={{
-              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
               backgroundColor: theme.background,
               opacity: headerBgOpacity,
             }}
           />
-          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+          <View
+            style={{
+              paddingTop: insets.top,
+              paddingBottom: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 16,
+              height: 64 + insets.top,
+            }}
+          >
             <View style={{ width: 44 }}>
-              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <LiquidButton
+                size={44}
+                scrollY={scrollY}
+                onPress={() => navigation.goBack()}
+              >
                 <Ionicons name="chevron-back" size={24} color={theme.primary} />
               </LiquidButton>
             </View>
@@ -1146,23 +1220,41 @@ const PostScreen = ({ route, navigation }) => {
                 fontWeight: "600",
                 color: theme.primary,
                 flex: 1,
-                textAlign: 'center',
+                textAlign: "center",
                 opacity: headerTitleOpacity,
               }}
               numberOfLines={1}
             >
-              {t('post.details')}
+              {t("post.details")}
             </Animated.Text>
             <View style={{ width: 44, alignItems: "flex-end" }}>
-              <LiquidButton size={44} scrollY={scrollY} onPress={handleOpenBottomSheet}>
-                <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
+              <LiquidButton
+                size={44}
+                scrollY={scrollY}
+                onPress={handleOpenBottomSheet}
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={24}
+                  color={theme.primary}
+                />
               </LiquidButton>
             </View>
           </View>
         </View>
 
         {refreshing && (
-          <View style={{ position: "absolute", top: 15, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <View
+            style={{
+              position: "absolute",
+              top: 15,
+              left: 0,
+              right: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+            }}
+          >
             <LottieView
               source={require("../../../assets/refresh.json")}
               style={{ width: 40, height: 40 }}
@@ -1172,14 +1264,14 @@ const PostScreen = ({ route, navigation }) => {
             />
           </View>
         )}
-        <Animated.ScrollView
+        <KeyboardChatScrollView
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
+            { useNativeDriver: false },
           )}
           contentContainerStyle={{
             paddingTop: 64 + insets.top,
@@ -1199,55 +1291,71 @@ const PostScreen = ({ route, navigation }) => {
             />
           }
         >
-            <PostItem
-              navigation={navigation}
-              item={post}
-              single={true}
-              votes={votes}
-              saved={isSaved}
-              onVote={handleVote}
-              onSave={handleSavePost}
-              screenName={screenName}
-            />
-            {/* comment section */}
-            <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
-              <Text style={{ fontWeight: "bold", fontSize: 20, marginVertical: 16, color: theme.text }}>{t('post.commentsTitle')}</Text>
-              {comments.length === 0 ? (
-                <Text style={{ color: theme.subText }}>{t('post.noComments')}</Text>
-              ) : (
-                comments.map((comment) => (
-                  <Comment
-                    key={comment.id}
-                    comment={comment}
-                    ref={(ref) => (commentRefs.current[comment.id] = ref)}
-                  />
-                ))
-              )}
-            </View>
-            {/* Spacer to prevent comment bar from covering last comments */}
-            <View style={{ height: 50, backgroundColor: 'transparent' }} />
-          </Animated.ScrollView>
+          <PostItem
+            navigation={navigation}
+            item={post}
+            single={true}
+            votes={votes}
+            saved={isSaved}
+            onVote={handleVote}
+            onSave={handleSavePost}
+            screenName={screenName}
+          />
+          {/* comment section */}
+          <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
+            <Text
+              style={{
+                fontWeight: "bold",
+                fontSize: 20,
+                marginVertical: 16,
+                color: theme.text,
+              }}
+            >
+              {t("post.commentsTitle")}
+            </Text>
+            {comments.length === 0 ? (
+              <Text style={{ color: theme.subText }}>
+                {t("post.noComments")}
+              </Text>
+            ) : (
+              comments.map((comment) => (
+                <Comment
+                  key={comment.id}
+                  comment={comment}
+                  ref={(ref) => (commentRefs.current[comment.id] = ref)}
+                />
+              ))
+            )}
+          </View>
+          {/* Spacer to prevent comment bar from covering last comments */}
+          <View style={{ height: 50, backgroundColor: "transparent" }} />
+        </KeyboardChatScrollView>
         <ReportModal
           visible={reportModalVisible}
           onClose={() => setReportModalVisible(false)}
           onSubmit={handleReportSubmit}
         />
 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "position" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight + insets.bottom : 0}
+        <KeyboardStickyView
           style={{
-            position: 'absolute',
+            position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
-            backgroundColor: 'transparent',
+            backgroundColor: "transparent",
             zIndex: 5,
             paddingBottom: insets.bottom,
           }}
+          offset={{opened: 20}}
         >
           <CommentBar
-            statusText={parentId || editingCommentId ? (editingCommentId ? t('post.editingComment') : t('post.replyingTo', { username: replyingTo })) : null}
+            statusText={
+              parentId || editingCommentId
+                ? editingCommentId
+                  ? t("post.editingComment")
+                  : t("post.replyingTo", { username: replyingTo })
+                : null
+            }
             onClearStatus={() => {
               setParentId(null);
               setReplyingTo(null);
@@ -1257,18 +1365,26 @@ const PostScreen = ({ route, navigation }) => {
               setIsAnonymousComment(false);
             }}
             value={editingCommentId ? editingCommentText : commentText}
-            onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
-            placeholderText={t('post.commentPlaceholder')}
+            onChangeText={(text) =>
+              editingCommentId
+                ? setEditingCommentText(text)
+                : setCommentText(text)
+            }
+            placeholderText={t("post.commentPlaceholder")}
             onSubmit={onSubmit}
             ref={commentInputRef}
             isSubmitting={isSubmitting}
-            disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
+            disabled={
+              editingCommentId
+                ? !editingCommentText.trim()
+                : !commentText.trim()
+            }
             isAnonymous={isAnonymousComment}
             onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
             anonymousDisabled={!!editingCommentId}
           />
-        </KeyboardAvoidingView>
-        </View>
+        </KeyboardStickyView>
+      </View>
     </>
   );
 };

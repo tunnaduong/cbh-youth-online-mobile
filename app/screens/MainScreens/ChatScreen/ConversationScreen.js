@@ -10,7 +10,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import {
+  useSafeAreaInsets,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 // import FastImage from "../../../components/FastImage";
 import {
   getConversationMessages,
@@ -33,6 +36,12 @@ import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
+import {
+  KeyboardChatScrollView,
+  KeyboardStickyView,
+  KeyboardGestureArea,
+  KeyboardEffects,
+} from "react-native-keyboard-controller";
 
 dayjs.locale(i18n.language || "vi");
 
@@ -43,7 +52,8 @@ const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const formatMessageTime = (timestamp, t) => {
   const messageTime = dayjs(timestamp);
   const hours = parseInt(messageTime.format("H"));
-  const period = hours < 12 ? t("chatConversation.am") : t("chatConversation.pm");
+  const period =
+    hours < 12 ? t("chatConversation.am") : t("chatConversation.pm");
   return `${messageTime.format("hh:mm")} ${period}`;
 };
 
@@ -116,6 +126,9 @@ const ConversationScreen = ({ navigation, route }) => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const inputRef = useRef(null);
+  const messagesScrollRef = useRef(null);
+  const initialScrollDoneRef = useRef(false);
+  const loadingMoreRef = useRef(false);
   const { conversation, conversationId, selectedUser, isNewConversation } =
     route.params;
   const [sending, setSending] = useState(false);
@@ -130,7 +143,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
     ? selectedUser
-    : (currentConversation?.type === 'private' ? currentConversation?.participants?.[0] : null);
+    : currentConversation?.type === "private"
+      ? currentConversation?.participants?.[0]
+      : null;
 
   const confirmBlock = () => {
     if (!otherUser) return;
@@ -145,16 +160,21 @@ const ConversationScreen = ({ navigation, route }) => {
           onPress: async () => {
             try {
               await blockUser(otherUser.id);
-              Alert.alert(t("chatConversation.blockedTitle"), t("chatConversation.blockedBody"), [
-                { text: t("common.ok"), onPress: () => navigation.goBack() }
-              ]);
+              Alert.alert(
+                t("chatConversation.blockedTitle"),
+                t("chatConversation.blockedBody"),
+                [{ text: t("common.ok"), onPress: () => navigation.goBack() }],
+              );
             } catch (e) {
-              const errorMessage = e.response?.data?.message || e.message || t("chatConversation.blockError");
+              const errorMessage =
+                e.response?.data?.message ||
+                e.message ||
+                t("chatConversation.blockError");
               Alert.alert(t("common.error"), errorMessage);
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -176,18 +196,28 @@ const ConversationScreen = ({ navigation, route }) => {
       const targetId = otherUser?.id || selectedUser?.id;
       if (targetId) {
         await reportUser({ reported_user_id: targetId, reason });
-        Alert.alert(t("chatConversation.thanksTitle"), t("chatConversation.reportSent"));
+        Alert.alert(
+          t("chatConversation.thanksTitle"),
+          t("chatConversation.reportSent"),
+        );
       } else {
         Alert.alert(t("common.error"), t("chatConversation.reportTargetError"));
       }
     } catch (e) {
-      const errorMessage = e.response?.data?.message || e.message || t("chatConversation.reportError");
+      const errorMessage =
+        e.response?.data?.message ||
+        e.message ||
+        t("chatConversation.reportError");
       Alert.alert(t("common.error"), errorMessage);
     }
   };
 
   const showOptions = () => {
-    const options = [t("chatConversation.report"), t("chatConversation.blockUser"), t("common.cancel")];
+    const options = [
+      t("chatConversation.report"),
+      t("chatConversation.blockUser"),
+      t("common.cancel"),
+    ];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
 
@@ -199,8 +229,11 @@ const ConversationScreen = ({ navigation, route }) => {
       // User asked "user can report ... from chat".
       // Use limited options
       Alert.alert(t("chatConversation.optionsTitle"), null, [
-        { text: t("chatConversation.report"), onPress: () => setReportModalVisible(true) },
-        { text: t("common.cancel"), style: "cancel" }
+        {
+          text: t("chatConversation.report"),
+          onPress: () => setReportModalVisible(true),
+        },
+        { text: t("common.cancel"), style: "cancel" },
       ]);
       return;
     }
@@ -215,18 +248,21 @@ const ConversationScreen = ({ navigation, route }) => {
         (buttonIndex) => {
           if (buttonIndex === 0) setReportModalVisible(true);
           else if (buttonIndex === 1) confirmBlock();
-        }
+        },
       );
     } else {
-      Alert.alert(
-        t("chatConversation.optionsTitle"),
-        null,
-        [
-          { text: t("chatConversation.report"), onPress: () => setReportModalVisible(true) },
-          { text: t("chatConversation.blockUser"), onPress: confirmBlock, style: "destructive" },
-          { text: t("common.cancel"), style: "cancel" },
-        ]
-      );
+      Alert.alert(t("chatConversation.optionsTitle"), null, [
+        {
+          text: t("chatConversation.report"),
+          onPress: () => setReportModalVisible(true),
+        },
+        {
+          text: t("chatConversation.blockUser"),
+          onPress: confirmBlock,
+          style: "destructive",
+        },
+        { text: t("common.cancel"), style: "cancel" },
+      ]);
     }
   };
 
@@ -240,7 +276,9 @@ const ConversationScreen = ({ navigation, route }) => {
     // Special case for "Tán gẫu linh tinh" group
     if (
       currentConversation?.type === "group" &&
-      (currentConversation?.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh" || currentConversation?.name === t("chatConversation.casualGroupName"))
+      (currentConversation?.name?.trim().normalize("NFC").toLowerCase() ===
+        "tán gẫu linh tinh" ||
+        currentConversation?.name === t("chatConversation.casualGroupName"))
     ) {
       return "local:chat.jpg";
     }
@@ -250,7 +288,6 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (!isNewConversation) {
       loadInitialMessages();
-      fetchMessages(true);
     }
   }, []);
 
@@ -304,10 +341,12 @@ const ConversationScreen = ({ navigation, route }) => {
 
       const response = await getConversationMessages(
         currentConversationId || conversationId,
-        isRefresh ? 1 : page
+        isRefresh ? 1 : page,
       );
 
-      const newMessages = response.data.data;
+      const newMessages = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
 
       if (isRefresh) {
         // Store in MMKV
@@ -319,8 +358,17 @@ const ConversationScreen = ({ navigation, route }) => {
       const transformed = injectTimeHeaders(newMessages, t);
 
       if (!isBackground) {
-        setMessages(transformed);
-        setHasMore(response.current_page < response.last_page);
+        setMessages((prev) => {
+          if (isRefresh || prev.length === 0) {
+            return transformed;
+          }
+
+          const existingMessages = prev.filter(
+            (item) => item.type === "message",
+          );
+          return injectTimeHeaders([...newMessages, ...existingMessages], t);
+        });
+        setHasMore(response.data.current_page < response.data.last_page);
         setPage((prev) => (isRefresh ? 2 : prev + 1));
       } else if (
         JSON.stringify(newMessages) !==
@@ -336,6 +384,36 @@ const ConversationScreen = ({ navigation, route }) => {
       if (!isBackground) {
         setRefreshing(false);
       }
+      if (!isBackground && !isRefresh) {
+        loadingMoreRef.current = false;
+      }
+    }
+  };
+
+  const scrollToLatestMessage = () => {
+    requestAnimationFrame(() => {
+      messagesScrollRef.current?.scrollToEnd({ animated: false });
+    });
+  };
+
+  const scrollToLatestMessageAnimated = () => {
+    requestAnimationFrame(() => {
+      messagesScrollRef.current?.scrollToEnd({ animated: true });
+    });
+  };
+
+  const handleMessagesContentSizeChange = () => {
+    if (!initialScrollDoneRef.current && messages.length > 0) {
+      initialScrollDoneRef.current = true;
+      scrollToLatestMessage();
+    }
+  };
+
+  const handleMessagesScroll = ({ nativeEvent }) => {
+    const isNearTop = nativeEvent.contentOffset.y <= 40;
+    if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
+      loadingMoreRef.current = true;
+      fetchMessages(false);
     }
   };
 
@@ -473,7 +551,7 @@ const ConversationScreen = ({ navigation, route }) => {
         // Send image message
         response = await Api.postFormDataRequest(
           `/v1.0/chat/conversations/${newConversationId}/messages`,
-          formData
+          formData,
         );
 
         navigation.setParams({
@@ -497,7 +575,7 @@ const ConversationScreen = ({ navigation, route }) => {
         // Send image message to existing conversation
         response = await Api.postFormDataRequest(
           `/v1.0/chat/conversations/${targetConversationId}/messages`,
-          formData
+          formData,
         );
       }
 
@@ -590,6 +668,7 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const handleSendMessage = async () => {
+    scrollToLatestMessageAnimated();
     const tempId = Date.now().toString();
     try {
       if (!message.trim() || sending) return;
@@ -683,12 +762,12 @@ const ConversationScreen = ({ navigation, route }) => {
         // Create conversation first
         console.log(
           "[Debug] Creating new conversation for user:",
-          selectedUser?.id
+          selectedUser?.id,
         );
         const createResponse = await createConversation(selectedUser.id);
         console.log(
           "[Debug] Create conversation response:",
-          createResponse.data
+          createResponse.data,
         );
 
         const newConversationId = createResponse.data.conversation_id;
@@ -709,7 +788,7 @@ const ConversationScreen = ({ navigation, route }) => {
         // Then send message
         console.log(
           "[Debug] Sending first message to new conversation:",
-          newConversationId
+          newConversationId,
         );
         response = await sendMessage(newConversationId, {
           content: trimmedMessage,
@@ -738,7 +817,7 @@ const ConversationScreen = ({ navigation, route }) => {
       } else {
         console.log(
           "[Debug] Sending message to existing conversation:",
-          currentConversationId
+          currentConversationId,
         );
         response = await sendMessage(currentConversationId, {
           content: trimmedMessage,
@@ -751,7 +830,7 @@ const ConversationScreen = ({ navigation, route }) => {
       setMessages((prev) => {
         console.log(
           "[Debug] Replacing optimistic message. Current messages:",
-          prev
+          prev,
         );
         // First, get all messages except the temporary ones
         const baseMessages = prev.filter((msg) => {
@@ -826,7 +905,7 @@ const ConversationScreen = ({ navigation, route }) => {
           cachedMessages.push(response.data);
           storage.set(
             getCacheKey(currentConversationId),
-            JSON.stringify(cachedMessages)
+            JSON.stringify(cachedMessages),
           );
           storage.set(getTimestampKey(currentConversationId), Date.now());
           console.log("[Debug] Cache updated successfully");
@@ -861,11 +940,32 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
-  const renderMessage = ({ item, index }) => {
+  const renderMessage = (itemOrInfo, indexArg) => {
+    // Array.map passes the message directly, while FlatList passes { item, index }.
+    const item = itemOrInfo?.item ?? itemOrInfo;
+    const index = itemOrInfo?.item ? itemOrInfo.index : indexArg;
+
+    if (!item) {
+      return null;
+    }
+
     if (item.type === "date") {
       return (
-        <View style={styles.dateHeaderContainer}>
-          <Text style={[styles.dateHeaderText, { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0", color: theme.subText }]}>{item.date}</Text>
+        <View
+          style={styles.dateHeaderContainer}
+          key={item.is_myself ? "my" + item.id : "their" + item.id}
+        >
+          <Text
+            style={[
+              styles.dateHeaderText,
+              {
+                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                color: theme.subText,
+              },
+            ]}
+          >
+            {item.date}
+          </Text>
         </View>
       );
     }
@@ -873,7 +973,17 @@ const ConversationScreen = ({ navigation, route }) => {
     if (item.type === "time") {
       return (
         <View style={styles.timeHeaderContainer}>
-          <Text style={[styles.timeHeaderText, { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0", color: theme.subText }]}>{item.time}</Text>
+          <Text
+            style={[
+              styles.timeHeaderText,
+              {
+                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                color: theme.subText,
+              },
+            ]}
+          >
+            {item.time}
+          </Text>
         </View>
       );
     }
@@ -935,9 +1045,9 @@ const ConversationScreen = ({ navigation, route }) => {
         style={[
           // Add extra spacing for group chats when sender changes (applies to entire message block)
           isGroupChat &&
-          !item.is_myself &&
-          senderChanged &&
-          styles.groupMessageWrapper,
+            !item.is_myself &&
+            senderChanged &&
+            styles.groupMessageWrapper,
         ]}
       >
         {/* Show story reply header */}
@@ -979,12 +1089,18 @@ const ConversationScreen = ({ navigation, route }) => {
                       owner: storyOwnerName || t("chatConversation.anonymous"),
                     })}
                   </Text>
-                  <Ionicons name="arrow-forward" size={14} color={theme.subText} />
+                  <Ionicons
+                    name="arrow-forward"
+                    size={14}
+                    color={theme.subText}
+                  />
                 </>
               ) : (
                 <>
                   <Ionicons name="arrow-back" size={14} color={theme.subText} />
-                  <Text style={[styles.storyReplyText, { color: theme.subText }]}>
+                  <Text
+                    style={[styles.storyReplyText, { color: theme.subText }]}
+                  >
                     {t("chatConversation.storyReply.other", {
                       sender:
                         item.sender?.profile_name ||
@@ -1000,7 +1116,9 @@ const ConversationScreen = ({ navigation, route }) => {
         {/* Show sender name for group chats when sender changes */}
         {isGroupChat && !item.is_myself && senderChanged && (
           <Text style={[styles.senderName, { color: theme.subText }]}>
-            {item.sender?.profile_name || item.sender?.username || t("chatConversation.anonymous")}
+            {item.sender?.profile_name ||
+              item.sender?.username ||
+              t("chatConversation.anonymous")}
           </Text>
         )}
         <View
@@ -1027,14 +1145,26 @@ const ConversationScreen = ({ navigation, route }) => {
               item.type === "image"
                 ? styles.imageMessageBubble
                 : item.type === "chat" || item.type === "part"
-                ? [
-                    item.is_myself ? styles.myMessageBubble : styles.theirMessageBubble,
-                    styles.chatMessageBubble,
-                    { borderColor: isDarkMode ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.08)" },
-                  ]
-                : item.is_myself
-                ? [styles.myMessageBubble, { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" }]
-                : [styles.theirMessageBubble, { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" }],
+                  ? [
+                      item.is_myself
+                        ? styles.myMessageBubble
+                        : styles.theirMessageBubble,
+                      styles.chatMessageBubble,
+                      {
+                        borderColor: isDarkMode
+                          ? "rgba(255,255,255,0.12)"
+                          : "rgba(0,0,0,0.08)",
+                      },
+                    ]
+                  : item.is_myself
+                    ? [
+                        styles.myMessageBubble,
+                        { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" },
+                      ]
+                    : [
+                        styles.theirMessageBubble,
+                        { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" },
+                      ],
               !item.is_myself && !isLastInGroup && { marginLeft: 40 },
             ]}
           >
@@ -1061,7 +1191,20 @@ const ConversationScreen = ({ navigation, route }) => {
                 )}
               </TouchableOpacity>
             ) : (
-              <Text style={[styles.messageText, { color: item.is_myself ? (isDarkMode ? "#ecfdf5" : "#000") : theme.text }]}>{item.content}</Text>
+              <Text
+                style={[
+                  styles.messageText,
+                  {
+                    color: item.is_myself
+                      ? isDarkMode
+                        ? "#ecfdf5"
+                        : "#000"
+                      : theme.text,
+                  },
+                ]}
+              >
+                {item.content}
+              </Text>
             )}
           </View>
         </View>
@@ -1088,7 +1231,11 @@ const ConversationScreen = ({ navigation, route }) => {
                       color={theme.primary}
                       style={styles.checkOverlap}
                     />
-                    <Ionicons name="checkmark" size={12} color={theme.primary} />
+                    <Ionicons
+                      name="checkmark"
+                      size={12}
+                      color={theme.primary}
+                    />
                   </View>
                 ) : (
                   <Ionicons name="checkmark" size={12} color={theme.subText} />
@@ -1103,7 +1250,6 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      
       {/* Header */}
       <View
         style={[
@@ -1127,7 +1273,16 @@ const ConversationScreen = ({ navigation, route }) => {
         >
           <Ionicons name="arrow-back" size={24} color={theme.primary} />
         </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
+
+        <TouchableOpacity
+          onPress={() =>
+            currentConversation?.type !== "group" &&
+            navigation.navigate("ProfileScreen", {
+              username: otherUser?.username,
+            })
+          }
+          style={styles.headerTitleContainer}
+        >
           <View style={styles.headerAvatarWrapper}>
             <Image
               source={
@@ -1143,22 +1298,26 @@ const ConversationScreen = ({ navigation, route }) => {
             />
           </View>
           <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerName, { color: theme.text }]}> 
+            <Text style={[styles.headerName, { color: theme.text }]}>
               {isNewConversation
                 ? selectedUser.profile_name
                 : currentConversation?.type === "group"
-                ? currentConversation?.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh"
-                  ? t("chatConversation.casualGroupName")
-                  : currentConversation?.name || t("chatConversation.casualGroupName")
-                : currentConversation?.participants[0]?.profile_name}
+                  ? currentConversation?.name
+                      ?.trim()
+                      .normalize("NFC")
+                      .toLowerCase() === "tán gẫu linh tinh"
+                    ? t("chatConversation.casualGroupName")
+                    : currentConversation?.name ||
+                      t("chatConversation.casualGroupName")
+                  : currentConversation?.participants[0]?.profile_name}
             </Text>
-            <Text style={[styles.headerSubtitle, { color: theme.subText }]}> 
+            <Text style={[styles.headerSubtitle, { color: theme.subText }]}>
               {currentConversation?.type === "group"
                 ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
-                : otherUser?.username || ""}
+                : "@" + otherUser?.username || ""}
             </Text>
           </View>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={showOptions} style={styles.headerIconRight}>
           <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
         </TouchableOpacity>
@@ -1169,48 +1328,79 @@ const ConversationScreen = ({ navigation, route }) => {
         onSubmit={handleReportSubmit}
       />
 
-      {/* Messages List */}
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => (item.is_myself ? "my" + item.id : "their" + item.id)}
-        contentContainerStyle={[
-          styles.messagesList,
-          { paddingTop: 120 + insets.bottom },
-        ]}
-        inverted={true}
-        onEndReached={() => !refreshing && fetchMessages()}
-        onEndReachedThreshold={0.3}
-      />
-
-      {/* Input Bar - positioned above messages */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "position" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 2 : 0}
-        style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}
+      <KeyboardGestureArea
+        interpolator="ios"
+        style={{ flex: 1 }}
+        textInputNativeID="chat-input"
       >
-        <View style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? Math.max(insets.bottom - 8, 0) : Math.max(insets.bottom - 4, 0) }}>
-          <CommentBar
-            ref={inputRef}
-            placeholderText={t("chat.typeMessage")}
-            onSubmit={handleSendMessage}
-            onChangeText={setMessage}
-            value={message}
-            disabled={!message.trim() || sending}
-            isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 2 : 0, paddingTop: Platform.OS === "ios" ? 2 : 0, backgroundColor: "transparent", marginTop: Platform.OS === "ios" ? 0 : 0 }}
-            leftAccessory={
-              <TouchableOpacity
-                style={styles.attachButton}
-                onPress={pickImage}
-                disabled={sending}
-              >
-                <Ionicons name="image-outline" size={20} color={theme.subText} />
-              </TouchableOpacity>
-            }
-          />
-        </View>
-      </KeyboardAvoidingView>
+        {/* Messages List */}
+        <KeyboardChatScrollView
+          ref={messagesScrollRef}
+          style={styles.messagesList}
+          contentContainerStyle={[
+            styles.messagesContent,
+            { paddingTop: 120 + insets.bottom },
+          ]}
+          keyboardDismissMode="interactive"
+          onScroll={handleMessagesScroll}
+          scrollEventThrottle={16}
+          onContentSizeChange={handleMessagesContentSizeChange}
+        >
+          {messages.map((value, index) => (
+            <React.Fragment key={`${value.type}-${value.id}-${index}`}>
+              {renderMessage(value, index)}
+            </React.Fragment>
+          ))}
+        </KeyboardChatScrollView>
+
+        {/* Input Bar - positioned above messages */}
+        <KeyboardStickyView offset={{ opened: 10 }}>
+          <View
+            style={{
+              backgroundColor: "transparent",
+              paddingHorizontal: 12,
+              paddingBottom:
+                Platform.OS === "ios"
+                  ? Math.max(insets.bottom - 8, 0)
+                  : Math.max(insets.bottom - 4, 0),
+            }}
+          >
+            <CommentBar
+              ref={inputRef}
+              placeholderText={t("chat.typeMessage")}
+              onSubmit={handleSendMessage}
+              onChangeText={setMessage}
+              value={message}
+              disabled={!message.trim() || sending}
+              isSubmitting={sending}
+              style={{
+                paddingHorizontal: 12,
+                paddingBottom: Platform.OS === "ios" ? 2 : 0,
+                paddingTop: Platform.OS === "ios" ? 2 : 0,
+                backgroundColor: "transparent",
+                marginTop: Platform.OS === "ios" ? 0 : 0,
+              }}
+              leftAccessory={
+                <TouchableOpacity
+                  style={styles.attachButton}
+                  onPress={pickImage}
+                  disabled={sending}
+                >
+                  <Ionicons
+                    name="image-outline"
+                    size={20}
+                    color={theme.subText}
+                  />
+                </TouchableOpacity>
+              }
+              nativeID="chat-input"
+            />
+          </View>
+        </KeyboardStickyView>
+      </KeyboardGestureArea>
+      <KeyboardEffects>
+        <View style={{ flex: 1, backgroundColor: "#868585" }} />
+      </KeyboardEffects>
     </View>
   );
 };
@@ -1282,11 +1472,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2,
     opacity: 0.85,
-    textTransform: "capitalize",
   },
   messagesList: {
+    flex: 1,
+  },
+  messagesContent: {
     padding: 16,
-    flexDirection: "column-reverse",
   },
   messageContainer: {
     flexDirection: "row",

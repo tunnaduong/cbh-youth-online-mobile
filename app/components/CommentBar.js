@@ -35,6 +35,7 @@ const CommentBar = React.forwardRef(
       onClearStatus,
       style,
       leftAccessory,
+      nativeID
     },
     ref
   ) => {
@@ -156,6 +157,7 @@ const CommentBar = React.forwardRef(
                 color: theme.text,
                 minHeight: 28,
                 textAlignVertical: "center",
+                marginTop: 5 
               }}
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}
@@ -165,6 +167,7 @@ const CommentBar = React.forwardRef(
               value={value}
               onKeyPress={onKeyPress}
               editable={editable}
+              nativeID={nativeID}
             />
           </View>
 
