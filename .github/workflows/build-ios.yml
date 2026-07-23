@@ -92,7 +92,7 @@ jobs:
       - name: Install Pods
         run: |
           cd ios
-          pod install
+          pod install || (pod update hermes-engine --no-repo-update && pod install)
 
       - name: Detect iOS Project Name
         run: |
