@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import {
   cancelWithdrawalRequest,
@@ -27,14 +28,6 @@ const getItems = (response) => {
   return Array.isArray(payload) ? payload : payload?.data || [];
 };
 
-const statusLabels = {
-  pending: "Chờ duyệt",
-  approved: "Đã duyệt",
-  completed: "Hoàn tất",
-  rejected: "Từ chối",
-  cancelled: "Đã hủy",
-};
-
 const statusColors = {
   pending: "#D97706",
   approved: "#15803D",
@@ -43,10 +36,13 @@ const statusColors = {
   cancelled: "#6B7280",
 };
 
-const formatNumber = (value) => Number(value || 0).toLocaleString("vi-VN");
-const formatDate = (value) => {
+const localeMap = { vi: "vi-VN", en: "en-US", ru: "ru-RU" };
+
+const formatNumber = (value, lang) =>
+  Number(value || 0).toLocaleString(localeMap[lang] || "vi-VN");
+const formatDate = (value, lang) => {
   if (!value) return "";
-  return new Date(value).toLocaleString("vi-VN", {
+  return new Date(value).toLocaleString(localeMap[lang] || "vi-VN", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -56,6 +52,8 @@ const formatDate = (value) => {
 };
 
 export default function PointWalletScreen({ navigation }) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language?.split("-")[0] || "vi";
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const [balance, setBalance] = useState(null);
@@ -80,14 +78,14 @@ export default function PointWalletScreen({ navigation }) {
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: "Không thể tải ví điểm",
-        text2: error?.response?.data?.message || "Vui lòng thử lại sau.",
+        text1: t("wallet.loadErrorTitle"),
+        text2: error?.response?.data?.message || t("wallet.loadErrorDefault"),
       });
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadData();
@@ -95,24 +93,24 @@ export default function PointWalletScreen({ navigation }) {
 
   const handleCancel = (request) => {
     Alert.alert(
-      "Hủy yêu cầu rút tiền?",
-      "Số điểm sẽ được hoàn lại vào ví của bạn.",
+      t("wallet.cancelConfirmTitle"),
+      t("wallet.cancelConfirmMessage"),
       [
-        { text: "Không", style: "cancel" },
+        { text: t("wallet.no"), style: "cancel" },
         {
-          text: "Hủy yêu cầu",
+          text: t("wallet.cancelRequest"),
           style: "destructive",
           onPress: async () => {
             setCancellingId(request.id);
             try {
               await cancelWithdrawalRequest(request.id);
-              Toast.show({ type: "success", text1: "Đã hủy yêu cầu rút tiền" });
+              Toast.show({ type: "success", text1: t("wallet.cancelSuccess") });
               loadData(true);
             } catch (error) {
               Toast.show({
                 type: "error",
-                text1: "Không thể hủy yêu cầu",
-                text2: error?.response?.data?.message || "Vui lòng thử lại.",
+                text1: t("wallet.cancelErrorTitle"),
+                text2: error?.response?.data?.message || t("wallet.tryAgain"),
               });
             } finally {
               setCancellingId(null);
@@ -140,15 +138,15 @@ export default function PointWalletScreen({ navigation }) {
         ]}
       >
         <TouchableOpacity
-          accessibilityLabel="Quay lại"
+          accessibilityLabel={t("wallet.backLabel")}
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Ví điểm của tôi</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t("wallet.title")}</Text>
         <TouchableOpacity
-          accessibilityLabel="Làm mới ví điểm"
+          accessibilityLabel={t("wallet.refreshLabel")}
           onPress={() => loadData(true)}
           style={styles.backButton}
         >
@@ -175,11 +173,13 @@ export default function PointWalletScreen({ navigation }) {
         >
           <View style={styles.balanceTopRow}>
             <View>
-              <Text style={styles.balanceLabel}>Số dư hiện tại</Text>
+              <Text style={styles.balanceLabel}>{t("wallet.currentBalance")}</Text>
               <Text style={styles.balanceValue}>
-                {formatNumber(balance?.points)} điểm
+                {t("wallet.pointsValue", { value: formatNumber(balance?.points, lang) })}
               </Text>
-              <Text style={styles.balanceVnd}>≈ {balance?.formatted_vnd || "0 VND"}</Text>
+              <Text style={styles.balanceVnd}>
+                {t("wallet.approxVnd", { value: balance?.formatted_vnd || "0 VND" })}
+              </Text>
             </View>
             <View style={styles.walletIcon}>
               <Ionicons name="wallet-outline" size={38} color="#FFFFFF" />
@@ -187,10 +187,12 @@ export default function PointWalletScreen({ navigation }) {
           </View>
           <View style={styles.balanceDivider} />
           <Text style={styles.minimumText}>
-            Mức tối thiểu rút: {formatNumber(balance?.min_withdrawal_points)} điểm
-            {balance?.min_withdrawal_vnd
-              ? ` (${formatNumber(balance.min_withdrawal_vnd)} VND)`
-              : ""}
+            {t("wallet.minWithdrawal", {
+              points: formatNumber(balance?.min_withdrawal_points, lang),
+              vnd: balance?.min_withdrawal_vnd
+                ? t("wallet.minWithdrawalVnd", { value: formatNumber(balance.min_withdrawal_vnd, lang) })
+                : "",
+            })}
           </Text>
         </LinearGradient>
 
@@ -200,21 +202,21 @@ export default function PointWalletScreen({ navigation }) {
             onPress={() => navigation.navigate("DepositScreen")}
           >
             <Ionicons name="add-circle-outline" size={22} color="#1476C6" />
-            <Text style={[styles.actionText, { color: "#1476C6" }]}>Nạp điểm</Text>
+            <Text style={[styles.actionText, { color: "#1476C6" }]}>{t("wallet.deposit")}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, { backgroundColor: "#EAF8EE" }]}
             onPress={() => navigation.navigate("WithdrawScreen")}
           >
             <Ionicons name="cash-outline" size={22} color="#168348" />
-            <Text style={[styles.actionText, { color: "#168348" }]}>Rút điểm</Text>
+            <Text style={[styles.actionText, { color: "#168348" }]}>{t("wallet.withdraw")}</Text>
           </TouchableOpacity>
         </View>
 
-        <SectionTitle icon="swap-vertical-outline" title="Lịch sử giao dịch" theme={theme} />
-        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}> 
+        <SectionTitle icon="swap-vertical-outline" title={t("wallet.transactionHistory")} theme={theme} />
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
           {transactions.length === 0 ? (
-            <EmptyState text="Chưa có giao dịch nào" theme={theme} />
+            <EmptyState text={t("wallet.emptyTransactions")} theme={theme} />
           ) : (
             transactions.map((transaction, index) => (
               <View
@@ -227,7 +229,7 @@ export default function PointWalletScreen({ navigation }) {
                   },
                 ]}
               >
-                <View style={[styles.transactionIcon, { backgroundColor: transaction.amount > 0 ? "#EAF8EE" : "#FEF0F0" }]}> 
+                <View style={[styles.transactionIcon, { backgroundColor: transaction.amount > 0 ? "#EAF8EE" : "#FEF0F0" }]}>
                   <Ionicons
                     name={transaction.amount > 0 ? "arrow-down-outline" : "arrow-up-outline"}
                     size={18}
@@ -236,24 +238,24 @@ export default function PointWalletScreen({ navigation }) {
                 </View>
                 <View style={styles.transactionInfo}>
                   <Text style={[styles.transactionDescription, { color: theme.text }]} numberOfLines={2}>
-                    {transaction.description || "Giao dịch điểm"}
+                    {transaction.description || t("wallet.defaultTransactionDescription")}
                   </Text>
                   <Text style={[styles.dateText, { color: theme.subText }]}>
-                    {formatDate(transaction.created_at)}
+                    {formatDate(transaction.created_at, lang)}
                   </Text>
                 </View>
-                <Text style={[styles.amountText, { color: transaction.amount > 0 ? "#168348" : "#DC2626" }]}> 
-                  {transaction.amount > 0 ? "+" : ""}{formatNumber(transaction.amount)}
+                <Text style={[styles.amountText, { color: transaction.amount > 0 ? "#168348" : "#DC2626" }]}>
+                  {transaction.amount > 0 ? "+" : ""}{formatNumber(transaction.amount, lang)}
                 </Text>
               </View>
             ))
           )}
         </View>
 
-        <SectionTitle icon="time-outline" title="Yêu cầu rút tiền" theme={theme} />
-        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}> 
+        <SectionTitle icon="time-outline" title={t("wallet.withdrawalRequests")} theme={theme} />
+        <View style={[styles.section, { backgroundColor: theme.cardBackground }]}>
           {withdrawalRequests.length === 0 ? (
-            <EmptyState text="Chưa có yêu cầu rút tiền nào" theme={theme} />
+            <EmptyState text={t("wallet.emptyWithdrawalRequests")} theme={theme} />
           ) : (
             withdrawalRequests.map((request, index) => (
               <View
@@ -267,12 +269,14 @@ export default function PointWalletScreen({ navigation }) {
                 ]}
               >
                 <View style={styles.withdrawalHeader}>
-                  <Text style={[styles.withdrawalAmount, { color: theme.text }]}>Rút {formatNumber(request.amount)} điểm</Text>
+                  <Text style={[styles.withdrawalAmount, { color: theme.text }]}>
+                    {t("wallet.withdrawAmount", { value: formatNumber(request.amount, lang) })}
+                  </Text>
                   <Text style={{ color: statusColors[request.status] || theme.subText, fontWeight: "700", fontSize: 12 }}>
-                    {statusLabels[request.status] || request.status}
+                    {t(`wallet.status.${request.status}`, { defaultValue: request.status })}
                   </Text>
                 </View>
-                <Text style={[styles.dateText, { color: theme.subText }]}>{formatDate(request.created_at)}</Text>
+                <Text style={[styles.dateText, { color: theme.subText }]}>{formatDate(request.created_at, lang)}</Text>
                 {request.status === "pending" && (
                   <TouchableOpacity
                     disabled={cancellingId === request.id}
@@ -280,7 +284,7 @@ export default function PointWalletScreen({ navigation }) {
                     style={styles.cancelButton}
                   >
                     <Text style={styles.cancelText}>
-                      {cancellingId === request.id ? "Đang hủy..." : "Hủy lệnh"}
+                      {cancellingId === request.id ? t("wallet.cancelling") : t("wallet.cancelOrder")}
                     </Text>
                   </TouchableOpacity>
                 )}

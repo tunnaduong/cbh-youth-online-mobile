@@ -13,13 +13,18 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { getWalletBalance, requestWithdrawal } from "../../../services/api/Api";
 
 const getPayload = (response) => response?.data ?? response ?? {};
-const formatNumber = (value) => Number(value || 0).toLocaleString("vi-VN");
+const localeMap = { vi: "vi-VN", en: "en-US", ru: "ru-RU" };
+const formatNumber = (value, lang) =>
+  Number(value || 0).toLocaleString(localeMap[lang] || "vi-VN");
 
 export default function WithdrawScreen({ navigation }) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language?.split("-")[0] || "vi";
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [balance, setBalance] = useState(null);
@@ -35,11 +40,11 @@ export default function WithdrawScreen({ navigation }) {
       const response = await getWalletBalance();
       setBalance(getPayload(response));
     } catch (error) {
-      Toast.show({ type: "error", text1: "Không thể tải số dư", text2: "Vui lòng thử lại sau." });
+      Toast.show({ type: "error", text1: t("wallet.withdrawScreen.loadBalanceErrorTitle"), text2: t("wallet.withdrawScreen.loadBalanceErrorDefault") });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadBalance();
@@ -48,15 +53,15 @@ export default function WithdrawScreen({ navigation }) {
   const handleSubmit = async () => {
     const withdrawalAmount = Number(String(amount).replace(/\D/g, ""));
     if (withdrawalAmount < 500) {
-      Toast.show({ type: "error", text1: "Số điểm chưa hợp lệ", text2: "Số điểm tối thiểu để rút là 500 điểm." });
+      Toast.show({ type: "error", text1: t("wallet.withdrawScreen.invalidAmountTitle"), text2: t("wallet.withdrawScreen.invalidAmountMessage") });
       return;
     }
     if (withdrawalAmount > Number(balance?.points || 0)) {
-      Toast.show({ type: "error", text1: "Số điểm không đủ", text2: "Vui lòng nhập số điểm nhỏ hơn số dư hiện tại." });
+      Toast.show({ type: "error", text1: t("wallet.withdrawScreen.insufficientTitle"), text2: t("wallet.withdrawScreen.insufficientMessage") });
       return;
     }
     if (!bankAccount.trim() || !bankName.trim() || !accountHolder.trim()) {
-      Toast.show({ type: "error", text1: "Thiếu thông tin nhận tiền", text2: "Vui lòng điền đủ thông tin ngân hàng." });
+      Toast.show({ type: "error", text1: t("wallet.withdrawScreen.missingInfoTitle"), text2: t("wallet.withdrawScreen.missingInfoMessage") });
       return;
     }
     try {
@@ -67,10 +72,10 @@ export default function WithdrawScreen({ navigation }) {
         bank_name: bankName.trim(),
         account_holder: accountHolder.trim().toUpperCase(),
       });
-      Toast.show({ type: "success", text1: "Đã gửi yêu cầu rút tiền", text2: "Vui lòng chờ quản trị viên duyệt." });
+      Toast.show({ type: "success", text1: t("wallet.withdrawScreen.submitSuccessTitle"), text2: t("wallet.withdrawScreen.submitSuccessMessage") });
       navigation.navigate("PointWalletScreen");
     } catch (error) {
-      Toast.show({ type: "error", text1: "Gửi yêu cầu thất bại", text2: error?.response?.data?.message || "Vui lòng thử lại." });
+      Toast.show({ type: "error", text1: t("wallet.withdrawScreen.submitErrorTitle"), text2: error?.response?.data?.message || t("wallet.withdrawScreen.submitErrorDefault") });
     } finally {
       setSubmitting(false);
     }
@@ -85,31 +90,40 @@ export default function WithdrawScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: theme.border }]}> 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton} accessibilityLabel="Quay lại"><Ionicons name="arrow-back" size={24} color={theme.text} /></TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Rút tiền</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton} accessibilityLabel={t("wallet.backLabel")}><Ionicons name="arrow-back" size={24} color={theme.text} /></TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t("wallet.withdrawScreen.title")}</Text>
         <View style={styles.iconButton} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled">
-        <View style={[styles.balanceCard, { backgroundColor: "#EAF8EE" }]}> 
+        <View style={[styles.balanceCard, { backgroundColor: "#EAF8EE" }]}>
           <View style={styles.balanceIcon}><Ionicons name="wallet-outline" size={24} color="#168348" /></View>
-          <View style={styles.balanceCopy}><Text style={[styles.muted, { color: theme.subText }]}>Số dư hiện tại</Text><Text style={styles.balanceValue}>{formatNumber(balance?.points)} điểm</Text><Text style={[styles.muted, { color: theme.subText }]}>≈ {formatNumber(balance?.vnd)} VND</Text></View>
+          <View style={styles.balanceCopy}>
+            <Text style={[styles.muted, { color: theme.subText }]}>{t("wallet.withdrawScreen.currentBalance")}</Text>
+            <Text style={styles.balanceValue}>{t("wallet.pointsValue", { value: formatNumber(balance?.points, lang) })}</Text>
+            <Text style={[styles.muted, { color: theme.subText }]}>{t("wallet.approxVnd", { value: `${formatNumber(balance?.vnd, lang)} VND` })}</Text>
+          </View>
         </View>
-        <View style={[styles.card, { backgroundColor: theme.cardBackground }]}> 
-          <Text style={[styles.title, { color: theme.text }]}>Yêu cầu rút tiền</Text>
-          <Text style={[styles.description, { color: theme.subText }]}>Điểm sẽ được tạm giữ cho đến khi yêu cầu được duyệt.</Text>
-          <Label theme={theme} text="Số điểm muốn rút" />
-          <TextInput value={amount} onChangeText={(value) => setAmount(value.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Tối thiểu 500" placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
-          <Text style={[styles.helper, { color: theme.subText }]}>Quy đổi khoảng {formatNumber(estimatedVnd)} VND {requestedAmount >= 500 ? `(sau phí xử lý theo chính sách)` : ""}</Text>
-          <Label theme={theme} text="Số tài khoản ngân hàng" />
-          <TextInput value={bankAccount} onChangeText={setBankAccount} keyboardType="number-pad" placeholder="Nhập số tài khoản" placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
-          <Label theme={theme} text="Tên ngân hàng" />
-          <TextInput value={bankName} onChangeText={setBankName} placeholder="VD: Vietcombank, TPBank" placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
-          <Label theme={theme} text="Tên chủ tài khoản" />
-          <TextInput value={accountHolder} onChangeText={setAccountHolder} autoCapitalize="characters" placeholder="NGUYEN VAN A" placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
-          <View style={[styles.notice, { backgroundColor: theme.background }]}><Ionicons name="information-circle-outline" size={20} color="#D97706" /><Text style={[styles.noticeText, { color: theme.subText }]}>Mức rút tối thiểu là 500 điểm. Chỉ có thể rút điểm từ doanh thu bán tài liệu theo chính sách của hệ thống.</Text></View>
-          <TouchableOpacity disabled={submitting} onPress={handleSubmit} style={[styles.submit, submitting && { opacity: 0.65 }]}>{submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="send-outline" size={20} color="#fff" />}<Text style={styles.submitText}>{submitting ? "Đang gửi..." : "Gửi yêu cầu rút tiền"}</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cancel}><Text style={[styles.cancelText, { color: theme.subText }]}>Hủy</Text></TouchableOpacity>
+        <View style={[styles.card, { backgroundColor: theme.cardBackground }]}>
+          <Text style={[styles.title, { color: theme.text }]}>{t("wallet.withdrawScreen.formTitle")}</Text>
+          <Text style={[styles.description, { color: theme.subText }]}>{t("wallet.withdrawScreen.formDescription")}</Text>
+          <Label theme={theme} text={t("wallet.withdrawScreen.amountLabel")} />
+          <TextInput value={amount} onChangeText={(value) => setAmount(value.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={t("wallet.withdrawScreen.amountPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+          <Text style={[styles.helper, { color: theme.subText }]}>
+            {t("wallet.withdrawScreen.conversionHelper", {
+              value: formatNumber(estimatedVnd, lang),
+              note: requestedAmount >= 500 ? t("wallet.withdrawScreen.conversionNote") : "",
+            })}
+          </Text>
+          <Label theme={theme} text={t("wallet.withdrawScreen.bankAccountLabel")} />
+          <TextInput value={bankAccount} onChangeText={setBankAccount} keyboardType="number-pad" placeholder={t("wallet.withdrawScreen.bankAccountPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+          <Label theme={theme} text={t("wallet.withdrawScreen.bankNameLabel")} />
+          <TextInput value={bankName} onChangeText={setBankName} placeholder={t("wallet.withdrawScreen.bankNamePlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+          <Label theme={theme} text={t("wallet.withdrawScreen.accountHolderLabel")} />
+          <TextInput value={accountHolder} onChangeText={setAccountHolder} autoCapitalize="characters" placeholder={t("wallet.withdrawScreen.accountHolderPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
+          <View style={[styles.notice, { backgroundColor: theme.background }]}><Ionicons name="information-circle-outline" size={20} color="#D97706" /><Text style={[styles.noticeText, { color: theme.subText }]}>{t("wallet.withdrawScreen.notice")}</Text></View>
+          <TouchableOpacity disabled={submitting} onPress={handleSubmit} style={[styles.submit, submitting && { opacity: 0.65 }]}>{submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="send-outline" size={20} color="#fff" />}<Text style={styles.submitText}>{submitting ? t("wallet.withdrawScreen.submitting") : t("wallet.withdrawScreen.submit")}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cancel}><Text style={[styles.cancelText, { color: theme.subText }]}>{t("wallet.withdrawScreen.cancel")}</Text></TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

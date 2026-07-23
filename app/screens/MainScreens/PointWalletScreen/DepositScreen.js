@@ -14,16 +14,21 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { createDepositRequest, getWalletBalance } from "../../../services/api/Api";
 
 const getPayload = (response) => response?.data ?? response ?? {};
-const formatNumber = (value) => Number(value || 0).toLocaleString("vi-VN");
+const localeMap = { vi: "vi-VN", en: "en-US", ru: "ru-RU" };
+const formatNumber = (value, lang) =>
+  Number(value || 0).toLocaleString(localeMap[lang] || "vi-VN");
 
 const BANK_ACCOUNT = "99421112003";
 const BANK_NAME = "TPBank";
 
 export default function DepositScreen({ navigation }) {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language?.split("-")[0] || "vi";
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [amount, setAmount] = useState("50000");
@@ -53,7 +58,7 @@ export default function DepositScreen({ navigation }) {
         const currentPoints = Number(getPayload(response)?.points || 0);
         if (currentPoints > initialPoints) {
           setDepositInfo(null);
-          Toast.show({ type: "success", text1: "Nạp tiền thành công", text2: "Điểm đã được cộng vào ví của bạn." });
+          Toast.show({ type: "success", text1: t("wallet.depositScreen.depositSuccessTitle"), text2: t("wallet.depositScreen.depositSuccessMessage") });
           navigation.navigate("PointWalletScreen");
         }
       } catch (error) {
@@ -61,12 +66,12 @@ export default function DepositScreen({ navigation }) {
       }
     }, 4000);
     return () => clearInterval(interval);
-  }, [depositInfo, initialPoints, navigation]);
+  }, [depositInfo, initialPoints, navigation, t]);
 
   const handleCreate = async () => {
     const amountVnd = Number(String(amount).replace(/\D/g, ""));
     if (!amountVnd || amountVnd < 10000) {
-      Toast.show({ type: "error", text1: "Số tiền chưa hợp lệ", text2: "Số tiền nạp tối thiểu là 10.000 VND." });
+      Toast.show({ type: "error", text1: t("wallet.depositScreen.invalidAmountTitle"), text2: t("wallet.depositScreen.invalidAmountMessage") });
       return;
     }
     try {
@@ -74,9 +79,9 @@ export default function DepositScreen({ navigation }) {
       const response = await createDepositRequest({ amount_vnd: amountVnd });
       const info = getPayload(response);
       setDepositInfo({ ...info, amount_vnd: info.amount_vnd || amountVnd });
-      Toast.show({ type: "success", text1: "Đã tạo mã nạp tiền" });
+      Toast.show({ type: "success", text1: t("wallet.depositScreen.createSuccess") });
     } catch (error) {
-      Toast.show({ type: "error", text1: "Không thể tạo mã nạp tiền", text2: error?.response?.data?.message || "Vui lòng thử lại." });
+      Toast.show({ type: "error", text1: t("wallet.depositScreen.createErrorTitle"), text2: error?.response?.data?.message || t("wallet.depositScreen.createErrorDefault") });
     } finally {
       setSubmitting(false);
     }
@@ -89,13 +94,13 @@ export default function DepositScreen({ navigation }) {
       const currentPoints = Number(getPayload(response)?.points || 0);
       if (initialPoints !== null && currentPoints > initialPoints) {
         setDepositInfo(null);
-        Toast.show({ type: "success", text1: "Nạp tiền thành công" });
+        Toast.show({ type: "success", text1: t("wallet.depositScreen.depositSuccessTitle") });
         navigation.navigate("PointWalletScreen");
       } else {
-        Toast.show({ type: "info", text1: "Chưa nhận được khoản nạp", text2: "Hãy kiểm tra lại sau ít phút." });
+        Toast.show({ type: "info", text1: t("wallet.depositScreen.notReceivedTitle"), text2: t("wallet.depositScreen.notReceivedMessage") });
       }
     } catch (error) {
-      Toast.show({ type: "error", text1: "Không thể kiểm tra số dư" });
+      Toast.show({ type: "error", text1: t("wallet.depositScreen.checkErrorTitle") });
     } finally {
       setChecking(false);
     }
@@ -108,57 +113,65 @@ export default function DepositScreen({ navigation }) {
       style={[styles.container, { backgroundColor: theme.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: theme.border }]}> 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton} accessibilityLabel="Quay lại">
+      <View style={[styles.header, { paddingTop: insets.top + 8, borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton} accessibilityLabel={t("wallet.backLabel")}>
           <Ionicons name="arrow-back" size={24} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>Nạp tiền</Text>
+        <Text style={[styles.headerTitle, { color: theme.text }]}>{t("wallet.depositScreen.title")}</Text>
         <View style={styles.iconButton} />
       </View>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled">
         {!depositInfo ? (
           <>
-            <IntroCard theme={theme} icon="add-circle-outline" title="Nạp tiền vào ví" text="Chuyển khoản để nhận điểm vào tài khoản của bạn." />
-            <View style={[styles.card, { backgroundColor: theme.cardBackground }]}> 
-              <Label theme={theme} text="Số tiền muốn nạp (VND)" />
+            <IntroCard theme={theme} icon="add-circle-outline" title={t("wallet.depositScreen.introTitle")} text={t("wallet.depositScreen.introText")} />
+            <View style={[styles.card, { backgroundColor: theme.cardBackground }]}>
+              <Label theme={theme} text={t("wallet.depositScreen.amountLabel")} />
               <TextInput
                 value={amount}
                 onChangeText={(value) => setAmount(value.replace(/\D/g, ""))}
                 keyboardType="number-pad"
-                placeholder="Nhập số tiền"
+                placeholder={t("wallet.depositScreen.amountPlaceholder")}
                 placeholderTextColor={theme.placeholder}
                 style={[styles.input, { color: theme.text, borderColor: theme.border }]}
               />
-              <Text style={[styles.helperText, { color: theme.subText }]}>Tối thiểu 10.000 VND. Dự kiến nhận: {formatNumber(Math.floor(Math.max(0, Number(amount || 0) - 1000) / 100))} điểm.</Text>
-              <InfoBox theme={theme} text="Phí nạp là 1.000 VND. Sau khi chuyển khoản thành công, hệ thống sẽ tự động cộng điểm vào ví." />
-              <PrimaryButton title="Tạo mã nạp tiền" icon="qr-code-outline" onPress={handleCreate} loading={submitting} />
+              <Text style={[styles.helperText, { color: theme.subText }]}>
+                {t("wallet.depositScreen.helperText", {
+                  value: formatNumber(Math.floor(Math.max(0, Number(amount || 0) - 1000) / 100), lang),
+                })}
+              </Text>
+              <InfoBox theme={theme} text={t("wallet.depositScreen.feeInfo")} />
+              <PrimaryButton title={t("wallet.depositScreen.createCode")} icon="qr-code-outline" onPress={handleCreate} loading={submitting} />
             </View>
           </>
         ) : (
           <>
-            <IntroCard theme={theme} icon="qr-code-outline" title="Thông tin chuyển khoản" text="Chuyển đúng số tiền và nội dung để hệ thống cộng điểm tự động." />
-            <View style={[styles.card, { backgroundColor: theme.cardBackground }]}> 
+            <IntroCard theme={theme} icon="qr-code-outline" title={t("wallet.depositScreen.transferInfoTitle")} text={t("wallet.depositScreen.transferInfoText")} />
+            <View style={[styles.card, { backgroundColor: theme.cardBackground }]}>
               <View style={styles.amountPanel}>
-                <Text style={[styles.mutedLabel, { color: theme.subText }]}>Số tiền cần chuyển</Text>
-                <Text style={styles.amountValue}>{formatNumber(depositInfo.amount_vnd)} VND</Text>
-                <Text style={[styles.expectedText, { color: theme.primary }]}>Nhận khoảng {formatNumber(depositInfo.expected_points || expectedPoints)} điểm</Text>
+                <Text style={[styles.mutedLabel, { color: theme.subText }]}>{t("wallet.depositScreen.amountToTransfer")}</Text>
+                <Text style={styles.amountValue}>{formatNumber(depositInfo.amount_vnd, lang)} VND</Text>
+                <Text style={[styles.expectedText, { color: theme.primary }]}>
+                  {t("wallet.depositScreen.expectedPoints", { value: formatNumber(depositInfo.expected_points || expectedPoints, lang) })}
+                </Text>
               </View>
               <Image
                 source={{ uri: `https://qr.sepay.vn/img?acc=${BANK_ACCOUNT}&bank=${BANK_NAME}&amount=${depositInfo.amount_vnd}&des=${depositInfo.deposit_code}&template=compact` }}
                 style={styles.qr}
               />
-              <Text style={[styles.qrCaption, { color: theme.subText }]}>Quét mã QR bằng ứng dụng ngân hàng</Text>
-              <TransferRow theme={theme} label="Ngân hàng" value={BANK_NAME} />
-              <TransferRow theme={theme} label="Số tài khoản" value={BANK_ACCOUNT} />
-              <TransferRow theme={theme} label="Chủ tài khoản" value="DUONG TUNG ANH" />
-              <View style={[styles.contentPanel, { borderColor: theme.primary, backgroundColor: theme.background }]}> 
-                <Text style={[styles.mutedLabel, { color: theme.subText }]}>Nội dung chuyển khoản bắt buộc</Text>
+              <Text style={[styles.qrCaption, { color: theme.subText }]}>{t("wallet.depositScreen.qrCaption")}</Text>
+              <TransferRow theme={theme} label={t("wallet.depositScreen.bankLabel")} value={BANK_NAME} />
+              <TransferRow theme={theme} label={t("wallet.depositScreen.accountNumberLabel")} value={BANK_ACCOUNT} />
+              <TransferRow theme={theme} label={t("wallet.depositScreen.accountHolderLabel")} value={t("wallet.depositScreen.accountHolderValue")} />
+              <View style={[styles.contentPanel, { borderColor: theme.primary, backgroundColor: theme.background }]}>
+                <Text style={[styles.mutedLabel, { color: theme.subText }]}>{t("wallet.depositScreen.transferContentLabel")}</Text>
                 <Text selectable style={[styles.transferCode, { color: theme.text }]}>{depositInfo.deposit_code}</Text>
               </View>
-              <InfoBox theme={theme} text={`Mã có hiệu lực đến ${depositInfo.expires_at ? new Date(depositInfo.expires_at).toLocaleString("vi-VN") : "24 giờ kể từ lúc tạo"}. Hãy ghi đúng nội dung chuyển khoản.`} />
-              <PrimaryButton title={checking ? "Đang kiểm tra..." : "Tôi đã chuyển khoản"} icon="refresh-outline" onPress={checkBalance} loading={checking} />
+              <InfoBox theme={theme} text={t("wallet.depositScreen.expiryNotice", {
+                value: depositInfo.expires_at ? new Date(depositInfo.expires_at).toLocaleString(localeMap[lang] || "vi-VN") : t("wallet.depositScreen.expiryFallback"),
+              })} />
+              <PrimaryButton title={checking ? t("wallet.depositScreen.checking") : t("wallet.depositScreen.confirmTransfer")} icon="refresh-outline" onPress={checkBalance} loading={checking} />
               <TouchableOpacity onPress={() => setDepositInfo(null)} style={styles.secondaryButton}>
-                <Text style={[styles.secondaryText, { color: theme.subText }]}>Tạo mã khác</Text>
+                <Text style={[styles.secondaryText, { color: theme.subText }]}>{t("wallet.depositScreen.createAnotherCode")}</Text>
               </TouchableOpacity>
             </View>
           </>
