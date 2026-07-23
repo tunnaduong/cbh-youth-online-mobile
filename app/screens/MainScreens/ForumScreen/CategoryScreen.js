@@ -191,57 +191,53 @@ const CategoryScreen = ({ navigation, route }) => {
   const ThreadItem = ({ thread, lastItem }) => (
     <TouchableOpacity
       onPress={() => navigation.navigate("PostScreen", { postId: thread?.id })}
-      style={{
-        flexDirection: "row",
-        padding: 16,
-        borderBottomWidth: lastItem ? 0 : StyleSheet.hairlineWidth,
-        borderBottomColor: theme.border,
-      }}
+      style={[
+        styles.threadRow,
+        {
+          borderBottomWidth: lastItem ? 0 : StyleSheet.hairlineWidth,
+          borderBottomColor: theme.border,
+        },
+      ]}
     >
-      <View style={{ flex: 1 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-          <FastImage
-            source={{ uri: thread?.author?.avatar }}
-            style={{ width: 20, height: 20, borderRadius: 10 }}
-          />
-          <Text style={{ fontSize: 14, color: theme.text }}>
-            {thread?.author?.profile_name}
-          </Text>
-          {thread?.author?.verified ? (
-            <Ionicons name="checkmark-circle" size={14} color={theme.primary} />
-          ) : (
-            <></>
-          )}
-          <Text style={{ fontSize: 14, color: theme.subText }}>· {thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}</Text>
-        </View>
-        <Text style={{ fontSize: 16, fontWeight: "500", marginBottom: 12, color: theme.text }} numberOfLines={2}>
-          {thread?.title}
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Ionicons name="chatbubble-outline" size={16} color={theme.subText} />
-              <Text style={{ fontSize: 14, color: theme.subText }}>
-                {thread?.reply_count}+
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Ionicons name="eye-outline" size={16} color={theme.subText} />
-              <Text style={{ fontSize: 14, color: theme.subText }}>
-                {thread?.view_count}
-              </Text>
-            </View>
+      <View style={styles.threadContentRow}>
+        <View style={styles.threadLeft}>
+          <View style={styles.threadMetaRow}>
+            <FastImage
+              source={{ uri: thread?.author?.avatar }}
+              style={styles.avatar}
+            />
+            <Text style={[styles.metaText, { color: theme.text }]} numberOfLines={1}>
+              {thread?.author?.profile_name}
+            </Text>
+            {thread?.author?.verified && (
+              <Ionicons name="checkmark-circle" size={14} color={theme.primary} style={styles.metaIcon} />
+            )}
+            <Text style={[styles.metaText, { color: theme.subText }]} numberOfLines={1}>
+              · {thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
+            </Text>
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <Text
-              style={{ fontSize: 14, color: theme.subText, width: 140, textAlign: "right" }}
-              numberOfLines={1}
-            >
-              {thread?.latest_reply?.user?.profile_name}
-            </Text>
-            <Text style={{ fontSize: 14, color: theme.subText }}>
-              · {thread?.latest_reply?.created_at ? formatTime(thread?.latest_reply?.created_at) : ""}
-            </Text>
+          <Text style={[styles.threadTitle, { color: theme.text }]} numberOfLines={2}>
+            {thread?.title}
+          </Text>
+        </View>
+        <View style={styles.threadRight}>
+          <Text style={[styles.threadLatestName, { color: theme.subText }]} numberOfLines={1}>
+            {thread?.latest_reply?.user?.profile_name}
+          </Text>
+          <Text style={[styles.threadLatestTime, { color: theme.subText }]} numberOfLines={1}>
+            · {thread?.latest_reply?.created_at ? formatTime(thread?.latest_reply?.created_at) : ""}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.threadStatsRow}>
+        <View style={styles.threadStatsGroup}>
+          <View style={styles.statItem}>
+            <Ionicons name="chatbubble-outline" size={16} color={theme.subText} />
+            <Text style={[styles.statText, { color: theme.subText }]}>{thread?.reply_count}+</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Ionicons name="eye-outline" size={16} color={theme.subText} />
+            <Text style={[styles.statText, { color: theme.subText }]}>{thread?.view_count}</Text>
           </View>
         </View>
       </View>
@@ -357,6 +353,80 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
+  },
+  threadRow: {
+    padding: 16,
+  },
+  threadContentRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 16,
+  },
+  threadLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
+  threadRight: {
+    width: 120,
+    alignItems: "flex-end",
+    minWidth: 0,
+  },
+  threadMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    marginBottom: 8,
+  },
+  avatar: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 8,
+  },
+  metaText: {
+    fontSize: 14,
+    marginRight: 8,
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  threadTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 12,
+    minWidth: 0,
+  },
+  threadStatsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  threadStatsGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+  },
+  statText: {
+    fontSize: 14,
+    marginLeft: 4,
+  },
+  threadLatestContainer: {
+    flex: 1,
+    alignItems: "flex-end",
+  },
+  threadLatestName: {
+    fontSize: 14,
+    textAlign: "right",
+    minWidth: 0,
+  },
+  threadLatestTime: {
+    fontSize: 14,
+    textAlign: "right",
+    minWidth: 0,
   },
 });
 
