@@ -50,9 +50,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
 
   useEffect(() => {
     if (visible) {
-      actionSheetRef.current?.setModalVisible(true);
-    } else {
-      actionSheetRef.current?.hide();
+      actionSheetRef.current?.show();
     }
   }, [visible]);
 

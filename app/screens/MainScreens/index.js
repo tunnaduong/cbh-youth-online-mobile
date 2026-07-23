@@ -143,7 +143,7 @@ const TabBarBackgroundComponent = memo(
         >
           {useAndroidGlass && (
             <LiquidGlassViewAndroid
-              providerId={currentRoute}
+              providerId="main"
               interactive={isLiquidGlassSupportedAndroid}
               {...glassProps}
               style={StyleSheet.absoluteFillObject}
