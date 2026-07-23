@@ -131,7 +131,7 @@ export default function DepositScreen({ navigation }) {
               {t("wallet.depositScreen.title")}
             </Animated.Text>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="add-circle-outline" title={t("wallet.depositScreen.introTitle")} text={t("wallet.depositScreen.introText")} />
-            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.78)", borderColor: theme.border }]}> 
+            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
               <Label theme={theme} text={t("wallet.depositScreen.amountLabel")} />
               <TextInput value={amount} onChangeText={(value) => setAmount(value.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={t("wallet.depositScreen.amountPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
               <Text style={[styles.helperText, { color: theme.subText }]}> 
@@ -147,20 +147,20 @@ export default function DepositScreen({ navigation }) {
               {t("wallet.depositScreen.transferInfoTitle")}
             </Animated.Text>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="qr-code-outline" title={t("wallet.depositScreen.transferInfoTitle")} text={t("wallet.depositScreen.transferInfoText")} />
-            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.78)", borderColor: theme.border }]}> 
+            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
               <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}>
                 <Text style={[styles.mutedLabel, { color: "#C7F5D7" }]}>{t("wallet.depositScreen.amountToTransfer")}</Text>
                 <Text style={styles.amountValue}>{formatNumber(depositInfo.amount_vnd, lang)} VND</Text>
                 <Text style={[styles.expectedText, { color: "#FFFFFF" }]}> {t("wallet.depositScreen.expectedPoints", { value: formatNumber(depositInfo.expected_points || expectedPoints, lang) })}</Text>
               </LinearGradient>
-              <View style={[styles.qrBox, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.86)" }]}> 
+              <View style={[styles.qrBox, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#FFFFFF" }]}> 
                 <Image source={{ uri: `https://qr.sepay.vn/img?acc=${BANK_ACCOUNT}&bank=${BANK_NAME}&amount=${depositInfo.amount_vnd}&des=${depositInfo.deposit_code}&template=compact` }} style={styles.qr} />
               </View>
               <Text style={[styles.qrCaption, { color: theme.subText }]}>{t("wallet.depositScreen.qrCaption")}</Text>
               <TransferRow theme={theme} label={t("wallet.depositScreen.bankLabel")} value={BANK_NAME} />
               <TransferRow theme={theme} label={t("wallet.depositScreen.accountNumberLabel")} value={BANK_ACCOUNT} />
               <TransferRow theme={theme} label={t("wallet.depositScreen.accountHolderLabel")} value={t("wallet.depositScreen.accountHolderValue")} />
-              <View style={[styles.contentPanel, { borderColor: theme.primary, backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.86)" }]}> 
+              <View style={[styles.contentPanel, { borderColor: theme.primary, backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#FFFFFF" }]}> 
                 <Text style={[styles.mutedLabel, { color: theme.subText }]}>{t("wallet.depositScreen.transferContentLabel")}</Text>
                 <Text selectable style={[styles.transferCode, { color: theme.text }]}>{depositInfo.deposit_code}</Text>
               </View>
@@ -179,14 +179,14 @@ export default function DepositScreen({ navigation }) {
 
 function IntroCard({ theme, isDarkMode, icon, title, text }) {
   return (
-    <View style={[styles.intro, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.78)", borderColor: theme.border }]}> 
+    <View style={[styles.intro, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
       <View style={styles.introIcon}><Ionicons name={icon} size={26} color="#1476C6" /></View>
       <View style={styles.introCopy}><Text style={[styles.introTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.introText, { color: theme.subText }]}>{text}</Text></View>
     </View>
   );
 }
 function Label({ theme, text }) { return <Text style={[styles.label, { color: theme.text }]}>{text}</Text>; }
-function InfoBox({ theme, isDarkMode, text }) { return <View style={[styles.infoBox, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.86)" }]}><Ionicons name="information-circle-outline" size={20} color={theme.primary} /><Text style={[styles.infoText, { color: theme.subText }]}>{text}</Text></View>; }
+function InfoBox({ theme, isDarkMode, text }) { return <View style={[styles.infoBox, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC" }]}><Ionicons name="information-circle-outline" size={20} color={theme.primary} /><Text style={[styles.infoText, { color: theme.subText }]}>{text}</Text></View>; }
 function TransferRow({ theme, label, value }) { return <View style={[styles.transferRow, { borderBottomColor: theme.border }]}><Text style={[styles.mutedLabel, { color: theme.subText }]}>{label}</Text><Text selectable style={[styles.transferValue, { color: theme.text }]}>{value}</Text></View>; }
 function PrimaryButton({ title, icon, onPress, loading }) { return <TouchableOpacity disabled={loading} onPress={onPress} style={[styles.primaryButton, loading && { opacity: 0.65 }]}>{loading ? <ActivityIndicator color="#fff" /> : <Ionicons name={icon} size={20} color="#fff" />}<Text style={styles.primaryText}>{title}</Text></TouchableOpacity>; }
 
