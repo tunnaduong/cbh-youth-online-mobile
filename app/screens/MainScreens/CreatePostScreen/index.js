@@ -355,13 +355,14 @@ const CreatePostScreen = ({ navigation }) => {
           style={{ opacity: headerButtonOpacity }}
         >
           <TouchableOpacity
-            crollY={scrollY}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </TouchableOpacity>
         </Animated.View>
         <Animated.Text
+          pointerEvents="none"
           style={[
             styles.topTitle,
             {
