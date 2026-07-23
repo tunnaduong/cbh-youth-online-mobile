@@ -66,14 +66,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     scrollPositionRef.current = Math.max(0, offsetY);
     scrollY.setValue(offsetY);
 
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
   };
 

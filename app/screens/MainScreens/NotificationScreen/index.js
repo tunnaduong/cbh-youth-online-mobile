@@ -257,15 +257,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     scrollPositionRef.current = Math.max(0, offsetY);
     scrollY.setValue(offsetY);
 
-    // Auto hide bottom tab bar
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
 
     if (!refreshing) {

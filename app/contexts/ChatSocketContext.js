@@ -4,6 +4,8 @@ import { useAuthContext } from "./AuthContext";
 
 const ChatSocketContext = createContext(null);
 
+const TYPING_THROTTLE_MS = 2000;
+
 /**
  * Manages one Reverb presence-channel subscription per conversation id, shared across
  * screens (ChatScreen's conversation list and ConversationScreen's open thread can both
@@ -11,14 +13,20 @@ const ChatSocketContext = createContext(null);
  * torn down as soon as one consumer unmounts).
  */
 export const ChatSocketProvider = ({ children }) => {
-  const { isLoggedIn } = useAuthContext();
+  const { isLoggedIn, userInfo } = useAuthContext();
   const channelsRef = useRef({}); // id -> Echo presence channel
-  const listenersRef = useRef({}); // id -> { sent: Set, read: Set, deleted: Set }
+  const listenersRef = useRef({}); // id -> { sent: Set, read: Set, deleted: Set, typing: Set }
   const refCountRef = useRef({}); // id -> number of active listeners
+  const typingLastSentRef = useRef({}); // id -> timestamp of last "typing" whisper sent
 
   const ensureBucket = (id) => {
     if (!listenersRef.current[id]) {
-      listenersRef.current[id] = { sent: new Set(), read: new Set(), deleted: new Set() };
+      listenersRef.current[id] = {
+        sent: new Set(),
+        read: new Set(),
+        deleted: new Set(),
+        typing: new Set(),
+      };
     }
     return listenersRef.current[id];
   };
@@ -46,8 +54,12 @@ export const ChatSocketProvider = ({ children }) => {
       .listen(".message.deleted", (e) => {
         console.log("[ChatSocket] message.deleted on chat." + id, e);
         bucket.deleted.forEach((cb) => cb(e));
+      })
+      .listenForWhisper("typing", (data) => {
+        if (!data || String(data.user_id) === String(userInfo?.id)) return;
+        bucket.typing.forEach((cb) => cb(data));
       });
-  }, []);
+  }, [userInfo?.id]);
 
   const leaveChannel = useCallback((id) => {
     if (!channelsRef.current[id]) return;
@@ -55,6 +67,7 @@ export const ChatSocketProvider = ({ children }) => {
     delete channelsRef.current[id];
     delete listenersRef.current[id];
     delete refCountRef.current[id];
+    delete typingLastSentRef.current[id];
   }, []);
 
   const addListener = useCallback(
@@ -89,6 +102,31 @@ export const ChatSocketProvider = ({ children }) => {
     (conversationId, callback) => addListener("deleted", conversationId, callback),
     [addListener]
   );
+  const onTyping = useCallback(
+    (conversationId, callback) => addListener("typing", conversationId, callback),
+    [addListener]
+  );
+
+  const sendTyping = useCallback(
+    (conversationId) => {
+      if (!conversationId || !userInfo?.id) return;
+
+      const id = String(conversationId);
+      const channel = channelsRef.current[id];
+      if (!channel) return;
+
+      const now = Date.now();
+      const lastSent = typingLastSentRef.current[id] || 0;
+      if (now - lastSent < TYPING_THROTTLE_MS) return;
+      typingLastSentRef.current[id] = now;
+
+      channel.whisper("typing", {
+        user_id: userInfo.id,
+        name: userInfo.profile_name || userInfo.username,
+      });
+    },
+    [userInfo?.id, userInfo?.profile_name, userInfo?.username]
+  );
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -104,7 +142,13 @@ export const ChatSocketProvider = ({ children }) => {
     };
   }, [leaveChannel]);
 
-  const value = { onMessageSent, onMessageRead, onMessageDeleted };
+  const value = {
+    onMessageSent,
+    onMessageRead,
+    onMessageDeleted,
+    onTyping,
+    sendTyping,
+  };
 
   return (
     <ChatSocketContext.Provider value={value}>{children}</ChatSocketContext.Provider>

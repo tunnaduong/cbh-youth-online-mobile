@@ -152,7 +152,10 @@ const ConversationScreen = ({ navigation, route }) => {
     useState(conversationId);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t } = useTranslation();
-  const { onMessageSent, onMessageRead, onMessageDeleted } = useChatSocket();
+  const { onMessageSent, onMessageRead, onMessageDeleted, onTyping, sendTyping } =
+    useChatSocket();
+  const [typingUser, setTypingUser] = useState(null);
+  const typingTimeoutRef = useRef(null);
 
   // Keep the header visually light until the user scrolls enough.
   // This mirrors the other screens: the back button stays visible, while the
@@ -433,6 +436,10 @@ const ConversationScreen = ({ navigation, route }) => {
 
     const refresh = () => fetchMessagesRef.current(true, true);
     const refreshAndScroll = () => {
+      // A real message arrived, so any "typing..." bubble for this conversation is stale.
+      clearTimeout(typingTimeoutRef.current);
+      setTypingUser(null);
+
       // Wait for the fetch (and the setMessages it triggers) to actually complete
       // before scrolling - otherwise this scrolls to the end of the *old* list,
       // before the new message has been added to state.
@@ -448,14 +455,25 @@ const ConversationScreen = ({ navigation, route }) => {
         );
       });
     };
+    const handleTyping = (data) => {
+      setTypingUser({ name: data?.name });
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        setTypingUser(null);
+      }, 4000);
+    };
     const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
     const unsubscribeRead = onMessageRead(activeId, refresh);
     const unsubscribeDeleted = onMessageDeleted(activeId, refresh);
+    const unsubscribeTyping = onTyping(activeId, handleTyping);
 
     return () => {
       unsubscribeSent();
       unsubscribeRead();
       unsubscribeDeleted();
+      unsubscribeTyping();
+      clearTimeout(typingTimeoutRef.current);
+      setTypingUser(null);
     };
   }, [
     isNewConversation,
@@ -464,6 +482,7 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageSent,
     onMessageRead,
     onMessageDeleted,
+    onTyping,
   ]);
 
   const scrollToLatestMessage = () => {
@@ -1352,7 +1371,6 @@ const ConversationScreen = ({ navigation, route }) => {
                 navigation.navigate("ProfileScreen", { username: otherUser?.username })
               }
               size={BUTTON_SIZE}
-              scrollY={scrollY}
               style={[
                 styles.headerCenterPill,
                 {
@@ -1436,6 +1454,21 @@ const ConversationScreen = ({ navigation, route }) => {
               {renderMessage(value, index)}
             </React.Fragment>
           ))}
+          {typingUser && (
+            <Text
+              style={{
+                fontSize: 12,
+                fontStyle: "italic",
+                color: theme.subText,
+                paddingHorizontal: 12,
+                paddingTop: 4,
+              }}
+            >
+              {currentConversation?.type === "group" && typingUser.name
+                ? `${typingUser.name} ${t("chatConversation.isTyping", "đang nhập...")}`
+                : t("chatConversation.typing", "Đang nhập...")}
+            </Text>
+          )}
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
 
@@ -1464,7 +1497,10 @@ const ConversationScreen = ({ navigation, route }) => {
               ref={inputRef}
               placeholderText={t("chat.typeMessage")}
               onSubmit={handleSendMessage}
-              onChangeText={setMessage}
+              onChangeText={(text) => {
+                setMessage(text);
+                sendTyping(currentConversationId || conversationId);
+              }}
               value={message}
               disabled={!message.trim() || sending}
               isSubmitting={sending}
