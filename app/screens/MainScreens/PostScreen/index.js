@@ -1336,7 +1336,7 @@ const PostScreen = ({ route, navigation }) => {
           onSubmit={handleReportSubmit}
         />
 
-        {Platform.OS === "android" ? (
+        {Platform.OS != "android" ? (
           <KeyboardStickyView
             style={{
               position: "absolute",
@@ -1347,7 +1347,7 @@ const PostScreen = ({ route, navigation }) => {
               zIndex: 5,
               paddingBottom: insets.bottom,
             }}
-            offset={{ opened: 0 }}
+            offset={{ opened: 20 }}
           >
             <CommentBar
               statusText={

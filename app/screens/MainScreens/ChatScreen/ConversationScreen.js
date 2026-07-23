@@ -1340,7 +1340,7 @@ const ConversationScreen = ({ navigation, route }) => {
           style={styles.messagesList}
           contentContainerStyle={[
             styles.messagesContent,
-            { paddingTop: 120 + insets.bottom },
+            { paddingBottom: 100 },
           ]}
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
@@ -1356,7 +1356,7 @@ const ConversationScreen = ({ navigation, route }) => {
         </KeyboardChatScrollView>
 
         {/* Input Bar - positioned above messages */}
-        {isAndroid ? (
+        {!isAndroid ? (
           <KeyboardStickyView
             style={{
               position: "absolute",
@@ -1367,7 +1367,7 @@ const ConversationScreen = ({ navigation, route }) => {
               zIndex: 10,
               paddingBottom: insets.bottom,
             }}
-            offset={{ opened: 0 }}
+            offset={{ opened: 20 }}
           >
             <View
               style={{

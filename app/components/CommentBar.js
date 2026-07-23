@@ -156,7 +156,7 @@ const CommentBar = React.forwardRef(
                 color: theme.text,
                 minHeight: 28,
                 textAlignVertical: "center",
-                marginTop: 0,
+                paddingTop: 5,
               }}
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}
