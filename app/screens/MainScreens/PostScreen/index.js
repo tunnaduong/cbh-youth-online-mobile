@@ -1336,54 +1336,104 @@ const PostScreen = ({ route, navigation }) => {
           onSubmit={handleReportSubmit}
         />
 
-        <KeyboardStickyView
-          style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: "transparent",
-            zIndex: 5,
-            paddingBottom: insets.bottom,
-          }}
-          offset={{opened: 20}}
-        >
-          <CommentBar
-            statusText={
-              parentId || editingCommentId
-                ? editingCommentId
-                  ? t("post.editingComment")
-                  : t("post.replyingTo", { username: replyingTo })
-                : null
-            }
-            onClearStatus={() => {
-              setParentId(null);
-              setReplyingTo(null);
-              setEditingCommentId(null);
-              setEditingCommentText("");
-              setCommentText("");
-              setIsAnonymousComment(false);
+        {Platform.OS === "android" ? (
+          <KeyboardStickyView
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "transparent",
+              zIndex: 5,
+              paddingBottom: insets.bottom,
             }}
-            value={editingCommentId ? editingCommentText : commentText}
-            onChangeText={(text) =>
-              editingCommentId
-                ? setEditingCommentText(text)
-                : setCommentText(text)
-            }
-            placeholderText={t("post.commentPlaceholder")}
-            onSubmit={onSubmit}
-            ref={commentInputRef}
-            isSubmitting={isSubmitting}
-            disabled={
-              editingCommentId
-                ? !editingCommentText.trim()
-                : !commentText.trim()
-            }
-            isAnonymous={isAnonymousComment}
-            onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
-            anonymousDisabled={!!editingCommentId}
-          />
-        </KeyboardStickyView>
+            offset={{ opened: 0 }}
+          >
+            <CommentBar
+              statusText={
+                parentId || editingCommentId
+                  ? editingCommentId
+                    ? t("post.editingComment")
+                    : t("post.replyingTo", { username: replyingTo })
+                  : null
+              }
+              onClearStatus={() => {
+                setParentId(null);
+                setReplyingTo(null);
+                setEditingCommentId(null);
+                setEditingCommentText("");
+                setCommentText("");
+                setIsAnonymousComment(false);
+              }}
+              value={editingCommentId ? editingCommentText : commentText}
+              onChangeText={(text) =>
+                editingCommentId
+                  ? setEditingCommentText(text)
+                  : setCommentText(text)
+              }
+              placeholderText={t("post.commentPlaceholder")}
+              onSubmit={onSubmit}
+              ref={commentInputRef}
+              isSubmitting={isSubmitting}
+              disabled={
+                editingCommentId
+                  ? !editingCommentText.trim()
+                  : !commentText.trim()
+              }
+              isAnonymous={isAnonymousComment}
+              onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
+              anonymousDisabled={!!editingCommentId}
+            />
+          </KeyboardStickyView>
+        ) : (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "transparent",
+              zIndex: 5,
+              paddingBottom: insets.bottom,
+            }}
+          >
+            <CommentBar
+              statusText={
+                parentId || editingCommentId
+                  ? editingCommentId
+                    ? t("post.editingComment")
+                    : t("post.replyingTo", { username: replyingTo })
+                  : null
+              }
+              onClearStatus={() => {
+                setParentId(null);
+                setReplyingTo(null);
+                setEditingCommentId(null);
+                setEditingCommentText("");
+                setCommentText("");
+                setIsAnonymousComment(false);
+              }}
+              value={editingCommentId ? editingCommentText : commentText}
+              onChangeText={(text) =>
+                editingCommentId
+                  ? setEditingCommentText(text)
+                  : setCommentText(text)
+              }
+              placeholderText={t("post.commentPlaceholder")}
+              onSubmit={onSubmit}
+              ref={commentInputRef}
+              isSubmitting={isSubmitting}
+              disabled={
+                editingCommentId
+                  ? !editingCommentText.trim()
+                  : !commentText.trim()
+              }
+              isAnonymous={isAnonymousComment}
+              onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
+              anonymousDisabled={!!editingCommentId}
+            />
+          </View>
+        )}
       </View>
     </>
   );

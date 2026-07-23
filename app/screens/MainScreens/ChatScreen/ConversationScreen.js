@@ -116,6 +116,7 @@ const injectTimeHeaders = (messages, t) => {
 
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const isAndroid = Platform.OS === "android";
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
@@ -1351,18 +1352,69 @@ const ConversationScreen = ({ navigation, route }) => {
               {renderMessage(value, index)}
             </React.Fragment>
           ))}
+          <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
 
         {/* Input Bar - positioned above messages */}
-        <KeyboardStickyView offset={{ opened: 10 }}>
+        {isAndroid ? (
+          <KeyboardStickyView
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "transparent",
+              zIndex: 10,
+              paddingBottom: insets.bottom,
+            }}
+            offset={{ opened: 0 }}
+          >
+            <View
+              style={{
+                backgroundColor: "transparent",
+                paddingHorizontal: 12,
+                paddingTop: 0,
+                paddingBottom: 0,
+              }}
+            >
+              <CommentBar
+                ref={inputRef}
+                placeholderText={t("chat.typeMessage")}
+                onSubmit={handleSendMessage}
+                onChangeText={setMessage}
+                value={message}
+                disabled={!message.trim() || sending}
+                isSubmitting={sending}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingBottom: 0,
+                  paddingTop: 0,
+                  backgroundColor: "transparent",
+                  marginTop: 0,
+                }}
+                leftAccessory={
+                  <TouchableOpacity
+                    style={styles.attachButton}
+                    onPress={pickImage}
+                    disabled={sending}
+                  >
+                    <Ionicons
+                      name="image-outline"
+                      size={20}
+                      color={theme.subText}
+                    />
+                  </TouchableOpacity>
+                }
+                nativeID="chat-input"
+              />
+            </View>
+          </KeyboardStickyView>
+        ) : (
           <View
             style={{
               backgroundColor: "transparent",
               paddingHorizontal: 12,
-              paddingBottom:
-                Platform.OS === "ios"
-                  ? Math.max(insets.bottom - 8, 0)
-                  : Math.max(insets.bottom - 4, 0),
+              paddingBottom: Math.max(insets.bottom - 8, 0),
             }}
           >
             <CommentBar
@@ -1375,10 +1427,10 @@ const ConversationScreen = ({ navigation, route }) => {
               isSubmitting={sending}
               style={{
                 paddingHorizontal: 12,
-                paddingBottom: Platform.OS === "ios" ? 2 : 0,
-                paddingTop: Platform.OS === "ios" ? 2 : 0,
+                paddingBottom: 2,
+                paddingTop: 2,
                 backgroundColor: "transparent",
-                marginTop: Platform.OS === "ios" ? 0 : 0,
+                marginTop: 0,
               }}
               leftAccessory={
                 <TouchableOpacity
@@ -1396,7 +1448,7 @@ const ConversationScreen = ({ navigation, route }) => {
               nativeID="chat-input"
             />
           </View>
-        </KeyboardStickyView>
+        )}
       </KeyboardGestureArea>
       <KeyboardEffects>
         <View style={{ flex: 1, backgroundColor: "#868585" }} />

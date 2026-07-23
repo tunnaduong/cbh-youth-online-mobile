@@ -8,14 +8,13 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import { KeyboardStickyView } from "react-native-keyboard-controller";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { BlurView, LiquidGlassView, useIOSGlass } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
-const RootView = Platform.OS === "android" ? KeyboardStickyView : View;
+const RootView = View;
 
 const CommentBar = React.forwardRef(
   (
@@ -47,8 +46,8 @@ const CommentBar = React.forwardRef(
         style={[
           {
             paddingHorizontal: 20, // narrower width
-            paddingBottom: Platform.OS === 'ios' ? 4 : 8,
-            paddingTop: Platform.OS === 'ios' ? 2 : 4,
+            paddingBottom: isIOS ? 4 : 0,
+            paddingTop: isIOS ? 2 : 0,
             width: "100%",
             backgroundColor: "transparent",
           },
@@ -157,7 +156,7 @@ const CommentBar = React.forwardRef(
                 color: theme.text,
                 minHeight: 28,
                 textAlignVertical: "center",
-                marginTop: 5 
+                marginTop: 0,
               }}
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}
