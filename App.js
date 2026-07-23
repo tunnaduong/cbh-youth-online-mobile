@@ -203,6 +203,7 @@ const parseDeepLink = (url) => {
 // Main App component
 const App = () => {
   const { theme, isDarkMode } = useTheme();
+  const { barStyle, backgroundColor: statusBarColor } = useStatusBar();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
@@ -301,8 +302,8 @@ const App = () => {
   return (
     <>
       <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor="transparent"
+        barStyle={barStyle || (isDarkMode ? "light-content" : "dark-content")}
+        backgroundColor={statusBarColor || "transparent"}
         translucent={true}
         animated={true}
       />
