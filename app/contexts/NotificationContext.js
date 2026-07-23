@@ -24,9 +24,9 @@ export const NotificationProvider = ({ children }) => {
 
   // Register push token when user logs in
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && !expoPushToken && !isRegistering) {
       registerPushToken();
-    } else {
+    } else if (!isLoggedIn) {
       // Unregister when user logs out
       if (registeredTokenRef.current) {
         unregisterPushToken(registeredTokenRef.current);
@@ -42,7 +42,7 @@ export const NotificationProvider = ({ children }) => {
         notificationListeners.current = [];
       }
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, expoPushToken, isRegistering]);
 
   // Set up notification listeners
   useEffect(() => {
@@ -89,9 +89,11 @@ export const NotificationProvider = ({ children }) => {
 
     try {
       setIsRegistering(true);
+      console.log("Starting push token registration...");
 
       // Get Expo push token
       const token = await getExpoPushToken();
+      console.log("Received push token:", token);
       if (!token) {
         console.warn('Failed to get Expo push token');
         setIsRegistering(false);
@@ -106,6 +108,7 @@ export const NotificationProvider = ({ children }) => {
 
       // Register token with backend
       try {
+        console.log('Registering token with backend...', { token, deviceType });
         await registerExpoPushToken({
           expo_push_token: token,
           device_type: deviceType,
@@ -136,14 +139,18 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const handleNotificationReceived = (notification) => {
-    console.log('Notification received:', notification);
+    console.log('Notification received callback fired:', notification);
+    if (notification?.request?.content) {
+      console.log('Notification content:', notification.request.content);
+    }
     // You can add custom logic here, like updating local state
     // or showing an in-app notification
   };
 
   const handleNotificationTapped = (response) => {
-    console.log('Notification tapped:', response);
-    const data = response.notification.request.content.data;
+    console.log('Notification tapped callback fired:', response);
+    const data = response.notification?.request?.content?.data;
+    console.log('Notification tap data:', data);
 
     // Handle navigation based on notification data
     // This will be handled by the navigation system

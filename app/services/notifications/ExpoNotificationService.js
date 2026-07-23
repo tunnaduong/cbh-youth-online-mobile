@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // Configure how notifications are handled when app is in foreground
@@ -9,6 +10,15 @@ Notifications.setNotificationHandler({
     shouldSetBadge: true,
   }),
 });
+
+function getExpoProjectId() {
+  return (
+    Constants.expoConfig?.projectId ||
+    Constants.expoConfig?.extra?.eas?.projectId ||
+    Constants.manifest?.extra?.eas?.projectId ||
+    null
+  );
+}
 
 /**
  * Request notification permissions
@@ -36,6 +46,11 @@ export async function requestNotificationPermissions() {
       finalStatus = status;
     }
 
+    console.log("Notification permission status:", {
+      existingStatus,
+      finalStatus,
+    });
+
     if (finalStatus !== "granted") {
       console.warn("Failed to get push token for push notification!");
       return false;
@@ -54,15 +69,35 @@ export async function requestNotificationPermissions() {
  */
 export async function getExpoPushToken() {
   try {
+    if (!Constants.isDevice) {
+      console.warn("Push notifications require a physical device.");
+      return null;
+    }
+
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
       return null;
     }
 
+    const projectId = getExpoProjectId();
+    if (!projectId) {
+      console.warn(
+        "Expo projectId is missing from app config. Add expo.projectId to app.json."
+      );
+    }
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: "172eec8c-8c58-453c-a375-258412496e09",
+      projectId: projectId || "172eec8c-8c58-453c-a375-258412496e09",
     });
 
+    console.log("Expo push token response:", tokenData);
+
+    if (!tokenData?.data) {
+      console.error("Expo push token response missing data:", tokenData);
+      return null;
+    }
+
+    console.log("Expo push token obtained:", tokenData.data);
     return tokenData.data;
   } catch (error) {
     console.error("Error getting Expo push token:", error);
@@ -115,6 +150,21 @@ export function setupNotificationListeners(
     });
 
   subscriptions.push(receivedSubscription, responseSubscription);
+
+  Notifications.getLastNotificationResponseAsync()
+    .then((response) => {
+      if (response) {
+        console.log("Initial notification response:", response);
+        if (onNotificationTapped) {
+          onNotificationTapped(response);
+        }
+      } else {
+        console.log("No initial notification response on startup.");
+      }
+    })
+    .catch((error) => {
+      console.error("Error getting last notification response:", error);
+    });
 
   return subscriptions;
 }
