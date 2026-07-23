@@ -8,6 +8,9 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  Animated,
+  StatusBar,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -39,6 +42,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import { BlurView, LiquidGlassView, useIOSGlass } from "../../../components/GlassModules";
+import LiquidButton from "../../../components/LiquidButton";
 import {
   KeyboardChatScrollView,
   KeyboardStickyView,
@@ -118,6 +122,12 @@ const injectTimeHeaders = (messages, t) => {
 
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const BUTTON_SIZE = 47;
+  const HEADER_HEIGHT = BUTTON_SIZE + 14 + insets.top;
+  const CENTER_MAX_WIDTH = Dimensions.get("window").width - BUTTON_SIZE * 2 - 32;
+  // Reserve space for avatar + small gap inside the pill so text never pushes avatar out
+  const AVATAR_WRAPPER_SIZE = 40;
+  const CENTER_TEXT_MAX = Math.max(80, CENTER_MAX_WIDTH - (AVATAR_WRAPPER_SIZE + 12));
   const isAndroid = Platform.OS === "android";
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
@@ -143,6 +153,23 @@ const ConversationScreen = ({ navigation, route }) => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t } = useTranslation();
   const { onMessageSent, onMessageRead, onMessageDeleted } = useChatSocket();
+
+  // Keep the header visually light until the user scrolls enough.
+  // This mirrors the other screens: the back button stays visible, while the
+  // profile/title area fades in only after scrolling.
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const centerOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -459,7 +486,9 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const handleMessagesScroll = ({ nativeEvent }) => {
-    const isNearTop = nativeEvent.contentOffset.y <= 40;
+    const offsetY = nativeEvent.contentOffset.y;
+    scrollY.setValue(offsetY);
+    const isNearTop = offsetY <= 40;
     if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
       fetchMessages(false);
@@ -1301,81 +1330,88 @@ const ConversationScreen = ({ navigation, route }) => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header */}
       <View
+        pointerEvents="box-none"
         style={[
-          styles.header,
+          styles.headerOverlay,
           {
             paddingTop: insets.top,
-            height: 54 + insets.top,
-            paddingBottom: 4,
-            backgroundColor: theme.background,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderBottomColor: theme.border,
-            elevation: 0,
-            shadowOpacity: 0,
+            height: HEADER_HEIGHT,
+            backgroundColor: "transparent",
           },
         ]}
       >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          style={styles.headerIconLeft}
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <LiquidButton size={BUTTON_SIZE} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={theme.primary} />
+          </LiquidButton>
 
-        <TouchableOpacity
-          onPress={() =>
-            currentConversation?.type !== "group" &&
-            navigation.navigate("ProfileScreen", {
-              username: otherUser?.username,
-            })
-          }
-          style={styles.headerTitleContainer}
-        >
-          <View style={styles.headerAvatarWrapper}>
-            <Image
-              source={
-                getHeaderAvatar() === "local:chat.jpg"
-                  ? require("../../../assets/chat.jpg")
-                  : {
-                      uri:
-                        getHeaderAvatar() ||
-                        "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                    }
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} pointerEvents="box-none">
+            <LiquidButton
+              onPress={() =>
+                currentConversation?.type !== "group" &&
+                navigation.navigate("ProfileScreen", { username: otherUser?.username })
               }
-              style={styles.headerAvatarLarge}
-            />
+              size={BUTTON_SIZE}
+              style={[
+                styles.headerCenterPill,
+                {
+                  borderColor: theme.border,
+                  backgroundColor: "transparent",
+                  height: BUTTON_SIZE,
+                  borderRadius: BUTTON_SIZE / 2,
+                  paddingHorizontal: 12,
+                  maxWidth: CENTER_MAX_WIDTH,
+                },
+              ]}
+            >
+              <View style={styles.headerAvatarWrapper}>
+                <Image
+                  source={
+                    getHeaderAvatar() === "local:chat.jpg"
+                      ? require("../../../assets/chat.jpg")
+                      : { uri: getHeaderAvatar() || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg" }
+                  }
+                  style={styles.headerAvatarLarge}
+                />
+              </View>
+              <View style={[styles.headerTextContainer, { maxWidth: CENTER_TEXT_MAX, flexShrink: 1 }]}> 
+                <Text
+                  style={[styles.headerName, { color: theme.text }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {isNewConversation
+                    ? selectedUser.profile_name
+                    : currentConversation?.type === "group"
+                      ? currentConversation?.name
+                          ?.trim()
+                          .normalize("NFC")
+                          .toLowerCase() === "tán gẫu linh tinh"
+                        ? t("chatConversation.casualGroupName")
+                        : currentConversation?.name || t("chatConversation.casualGroupName")
+                      : currentConversation?.participants[0]?.profile_name}
+                </Text>
+                <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
+                  {currentConversation?.type === "group"
+                    ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
+                    : "@" + otherUser?.username || ""}
+                </Text>
+              </View>
+            </LiquidButton>
           </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={[styles.headerName, { color: theme.text }]}>
-              {isNewConversation
-                ? selectedUser.profile_name
-                : currentConversation?.type === "group"
-                  ? currentConversation?.name
-                      ?.trim()
-                      .normalize("NFC")
-                      .toLowerCase() === "tán gẫu linh tinh"
-                    ? t("chatConversation.casualGroupName")
-                    : currentConversation?.name ||
-                      t("chatConversation.casualGroupName")
-                  : currentConversation?.participants[0]?.profile_name}
-            </Text>
-            <Text style={[styles.headerSubtitle, { color: theme.subText }]}>
-              {currentConversation?.type === "group"
-                ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
-                : "@" + otherUser?.username || ""}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={showOptions} style={styles.headerIconRight}>
-          <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
-        </TouchableOpacity>
+
+          <LiquidButton size={BUTTON_SIZE} onPress={showOptions}>
+            <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
+          </LiquidButton>
+        </View>
       </View>
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
       />
+
+      {/* (profile block and floating button moved into header) */}
 
       <KeyboardGestureArea
         interpolator="ios"
@@ -1388,7 +1424,7 @@ const ConversationScreen = ({ navigation, route }) => {
           style={styles.messagesList}
           contentContainerStyle={[
             styles.messagesContent,
-            { paddingBottom: 100 },
+            { paddingTop: HEADER_HEIGHT + 12, paddingBottom: 100 },
           ]}
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
@@ -1465,12 +1501,60 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  headerOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  headerBackground: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  headerContent: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 12,
     justifyContent: "space-between",
-    borderBottomWidth: 0,
+    height: "100%",
+  },
+  headerCenterContent: {
+    flex: 1,
+    marginHorizontal: 8,
+  },
+  headerRightAction: {
+    width: 44,
+    alignItems: "flex-end",
+  },
+  headerCenterPill: {
+    width: 'auto',
+    paddingHorizontal: 12,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  floatingOptions: {
+    position: "absolute",
+    right: 12,
+    top: "40%",
+    zIndex: 11,
+  },
+  floatingOptionsInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(0,0,0,0.25)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerProfile: {
     position: "absolute",
@@ -1487,42 +1571,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerAvatarWrapper: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     overflow: "hidden",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 10,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    backgroundColor: "transparent",
   },
   headerAvatarLarge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   headerTextContainer: {
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
-  headerIconLeft: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerIconRight: {
-    width: 36,
-    height: 36,
     alignItems: "center",
     justifyContent: "center",
   },
   headerName: {
     fontSize: 16,
     fontWeight: "700",
-    textAlign: "left",
+    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 12,
