@@ -457,14 +457,14 @@ const PostEditScreen = ({ navigation, route }) => {
           </View>
         </LinearGradient>
 
-        <View style={[styles.card, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.96)', borderColor: isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)', shadowColor: '#0F172A', shadowOpacity: isDarkMode ? 0.24 : 0.16, shadowRadius: 22, shadowOffset: { width: 0, height: 12 }, elevation: 6 }]}> 
+        <View style={[styles.card, { backgroundColor: isDarkMode ? theme.cardBackground : 'rgba(255,255,255,0.96)', borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', shadowColor: '#0F172A', shadowOpacity: isDarkMode ? 0.24 : 0.16, shadowRadius: 22, shadowOffset: { width: 0, height: 12 }, elevation: 6 }]}> 
           <View style={styles.profileRow}>
             {isAnonymous ? (
               <View style={[styles.avatar, { backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9' }]}> 
                 <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 32 }}>?</Text>
               </View>
             ) : (
-              <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar` }} style={styles.avatarImage} />
+              <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar` }} style={[styles.avatarImage, { borderColor: isDarkMode ? theme.border : '#D1D5DB' }]} />
             )}
             <View style={{ flex: 1 }}>
               <Text style={[styles.profileName, { color: theme.text }]} numberOfLines={1}>
@@ -476,7 +476,7 @@ const PostEditScreen = ({ navigation, route }) => {
                 placeholder={viewOptions[0]?.label || t('createPost.privacyPublic')}
                 selectedValue={viewSelected}
                 onValueChange={setViewSelected}
-                style={styles.dropdown}
+                style={[styles.dropdown, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.72)' }]}
                 leftIcon={<Ionicons name={viewSelected?.icon || 'earth'} size={15} color={theme.subText} />}
                 textStyle={{ fontSize: 12, color: theme.subText }}
                 arrowSize={15}
@@ -484,7 +484,7 @@ const PostEditScreen = ({ navigation, route }) => {
             </View>
           </View>
 
-          <View style={[styles.inputGroup, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(248,250,252,0.98)', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)' }]}> 
+          <View style={[styles.inputGroup, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.98)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.05)' }]}> 
             <TextInput
               style={[styles.titleInput, { color: theme.text }]}
               placeholder={t('editPost.placeholderTitle')}
@@ -504,7 +504,7 @@ const PostEditScreen = ({ navigation, route }) => {
             />
           </View>
 
-          <View style={[styles.toggleCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(248,250,252,0.92)', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.08)', opacity: 0.7 }]}> 
+          <View style={[styles.toggleCard, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.92)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', opacity: 0.7 }]}> 
             <View style={{ flex: 1 }}>
               <Text style={[styles.toggleTitle, { color: theme.text, opacity: 0.75 }]}>{t('createPost.anonymous')}</Text>
               <Text style={[styles.toggleText, { color: theme.subText, opacity: 0.75 }]}>{t('createPost.anonymousDesc')}</Text>
@@ -519,11 +519,11 @@ const PostEditScreen = ({ navigation, route }) => {
           </View>
 
           <View style={styles.inlineButtons}>
-            <TouchableOpacity onPress={() => navigateToHelp(213057)} style={[styles.inlineButton, { borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.07)', backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.98)' }]}> 
+            <TouchableOpacity onPress={() => navigateToHelp(213057)} style={[styles.inlineButton, { borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.07)', backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.98)' }]}> 
               <Ionicons name="logo-markdown" size={15} color={theme.primary} />
               <Text style={[styles.inlineButtonText, { color: theme.text }]}>{t('editPost.markdown')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigateToHelp(213054)} style={[styles.inlineButton, { borderColor: theme.border, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.96)' }]}> 
+            <TouchableOpacity onPress={() => navigateToHelp(213054)} style={[styles.inlineButton, { borderColor: theme.border, backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.96)' }]}> 
               <Ionicons name="warning" size={16} color={theme.primary} />
               <Text style={[styles.inlineButtonText, { color: theme.text }]}>{t('editPost.rules')}</Text>
             </TouchableOpacity>
@@ -532,7 +532,7 @@ const PostEditScreen = ({ navigation, route }) => {
           {selectedDocuments.length > 0 && (
             <View style={styles.fileList}>
               {selectedDocuments.map((doc, index) => (
-                <View key={index} style={[styles.fileItem, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.86)' }]}> 
+                <View key={index} style={[styles.fileItem, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.86)' }]}> 
                   <Ionicons name="document-text-outline" size={20} color={theme.primary} />
                   <Text style={[styles.fileName, { color: theme.text }]} numberOfLines={1}>{doc.name}</Text>
                   <TouchableOpacity onPress={() => removeDocument(index)}>
@@ -547,7 +547,7 @@ const PostEditScreen = ({ navigation, route }) => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mediaRow}>
               {selectedImages.map((img, index) => (
                 <View key={`image-${index}-${img.uri}`} style={styles.mediaThumb}>
-                  <Image source={{ uri: img.uri }} style={styles.mediaImage} />
+                  <Image source={{ uri: img.uri }} style={[styles.mediaImage, { borderColor: isDarkMode ? theme.border : '#E5E7EB' }]} />
                   <TouchableOpacity onPress={() => removeImage(index)} style={styles.removeButton}>
                     <Ionicons name="trash" size={16} color="#fff" />
                   </TouchableOpacity>
@@ -560,11 +560,11 @@ const PostEditScreen = ({ navigation, route }) => {
             </ScrollView>
           ) : (
             <View style={styles.mediaPickerRow}>
-              <TouchableOpacity onPress={pickImage} style={[styles.mediaPickerTile, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.98)', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)' }]}> 
+              <TouchableOpacity onPress={pickImage} style={[styles.mediaPickerTile, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.98)', borderWidth: 1, borderColor: isDarkMode ? theme.border : '#D1D5DB' }]}> 
                 <Ionicons name="image-outline" size={28} color={theme.primary} />
                 <Text style={[styles.mediaPickerText, { color: theme.primary }]}>{t('editPost.addImage') || t('createPost.addImage') || 'Thêm ảnh'}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={pickDocument} style={[styles.mediaPickerTile, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.98)', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)' }]}> 
+              <TouchableOpacity onPress={pickDocument} style={[styles.mediaPickerTile, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.98)', borderWidth: 1, borderColor: isDarkMode ? theme.border : '#D1D5DB' }]}> 
                 <Ionicons name="document-attach-outline" size={28} color={theme.primary} />
                 <Text style={[styles.mediaPickerText, { color: theme.primary }]}>{t('createPost.addDocument') || 'Thêm tài liệu'}</Text>
               </TouchableOpacity>
