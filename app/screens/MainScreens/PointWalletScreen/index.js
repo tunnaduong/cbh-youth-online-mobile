@@ -157,7 +157,7 @@ export default function PointWalletScreen({ navigation }) {
           {t("wallet.title")}
         </Animated.Text>
 
-        <View style={[styles.heroCard, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.78)", borderColor: theme.border }]}> 
+        <View style={[styles.heroCard, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderColor: theme.border }]}> 
           <Text style={[styles.heroTitle, { color: theme.text }]}>{t("wallet.currentBalance")}</Text>
           <Text style={[styles.heroText, { color: theme.subText }]}>{t("wallet.minWithdrawal", { points: formatNumber(balance?.min_withdrawal_points, lang), vnd: balance?.min_withdrawal_vnd ? t("wallet.minWithdrawalVnd", { value: formatNumber(balance.min_withdrawal_vnd, lang) }) : "" })}</Text>
         </View>
@@ -192,12 +192,12 @@ export default function PointWalletScreen({ navigation }) {
         </View>
 
         <SectionTitle icon="swap-vertical-outline" title={t("wallet.transactionHistory")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.78)", borderColor: theme.border }]}> 
+        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
           {transactions.length === 0 ? (
             <EmptyState text={t("wallet.emptyTransactions")} theme={theme} />
           ) : (
             transactions.map((transaction, index) => (
-              <View key={transaction.id || `${transaction.created_at}-${index}`} style={[styles.transactionRow, index < transactions.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}> 
+              <View key={transaction.id || `${transaction.created_at}-${index}`} style={[styles.transactionRow, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "#FFFFFF" }, index < transactions.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}> 
                 <View style={[styles.transactionIcon, { backgroundColor: transaction.amount > 0 ? "#EAF8EE" : "#FEF0F0" }]}> 
                   <Ionicons name={transaction.amount > 0 ? "arrow-down-outline" : "arrow-up-outline"} size={18} color={transaction.amount > 0 ? "#168348" : "#DC2626"} />
                 </View>
@@ -212,12 +212,12 @@ export default function PointWalletScreen({ navigation }) {
         </View>
 
         <SectionTitle icon="time-outline" title={t("wallet.withdrawalRequests")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.78)", borderColor: theme.border }]}> 
+        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
           {withdrawalRequests.length === 0 ? (
             <EmptyState text={t("wallet.emptyWithdrawalRequests")} theme={theme} />
           ) : (
             withdrawalRequests.map((request, index) => (
-              <View key={request.id || index} style={[styles.withdrawalRow, index < withdrawalRequests.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}> 
+              <View key={request.id || index} style={[styles.withdrawalRow, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.03)" : "#FFFFFF" }, index < withdrawalRequests.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}> 
                 <View style={styles.withdrawalHeader}>
                   <Text style={[styles.withdrawalAmount, { color: theme.text }]}>{t("wallet.withdrawAmount", { value: formatNumber(request.amount, lang) })}</Text>
                   <Text style={{ color: statusColors[request.status] || theme.subText, fontWeight: "700", fontSize: 12 }}>{t(`wallet.status.${request.status}`, { defaultValue: request.status })}</Text>

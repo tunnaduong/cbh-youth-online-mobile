@@ -116,7 +116,7 @@ export default function WithdrawScreen({ navigation }) {
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.approxVnd", { value: `${formatNumber(balance?.vnd, lang)} VND` })}</Text>
           </View>
         </LinearGradient>
-        <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.78)", borderColor: theme.border }]}> 
+        <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
           <Text style={[styles.title, { color: theme.text }]}>{t("wallet.withdrawScreen.formTitle")}</Text>
           <Text style={[styles.description, { color: theme.subText }]}>{t("wallet.withdrawScreen.formDescription")}</Text>
           <Label theme={theme} text={t("wallet.withdrawScreen.amountLabel")} />
@@ -130,7 +130,7 @@ export default function WithdrawScreen({ navigation }) {
           <TextInput value={bankName} onChangeText={setBankName} placeholder={t("wallet.withdrawScreen.bankNamePlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
           <Label theme={theme} text={t("wallet.withdrawScreen.accountHolderLabel")} />
           <TextInput value={accountHolder} onChangeText={setAccountHolder} autoCapitalize="characters" placeholder={t("wallet.withdrawScreen.accountHolderPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
-          <View style={[styles.notice, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.86)" }]}><Ionicons name="information-circle-outline" size={20} color="#D97706" /><Text style={[styles.noticeText, { color: theme.subText }]}>{t("wallet.withdrawScreen.notice")}</Text></View>
+          <View style={[styles.notice, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC" }]}><Ionicons name="information-circle-outline" size={20} color="#D97706" /><Text style={[styles.noticeText, { color: theme.subText }]}>{t("wallet.withdrawScreen.notice")}</Text></View>
           <TouchableOpacity disabled={submitting} onPress={handleSubmit} style={[styles.submit, submitting && { opacity: 0.65 }]}>{submitting ? <ActivityIndicator color="#fff" /> : <Ionicons name="send-outline" size={20} color="#fff" />}<Text style={styles.submitText}>{submitting ? t("wallet.withdrawScreen.submitting") : t("wallet.withdrawScreen.submit")}</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.cancel}><Text style={[styles.cancelText, { color: theme.subText }]}>{t("wallet.withdrawScreen.cancel")}</Text></TouchableOpacity>
         </View>

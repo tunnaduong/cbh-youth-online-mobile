@@ -32,6 +32,7 @@ import FastImage from "../../../components/FastImage";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { LinearGradient } from "expo-linear-gradient";
 import LiquidButton from "../../../components/LiquidButton";
 
 const PostEditScreen = ({ navigation, route }) => {
@@ -49,11 +50,22 @@ const PostEditScreen = ({ navigation, route }) => {
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = 64 + insets.top;
-  const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 10, 50],
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, 140],
+    outputRange: [0, -12],
+    extrapolate: "clamp",
+  });
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 120, 180],
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 24, 48],
+    outputRange: [1, 0.5, 0],
+    extrapolate: "clamp",
+  });
+  const headerButtonOpacity = headerOpacity;
 
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [viewSelected, setViewSelected] = useState(null);
@@ -275,11 +287,11 @@ const PostEditScreen = ({ navigation, route }) => {
       const keptDocumentIds = selectedDocuments.filter(doc => doc.id).map(doc => doc.id);
 
       // Handle new images that need to be uploaded
-      const newImages = selectedImages.filter(img => !img.id);
+      const newImages = selectedImages.filter((img) => !img.id && img.uri);
       for (const img of newImages) {
         const imageUri = img.uri;
         const formData = new FormData();
-        const fileExtension = imageUri.split(".").pop();
+        const fileExtension = imageUri?.split(".").pop() || "jpg";
         let mimeType = "image/jpeg";
         if (fileExtension === "png") {
           mimeType = "image/png";
@@ -299,14 +311,14 @@ const PostEditScreen = ({ navigation, route }) => {
       }
 
       // Handle new documents
-      const newDocs = selectedDocuments.filter(doc => !doc.id);
+      const newDocs = selectedDocuments.filter((doc) => !doc.id && doc.uri);
       for (const dock of newDocs) {
         const formData = new FormData();
 
         formData.append("uid", userInfo.id);
         formData.append("file", {
           uri: dock.uri,
-          name: dock.name,
+          name: dock.name || `document.${dock.uri?.split(".").pop() || "bin"}`,
           type: dock.mimeType || "application/octet-stream",
         });
 
@@ -397,182 +409,132 @@ const PostEditScreen = ({ navigation, route }) => {
     <>
       <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
 
-      {/* Floating header */}
-      <View pointerEvents="box-none" style={styles.floatingHeader}>
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
-          <View style={{ width: 44 }}>
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-              <Ionicons name="chevron-back" size={24} color={theme.primary} />
-            </LiquidButton>
-          </View>
-          <Animated.Text
-            style={{
-              fontSize: 18,
-              fontWeight: "600",
-              color: theme.primary,
-              flex: 1,
-              textAlign: "center",
-              opacity: headerTitleOpacity,
-            }}
-            numberOfLines={1}
-          >
-            {t('editPost.title')}
-          </Animated.Text>
-          <LiquidButton
-            scrollY={scrollY}
-            alwaysBorder
-            size={44}
-            style={{ width: "auto", paddingHorizontal: 16, height: 44, borderWidth: 1, borderColor: theme.primary, backgroundColor: "transparent" }}
-            borderRadius={22}
-            onPress={handleUpdate}
-          >
-            <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
-              {t('editPost.save')}
-            </Text>
+      <Animated.View
+        style={[
+          styles.topBar,
+          {
+            paddingTop: insets.top + 8,
+            height: insets.top + 88,
+            backgroundColor: 'transparent',
+            opacity: headerOpacity,
+            transform: [{ translateY: headerTranslateY }],
+            shadowOpacity: 0,
+            elevation: 0,
+            borderBottomWidth: 0,
+          },
+        ]}
+        pointerEvents="box-none"
+      >
+        <Animated.View style={{ opacity: headerButtonOpacity }}>
+          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
+            <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
-        </View>
-      </View>
+        </Animated.View>
+        <Animated.Text style={[styles.topTitle, { opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
+        <Animated.View style={{ opacity: headerButtonOpacity }}>
+          <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdate} roundedOnScroll style={styles.publishButton}>
+            <Text style={[styles.publishButtonText, { color: theme.primary }]}>{t('editPost.save')}</Text>
+          </LiquidButton>
+        </Animated.View>
+      </Animated.View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
+        contentContainerStyle={{ paddingTop: insets.top + 92, paddingBottom: insets.bottom + 24 }}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 10,
-            paddingTop: 16,
-            paddingLeft: 16,
-            backgroundColor: theme.background,
-          }}
-          pointerEvents="box-none"
+        <LinearGradient
+          colors={isDarkMode ? ['#173C2B', '#0F261D'] : ['#2BAA5C', '#1A874A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.heroCard}
         >
-          {isAnonymous ? (
-            <View style={{ width: 70, height: 70, backgroundColor: theme.iconBackground, borderRadius: 35, alignItems: 'center', justifyContent: 'center', borderColor: theme.border, borderWidth: 1 }}>
-              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 36 }}>?</Text>
+          <View style={styles.heroIcon}><Ionicons name="create-outline" size={24} color="#FFFFFF" /></View>
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroTitle}>{t('editPost.title')}</Text>
+            <Text style={styles.heroSubtitle}>{t('editPost.placeholderContent')}</Text>
+          </View>
+        </LinearGradient>
+
+        <View style={[styles.card, { backgroundColor: isDarkMode ? theme.cardBackground : 'rgba(255,255,255,0.96)', borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', shadowColor: '#0F172A', shadowOpacity: isDarkMode ? 0.24 : 0.16, shadowRadius: 22, shadowOffset: { width: 0, height: 12 }, elevation: 6 }]}> 
+          <View style={styles.profileRow}>
+            {isAnonymous ? (
+              <View style={[styles.avatar, { backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9' }]}> 
+                <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 32 }}>?</Text>
+              </View>
+            ) : (
+              <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar` }} style={[styles.avatarImage, { borderColor: isDarkMode ? theme.border : '#D1D5DB' }]} />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.profileName, { color: theme.text }]} numberOfLines={1}>
+                {isAnonymous ? t('createPost.anonymousUser') : profileName}
+                {userInfo.verified && !isAnonymous && <Verified width={18} height={18} color={theme.primary} style={{ marginBottom: -4, marginLeft: 4 }} />}
+              </Text>
+              <Dropdown
+                options={viewOptions}
+                placeholder={viewOptions[0]?.label || t('createPost.privacyPublic')}
+                selectedValue={viewSelected}
+                onValueChange={setViewSelected}
+                style={[styles.dropdown, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.72)' }]}
+                leftIcon={<Ionicons name={viewSelected?.icon || 'earth'} size={15} color={theme.subText} />}
+                textStyle={{ fontSize: 12, color: theme.subText }}
+                arrowSize={15}
+              />
             </View>
-          ) : (
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={{
-                width: 70,
-                height: 70,
-                borderRadius: 35,
-                borderColor: theme.border,
-                borderWidth: 1,
-              }}
+          </View>
+
+          <View style={[styles.inputGroup, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.98)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.05)' }]}> 
+            <TextInput
+              style={[styles.titleInput, { color: theme.text }]}
+              placeholder={t('editPost.placeholderTitle')}
+              placeholderTextColor={theme.subText}
+              value={title}
+              onChangeText={setTitle}
             />
-          )}
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontWeight: '500', fontSize: 18, color: theme.text }} numberOfLines={1}>
-              {isAnonymous ? t('createPost.anonymousUser') : profileName}
-              {userInfo.verified && !isAnonymous && (
-                <View>
-                  <Verified
-                    width={20}
-                    height={20}
-                    color={theme.primary}
-                    style={{ marginBottom: -5 }}
-                  />
-                </View>
-              )}
-            </Text>
-            <Dropdown
-              options={viewOptions}
-              placeholder={viewOptions[0].label}
-              selectedValue={viewSelected}
-              onValueChange={setViewSelected}
-              style={{
-                borderWidth: 0,
-                backgroundColor: theme.iconBackground,
-                padding: 6,
-                borderRadius: 8,
-                gap: 3,
-                alignSelf: "flex-start",
-              }}
-              leftIcon={
-                <Ionicons
-                  name={viewSelected?.icon || "earth"}
-                  size={15}
-                  color={theme.subText}
-                />
-              }
-              textStyle={{
-                fontSize: 12,
-                color: theme.subText,
-              }}
-              arrowSize={15}
+            <View style={[styles.divider, { borderColor: theme.border }]} />
+            <TextInput
+              style={[styles.contentInput, { color: theme.text }]}
+              placeholder={t('editPost.placeholderContent')}
+              placeholderTextColor={theme.subText}
+              value={postContent}
+              onChangeText={setPostContent}
+              multiline
+              textAlignVertical="top"
             />
           </View>
-        </View>
-        <View style={[styles.inputContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <TextInput
-            style={[styles.titleInput, { color: theme.text }]}
-            placeholder={t('editPost.placeholderTitle')}
-            placeholderTextColor={theme.subText}
-            value={title}
-            onChangeText={setTitle}
-          />
-          <View
-            style={{
-              height: 0,
-              borderTopWidth: 1,
-              borderColor: theme.border,
-              marginHorizontal: 12,
-            }}
-          ></View>
-          <TextInput
-            style={[styles.contentInput, { color: theme.text }]}
-            placeholder={t('editPost.placeholderContent')}
-            placeholderTextColor={theme.subText}
-            value={postContent}
-            onChangeText={setPostContent}
-            multiline
-            textAlignVertical="top"
-          />
 
-        </View>
-        <View style={{ marginTop: 10, marginHorizontal: 16 }}>
-          {/* Category selector hidden — re-enable when backend supports subforum pre-selection
-          <Dropdown
-            options={subforums}
-            placeholder={t('editPost.placeholderCategory')}
-            selectedValue={selected}
-            onValueChange={setSelected}
-          />
-          */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <TouchableOpacity
-              onPress={() => navigateToHelp(213057)}
-              style={{ flexDirection: 'row', alignItems: 'center', height: 40, gap: 8, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingVertical: 6, paddingHorizontal: 12 }}
-            >
-              <Ionicons name="logo-markdown" size={15} color={theme.text} />
-              <Text style={{ color: theme.text }}>{t('editPost.markdown')}</Text>
+          <View style={[styles.toggleCard, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.92)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', opacity: 0.7 }]}> 
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.toggleTitle, { color: theme.text, opacity: 0.75 }]}>{t('createPost.anonymous')}</Text>
+              <Text style={[styles.toggleText, { color: theme.subText, opacity: 0.75 }]}>{t('createPost.anonymousDesc')}</Text>
+            </View>
+            <Switch
+              trackColor={{ false: '#767577', true: theme.primary }}
+              thumbColor="#f4f3f4"
+              value={isAnonymous}
+              disabled
+              style={{ opacity: 0.6 }}
+            />
+          </View>
+
+          <View style={styles.inlineButtons}>
+            <TouchableOpacity onPress={() => navigateToHelp(213057)} style={[styles.inlineButton, { borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.07)', backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.98)' }]}> 
+              <Ionicons name="logo-markdown" size={15} color={theme.primary} />
+              <Text style={[styles.inlineButtonText, { color: theme.text }]}>{t('editPost.markdown')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigateToHelp(213054)}
-              style={{ flexDirection: 'row', alignItems: 'center', height: 40, justifyContent: 'center', gap: 4, borderWidth: 1.3, borderColor: theme.primary, borderRadius: 12, paddingHorizontal: 12 }}
-            >
-              <Ionicons name="warning" size={18} color={theme.text} />
-              <Text style={{ color: theme.text }}>{t('editPost.rules')}</Text>
+            <TouchableOpacity onPress={() => navigateToHelp(213054)} style={[styles.inlineButton, { borderColor: theme.border, backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.96)' }]}> 
+              <Ionicons name="warning" size={16} color={theme.primary} />
+              <Text style={[styles.inlineButtonText, { color: theme.text }]}>{t('editPost.rules')}</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Document list */}
           {selectedDocuments.length > 0 && (
-            <View style={{ marginTop: 10 }}>
+            <View style={styles.fileList}>
               {selectedDocuments.map((doc, index) => (
-                <View key={index} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#374151' : '#F0F2F5', padding: 10, borderRadius: 8, marginBottom: 5 }}>
-                  <Ionicons name="document-text-outline" size={24} color={theme.primary} />
-                  <Text style={{ flex: 1, marginHorizontal: 10, color: theme.text }} numberOfLines={1}>{doc.name}</Text>
+                <View key={index} style={[styles.fileItem, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.86)' }]}> 
+                  <Ionicons name="document-text-outline" size={20} color={theme.primary} />
+                  <Text style={[styles.fileName, { color: theme.text }]} numberOfLines={1}>{doc.name}</Text>
                   <TouchableOpacity onPress={() => removeDocument(index)}>
                     <Ionicons name="close-circle" size={20} color={theme.subText} />
                   </TouchableOpacity>
@@ -582,184 +544,78 @@ const PostEditScreen = ({ navigation, route }) => {
           )}
 
           {selectedImages.length > 0 ? (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              className="mt-3"
-              contentContainerStyle={{
-                paddingTop: 8,
-                paddingBottom: 8,
-              }}
-            >
-              <View className="flex-row gap-2">
-                {Array.isArray(selectedImages) &&
-                  selectedImages.map((img, index) => {
-                    return (
-                      <View
-                        key={`image-${index}-${img.uri}`}
-                        style={{ marginTop: 7, marginRight: 7, position: 'relative' }}
-                      >
-                        <Image
-                          source={{ uri: img.uri }}
-                          style={{
-                            width: 146,
-                            height: 146,
-                            borderRadius: 13,
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                          }}
-                        />
-                        <TouchableOpacity
-                          onPress={() => {
-                            if (typeof removeImage === "function") {
-                              removeImage(index);
-                            }
-                          }}
-                          style={{
-                            position: 'absolute',
-                            top: -8,
-                            right: -8,
-                            backgroundColor: '#ef4444',
-                            borderRadius: 999,
-                            padding: 6,
-                            borderWidth: 4,
-                            borderColor: theme.background
-                          }}
-                        >
-                          <Ionicons name="trash" size={20} color={"#fff"} />
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (typeof pickImage === "function") {
-                      pickImage();
-                    }
-                  }}
-                  style={{
-                    width: 146,
-                    height: 146,
-                    marginTop: 7,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: 1.3,
-                    borderColor: theme.border,
-                    borderRadius: 12
-                  }}
-                >
-                  <Ionicons
-                    name="add-outline"
-                    size={40}
-                    color={theme.primary}
-                    style={{ marginTop: -5 }}
-                  />
-                  <Text style={{ color: theme.primary }}>{t('editPost.addImage')}</Text>
-                </TouchableOpacity>
-              </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mediaRow}>
+              {selectedImages.map((img, index) => (
+                <View key={`image-${index}-${img.uri}`} style={styles.mediaThumb}>
+                  <Image source={{ uri: img.uri }} style={[styles.mediaImage, { borderColor: isDarkMode ? theme.border : '#E5E7EB' }]} />
+                  <TouchableOpacity onPress={() => removeImage(index)} style={styles.removeButton}>
+                    <Ionicons name="trash" size={16} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity onPress={pickImage} style={styles.mediaAddTile}>
+                <Ionicons name="add-outline" size={34} color={theme.primary} />
+                <Text style={[styles.mediaAddText, { color: theme.primary }]}>{t('editPost.addImage')}</Text>
+              </TouchableOpacity>
             </ScrollView>
           ) : (
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 20 }}>
-              <TouchableOpacity
-                onPress={() => {
-                  if (typeof pickImage === "function") {
-                    pickImage();
-                  }
-                }}
-                style={{
-                  height: 100,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 1.3,
-                  borderColor: theme.border,
-                  borderRadius: 12,
-                  flex: 1
-                }}
-              >
-                <Ionicons
-                  name="image-outline"
-                  size={30}
-                  color={theme.primary}
-                />
-                <Text style={{ color: theme.primary, marginTop: 4 }}>{t('editPost.addImage') || t('createPost.addImage') || "Thêm ảnh"}</Text>
+            <View style={styles.mediaPickerRow}>
+              <TouchableOpacity onPress={pickImage} style={[styles.mediaPickerTile, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.98)', borderWidth: 1, borderColor: isDarkMode ? theme.border : '#D1D5DB' }]}> 
+                <Ionicons name="image-outline" size={28} color={theme.primary} />
+                <Text style={[styles.mediaPickerText, { color: theme.primary }]}>{t('editPost.addImage') || t('createPost.addImage') || 'Thêm ảnh'}</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={pickDocument}
-                style={{
-                  height: 100,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderWidth: 1.3,
-                  borderColor: theme.border,
-                  borderRadius: 12,
-                  flex: 1
-                }}
-              >
-                <Ionicons
-                  name="document-attach-outline"
-                  size={30}
-                  color={theme.primary}
-                />
-                <Text style={{ color: theme.primary, marginTop: 4 }}>{t('createPost.addDocument') || "Thêm tài liệu"}</Text>
+              <TouchableOpacity onPress={pickDocument} style={[styles.mediaPickerTile, { backgroundColor: isDarkMode ? theme.surface : 'rgba(255,255,255,0.98)', borderWidth: 1, borderColor: isDarkMode ? theme.border : '#D1D5DB' }]}> 
+                <Ionicons name="document-attach-outline" size={28} color={theme.primary} />
+                <Text style={[styles.mediaPickerText, { color: theme.primary }]}>{t('createPost.addDocument') || 'Thêm tài liệu'}</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  floatingHeader: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  inputContainer: {
-    padding: 5,
-    borderRadius: 15,
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderWidth: 1,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  titleInput: {
-    height: 40,
-    paddingHorizontal: 12,
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  contentInput: {
-    height: 200,
-    padding: 12,
-    fontSize: 16,
-  },
-  postButton: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  postButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  container: { flex: 1 },
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 0.5, borderBottomColor: 'rgba(148,163,184,0.16)' },
+  topTitle: { fontSize: 16, fontWeight: '700' },
+  publishButton: { paddingHorizontal: 14, minWidth: 84, borderRadius: 22 },
+  publishButtonText: { fontWeight: '700', fontSize: 14 },
+  heroCard: { marginHorizontal: 16, borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  heroIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  heroCopy: { flex: 1 },
+  heroTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
+  heroSubtitle: { color: 'rgba(255,255,255,0.84)', fontSize: 13, marginTop: 4 },
+  card: { marginHorizontal: 16, borderRadius: 24, padding: 16, borderWidth: 1, gap: 12 },
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
+  avatarImage: { width: 58, height: 58, borderRadius: 29, borderWidth: 1, borderColor: '#D1D5DB' },
+  profileName: { fontWeight: '700', fontSize: 16, marginBottom: 6 },
+  dropdown: { borderWidth: 0, backgroundColor: 'rgba(255,255,255,0.72)', padding: 6, borderRadius: 10, gap: 3, alignSelf: 'flex-start' },
+  inputGroup: { borderRadius: 18, padding: 8 },
+  titleInput: { minHeight: 44, paddingHorizontal: 8, paddingVertical: 8, fontSize: 16, fontWeight: '700' },
+  divider: { height: 1, marginHorizontal: 8, marginVertical: 6 },
+  contentInput: { minHeight: 180, paddingHorizontal: 8, paddingVertical: 6, fontSize: 15, lineHeight: 22 },
+  toggleCard: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  toggleTitle: { fontWeight: '700', fontSize: 14, marginBottom: 2 },
+  toggleText: { fontSize: 12, lineHeight: 17 },
+  inlineButtons: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  inlineButton: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  inlineButtonText: { fontSize: 13, fontWeight: '600' },
+  fileList: { gap: 8 },
+  fileItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 },
+  fileName: { flex: 1, fontSize: 13 },
+  mediaRow: { paddingTop: 8, paddingBottom: 4, gap: 8 },
+  mediaThumb: { position: 'relative', marginRight: 8 },
+  mediaImage: { width: 130, height: 130, borderRadius: 16, borderWidth: 1, borderColor: '#E5E7EB' },
+  removeButton: { position: 'absolute', top: 8, right: 8, backgroundColor: '#EF4444', borderRadius: 999, padding: 6 },
+  mediaAddTile: { width: 130, height: 130, alignItems: 'center', justifyContent: 'center', borderWidth: 1.2, borderColor: '#D1D5DB', borderRadius: 16, borderStyle: 'dashed' },
+  mediaAddText: { marginTop: 4, fontSize: 12, fontWeight: '700' },
+  mediaPickerRow: { flexDirection: 'row', gap: 10 },
+  mediaPickerTile: { flex: 1, minHeight: 96, alignItems: 'center', justifyContent: 'center', borderRadius: 16, paddingVertical: 12 },
+  mediaPickerText: { marginTop: 6, fontSize: 13, fontWeight: '700' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default PostEditScreen;
