@@ -90,6 +90,9 @@ jobs:
             ${{ runner.os }}-pods-
 
       - name: Install Pods
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
         run: |
           cd ios
           pod install || (pod update hermes-engine --no-repo-update && pod install)
