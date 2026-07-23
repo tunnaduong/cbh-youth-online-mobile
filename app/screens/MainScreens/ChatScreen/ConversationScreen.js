@@ -1352,11 +1352,11 @@ const ConversationScreen = ({ navigation, route }) => {
                 navigation.navigate("ProfileScreen", { username: otherUser?.username })
               }
               size={BUTTON_SIZE}
+              scrollY={scrollY}
               style={[
                 styles.headerCenterPill,
                 {
                   borderColor: theme.border,
-                  backgroundColor: "transparent",
                   height: BUTTON_SIZE,
                   borderRadius: BUTTON_SIZE / 2,
                   paddingHorizontal: 12,
@@ -1588,18 +1588,17 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   headerTextContainer: {
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
   },
   headerName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 12,
-    marginTop: 2,
-    opacity: 0.85,
+    marginTop: 1,
+    opacity: 0.75,
   },
   messagesList: {
     flex: 1,
