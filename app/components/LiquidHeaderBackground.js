@@ -17,9 +17,8 @@ const LiquidHeaderBackground = ({ providerId }) => {
       return (
         <LiquidGlassView
           style={StyleSheet.absoluteFill}
-          glassType="clear"
-          glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
-          glassOpacity={1}
+          effect="clear"
+          tintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
         />
       );
     }

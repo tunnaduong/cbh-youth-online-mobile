@@ -21,6 +21,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   LiquidGlassView,
   LiquidGlassContainer,
+  AnimatedLiquidGlassView,
   LiquidGlassProviderAndroid,
   LiquidGlassViewAndroid,
   useIOSGlass,
@@ -171,10 +172,9 @@ const TabBarBackgroundComponent = memo(
       const isRealGlass = useIOSGlass;
       return (
         <LiquidGlassView
-          glassType="clear"
-          glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
-          glassOpacity={1}
-          isInteractive={isRealGlass}
+          effect="clear"
+          tintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
+          interactive={isRealGlass}
           onLayout={onLayout}
           style={{
             ...StyleSheet.absoluteFillObject,
@@ -796,7 +796,6 @@ const CustomTabBar = ({
   if (Platform.OS === 'ios' && useIOSGlass) {
     const isRealGlass = useIOSGlass;
     const pillBg = isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)";
-    const indicatorBg = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)";
 
     return (
       <Animated.View
@@ -816,10 +815,9 @@ const CustomTabBar = ({
             style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
           >
             <LiquidGlassView
-              glassType="clear"
-              glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
-              glassOpacity={1}
-              isInteractive={isRealGlass}
+              effect="regular"
+              tintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF40"}
+              interactive={isRealGlass}
               style={{
                 ...StyleSheet.absoluteFillObject,
                 borderRadius: 24.5,
@@ -836,42 +834,26 @@ const CustomTabBar = ({
                 transform: [{ translateX: nativeSlideAnim }],
               }}
             >
-              <Animated.View
+              <AnimatedLiquidGlassView
+                effect="clear"
+                tintColor={isDarkMode ? `${theme.primary}40` : `${theme.primary}30`}
+                interactive={isRealGlass}
                 style={{
-                  position: "absolute",
                   width: indicatorAnimatedWidth,
                   height: 47,
                   borderRadius: 23.5,
-                  backgroundColor: indicatorBg,
                   opacity,
-                  shadowColor: isDarkMode ? "#fff" : "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  overflow: "hidden",
+                  transform: [{ translateX: indicatorDragOffset }],
                 }}
-              >
-                <LinearGradient
-                  colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                    "transparent"
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              </Animated.View>
+              />
             </Animated.View>
             {renderButtons()}
           </View>
 
           <LiquidGlassView
-            glassType="clear"
-            glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
-            glassOpacity={1}
-            isInteractive={isRealGlass}
+            effect="regular"
+            tintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF40"}
+            interactive={isRealGlass}
             style={[
               styles.iosRightPill,
               {

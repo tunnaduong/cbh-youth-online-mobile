@@ -176,10 +176,9 @@ const CustomTabBarButton = ({ onPress, bottomOffset = 0, currentRoute }) => {
           {menuButtons.map((btn, i) => (
             <LiquidGlassView
               key={i}
-              glassType="clear"
-              glassTintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
-              glassOpacity={1}
-              isInteractive={true}
+              effect="clear"
+              tintColor={isDarkMode ? "#111111DD" : "#F8F8F8DD"}
+              interactive={true}
               style={[
                 styles.glassRow,
                 {

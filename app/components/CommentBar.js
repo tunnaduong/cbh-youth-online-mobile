@@ -115,10 +115,9 @@ const CommentBar = React.forwardRef(
           {isIOS && useIOSGlass && LiquidGlassView && (
             <LiquidGlassView
               style={StyleSheet.absoluteFill}
-              glassType="clear"
-              glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
-              glassOpacity={1}
-              isInteractive={false}
+              effect="clear"
+              tintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
+              interactive={false}
             />
           )}
           {isIOS && !useIOSGlass && BlurView && (

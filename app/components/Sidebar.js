@@ -228,9 +228,8 @@ const Sidebar = ({ providerId, isOpen }) => {
                 borderTopRightRadius: 24,
                 borderBottomRightRadius: 24,
               }}
-              glassType="clear"
-              glassTintColor={sidebarTint}
-              glassOpacity={1}
+              effect="clear"
+              tintColor={sidebarTint}
             />
             {/* Overlay to guarantee readable contrast over liquid glass */}
             <View

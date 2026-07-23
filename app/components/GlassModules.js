@@ -1,13 +1,10 @@
 import { Animated, Platform } from "react-native";
 
 // ---------------------------------------------------------------------------
-// iOS: @sbaiahmed1/react-native-blur
-//
-// LiquidGlassView automatically renders true iOS 26+ liquid glass and falls
-// back to a real blur on iOS < 26. LiquidGlassContainer renders a native
-// UIGlassContainerEffect on iOS 26+ and a plain View otherwise. So we simply
-// use these components for every iOS build and the library picks the right
-// effect per OS version.
+// iOS: @callstack/liquid-glass for the real iOS 26+ UIGlassEffect
+// (LiquidGlassView / LiquidGlassContainerView), @sbaiahmed1/react-native-blur
+// for the plain BlurView fallback used on iOS < 26 where there is no glass
+// effect to render at all.
 // ---------------------------------------------------------------------------
 let BlurView = null;
 let LiquidGlassView = null;
@@ -18,47 +15,46 @@ let AnimatedBlurView = null;
 const iosMajorVersion = Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
 const shouldUseIOSGlass = Platform.OS === "ios" && iosMajorVersion >= 26;
 
+console.log(iosMajorVersion)
+
 if (Platform.OS === "ios" && shouldUseIOSGlass) {
   try {
-    const Lib = require("@sbaiahmed1/react-native-blur");
-    BlurView = Lib.BlurView;
+    const Lib = require("@callstack/liquid-glass");
     LiquidGlassView = Lib.LiquidGlassView;
-    LiquidGlassContainer = Lib.LiquidGlassContainer;
+    LiquidGlassContainer = Lib.LiquidGlassContainerView;
     if (LiquidGlassView) {
       AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
-    }
-    if (BlurView) {
-      AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
     if (__DEV__) {
       console.log(
         `[GlassModules] iOS Liquid Glass: ${!!LiquidGlassView && !!LiquidGlassContainer ? "SUPPORTED" : "NOT supported"} ` +
-        `(iOS ${iosMajorVersion}, requires 26+; @sbaiahmed1/react-native-blur loaded: ${!!Lib})`
+        `(iOS ${iosMajorVersion}, requires 26+; @callstack/liquid-glass isLiquidGlassSupported: ${!!Lib.isLiquidGlassSupported})`
       );
     }
   } catch (error) {
-    console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
+    console.warn("Failed to load @callstack/liquid-glass:", error);
     if (__DEV__) {
-      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @sbaiahmed1/react-native-blur failed to load)`);
+      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @callstack/liquid-glass failed to load)`);
     }
   }
-} else if (Platform.OS === "ios") {
+}
+
+if (Platform.OS === "ios") {
   try {
-    const Lib = require("@sbaiahmed1/react-native-blur");
-    BlurView = Lib.BlurView;
+    const BlurLib = require("@sbaiahmed1/react-native-blur");
+    BlurView = BlurLib.BlurView;
     if (BlurView) {
       AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
     if (__DEV__) {
       console.log(
-        `[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, requires 26+; ` +
-        `using BlurView fallback, loaded: ${!!BlurView})`
+        `[GlassModules] iOS BlurView fallback (< 26): loaded: ${!!BlurView}`
       );
     }
   } catch (error) {
     console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
     if (__DEV__) {
-      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @sbaiahmed1/react-native-blur failed to load)`);
+      console.log(`[GlassModules] iOS BlurView fallback (< 26): @sbaiahmed1/react-native-blur failed to load`);
     }
   }
 }

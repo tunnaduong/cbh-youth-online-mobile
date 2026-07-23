@@ -19,6 +19,7 @@ import {
   getConversationMessages,
   sendMessage,
   createConversation,
+  markConversationAsRead,
   blockUser,
   reportUser,
 } from "../../../services/api/Api";
@@ -291,6 +292,14 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (!isNewConversation) {
       loadInitialMessages();
+      markConversationAsRead(currentConversationId || conversationId).catch(
+        (error) => {
+          console.log(
+            "[ConversationScreen] Error marking conversation as read:",
+            error?.response?.data || error?.message,
+          );
+        },
+      );
     }
   }, []);
 
@@ -402,6 +411,14 @@ const ConversationScreen = ({ navigation, route }) => {
       // before the new message has been added to state.
       fetchMessagesRef.current(true, true).then(() => {
         scrollToLatestMessageAnimated();
+      });
+      // The screen is already open, so this new message is immediately read too -
+      // dispatch a read receipt so the sender's "seen" status keeps updating live.
+      markConversationAsRead(activeId).catch((error) => {
+        console.log(
+          "[ConversationScreen] Error marking conversation as read:",
+          error?.response?.data || error?.message,
+        );
       });
     };
     const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
