@@ -22,7 +22,7 @@
       "channel": "preview"
     },
     "production": {
-      "autoIncrement": false, # false because eas build dont rely on github actions build times, wait for a few release so it will bigger than play store build number
+      "autoIncrement": true,
       "channel": "production",
       "ios": {
         "image": "macos-sequoia-15.6-xcode-26.2"

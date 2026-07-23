@@ -15,7 +15,7 @@ import { useTranslation } from "react-i18next";
 import { BlurView, LiquidGlassView, useIOSGlass } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
-const RootView = KeyboardStickyView;
+const RootView = Platform.OS === "android" ? KeyboardStickyView : View;
 
 const CommentBar = React.forwardRef(
   (
@@ -35,7 +35,6 @@ const CommentBar = React.forwardRef(
       onClearStatus,
       style,
       leftAccessory,
-      keyboardOffset = 0,
     },
     ref
   ) => {
@@ -44,12 +43,11 @@ const CommentBar = React.forwardRef(
 
     return (
       <RootView
-        offset={{ closed: 0, opened: -keyboardOffset }}
         style={[
           {
             paddingHorizontal: 20, // narrower width
-            paddingBottom: 8,
-            paddingTop: 4,
+            paddingBottom: Platform.OS === 'ios' ? 4 : 8,
+            paddingTop: Platform.OS === 'ios' ? 2 : 4,
             width: "100%",
             backgroundColor: "transparent",
           },
