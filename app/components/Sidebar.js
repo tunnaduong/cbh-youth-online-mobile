@@ -590,6 +590,21 @@ const Sidebar = ({ providerId, isOpen }) => {
               )}
             />
             <List.Item
+              title={t("sidebar.reportIssue")}
+              titleStyle={{ color: theme.text }}
+              onPress={() =>
+                Linking.openURL("https://forms.gle/XJ3v1vN82BxLUVWo9")
+              }
+              left={() => (
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={24}
+                  color={theme.text}
+                  style={{ marginLeft: 14, marginRight: -5 }}
+                />
+              )}
+            />
+            <List.Item
               title={t("sidebar.privacy")}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("PrivacyPolicyScreen")}
