@@ -153,10 +153,6 @@ export default function PointWalletScreen({ navigation }) {
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
-        <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -8], extrapolate: "clamp" }) }] }]}> 
-          {t("wallet.title")}
-        </Animated.Text>
-
         <View style={[styles.heroCard, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderColor: theme.border }]}> 
           <Text style={[styles.heroTitle, { color: theme.text }]}>{t("wallet.currentBalance")}</Text>
           <Text style={[styles.heroText, { color: theme.subText }]}>{t("wallet.minWithdrawal", { points: formatNumber(balance?.min_withdrawal_points, lang), vnd: balance?.min_withdrawal_vnd ? t("wallet.minWithdrawalVnd", { value: formatNumber(balance.min_withdrawal_vnd, lang) }) : "" })}</Text>

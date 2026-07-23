@@ -127,9 +127,6 @@ export default function DepositScreen({ navigation }) {
       <Animated.ScrollView contentContainerStyle={{ paddingTop: 78 + insets.top, paddingHorizontal: 16, paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled" onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })} scrollEventThrottle={16}>
         {!depositInfo ? (
           <>
-            <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -8], extrapolate: "clamp" }) }] }]}> 
-              {t("wallet.depositScreen.title")}
-            </Animated.Text>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="add-circle-outline" title={t("wallet.depositScreen.introTitle")} text={t("wallet.depositScreen.introText")} />
             <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
               <Label theme={theme} text={t("wallet.depositScreen.amountLabel")} />
@@ -143,9 +140,6 @@ export default function DepositScreen({ navigation }) {
           </>
         ) : (
           <>
-            <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -8], extrapolate: "clamp" }) }] }]}> 
-              {t("wallet.depositScreen.transferInfoTitle")}
-            </Animated.Text>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="qr-code-outline" title={t("wallet.depositScreen.transferInfoTitle")} text={t("wallet.depositScreen.transferInfoText")} />
             <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
               <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}>

@@ -310,9 +310,6 @@ const StudyMaterialScreen = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadMaterials({ refresh: true })} colors={[theme.primary]} tintColor={theme.primary} />}
       >
-        <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -10], extrapolate: "clamp" }) }] }]}>
-          {headerTitle}
-        </Animated.Text>
         <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.heroTitle, { color: theme.text }]}>{t("studyMaterial.heroTitle")}</Text>
           <Text style={[styles.heroText, { color: theme.subText }]}>{t("studyMaterial.heroText")}</Text>
