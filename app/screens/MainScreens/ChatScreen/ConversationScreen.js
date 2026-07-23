@@ -11,6 +11,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import { useReanimatedKeyboardAnimation } from "react-native-keyboard-controller";
+import { BlurView, LiquidGlassView, useIOSGlass, LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass } from "../../../components/GlassModules";
 // import FastImage from "../../../components/FastImage";
 import {
   getConversationMessages,
@@ -21,7 +24,7 @@ import {
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
-import { Alert, ActionSheetIOS, KeyboardAvoidingView } from "react-native";
+import { Alert, ActionSheetIOS } from "react-native";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -106,6 +109,10 @@ const injectTimeHeaders = (messages, t) => {
 
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const keyboardSpacerStyle = useAnimatedStyle(() => ({
+    height: Math.abs(keyboardHeight.value),
+  }));
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
@@ -1169,27 +1176,84 @@ const ConversationScreen = ({ navigation, route }) => {
         onSubmit={handleReportSubmit}
       />
 
-      {/* Messages List */}
-      <FlatList
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => (item.is_myself ? "my" + item.id : "their" + item.id)}
-        contentContainerStyle={[
-          styles.messagesList,
-          { paddingTop: 120 + insets.bottom },
-        ]}
-        inverted={true}
-        onEndReached={() => !refreshing && fetchMessages()}
-        onEndReachedThreshold={0.3}
-      />
+      {/* Messages List - wrapped so Android glass (API 33+) has a backdrop to sample.
+          On iOS/web and older Android, LiquidGlassProviderAndroid is a transparent
+          passthrough per the library, so this is safe everywhere. */}
+      {Platform.OS === "android" && useAndroidGlass && LiquidGlassProviderAndroid ? (
+        <LiquidGlassProviderAndroid style={{ flex: 1 }}>
+          <FlatList
+            data={messages}
+            style={{ flex: 1 }}
+            renderItem={renderMessage}
+            keyExtractor={(item) => (item.is_myself ? "my" + item.id : "their" + item.id)}
+            contentContainerStyle={[
+              styles.messagesList,
+              { paddingTop: 64 + insets.bottom },
+            ]}
+            inverted={true}
+            onEndReached={() => !refreshing && fetchMessages()}
+            onEndReachedThreshold={0.3}
+          />
+        </LiquidGlassProviderAndroid>
+      ) : (
+        <FlatList
+          data={messages}
+          style={{ flex: 1 }}
+          renderItem={renderMessage}
+          keyExtractor={(item) => (item.is_myself ? "my" + item.id : "their" + item.id)}
+          contentContainerStyle={[
+            styles.messagesList,
+            { paddingTop: 64 + insets.bottom },
+          ]}
+          inverted={true}
+          onEndReached={() => !refreshing && fetchMessages()}
+          onEndReachedThreshold={0.3}
+        />
+      )}
+      {/* Grows with the keyboard so the last messages aren't hidden underneath it */}
+      <Animated.View pointerEvents="none" style={keyboardSpacerStyle} />
 
       {/* Input Bar - positioned above messages */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "position" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? insets.top + 2 : 0}
+      <View
         style={{ position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 20 }}
       >
-        <View style={{ backgroundColor: "transparent", paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? Math.max(insets.bottom - 8, 0) : Math.max(insets.bottom - 4, 0) }}>
+        {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && (
+          <LiquidGlassViewAndroid
+            style={StyleSheet.absoluteFill}
+            interactive={false}
+            chromaticAberration={0.15}
+          />
+        )}
+        <View
+          style={{
+            backgroundColor: Platform.OS === "ios"
+              ? "transparent"
+              : useAndroidGlass
+              ? "transparent"
+              : isDarkMode
+              ? "rgba(18, 18, 18, 0.85)"
+              : "rgba(255, 255, 255, 0.75)",
+            paddingHorizontal: 12,
+            paddingBottom: Math.max(insets.bottom - 4, 0),
+            overflow: "hidden",
+          }}
+        >
+          {Platform.OS === "ios" && useIOSGlass && LiquidGlassView && (
+            <LiquidGlassView
+              style={StyleSheet.absoluteFill}
+              glassType="clear"
+              glassTintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
+              glassOpacity={1}
+              isInteractive={false}
+            />
+          )}
+          {Platform.OS === "ios" && !useIOSGlass && BlurView && (
+            <BlurView
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={10}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
           <CommentBar
             ref={inputRef}
             placeholderText={t("chat.typeMessage")}
@@ -1198,7 +1262,8 @@ const ConversationScreen = ({ navigation, route }) => {
             value={message}
             disabled={!message.trim() || sending}
             isSubmitting={sending}
-            style={{ paddingHorizontal: 12, paddingBottom: Platform.OS === "ios" ? 2 : 0, paddingTop: Platform.OS === "ios" ? 2 : 0, backgroundColor: "transparent", marginTop: Platform.OS === "ios" ? 0 : 0 }}
+            keyboardOffset={Math.max(insets.bottom - 4, 0)}
+            style={{ paddingHorizontal: 12, paddingBottom: 0, paddingTop: 0, backgroundColor: "transparent" }}
             leftAccessory={
               <TouchableOpacity
                 style={styles.attachButton}
@@ -1210,7 +1275,7 @@ const ConversationScreen = ({ navigation, route }) => {
             }
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </View>
   );
 };
