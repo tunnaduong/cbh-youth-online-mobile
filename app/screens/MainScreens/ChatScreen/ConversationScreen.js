@@ -31,6 +31,7 @@ import "dayjs/locale/vi";
 import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import * as ImagePicker from "expo-image-picker";
 import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -41,7 +42,6 @@ import {
   KeyboardChatScrollView,
   KeyboardStickyView,
   KeyboardGestureArea,
-  KeyboardEffects,
 } from "react-native-keyboard-controller";
 
 dayjs.locale(i18n.language || "vi");
@@ -141,6 +141,7 @@ const ConversationScreen = ({ navigation, route }) => {
     useState(conversationId);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t } = useTranslation();
+  const { onMessageSent, onMessageRead, onMessageDeleted } = useChatSocket();
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -293,17 +294,6 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   }, []);
 
-  // Auto-refresh messages every 5 seconds
-  useEffect(() => {
-    if (isNewConversation) return;
-
-    const interval = setInterval(() => {
-      fetchMessages(true, true); // Refresh in background
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isNewConversation, currentConversationId]);
-
   const getCacheKey = (id) => `${CONVERSATION_CACHE_KEY}_${username}_${id}`;
   const getTimestampKey = (id) =>
     `${CONVERSATION_TIMESTAMP_KEY}_${username}_${id}`;
@@ -350,9 +340,12 @@ const ConversationScreen = ({ navigation, route }) => {
         ? response.data.data
         : [];
 
+      let previousCache = null;
       if (isRefresh) {
-        // Store in MMKV
+        // Capture the previous cache BEFORE overwriting it, so the background-refresh
+        // "did anything change" check below isn't comparing fresh data against itself.
         const cacheId = currentConversationId || conversationId;
+        previousCache = storage.getString(getCacheKey(cacheId));
         storage.set(getCacheKey(cacheId), JSON.stringify(newMessages));
         storage.set(getTimestampKey(cacheId), Date.now());
       }
@@ -372,11 +365,8 @@ const ConversationScreen = ({ navigation, route }) => {
         });
         setHasMore(response.data.current_page < response.data.last_page);
         setPage((prev) => (isRefresh ? 2 : prev + 1));
-      } else if (
-        JSON.stringify(newMessages) !==
-        storage.getString(getCacheKey(currentConversationId || conversationId))
-      ) {
-        // Update UI only if new data is different from cached data
+      } else if (JSON.stringify(newMessages) !== previousCache) {
+        // Update UI only if new data is different from what was cached before this refresh
         setMessages(transformed);
         setPage(2);
       }
@@ -391,6 +381,46 @@ const ConversationScreen = ({ navigation, route }) => {
       }
     }
   };
+
+  // Keep the latest fetchMessages closure available to the realtime listeners below
+  // without re-subscribing to the socket on every render.
+  const fetchMessagesRef = useRef(fetchMessages);
+  useEffect(() => {
+    fetchMessagesRef.current = fetchMessages;
+  });
+
+  // Realtime: refresh messages the instant the backend pushes a chat event for this
+  // conversation, replacing the old 5s poll.
+  useEffect(() => {
+    const activeId = currentConversationId || conversationId;
+    if (isNewConversation || !activeId) return undefined;
+
+    const refresh = () => fetchMessagesRef.current(true, true);
+    const refreshAndScroll = () => {
+      // Wait for the fetch (and the setMessages it triggers) to actually complete
+      // before scrolling - otherwise this scrolls to the end of the *old* list,
+      // before the new message has been added to state.
+      fetchMessagesRef.current(true, true).then(() => {
+        scrollToLatestMessageAnimated();
+      });
+    };
+    const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
+    const unsubscribeRead = onMessageRead(activeId, refresh);
+    const unsubscribeDeleted = onMessageDeleted(activeId, refresh);
+
+    return () => {
+      unsubscribeSent();
+      unsubscribeRead();
+      unsubscribeDeleted();
+    };
+  }, [
+    isNewConversation,
+    currentConversationId,
+    conversationId,
+    onMessageSent,
+    onMessageRead,
+    onMessageDeleted,
+  ]);
 
   const scrollToLatestMessage = () => {
     requestAnimationFrame(() => {
@@ -1410,9 +1440,6 @@ const ConversationScreen = ({ navigation, route }) => {
           </View>
         </KeyboardStickyView>
       </KeyboardGestureArea>
-      <KeyboardEffects>
-        <View style={{ flex: 1, backgroundColor: "#868585" }} />
-      </KeyboardEffects>
     </View>
   );
 };

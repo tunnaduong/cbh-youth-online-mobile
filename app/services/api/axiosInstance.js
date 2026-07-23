@@ -1,5 +1,6 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSocketId } from "../echo/echo";
 
 // You can define the base URL here or make it dynamic
 const axiosInstance = axios.create({
@@ -21,6 +22,13 @@ axiosInstance.interceptors.request.use(
         // Attach the token to the request header
         config.headers.Authorization = `Bearer ${token}`;
       }
+
+      // Lets broadcast()->toOthers() on the backend exclude this device's own socket
+      const socketId = getSocketId();
+      if (socketId) {
+        config.headers["X-Socket-Id"] = socketId;
+      }
+
       try {
         const url = config?.url || "";
         const isReportEndpoint =

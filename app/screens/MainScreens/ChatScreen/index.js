@@ -19,6 +19,7 @@ import { storage } from "../../../global/storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -38,6 +39,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers } = useContext(AuthContext);
+  const { onMessageSent, onMessageRead, onMessageDeleted } = useChatSocket();
   const flatListRef = useRef(null);
   const scrollPositionRef = useRef(0);
   const isProcessingRef = useRef(false);
@@ -154,6 +156,34 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       });
     }
   };
+
+  // Keep the latest fetchConversations closure available to the realtime listeners
+  // below without re-subscribing to the socket on every render.
+  const fetchConversationsRef = useRef(null);
+  useEffect(() => {
+    fetchConversationsRef.current = fetchConversations;
+  });
+
+  const conversationIdsKey = React.useMemo(
+    () => conversations.map((c) => c.id).join(","),
+    [conversations]
+  );
+
+  // Realtime: refresh the conversation list (unread badges, last message, ordering)
+  // the instant any of these conversations gets a chat event.
+  useEffect(() => {
+    const ids = conversationIdsKey ? conversationIdsKey.split(",") : [];
+    if (ids.length === 0) return undefined;
+
+    const refresh = () => fetchConversationsRef.current?.();
+    const unsubscribers = ids.flatMap((id) => [
+      onMessageSent(id, refresh),
+      onMessageRead(id, refresh),
+      onMessageDeleted(id, refresh),
+    ]);
+
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted]);
 
   const filteredConversations = conversations.filter((item) => {
     if (
