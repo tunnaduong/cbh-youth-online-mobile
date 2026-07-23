@@ -1826,18 +1826,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
     isScrollingRef.current = false;
-    
+
     DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
 
-    // Auto hide bottom tab bar
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
 
     // If scrolled to top during manual scroll, reset processing flag
