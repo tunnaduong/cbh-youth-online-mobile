@@ -397,9 +397,19 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
+        <Animated.Text
+          style={[
+            styles.headerTitle,
+            {
+              color: theme.text,
+              opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
+            },
+          ]}
+          numberOfLines={1}
+        >
           {t("studyMaterial.detailTitle")}
         </Animated.Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       {loading ? (
@@ -418,10 +428,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <Animated.Text style={[styles.largeTitle, { color: theme.primary, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }), transform: [{ translateY: scrollY.interpolate({ inputRange: [0, 50], outputRange: [0, -10], extrapolate: "clamp" }) }] }]}>
-            {t("studyMaterial.detailTitle")}
-          </Animated.Text>
-          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }]}> 
+          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }]}>
             <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
               <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name ? getCategoryLabel(material.category) : t("studyMaterial.material")}</Text>
             </View>
@@ -623,11 +630,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerTitle: {
+    flex: 1,
     fontSize: 18,
     fontWeight: "700",
+    textAlign: "center",
   },
   headerSpacer: {
-    width: 40,
+    width: 44,
   },
   largeTitle: {
     fontSize: 30,

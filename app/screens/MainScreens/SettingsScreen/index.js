@@ -105,12 +105,6 @@ export default function SettingsScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
-  const titleTranslateY = scrollY.interpolate({
-    inputRange: [0, 50],
-    outputRange: [0, -10],
-    extrapolate: "clamp",
-  });
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
@@ -121,6 +115,13 @@ export default function SettingsScreen({ navigation }) {
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
+
+        <Animated.Text
+          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
+          numberOfLines={1}
+        >
+          {t("settings.title")}
+        </Animated.Text>
 
         {/* Spacer to balance back button */}
         <View style={{ width: 44 }} />
@@ -135,16 +136,6 @@ export default function SettingsScreen({ navigation }) {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
-        {/* Large title */}
-        <Animated.Text
-          style={[
-            styles.largeTitle,
-            { color: theme.primary, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] },
-          ]}
-        >
-          {t("settings.title")}
-        </Animated.Text>
-
         {/* Profile Card */}
         <TouchableOpacity
           style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -331,18 +322,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  compactTitle: {
+  headerTitle: {
     fontSize: 17,
     fontWeight: "600",
     flex: 1,
     textAlign: "center",
-  },
-  largeTitle: {
-    fontSize: 30,
-    fontWeight: "bold",
-    paddingHorizontal: 20,
-    marginBottom: 20,
-    marginTop: 8,
   },
   // Profile card
   profileCard: {
