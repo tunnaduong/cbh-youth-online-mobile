@@ -1336,7 +1336,7 @@ const PostScreen = ({ route, navigation }) => {
           onSubmit={handleReportSubmit}
         />
 
-        {Platform.OS != "android" ? (
+        {Platform.OS === 'android' || Platform.OS === 'ios' ? (
           <KeyboardStickyView
             style={{
               position: "absolute",
