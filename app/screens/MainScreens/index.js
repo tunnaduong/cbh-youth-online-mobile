@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback } from "react";
 import { Dimensions, View, Platform, StyleSheet, Animated, Easing, DeviceEventEmitter, TouchableWithoutFeedback, TouchableOpacity, Text } from "react-native";
 import Sidebar from "../../components/Sidebar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -27,17 +27,6 @@ const ScreenWrapper = ({ children }) => {
       {children}
     </View>
   );
-};
-
-const TabWrapper = ({ children }) => {
-  if (Platform.OS === "android" && LiquidGlassProviderAndroid) {
-    return (
-      <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
-        {children}
-      </LiquidGlassProviderAndroid>
-    );
-  }
-  return children;
 };
 
 const Tab = createBottomTabNavigator();
@@ -157,7 +146,7 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
               style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 }}
               onPress={() => {
                 const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-                if (!event.defaultPrevented) navigation.navigate(route.name, route.params);
+                if (!event.defaultPrevented) navigation.jumpTo(route.name, route.params);
               }}
               activeOpacity={0.8}
             >
@@ -217,6 +206,19 @@ const tabIcon = (sfFilled, sfOutline, materialName) => ({ focused }) =>
 // the create menu just above the tab bar — react-navigation v8's native
 // bottom tabs don't yet expose a reliable useBottomTabBarHeight() for this.
 const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
+
+// Defined outside MainScreens so its identity is stable across re-renders.
+// Re-mounting it would remount the entire Tab.Navigator, causing tab-switch lag.
+const TabWrapper = ({ children }) => {
+  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+    return (
+      <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
+        {children}
+      </LiquidGlassProviderAndroid>
+    );
+  }
+  return children;
+};
 
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = useState(false);
@@ -289,6 +291,43 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
   const createButtonBottomOffset = insets.bottom + NATIVE_TAB_BAR_CONTENT_HEIGHT + 8;
 
+  const setHomeScrollTrigger = useCallback((triggerFn) => {
+    homeScreenScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setForumScrollTrigger = useCallback((triggerFn) => {
+    forumScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setChatScrollTrigger = useCallback((triggerFn) => {
+    chatScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setNotificationScrollTrigger = useCallback((triggerFn) => {
+    notificationScrollTriggerRef.current = triggerFn;
+  }, []);
+
+  const renderHomeScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <HomeScreen {...props} scrollTriggerRef={setHomeScrollTrigger} />
+    </ScreenWrapper>
+  ), [setHomeScrollTrigger]);
+
+  const renderForumScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <MenuScreen {...props} scrollTriggerRef={setForumScrollTrigger} />
+    </ScreenWrapper>
+  ), [setForumScrollTrigger]);
+
+  const renderChatScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <ChatScreen {...props} scrollTriggerRef={setChatScrollTrigger} />
+    </ScreenWrapper>
+  ), [setChatScrollTrigger]);
+
+  const renderNotificationScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <NotificationScreen {...props} scrollTriggerRef={setNotificationScrollTrigger} />
+    </ScreenWrapper>
+  ), [setNotificationScrollTrigger]);
+
   return (
     <View style={{ flex: 1 }}>
       <TabWrapper>
@@ -360,16 +399,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper>
-                <HomeScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    homeScreenScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderHomeScreen}
           </Tab.Screen>
 
           <Tab.Screen
@@ -387,16 +417,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper>
-                <MenuScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    forumScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderForumScreen}
           </Tab.Screen>
 
           <Tab.Screen
@@ -434,16 +455,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper>
-                <ChatScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    chatScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderChatScreen}
           </Tab.Screen>
 
           <Tab.Screen
@@ -462,16 +474,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper>
-                <NotificationScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    notificationScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderNotificationScreen}
           </Tab.Screen>
         </Tab.Navigator>
       </View>
