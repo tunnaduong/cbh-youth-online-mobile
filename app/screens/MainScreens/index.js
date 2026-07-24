@@ -29,6 +29,17 @@ const ScreenWrapper = ({ children }) => {
   );
 };
 
+const TabWrapper = ({ children }) => {
+  if (Platform.OS === "android" && LiquidGlassProviderAndroid) {
+    return (
+      <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
+        {children}
+      </LiquidGlassProviderAndroid>
+    );
+  }
+  return children;
+};
+
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
@@ -277,17 +288,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
 
   const createButtonBottomOffset = insets.bottom + NATIVE_TAB_BAR_CONTENT_HEIGHT + 8;
-
-  const TabWrapper = ({ children }) => {
-    if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-      return (
-        <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
-          {children}
-        </LiquidGlassProviderAndroid>
-      );
-    }
-    return children;
-  };
 
   return (
     <View style={{ flex: 1 }}>

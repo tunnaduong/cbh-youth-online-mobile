@@ -117,7 +117,7 @@ export default function SettingsScreen({ navigation }) {
         </LiquidButton>
 
         <Animated.Text
-          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
+          style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
           numberOfLines={1}
         >
           {t("settings.title")}

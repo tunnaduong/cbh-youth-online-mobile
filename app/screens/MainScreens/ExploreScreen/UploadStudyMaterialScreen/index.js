@@ -324,7 +324,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
                     onPress={() => setSelectedCategoryId(category.id)}
                     style={[
                       styles.categoryChip,
-                      active ? { backgroundColor: theme.primary } : { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                      active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border },
                     ]}
                   >
                     <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>

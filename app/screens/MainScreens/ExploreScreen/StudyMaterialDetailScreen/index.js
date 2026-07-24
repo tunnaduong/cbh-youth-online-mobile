@@ -475,7 +475,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           {pdfViewerUrl || officeViewerUrl ? (
             <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
-              <View style={styles.webviewContainer}>
+              <View style={[styles.webviewContainer, { borderColor: theme.border }]}>
                 <WebView
                   source={{ uri: pdfViewerUrl || officeViewerUrl }}
                   style={styles.webview}
@@ -539,7 +539,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                   : null;
 
                 return (
-                  <View key={item.id} style={styles.ratingItem}>
+                  <View key={item.id} style={[styles.ratingItem, { borderTopColor: theme.border }]}>
                     <View style={styles.ratingHeader}>
                       <View style={styles.ratingUserRow}>
                         {avatarUrl ? (
