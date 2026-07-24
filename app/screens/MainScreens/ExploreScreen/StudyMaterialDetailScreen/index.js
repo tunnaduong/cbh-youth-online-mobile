@@ -4,7 +4,6 @@ import {
   Animated,
   Image,
   Modal,
-  Share,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -17,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
@@ -368,11 +368,11 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
         });
 
         try {
-          await Share.share({
-            url: result.uri,
-            title: material?.title || t("studyMaterial.material"),
-            message: t("studyMaterial.shareMessage", { title: material?.title || t("studyMaterial.material") }),
-          });
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(result.uri, {
+              dialogTitle: material?.title || t("studyMaterial.material"),
+            });
+          }
         } catch (shareError) {
           console.warn("Unable to launch share sheet", shareError);
         }
