@@ -340,6 +340,7 @@ const CreatePostScreen = ({ navigation }) => {
             height: insets.top + 52,
             backgroundColor: "transparent",
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
+            transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
             shadowOpacity: 0,
             elevation: 0,
             borderBottomWidth: 0,
