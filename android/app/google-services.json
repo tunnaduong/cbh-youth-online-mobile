@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "cbh-youth-online-a4074",
+  "private_key_id": "5c4e8f8144caa9eb39bca2c6fb872aa35535adfa",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCvCm/vgqQRrNl7\nT1DT59kbedl050Fdx9PBpYEN3XxY+R3SOnOS+wdQAsvEqZuMuARz1tk+GXYX2Tnz\n2zp8uBExJ/cULbPSrIXfoydb5np3kUeldt5jFtJDH7qD/j2hot1SGz+nkGo8TSxU\n6VTRTtN74YqxJDRITdW4+NSgTmvUFHvB7hatBoBa7opp43JCoieTamnwMlbBf+rm\nuhT1KENADsljq3vsTOnJRP6w37t4KpEkgZgqVazEjQBc80HN20jj+Xa1N6TGxCYI\n/qxn9VYZtAr9k/+Mto/hw6eHF2+yh2pPeWxUTy2Ns2D5epfZn4kAvdMAXJPDPMRH\nZ/bpX7w7AgMBAAECggEAUmEDoEGoLMdgDVgdTrWZaIR2sr2ZdmTyxHq7W4anHIqV\nndizhvOMk/vU4af/FIGQWuI9GKxL91pdG2bMRmEseil4b684p8hZMxCql+ZHMdmW\nUgm5DQJzD3MxySgQ4m7vYVKAqUBetyWM3SN5Lw69mlph9w92aab0FFtLWmy986+u\noym4yLpl96ee63oBmO/93wt384h44bxFsn7YPyClxReBLC0visyxtgOdLtPRH6o2\nc0bjcMGNPojDdyrRClIXqv97Pwits4jBDArrG5c7SsAxPeNyAcK+yO9K3WJ3BHTK\nYtkfn42VtfVIoSb3p3gU0EYDw9yV7kfcc8viGs1ktQKBgQDf+BX07iVgvMZYWMm8\nTpvBbovsIZSYkY4gY5wdkOWJDOfeSAG2h7/OnmevRVFnp7Zi/qrnB/Zpr8cT20tu\ngn9l4FVySxLf6JVGl8gRQM1EoYZqAgMFumZGgsW7mjAlDPyviVGRgellUKoXw63r\n22Tl96Mqs8zS/HqAp6yA3mEkdQKBgQDIEv9Hb6m6WGdDIobd/RNLaea4i8K2MERU\npGMaY4CIrROE6LkqanrEaypwr9gMUHpe/1Hg0x2liv1PPUHiKrF9EsMRzWY+2Lnq\n1evVpqqEADXtyjaRwT4eGyKGrlK6JzfQcbDlT8IwCqWwl0YDymgAi0+vgjSYon1e\nTHoHdgGH7wKBgHXzHw0YhdLGV+abC9MBywE5iLLYlHss3J6uFr9zWY6tn0buwQgx\nwY+82HnzlYVzS5gi6jo1dU3/ZmZMrRML4q/yTs2cP9pvkH3W3WRIrlGghzs4yAKy\nQb6MjDnaX9SDXGfNd4mb0yCqNInDYcq+hgqeOe35Nrs+f/1VUIGlm58pAoGBAKyR\nbixgjMXU4GRQkIFCevTuB/ofWjeolBdpnq0xK7k3h4F49dU2+GMYiAegNDoS5Cmy\nER5ZGdYidvB0xrHb3zEhEK33Ovx0FJAQKZUjZynpwJo0czLuubRf9TyzeVlk4Ehi\n95AiZjznwhf5soMsft4RSw73wIPyiy3dytdKmnFzAoGBAL5HRWPtZzZOHcHFuZpM\nvplpbwkNvFt8SRwsOIUc24jeBM6OPtIIOnJkqyzff7vpMdHtjONCGGT4PSi4dT31\nU9tYo/OlOssJt6Un0pz4ag8hXEWCkSC4FkAAwNb1H3WitsRMFS8zpF9wRRuH1+v1\nYEhWCc+LtHaFExXElN0sRMo2\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@cbh-youth-online-a4074.iam.gserviceaccount.com",
+  "client_id": "101173935241854026673",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40cbh-youth-online-a4074.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
