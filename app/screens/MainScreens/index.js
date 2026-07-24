@@ -20,26 +20,13 @@ import {
   isLiquidGlassSupportedAndroid,
 } from "../../components/GlassModules";
 
-const ScreenWrapper = ({ children, routeName }) => {
+const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
-
-  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-    // Use a stable provider ID per route so Android LiquidGlassViewAndroid
-    // children can resolve to the correct provider without breaking glass.
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid
-          providerId={routeName}
-          style={StyleSheet.absoluteFill}
-        >
-          <View style={{ flex: 1, backgroundColor: theme.background }}>
-            {children}
-          </View>
-        </LiquidGlassProviderAndroid>
-      </View>
-    );
-  }
-  return children;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {children}
+    </View>
+  );
 };
 
 const Tab = createBottomTabNavigator();
@@ -290,8 +277,20 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
   const createButtonBottomOffset = insets.bottom + NATIVE_TAB_BAR_CONTENT_HEIGHT + 8;
 
+  const TabWrapper = ({ children }) => {
+    if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+      return (
+        <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
+          {children}
+        </LiquidGlassProviderAndroid>
+      );
+    }
+    return children;
+  };
+
   return (
     <View style={{ flex: 1 }}>
+      <TabWrapper>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           tabBar={Platform.OS === "android" ? (props) => (
@@ -361,7 +360,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Home">
+              <ScreenWrapper>
                 <HomeScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -388,7 +387,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Forum">
+              <ScreenWrapper>
                 <MenuScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -435,7 +434,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Chat">
+              <ScreenWrapper>
                 <ChatScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -463,7 +462,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
           >
             {(props) => (
-              <ScreenWrapper routeName="Notifications">
+              <ScreenWrapper>
                 <NotificationScreen
                   {...props}
                   scrollTriggerRef={(triggerFn) => {
@@ -475,6 +474,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
         </Tab.Navigator>
       </View>
+      </TabWrapper>
 
       {/* Create menu. The "+" lives in the native center tab ("Tạo"); tapping
           it opens this glass menu via the ref instead of navigating. */}

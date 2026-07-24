@@ -20,7 +20,8 @@ import {
   Platform,
 } from "react-native";
 import FastImage from "../../../components/FastImage";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import {
   useSafeAreaInsets,
   SafeAreaView,
@@ -50,12 +51,12 @@ import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
 import LottieView from "lottie-react-native";
 import {
-  KeyboardChatScrollView,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", theme.background);
   const { item, postId, screenName } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
@@ -1264,7 +1265,7 @@ const PostScreen = ({ route, navigation }) => {
             />
           </View>
         )}
-        <KeyboardChatScrollView
+        <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
@@ -1329,7 +1330,7 @@ const PostScreen = ({ route, navigation }) => {
           </View>
           {/* Spacer to prevent comment bar from covering last comments */}
           <View style={{ height: 50, backgroundColor: "transparent" }} />
-        </KeyboardChatScrollView>
+        </Animated.ScrollView>
         <ReportModal
           visible={reportModalVisible}
           onClose={() => setReportModalVisible(false)}

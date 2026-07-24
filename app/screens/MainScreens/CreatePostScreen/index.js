@@ -10,7 +10,8 @@ import {
   Switch,
   Animated,
 } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
+import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
@@ -335,20 +336,30 @@ const CreatePostScreen = ({ navigation }) => {
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS === "android" ? insets.top + 8 : 0,
-            height: Platform.OS === "android" ? insets.top + 52 : 70,
+            paddingTop: insets.top + 8,
+            height: insets.top + 52,
             backgroundColor: "transparent",
             opacity: headerOpacity,
             transform: [{ translateY: headerTranslateY }],
             shadowOpacity: 0,
             elevation: 0,
             borderBottomWidth: 0,
-            // Android: block element so content flows below it; iOS: absolute float
-            position: Platform.OS === "android" ? "relative" : "absolute",
+            position: "absolute",
           },
         ]}
         pointerEvents="box-none"
       >
+        {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid ? (
+          <LiquidGlassViewAndroid
+            providerId="main"
+            interactive={isLiquidGlassSupportedAndroid}
+            blurRadius={Platform.Version >= 33 ? 16 : 10}
+            tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : Platform.OS === "android" ? (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? "rgba(18,18,18,0.88)" : "rgba(255,255,255,0.88)" }]} />
+        ) : null}
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <TouchableOpacity
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -389,9 +400,7 @@ const CreatePostScreen = ({ navigation }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          // Android: header is in the flex flow (not absolute), so no top padding needed.
-          // iOS: header is absolute and floats; content starts from y=0 behind it.
-          paddingTop: 0,
+          paddingTop: insets.top + 52,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
