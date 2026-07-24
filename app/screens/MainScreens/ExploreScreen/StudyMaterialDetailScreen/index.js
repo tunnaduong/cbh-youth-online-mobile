@@ -6,7 +6,6 @@ import {
   Modal,
   SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +22,7 @@ import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import axiosInstance from "../../../../services/api/axiosInstance";
 import WebView from "react-native-webview";
 import {
@@ -40,6 +40,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
   const { isLoggedIn, userInfo, refreshUserInfo } = useAuthContext();
   const { t } = useTranslation();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
 
   const [material, setMaterial] = useState(null);
   const [ratings, setRatings] = useState([]);
@@ -392,7 +393,6 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />

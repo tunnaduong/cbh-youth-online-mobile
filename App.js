@@ -278,6 +278,29 @@ const App = () => {
     setShowSplash(false);
   };
 
+  const effectiveBarStyle = barStyle || (isDarkMode ? "light-content" : "dark-content");
+  const effectiveStatusBarColor = statusBarColor || "transparent";
+
+  // Android only: the declarative <StatusBar> below only re-issues its native
+  // call when these computed values actually change. Most screens (e.g.
+  // Settings, About) never touch StatusBarContext at all, so navigating
+  // between them keeps the same computed value — but the native bar can
+  // still visually drift after a screen transition (icons revert to the
+  // wrong color and stay stuck until the app restarts). Re-applying on every
+  // navigation state change forces Android to resync regardless of whether
+  // the JS-computed value changed.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    StatusBar.setBarStyle(effectiveBarStyle, true);
+    StatusBar.setBackgroundColor(effectiveStatusBarColor, true);
+  }, [effectiveBarStyle, effectiveStatusBarColor]);
+
+  const handleNavigationStateChange = () => {
+    if (Platform.OS !== "android") return;
+    StatusBar.setBarStyle(effectiveBarStyle, true);
+    StatusBar.setBackgroundColor(effectiveStatusBarColor, true);
+  };
+
   if (showSplash) {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
@@ -302,12 +325,16 @@ const App = () => {
   return (
     <>
       <StatusBar
-        barStyle={barStyle || (isDarkMode ? "light-content" : "dark-content")}
-        backgroundColor={statusBarColor || "transparent"}
+        barStyle={effectiveBarStyle}
+        backgroundColor={effectiveStatusBarColor}
         translucent={true}
         animated={true}
       />
-      <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={handleNavigationReady}
+        onStateChange={handleNavigationStateChange}
+      >
         <Stack.Navigator
           screenOptions={{
             headerStyle: {

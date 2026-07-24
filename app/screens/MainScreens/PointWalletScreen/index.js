@@ -3,7 +3,6 @@ import {
   Alert,
   Animated,
   RefreshControl,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import {
   cancelWithdrawalRequest,
   getWalletBalance,
@@ -57,6 +57,7 @@ export default function PointWalletScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.split("-")[0] || "vi";
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const insets = useSafeAreaInsets();
   const [balance, setBalance] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -133,7 +134,6 @@ export default function PointWalletScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74 }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />

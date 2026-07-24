@@ -4,7 +4,6 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import { getWalletBalance, requestWithdrawal } from "../../../services/api/Api";
 
 const getPayload = (response) => response?.data ?? response ?? {};
@@ -29,6 +29,7 @@ export default function WithdrawScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.split("-")[0] || "vi";
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const insets = useSafeAreaInsets();
   const [balance, setBalance] = useState(null);
   const [amount, setAmount] = useState("500");
@@ -94,7 +95,6 @@ export default function WithdrawScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74, backgroundColor: "transparent" }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />

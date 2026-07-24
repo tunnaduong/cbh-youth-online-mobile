@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
-  StatusBar,
   FlatList,
   ActivityIndicator,
 } from "react-native";
@@ -23,6 +22,7 @@ import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -147,6 +147,7 @@ export default function Step2({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const bottomSheetRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -488,12 +489,6 @@ export default function Step2({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-      />
-
       {/* Floating header */}
       <View
         pointerEvents="box-none"

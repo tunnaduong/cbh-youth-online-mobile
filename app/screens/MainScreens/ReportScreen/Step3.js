@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,6 +13,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -120,6 +120,7 @@ export default function Step3({ navigation, route }) {
   const isClassViolation = Boolean(cleanliness || uniform);
   const { userInfo } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = 64 + insets.top;
@@ -156,12 +157,6 @@ export default function Step3({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-      />
-
       {/* Floating header */}
       <View
         pointerEvents="box-none"
