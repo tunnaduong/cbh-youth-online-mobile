@@ -138,12 +138,11 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "16.4",
+            "deploymentTarget": "15.1",
             "buildReactNativeFromSource": true
           }
         }
-      ],
-      "expo-sharing"
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification.png",
