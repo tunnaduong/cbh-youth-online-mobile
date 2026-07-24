@@ -371,19 +371,10 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
   // sample the app content behind it (so it falls back to flat), and touch
   // routing across the modal boundary froze the screen on the New Architecture.
   // An in-tree overlay keeps real liquid glass and normal touch handling.
-  //
-  // Stay mounted at all times (just hidden via opacity/pointerEvents) instead
-  // of unmounting when closed: iOS's native UIGlassEffect needs a frame to
-  // sample the backdrop after it's added to the view hierarchy, so tearing
-  // down and recreating the LiquidGlassView/Container on every open made the
-  // glass render flat or not at all the first frame or two — inconsistent,
-  // "sometimes glass, sometimes not" depending on timing.
   if (!showButton) {
+    if (!showButtons) return null;
     return (
-      <View
-        style={styles.menuOverlay}
-        pointerEvents={showButtons ? "box-none" : "none"}
-      >
+      <View style={styles.menuOverlay} pointerEvents="box-none">
         {menuContents}
       </View>
     );
@@ -391,12 +382,11 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
 
   return (
     <View style={styles.container}>
-      <View
-        style={styles.menuOverlay}
-        pointerEvents={showButtons ? "box-none" : "none"}
-      >
-        {menuContents}
-      </View>
+      {showButtons && (
+        <View style={styles.menuOverlay} pointerEvents="box-none">
+          {menuContents}
+        </View>
+      )}
       {renderButton()}
     </View>
   );
