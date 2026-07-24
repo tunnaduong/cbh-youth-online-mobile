@@ -13,13 +13,13 @@ import {
   Alert,
   Text,
   Pressable,
-  Image,
   ActionSheetIOS,
   KeyboardAvoidingView,
   Animated,
   RefreshControl,
   Platform,
 } from "react-native";
+import FastImage from "../../../components/FastImage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
   useSafeAreaInsets,
@@ -944,7 +944,7 @@ const PostScreen = ({ route, navigation }) => {
                       </Text>
                     </View>
                   ) : author.username ? (
-                    <Image
+                    <FastImage
                       source={{
                         uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
                       }}

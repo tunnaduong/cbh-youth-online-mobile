@@ -167,6 +167,18 @@ index 32010ab..01fcce0 100644
  
 -export default memo( StoryHeader );
 +export default memo(StoryHeader);
+diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Image/video.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Image/video.tsx
+index c16db29..f9f6e20 100644
+--- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Image/video.tsx
++++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Image/video.tsx
+@@ -49,6 +49,7 @@ const StoryVideo: FC<StoryVideoProps> = ( {
+         repeat={false}
+         onLoad={( { duration }: { duration: number } ) => onLoad( duration * 1000 )}
+         onLayout={( e: LayoutChangeEvent ) => onLayout( e.nativeEvent.layout.height )}
++        onEnd={() => onLoad( 1 )}
+       />
+     );
+ 
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
 index 9fa47d8..85c653a 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/List/index.tsx
@@ -253,7 +265,7 @@ index 640052c..bb73af4 100644
  
  export default memo( GestureHandler );
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
-index dd93855..ef58e68 100644
+index dd93855..9f65b27 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Modal/index.tsx
 @@ -1,9 +1,9 @@
@@ -378,7 +390,14 @@ index dd93855..ef58e68 100644
  
    const onPressIn = () => {
  
-@@ -461,7 +477,7 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+@@ -455,13 +471,13 @@ const StoryModal = forwardRef<StoryModalPublicMethods, StoryModalProps>( ( {
+ 
+   useAnimatedReaction(
+     () => animation.value,
+-    ( res, prev ) => res !== prev && toNextStory( res === 1 ),
++    ( res, prev ) => res !== prev && toNextStory( res >= 0.99 ),
+     [ animation.value ],
+   );
  
    return (
      <Modal statusBarTranslucent={statusBarTranslucent} visible={visible} transparent animationType="none" testID="storyRNModal" onRequestClose={onClose}>

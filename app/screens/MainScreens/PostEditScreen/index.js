@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
   Platform,
   Switch,
   Animated,
@@ -34,6 +33,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import LiquidButton from "../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
@@ -44,6 +44,10 @@ const PostEditScreen = ({ navigation, route }) => {
     return null;
   }
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(
+    isDarkMode ? "light-content" : "dark-content",
+    theme.background,
+  );
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
@@ -406,21 +410,22 @@ const PostEditScreen = ({ navigation, route }) => {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
 
       <Animated.View
         style={[
           styles.topBar,
           {
-            paddingTop: insets.top + 8,
-            height: insets.top + 88,
+            paddingTop: Platform.OS === "android" ? insets.top + 8 : 0,
+            height: Platform.OS === "android" ? insets.top + 52 : 70,
             backgroundColor: 'transparent',
             opacity: headerOpacity,
             transform: [{ translateY: headerTranslateY }],
             shadowOpacity: 0,
             elevation: 0,
             borderBottomWidth: 0,
+            position: Platform.OS === "android" ? "relative" : "absolute",
           },
         ]}
         pointerEvents="box-none"
@@ -430,7 +435,7 @@ const PostEditScreen = ({ navigation, route }) => {
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </Animated.View>
-        <Animated.Text style={[styles.topTitle, { opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
+        <Animated.Text style={[styles.topTitle, { flex: 1, textAlign: 'center', opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdate} roundedOnScroll style={styles.publishButton}>
             <Text style={[styles.publishButtonText, { color: theme.primary }]}>{t('editPost.save')}</Text>
@@ -440,7 +445,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={{ paddingTop: insets.top + 92, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: 0, paddingBottom: insets.bottom + 24 }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
@@ -547,7 +552,7 @@ const PostEditScreen = ({ navigation, route }) => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mediaRow}>
               {selectedImages.map((img, index) => (
                 <View key={`image-${index}-${img.uri}`} style={styles.mediaThumb}>
-                  <Image source={{ uri: img.uri }} style={[styles.mediaImage, { borderColor: isDarkMode ? theme.border : '#E5E7EB' }]} />
+                  <FastImage source={{ uri: img.uri }} style={[styles.mediaImage, { borderColor: isDarkMode ? theme.border : '#E5E7EB' }]} />
                   <TouchableOpacity onPress={() => removeImage(index)} style={styles.removeButton}>
                     <Ionicons name="trash" size={16} color="#fff" />
                   </TouchableOpacity>
@@ -572,7 +577,7 @@ const PostEditScreen = ({ navigation, route }) => {
           )}
         </View>
       </Animated.ScrollView>
-    </>
+    </View>
   );
 };
 

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
   Platform,
   Switch,
   Animated,
@@ -60,7 +59,6 @@ const CreatePostScreen = ({ navigation }) => {
   });
   const headerButtonOpacity = headerOpacity;
 
-  // Keep status bar in sync with dark/light theme while this screen is mounted
   useStatusBarStyle(
     isDarkMode ? "light-content" : "dark-content",
     theme.background,
@@ -330,30 +328,28 @@ const CreatePostScreen = ({ navigation }) => {
   };
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ProgressHUD loadText={t("createPost.posting")} visible={loading} />
 
       <Animated.View
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS == "android" ? insets.top + 8 : 0,
-            height: Platform.OS == "android" ? insets.top + 88 : 70,
+            paddingTop: Platform.OS === "android" ? insets.top + 8 : 0,
+            height: Platform.OS === "android" ? insets.top + 52 : 70,
             backgroundColor: "transparent",
             opacity: headerOpacity,
             transform: [{ translateY: headerTranslateY }],
             shadowOpacity: 0,
             elevation: 0,
             borderBottomWidth: 0,
-            position: "relative",
+            // Android: block element so content flows below it; iOS: absolute float
+            position: Platform.OS === "android" ? "relative" : "absolute",
           },
         ]}
         pointerEvents="box-none"
       >
-        <Animated.View
-          className="mt-3"
-          style={{ opacity: headerButtonOpacity }}
-        >
+        <Animated.View style={{ opacity: headerButtonOpacity }}>
           <TouchableOpacity
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             onPress={() => navigation.goBack()}
@@ -366,21 +362,16 @@ const CreatePostScreen = ({ navigation }) => {
           style={[
             styles.topTitle,
             {
+              flex: 1,
               opacity: headerTitleOpacity,
               color: theme.text,
-              position: "absolute",
-              left: 0,
-              right: 0,
               textAlign: "center",
             },
           ]}
         >
           {t("createPost.title")}
         </Animated.Text>
-        <Animated.View
-          className="mt-3"
-          style={{ opacity: headerButtonOpacity }}
-        >
+        <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton
             size={44}
             scrollY={scrollY}
@@ -398,7 +389,9 @@ const CreatePostScreen = ({ navigation }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: Platform.OS == "android" ? insets.top + 88 : 0,
+          // Android: header is in the flex flow (not absolute), so no top padding needed.
+          // iOS: header is absolute and floats; content starts from y=0 behind it.
+          paddingTop: 0,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
@@ -669,7 +662,7 @@ const CreatePostScreen = ({ navigation }) => {
             >
               {selectedImages.map((uri, index) => (
                 <View key={`image-${index}-${uri}`} style={styles.mediaThumb}>
-                  <Image
+                  <FastImage
                     source={{ uri }}
                     style={[
                       styles.mediaImage,
@@ -745,7 +738,7 @@ const CreatePostScreen = ({ navigation }) => {
           )}
         </View>
       </Animated.ScrollView>
-    </>
+    </View>
   );
 };
 

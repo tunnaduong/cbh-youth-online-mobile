@@ -3,13 +3,13 @@ import {
   View,
   Pressable,
   Text,
-  Image,
   TouchableOpacity,
   Share,
   Alert,
   Dimensions,
   Linking,
 } from "react-native";
+import FastImage from "./FastImage";
 import RenderHTML from "react-native-render-html";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -548,7 +548,7 @@ const PostItem = ({
             </View>
           ) : (
             item?.author?.username && (
-              <Image
+              <FastImage
                 source={{
                   uri: `https://api.chuyenbienhoa.com/v1.0/users/${item.author.username}/avatar`,
                 }}

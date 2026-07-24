@@ -5,13 +5,13 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Modal,
   RefreshControl,
   Animated,
   DeviceEventEmitter,
   Platform,
 } from "react-native";
+import FastImage from "../../../components/FastImage";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -438,7 +438,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
           </View>
         ) : (
-          <Image
+          <FastImage
             source={
               !isSystemMessage
                 ? {
@@ -627,7 +627,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Image
+              <FastImage
                 source={require("../../../assets/sad_frog.png")}
                 style={styles.emptyImage}
               />
