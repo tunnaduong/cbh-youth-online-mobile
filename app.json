@@ -3,7 +3,6 @@
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
     "version": "3.5.2",
-    "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -138,7 +137,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "16.4",
+            "deploymentTarget": "15.1",
             "buildReactNativeFromSource": true
           }
         }
