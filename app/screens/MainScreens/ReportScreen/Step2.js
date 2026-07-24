@@ -488,7 +488,10 @@ export default function Step2({ navigation, route }) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      behavior="padding"
+    >
       {/* Floating header */}
       <View
         pointerEvents="box-none"
@@ -725,7 +728,7 @@ export default function Step2({ navigation, route }) {
           </KeyboardAvoidingView>
         </BottomSheetView>
       </BottomSheet>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
