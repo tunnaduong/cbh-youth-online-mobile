@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, memo } from "react";
-import { Dimensions, View, Platform, StyleSheet, Animated, DeviceEventEmitter, TouchableWithoutFeedback, TouchableOpacity, Text } from "react-native";
+import { Dimensions, View, Platform, StyleSheet, Animated, Easing, DeviceEventEmitter, TouchableWithoutFeedback, TouchableOpacity, Text } from "react-native";
 import Sidebar from "../../components/Sidebar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
@@ -55,12 +55,11 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
   const indicatorTarget = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
   useEffect(() => {
-    Animated.spring(slideAnim, {
+    Animated.timing(slideAnim, {
       toValue: indicatorTarget,
+      duration: 180,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
-      stiffness: 400,
-      damping: 35,
-      mass: 0.5,
     }).start();
   }, [indicatorTarget]);
 
@@ -109,9 +108,10 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
     <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
       {/* Left pill: main tabs */}
       <View
+        renderToHardwareTextureAndroid
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
-          if (w) setPillWidth(w);
+          if (w && w !== pillWidth) setPillWidth(w);
         }}
         style={{
           flex: 1, height: 49, borderRadius: 24.5, marginRight: 12,
@@ -124,6 +124,7 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
       >
         <PillBackground />
         <Animated.View
+          renderToHardwareTextureAndroid
           style={{
             position: "absolute", width: buttonWidth, height: 49,
             borderRadius: 24.5, top: 0, left: 0,

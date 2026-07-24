@@ -3,10 +3,10 @@ import React, { createContext, useContext, useState } from "react";
 const StatusBarContext = createContext();
 
 export const StatusBarProvider = ({ children }) => {
-  const [barStyle, setBarStyle] = useState("dark-content");
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [barStyle, setBarStyle] = useState(null);
+  const [backgroundColor, setBackgroundColor] = useState(null);
 
-  const updateStatusBar = (style, bgColor = "#ffffff") => {
+  const updateStatusBar = (style, bgColor = null) => {
     setBarStyle(style);
     setBackgroundColor(bgColor);
   };

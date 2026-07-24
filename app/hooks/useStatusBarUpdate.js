@@ -29,8 +29,7 @@ export const useStatusBarUpdate = ({
     updateStatusBar(initialStyle, initialBgColor);
 
     return () => {
-      // Reset to default when component unmounts
-      updateStatusBar("dark-content", "#ffffff");
+      updateStatusBar(null, null);
     };
   }, []);
 
@@ -70,8 +69,7 @@ export const useStatusBarStyle = (
     updateStatusBar(style, bgColor);
 
     return () => {
-      // Reset to default when component unmounts
-      updateStatusBar("dark-content", "#ffffff");
+      updateStatusBar(null, null);
     };
   }, [style, bgColor, updateStatusBar]);
 };

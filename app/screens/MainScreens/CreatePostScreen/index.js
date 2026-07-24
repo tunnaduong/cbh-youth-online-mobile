@@ -58,11 +58,11 @@ const CreatePostScreen = ({ navigation }) => {
     outputRange: [1, 0.5, 0],
     extrapolate: "clamp",
   });
-  const headerButtonOpacity = headerOpacity;
+  const headerButtonOpacity = Platform.OS === "android" ? 1 : headerOpacity;
 
   useStatusBarStyle(
     isDarkMode ? "light-content" : "dark-content",
-    theme.background,
+    Platform.OS === "android" ? "transparent" : theme.background,
   );
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
@@ -339,8 +339,7 @@ const CreatePostScreen = ({ navigation }) => {
             paddingTop: insets.top + 8,
             height: insets.top + 52,
             backgroundColor: "transparent",
-            opacity: headerOpacity,
-            transform: [{ translateY: headerTranslateY }],
+            opacity: Platform.OS === "android" ? 1 : headerOpacity,
             shadowOpacity: 0,
             elevation: 0,
             borderBottomWidth: 0,
@@ -357,16 +356,17 @@ const CreatePostScreen = ({ navigation }) => {
             tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
             style={StyleSheet.absoluteFill}
           />
-        ) : Platform.OS === "android" ? (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? "rgba(18,18,18,0.88)" : "rgba(255,255,255,0.88)" }]} />
         ) : null}
         <Animated.View style={{ opacity: headerButtonOpacity }}>
-          <TouchableOpacity
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          <LiquidButton
+            size={44}
+            scrollY={scrollY}
             onPress={() => navigation.goBack()}
+            roundedOnScroll
+            style={Platform.OS === "android" ? { borderRadius: 22 } : undefined}
           >
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </TouchableOpacity>
+          </LiquidButton>
         </Animated.View>
         <Animated.Text
           pointerEvents="none"
