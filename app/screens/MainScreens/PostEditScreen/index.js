@@ -54,7 +54,7 @@ const PostEditScreen = ({ navigation, route }) => {
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  const headerHeight = Platform.OS === "ios" ? insets.top + 64 : insets.top + 52;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],
@@ -418,8 +418,8 @@ const PostEditScreen = ({ navigation, route }) => {
         style={[
           styles.topBar,
           {
-            paddingTop: insets.top + 8,
-            height: insets.top + 52,
+            paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 8,
+            height: headerHeight,
             backgroundColor: 'transparent',
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
             transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
@@ -455,7 +455,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={{ paddingTop: insets.top + 52, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 24 }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >

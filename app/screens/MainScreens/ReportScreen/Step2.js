@@ -488,6 +488,7 @@ export default function Step2({ navigation, route }) {
   );
 
   return (
+    <>
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.background }]}
       behavior="padding"
@@ -631,6 +632,7 @@ export default function Step2({ navigation, route }) {
           <Ionicons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
+    </KeyboardAvoidingView>
 
       <BottomSheet
         ref={bottomSheetRef}
@@ -638,6 +640,7 @@ export default function Step2({ navigation, route }) {
         index={-1}
         enablePanDownToClose
         keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         backgroundStyle={{ backgroundColor: theme.cardBackground }}
         handleIndicatorStyle={{ backgroundColor: theme.border }}
@@ -651,84 +654,82 @@ export default function Step2({ navigation, route }) {
         )}
       >
         <BottomSheetView style={{ padding: 16, paddingBottom: 50 }}>
-          <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={110}>
-            <View style={[styles.sheetContent, { backgroundColor: theme.cardBackground }]}>
-              <Text style={[styles.sheetTitle, { color: theme.text }]}>
-                {t("report.addOtherViolation")}
-              </Text>
+          <View style={[styles.sheetContent, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>
+              {t("report.addOtherViolation")}
+            </Text>
 
-              <View style={styles.selectedTagsContainer}>
-                {selectedTags.map((tag) => (
-                  <SelectedTag
-                    key={tag}
-                    tag={tag}
-                    onRemove={handleRemoveTag}
-                    theme={theme}
-                    isDarkMode={isDarkMode}
-                  />
-                ))}
-              </View>
-
-              <View style={styles.searchContainer}>
-                <BottomSheetTextInput
-                  style={[
-                    styles.searchInput,
-                    {
-                      color: theme.text,
-                      backgroundColor: isDarkMode ? "#1f2937" : "#fff",
-                      borderColor: theme.border,
-                    },
-                  ]}
-                  placeholder={t("report.searchViolation")}
-                  placeholderTextColor={theme.subText}
-                  value={tagInput}
-                  onChangeText={handleTextChange}
-                  maxLength={100}
+            <View style={styles.selectedTagsContainer}>
+              {selectedTags.map((tag) => (
+                <SelectedTag
+                  key={tag}
+                  tag={tag}
+                  onRemove={handleRemoveTag}
+                  theme={theme}
+                  isDarkMode={isDarkMode}
                 />
-                {loading && (
-                  <ActivityIndicator
-                    style={styles.loadingIndicator}
-                    color={theme.primary}
-                  />
-                )}
-              </View>
+              ))}
+            </View>
 
-              {suggestions.length > 0 && (
-                <FlatList
-                  data={suggestions}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }) => (
-                    <SuggestionItem
-                      item={item}
-                      onPress={handleAddTag}
-                      theme={theme}
-                    />
-                  )}
-                  style={styles.suggestionsList}
-                  keyboardShouldPersistTaps="handled"
-                />
-              )}
-
-              <TouchableOpacity
+            <View style={styles.searchContainer}>
+              <BottomSheetTextInput
                 style={[
-                  styles.addCustomButton,
+                  styles.searchInput,
                   {
-                    backgroundColor: theme.primary,
-                    opacity: tagInput.length > 0 ? 1 : 0.5,
+                    color: theme.text,
+                    backgroundColor: isDarkMode ? "#1f2937" : "#fff",
+                    borderColor: theme.border,
                   },
                 ]}
-                disabled={tagInput.length === 0}
-                onPress={() => handleAddTag(tagInput)}
-              >
-                <Text style={styles.addCustomButtonText}>
-                  {t("report.addNewViolation")}
-                </Text>
-              </TouchableOpacity>
+                placeholder={t("report.searchViolation")}
+                placeholderTextColor={theme.subText}
+                value={tagInput}
+                onChangeText={handleTextChange}
+                maxLength={100}
+              />
+              {loading && (
+                <ActivityIndicator
+                  style={styles.loadingIndicator}
+                  color={theme.primary}
+                />
+              )}
             </View>
-          </KeyboardAvoidingView>
+
+            {suggestions.length > 0 && (
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <SuggestionItem
+                    item={item}
+                    onPress={handleAddTag}
+                    theme={theme}
+                  />
+                )}
+                style={styles.suggestionsList}
+                keyboardShouldPersistTaps="handled"
+              />
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.addCustomButton,
+                {
+                  backgroundColor: theme.primary,
+                  opacity: tagInput.length > 0 ? 1 : 0.5,
+                },
+              ]}
+              disabled={tagInput.length === 0}
+              onPress={() => handleAddTag(tagInput)}
+            >
+              <Text style={styles.addCustomButtonText}>
+                {t("report.addNewViolation")}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </BottomSheetView>
       </BottomSheet>
-    </KeyboardAvoidingView>
+    </>
   );
 }
 

@@ -281,6 +281,22 @@ const App = () => {
   const effectiveBarStyle = barStyle || (isDarkMode ? "light-content" : "dark-content");
   const effectiveStatusBarColor = statusBarColor || "transparent";
 
+  // Observability only, both platforms: logs whenever the computed status bar
+  // value changes so iOS behavior can be compared against Android in Metro
+  // logs. Does not call any native StatusBar API — iOS relies entirely on the
+  // declarative <StatusBar> below, which historically doesn't suffer the
+  // native "drift" that necessitates Android's imperative resync further down.
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("[StatusBar] computed value changed", {
+        platform: Platform.OS,
+        isDarkMode,
+        effectiveBarStyle,
+        effectiveStatusBarColor,
+      });
+    }
+  }, [effectiveBarStyle, effectiveStatusBarColor, isDarkMode]);
+
   // Android only: the declarative <StatusBar> below only re-issues its native
   // call when these computed values actually change. Most screens (e.g.
   // Settings, About) never touch StatusBarContext at all, so navigating
