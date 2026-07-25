@@ -151,7 +151,7 @@ const EditProfileScreen = ({ navigation }) => {
       // Handle cover image upload if selected (dedicated cover endpoint)
       if (selectedCoverImage) {
         const coverFormData = new FormData();
-        coverFormData.append("file", {
+        coverFormData.append("cover_photo", {
           uri: selectedCoverImage,
           type: selectedCoverImage.endsWith(".png")
             ? "image/png"
