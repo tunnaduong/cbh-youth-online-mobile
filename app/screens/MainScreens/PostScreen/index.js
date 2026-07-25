@@ -1274,7 +1274,7 @@ const PostScreen = ({ route, navigation }) => {
             { useNativeDriver: false },
           )}
           contentContainerStyle={{
-            paddingTop: 64 + insets.top,
+            paddingTop: 50 + insets.top,
             paddingBottom: insets.bottom,
             backgroundColor: theme.background,
             flexGrow: 1,
