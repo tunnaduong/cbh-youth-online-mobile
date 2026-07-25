@@ -254,6 +254,15 @@ export default function ReportScreen({ navigation }) {
                 borderColor:
                   selectedType === type.id ? theme.primary : theme.border,
                 borderWidth: selectedType === type.id ? 2 : 1,
+                // Android's `elevation` shadow is always rendered dark/black,
+                // ignoring shadowColor. Against a dark theme background
+                // that shadow shows through as a stray black smudge around
+                // the card, since there's little contrast to mask it (unlike
+                // light mode, where a dark shadow on a light background
+                // looks like a normal drop shadow). The border already
+                // gives the card definition, so just drop the shadow in
+                // dark mode instead.
+                ...(isDarkMode ? { elevation: 0, shadowOpacity: 0 } : null),
               },
             ]}
             onPress={() => setSelectedType(type.id)}
@@ -263,7 +272,12 @@ export default function ReportScreen({ navigation }) {
               style={[
                 styles.cardIcon,
                 {
-                  backgroundColor: isDarkMode ? "#374151" : "#F3FDF1",
+                  backgroundColor:
+                    selectedType === type.id
+                      ? theme.primary + "26"
+                      : isDarkMode
+                      ? "#374151"
+                      : "#F3FDF1",
                 },
               ]}
             >
