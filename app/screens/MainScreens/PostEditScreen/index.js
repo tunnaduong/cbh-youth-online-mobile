@@ -54,7 +54,7 @@ const PostEditScreen = ({ navigation, route }) => {
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = Platform.OS === "ios" ? insets.top + 64 : insets.top + 52;
+  const headerHeight = Platform.OS === "ios" ? insets.top + 56 : insets.top + 52;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],
