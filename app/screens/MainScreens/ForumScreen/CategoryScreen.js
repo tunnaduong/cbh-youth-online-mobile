@@ -216,7 +216,7 @@ const CategoryScreen = ({ navigation, route }) => {
               · {thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
             </Text>
           </View>
-          <Text style={[styles.threadTitle, { color: theme.text }]} numberOfLines={2}>
+          <Text style={[styles.threadTitle, { color: theme.text }]}>
             {thread?.title}
           </Text>
         </View>
