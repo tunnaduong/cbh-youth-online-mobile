@@ -154,7 +154,7 @@ export default function SettingsScreen({ navigation }) {
               <Text style={styles.gradientBadgeText}>CBH Online</Text>
             </View>
             <Text style={styles.gradientTitle}>{t("settings.greeting", { name: userInfo.profile_name })}</Text>
-            <Text style={styles.gradientSubtitle} numberOfLines={1}>{t("settings.subtitle")}</Text>
+            <Text style={styles.gradientSubtitle}>{t("settings.subtitle")}</Text>
           </View>
           <View style={[styles.gradientIconWrap, { zIndex: 1 }]}>
             <Ionicons name="settings" size={26} color="#FFFFFF" />
