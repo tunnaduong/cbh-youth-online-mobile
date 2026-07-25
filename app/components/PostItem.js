@@ -338,7 +338,7 @@ const PostItem = ({
             fontWeight: "bold",
             fontSize: 28,
             paddingHorizontal: 15,
-            marginTop: 25,
+            marginTop: 10,
             marginBottom: 10,
             flex: 1,
             color: theme.text
