@@ -111,6 +111,9 @@ export default function WithdrawScreen({ navigation }) {
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.withdrawScreen.currentBalance")}</Text>
             <Text style={styles.balanceValue}>{t("wallet.pointsValue", { value: formatNumber(balance?.points, lang) })}</Text>
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.approxVnd", { value: `${formatNumber(balance?.vnd, lang)} VND` })}</Text>
+            <Text style={[styles.muted, styles.minWithdrawalText, { color: "#C7F5D7" }]}>
+              {t("wallet.minWithdrawal", { points: formatNumber(balance?.min_withdrawal_points, lang), vnd: balance?.min_withdrawal_vnd ? t("wallet.minWithdrawalVnd", { value: formatNumber(balance.min_withdrawal_vnd, lang) }) : "" })}
+            </Text>
           </View>
         </LinearGradient>
         <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
@@ -148,6 +151,7 @@ const styles = StyleSheet.create({
   balanceIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center" },
   balanceCopy: { flex: 1 },
   muted: { fontSize: 13 },
+  minWithdrawalText: { marginTop: 6 },
   balanceValue: { color: "#FFFFFF", fontSize: 24, fontWeight: "800", marginVertical: 2 },
   card: { borderRadius: 20, padding: 18, borderWidth: 1, shadowColor: "#0F172A", shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   title: { fontSize: 20, fontWeight: "800", marginBottom: 5 },

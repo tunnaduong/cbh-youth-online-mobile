@@ -537,7 +537,7 @@ export default function Step2({ navigation, route }) {
         contentContainerStyle={{
           paddingTop: headerHeight,
           paddingHorizontal: 16,
-          paddingBottom: 100 + (insets.bottom || 0),
+          paddingBottom: 24 + (insets.bottom || 0),
         }}
       >
 

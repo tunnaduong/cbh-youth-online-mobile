@@ -148,16 +148,11 @@ export default function PointWalletScreen({ navigation }) {
 
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 60 + insets.top, paddingHorizontal: 16, paddingBottom: 36 + insets.bottom }}
+        contentContainerStyle={{ paddingTop: 90 + insets.top, paddingHorizontal: 16, paddingBottom: 36 + insets.bottom }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor={theme.primary} colors={[theme.primary]} />}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
-        <View style={[styles.heroCard, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderColor: theme.border }]}> 
-          <Text style={[styles.heroTitle, { color: theme.text }]}>{t("wallet.currentBalance")}</Text>
-          <Text style={[styles.heroText, { color: theme.subText }]}>{t("wallet.minWithdrawal", { points: formatNumber(balance?.min_withdrawal_points, lang), vnd: balance?.min_withdrawal_vnd ? t("wallet.minWithdrawalVnd", { value: formatNumber(balance.min_withdrawal_vnd, lang) }) : "" })}</Text>
-        </View>
-
         <LinearGradient
           colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]}
           start={{ x: 0, y: 0 }}
@@ -268,19 +263,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 16, fontWeight: "700" },
   largeTitle: { fontSize: 28, fontWeight: "800", marginBottom: 14 },
-  heroCard: {
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  heroTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
-  heroText: { fontSize: 13, lineHeight: 18 },
   balanceCard: {
     borderRadius: 24,
     padding: 20,
