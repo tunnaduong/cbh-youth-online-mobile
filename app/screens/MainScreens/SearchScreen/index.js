@@ -21,42 +21,61 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 
-export default function SearchScreen({ navigation }) {
+export default function SearchScreen({ navigation, route }) {
   const inset = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(route?.params?.initialQuery || "");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("all"); // "all", "user", "post"
+  const [activeFilter, setActiveFilter] = useState(
+    route?.params?.initialFilter || "all"
+  ); // "all", "user", "post", "hashtag"
+  const [hashtagTag, setHashtagTag] = useState(null);
 
   useEffect(() => {
+    const trimmed = query.trim();
+    // Typing "#tag" directly always searches that hashtag, like on web.
+    const isHashtagQuery = trimmed.startsWith("#") && trimmed.length > 1;
+    const effectiveFilter = isHashtagQuery ? "hashtag" : activeFilter;
+    const effectiveQuery = isHashtagQuery ? trimmed.slice(1) : trimmed;
+
     const delayDebounceFn = setTimeout(() => {
-      if (query.trim()) {
+      if (effectiveQuery) {
         setLoading(true);
         setHasSearched(false);
-        searchQuery(query, activeFilter)
+        searchQuery(effectiveQuery, effectiveFilter)
           .then((res) => {
-            if (res?.data?.data) {
-              const searchData = {
+            if (effectiveFilter === "hashtag") {
+              setHashtagTag(res?.data?.data?.hashtag || effectiveQuery);
+              setResults({
+                users: [],
+                posts: Array.isArray(res?.data?.data?.posts)
+                  ? res.data.data.posts
+                  : [],
+              });
+            } else if (res?.data?.data) {
+              setHashtagTag(null);
+              setResults({
                 users: Array.isArray(res.data.data.users)
                   ? res.data.data.users
                   : [],
                 posts: Array.isArray(res.data.data.posts)
                   ? res.data.data.posts
                   : [],
-              };
-              setResults(searchData);
+              });
             } else {
+              setHashtagTag(null);
               setResults({ users: [], posts: [] });
             }
             setHasSearched(true);
           })
           .catch((error) => {
             console.error("Search error:", error);
+            setHashtagTag(null);
             setResults({ users: [], posts: [] });
             setHasSearched(true);
           })
@@ -64,6 +83,7 @@ export default function SearchScreen({ navigation }) {
             setLoading(false);
           });
       } else {
+        setHashtagTag(null);
         setResults({ users: [], posts: [] });
         setHasSearched(false);
       }
@@ -318,19 +338,24 @@ export default function SearchScreen({ navigation }) {
                       )}
                   </View>
                 )}
-              {(activeFilter === "all" || activeFilter === "post") && (
+              {(activeFilter === "all" ||
+                activeFilter === "post" ||
+                activeFilter === "hashtag") && (
                 <View style={styles.section}>
                   {(activeFilter === "post" ||
+                    activeFilter === "hashtag" ||
                     (activeFilter === "all" && results.posts?.length > 0)) && (
                       <>
                         <Text style={[styles.sectionTitle, { color: theme.primary }]}>
-                          {t('search.posts')}{" "}
+                          {hashtagTag
+                            ? t('search.hashtagResultsTitle', { tag: hashtagTag })
+                            : t('search.posts')}{" "}
                           {results.posts?.length > 0 &&
                             `(${results.posts.length})`}
                         </Text>
                         {results.posts?.length > 0
                           ? results.posts.map(renderPostItem)
-                          : activeFilter === "post" && (
+                          : (activeFilter === "post" || activeFilter === "hashtag") && (
                             <View style={styles.sectionNoResults}>
                               <Image
                                 source={require("../../../assets/search-main.png")}

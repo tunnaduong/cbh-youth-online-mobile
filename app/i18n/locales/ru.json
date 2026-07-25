@@ -157,7 +157,8 @@
     "searching": "Поиск...",
     "noResults": "Результаты не найдены для \"{{query}}\"",
     "noUsersForQuery": "Пользователи не найдены для \"{{query}}\"",
-    "noPostsForQuery": "Посты не найдены для \"{{query}}\""
+    "noPostsForQuery": "Посты не найдены для \"{{query}}\"",
+    "hashtagResultsTitle": "Результаты для #{{tag}}"
   },
   "follow": {
     "followers": "Подписчики",

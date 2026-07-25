@@ -136,7 +136,8 @@
     "searching": "Đang tìm kiếm...",
     "noResults": "Không tìm thấy kết quả nào cho \"{{query}}\"",
     "noUsersForQuery": "Không tìm thấy người dùng nào cho \"{{query}}\"",
-    "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\""
+    "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\"",
+    "hashtagResultsTitle": "Kết quả cho #{{tag}}"
   },
   "follow": {
     "followers": "N. theo dõi",

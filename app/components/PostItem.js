@@ -323,6 +323,22 @@ const PostItem = ({
       ? `${item.content.substring(0, 300)}...`
       : item.content || "";
 
+  // Hashtag links in post content point at "/search?type=hashtag&q=tag";
+  // intercept those to navigate in-app instead of trying to open a URL,
+  // and open any other (autolinked) link in the browser.
+  const handleContentLinkPress = (event, href) => {
+    const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
+    if (hashtagMatch) {
+      const tag = decodeURIComponent(hashtagMatch[1]);
+      navigation?.navigate("SearchScreen", {
+        initialQuery: tag,
+        initialFilter: "hashtag",
+      });
+      return;
+    }
+    Linking.openURL(href);
+  };
+
   return (
     <View
       style={{
@@ -382,6 +398,9 @@ const PostItem = ({
         <View style={{ paddingHorizontal: 15 }}>
           <RenderHTML
             contentWidth={Dimensions.get("window").width - 30}
+            renderersProps={{
+              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
+            }}
             source={{
               html:
                 isExpanded || !item.content || item.content.length <= 300
