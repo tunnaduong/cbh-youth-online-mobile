@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  ScrollView,
   TouchableOpacity,
   Image,
   Platform,
@@ -45,6 +44,7 @@ import i18n from "../../../i18n";
 import { BlurView, LiquidGlassView, useIOSGlass } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 import {
+  KeyboardChatScrollView,
   KeyboardStickyView,
   KeyboardGestureArea,
 } from "react-native-keyboard-controller";
@@ -1437,7 +1437,7 @@ const ConversationScreen = ({ navigation, route }) => {
         textInputNativeID="chat-input"
       >
         {/* Messages List */}
-        <ScrollView
+        <KeyboardChatScrollView
           ref={messagesScrollRef}
           style={styles.messagesList}
           contentContainerStyle={[
@@ -1470,7 +1470,7 @@ const ConversationScreen = ({ navigation, route }) => {
             </Text>
           )}
           <View style={{ height: isAndroid ? 82 : 24 }} />
-        </ScrollView>
+        </KeyboardChatScrollView>
 
         {/* Input Bar - positioned above messages */}
         <KeyboardStickyView

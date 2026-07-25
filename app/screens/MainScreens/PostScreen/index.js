@@ -13,15 +13,14 @@ import {
   Alert,
   Text,
   Pressable,
+  Image,
   ActionSheetIOS,
   KeyboardAvoidingView,
   Animated,
   RefreshControl,
   Platform,
 } from "react-native";
-import FastImage from "../../../components/FastImage";
-import { Ionicons } from "@expo/vector-icons";
-import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import {
   useSafeAreaInsets,
   SafeAreaView,
@@ -51,12 +50,12 @@ import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
 import LottieView from "lottie-react-native";
 import {
+  KeyboardChatScrollView,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
-  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", theme.background);
   const { item, postId, screenName } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
@@ -945,7 +944,7 @@ const PostScreen = ({ route, navigation }) => {
                       </Text>
                     </View>
                   ) : author.username ? (
-                    <FastImage
+                    <Image
                       source={{
                         uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
                       }}
@@ -1265,7 +1264,7 @@ const PostScreen = ({ route, navigation }) => {
             />
           </View>
         )}
-        <Animated.ScrollView
+        <KeyboardChatScrollView
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
@@ -1330,7 +1329,7 @@ const PostScreen = ({ route, navigation }) => {
           </View>
           {/* Spacer to prevent comment bar from covering last comments */}
           <View style={{ height: 50, backgroundColor: "transparent" }} />
-        </Animated.ScrollView>
+        </KeyboardChatScrollView>
         <ReportModal
           visible={reportModalVisible}
           onClose={() => setReportModalVisible(false)}
