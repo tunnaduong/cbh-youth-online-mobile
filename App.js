@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, Alert, StatusBar, Linking } from "react-native";
+import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 
@@ -257,6 +257,19 @@ const App = () => {
     });
 
     return () => subscription.remove();
+  }, [isLoggedIn]);
+
+  // Navigate (or queue for later) when a push notification is tapped
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('NAVIGATE_FROM_NOTIFICATION', (target) => {
+      if (!target) return;
+      if (isLoggedIn && navigationRef.current) {
+        navigationRef.current.navigate(target.screen, target.params);
+      } else {
+        enqueueDeepLinkTarget(target);
+      }
+    });
+    return () => sub.remove();
   }, [isLoggedIn]);
 
   // Once nav is ready + user is logged in, flush the pending deep links

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import {
   getExpoPushToken,
   setupNotificationListeners,
@@ -150,18 +150,34 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const handleNotificationTapped = (response) => {
-    console.log('Notification tapped callback fired:', response);
-    const data = response.notification?.request?.content?.data;
-    console.log('Notification tap data:', data);
+    const data = response?.notification?.request?.content?.data;
+    if (!data) return;
 
-    // Handle navigation based on notification data
-    // This will be handled by the navigation system
-    // You can emit an event or use a navigation service here
-    if (data?.type === 'chat_message' && data?.conversation_id) {
-      // Navigate to chat conversation
-      // Navigation will be handled by the app's navigation system
-    } else if (data?.type === 'notification' && data?.url) {
-      // Navigate to notification or specific content
+    const type = data.type;
+    const topicId = data.topic_id ?? data.topicId;
+    const postId = data.post_id ?? data.postId ?? topicId;
+    const conversationId = data.conversation_id ?? data.conversationId;
+    const storyId = data.story_id ?? data.storyId;
+
+    let target = null;
+
+    if (type === 'chat_message' && conversationId) {
+      target = { screen: 'ConversationScreen', params: { conversationId } };
+    } else if (type === 'story_reacted' && storyId) {
+      target = { screen: 'MainScreens', params: { screen: 'Home', params: { openStoryId: storyId } } };
+    } else if (type === 'story_replied') {
+      target = conversationId
+        ? { screen: 'ConversationScreen', params: { conversationId } }
+        : { screen: 'MainScreens', params: { screen: 'Chat' } };
+    } else if (type === 'payment_received' || data.url === '/wallet') {
+      target = { screen: 'PointWalletScreen', params: undefined };
+    } else if (postId) {
+      const id = parseInt(postId, 10);
+      target = { screen: 'PostScreen', params: { postId: isNaN(id) ? postId : id, item: null } };
+    }
+
+    if (target) {
+      DeviceEventEmitter.emit('NAVIGATE_FROM_NOTIFICATION', target);
     }
   };
 
