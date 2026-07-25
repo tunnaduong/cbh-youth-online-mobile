@@ -150,7 +150,7 @@ export default function SettingsScreen({ navigation }) {
 
           <View style={{ flex: 1, zIndex: 1 }}>
             <View style={styles.gradientBadge}>
-              <Ionicons name="sparkles" size={11} color="#C7F5D7" />
+              <Image source={require("../../../assets/logo.png")} style={styles.gradientBadgeLogo} />
               <Text style={styles.gradientBadgeText}>CBH Online</Text>
             </View>
             <Text style={styles.gradientTitle}>{t("settings.greeting", { name: userInfo.profile_name })}</Text>
@@ -395,6 +395,11 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     marginBottom: 10,
     gap: 4,
+  },
+  gradientBadgeLogo: {
+    width: 13,
+    height: 13,
+    borderRadius: 3,
   },
   gradientBadgeText: {
     fontSize: 11,
