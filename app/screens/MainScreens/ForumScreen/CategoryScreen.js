@@ -200,24 +200,19 @@ const CategoryScreen = ({ navigation, route }) => {
       ]}
     >
       <View style={styles.threadContentRow}>
-        <View style={styles.threadLeft}>
-          <View style={styles.threadMetaRow}>
-            <FastImage
-              source={{ uri: thread?.author?.avatar }}
-              style={styles.avatar}
-            />
-            <Text style={[styles.metaText, { color: theme.text }]} numberOfLines={1}>
-              {thread?.author?.profile_name}
-            </Text>
-            {thread?.author?.verified && (
-              <Ionicons name="checkmark-circle" size={14} color={theme.primary} style={styles.metaIcon} />
-            )}
-            <Text style={[styles.metaText, { color: theme.subText }]} numberOfLines={1}>
-              · {thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
-            </Text>
-          </View>
-          <Text style={[styles.threadTitle, { color: theme.text }]}>
-            {thread?.title}
+        <View style={styles.threadMetaRow}>
+          <FastImage
+            source={{ uri: thread?.author?.avatar }}
+            style={styles.avatar}
+          />
+          <Text style={[styles.metaText, { color: theme.text }]} numberOfLines={1}>
+            {thread?.author?.profile_name}
+          </Text>
+          {thread?.author?.verified && (
+            <Ionicons name="checkmark-circle" size={14} color={theme.primary} style={styles.metaIcon} />
+          )}
+          <Text style={[styles.metaText, { color: theme.subText }]} numberOfLines={1}>
+            · {thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
           </Text>
         </View>
         <View style={styles.threadRight}>
@@ -229,6 +224,9 @@ const CategoryScreen = ({ navigation, route }) => {
           </Text>
         </View>
       </View>
+      <Text style={[styles.threadTitle, { color: theme.text }]}>
+        {thread?.title}
+      </Text>
       <View style={styles.threadStatsRow}>
         <View style={styles.threadStatsGroup}>
           <View style={styles.statItem}>
@@ -362,20 +360,17 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 16,
   },
-  threadLeft: {
-    flex: 1,
-    minWidth: 0,
-  },
   threadRight: {
     width: 120,
     alignItems: "flex-end",
     minWidth: 0,
   },
   threadMetaRow: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     flexWrap: "wrap",
-    marginBottom: 8,
   },
   avatar: {
     width: 20,
@@ -392,6 +387,7 @@ const styles = StyleSheet.create({
   threadTitle: {
     fontSize: 16,
     fontWeight: "500",
+    marginTop: 8,
     marginBottom: 12,
     minWidth: 0,
   },

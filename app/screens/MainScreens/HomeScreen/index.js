@@ -2223,30 +2223,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   ) : (
     <>
       <View style={{ backgroundColor: theme.background, flex: 1 }}>
-        {refreshing && (
-          <View
-            style={{
-              position: "absolute",
-              top: 50 + insets.top,
-              left: 0,
-              right: 0,
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
-          >
-            <LottieView
-              source={require("../../../assets/refresh.json")}
-              style={{
-                width: 40,
-                height: 40,
-              }}
-              ref={lottieRef}
-              loop
-              autoPlay
-            />
-          </View>
-        )}
         <FlatList
           onScroll={handleScroll}
           onScrollBeginDrag={handleScrollBeginDrag}

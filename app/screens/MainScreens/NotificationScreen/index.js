@@ -575,18 +575,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         </LiquidButton>
       </View>
 
-      {refreshing && (
-        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{ width: 40, height: 40 }}
-            ref={lottieRef}
-            loop
-            autoPlay
-          />
-        </View>
-      )}
-
       {loading && notifications.length === 0 ? (
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}

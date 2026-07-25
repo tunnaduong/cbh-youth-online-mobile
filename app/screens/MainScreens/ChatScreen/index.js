@@ -310,18 +310,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         </LiquidButton>
       </View>
 
-      {refreshing && (
-        <View style={{ position: "absolute", top: headerHeight, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{ width: 40, height: 40 }}
-            ref={lottieRef}
-            loop
-            autoPlay
-          />
-        </View>
-      )}
-
       <FlatList
         ref={flatListRef}
         data={filteredConversations}
