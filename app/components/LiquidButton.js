@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   TouchableOpacity,
   View,
@@ -25,28 +25,20 @@ const LiquidButton = ({
   scrollY,
   alwaysBorder = false,
   backgroundColor,
-  roundedOnScroll = false,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
-  const [isScrolled, setIsScrolled] = useState(false);
 
-  useEffect(() => {
-    if (!scrollY) return undefined;
-
-    const listenerId = scrollY.addListener(({ value }) => {
-      setIsScrolled(value >= 24);
-    });
-
-    return () => scrollY.removeListener(listenerId);
-  }, [scrollY]);
-
+  // When scrollY is provided, background fades in as user scrolls (0→40px).
+  // At the top, buttons with alwaysBorder still keep a subtle translucent pill.
+  const startOpacity = alwaysBorder ? 0.22 : 0;
   const bgOpacity = scrollY
-    ? isScrolled
-      ? 1
-      : 0
+    ? scrollY.interpolate({
+        inputRange: [0, 40],
+        outputRange: [startOpacity, 1],
+        extrapolate: "clamp",
+      })
     : 1;
-  const effectiveRadius = roundedOnScroll ? (isScrolled ? defaultRadius : 0) : defaultRadius;
 
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
@@ -56,7 +48,7 @@ const LiquidButton = ({
             style={[
               StyleSheet.absoluteFill,
               {
-                borderRadius: effectiveRadius,
+                borderRadius: defaultRadius,
                 overflow: "hidden",
               },
             ]}
@@ -72,7 +64,7 @@ const LiquidButton = ({
             style={[
               StyleSheet.absoluteFill,
               {
-                borderRadius: effectiveRadius,
+                borderRadius: defaultRadius,
                 overflow: "hidden",
               },
             ]}
@@ -90,7 +82,7 @@ const LiquidButton = ({
           StyleSheet.absoluteFill,
           {
             backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
-            borderRadius: effectiveRadius,
+            borderRadius: defaultRadius,
           }
         ]}
       />
@@ -118,9 +110,9 @@ const LiquidButton = ({
     {
       width: size,
       height: size,
-      borderRadius: effectiveRadius,
-      borderWidth: 0,
-      borderColor: "transparent",
+      borderRadius: defaultRadius,
+      borderWidth: alwaysBorder ? 1 : 0,
+      borderColor: alwaysBorder ? theme.primary : "transparent",
     },
     style,
   ];
@@ -139,7 +131,7 @@ const LiquidButton = ({
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
-            { borderRadius: effectiveRadius, overflow: "hidden", opacity: bgOpacity },
+            { borderRadius: defaultRadius, overflow: "hidden", opacity: bgOpacity },
           ]}
           pointerEvents="none"
         >
