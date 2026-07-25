@@ -20,6 +20,7 @@ import {
 // import FastImage from "../../../components/FastImage";
 import {
   getConversationMessages,
+  getConversations,
   sendMessage,
   createConversation,
   markConversationAsRead,
@@ -318,6 +319,27 @@ const ConversationScreen = ({ navigation, route }) => {
     }
     return "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg";
   };
+
+  // Callers like the notification screen only pass a conversationId (e.g. story
+  // reply notifications), not the full conversation object, so otherUser can't be
+  // derived. Fetch the conversation details in that case.
+  useEffect(() => {
+    if (!isNewConversation && !currentConversation && conversationId) {
+      getConversations()
+        .then((response) => {
+          const found = response?.data?.find(
+            (c) => c.id === conversationId,
+          );
+          if (found) setCurrentConversation(found);
+        })
+        .catch((error) => {
+          console.log(
+            "[ConversationScreen] Error fetching conversation details:",
+            error?.response?.data || error?.message,
+          );
+        });
+    }
+  }, []);
 
   useEffect(() => {
     if (!isNewConversation) {
