@@ -602,28 +602,7 @@ const App = () => {
               <Stack.Screen
                 name="ExploreScreen"
                 component={ExploreScreen}
-                options={{
-                  title: t('sidebar.explore'),
-                  headerBackTitleVisible: false,
-                  headerTransparent: true,
-                  headerLeft: (props) => (
-                    <LiquidButton size={40} providerId="ExploreScreen" onPress={props.onPress} containerStyle={{ marginLeft: Platform.OS === 'ios' ? 0 : 16 }}>
-                      <Ionicons name="arrow-back" size={22} color={theme.text} />
-                    </LiquidButton>
-                  ),
-                  headerStyle: {
-                    backgroundColor: "transparent",
-                    borderBottomWidth: 0,
-                    shadowOffset: { height: 0, width: 0 },
-                    elevation: 0,
-                  },
-                  headerTitleStyle: {
-                    color: theme.text,
-                    textShadowColor: isDarkMode ? '#000' : '#FFF',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 4,
-                  }
-                }}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="StudyMaterialScreen"

@@ -1,18 +1,20 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
+  Animated,
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Image,
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const { width } = Dimensions.get("window");
 const cardSize = (width - 48) / 3; // 4 columns with padding
@@ -53,7 +55,10 @@ const featureCards = [
 const ExploreScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = insets.top + 64;
 
   const handleCardPress = (card) => {
     if (card.key === "examDocuments") {
@@ -69,10 +74,35 @@ const ExploreScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      
-      <ScrollView
+      <View
+        style={[styles.header, { paddingTop: insets.top + 6, height: headerHeight }]}
+        pointerEvents="box-none"
+      >
+        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+        </LiquidButton>
+        <Animated.Text
+          style={[
+            styles.headerTitle,
+            {
+              color: theme.text,
+              opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
+            },
+          ]}
+        >
+          {t("sidebar.explore")}
+        </Animated.Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: 50 + insets.top }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight }]}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         {/* Top Section with Greeting and Image */}
@@ -115,7 +145,7 @@ const ExploreScreen = ({ navigation }) => {
             ))}
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 };
@@ -123,6 +153,24 @@ const ExploreScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  headerSpacer: {
+    width: 44,
   },
   scrollView: {
     flex: 1,
