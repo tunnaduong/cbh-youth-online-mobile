@@ -54,7 +54,10 @@ const PostEditScreen = ({ navigation, route }) => {
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = Platform.OS === "ios" ? insets.top + 56 : insets.top + 52;
+  // iOS: presentation:"modal" renders as a floating card (not full-bleed
+  // like Android), which already clears the notch/status bar on its own —
+  // adding the full device insets.top double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : insets.top + 52;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],
@@ -418,7 +421,7 @@ const PostEditScreen = ({ navigation, route }) => {
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 8,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
             height: headerHeight,
             backgroundColor: 'transparent',
             opacity: Platform.OS === "android" ? 1 : headerOpacity,

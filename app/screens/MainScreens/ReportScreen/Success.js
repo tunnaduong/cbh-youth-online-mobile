@@ -2,6 +2,7 @@ import React from "react";
 import {
   View,
   Text,
+  Platform,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
@@ -41,10 +42,13 @@ export default function Success({ navigation }) {
       <View
         style={[
           styles.header,
-          {
-            paddingTop: insets.top + 8,
-            height: insets.top + 64,
-          },
+          // iOS: this screen is presented via presentation:"modal", which
+          // renders as a floating card (not full-bleed like Android), so it
+          // already clears the notch/status bar on its own — adding the
+          // full device insets.top double-counts the offset.
+          Platform.OS === "ios"
+            ? { paddingTop: 12, height: 68 }
+            : { paddingTop: insets.top + 8, height: insets.top + 64 },
         ]}
       >
         <View style={{ width: 44 }}>

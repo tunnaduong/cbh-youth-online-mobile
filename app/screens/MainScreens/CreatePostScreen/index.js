@@ -336,8 +336,13 @@ const CreatePostScreen = ({ navigation }) => {
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 8,
-            height: Platform.OS === "ios" ? insets.top + 56 : insets.top + 52,
+            // iOS: this screen is presented via presentation:"modal", which
+            // renders as a floating card (not full-bleed like Android), so
+            // it already clears the notch/status bar on its own — adding
+            // the full device insets.top on top of that double-counts the
+            // offset and pushes content too far down.
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
+            height: Platform.OS === "ios" ? 68 : insets.top + 52,
             backgroundColor: "transparent",
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
             transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
@@ -401,7 +406,7 @@ const CreatePostScreen = ({ navigation }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: Platform.OS === "ios" ? insets.top + 56 : insets.top + 52,
+          paddingTop: Platform.OS === "ios" ? 68 : insets.top + 52,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(

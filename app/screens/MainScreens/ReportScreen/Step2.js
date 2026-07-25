@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import {
   View,
   Text,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -151,7 +152,10 @@ export default function Step2({ navigation, route }) {
   const { t } = useTranslation();
   const bottomSheetRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  // iOS: presentation:"modal" renders as a floating card (not full-bleed
+  // like Android), which already clears the notch/status bar on its own —
+  // adding the full device insets.top double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 60],
     outputRange: [1, 0],
@@ -500,7 +504,7 @@ export default function Step2({ navigation, route }) {
       >
         <View
           style={{
-            paddingTop: insets.top + 8,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
             paddingBottom: 8,
             paddingHorizontal: 16,
             flexDirection: "row",

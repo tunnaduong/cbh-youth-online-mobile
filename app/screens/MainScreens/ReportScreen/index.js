@@ -3,6 +3,7 @@ import {
   View,
   Text,
   Animated,
+  Platform,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
@@ -110,7 +111,11 @@ export default function ReportScreen({ navigation }) {
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  // iOS: this screen is presented via presentation:"modal", which renders
+  // as a floating card (not full-bleed like Android), so it already clears
+  // the notch/status bar on its own — adding the full device insets.top
+  // double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
 
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 60],
@@ -127,7 +132,7 @@ export default function ReportScreen({ navigation }) {
       >
         <View
           style={{
-            paddingTop: insets.top + 8,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
             paddingBottom: 8,
             paddingHorizontal: 16,
             flexDirection: "row",
