@@ -553,14 +553,26 @@ const ProfileScreen = ({ route, navigation }) => {
           }
         >
           {/* Cover photo */}
-          <View
-            style={{
-              height: 170,
-              backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
-              borderRadius: 15,
-              margin: 16,
-            }}
-          />
+          {userData?.profile?.cover_photo_url ? (
+            <FastImage
+              source={{ uri: userData.profile.cover_photo_url }}
+              style={{
+                height: 170,
+                borderRadius: 15,
+                margin: 16,
+                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                height: 170,
+                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
+                borderRadius: 15,
+                margin: 16,
+              }}
+            />
+          )}
 
           {/* Avatar row: avatar overlaps cover, name beside it */}
           <View style={{ paddingHorizontal: 16, marginTop: -40 }}>

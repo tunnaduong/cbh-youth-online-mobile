@@ -28,8 +28,11 @@ export const AuthProvider = ({ children }) => {
   const [blockedUsers, setBlockedUsers] = useState([]);
   // Incremented when current user updates their avatar → busts expo-image cache
   const [avatarVersion, setAvatarVersion] = useState(1);
+  // Incremented when current user updates their cover photo → busts expo-image cache
+  const [coverVersion, setCoverVersion] = useState(1);
 
   const bumpAvatarVersion = () => setAvatarVersion((v) => v + 1);
+  const bumpCoverVersion = () => setCoverVersion((v) => v + 1);
 
   // Helper to build an avatar URL with cache-busting for the current user
   const getAvatarUrl = (uname) => {
@@ -37,6 +40,16 @@ export const AuthProvider = ({ children }) => {
     // Only bust cache for the currently logged-in user
     if (uname === username && avatarVersion > 1) {
       return `${base}?v=${avatarVersion}`;
+    }
+    return base;
+  };
+
+  // Helper to build a cover photo URL with cache-busting for the current user
+  const getCoverUrl = (uname) => {
+    const base = `https://api.chuyenbienhoa.com/v1.0/users/${uname}/cover`;
+    // Only bust cache for the currently logged-in user
+    if (uname === username && coverVersion > 1) {
+      return `${base}?v=${coverVersion}`;
     }
     return base;
   };
@@ -251,6 +264,10 @@ export const AuthProvider = ({ children }) => {
         avatarVersion,
         bumpAvatarVersion,
         getAvatarUrl,
+        // Cover photo cache busting
+        coverVersion,
+        bumpCoverVersion,
+        getCoverUrl,
       }}
     >
       {children}

@@ -353,6 +353,10 @@ export const updateProfile = (username, params) => {
   return Api.putRequest("/v1.0/users/" + username + "/profile", params);
 };
 
+export const uploadCoverPhoto = (username, formData) => {
+  return Api.postFormDataRequest("/v1.0/users/" + username + "/cover", formData);
+};
+
 export const changePassword = (params) => {
   return Api.postRequest("/v1.0/password/change", params);
 };

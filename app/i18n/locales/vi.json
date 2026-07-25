@@ -639,7 +639,6 @@
     "successTitle": "Thành công",
     "successMessage": "Cập nhật thông tin thành công",
     "errorUpdate": "Không thể cập nhật thông tin",
-    "coverDev": "Tính năng ảnh bìa đang phát triển",
     "birthdayFormat": "{{day}} Tháng {{month}} {{year}}"
   },
   "settings": {

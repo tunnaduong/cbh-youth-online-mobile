@@ -662,7 +662,6 @@
     "successTitle": "Успешно",
     "successMessage": "Профиль успешно обновлен",
     "errorUpdate": "Не удалось обновить профиль",
-    "coverDev": "Функция фото обложки в разработке",
     "birthdayFormat": "{{day}}.{{month}}.{{year}}"
   },
   "settings": {
