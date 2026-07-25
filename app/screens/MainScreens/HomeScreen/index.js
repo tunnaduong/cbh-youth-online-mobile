@@ -879,9 +879,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  // null, null (not a hardcoded light-theme default) so that if the story
+  // library's onHide fires before onShow ever ran (observed: it can fire
+  // spuriously during its own mount), restoring falls through to App.js's
+  // theme-aware default instead of forcibly overriding dark mode.
   const previousStatusBarStyle = useRef({
-    barStyle: "dark-content",
-    backgroundColor: "#ffffff",
+    barStyle: null,
+    backgroundColor: null,
   });
   const [verificationModalVisible, setVerificationModalVisible] =
     useState(false);
@@ -1285,7 +1289,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     if (reportModalVisible) {
       return;
     }
-    
+
+    // The story library's onHide can fire on its own mount/state setup even
+    // when no story was ever shown (no matching handleStoryShow). Guard
+    // against that so we don't reset story state or touch the status bar
+    // for a spurious hide event.
+    if (!isStoryVisible) {
+      if (__DEV__) {
+        console.log("[StatusBar] handleStoryHide ignored: no story was visible");
+      }
+      return;
+    }
+
     setIsStoryVisible(false);
     // Reset current story and user context when hiding
     setCurrentStory(null);
