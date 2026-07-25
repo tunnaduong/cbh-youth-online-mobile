@@ -426,8 +426,8 @@
     "sendImageError": "Không thể chọn ảnh. Vui lòng thử lại.",
     "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
     "storyReply": {
-      "you": "Bạn đã trả lời tin của {{owner}}",
-      "other": "{{sender}} đã trả lời tin của bạn"
+      "you": "Bạn đã bình luận về tin của {{owner}}",
+      "other": "{{sender}} đã bình luận về tin của bạn"
     },
     "anonymous": "Ẩn danh",
     "am": "SA",
@@ -456,7 +456,7 @@
     "mentionedComment": "nhắc đến bạn trong một bình luận",
     "reactedStory": "đã thả cảm xúc",
     "toYourStory": "vào tin của bạn",
-    "repliedStory": "đã trả lời tin của bạn",
+    "repliedStory": "đã bình luận về tin của bạn",
     "followedYou": "đã theo dõi bạn",
     "interactedWithYou": "đã tương tác với bạn",
     "system": "Hệ thống",

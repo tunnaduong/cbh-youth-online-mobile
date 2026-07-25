@@ -437,8 +437,8 @@
     "sendImageError": "Could not pick image. Please try again.",
     "sendMessageError": "Could not send message. Please try again later.",
     "storyReply": {
-      "you": "You replied to {{owner}}'s story",
-      "other": "{{sender}} replied to your story"
+      "you": "You commented on {{owner}}'s story",
+      "other": "{{sender}} commented on your story"
     },
     "anonymous": "Anonymous",
     "am": "AM",
@@ -467,7 +467,7 @@
     "mentionedComment": "mentioned you in a comment",
     "reactedStory": "reacted",
     "toYourStory": "to your story",
-    "repliedStory": "replied to your story",
+    "repliedStory": "commented on your story",
     "followedYou": "started following you",
     "interactedWithYou": "interacted with you",
     "system": "System",
