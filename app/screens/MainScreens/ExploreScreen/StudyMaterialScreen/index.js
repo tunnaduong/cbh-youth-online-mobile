@@ -304,7 +304,7 @@ const StudyMaterialScreen = ({ navigation }) => {
 
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: 56 + insets.top, paddingBottom: 40 + insets.bottom }}
+        contentContainerStyle={{ paddingTop: 70 + insets.top, paddingBottom: 40 + insets.bottom }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
