@@ -337,7 +337,7 @@ const CreatePostScreen = ({ navigation }) => {
           styles.topBar,
           {
             paddingTop: Platform.OS === "ios" ? insets.top : insets.top + 8,
-            height: Platform.OS === "ios" ? insets.top + 64 : insets.top + 52,
+            height: Platform.OS === "ios" ? insets.top + 56 : insets.top + 52,
             backgroundColor: "transparent",
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
             transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
@@ -401,7 +401,7 @@ const CreatePostScreen = ({ navigation }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: Platform.OS === "ios" ? insets.top + 64 : insets.top + 52,
+          paddingTop: Platform.OS === "ios" ? insets.top + 56 : insets.top + 52,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
