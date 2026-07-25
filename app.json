@@ -22,6 +22,8 @@
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
         "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
         "ITSAppUsesNonExemptEncryption": false,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
         "NSAppLinksUsageDescription": "Opening content from CBH Youth Online",
         "NSUserActivityTypes": [
           "NSUserActivityTypeBrowsingWeb"

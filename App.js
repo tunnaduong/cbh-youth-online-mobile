@@ -281,6 +281,17 @@ const App = () => {
   const effectiveBarStyle = barStyle || (isDarkMode ? "light-content" : "dark-content");
   const effectiveStatusBarColor = statusBarColor || "transparent";
 
+  // handleNavigationStateChange is handed to NavigationContainer, which may
+  // cache the callback via its own ref-sync effect and invoke a render-old
+  // closure when a navigation event fires in the same tick (observed on
+  // Android: onStateChange applied a stale barStyle from before a theme
+  // toggle had been picked up). Mutating a ref during render — safe, since it
+  // doesn't trigger a re-render or read stale state — guarantees the resync
+  // handler always sees the latest computed value regardless of when it's
+  // actually invoked.
+  const latestStatusBarRef = useRef({ effectiveBarStyle, effectiveStatusBarColor });
+  latestStatusBarRef.current = { effectiveBarStyle, effectiveStatusBarColor };
+
   // Observability only, both platforms: logs whenever the computed status bar
   // value changes so iOS behavior can be compared against Android in Metro
   // logs. Does not call any native StatusBar API — iOS relies entirely on the
@@ -316,15 +327,17 @@ const App = () => {
 
   const handleNavigationStateChange = () => {
     if (Platform.OS !== "android") return;
+    const { effectiveBarStyle: latestBarStyle, effectiveStatusBarColor: latestColor } =
+      latestStatusBarRef.current;
     if (__DEV__) {
       console.log("[StatusBar] onStateChange resync", {
         route: navigationRef.current?.getCurrentRoute?.()?.name,
-        effectiveBarStyle,
-        effectiveStatusBarColor,
+        effectiveBarStyle: latestBarStyle,
+        effectiveStatusBarColor: latestColor,
       });
     }
-    StatusBar.setBarStyle(effectiveBarStyle, true);
-    StatusBar.setBackgroundColor(effectiveStatusBarColor, true);
+    StatusBar.setBarStyle(latestBarStyle, true);
+    StatusBar.setBackgroundColor(latestColor, true);
   };
 
   if (showSplash) {
