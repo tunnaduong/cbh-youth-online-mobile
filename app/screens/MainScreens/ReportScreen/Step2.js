@@ -655,7 +655,7 @@ export default function Step2({ navigation, route }) {
         )}
       >
         <BottomSheetScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: 50 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
           keyboardShouldPersistTaps="handled"
         >
           <View style={[styles.sheetContent, { backgroundColor: theme.cardBackground }]}>
