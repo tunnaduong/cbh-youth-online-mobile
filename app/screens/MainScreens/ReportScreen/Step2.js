@@ -15,8 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DatePicker from "react-native-date-picker";
 import BottomSheet, {
   BottomSheetBackdrop,
+  BottomSheetScrollView,
   BottomSheetTextInput,
-  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import LiquidButton from "../../../components/LiquidButton";
@@ -653,7 +653,10 @@ export default function Step2({ navigation, route }) {
           />
         )}
       >
-        <BottomSheetView style={{ padding: 16, paddingBottom: 50 }}>
+        <BottomSheetScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 50 }}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={[styles.sheetContent, { backgroundColor: theme.cardBackground }]}>
             <Text style={[styles.sheetTitle, { color: theme.text }]}>
               {t("report.addOtherViolation")}
@@ -707,6 +710,7 @@ export default function Step2({ navigation, route }) {
                   />
                 )}
                 style={styles.suggestionsList}
+                scrollEnabled={false}
                 keyboardShouldPersistTaps="handled"
               />
             )}
@@ -727,7 +731,7 @@ export default function Step2({ navigation, route }) {
               </Text>
             </TouchableOpacity>
           </View>
-        </BottomSheetView>
+        </BottomSheetScrollView>
       </BottomSheet>
     </>
   );
@@ -872,7 +876,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loadingIndicator: { position: "absolute", right: 12 },
-  suggestionsList: { maxHeight: 200 },
+  suggestionsList: {},
   suggestionItem: { padding: 13, borderBottomWidth: StyleSheet.hairlineWidth },
   suggestionText: { fontSize: 15 },
   addCustomButton: {
