@@ -443,7 +443,7 @@
     "anonymous": "Anonymous",
     "am": "AM",
     "pm": "PM",
-    "members":"members"
+    "members": "members"
   },
   "blockedUsers": {
     "title": "Blocked users",
@@ -681,7 +681,9 @@
     "english": "English",
     "russian": "Russian",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "subtitle": "Customize the app to your preferences",
+    "greeting": "Hello, {{name}}!"
   },
   "security": {
     "title": "Security",

@@ -10,6 +10,7 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import FastImage from "../../../components/FastImage";
@@ -136,6 +137,30 @@ export default function SettingsScreen({ navigation }) {
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
+        {/* Gradient info card */}
+        <LinearGradient
+          colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientCard}
+        >
+          {/* Decorative circles */}
+          <View style={styles.gradientCircle1} />
+          <View style={styles.gradientCircle2} />
+
+          <View style={{ flex: 1, zIndex: 1 }}>
+            <View style={styles.gradientBadge}>
+              <Ionicons name="sparkles" size={11} color="#C7F5D7" />
+              <Text style={styles.gradientBadgeText}>CBH Online</Text>
+            </View>
+            <Text style={styles.gradientTitle}>{t("settings.greeting", { name: userInfo.profile_name })}</Text>
+            <Text style={styles.gradientSubtitle}>{t("settings.subtitle")}</Text>
+          </View>
+          <View style={[styles.gradientIconWrap, { zIndex: 1 }]}>
+            <Ionicons name="settings" size={26} color="#FFFFFF" />
+          </View>
+        </LinearGradient>
+
         {/* Profile Card */}
         <TouchableOpacity
           style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -327,6 +352,72 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     flex: 1,
     textAlign: "center",
+  },
+  gradientCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 22,
+    padding: 20,
+    marginHorizontal: 16,
+    marginBottom: 20,
+    overflow: "hidden",
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 6,
+  },
+  gradientCircle1: {
+    position: "absolute",
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    top: -40,
+    right: 60,
+  },
+  gradientCircle2: {
+    position: "absolute",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(255,255,255,0.06)",
+    bottom: -30,
+    right: -10,
+  },
+  gradientBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 10,
+    gap: 4,
+  },
+  gradientBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#C7F5D7",
+    letterSpacing: 0.3,
+  },
+  gradientTitle: {
+    fontSize: 19,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  gradientSubtitle: { fontSize: 13, color: "rgba(199,245,215,0.85)", lineHeight: 18 },
+  gradientIconWrap: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   // Profile card
   profileCard: {

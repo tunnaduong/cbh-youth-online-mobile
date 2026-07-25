@@ -432,7 +432,7 @@
     "anonymous": "Ẩn danh",
     "am": "SA",
     "pm": "CH",
-    "members":"thành viên"
+    "members": "thành viên"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
@@ -669,7 +669,9 @@
     "english": "English",
     "russian": "Tiếng Nga",
     "cancel": "Hủy",
-    "save": "Lưu"
+    "save": "Lưu",
+    "subtitle": "Tuỳ chỉnh ứng dụng theo sở thích của bạn",
+    "greeting": "Xin chào, {{name}}!"
   },
   "security": {
     "title": "Bảo mật",
