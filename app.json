@@ -127,7 +127,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./app/assets/adaptive-icon-monochrome.png",
+          "icon": "./app/assets/notification-monochrome.png",
           "color": "#ffffff",
           "sounds": []
         }
@@ -147,7 +147,7 @@
       ]
     ],
     "notification": {
-      "icon": "./app/assets/adaptive-icon-monochrome.png",
+      "icon": "./app/assets/notification-monochrome.png",
       "color": "#ffffff"
     }
   }
