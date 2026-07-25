@@ -27,12 +27,14 @@ function getExpoProjectId() {
 export async function requestNotificationPermissions() {
   try {
     if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
+      console.log("[Push] Android: creating notification channel 'default'...");
+      const channel = await Notifications.setNotificationChannelAsync("default", {
         name: "CBH Online",
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: "#319527",
       });
+      console.log("[Push] Android: notification channel result:", channel);
     }
 
     // Check if running on physical device (simulators/emulators can't receive push notifications)
@@ -69,17 +71,20 @@ export async function requestNotificationPermissions() {
  */
 export async function getExpoPushToken() {
   try {
-    if (!Constants.isDevice) {
-      console.warn("Push notifications require a physical device.");
-      return null;
-    }
-
+    // NOTE: Constants.isDevice no longer exists in the installed expo-constants
+    // version (it's undefined), so `!Constants.isDevice` was always true and this
+    // function silently bailed out on every real device, breaking push
+    // registration entirely. getExpoPushTokenAsync already fails gracefully on
+    // simulators/emulators, so we let it handle that case instead.
+    console.log("[Push] getExpoPushToken: requesting permissions...");
     const hasPermission = await requestNotificationPermissions();
+    console.log("[Push] getExpoPushToken: hasPermission =", hasPermission);
     if (!hasPermission) {
       return null;
     }
 
     const projectId = getExpoProjectId();
+    console.log("[Push] getExpoPushToken: projectId =", projectId);
     if (!projectId) {
       console.warn(
         "Expo projectId is missing from app config. Add expo.projectId to app.json."

@@ -291,12 +291,22 @@ const App = () => {
   // the JS-computed value changed.
   useEffect(() => {
     if (Platform.OS !== "android") return;
+    if (__DEV__) {
+      console.log("[StatusBar] App effect resync", { effectiveBarStyle, effectiveStatusBarColor });
+    }
     StatusBar.setBarStyle(effectiveBarStyle, true);
     StatusBar.setBackgroundColor(effectiveStatusBarColor, true);
   }, [effectiveBarStyle, effectiveStatusBarColor]);
 
   const handleNavigationStateChange = () => {
     if (Platform.OS !== "android") return;
+    if (__DEV__) {
+      console.log("[StatusBar] onStateChange resync", {
+        route: navigationRef.current?.getCurrentRoute?.()?.name,
+        effectiveBarStyle,
+        effectiveStatusBarColor,
+      });
+    }
     StatusBar.setBarStyle(effectiveBarStyle, true);
     StatusBar.setBackgroundColor(effectiveStatusBarColor, true);
   };

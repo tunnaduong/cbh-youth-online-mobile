@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
 
 const StatusBarContext = createContext();
 
@@ -6,10 +6,13 @@ export const StatusBarProvider = ({ children }) => {
   const [barStyle, setBarStyle] = useState(null);
   const [backgroundColor, setBackgroundColor] = useState(null);
 
-  const updateStatusBar = (style, bgColor = null) => {
+  const updateStatusBar = useCallback((style, bgColor = null) => {
+    if (__DEV__) {
+      console.log("[StatusBar] updateStatusBar", { style, bgColor });
+    }
     setBarStyle(style);
     setBackgroundColor(bgColor);
-  };
+  }, []);
 
   return (
     <StatusBarContext.Provider

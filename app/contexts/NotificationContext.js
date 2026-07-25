@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import {
   getExpoPushToken,
   setupNotificationListeners,
@@ -24,6 +25,7 @@ export const NotificationProvider = ({ children }) => {
 
   // Register push token when user logs in
   useEffect(() => {
+    console.log('[Push] registration effect', { isLoggedIn, hasToken: !!expoPushToken, isRegistering });
     if (isLoggedIn && !expoPushToken && !isRegistering) {
       registerPushToken();
     } else if (!isLoggedIn) {
@@ -89,7 +91,7 @@ export const NotificationProvider = ({ children }) => {
 
     try {
       setIsRegistering(true);
-      console.log("Starting push token registration...");
+      console.log(`[Push] Starting push token registration... (Platform=${Platform.OS})`);
 
       // Get Expo push token
       const token = await getExpoPushToken();
