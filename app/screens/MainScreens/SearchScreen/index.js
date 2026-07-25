@@ -141,6 +141,7 @@ export default function SearchScreen({ navigation }) {
       style={[
         styles.filterMenu,
         { backgroundColor: theme.cardBackground, borderColor: theme.border },
+        isDarkMode && { elevation: 0, shadowOpacity: 0 },
       ]}
     >
       <TouchableOpacity

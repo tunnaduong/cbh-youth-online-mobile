@@ -279,6 +279,11 @@ export default function Step3({ navigation, route }) {
                 : "#F8FAFC",
               borderColor: theme.border,
             },
+            // Android's `elevation` shadow always renders dark/black and
+            // ignores borderRadius clipping, poking a square corner out past
+            // this card's rounded edge against the dark theme background.
+            // The border already gives the card definition.
+            isDarkMode && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
           <View style={styles.confirmCardHeader}>
@@ -312,6 +317,7 @@ export default function Step3({ navigation, route }) {
                 : "#F8FAFC",
               borderColor: theme.border,
             },
+            isDarkMode && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
           <View style={styles.confirmCardHeader}>

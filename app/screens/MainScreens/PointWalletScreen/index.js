@@ -157,7 +157,7 @@ export default function PointWalletScreen({ navigation }) {
           colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.balanceCard}
+          style={[styles.balanceCard, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
         >
           <View style={styles.balanceTopRow}>
             <View style={{ flex: 1 }}>
@@ -183,7 +183,7 @@ export default function PointWalletScreen({ navigation }) {
         </View>
 
         <SectionTitle icon="swap-vertical-outline" title={t("wallet.transactionHistory")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           {transactions.length === 0 ? (
             <EmptyState text={t("wallet.emptyTransactions")} theme={theme} />
           ) : (
@@ -203,7 +203,7 @@ export default function PointWalletScreen({ navigation }) {
         </View>
 
         <SectionTitle icon="time-outline" title={t("wallet.withdrawalRequests")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           {withdrawalRequests.length === 0 ? (
             <EmptyState text={t("wallet.emptyWithdrawalRequests")} theme={theme} />
           ) : (

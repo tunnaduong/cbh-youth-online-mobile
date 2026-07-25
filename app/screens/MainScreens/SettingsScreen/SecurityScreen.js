@@ -415,7 +415,7 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <Text style={styles.modalTitle}>{t('security.deleteAccountTitle')}</Text>
             <Text style={[styles.modalText, { color: theme.subText }]}>
               {t('security.deleteAccountDesc')}
@@ -483,7 +483,7 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>{t('security.changeUsernameTitle')}</Text>
             <Text style={[styles.modalText, { color: theme.subText }]}>
               {t('security.usernameDescription')}
@@ -534,7 +534,7 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>{t('security.changeEmailTitle')}</Text>
             <Text style={[styles.modalText, { color: theme.subText }]}>
               {t('security.emailDescription')}
@@ -587,7 +587,7 @@ export default function SecurityScreen({ navigation }) {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.centeredView}
         >
-          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.modalView, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <Text style={[styles.modalTitle, { color: theme.text }]}>{t('security.changePassword')}</Text>
 
             <TextInput

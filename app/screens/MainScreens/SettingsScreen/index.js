@@ -163,7 +163,7 @@ export default function SettingsScreen({ navigation }) {
 
         {/* Profile Card */}
         <TouchableOpacity
-          style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }]}
+          style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
           onPress={() => navigation.navigate("ProfileScreen", { username: userInfo.username })}
           activeOpacity={0.8}
         >

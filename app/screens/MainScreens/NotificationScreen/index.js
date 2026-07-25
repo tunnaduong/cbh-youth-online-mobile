@@ -491,7 +491,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         activeOpacity={1}
         onPress={() => setShowActionMenu(false)}
       >
-        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <TouchableOpacity
             style={[
               styles.actionItem,

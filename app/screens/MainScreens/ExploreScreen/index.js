@@ -126,7 +126,7 @@ const ExploreScreen = ({ navigation }) => {
             {featureCards.map((card) => (
               <TouchableOpacity
                 key={card.id}
-                style={[styles.card, { backgroundColor: theme.cardBackground }]}
+                style={[styles.card, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
                 onPress={() => handleCardPress(card)}
                 activeOpacity={0.7}
               >

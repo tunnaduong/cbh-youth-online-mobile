@@ -92,25 +92,32 @@ const CommentBar = React.forwardRef(
           </View>
         ) : null}
         <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            backgroundColor: isIOS
-              ? "transparent"
-              : isDarkMode
-              ? "rgba(18, 18, 18, 0.85)"
-              : "rgba(255, 255, 255, 0.75)",
-            borderRadius: 30, // floating pill shape
-            padding: 4,
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: theme.border,
-            overflow: "hidden",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.08,
-            shadowRadius: 8,
-            elevation: 3,
-          }}
+          style={[
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              backgroundColor: isIOS
+                ? "transparent"
+                : isDarkMode
+                ? "rgba(18, 18, 18, 0.85)"
+                : "rgba(255, 255, 255, 0.75)",
+              borderRadius: 30, // floating pill shape
+              padding: 4,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: theme.border,
+              overflow: "hidden",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.08,
+              shadowRadius: 8,
+              elevation: 3,
+            },
+            // Android's `elevation` shadow always renders dark/black and ignores
+            // borderRadius clipping, which pokes a square corner out past this
+            // pill's rounded edge against the dark background. Drop it in dark
+            // mode; the border already gives the pill definition.
+            isDarkMode && { elevation: 0, shadowOpacity: 0 },
+          ]}
         >
           {isIOS && useIOSGlass && LiquidGlassView && (
             <LiquidGlassView

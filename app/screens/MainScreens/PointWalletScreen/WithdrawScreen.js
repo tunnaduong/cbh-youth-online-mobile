@@ -105,18 +105,15 @@ export default function WithdrawScreen({ navigation }) {
         <View style={{ width: 44 }} />
       </View>
       <Animated.ScrollView contentContainerStyle={{ paddingTop: 78 + insets.top, paddingHorizontal: 16, paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled" onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })} scrollEventThrottle={16}>
-        <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}> 
+        <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.balanceCard, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <View style={styles.balanceIcon}><Ionicons name="wallet-outline" size={24} color="#FFFFFF" /></View>
           <View style={styles.balanceCopy}>
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.withdrawScreen.currentBalance")}</Text>
             <Text style={styles.balanceValue}>{t("wallet.pointsValue", { value: formatNumber(balance?.points, lang) })}</Text>
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.approxVnd", { value: `${formatNumber(balance?.vnd, lang)} VND` })}</Text>
-            <Text style={[styles.muted, styles.minWithdrawalText, { color: "#C7F5D7" }]}>
-              {t("wallet.minWithdrawal", { points: formatNumber(balance?.min_withdrawal_points, lang), vnd: balance?.min_withdrawal_vnd ? t("wallet.minWithdrawalVnd", { value: formatNumber(balance.min_withdrawal_vnd, lang) }) : "" })}
-            </Text>
           </View>
         </LinearGradient>
-        <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+        <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <Text style={[styles.title, { color: theme.text }]}>{t("wallet.withdrawScreen.formTitle")}</Text>
           <Text style={[styles.description, { color: theme.subText }]}>{t("wallet.withdrawScreen.formDescription")}</Text>
           <Label theme={theme} text={t("wallet.withdrawScreen.amountLabel")} />
@@ -151,7 +148,6 @@ const styles = StyleSheet.create({
   balanceIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.16)", alignItems: "center", justifyContent: "center" },
   balanceCopy: { flex: 1 },
   muted: { fontSize: 13 },
-  minWithdrawalText: { marginTop: 6 },
   balanceValue: { color: "#FFFFFF", fontSize: 24, fontWeight: "800", marginVertical: 2 },
   card: { borderRadius: 20, padding: 18, borderWidth: 1, shadowColor: "#0F172A", shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   title: { fontSize: 20, fontWeight: "800", marginBottom: 5 },

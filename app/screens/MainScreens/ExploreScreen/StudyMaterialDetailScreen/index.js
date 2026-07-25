@@ -487,7 +487,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
               <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name ? getCategoryLabel(material.category) : t("studyMaterial.material")}</Text>
             </View>

@@ -113,14 +113,18 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
           const w = e.nativeEvent.layout.width;
           if (w && w !== pillWidth) setPillWidth(w);
         }}
-        style={{
+        style={[{
           flex: 1, height: 49, borderRadius: 24.5, marginRight: 12,
           backgroundColor: "transparent",
           flexDirection: "row", alignItems: "center",
           elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
           shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
           overflow: "hidden",
-        }}
+        },
+        // Android's `elevation` shadow always renders dark/black and ignores
+        // borderRadius clipping, poking a square corner out past this pill's
+        // rounded edge against the dark theme background.
+        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
         <PillBackground />
         <Animated.View
@@ -177,14 +181,15 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
       <TouchableOpacity
         onPress={() => stackNavigation.navigate("CreatePostScreen")}
         activeOpacity={0.8}
-        style={{
+        style={[{
           width: 53, height: 53, borderRadius: 26.5,
           backgroundColor: "transparent",
           elevation: 8, alignItems: "center", justifyContent: "center",
           shadowColor: "#000", shadowOpacity: 0.12,
           shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
           overflow: "hidden",
-        }}
+        },
+        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
         <PillBackground style={{ borderRadius: 26.5 }} />
         <Ionicons name="add" size={28} color={activeColor} />

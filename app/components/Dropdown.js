@@ -69,7 +69,7 @@ const Dropdown = ({
         onRequestClose={() => setVisible(false)}
       >
         <View style={styles.androidOverlay}>
-          <View style={[styles.androidDialog, { backgroundColor: isDarkMode ? "#2b2d31" : "#ffffff" }]}>
+          <View style={[styles.androidDialog, { backgroundColor: isDarkMode ? "#2b2d31" : "#ffffff" }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <Text style={[styles.androidTitle, { color: theme.text }]}>{dialogTitle}</Text>
             
             <ScrollView
@@ -163,7 +163,7 @@ const Dropdown = ({
             onPress={() => setVisible(false)}
             activeOpacity={1}
           >
-            <View style={[styles.modal, { backgroundColor: theme.cardBackground }, isGrouped && { maxHeight: "70%" }]}>
+            <View style={[styles.modal, { backgroundColor: theme.cardBackground }, isGrouped && { maxHeight: "70%" }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
               {isGrouped ? (
                 <SectionList
                   sections={sections}

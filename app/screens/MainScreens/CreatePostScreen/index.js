@@ -446,6 +446,7 @@ const CreatePostScreen = ({ navigation }) => {
               shadowOffset: { width: 0, height: 12 },
               elevation: 6,
             },
+            isDarkMode && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
           <View style={styles.profileRow}>

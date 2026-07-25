@@ -227,7 +227,11 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
                 shadowOffset: { width: 0, height: 2 },
                 shadowOpacity: dynamicShadowOpacity,
                 shadowRadius: 6,
-              }
+              },
+              // Android's `elevation` shadow always renders dark/black and
+              // ignores borderRadius clipping, poking a square corner out
+              // past this pill's rounded edge against the dark background.
+              isDarkMode && { elevation: 0, shadowOpacity: 0 },
             ]}
           >
             {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
