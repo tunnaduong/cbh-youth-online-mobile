@@ -355,6 +355,18 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       const safeName = proposedName.replace(/[\\/:*?"<>|]/g, "_");
       const fileUri = `${FileSystem.documentDirectory}${safeName}`;
 
+      // iOS's downloadAsync writes to a temp file, then moves it to fileUri —
+      // that move throws (surfaces as ERR_FILESYSTEM_CANNOT_DOWNLOAD /
+      // "unknown error" from the background URLSession) if a file already
+      // exists at the destination, e.g. from a previous attempt with the
+      // same material. Clear it first so re-downloading the same material
+      // doesn't fail.
+      const existing = await FileSystem.getInfoAsync(fileUri);
+      if (existing.exists) {
+        console.log("[Download] removing stale file at destination", fileUri);
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      }
+
       console.log("[Download] starting", { platform: Platform.OS, downloadUrl, fileUri, hasToken: !!token });
 
       const result = await FileSystem.downloadAsync(downloadUrl, fileUri, {
@@ -427,7 +439,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
         Toast.show({ type: "error", text1: t("studyMaterial.downloadError"), text2: t("studyMaterial.invalidFile") });
       }
     } catch (error) {
-      console.error("[Download] failed", error);
+      console.error("[Download] failed", { code: error?.code, message: error?.message, error });
       Toast.show({
         type: "error",
         text1: t("studyMaterial.downloadError"),

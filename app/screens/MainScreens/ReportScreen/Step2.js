@@ -637,6 +637,7 @@ export default function Step2({ navigation, route }) {
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={["90%"]}
+        enableDynamicSizing={false}
         index={-1}
         enablePanDownToClose
         keyboardBehavior="interactive"
