@@ -99,6 +99,10 @@ export const getHomePosts = (page = 1) => {
   return Api.getRequest("/v1.0/topics?page=" + page);
 };
 
+export const getPersonalizedFeed = (page = 1) => {
+  return Api.getRequest("/v1.0/topics/feed?page=" + page);
+};
+
 export const incrementPostView = (id) => {
   return Api.postRequest("/v1.0/topics/" + id + "/views");
 };

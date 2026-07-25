@@ -34,7 +34,7 @@ import {
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
-  getHomePosts,
+  getPersonalizedFeed,
   getStories,
   incrementPostView,
   resendVerificationEmail,
@@ -964,7 +964,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         setRefreshing(true);
       }
 
-      const response = await getHomePosts(page);
+      const response = await getPersonalizedFeed(page);
       const posts = response?.data?.data;
       const validPosts = Array.isArray(posts) ? posts : [];
       setFeed(validPosts);
@@ -999,7 +999,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const onEndReached = () => {
     if (!hasMore) return;
 
-    getHomePosts(currentPage)
+    getPersonalizedFeed(currentPage)
       .then((response) => {
         const newPosts = response?.data?.data;
         if (!Array.isArray(newPosts) || newPosts.length === 0) {
