@@ -1,6 +1,22 @@
 import { useCallback, useRef } from "react";
+import { Platform, StatusBar } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useStatusBar } from "../contexts/StatusBarContext";
+
+// Applies the native StatusBar call directly, in addition to updating
+// StatusBarContext. Android can otherwise show a stale bar after a
+// navigation transition: the context update only reaches the native
+// module once App.js re-renders and its resync effect runs, and when
+// several screens focus/blur in quick succession (e.g. popping back
+// through two screens at once), that effect can end up reading a value
+// that no longer matches what this screen actually needs. Calling the
+// native API here, synchronously on focus, makes this screen's status
+// bar correct regardless of that downstream timing.
+const applyStatusBarNow = (style, bgColor) => {
+  if (Platform.OS !== "android" || !style) return;
+  StatusBar.setBarStyle(style, true);
+  if (bgColor) StatusBar.setBackgroundColor(bgColor, true);
+};
 
 /**
  * Hook to automatically update status bar based on scroll position
@@ -37,6 +53,7 @@ export const useStatusBarUpdate = ({
       }
       isScrolled.current = false;
       updateStatusBar(initialStyle, initialBgColor);
+      applyStatusBarNow(initialStyle, initialBgColor);
 
       return () => {
         if (__DEV__) {
@@ -54,10 +71,10 @@ export const useStatusBarUpdate = ({
 
     if (shouldBeScrolled !== isScrolled.current) {
       isScrolled.current = shouldBeScrolled;
-      updateStatusBar(
-        shouldBeScrolled ? scrolledStyle : initialStyle,
-        shouldBeScrolled ? scrolledBgColor : initialBgColor
-      );
+      const nextStyle = shouldBeScrolled ? scrolledStyle : initialStyle;
+      const nextBgColor = shouldBeScrolled ? scrolledBgColor : initialBgColor;
+      updateStatusBar(nextStyle, nextBgColor);
+      applyStatusBarNow(nextStyle, nextBgColor);
     }
   };
 
@@ -90,6 +107,7 @@ export const useStatusBarStyle = (
         console.log("[StatusBar] useStatusBarStyle focus", { style, bgColor });
       }
       updateStatusBar(style, bgColor);
+      applyStatusBarNow(style, bgColor);
 
       return () => {
         if (__DEV__) {
