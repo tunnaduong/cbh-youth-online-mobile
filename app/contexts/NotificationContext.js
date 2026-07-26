@@ -166,8 +166,9 @@ export const NotificationProvider = ({ children }) => {
     } else if (type === 'story_reacted' && storyId) {
       target = { screen: 'MainScreens', params: { screen: 'Home', params: { openStoryId: storyId } } };
     } else if (type === 'story_replied' || type === 'message_reacted') {
+      const messageId = data.message_id ?? data.messageId;
       target = conversationId
-        ? { screen: 'ConversationScreen', params: { conversationId } }
+        ? { screen: 'ConversationScreen', params: { conversationId, highlightMessageId: messageId } }
         : { screen: 'MainScreens', params: { screen: 'Chat' } };
     } else if (type === 'payment_received' || data.url === '/wallet') {
       target = { screen: 'PointWalletScreen', params: undefined };

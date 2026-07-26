@@ -215,8 +215,16 @@ const ConversationScreen = ({ navigation, route }) => {
   const messagesScrollRef = useRef(null);
   const initialScrollDoneRef = useRef(false);
   const loadingMoreRef = useRef(false);
-  const { conversation, conversationId, selectedUser, isNewConversation } =
-    route.params;
+  const {
+    conversation,
+    conversationId,
+    selectedUser,
+    isNewConversation,
+    highlightMessageId,
+  } = route.params;
+  const messageLayoutOffsetsRef = useRef({});
+  const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
   const { username, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
@@ -616,10 +624,33 @@ const ConversationScreen = ({ navigation, route }) => {
     });
   };
 
+  const attemptScrollToHighlight = () => {
+    const targetId = pendingHighlightMessageIdRef.current;
+    if (targetId == null) return false;
+    const y = messageLayoutOffsetsRef.current[targetId];
+    if (y == null) return false;
+    requestAnimationFrame(() => {
+      messagesScrollRef.current?.scrollTo({
+        y: Math.max(y - 120, 0),
+        animated: true,
+      });
+    });
+    setHighlightedMessageId(targetId);
+    pendingHighlightMessageIdRef.current = null;
+    setTimeout(() => setHighlightedMessageId(null), 2500);
+    return true;
+  };
+
   const handleMessagesContentSizeChange = () => {
     if (!initialScrollDoneRef.current && messages.length > 0) {
       initialScrollDoneRef.current = true;
-      scrollToLatestMessage();
+      if (!attemptScrollToHighlight()) {
+        scrollToLatestMessage();
+      }
+      return;
+    }
+    if (pendingHighlightMessageIdRef.current != null) {
+      attemptScrollToHighlight();
     }
   };
 
@@ -2077,9 +2108,30 @@ const ConversationScreen = ({ navigation, route }) => {
           onContentSizeChange={handleMessagesContentSizeChange}
         >
           {messages.map((value, index) => (
-            <React.Fragment key={`${value.type}-${value.id}-${index}`}>
+            <View
+              key={`${value.type}-${value.id}-${index}`}
+              onLayout={(e) => {
+                if (value.type === "message" && value.id != null) {
+                  messageLayoutOffsetsRef.current[value.id] =
+                    e.nativeEvent.layout.y;
+                  if (pendingHighlightMessageIdRef.current === value.id) {
+                    attemptScrollToHighlight();
+                  }
+                }
+              }}
+              style={
+                value.id === highlightedMessageId
+                  ? {
+                      backgroundColor: isDarkMode
+                        ? "rgba(250,204,21,0.15)"
+                        : "rgba(250,204,21,0.25)",
+                      borderRadius: 12,
+                    }
+                  : undefined
+              }
+            >
               {renderMessage(value, index)}
-            </React.Fragment>
+            </View>
           ))}
           {typingUser && (
             <Text

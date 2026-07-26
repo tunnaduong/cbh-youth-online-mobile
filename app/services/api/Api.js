@@ -1,4 +1,5 @@
 import * as Api from "./ApiByAxios";
+import axiosInstance from "./axiosInstance";
 import i18n from "../../i18n";
 
 // Authentication
@@ -111,6 +112,10 @@ export const votePost = (id, params) => {
   return Api.postRequest("/v1.0/topics/" + id + "/votes", params);
 };
 
+export const getPostVotes = (id) => {
+  return Api.getRequest("/v1.0/topics/" + id + "/votes");
+};
+
 export const savePost = (id) => {
   return Api.postRequest("/v1.0/user/saved-topics", { topic_id: id });
 };
@@ -154,6 +159,74 @@ export const forgotPassword = (params) => {
 
 export const uploadFile = (formData) => {
   return Api.postFormDataRequest("/v1.0/upload", formData);
+};
+
+// Study materials / marketplace
+export const getStudyMaterials = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return Api.getRequest(`/v1.0/study-materials${query ? `?${query}` : ""}`);
+};
+
+export const getStudyMaterial = (id) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}`);
+};
+
+export const getStudyMaterialCategories = () => {
+  return Api.getRequest("/v1.0/study-material-categories");
+};
+
+export const createStudyMaterial = (params) => {
+  return Api.postRequest("/v1.0/study-materials", params);
+};
+
+export const purchaseMaterial = (id) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/purchase`);
+};
+
+export const getMaterialRatings = (id) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}/ratings`);
+};
+
+export const rateMaterial = (id, params) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/ratings`, params);
+};
+
+export const downloadMaterial = (id) => {
+  return axiosInstance.get(`/v1.0/study-materials/${id}/download`, {
+    responseType: "blob",
+    headers: {
+      Accept: "application/octet-stream",
+    },
+  });
+};
+
+export const viewMaterial = (id) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/view`);
+};
+
+// Points wallet
+export const getWalletBalance = () => {
+  return Api.getRequest("/v1.0/wallet/balance");
+};
+
+export const getWalletTransactions = (params = {}) => {
+  return Api.getRequest("/v1.0/wallet/transactions", params);
+};
+
+export const getWithdrawalRequests = () => {
+  return Api.getRequest("/v1.0/wallet/withdrawal-requests");
+};
+
+export const createDepositRequest = (params) => {
+  return Api.postRequest("/v1.0/wallet/deposit-request", params);
+};
+
+export const requestWithdrawal = (params) => {
+  return Api.postRequest("/v1.0/wallet/withdrawal-request", params);
+};
+
+export const cancelWithdrawalRequest = (id) => {
+  return Api.postRequest(`/v1.0/wallet/withdrawal-requests/${id}/cancel`);
 };
 
 export const forgotPasswordVerify = async (params) => {
@@ -212,6 +285,10 @@ export const getForumCategories = () => {
 
 export const getCurrentUser = () => {
   return Api.getRequest("/v1.0/user");
+};
+
+export const getCurrentPoints = () => {
+  return Api.getRequest("/v1.0/user/current-points");
 };
 
 export const deleteAccount = async (password) => {

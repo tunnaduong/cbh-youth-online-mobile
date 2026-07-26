@@ -425,6 +425,8 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             if (item.data?.conversation_id) {
               navigation.navigate("ConversationScreen", {
                 conversationId: item.data.conversation_id,
+                highlightMessageId:
+                  item.data?.message_id ?? item.data?.messageId,
               });
             } else {
               // Fallback to chat screen if conversation_id is missing
