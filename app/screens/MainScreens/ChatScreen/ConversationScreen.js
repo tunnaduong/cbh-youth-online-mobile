@@ -48,6 +48,7 @@ import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as DocumentPicker from "expo-document-picker";
 import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -678,11 +679,24 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const sendImageMessage = async (imageUri) => {
-    const fileName = imageUri.split("/").pop() || "image.jpg";
+    // The picker can hand back non-JPEG originals (HEIC on iOS, PNG, etc.)
+    // while we always declare image/jpeg - re-encode so the upload always
+    // matches what it claims to be and passes the backend's mimes validation.
+    let normalizedUri = imageUri;
+    try {
+      const result = await manipulateAsync(imageUri, [], {
+        compress: 0.85,
+        format: SaveFormat.JPEG,
+      });
+      normalizedUri = result.uri;
+    } catch (error) {
+      console.error("Error normalizing image before upload:", error);
+    }
+
     await sendAttachmentMessage({
-      uri: imageUri,
+      uri: normalizedUri,
       type: "image",
-      fileName,
+      fileName: `${Date.now()}.jpg`,
       fileType: "image/jpeg",
     });
   };
@@ -1599,10 +1613,21 @@ const ConversationScreen = ({ navigation, route }) => {
               style={styles.messageAvatar}
             />
           )}
-          <View style={{ position: "relative" }}>
+          <View
+            style={{
+              position: "relative",
+              maxWidth: "75%",
+              alignSelf: item.is_myself ? "flex-end" : "flex-start",
+            }}
+          >
             <Pressable
               style={[
                 styles.messageBubble,
+                // maxWidth already lives on the wrapper above - a percentage
+                // value here would resolve against this wrapper's own
+                // auto-sized width instead of the row's, collapsing text to
+                // ~1 char per line. Cancel it out.
+                { maxWidth: undefined },
                 isImageMessage || isVideoMessage
                   ? styles.imageMessageBubble
                   : isFileMessage

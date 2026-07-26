@@ -1321,6 +1321,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             /\.(mp4|mov|m4v|avi)$/i.test(mediaUrl)
           );
           const shouldRenderAsImage = Boolean(mediaUrl) && !isVideoStory;
+          const isTextStory = !mediaUrl && !isVideoStory;
 
           let gradientColors = ['#1a1a1a'];
           if (story.background_color) {
@@ -1336,6 +1337,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           }
 
+          // Static thumbnail for the story-row card (not the full-screen
+          // viewer): the backend renders a real first-frame image for video
+          // stories, and text stories have no media at all - both need a
+          // resolved URL distinct from `mediaUrl` (which drives playback).
+          const cardThumbnailUri = isVideoStory
+            ? resolveStoryMediaUrl({ media_url: story.video_first_frame_url }) || mediaUrl
+            : mediaUrl;
+
           return {
           id: story.id,
           storyId: story.id, // Store the actual story ID
@@ -1344,6 +1353,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           source: {
             uri: mediaUrl || getStoryPlaceholderUri(),
           },
+          isTextStory,
+          cardThumbnailUri,
+          previewGradientColors: gradientColors,
+          previewText: textContent,
           mediaType: isVideoStory ? "video" : undefined,
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
@@ -1541,11 +1554,40 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               }}
             >
               <View>
-                {/* Story Image */}
-                <Image
-                  source={{ uri: user.stories[0].source?.uri }}
-                  style={{ width: 100, height: 160 }}
-                />
+                {/* Story Preview */}
+                {user.stories[0].isTextStory ? (
+                  <LinearGradient
+                    colors={
+                      user.stories[0].previewGradientColors.length > 1
+                        ? user.stories[0].previewGradientColors
+                        : [
+                            user.stories[0].previewGradientColors[0],
+                            shadeHex(user.stories[0].previewGradientColors[0], -12),
+                          ]
+                    }
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={{
+                      width: 100,
+                      height: 160,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingHorizontal: 8,
+                    }}
+                  >
+                    <Text
+                      numberOfLines={4}
+                      style={{ color: "#fff", fontWeight: "700", textAlign: "center", fontSize: 13 }}
+                    >
+                      {user.stories[0].previewText}
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <Image
+                    source={{ uri: user.stories[0].cardThumbnailUri }}
+                    style={{ width: 100, height: 160 }}
+                  />
+                )}
 
                 {/* Avatar */}
                 <View style={{ position: "absolute", top: 8, left: 8 }}>
