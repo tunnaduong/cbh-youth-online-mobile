@@ -74,7 +74,8 @@ export const getCategoryName = (name, t) => {
     "mua bán sách cũ": "oldBooksTrade",
     "đồ dùng học tập": "schoolSupplies",
     "trao đổi vật dụng cá nhân": "personalItemsExchange",
-    "báo lỗi kỹ thuật": "technicalBugReport"
+    "báo lỗi kỹ thuật": "technicalBugReport",
+    "góc yêu bếp": "kitchenCorner"
   };
   const key = keyMap[normalized];
   if (key) {
@@ -143,7 +144,8 @@ export const getCategoryDescription = (desc, t) => {
     "chuyên mục dành cho việc mua bán, trao đổi hoặc chia sẻ các đồ dùng học tập cũ và mới. từ sách vở, bút, cặp sách đến các dụng cụ học tập khác, đây là nơi giúp các bạn tiết kiệm chi phí và tìm kiếm những món đồ học tập cần thiết!": "schoolSuppliesDesc",
     "chuyên mục dành cho việc mua bán, trao đổi hoặc tặng những vật dụng cá nhân đã qua sử dụng. đây là nơi để bạn tìm kiếm, chia sẻ hoặc đổi những món đồ cần thiết như quần áo, giày dép, phụ kiện, đồ điện tử và nhiều vật dụng khác!": "personalItemsExchangeDesc",
     "chuyên mục dành cho các thành viên chia sẻ ý kiến, đóng góp và phản hồi về diễn đàn. đây là nơi bạn có thể đưa ra các đề xuất cải tiến, báo cáo lỗi hoặc chia sẻ trải nghiệm của mình để giúp cộng đồng ngày càng phát triển tốt hơn!": "forumFeedbackDesc",
-    "chuyên mục dành cho các thành viên thông báo về các lỗi kỹ thuật, sự cố hoặc vấn đề gặp phải khi sử dụng diễn đàn. hãy chia sẻ chi tiết về lỗi để đội ngũ quản trị có thể khắc phục và cải thiện hệ thống một cách nhanh chóng!": "technicalBugReportDesc"
+    "chuyên mục dành cho các thành viên thông báo về các lỗi kỹ thuật, sự cố hoặc vấn đề gặp phải khi sử dụng diễn đàn. hãy chia sẻ chi tiết về lỗi để đội ngũ quản trị có thể khắc phục và cải thiện hệ thống một cách nhanh chóng!": "technicalBugReportDesc",
+    "nơi chia sẻ công thức, mẹo nấu nướng và tình yêu với từng bữa cơm gia đình. cùng nhau vào bếp, đỏ lửa mỗi ngày!": "kitchenCornerDesc"
   };
   const key = descMap[normalized];
   if (key) {

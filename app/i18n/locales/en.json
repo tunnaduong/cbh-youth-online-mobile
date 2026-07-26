@@ -222,7 +222,8 @@
     "oldBooksTrade": "Used Books Trade",
     "schoolSupplies": "School Supplies",
     "personalItemsExchange": "Personal Items Exchange",
-    "technicalBugReport": "Technical Bug Reports"
+    "technicalBugReport": "Technical Bug Reports",
+    "kitchenCorner": "Kitchen Corner"
   },
   "forumCategoryDescriptions": {
     "announcementsDesc": "Announcements from the administrator board",
@@ -265,7 +266,8 @@
     "schoolSuppliesDesc": "Buy, sell, exchange, or share new and old school supplies.",
     "personalItemsExchangeDesc": "Buy, sell, exchange, or gift used personal items like clothes and electronics.",
     "forumFeedbackDesc": "Share opinions, feedback, and suggestions to improve the community.",
-    "technicalBugReportDesc": "Report technical bugs, issues, or problems encountered while using the forum."
+    "technicalBugReportDesc": "Report technical bugs, issues, or problems encountered while using the forum.",
+    "kitchenCornerDesc": "A place to share recipes, cooking tips, and love for every family meal. Let's get cooking together, every day!"
   },
   "forum": {
     "title": "Forum",

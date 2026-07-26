@@ -211,7 +211,8 @@
     "oldBooksTrade": "Mua bán sách cũ",
     "schoolSupplies": "Đồ dùng học tập",
     "personalItemsExchange": "Trao đổi vật dụng cá nhân",
-    "technicalBugReport": "Báo lỗi kỹ thuật"
+    "technicalBugReport": "Báo lỗi kỹ thuật",
+    "kitchenCorner": "Góc Yêu Bếp"
   },
   "forumCategoryDescriptions": {
     "announcementsDesc": "Thông báo từ ban quản trị",
@@ -254,7 +255,8 @@
     "schoolSuppliesDesc": "Chuyên mục dành cho việc mua bán, trao đổi hoặc chia sẻ các đồ dùng học tập cũ và mới. Từ sách vở, bút, cặp sách đến các dụng cụ học tập khác, đây là nơi giúp các bạn tiết kiệm chi phí và tìm kiếm những món đồ học tập cần thiết!",
     "personalItemsExchangeDesc": "Chuyên mục dành cho việc mua bán, trao đổi hoặc tặng những vật dụng cá nhân đã qua sử dụng. Đây là nơi để bạn tìm kiếm, chia sẻ hoặc đổi những món đồ cần thiết như quần áo, giày dép, phụ kiện, đồ điện tử và nhiều vật dụng khác!",
     "forumFeedbackDesc": "Chuyên mục dành cho các thành viên chia sẻ ý kiến, đóng góp và phản hồi về diễn đàn. Đây là nơi bạn có thể đưa ra các đề xuất cải tiến, báo cáo lỗi hoặc chia sẻ trải nghiệm của mình để giúp cộng đồng ngày càng phát triển tốt hơn!",
-    "technicalBugReportDesc": "Chuyên mục dành cho các thành viên thông báo về các lỗi kỹ thuật, sự cố hoặc vấn đề gặp phải khi sử dụng diễn đàn. Hãy chia sẻ chi tiết về lỗi để đội ngũ quản trị có thể khắc phục và cải thiện hệ thống một cách nhanh chóng!"
+    "technicalBugReportDesc": "Chuyên mục dành cho các thành viên thông báo về các lỗi kỹ thuật, sự cố hoặc vấn đề gặp phải khi sử dụng diễn đàn. Hãy chia sẻ chi tiết về lỗi để đội ngũ quản trị có thể khắc phục và cải thiện hệ thống một cách nhanh chóng!",
+    "kitchenCornerDesc": "Nơi chia sẻ công thức, mẹo nấu nướng và tình yêu với từng bữa cơm gia đình. Cùng nhau vào bếp, đỏ lửa mỗi ngày!"
   },
   "forum": {
     "title": "Diễn đàn",
