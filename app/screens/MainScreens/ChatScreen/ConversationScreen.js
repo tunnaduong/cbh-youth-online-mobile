@@ -82,6 +82,10 @@ dayjs.locale(i18n.language || "vi");
 const CONVERSATION_CACHE_KEY = "conversation_";
 const CONVERSATION_TIMESTAMP_KEY = "conversation_timestamp_";
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+// axiosInstance's default timeout (10s) is tuned for regular API calls and is
+// far too short for multi-MB attachment uploads (video allows up to 100MB on
+// the backend), which was surfacing as a generic axios "Network Error".
+const ATTACHMENT_UPLOAD_CONFIG = { timeout: 120000 };
 
 const formatMessageTime = (timestamp, t) => {
   const messageTime = dayjs(timestamp);
@@ -736,10 +740,17 @@ const ConversationScreen = ({ navigation, route }) => {
         name: fileName,
       });
       formData.append("type", type);
-      // For images we keep content empty (bubble is the image itself); for
-      // generic files the original filename is what the placeholder displays,
-      // since the server-stored file_url uses a generated, non-human name.
-      formData.append("content", type === "image" ? "" : fileName);
+      // For images the bubble is the image itself, so there's no content to
+      // send - appending an empty string here is unreliable across RN's
+      // FormData/multipart implementations and has been observed to arrive
+      // server-side as something that fails the "content must be a string"
+      // validation, so just omit the field (the backend's
+      // required_without:file rule already allows that). For generic files
+      // the original filename is what the placeholder displays, since the
+      // server-stored file_url uses a generated, non-human name.
+      if (type !== "image") {
+        formData.append("content", fileName);
+      }
 
       // Optimistic message
       const optimisticMessage = {
@@ -835,6 +846,7 @@ const ConversationScreen = ({ navigation, route }) => {
         response = await Api.postFormDataRequest(
           `/v1.0/chat/conversations/${newConversationId}/messages`,
           formData,
+          ATTACHMENT_UPLOAD_CONFIG,
         );
 
         navigation.setParams({
@@ -859,6 +871,7 @@ const ConversationScreen = ({ navigation, route }) => {
         response = await Api.postFormDataRequest(
           `/v1.0/chat/conversations/${targetConversationId}/messages`,
           formData,
+          ATTACHMENT_UPLOAD_CONFIG,
         );
       }
 
