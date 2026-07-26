@@ -164,6 +164,7 @@ const injectTimeHeaders = (messages, t) => {
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
 const VideoViewerModal = ({ visible, uri, onClose }) => {
+  const insets = useSafeAreaInsets();
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = false;
     if (uri) p.play();
@@ -172,7 +173,11 @@ const VideoViewerModal = ({ visible, uri, onClose }) => {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.videoViewerBackdrop}>
-        <TouchableOpacity style={styles.videoViewerClose} onPress={onClose} hitSlop={12}>
+        <TouchableOpacity
+          style={[styles.videoViewerClose, { top: insets.top + 12 }]}
+          onPress={onClose}
+          hitSlop={12}
+        >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
         {uri && (
@@ -1427,6 +1432,23 @@ const ConversationScreen = ({ navigation, route }) => {
     setVideoViewer({ visible: true, uri });
   };
 
+  // react-native-image-viewing's default header positions the close button
+  // with RN's own <SafeAreaView>, which is an iOS-only no-op - on Android it
+  // applies no top inset at all, so the button sits right under (behind) the
+  // status bar and can't be tapped. Supply our own header using the safe
+  // area insets we already have.
+  const ImageViewerHeader = () => (
+    <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
+      <TouchableOpacity
+        onPress={() => setImageViewer({ visible: false, uri: null })}
+        style={styles.imageViewerCloseButton}
+        hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+      >
+        <Ionicons name="close" size={22} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  );
+
   // Downloads a file attachment and hands it to the native share sheet, the
   // same pattern StudyMaterialDetailScreen uses: on iOS documentDirectory is
   // sandboxed, so the share sheet is the actual delivery of the file, not a
@@ -2014,6 +2036,7 @@ const ConversationScreen = ({ navigation, route }) => {
         imageIndex={0}
         visible={imageViewer.visible}
         onRequestClose={() => setImageViewer({ visible: false, uri: null })}
+        HeaderComponent={ImageViewerHeader}
       />
 
       {videoViewer.uri && (
@@ -2501,10 +2524,17 @@ const styles = StyleSheet.create({
   },
   videoViewerClose: {
     position: "absolute",
-    top: 56,
     right: 20,
     zIndex: 1,
     padding: 6,
+  },
+  imageViewerCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   videoViewerPlayer: {
     width: "100%",
