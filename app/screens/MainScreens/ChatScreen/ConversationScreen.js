@@ -11,6 +11,7 @@ import {
   Animated,
   StatusBar,
   Dimensions,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -38,6 +39,7 @@ import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
 import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -115,7 +117,11 @@ const injectTimeHeaders = (messages, t) => {
       });
     }
 
-    result.push({ ...msg, type: "message" });
+    // `type` doubles as the list-envelope discriminator ("message" vs "date"/"time"
+    // headers) elsewhere in this screen, which would otherwise clobber the backend's
+    // content type (text/image/file) - keep that around separately so attachment
+    // bubbles still render correctly after any refetch.
+    result.push({ ...msg, type: "message", content_type: msg.type });
   });
 
   return result;
@@ -560,7 +566,59 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
+  const pickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        await sendFileMessage(
+          asset.uri,
+          asset.name || asset.uri.split("/").pop() || "file",
+          asset.mimeType || "application/octet-stream",
+          asset.size,
+        );
+      }
+    } catch (error) {
+      console.error("Error picking document:", error);
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: t("chatConversation.sendFileError"),
+      });
+    }
+  };
+
+  const sendFileMessage = async (fileUri, fileName, fileType, fileSize) => {
+    await sendAttachmentMessage({
+      uri: fileUri,
+      type: "file",
+      fileName,
+      fileType,
+      fileSize,
+    });
+  };
+
   const sendImageMessage = async (imageUri) => {
+    const fileName = imageUri.split("/").pop() || "image.jpg";
+    await sendAttachmentMessage({
+      uri: imageUri,
+      type: "image",
+      fileName,
+      fileType: "image/jpeg",
+    });
+  };
+
+  const sendAttachmentMessage = async ({
+    uri,
+    type,
+    fileName,
+    fileType,
+    fileSize,
+  }) => {
     const tempId = Date.now().toString();
     try {
       if (sending) return;
@@ -568,25 +626,29 @@ const ConversationScreen = ({ navigation, route }) => {
       setSending(true);
 
       const now = new Date().toISOString();
-      const fileName = imageUri.split("/").pop() || "image.jpg";
-      const fileType = "image/jpeg";
 
       // Create FormData
       const formData = new FormData();
       formData.append("file", {
-        uri: imageUri,
+        uri,
         type: fileType,
         name: fileName,
       });
-      formData.append("type", "image");
-      formData.append("content", ""); // Empty content for image messages
+      formData.append("type", type);
+      // For images we keep content empty (bubble is the image itself); for
+      // generic files the original filename is what the placeholder displays,
+      // since the server-stored file_url uses a generated, non-human name.
+      formData.append("content", type === "image" ? "" : fileName);
 
       // Optimistic message
       const optimisticMessage = {
         id: tempId,
-        content: "",
-        type: "image",
-        file_url: imageUri, // Use local URI temporarily
+        content: type === "image" ? "" : fileName,
+        type,
+        file_url: uri, // Use local URI temporarily
+        file_name: fileName,
+        file_size: fileSize,
+        is_sending: true,
         created_at: now,
         created_at_human: formatMessageTime(now, t),
         is_myself: true,
@@ -749,7 +811,11 @@ const ConversationScreen = ({ navigation, route }) => {
           }
         }
 
-        messagesToAdd.push({ ...response.data, type: "message" });
+        messagesToAdd.push({
+          ...response.data,
+          type: "message",
+          content_type: response.data.type,
+        });
         return [...baseMessages, ...messagesToAdd];
       });
 
@@ -767,7 +833,7 @@ const ConversationScreen = ({ navigation, route }) => {
         }
       }
     } catch (error) {
-      console.error("Error sending image:", error);
+      console.error(`Error sending ${type} attachment:`, error);
 
       // Remove optimistic message on error
       setMessages((prev) => {
@@ -780,7 +846,10 @@ const ConversationScreen = ({ navigation, route }) => {
       Toast.show({
         type: "error",
         text1: t("common.error"),
-        text2: t("chatConversation.sendImageError"),
+        text2:
+          type === "image"
+            ? t("chatConversation.sendImageError")
+            : t("chatConversation.sendFileError"),
       });
     } finally {
       setSending(false);
@@ -1160,6 +1229,14 @@ const ConversationScreen = ({ navigation, route }) => {
     const isStoryReply = item.metadata?.story_reply === true;
     const storyOwnerName = item.metadata?.story_owner_name;
 
+    // `type` is overloaded as the list envelope ("message"/"date"/"time"), so once a
+    // message has gone through a refetch its original content type only survives in
+    // `content_type` (see injectTimeHeaders) - check both so attachments keep
+    // rendering as images/file cards instead of falling back to plain text.
+    const isImageMessage =
+      item.type === "image" || item.content_type === "image";
+    const isFileMessage = item.type === "file" || item.content_type === "file";
+
     return (
       <View
         style={[
@@ -1262,9 +1339,11 @@ const ConversationScreen = ({ navigation, route }) => {
           <View
             style={[
               styles.messageBubble,
-              item.type === "image"
+              isImageMessage
                 ? styles.imageMessageBubble
-                : item.type === "chat" || item.type === "part"
+                : isFileMessage
+                  ? styles.fileMessageBubble
+                  : item.type === "chat" || item.type === "part"
                   ? [
                       item.is_myself
                         ? styles.myMessageBubble
@@ -1288,7 +1367,7 @@ const ConversationScreen = ({ navigation, route }) => {
               !item.is_myself && !isLastInGroup && { marginLeft: 40 },
             ]}
           >
-            {item.type === "image" && item.file_url ? (
+            {isImageMessage && item.file_url ? (
               <TouchableOpacity
                 activeOpacity={0.9}
                 onPress={() => {
@@ -1297,7 +1376,7 @@ const ConversationScreen = ({ navigation, route }) => {
               >
                 <Image
                   source={{
-                    uri: item.file_url.startsWith("http")
+                    uri: item.file_url.startsWith("http") || item.file_url.startsWith("file:")
                       ? item.file_url
                       : `https://chuyenbienhoa.com${item.file_url}`,
                   }}
@@ -1309,6 +1388,53 @@ const ConversationScreen = ({ navigation, route }) => {
                     <ActivityIndicator size="small" color="#fff" />
                   </View>
                 )}
+              </TouchableOpacity>
+            ) : isFileMessage ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.fileMessageContent}
+                onPress={() => {
+                  const url =
+                    item.file_url &&
+                    (item.file_url.startsWith("http") ||
+                      item.file_url.startsWith("file:"))
+                      ? item.file_url
+                      : `https://chuyenbienhoa.com${item.file_url || ""}`;
+                  if (item.file_url) {
+                    Linking.openURL(url).catch(() => {});
+                  }
+                }}
+              >
+                <View style={styles.fileIconWrapper}>
+                  <Ionicons
+                    name="document-text-outline"
+                    size={22}
+                    color={theme.primary}
+                  />
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={[
+                      styles.fileMessageName,
+                      {
+                        color: item.is_myself
+                          ? isDarkMode
+                            ? "#ecfdf5"
+                            : "#000"
+                          : theme.text,
+                      },
+                    ]}
+                    numberOfLines={1}
+                    ellipsizeMode="middle"
+                  >
+                    {item.content || item.file_name || t("chatConversation.attachment", "Tệp đính kèm")}
+                  </Text>
+                  <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
+                    {item.is_sending
+                      ? t("chatConversation.sending", "Đang gửi...")
+                      : t("chatConversation.tapToOpen", "Nhấn để mở")}
+                  </Text>
+                </View>
               </TouchableOpacity>
             ) : (
               <Text
@@ -1535,17 +1661,30 @@ const ConversationScreen = ({ navigation, route }) => {
                 marginTop: 0,
               }}
               leftAccessory={
-                <TouchableOpacity
-                  style={styles.attachButton}
-                  onPress={pickImage}
-                  disabled={sending}
-                >
-                  <Ionicons
-                    name="image-outline"
-                    size={20}
-                    color={theme.subText}
-                  />
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row" }}>
+                  <TouchableOpacity
+                    style={styles.attachButton}
+                    onPress={pickImage}
+                    disabled={sending}
+                  >
+                    <Ionicons
+                      name="image-outline"
+                      size={20}
+                      color={theme.subText}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.attachButton, { marginLeft: 6 }]}
+                    onPress={pickDocument}
+                    disabled={sending}
+                  >
+                    <Ionicons
+                      name="attach-outline"
+                      size={20}
+                      color={theme.subText}
+                    />
+                  </TouchableOpacity>
+                </View>
               }
               nativeID="chat-input"
             />
@@ -1701,6 +1840,31 @@ const styles = StyleSheet.create({
   imageMessageBubble: {
     padding: 0,
     overflow: "hidden",
+  },
+  fileMessageBubble: {
+    padding: 10,
+    minWidth: 180,
+  },
+  fileMessageContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  fileIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(49,149,39,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  fileMessageName: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  fileMessageSub: {
+    fontSize: 11,
+    marginTop: 2,
   },
   messageImage: {
     width: 200,

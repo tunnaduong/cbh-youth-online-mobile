@@ -436,6 +436,7 @@
     "cannotOpen": "Could not open conversation. Please try again later.",
     "searchUsers": "Search users...",
     "sendImageError": "Could not pick image. Please try again.",
+    "sendFileError": "Could not send file. Please try again.",
     "sendMessageError": "Could not send message. Please try again later.",
     "storyReply": {
       "you": "You commented on {{owner}}'s story",

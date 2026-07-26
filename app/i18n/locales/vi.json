@@ -425,6 +425,7 @@
     "cannotOpen": "Không thể mở cuộc trò chuyện. Vui lòng thử lại sau.",
     "searchUsers": "Tìm kiếm người dùng...",
     "sendImageError": "Không thể chọn ảnh. Vui lòng thử lại.",
+    "sendFileError": "Không thể gửi tệp. Vui lòng thử lại.",
     "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
     "storyReply": {
       "you": "Bạn đã bình luận về tin của {{owner}}",
