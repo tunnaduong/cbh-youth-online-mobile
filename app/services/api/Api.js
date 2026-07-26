@@ -384,6 +384,16 @@ export const markConversationAsRead = (id) => {
   return Api.postRequest(`/v1.0/chat/conversations/${id}/read`);
 };
 
+export const reactToMessage = (messageId, reactionType) => {
+  return Api.postRequest(`/v1.0/chat/messages/${messageId}/reactions`, {
+    reaction_type: reactionType,
+  });
+};
+
+export const removeMessageReaction = (messageId) => {
+  return Api.deleteRequest(`/v1.0/chat/messages/${messageId}/reactions`);
+};
+
 // Notifications
 export const getNotifications = (page = 1, perPage = 20) => {
   return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`);

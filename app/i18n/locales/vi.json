@@ -434,7 +434,8 @@
     "anonymous": "Ẩn danh",
     "am": "SA",
     "pm": "CH",
-    "members": "thành viên"
+    "members": "thành viên",
+    "sendVideoError": "Không thể gửi video. Vui lòng thử lại."
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",

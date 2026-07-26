@@ -145,7 +145,7 @@
           }
         }
       ],
-      "expo-sharing"
+      "expo-video"
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",
