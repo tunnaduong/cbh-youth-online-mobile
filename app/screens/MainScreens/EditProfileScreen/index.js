@@ -227,6 +227,7 @@ const EditProfileScreen = ({ navigation }) => {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
+      quality: 1,
     });
 
     if (!result.canceled) {
