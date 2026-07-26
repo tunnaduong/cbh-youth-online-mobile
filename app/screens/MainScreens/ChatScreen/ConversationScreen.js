@@ -740,17 +740,16 @@ const ConversationScreen = ({ navigation, route }) => {
         name: fileName,
       });
       formData.append("type", type);
-      // For images the bubble is the image itself, so there's no content to
-      // send - appending an empty string here is unreliable across RN's
-      // FormData/multipart implementations and has been observed to arrive
-      // server-side as something that fails the "content must be a string"
-      // validation, so just omit the field (the backend's
-      // required_without:file rule already allows that). For generic files
-      // the original filename is what the placeholder displays, since the
-      // server-stored file_url uses a generated, non-human name.
-      if (type !== "image") {
-        formData.append("content", fileName);
-      }
+      // The backend's `content` column is NOT NULL and required_without:file
+      // still runs the `string` rule on whatever is present, so the field
+      // can't be omitted. A literal empty string has also been observed to
+      // arrive server-side in a form that fails that `string` check (a
+      // React Native FormData/multipart quirk), so use a single space as an
+      // effectively-empty placeholder for images instead - the bubble is the
+      // image itself, so content is never shown for these anyway. Generic
+      // files keep sending the original filename, since the server-stored
+      // file_url uses a generated, non-human name.
+      formData.append("content", type === "image" ? " " : fileName);
 
       // Optimistic message
       const optimisticMessage = {
@@ -1631,6 +1630,10 @@ const ConversationScreen = ({ navigation, route }) => {
               position: "relative",
               maxWidth: "75%",
               alignSelf: item.is_myself ? "flex-end" : "flex-start",
+              // The reaction badge hangs off the bottom corner of the bubble
+              // (see reactionAddBadge/reactionPillBadge) - without this the
+              // next message's footer/timestamp sits right underneath it.
+              marginBottom: 16,
             }}
           >
             <Pressable
