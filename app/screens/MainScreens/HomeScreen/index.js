@@ -866,6 +866,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     barStyle: "dark-content",
     backgroundColor: "#ffffff",
   });
+
+  // Re-apply Home's own status bar style whenever this tab regains focus,
+  // so a style left over from another tab doesn't stick around after
+  // switching back (only when the story viewer isn't overriding it).
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      if (!isStoryVisible) {
+        updateStatusBar(isDarkMode ? "light-content" : "dark-content", theme.background);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, isDarkMode, theme.background, isStoryVisible, updateStatusBar]);
+
   const [verificationModalVisible, setVerificationModalVisible] =
     useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
@@ -1229,6 +1242,59 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     fetchStories();
   }, [blockedUsers]);
 
+  const resolveStoryMediaUrl = (story) => {
+    const candidates = [
+      story?.media_url,
+      story?.thumbnail_url,
+      story?.thumbnail,
+      story?.thumb_url,
+      story?.preview_url,
+      story?.file_url,
+      story?.image_url,
+      story?.media?.url,
+      story?.media?.thumbnail,
+      story?.image?.url,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        const normalized = candidate.trim();
+        if (/^https?:\/\//i.test(normalized)) {
+          return normalized;
+        }
+        if (normalized.startsWith("/")) {
+          return `https://api.chuyenbienhoa.com${normalized}`;
+        }
+        return `https://api.chuyenbienhoa.com/${normalized.replace(/^\/+/, "")}`;
+      }
+    }
+
+    return null;
+  };
+
+  const shadeHex = (hex, percent) => {
+    try {
+      let h = hex.replace('#', '').trim();
+      if (h.length === 3) {
+        h = h.split('').map((c) => c + c).join('');
+      }
+      const num = parseInt(h, 16);
+      let r = (num >> 16) + Math.round(255 * (percent / 100));
+      let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+      let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+      r = Math.max(0, Math.min(255, r));
+      g = Math.max(0, Math.min(255, g));
+      b = Math.max(0, Math.min(255, b));
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    } catch (e) {
+      return hex;
+    }
+  };
+
+  const getStoryPlaceholderUri = () => {
+    return "https://placehold.co/1080x1920/111827/ffffff.png?text=Story";
+  };
+
   const transformStoriesData = (apiResponse) => {
     if (!apiResponse?.data) return [];
 
@@ -1245,25 +1311,94 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
-        stories: user.stories.map((story) => ({
+        stories: user.stories.map((story) => {
+          const mediaUrl = resolveStoryMediaUrl(story);
+          const textContent = story.text_content || story.content || story.text || '';
+          const storyType = String(story?.type || story?.media_type || "").toLowerCase();
+          const isVideoStory = Boolean(mediaUrl) && (
+            storyType === "video" ||
+            storyType === "mp4" ||
+            storyType === "mov" ||
+            /\.(mp4|mov|m4v|avi)$/i.test(mediaUrl)
+          );
+          const shouldRenderAsImage = Boolean(mediaUrl) && !isVideoStory;
+
+          let gradientColors = ['#1a1a1a'];
+          if (story.background_color) {
+            try {
+              const parsed = JSON.parse(story.background_color);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                gradientColors = parsed;
+              } else if (typeof parsed === 'string') {
+                gradientColors = [parsed];
+              }
+            } catch {
+              gradientColors = [story.background_color] || ['#1a1a1a'];
+            }
+          }
+
+          return {
           id: story.id,
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
           username: user.username, // Store username
-          source: story.media_url
-            ? { uri: `https://api.chuyenbienhoa.com${story.media_url}` }
-            : undefined,
+          source: {
+            uri: mediaUrl || getStoryPlaceholderUri(),
+          },
+          mediaType: isVideoStory ? "video" : undefined,
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
-          renderContent: () => (
-            <ZoomableStoryImage
-              uri={story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : undefined}
-              style={{
-                width: SCREEN_WIDTH,
-                height: SCREEN_HEIGHT,
-              }}
-            />
-          ),
+          is_muted: story.is_muted || false,
+          renderContent: (() => {
+            const colors = gradientColors;
+            const text = textContent;
+
+            return () => {
+              if (isVideoStory) {
+                return null;
+              }
+
+              if (shouldRenderAsImage) {
+                return (
+                  <ZoomableStoryImage
+                    uri={mediaUrl}
+                    style={{
+                      width: SCREEN_WIDTH,
+                      height: SCREEN_HEIGHT,
+                    }}
+                  />
+                );
+              }
+
+              return (
+                <LinearGradient
+                  colors={colors.length > 1 ? colors : [colors[0] || '#1a1a1a', shadeHex(colors[0] || '#1a1a1a', -12)]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{
+                    width: SCREEN_WIDTH,
+                    height: SCREEN_HEIGHT,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingHorizontal: 30,
+                  }}
+                >
+                  <Text style={{
+                    color: '#ffffff',
+                    fontSize: 24,
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 3,
+                    includeFontPadding: false,
+                  }}>
+                    {text}
+                  </Text>
+                </LinearGradient>
+              );
+            };
+          })(),
           renderFooter: () => (
             <ReplyBar
               storyId={story.id}
@@ -1282,7 +1417,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setCurrentStory(story.id);
             setCurrentStoryUser({ id: user.id, username: user.username });
           },
-        })),
+          };
+        }),
       }));
   };
 
@@ -1462,6 +1598,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
     isScrollingRef.current = false;
+    DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -1937,12 +2074,27 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           imageProps={{ resizeMode: "cover" }}
           imageStyles={StyleSheet.absoluteFillObject}
+          videoProps={{
+            resizeMode: "contain",
+            repeat: false,
+            style: {
+              width: SCREEN_WIDTH,
+              height: SCREEN_HEIGHT,
+              backgroundColor: '#000000',
+            },
+          }}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
             textShadowOffset: { width: 0, height: 0 },
             textShadowRadius: 1.5,
             fontWeight: "600",
+          }}
+          renderCustomContent={(story) => {
+            if (story.renderContent && story.mediaType !== 'video') {
+              return story.renderContent();
+            }
+            return null;
           }}
           progressColor="#a4a4a4"
           closeIconColor="#c4c4c4"

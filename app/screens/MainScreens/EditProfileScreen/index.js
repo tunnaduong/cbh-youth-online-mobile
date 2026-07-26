@@ -195,7 +195,7 @@ const EditProfileScreen = ({ navigation }) => {
       });
       navigation.goBack();
     } catch (error) {
-      console.error("Error updating profile:", error.response.data);
+      console.error("Error updating profile:", error?.response?.data || error?.message);
       Toast.show({
         type: "error",
         text1: t('profile.errorTitle'),
