@@ -233,6 +233,9 @@ const ConversationScreen = ({ navigation, route }) => {
     message: null,
     anchor: null,
   });
+  // DEBUG: id -> error string, for surfacing why an image/video thumbnail
+  // failed to load directly in the bubble instead of just going blank.
+  const [mediaLoadErrors, setMediaLoadErrors] = useState({});
 
   // Keep the header visually light until the user scrolls enough.
   // This mirrors the other screens: the back button stays visible, while the
@@ -1409,8 +1412,14 @@ const ConversationScreen = ({ navigation, route }) => {
 
   // Media viewers -------------------------------------------------------------
 
-  const openImageViewer = (uri) => setImageViewer({ visible: true, uri });
-  const openVideoViewer = (uri) => setVideoViewer({ visible: true, uri });
+  const openImageViewer = (uri) => {
+    console.log("[ChatMedia] openImageViewer", { uri });
+    setImageViewer({ visible: true, uri });
+  };
+  const openVideoViewer = (uri) => {
+    console.log("[ChatMedia] openVideoViewer", { uri });
+    setVideoViewer({ visible: true, uri });
+  };
 
   const renderMessage = (itemOrInfo, indexArg) => {
     // Array.map passes the message directly, while FlatList passes { item, index }.
@@ -1683,11 +1692,43 @@ const ConversationScreen = ({ navigation, route }) => {
             >
               {isImageMessage && item.file_url ? (
                 <>
-                  <Image
-                    source={{ uri: resolvedFileUrl }}
-                    style={styles.messageImage}
-                    resizeMode={"cover"}
-                  />
+                  {console.log("[ChatMedia] rendering image", {
+                    id: item.id,
+                    raw_file_url: item.file_url,
+                    resolved: resolvedFileUrl,
+                  })}
+                  {mediaLoadErrors[item.id] ? (
+                    <View style={[styles.messageImage, styles.mediaErrorFallback]}>
+                      <Ionicons name="image-outline" size={28} color="#fff" />
+                      <Text style={styles.mediaErrorText} numberOfLines={2}>
+                        {t("chatConversation.loadImageError", "Không tải được ảnh")}
+                        {"\n"}
+                        {mediaLoadErrors[item.id]}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Image
+                      source={{ uri: resolvedFileUrl }}
+                      style={styles.messageImage}
+                      resizeMode={"cover"}
+                      onLoad={() =>
+                        console.log("[ChatMedia] image loaded OK", {
+                          id: item.id,
+                          resolved: resolvedFileUrl,
+                        })
+                      }
+                      onError={(e) => {
+                        const reason = e?.nativeEvent?.error || "unknown error";
+                        console.error("[ChatMedia] image FAILED to load", {
+                          id: item.id,
+                          raw_file_url: item.file_url,
+                          resolved: resolvedFileUrl,
+                          reason,
+                        });
+                        setMediaLoadErrors((prev) => ({ ...prev, [item.id]: reason }));
+                      }}
+                    />
+                  )}
                   {sending && item.is_myself && !item.read_at && (
                     <View style={styles.imageLoadingOverlay}>
                       <ActivityIndicator size="small" color="#fff" />
@@ -1696,11 +1737,25 @@ const ConversationScreen = ({ navigation, route }) => {
                 </>
               ) : isVideoMessage ? (
                 <>
+                  {console.log("[ChatMedia] rendering video", {
+                    id: item.id,
+                    raw_file_url: item.file_url,
+                    resolved_file_url: resolvedFileUrl,
+                    raw_metadata: item.metadata,
+                    resolved_thumbnail: resolvedThumbnailUrl,
+                  })}
                   {resolvedThumbnailUrl ? (
                     <Image
                       source={{ uri: resolvedThumbnailUrl }}
                       style={styles.messageImage}
                       resizeMode={"cover"}
+                      onError={(e) =>
+                        console.error("[ChatMedia] video thumbnail FAILED to load", {
+                          id: item.id,
+                          resolved_thumbnail: resolvedThumbnailUrl,
+                          reason: e?.nativeEvent?.error,
+                        })
+                      }
                     />
                   ) : (
                     <View style={[styles.messageImage, styles.videoPlaceholder]} />
@@ -2352,6 +2407,18 @@ const styles = StyleSheet.create({
   },
   videoPlaceholder: {
     backgroundColor: "#000",
+  },
+  mediaErrorFallback: {
+    backgroundColor: "#3a1a1a",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+  },
+  mediaErrorText: {
+    color: "#fff",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 4,
   },
   videoPlayOverlay: {
     position: "absolute",
