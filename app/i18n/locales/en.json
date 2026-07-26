@@ -471,6 +471,8 @@
     "reactedStory": "reacted",
     "toYourStory": "to your story",
     "repliedStory": "commented on your story",
+    "reactedMessage": "reacted",
+    "toYourMessage": "to your message",
     "followedYou": "started following you",
     "interactedWithYou": "interacted with you",
     "system": "System",

@@ -82,6 +82,8 @@ const formatNotificationMessage = (notification, t) => {
       return `${t('notifications.reactedStory')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourStory')}`;
     case "story_replied":
       return t('notifications.repliedStory');
+    case "message_reacted":
+      return `${t('notifications.reactedMessage')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourMessage')}`;
     // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
       return `${t('notifications.likedPost')} "${data?.post_title || data?.topic_title || ""}" ${t('notifications.ofYours')}`;
@@ -415,7 +417,10 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
                 openStoryId: item.data?.story_id ?? item.data?.storyId,
               },
             });
-          } else if (item.type === "story_replied") {
+          } else if (
+            item.type === "story_replied" ||
+            item.type === "message_reacted"
+          ) {
             // Navigate to conversation screen
             if (item.data?.conversation_id) {
               navigation.navigate("ConversationScreen", {

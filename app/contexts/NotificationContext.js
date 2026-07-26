@@ -165,7 +165,7 @@ export const NotificationProvider = ({ children }) => {
       target = { screen: 'ConversationScreen', params: { conversationId } };
     } else if (type === 'story_reacted' && storyId) {
       target = { screen: 'MainScreens', params: { screen: 'Home', params: { openStoryId: storyId } } };
-    } else if (type === 'story_replied') {
+    } else if (type === 'story_replied' || type === 'message_reacted') {
       target = conversationId
         ? { screen: 'ConversationScreen', params: { conversationId } }
         : { screen: 'MainScreens', params: { screen: 'Chat' } };
