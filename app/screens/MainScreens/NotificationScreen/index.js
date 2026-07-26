@@ -370,8 +370,17 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     }
   };
 
+  // Only these notification types mean the actor authored the anonymous
+  // content themselves (their own anonymous reply/comment). Voters/likers
+  // are never anonymous, even when they vote on someone else's anonymous
+  // comment/post, so `data.is_anonymous` must not hide them for those types.
+  const ANONYMOUS_ACTOR_TYPES = ["comment_replied", "topic_commented"];
+
   const renderItem = ({ item }) => {
-    const isAnonymous = (item.actor && item.actor.id === null) || item.data?.is_anonymous === true || item.data?.anonymous === true;
+    const isAnonymous =
+      (item.actor && item.actor.id === null) ||
+      (ANONYMOUS_ACTOR_TYPES.includes(item.type) &&
+        (item.data?.is_anonymous === true || item.data?.anonymous === true));
     const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
     const userName = isSystemMessage
       ? t('notifications.system')
