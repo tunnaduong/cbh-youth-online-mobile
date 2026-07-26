@@ -12,7 +12,6 @@ import {
   Animated,
   StatusBar,
   Dimensions,
-  Linking,
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -50,6 +49,8 @@ import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -64,7 +65,11 @@ import {
 
 // Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
 // local optimistic messages use file:// or content:// URIs, and http(s) may
-// already be absolute if the backend ever returns a CDN url.
+// already be absolute if the backend ever returns a CDN url. Storage files
+// are served by the API app, not the marketing site - every other screen in
+// this app resolves relative paths against api.chuyenbienhoa.com (see
+// ArchiveScreen/HomeScreen's resolveStoryMediaUrl), so match that instead of
+// the bare domain, which 404s.
 const resolveMediaUrl = (url) => {
   if (!url) return null;
   if (
@@ -74,7 +79,7 @@ const resolveMediaUrl = (url) => {
   ) {
     return url;
   }
-  return `https://chuyenbienhoa.com${url}`;
+  return `https://api.chuyenbienhoa.com${url}`;
 };
 
 dayjs.locale(i18n.language || "vi");
@@ -236,6 +241,7 @@ const ConversationScreen = ({ navigation, route }) => {
   // DEBUG: id -> error string, for surfacing why an image/video thumbnail
   // failed to load directly in the bubble instead of just going blank.
   const [mediaLoadErrors, setMediaLoadErrors] = useState({});
+  const [downloadingFileId, setDownloadingFileId] = useState(null);
 
   // Keep the header visually light until the user scrolls enough.
   // This mirrors the other screens: the back button stays visible, while the
@@ -1421,6 +1427,57 @@ const ConversationScreen = ({ navigation, route }) => {
     setVideoViewer({ visible: true, uri });
   };
 
+  // Downloads a file attachment and hands it to the native share sheet, the
+  // same pattern StudyMaterialDetailScreen uses: on iOS documentDirectory is
+  // sandboxed, so the share sheet is the actual delivery of the file, not a
+  // best-effort extra.
+  const handleOpenFile = async (item) => {
+    const fileUrl = resolveMediaUrl(item.file_url);
+    if (!fileUrl || downloadingFileId) return;
+
+    try {
+      setDownloadingFileId(item.id);
+
+      const proposedName = item.file_name || item.content || fileUrl.split("/").pop() || "file";
+      const safeName = proposedName.replace(/[\\/:*?"<>|]/g, "_");
+      const fileUri = `${FileSystem.documentDirectory}${safeName}`;
+
+      const existing = await FileSystem.getInfoAsync(fileUri);
+      if (existing.exists) {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      }
+
+      const result = await FileSystem.downloadAsync(fileUrl, fileUri);
+
+      if (result?.status !== 200) {
+        throw new Error(`Unexpected status ${result?.status}`);
+      }
+
+      if (!(await Sharing.isAvailableAsync())) {
+        Toast.show({
+          type: "error",
+          text1: t("common.error"),
+          text2: t(
+            "chatConversation.shareUnavailable",
+            "Sharing isn't available on this device (Simulator doesn't support it).",
+          ),
+        });
+        return;
+      }
+
+      await Sharing.shareAsync(result.uri, { dialogTitle: safeName });
+    } catch (error) {
+      console.error("[ChatMedia] file download/share failed", error);
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: error?.message || t("chatConversation.sendFileError"),
+      });
+    } finally {
+      setDownloadingFileId(null);
+    }
+  };
+
   const renderMessage = (itemOrInfo, indexArg) => {
     // Array.map passes the message directly, while FlatList passes { item, index }.
     const item = itemOrInfo?.item ?? itemOrInfo;
@@ -1686,7 +1743,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   : isVideoMessage && resolvedFileUrl
                     ? () => openVideoViewer(resolvedFileUrl)
                     : isFileMessage && resolvedFileUrl
-                      ? () => Linking.openURL(resolvedFileUrl).catch(() => {})
+                      ? () => handleOpenFile(item)
                       : undefined
               }
             >
@@ -1772,11 +1829,15 @@ const ConversationScreen = ({ navigation, route }) => {
               ) : isFileMessage ? (
                 <View style={styles.fileMessageContent}>
                   <View style={styles.fileIconWrapper}>
-                    <Ionicons
-                      name="document-text-outline"
-                      size={22}
-                      color={theme.primary}
-                    />
+                    {downloadingFileId === item.id ? (
+                      <ActivityIndicator size="small" color={theme.primary} />
+                    ) : (
+                      <Ionicons
+                        name="document-text-outline"
+                        size={22}
+                        color={theme.primary}
+                      />
+                    )}
                   </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text
@@ -1798,7 +1859,9 @@ const ConversationScreen = ({ navigation, route }) => {
                     <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
                       {item.is_sending
                         ? t("chatConversation.sending", "Đang gửi...")
-                        : t("chatConversation.tapToOpen", "Nhấn để mở")}
+                        : downloadingFileId === item.id
+                          ? t("chatConversation.downloading", "Đang tải...")
+                          : t("chatConversation.tapToOpen", "Nhấn để mở")}
                     </Text>
                   </View>
                 </View>

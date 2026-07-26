@@ -8,7 +8,11 @@ import {
   Platform,
   StyleSheet,
 } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
+// @expo/vector-icons (not react-native-vector-icons) - its fonts are loaded
+// via expo-font and don't need a native rebuild to pick up newer glyphs, so
+// icons here don't silently fall back to a "missing glyph" box (as happened
+// with "glasses-outline") after a JS-only icon-set version bump.
+import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { BlurView, LiquidGlassView, useIOSGlass } from "./GlassModules";
