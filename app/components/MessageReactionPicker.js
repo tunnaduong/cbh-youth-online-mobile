@@ -55,7 +55,10 @@ const MessageReactionPicker = ({
   // absolutely positioned above everything else) avoids that entirely.
   return (
     <TouchableWithoutFeedback onPress={onClose}>
-      <View style={styles.backdrop} pointerEvents="box-none">
+      {/* box-none here would let taps outside the picker fall through to
+          whatever's underneath (the message list) instead of just closing
+          the picker - the backdrop needs to swallow the touch itself. */}
+      <View style={styles.backdrop}>
         <TouchableWithoutFeedback>
           <View
             style={[
