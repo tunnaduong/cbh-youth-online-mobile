@@ -144,8 +144,7 @@
             "buildReactNativeFromSource": true
           }
         }
-      ],
-      "expo-sharing"
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",
