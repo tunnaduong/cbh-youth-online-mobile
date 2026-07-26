@@ -4,7 +4,6 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +17,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import { getWalletBalance, requestWithdrawal } from "../../../services/api/Api";
 
 const getPayload = (response) => response?.data ?? response ?? {};
@@ -29,6 +29,7 @@ export default function WithdrawScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.split("-")[0] || "vi";
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const insets = useSafeAreaInsets();
   const [balance, setBalance] = useState(null);
   const [amount, setAmount] = useState("500");
@@ -94,7 +95,6 @@ export default function WithdrawScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74, backgroundColor: "transparent" }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -105,7 +105,7 @@ export default function WithdrawScreen({ navigation }) {
         <View style={{ width: 44 }} />
       </View>
       <Animated.ScrollView contentContainerStyle={{ paddingTop: 78 + insets.top, paddingHorizontal: 16, paddingBottom: insets.bottom + 28 }} keyboardShouldPersistTaps="handled" onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })} scrollEventThrottle={16}>
-        <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balanceCard}> 
+        <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.balanceCard, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <View style={styles.balanceIcon}><Ionicons name="wallet-outline" size={24} color="#FFFFFF" /></View>
           <View style={styles.balanceCopy}>
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.withdrawScreen.currentBalance")}</Text>
@@ -113,7 +113,7 @@ export default function WithdrawScreen({ navigation }) {
             <Text style={[styles.muted, { color: "#C7F5D7" }]}>{t("wallet.approxVnd", { value: `${formatNumber(balance?.vnd, lang)} VND` })}</Text>
           </View>
         </LinearGradient>
-        <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+        <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <Text style={[styles.title, { color: theme.text }]}>{t("wallet.withdrawScreen.formTitle")}</Text>
           <Text style={[styles.description, { color: theme.subText }]}>{t("wallet.withdrawScreen.formDescription")}</Text>
           <Label theme={theme} text={t("wallet.withdrawScreen.amountLabel")} />

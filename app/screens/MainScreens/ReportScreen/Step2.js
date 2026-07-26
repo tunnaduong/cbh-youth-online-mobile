@@ -2,11 +2,11 @@ import React, { useState, useRef } from "react";
 import {
   View,
   Text,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   TextInput,
   Animated,
-  StatusBar,
   FlatList,
   ActivityIndicator,
 } from "react-native";
@@ -16,13 +16,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DatePicker from "react-native-date-picker";
 import BottomSheet, {
   BottomSheetBackdrop,
+  BottomSheetScrollView,
   BottomSheetTextInput,
-  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -147,10 +148,14 @@ export default function Step2({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const bottomSheetRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  // iOS: presentation:"modal" renders as a floating card (not full-bleed
+  // like Android), which already clears the notch/status bar on its own —
+  // adding the full device insets.top double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 60],
     outputRange: [1, 0],
@@ -487,13 +492,11 @@ export default function Step2({ navigation, route }) {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-      />
-
+    <>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      behavior="padding"
+    >
       {/* Floating header */}
       <View
         pointerEvents="box-none"
@@ -501,7 +504,7 @@ export default function Step2({ navigation, route }) {
       >
         <View
           style={{
-            paddingTop: insets.top + 8,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
             paddingBottom: 8,
             paddingHorizontal: 16,
             flexDirection: "row",
@@ -538,7 +541,7 @@ export default function Step2({ navigation, route }) {
         contentContainerStyle={{
           paddingTop: headerHeight,
           paddingHorizontal: 16,
-          paddingBottom: 100 + (insets.bottom || 0),
+          paddingBottom: 24 + (insets.bottom || 0),
         }}
       >
 
@@ -633,13 +636,16 @@ export default function Step2({ navigation, route }) {
           <Ionicons name="arrow-forward" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
+    </KeyboardAvoidingView>
 
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={["90%"]}
+        enableDynamicSizing={false}
         index={-1}
         enablePanDownToClose
         keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         backgroundStyle={{ backgroundColor: theme.cardBackground }}
         handleIndicatorStyle={{ backgroundColor: theme.border }}
@@ -652,85 +658,87 @@ export default function Step2({ navigation, route }) {
           />
         )}
       >
-        <BottomSheetView style={{ padding: 16, paddingBottom: 50 }}>
-          <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={110}>
-            <View style={[styles.sheetContent, { backgroundColor: theme.cardBackground }]}>
-              <Text style={[styles.sheetTitle, { color: theme.text }]}>
-                {t("report.addOtherViolation")}
-              </Text>
+        <BottomSheetScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.sheetContent, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>
+              {t("report.addOtherViolation")}
+            </Text>
 
-              <View style={styles.selectedTagsContainer}>
-                {selectedTags.map((tag) => (
-                  <SelectedTag
-                    key={tag}
-                    tag={tag}
-                    onRemove={handleRemoveTag}
-                    theme={theme}
-                    isDarkMode={isDarkMode}
-                  />
-                ))}
-              </View>
-
-              <View style={styles.searchContainer}>
-                <BottomSheetTextInput
-                  style={[
-                    styles.searchInput,
-                    {
-                      color: theme.text,
-                      backgroundColor: isDarkMode ? "#1f2937" : "#fff",
-                      borderColor: theme.border,
-                    },
-                  ]}
-                  placeholder={t("report.searchViolation")}
-                  placeholderTextColor={theme.subText}
-                  value={tagInput}
-                  onChangeText={handleTextChange}
-                  maxLength={100}
+            <View style={styles.selectedTagsContainer}>
+              {selectedTags.map((tag) => (
+                <SelectedTag
+                  key={tag}
+                  tag={tag}
+                  onRemove={handleRemoveTag}
+                  theme={theme}
+                  isDarkMode={isDarkMode}
                 />
-                {loading && (
-                  <ActivityIndicator
-                    style={styles.loadingIndicator}
-                    color={theme.primary}
-                  />
-                )}
-              </View>
+              ))}
+            </View>
 
-              {suggestions.length > 0 && (
-                <FlatList
-                  data={suggestions}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }) => (
-                    <SuggestionItem
-                      item={item}
-                      onPress={handleAddTag}
-                      theme={theme}
-                    />
-                  )}
-                  style={styles.suggestionsList}
-                  keyboardShouldPersistTaps="handled"
-                />
-              )}
-
-              <TouchableOpacity
+            <View style={styles.searchContainer}>
+              <BottomSheetTextInput
                 style={[
-                  styles.addCustomButton,
+                  styles.searchInput,
                   {
-                    backgroundColor: theme.primary,
-                    opacity: tagInput.length > 0 ? 1 : 0.5,
+                    color: theme.text,
+                    backgroundColor: isDarkMode ? "#1f2937" : "#fff",
+                    borderColor: theme.border,
                   },
                 ]}
-                disabled={tagInput.length === 0}
-                onPress={() => handleAddTag(tagInput)}
-              >
-                <Text style={styles.addCustomButtonText}>
-                  {t("report.addNewViolation")}
-                </Text>
-              </TouchableOpacity>
+                placeholder={t("report.searchViolation")}
+                placeholderTextColor={theme.subText}
+                value={tagInput}
+                onChangeText={handleTextChange}
+                maxLength={100}
+              />
+              {loading && (
+                <ActivityIndicator
+                  style={styles.loadingIndicator}
+                  color={theme.primary}
+                />
+              )}
             </View>
-          </KeyboardAvoidingView>
-        </BottomSheetView>
+
+            {suggestions.length > 0 && (
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <SuggestionItem
+                    item={item}
+                    onPress={handleAddTag}
+                    theme={theme}
+                  />
+                )}
+                style={styles.suggestionsList}
+                scrollEnabled={false}
+                keyboardShouldPersistTaps="handled"
+              />
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.addCustomButton,
+                {
+                  backgroundColor: theme.primary,
+                  opacity: tagInput.length > 0 ? 1 : 0.5,
+                },
+              ]}
+              disabled={tagInput.length === 0}
+              onPress={() => handleAddTag(tagInput)}
+            >
+              <Text style={styles.addCustomButtonText}>
+                {t("report.addNewViolation")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheetScrollView>
       </BottomSheet>
-    </View>
+    </>
   );
 }
 
@@ -873,7 +881,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loadingIndicator: { position: "absolute", right: 12 },
-  suggestionsList: { maxHeight: 200 },
+  suggestionsList: {},
   suggestionItem: { padding: 13, borderBottomWidth: StyleSheet.hairlineWidth },
   suggestionText: { fontSize: 15 },
   addCustomButton: {

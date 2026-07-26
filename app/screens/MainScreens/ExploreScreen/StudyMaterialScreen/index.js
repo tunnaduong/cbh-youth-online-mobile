@@ -6,7 +6,6 @@ import {
   RefreshControl,
   SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -20,6 +19,7 @@ import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import {
   getStudyMaterialCategories,
   getStudyMaterials,
@@ -42,6 +42,7 @@ const StudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
 
   const [materials, setMaterials] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -287,7 +288,6 @@ const StudyMaterialScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -304,7 +304,7 @@ const StudyMaterialScreen = ({ navigation }) => {
 
       <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: 40 + insets.bottom }}
+        contentContainerStyle={{ paddingTop: 70 + insets.top, paddingBottom: 40 + insets.bottom }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
@@ -333,7 +333,7 @@ const StudyMaterialScreen = ({ navigation }) => {
               <TouchableOpacity
                 key={filter.key}
                 onPress={() => setSelectedFilter(filter.key)}
-                style={[styles.chip, active ? { backgroundColor: theme.primary } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                style={[styles.chip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
               >
                 <Text style={[styles.chipText, active ? { color: "#fff" } : { color: theme.text }]}>{t(`studyMaterial.filters.${filter.labelKey}`)}</Text>
               </TouchableOpacity>
@@ -346,7 +346,7 @@ const StudyMaterialScreen = ({ navigation }) => {
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <TouchableOpacity
               onPress={() => setSelectedCategory(null)}
-              style={[styles.categoryChip, !selectedCategory ? { backgroundColor: theme.primary } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+              style={[styles.categoryChip, !selectedCategory ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
             >
               <Text style={[styles.categoryChipText, !selectedCategory ? { color: "#fff" } : { color: theme.text }]}>{t("studyMaterial.filters.all")}</Text>
             </TouchableOpacity>
@@ -356,7 +356,7 @@ const StudyMaterialScreen = ({ navigation }) => {
                 <TouchableOpacity
                   key={category.id}
                   onPress={() => setSelectedCategory(category.id)}
-                  style={[styles.categoryChip, active ? { backgroundColor: theme.primary } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
+                  style={[styles.categoryChip, active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border }]}
                 >
                   <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>{getCategoryLabel(category)}</Text>
                 </TouchableOpacity>

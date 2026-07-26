@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, Alert, StatusBar, Linking } from "react-native";
+import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 
@@ -259,6 +259,19 @@ const App = () => {
     return () => subscription.remove();
   }, [isLoggedIn]);
 
+  // Navigate (or queue for later) when a push notification is tapped
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('NAVIGATE_FROM_NOTIFICATION', (target) => {
+      if (!target) return;
+      if (isLoggedIn && navigationRef.current) {
+        navigationRef.current.navigate(target.screen, target.params);
+      } else {
+        enqueueDeepLinkTarget(target);
+      }
+    });
+    return () => sub.remove();
+  }, [isLoggedIn]);
+
   // Once nav is ready + user is logged in, flush the pending deep links
   const handleNavigationReady = () => {
     flushPendingDeepLinks();
@@ -276,6 +289,68 @@ const App = () => {
 
   const handleSplashFinish = () => {
     setShowSplash(false);
+  };
+
+  const effectiveBarStyle = barStyle || (isDarkMode ? "light-content" : "dark-content");
+  const effectiveStatusBarColor = statusBarColor || "transparent";
+
+  // handleNavigationStateChange is handed to NavigationContainer, which may
+  // cache the callback via its own ref-sync effect and invoke a render-old
+  // closure when a navigation event fires in the same tick (observed on
+  // Android: onStateChange applied a stale barStyle from before a theme
+  // toggle had been picked up). Mutating a ref during render — safe, since it
+  // doesn't trigger a re-render or read stale state — guarantees the resync
+  // handler always sees the latest computed value regardless of when it's
+  // actually invoked.
+  const latestStatusBarRef = useRef({ effectiveBarStyle, effectiveStatusBarColor });
+  latestStatusBarRef.current = { effectiveBarStyle, effectiveStatusBarColor };
+
+  // Observability only, both platforms: logs whenever the computed status bar
+  // value changes so iOS behavior can be compared against Android in Metro
+  // logs. Does not call any native StatusBar API — iOS relies entirely on the
+  // declarative <StatusBar> below, which historically doesn't suffer the
+  // native "drift" that necessitates Android's imperative resync further down.
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("[StatusBar] computed value changed", {
+        platform: Platform.OS,
+        isDarkMode,
+        effectiveBarStyle,
+        effectiveStatusBarColor,
+      });
+    }
+  }, [effectiveBarStyle, effectiveStatusBarColor, isDarkMode]);
+
+  // Android only: the declarative <StatusBar> below only re-issues its native
+  // call when these computed values actually change. Most screens (e.g.
+  // Settings, About) never touch StatusBarContext at all, so navigating
+  // between them keeps the same computed value — but the native bar can
+  // still visually drift after a screen transition (icons revert to the
+  // wrong color and stay stuck until the app restarts). Re-applying on every
+  // navigation state change forces Android to resync regardless of whether
+  // the JS-computed value changed.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    if (__DEV__) {
+      console.log("[StatusBar] App effect resync", { effectiveBarStyle, effectiveStatusBarColor });
+    }
+    StatusBar.setBarStyle(effectiveBarStyle, true);
+    StatusBar.setBackgroundColor(effectiveStatusBarColor, true);
+  }, [effectiveBarStyle, effectiveStatusBarColor]);
+
+  const handleNavigationStateChange = () => {
+    if (Platform.OS !== "android") return;
+    const { effectiveBarStyle: latestBarStyle, effectiveStatusBarColor: latestColor } =
+      latestStatusBarRef.current;
+    if (__DEV__) {
+      console.log("[StatusBar] onStateChange resync", {
+        route: navigationRef.current?.getCurrentRoute?.()?.name,
+        effectiveBarStyle: latestBarStyle,
+        effectiveStatusBarColor: latestColor,
+      });
+    }
+    StatusBar.setBarStyle(latestBarStyle, true);
+    StatusBar.setBackgroundColor(latestColor, true);
   };
 
   if (showSplash) {
@@ -302,12 +377,16 @@ const App = () => {
   return (
     <>
       <StatusBar
-        barStyle={barStyle || (isDarkMode ? "light-content" : "dark-content")}
-        backgroundColor={statusBarColor || "transparent"}
+        barStyle={effectiveBarStyle}
+        backgroundColor={effectiveStatusBarColor}
         translucent={true}
         animated={true}
       />
-      <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={handleNavigationReady}
+        onStateChange={handleNavigationStateChange}
+      >
         <Stack.Navigator
           screenOptions={{
             headerStyle: {
@@ -549,28 +628,7 @@ const App = () => {
               <Stack.Screen
                 name="ExploreScreen"
                 component={ExploreScreen}
-                options={{
-                  title: t('sidebar.explore'),
-                  headerBackTitleVisible: false,
-                  headerTransparent: true,
-                  headerLeft: (props) => (
-                    <LiquidButton size={40} providerId="ExploreScreen" onPress={props.onPress} containerStyle={{ marginLeft: Platform.OS === 'ios' ? 0 : 16 }}>
-                      <Ionicons name="arrow-back" size={22} color={theme.text} />
-                    </LiquidButton>
-                  ),
-                  headerStyle: {
-                    backgroundColor: "transparent",
-                    borderBottomWidth: 0,
-                    shadowOffset: { height: 0, width: 0 },
-                    elevation: 0,
-                  },
-                  headerTitleStyle: {
-                    color: theme.text,
-                    textShadowColor: isDarkMode ? '#000' : '#FFF',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 4,
-                  }
-                }}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="StudyMaterialScreen"

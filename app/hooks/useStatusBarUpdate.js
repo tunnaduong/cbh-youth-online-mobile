@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { useStatusBar } from "../contexts/StatusBarContext";
 
 /**
@@ -24,15 +25,28 @@ export const useStatusBarUpdate = ({
   const scrollViewRef = useRef(null);
   const isScrolled = useRef(false);
 
-  useEffect(() => {
-    // Set initial status bar style
-    updateStatusBar(initialStyle, initialBgColor);
+  // Use focus/blur (not mount/unmount) so re-entering an already-mounted
+  // stack screen (e.g. navigating back) reliably re-applies its status bar
+  // style. React Navigation guarantees blur-then-focus ordering, unlike
+  // React's mount/unmount effect timing which can interleave unpredictably
+  // when screens are kept alive underneath the stack.
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) {
+        console.log("[StatusBar] useStatusBarUpdate focus", { initialStyle, initialBgColor });
+      }
+      isScrolled.current = false;
+      updateStatusBar(initialStyle, initialBgColor);
 
-    return () => {
-      // Reset to default when component unmounts
-      updateStatusBar("dark-content", "#ffffff");
-    };
-  }, []);
+      return () => {
+        if (__DEV__) {
+          console.log("[StatusBar] useStatusBarUpdate blur, resetting");
+        }
+        updateStatusBar(null, null);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialStyle, initialBgColor, updateStatusBar])
+  );
 
   const handleScroll = (event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -66,12 +80,24 @@ export const useStatusBarStyle = (
 ) => {
   const { updateStatusBar } = useStatusBar();
 
-  useEffect(() => {
-    updateStatusBar(style, bgColor);
+  // Use focus/blur instead of mount/unmount: stack screens stay mounted
+  // underneath the active one, so a mount-only effect never re-fires when
+  // navigating back to this screen, and its unmount cleanup can race with
+  // the newly focused screen's mount effect, leaving the wrong style applied.
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) {
+        console.log("[StatusBar] useStatusBarStyle focus", { style, bgColor });
+      }
+      updateStatusBar(style, bgColor);
 
-    return () => {
-      // Reset to default when component unmounts
-      updateStatusBar("dark-content", "#ffffff");
-    };
-  }, [style, bgColor, updateStatusBar]);
+      return () => {
+        if (__DEV__) {
+          console.log("[StatusBar] useStatusBarStyle blur, resetting");
+        }
+        updateStatusBar(null, null);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [style, bgColor, updateStatusBar])
+  );
 };

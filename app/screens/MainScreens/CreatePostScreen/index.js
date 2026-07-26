@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
   Platform,
   Switch,
   Animated,
 } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
+import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
@@ -58,12 +58,11 @@ const CreatePostScreen = ({ navigation }) => {
     outputRange: [1, 0.5, 0],
     extrapolate: "clamp",
   });
-  const headerButtonOpacity = headerOpacity;
+  const headerButtonOpacity = Platform.OS === "android" ? 1 : headerOpacity;
 
-  // Keep status bar in sync with dark/light theme while this screen is mounted
   useStatusBarStyle(
     isDarkMode ? "light-content" : "dark-content",
-    theme.background,
+    Platform.OS === "android" ? "transparent" : theme.background,
   );
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
@@ -330,57 +329,66 @@ const CreatePostScreen = ({ navigation }) => {
   };
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ProgressHUD loadText={t("createPost.posting")} visible={loading} />
 
       <Animated.View
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS == "android" ? insets.top + 8 : 0,
-            height: Platform.OS == "android" ? insets.top + 88 : 70,
+            // iOS: this screen is presented via presentation:"modal", which
+            // renders as a floating card (not full-bleed like Android), so
+            // it already clears the notch/status bar on its own — adding
+            // the full device insets.top on top of that double-counts the
+            // offset and pushes content too far down.
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
+            height: Platform.OS === "ios" ? 68 : insets.top + 52,
             backgroundColor: "transparent",
-            opacity: headerOpacity,
-            transform: [{ translateY: headerTranslateY }],
+            opacity: Platform.OS === "android" ? 1 : headerOpacity,
+            transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
             shadowOpacity: 0,
             elevation: 0,
             borderBottomWidth: 0,
-            position: "relative",
+            position: "absolute",
           },
         ]}
         pointerEvents="box-none"
       >
-        <Animated.View
-          className="mt-3"
-          style={{ opacity: headerButtonOpacity }}
-        >
-          <TouchableOpacity
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid ? (
+          <LiquidGlassViewAndroid
+            providerId="main"
+            interactive={isLiquidGlassSupportedAndroid}
+            blurRadius={Platform.Version >= 33 ? 16 : 10}
+            tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
+        <Animated.View style={{ opacity: headerButtonOpacity }}>
+          <LiquidButton
+            size={44}
+            scrollY={scrollY}
             onPress={() => navigation.goBack()}
+            roundedOnScroll
+            style={Platform.OS === "android" ? { borderRadius: 22 } : undefined}
           >
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </TouchableOpacity>
+          </LiquidButton>
         </Animated.View>
         <Animated.Text
           pointerEvents="none"
           style={[
             styles.topTitle,
             {
+              flex: 1,
               opacity: headerTitleOpacity,
               color: theme.text,
-              position: "absolute",
-              left: 0,
-              right: 0,
               textAlign: "center",
             },
           ]}
         >
           {t("createPost.title")}
         </Animated.Text>
-        <Animated.View
-          className="mt-3"
-          style={{ opacity: headerButtonOpacity }}
-        >
+        <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton
             size={44}
             scrollY={scrollY}
@@ -398,7 +406,7 @@ const CreatePostScreen = ({ navigation }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: Platform.OS == "android" ? insets.top + 88 : 0,
+          paddingTop: Platform.OS === "ios" ? 68 : insets.top + 52,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
@@ -438,6 +446,7 @@ const CreatePostScreen = ({ navigation }) => {
               shadowOffset: { width: 0, height: 12 },
               elevation: 6,
             },
+            isDarkMode && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
           <View style={styles.profileRow}>
@@ -669,7 +678,7 @@ const CreatePostScreen = ({ navigation }) => {
             >
               {selectedImages.map((uri, index) => (
                 <View key={`image-${index}-${uri}`} style={styles.mediaThumb}>
-                  <Image
+                  <FastImage
                     source={{ uri }}
                     style={[
                       styles.mediaImage,
@@ -745,7 +754,7 @@ const CreatePostScreen = ({ navigation }) => {
           )}
         </View>
       </Animated.ScrollView>
-    </>
+    </View>
   );
 };
 

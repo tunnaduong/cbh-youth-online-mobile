@@ -147,7 +147,8 @@
     "searching": "Searching...",
     "noResults": "No results found for \"{{query}}\"",
     "noUsersForQuery": "No users found for \"{{query}}\"",
-    "noPostsForQuery": "No posts found for \"{{query}}\""
+    "noPostsForQuery": "No posts found for \"{{query}}\"",
+    "hashtagResultsTitle": "Results for #{{tag}}"
   },
   "follow": {
     "followers": "Followers",
@@ -437,13 +438,13 @@
     "sendImageError": "Could not pick image. Please try again.",
     "sendMessageError": "Could not send message. Please try again later.",
     "storyReply": {
-      "you": "You replied to {{owner}}'s story",
-      "other": "{{sender}} replied to your story"
+      "you": "You commented on {{owner}}'s story",
+      "other": "{{sender}} commented on your story"
     },
     "anonymous": "Anonymous",
     "am": "AM",
     "pm": "PM",
-    "members":"members"
+    "members": "members"
   },
   "blockedUsers": {
     "title": "Blocked users",
@@ -467,7 +468,7 @@
     "mentionedComment": "mentioned you in a comment",
     "reactedStory": "reacted",
     "toYourStory": "to your story",
-    "repliedStory": "replied to your story",
+    "repliedStory": "commented on your story",
     "followedYou": "started following you",
     "interactedWithYou": "interacted with you",
     "system": "System",
@@ -651,7 +652,6 @@
     "successTitle": "Success",
     "successMessage": "Profile updated successfully",
     "errorUpdate": "Could not update profile",
-    "coverDev": "Cover photo feature is under development",
     "birthdayFormat": "{{month}}/{{day}}/{{year}}"
   },
   "settings": {
@@ -681,7 +681,9 @@
     "english": "English",
     "russian": "Russian",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "subtitle": "Customize the app your way",
+    "greeting": "Hello, {{name}}!"
   },
   "security": {
     "title": "Security",

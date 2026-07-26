@@ -22,6 +22,7 @@ import {
   getProfile,
   updateProfile,
   uploadFile,
+  uploadCoverPhoto,
 } from "../../../services/api/Api";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import CustomLoading from "../../../components/CustomLoading";
@@ -33,7 +34,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 
 const EditProfileScreen = ({ navigation }) => {
-  const { username, userInfo, setUserInfo, bumpAvatarVersion } = useContext(AuthContext);
+  const { username, userInfo, setUserInfo, bumpAvatarVersion, bumpCoverVersion, getCoverUrl } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -131,7 +132,6 @@ const EditProfileScreen = ({ navigation }) => {
   const handleUpdateProfile = async () => {
     setLoading(true);
     let cdnId = null;
-    let cdnCoverId = null;
     try {
       // First handle avatar upload if there's a selected image
       if (selectedImage) {
@@ -148,21 +148,19 @@ const EditProfileScreen = ({ navigation }) => {
         cdnId = response.data.id;
       }
 
-      // Handle cover image upload if selected
+      // Handle cover image upload if selected (dedicated cover endpoint)
       if (selectedCoverImage) {
         const coverFormData = new FormData();
-        coverFormData.append("file", {
+        coverFormData.append("cover_photo", {
           uri: selectedCoverImage,
           type: selectedCoverImage.endsWith(".png")
             ? "image/png"
             : "image/jpeg",
           name: selectedCoverImage.endsWith(".png") ? "cover.png" : "cover.jpg",
         });
-        coverFormData.append("uid", userInfo.id);
 
-        // Call the cover upload API
-        const response = await uploadFile(coverFormData);
-        cdnCoverId = response.data.id;
+        await uploadCoverPhoto(username, coverFormData);
+        bumpCoverVersion();
       }
 
       // then update the profileData with gender and birthday
@@ -197,7 +195,7 @@ const EditProfileScreen = ({ navigation }) => {
       });
       navigation.goBack();
     } catch (error) {
-      console.error("Error updating profile:", error.response.data);
+      console.error("Error updating profile:", error?.response?.data || error?.message);
       Toast.show({
         type: "error",
         text1: t('profile.errorTitle'),
@@ -229,16 +227,11 @@ const EditProfileScreen = ({ navigation }) => {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
+      quality: 1,
     });
 
     if (!result.canceled) {
       setSelectedCoverImage(result.assets[0].uri);
-      setTimeout(() => {
-        Toast.show({
-          type: "info",
-          text1: t('editProfile.coverDev'),
-        });
-      }, 1000);
     }
   };
 
@@ -340,7 +333,7 @@ const EditProfileScreen = ({ navigation }) => {
               source={{
                 uri: selectedCoverImage
                   ? selectedCoverImage
-                  : `https://api.chuyenbienhoa.com/v1.0/users/${username}/cover`,
+                  : getCoverUrl(username),
               }}
               style={styles.coverImage}
             />

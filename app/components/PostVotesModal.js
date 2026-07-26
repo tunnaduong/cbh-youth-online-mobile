@@ -5,11 +5,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  Image,
   Pressable,
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
+import FastImage from "./FastImage";
 import ActionSheet from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -125,7 +125,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
       >
         <View style={[styles.avatarContainer, { backgroundColor: theme.iconBackground }]}>          
           {avatarUri ? (
-            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+            <FastImage source={{ uri: avatarUri }} style={styles.avatarImage} />
           ) : (
             <Text style={[styles.avatarFallback, { color: theme.text }]}>              
               {getInitials(profileName)}

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -18,6 +18,8 @@ import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import {
   createStudyMaterial,
   getStudyMaterialCategories,
@@ -26,9 +28,11 @@ import {
 
 const UploadStudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { userInfo } = useAuthContext();
   const { t, i18n } = useTranslation();
+  const scrollY = useRef(new Animated.Value(0)).current;
 
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -262,17 +266,29 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}> 
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconButton}>
-          <Ionicons name="arrow-back" size={22} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>{t("studyMaterial.uploadTitle")}</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
+        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+        </LiquidButton>
+        <Animated.Text
+          style={[
+            styles.headerTitle,
+            {
+              color: theme.text,
+              opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
+            },
+          ]}
+        >
+          {t("studyMaterial.uploadTitle")}
+        </Animated.Text>
         <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         style={styles.scrollView}
-        contentContainerStyle={[styles.contentContainer, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[styles.contentContainer, { paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 24 }]}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}> 
@@ -324,7 +340,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
                     onPress={() => setSelectedCategoryId(category.id)}
                     style={[
                       styles.categoryChip,
-                      active ? { backgroundColor: theme.primary } : { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                      active ? { backgroundColor: theme.primary, borderColor: "transparent" } : { backgroundColor: theme.cardBackground, borderColor: theme.border },
                     ]}
                   >
                     <Text style={[styles.categoryChipText, active ? { color: "#fff" } : { color: theme.text }]}>
@@ -405,7 +421,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         >
           {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{t("studyMaterial.publish")}</Text>}
         </TouchableOpacity>
-      </ScrollView>
+      </Animated.ScrollView>
     </KeyboardAvoidingView>
   );
 };
@@ -419,21 +435,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
-  iconButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 20,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 2,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
   },
   headerSpacer: {
-    width: 40,
+    width: 44,
   },
   scrollView: {
     flex: 1,

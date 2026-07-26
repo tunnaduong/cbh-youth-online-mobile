@@ -5,7 +5,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -19,6 +18,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import { createDepositRequest, getWalletBalance } from "../../../services/api/Api";
 
 const getPayload = (response) => response?.data ?? response ?? {};
@@ -33,6 +33,7 @@ export default function DepositScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.split("-")[0] || "vi";
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const insets = useSafeAreaInsets();
   const [amount, setAmount] = useState("50000");
   const [depositInfo, setDepositInfo] = useState(null);
@@ -114,7 +115,6 @@ export default function DepositScreen({ navigation }) {
 
   return (
     <KeyboardAvoidingView style={[styles.container, { backgroundColor: theme.background }]} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74, backgroundColor: "transparent" }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -128,7 +128,7 @@ export default function DepositScreen({ navigation }) {
         {!depositInfo ? (
           <>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="add-circle-outline" title={t("wallet.depositScreen.introTitle")} text={t("wallet.depositScreen.introText")} />
-            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
               <Label theme={theme} text={t("wallet.depositScreen.amountLabel")} />
               <TextInput value={amount} onChangeText={(value) => setAmount(value.replace(/\D/g, ""))} keyboardType="number-pad" placeholder={t("wallet.depositScreen.amountPlaceholder")} placeholderTextColor={theme.placeholder} style={[styles.input, { color: theme.text, borderColor: theme.border }]} />
               <Text style={[styles.helperText, { color: theme.subText }]}> 
@@ -141,7 +141,7 @@ export default function DepositScreen({ navigation }) {
         ) : (
           <>
             <IntroCard theme={theme} isDarkMode={isDarkMode} icon="qr-code-outline" title={t("wallet.depositScreen.transferInfoTitle")} text={t("wallet.depositScreen.transferInfoText")} />
-            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+            <View style={[styles.card, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
               <LinearGradient colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.amountPanel}>
                 <Text style={[styles.mutedLabel, { color: "#C7F5D7" }]}>{t("wallet.depositScreen.amountToTransfer")}</Text>
                 <Text style={styles.amountValue}>{formatNumber(depositInfo.amount_vnd, lang)} VND</Text>
@@ -173,7 +173,7 @@ export default function DepositScreen({ navigation }) {
 
 function IntroCard({ theme, isDarkMode, icon, title, text }) {
   return (
-    <View style={[styles.intro, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+    <View style={[styles.intro, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
       <View style={styles.introIcon}><Ionicons name={icon} size={26} color="#1476C6" /></View>
       <View style={styles.introCopy}><Text style={[styles.introTitle, { color: theme.text }]}>{title}</Text><Text style={[styles.introText, { color: theme.subText }]}>{text}</Text></View>
     </View>

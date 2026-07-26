@@ -157,7 +157,8 @@
     "searching": "Поиск...",
     "noResults": "Результаты не найдены для \"{{query}}\"",
     "noUsersForQuery": "Пользователи не найдены для \"{{query}}\"",
-    "noPostsForQuery": "Посты не найдены для \"{{query}}\""
+    "noPostsForQuery": "Посты не найдены для \"{{query}}\"",
+    "hashtagResultsTitle": "Результаты для #{{tag}}"
   },
   "follow": {
     "followers": "Подписчики",
@@ -447,8 +448,8 @@
     "sendImageError": "Не удалось выбрать изображение. Пожалуйста, попробуйте снова.",
     "sendMessageError": "Не удалось отправить сообщение. Пожалуйста, попробуйте позже.",
     "storyReply": {
-      "you": "Вы ответили на историю {{owner}}",
-      "other": "{{sender}} ответил на вашу историю"
+      "you": "Вы прокомментировали историю {{owner}}",
+      "other": "{{sender}} прокомментировал вашу историю"
     },
     "anonymous": "Анонимный",
     "am": "ДП",
@@ -476,7 +477,7 @@
     "mentionedComment": "упомянул вас в комментарии",
     "reactedStory": "отреагировал",
     "toYourStory": "на вашу историю",
-    "repliedStory": "ответил на вашу историю",
+    "repliedStory": "прокомментировал вашу историю",
     "followedYou": "подписался на вас",
     "interactedWithYou": "взаимодействовал с вами",
     "system": "Система",
@@ -662,7 +663,6 @@
     "successTitle": "Успешно",
     "successMessage": "Профиль успешно обновлен",
     "errorUpdate": "Не удалось обновить профиль",
-    "coverDev": "Функция фото обложки в разработке",
     "birthdayFormat": "{{day}}.{{month}}.{{year}}"
   },
   "settings": {
@@ -692,7 +692,9 @@
     "english": "Английский",
     "russian": "Русский",
     "cancel": "Отмена",
-    "save": "Сохранить"
+    "save": "Сохранить",
+    "subtitle": "Настройте приложение под себя",
+    "greeting": "Привет, {{name}}!"
   },
   "security": {
     "title": "Безопасность",

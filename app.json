@@ -22,6 +22,8 @@
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
         "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
         "ITSAppUsesNonExemptEncryption": false,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
         "NSAppLinksUsageDescription": "Opening content from CBH Youth Online",
         "NSUserActivityTypes": [
           "NSUserActivityTypeBrowsingWeb"
@@ -125,7 +127,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./app/assets/notification.png",
+          "icon": "./app/assets/notification-monochrome.png",
           "color": "#ffffff",
           "sounds": []
         }
@@ -138,7 +140,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "16.4",
+            "deploymentTarget": "15.1",
             "buildReactNativeFromSource": true
           }
         }
@@ -146,7 +148,7 @@
       "expo-sharing"
     ],
     "notification": {
-      "icon": "./app/assets/notification.png",
+      "icon": "./app/assets/notification-monochrome.png",
       "color": "#ffffff"
     }
   }

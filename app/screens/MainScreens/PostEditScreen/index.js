@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Image,
   Platform,
   Switch,
   Animated,
 } from "react-native";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
+import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
@@ -34,6 +34,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
 import LiquidButton from "../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
@@ -44,12 +45,19 @@ const PostEditScreen = ({ navigation, route }) => {
     return null;
   }
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(
+    isDarkMode ? "light-content" : "dark-content",
+    Platform.OS === "android" ? "transparent" : theme.background,
+  );
   const { setFeed } = useContext(FeedContext);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  // iOS: presentation:"modal" renders as a floating card (not full-bleed
+  // like Android), which already clears the notch/status bar on its own —
+  // adding the full device insets.top double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : insets.top + 52;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],
@@ -65,7 +73,7 @@ const PostEditScreen = ({ navigation, route }) => {
     outputRange: [1, 0.5, 0],
     extrapolate: "clamp",
   });
-  const headerButtonOpacity = headerOpacity;
+  const headerButtonOpacity = Platform.OS === "android" ? 1 : headerOpacity;
 
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [viewSelected, setViewSelected] = useState(null);
@@ -406,31 +414,41 @@ const PostEditScreen = ({ navigation, route }) => {
   }
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
       <ProgressHUD loadText={t('editPost.updating')} visible={loading} />
 
       <Animated.View
         style={[
           styles.topBar,
           {
-            paddingTop: insets.top + 8,
-            height: insets.top + 88,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
+            height: headerHeight,
             backgroundColor: 'transparent',
-            opacity: headerOpacity,
-            transform: [{ translateY: headerTranslateY }],
+            opacity: Platform.OS === "android" ? 1 : headerOpacity,
+            transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
             shadowOpacity: 0,
             elevation: 0,
             borderBottomWidth: 0,
+            position: "absolute",
           },
         ]}
         pointerEvents="box-none"
       >
+        {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid ? (
+          <LiquidGlassViewAndroid
+            providerId="main"
+            interactive={isLiquidGlassSupportedAndroid}
+            blurRadius={Platform.Version >= 33 ? 16 : 10}
+            tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : null}
         <Animated.View style={{ opacity: headerButtonOpacity }}>
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
+          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll style={Platform.OS === "android" ? { borderRadius: 22 } : undefined}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </Animated.View>
-        <Animated.Text style={[styles.topTitle, { opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
+        <Animated.Text style={[styles.topTitle, { flex: 1, textAlign: 'center', opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdate} roundedOnScroll style={styles.publishButton}>
             <Text style={[styles.publishButtonText, { color: theme.primary }]}>{t('editPost.save')}</Text>
@@ -440,7 +458,7 @@ const PostEditScreen = ({ navigation, route }) => {
 
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={{ paddingTop: insets.top + 92, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 24 }}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
@@ -457,7 +475,7 @@ const PostEditScreen = ({ navigation, route }) => {
           </View>
         </LinearGradient>
 
-        <View style={[styles.card, { backgroundColor: isDarkMode ? theme.cardBackground : 'rgba(255,255,255,0.96)', borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', shadowColor: '#0F172A', shadowOpacity: isDarkMode ? 0.24 : 0.16, shadowRadius: 22, shadowOffset: { width: 0, height: 12 }, elevation: 6 }]}> 
+        <View style={[styles.card, { backgroundColor: isDarkMode ? theme.cardBackground : 'rgba(255,255,255,0.96)', borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', shadowColor: '#0F172A', shadowOpacity: isDarkMode ? 0.24 : 0.16, shadowRadius: 22, shadowOffset: { width: 0, height: 12 }, elevation: 6 }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <View style={styles.profileRow}>
             {isAnonymous ? (
               <View style={[styles.avatar, { backgroundColor: isDarkMode ? '#1f2937' : '#e9f1e9' }]}> 
@@ -547,7 +565,7 @@ const PostEditScreen = ({ navigation, route }) => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.mediaRow}>
               {selectedImages.map((img, index) => (
                 <View key={`image-${index}-${img.uri}`} style={styles.mediaThumb}>
-                  <Image source={{ uri: img.uri }} style={[styles.mediaImage, { borderColor: isDarkMode ? theme.border : '#E5E7EB' }]} />
+                  <FastImage source={{ uri: img.uri }} style={[styles.mediaImage, { borderColor: isDarkMode ? theme.border : '#E5E7EB' }]} />
                   <TouchableOpacity onPress={() => removeImage(index)} style={styles.removeButton}>
                     <Ionicons name="trash" size={16} color="#fff" />
                   </TouchableOpacity>
@@ -572,7 +590,7 @@ const PostEditScreen = ({ navigation, route }) => {
           )}
         </View>
       </Animated.ScrollView>
-    </>
+    </View>
   );
 };
 

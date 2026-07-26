@@ -3,9 +3,9 @@ import {
   View,
   Text,
   Animated,
+  Platform,
   StyleSheet,
   TouchableOpacity,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -107,9 +108,14 @@ export default function ReportScreen({ navigation }) {
   const [selectedType, setSelectedType] = useState(null);
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  // iOS: this screen is presented via presentation:"modal", which renders
+  // as a floating card (not full-bleed like Android), so it already clears
+  // the notch/status bar on its own — adding the full device insets.top
+  // double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
 
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 60],
@@ -119,12 +125,6 @@ export default function ReportScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-      />
-
       {/* Floating header */}
       <View
         pointerEvents="box-none"
@@ -132,7 +132,7 @@ export default function ReportScreen({ navigation }) {
       >
         <View
           style={{
-            paddingTop: insets.top + 8,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
             paddingBottom: 8,
             paddingHorizontal: 16,
             flexDirection: "row",
@@ -254,6 +254,15 @@ export default function ReportScreen({ navigation }) {
                 borderColor:
                   selectedType === type.id ? theme.primary : theme.border,
                 borderWidth: selectedType === type.id ? 2 : 1,
+                // Android's `elevation` shadow is always rendered dark/black,
+                // ignoring shadowColor. Against a dark theme background
+                // that shadow shows through as a stray black smudge around
+                // the card, since there's little contrast to mask it (unlike
+                // light mode, where a dark shadow on a light background
+                // looks like a normal drop shadow). The border already
+                // gives the card definition, so just drop the shadow in
+                // dark mode instead.
+                ...(isDarkMode ? { elevation: 0, shadowOpacity: 0 } : null),
               },
             ]}
             onPress={() => setSelectedType(type.id)}
@@ -263,7 +272,12 @@ export default function ReportScreen({ navigation }) {
               style={[
                 styles.cardIcon,
                 {
-                  backgroundColor: isDarkMode ? "#374151" : "#F3FDF1",
+                  backgroundColor:
+                    selectedType === type.id
+                      ? theme.primary + "26"
+                      : isDarkMode
+                      ? "#374151"
+                      : "#F3FDF1",
                 },
               ]}
             >

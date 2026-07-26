@@ -136,7 +136,8 @@
     "searching": "Đang tìm kiếm...",
     "noResults": "Không tìm thấy kết quả nào cho \"{{query}}\"",
     "noUsersForQuery": "Không tìm thấy người dùng nào cho \"{{query}}\"",
-    "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\""
+    "noPostsForQuery": "Không tìm thấy bài viết nào cho \"{{query}}\"",
+    "hashtagResultsTitle": "Kết quả cho #{{tag}}"
   },
   "follow": {
     "followers": "N. theo dõi",
@@ -426,13 +427,13 @@
     "sendImageError": "Không thể chọn ảnh. Vui lòng thử lại.",
     "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
     "storyReply": {
-      "you": "Bạn đã trả lời tin của {{owner}}",
-      "other": "{{sender}} đã trả lời tin của bạn"
+      "you": "Bạn đã bình luận về tin của {{owner}}",
+      "other": "{{sender}} đã bình luận về tin của bạn"
     },
     "anonymous": "Ẩn danh",
     "am": "SA",
     "pm": "CH",
-    "members":"thành viên"
+    "members": "thành viên"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
@@ -456,7 +457,7 @@
     "mentionedComment": "nhắc đến bạn trong một bình luận",
     "reactedStory": "đã thả cảm xúc",
     "toYourStory": "vào tin của bạn",
-    "repliedStory": "đã trả lời tin của bạn",
+    "repliedStory": "đã bình luận về tin của bạn",
     "followedYou": "đã theo dõi bạn",
     "interactedWithYou": "đã tương tác với bạn",
     "system": "Hệ thống",
@@ -639,7 +640,6 @@
     "successTitle": "Thành công",
     "successMessage": "Cập nhật thông tin thành công",
     "errorUpdate": "Không thể cập nhật thông tin",
-    "coverDev": "Tính năng ảnh bìa đang phát triển",
     "birthdayFormat": "{{day}} Tháng {{month}} {{year}}"
   },
   "settings": {
@@ -669,7 +669,9 @@
     "english": "English",
     "russian": "Tiếng Nga",
     "cancel": "Hủy",
-    "save": "Lưu"
+    "save": "Lưu",
+    "subtitle": "Tuỳ chỉnh theo sở thích của bạn",
+    "greeting": "Xin chào, {{name}}!"
   },
   "security": {
     "title": "Bảo mật",

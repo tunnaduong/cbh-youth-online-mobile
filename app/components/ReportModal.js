@@ -28,7 +28,7 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={styles.container}>
                 <TouchableWithoutFeedback>
-                  <View style={[styles.content, { backgroundColor: theme.cardBackground }]}>
+                  <View style={[styles.content, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
                     <Text style={[styles.title, { color: theme.text }]}>{t('report.modalTitle')}</Text>
                     <TextInput
                       style={[styles.input, {

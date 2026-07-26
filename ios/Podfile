@@ -13,14 +13,10 @@ def ccache_enabled?(podfile_properties)
 end
 
 ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
-ENV['RCT_USE_RN_DEP'] ||= podfile_properties['ios.buildReactNativeFromSource'] == 'true' ? '0' : '1'
-ENV['RCT_USE_PREBUILT_RNCORE'] ||= podfile_properties['ios.buildReactNativeFromSource'] == 'true' ? '0' : '1'
-ENV['RCT_HERMES_V1_ENABLED'] ||= '0' if podfile_properties['expo.useHermesV1'] == 'false'
-# An explicit `ios.usePrecompiledModules: false` must win even when the env var is already set
-# (e.g. EXPO_USE_PRECOMPILED_MODULES exported by EAS Build), so force-disable here before the default.
-ENV['EXPO_USE_PRECOMPILED_MODULES'] = '0' if podfile_properties['EXPO_USE_PRECOMPILED_MODULES'] == 'false'
-ENV['EXPO_USE_PRECOMPILED_MODULES'] ||= '1'
-platform :ios, podfile_properties['ios.deploymentTarget'] || '16.4'
+ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
+ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true'
+ENV['RCT_HERMES_V1_ENABLED'] ||= '1' if podfile_properties['expo.useHermesV1'] == 'true'
+platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
 
 prepare_react_native_project!
 
@@ -63,60 +59,5 @@ target 'CBHOnline' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |config|
-        config.build_settings['STRICT_CONCURRENCY_CHECKING'] = 'MINIMAL'
-      end
-    end
-
-    # Force-embed ExpoModulesJSI.framework into the app bundle.
-    #
-    # ExpoModulesJSI ships (with precompiled modules) as a *dynamic* xcframework,
-    # but its podspec declares `static_framework: true`, so CocoaPods links it
-    # (adds an @rpath reference) yet never adds it to the app's "Embed Pods
-    # Frameworks" phase. The result is a launch crash:
-    #   dyld: Library not loaded: @rpath/ExpoModulesJSI.framework/ExpoModulesJSI
-    # This build phase copies the framework Xcode already built into
-    # XCFrameworkIntermediates/ into the app's Frameworks/ folder (mirroring
-    # CocoaPods' own install_framework), and re-signs it when signing is enabled.
-    embed_phase_name = '[CBH] Embed ExpoModulesJSI.framework'
-    embed_script = <<~'SHELL'
-      set -e
-      FRAMEWORK="ExpoModulesJSI.framework"
-      SRC="${PODS_XCFRAMEWORKS_BUILD_DIR}/ExpoModulesJSI/${FRAMEWORK}"
-      DEST="${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}"
-      if [ ! -d "${SRC}" ]; then
-        echo "warning: [Embed ExpoModulesJSI] framework not found at ${SRC}; skipping"
-        exit 0
-      fi
-      mkdir -p "${DEST}"
-      echo "[Embed ExpoModulesJSI] ${SRC} -> ${DEST}"
-      rsync --delete -av --links \
-        --filter "- CVS/" --filter "- .svn/" --filter "- .git/" --filter "- .hg/" \
-        --filter "- Headers" --filter "- PrivateHeaders" --filter "- Modules" \
-        "${SRC}" "${DEST}"
-      if [ "${CODE_SIGNING_REQUIRED:-}" != "NO" ] && [ "${CODE_SIGNING_ALLOWED:-}" != "NO" ] && [ -n "${EXPANDED_CODE_SIGN_IDENTITY:-}" ]; then
-        echo "[Embed ExpoModulesJSI] codesign with ${EXPANDED_CODE_SIGN_IDENTITY}"
-        codesign --force --sign "${EXPANDED_CODE_SIGN_IDENTITY}" ${OTHER_CODE_SIGN_FLAGS:-} \
-          --preserve-metadata=identifier,entitlements,flags "${DEST}/${FRAMEWORK}" || true
-      fi
-    SHELL
-
-    installer.aggregate_targets.each do |aggregate_target|
-      project = aggregate_target.user_project
-      next unless project
-      project.native_targets.each do |target|
-        next unless target.name == 'CBHOnline'
-        phase = target.shell_script_build_phases.find { |p| p.name == embed_phase_name }
-        phase ||= target.new_shell_script_build_phase(embed_phase_name)
-        phase.shell_script = embed_script
-        phase.show_env_vars_in_log = '0'
-        # Run last, after CocoaPods' "[CP] Embed Pods Frameworks" phase.
-        target.build_phases.delete(phase)
-        target.build_phases << phase
-      end
-      project.save
-    end
   end
 end

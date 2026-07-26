@@ -4,9 +4,9 @@ import {
   Animated,
   Image,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -23,6 +23,7 @@ import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import axiosInstance from "../../../../services/api/axiosInstance";
 import WebView from "react-native-webview";
 import {
@@ -40,6 +41,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
   const { isLoggedIn, userInfo, refreshUserInfo } = useAuthContext();
   const { t } = useTranslation();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
 
   const [material, setMaterial] = useState(null);
   const [ratings, setRatings] = useState([]);
@@ -353,33 +355,91 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
       const safeName = proposedName.replace(/[\\/:*?"<>|]/g, "_");
       const fileUri = `${FileSystem.documentDirectory}${safeName}`;
 
+      // iOS's downloadAsync writes to a temp file, then moves it to fileUri —
+      // that move throws (surfaces as ERR_FILESYSTEM_CANNOT_DOWNLOAD /
+      // "unknown error" from the background URLSession) if a file already
+      // exists at the destination, e.g. from a previous attempt with the
+      // same material. Clear it first so re-downloading the same material
+      // doesn't fail.
+      const existing = await FileSystem.getInfoAsync(fileUri);
+      if (existing.exists) {
+        console.log("[Download] removing stale file at destination", fileUri);
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      }
+
+      console.log("[Download] starting", { platform: Platform.OS, downloadUrl, fileUri, hasToken: !!token });
+
       const result = await FileSystem.downloadAsync(downloadUrl, fileUri, {
         headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           Accept: "application/octet-stream",
         },
       });
 
-      if (result?.status === 200) {
-        Toast.show({
-          type: "success",
-          text1: t("studyMaterial.downloadSuccess"),
-          text2: t("studyMaterial.downloadSuccessHint"),
-        });
+      console.log("[Download] downloadAsync result", { status: result?.status, uri: result?.uri });
 
-        try {
-          if (await Sharing.isAvailableAsync()) {
+      if (result?.status === 200) {
+        if (Platform.OS === "ios") {
+          // iOS sandboxes documentDirectory — a file saved there is invisible
+          // to the user unless it's routed through the share sheet (or the
+          // app declares file-sharing entitlements). Treat the share step as
+          // the actual delivery of the file, not a best-effort extra: report
+          // failure to the user instead of silently swallowing it.
+          try {
+            const shareAvailable = await Sharing.isAvailableAsync();
+            console.log("[Download] iOS Sharing.isAvailableAsync", shareAvailable);
+            if (!shareAvailable) {
+              Toast.show({
+                type: "error",
+                text1: t("studyMaterial.downloadError"),
+                text2: t("studyMaterial.shareUnavailable", {
+                  defaultValue: "Sharing isn't available on this device (Simulator doesn't support it).",
+                }),
+              });
+              return;
+            }
+
             await Sharing.shareAsync(result.uri, {
               dialogTitle: material?.title || t("studyMaterial.material"),
             });
+            console.log("[Download] iOS share sheet presented");
+
+            Toast.show({
+              type: "success",
+              text1: t("studyMaterial.downloadSuccess"),
+              text2: t("studyMaterial.downloadSuccessHint"),
+            });
+          } catch (shareError) {
+            console.error("[Download] iOS share sheet failed", shareError);
+            Toast.show({
+              type: "error",
+              text1: t("studyMaterial.downloadError"),
+              text2: shareError?.message || t("studyMaterial.tryAgain"),
+            });
           }
-        } catch (shareError) {
-          console.warn("Unable to launch share sheet", shareError);
+        } else {
+          Toast.show({
+            type: "success",
+            text1: t("studyMaterial.downloadSuccess"),
+            text2: t("studyMaterial.downloadSuccessHint"),
+          });
+
+          try {
+            if (await Sharing.isAvailableAsync()) {
+              await Sharing.shareAsync(result.uri, {
+                dialogTitle: material?.title || t("studyMaterial.material"),
+              });
+            }
+          } catch (shareError) {
+            console.warn("[Download] Android share sheet failed (non-fatal)", shareError);
+          }
         }
       } else {
+        console.warn("[Download] unexpected status", result?.status);
         Toast.show({ type: "error", text1: t("studyMaterial.downloadError"), text2: t("studyMaterial.invalidFile") });
       }
     } catch (error) {
+      console.error("[Download] failed", { code: error?.code, message: error?.message, error });
       Toast.show({
         type: "error",
         text1: t("studyMaterial.downloadError"),
@@ -392,7 +452,6 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -428,7 +487,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }]}>
+          <View style={[styles.heroCard, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             <View style={[styles.badge, { backgroundColor: theme.primary + "15" }]}> 
               <Text style={[styles.badgeText, { color: theme.primary }]}>{material?.category?.name ? getCategoryLabel(material.category) : t("studyMaterial.material")}</Text>
             </View>
@@ -475,7 +534,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           {pdfViewerUrl || officeViewerUrl ? (
             <View style={[styles.previewCard, { backgroundColor: theme.cardBackground, borderColor: theme.border }]}>
               <Text style={[styles.sectionTitle, { color: theme.text }]}>{t("studyMaterial.preview")}</Text>
-              <View style={styles.webviewContainer}>
+              <View style={[styles.webviewContainer, { borderColor: theme.border }]}>
                 <WebView
                   source={{ uri: pdfViewerUrl || officeViewerUrl }}
                   style={styles.webview}
@@ -539,7 +598,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                   : null;
 
                 return (
-                  <View key={item.id} style={styles.ratingItem}>
+                  <View key={item.id} style={[styles.ratingItem, { borderTopColor: theme.border }]}>
                     <View style={styles.ratingHeader}>
                       <View style={styles.ratingUserRow}>
                         {avatarUrl ? (

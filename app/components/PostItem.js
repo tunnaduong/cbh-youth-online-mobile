@@ -3,13 +3,13 @@ import {
   View,
   Pressable,
   Text,
-  Image,
   TouchableOpacity,
   Share,
   Alert,
   Dimensions,
   Linking,
 } from "react-native";
+import FastImage from "./FastImage";
 import RenderHTML from "react-native-render-html";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -323,6 +323,22 @@ const PostItem = ({
       ? `${item.content.substring(0, 300)}...`
       : item.content || "";
 
+  // Hashtag links in post content point at "/search?type=hashtag&q=tag";
+  // intercept those to navigate in-app instead of trying to open a URL,
+  // and open any other (autolinked) link in the browser.
+  const handleContentLinkPress = (event, href) => {
+    const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
+    if (hashtagMatch) {
+      const tag = decodeURIComponent(hashtagMatch[1]);
+      navigation?.navigate("SearchScreen", {
+        initialQuery: tag,
+        initialFilter: "hashtag",
+      });
+      return;
+    }
+    Linking.openURL(href);
+  };
+
   return (
     <View
       style={{
@@ -338,7 +354,7 @@ const PostItem = ({
             fontWeight: "bold",
             fontSize: 28,
             paddingHorizontal: 15,
-            marginTop: 25,
+            marginTop: 0,
             marginBottom: 10,
             flex: 1,
             color: theme.text
@@ -382,6 +398,9 @@ const PostItem = ({
         <View style={{ paddingHorizontal: 15 }}>
           <RenderHTML
             contentWidth={Dimensions.get("window").width - 30}
+            renderersProps={{
+              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
+            }}
             source={{
               html:
                 isExpanded || !item.content || item.content.length <= 300
@@ -548,7 +567,7 @@ const PostItem = ({
             </View>
           ) : (
             item?.author?.username && (
-              <Image
+              <FastImage
                 source={{
                   uri: `https://api.chuyenbienhoa.com/v1.0/users/${item.author.username}/avatar`,
                 }}

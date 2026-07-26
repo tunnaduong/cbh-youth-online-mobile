@@ -2,10 +2,10 @@ import React, { useContext, useRef } from "react";
 import {
   View,
   Text,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   Animated,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -14,6 +14,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -120,9 +121,13 @@ export default function Step3({ navigation, route }) {
   const isClassViolation = Boolean(cleanliness || uniform);
   const { userInfo } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  // iOS: presentation:"modal" renders as a floating card (not full-bleed
+  // like Android), which already clears the notch/status bar on its own —
+  // adding the full device insets.top double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 60],
     outputRange: [1, 0],
@@ -156,12 +161,6 @@ export default function Step3({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-      />
-
       {/* Floating header */}
       <View
         pointerEvents="box-none"
@@ -169,7 +168,7 @@ export default function Step3({ navigation, route }) {
       >
         <View
           style={{
-            paddingTop: insets.top + 8,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
             paddingBottom: 8,
             paddingHorizontal: 16,
             flexDirection: "row",
@@ -280,6 +279,11 @@ export default function Step3({ navigation, route }) {
                 : "#F8FAFC",
               borderColor: theme.border,
             },
+            // Android's `elevation` shadow always renders dark/black and
+            // ignores borderRadius clipping, poking a square corner out past
+            // this card's rounded edge against the dark theme background.
+            // The border already gives the card definition.
+            isDarkMode && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
           <View style={styles.confirmCardHeader}>
@@ -313,6 +317,7 @@ export default function Step3({ navigation, route }) {
                 : "#F8FAFC",
               borderColor: theme.border,
             },
+            isDarkMode && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
           <View style={styles.confirmCardHeader}>

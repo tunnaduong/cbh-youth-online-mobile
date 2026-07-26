@@ -2,9 +2,9 @@ import React from "react";
 import {
   View,
   Text,
+  Platform,
   StyleSheet,
   TouchableOpacity,
-  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,6 +13,7 @@ import { CommonActions } from "@react-navigation/native";
 import LiquidButton from "../../../components/LiquidButton";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -24,6 +25,7 @@ export default function Success({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
 
   const handleReturnHome = () => {
     navigation.dispatch(
@@ -36,20 +38,17 @@ export default function Success({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar
-        translucent
-        backgroundColor="transparent"
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-      />
-
       {/* Header */}
       <View
         style={[
           styles.header,
-          {
-            paddingTop: insets.top + 8,
-            height: insets.top + 64,
-          },
+          // iOS: this screen is presented via presentation:"modal", which
+          // renders as a floating card (not full-bleed like Android), so it
+          // already clears the notch/status bar on its own — adding the
+          // full device insets.top double-counts the offset.
+          Platform.OS === "ios"
+            ? { paddingTop: 12, height: 68 }
+            : { paddingTop: insets.top + 8, height: insets.top + 64 },
         ]}
       >
         <View style={{ width: 44 }}>

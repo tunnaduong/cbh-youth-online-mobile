@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Dimensions, View, Platform, StyleSheet, Animated, DeviceEventEmitter, TouchableWithoutFeedback } from "react-native";
+import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import { Dimensions, View, Platform, StyleSheet, Animated, Easing, DeviceEventEmitter, TouchableWithoutFeedback, TouchableOpacity, Text } from "react-native";
 import Sidebar from "../../components/Sidebar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
@@ -12,32 +13,190 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassProviderAndroid } from "../../components/GlassModules";
+import {
+  LiquidGlassProviderAndroid,
+  LiquidGlassViewAndroid,
+  useAndroidGlass,
+  isLiquidGlassSupportedAndroid,
+} from "../../components/GlassModules";
 
-const ScreenWrapper = ({ children, routeName }) => {
+const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
-
-  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-    // Use a stable provider ID per route so Android LiquidGlassViewAndroid
-    // children can resolve to the correct provider without breaking glass.
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid
-          providerId={routeName}
-          style={StyleSheet.absoluteFill}
-        >
-          <View style={{ flex: 1, backgroundColor: theme.background }}>
-            {children}
-          </View>
-        </LiquidGlassProviderAndroid>
-      </View>
-    );
-  }
-  return children;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {children}
+    </View>
+  );
 };
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
+
+const ANDROID_ICON_MAP = {
+  Home: { focused: "home", outline: "home-outline" },
+  Forum: { focused: "people", outline: "people-outline" },
+  Chat: { focused: "chatbubble", outline: "chatbubble-outline" },
+  Notifications: { focused: "notifications", outline: "notifications-outline" },
+};
+
+const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, notificationUnreadCount, stackNavigation }) => {
+  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 108);
+
+  const LEFT_ROUTES = ["Home", "Forum", "Chat", "Notifications"];
+  const leftRoutes = state.routes.filter((r) => LEFT_ROUTES.includes(r.name));
+  const activeRouteName = state.routes[state.index]?.name;
+  const activeLeftIndex = leftRoutes.findIndex((r) => r.name === activeRouteName);
+
+  const buttonWidth = pillWidth / Math.max(1, leftRoutes.length);
+  const indicatorTarget = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: indicatorTarget,
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [indicatorTarget]);
+
+  const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
+  const surface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";
+  const border = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
+  const indicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
+  const activeColor = theme.primary;
+  const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
+  const opacity = activeRouteName === "Create" ? 0 : 1;
+
+  const glassProps = Platform.Version >= 33 ? {
+    blurRadius: 12,
+    refractionAmount: 40,
+    refractionHeight: 18,
+    chromaticAberration: 0.2,
+    highlightAlpha: 0.25,
+    tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
+  } : {
+    blurRadius: 10,
+    refractionAmount: 0,
+    refractionHeight: 0,
+    chromaticAberration: 0,
+    highlightAlpha: 0.18,
+    tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
+  };
+
+  const PillBackground = ({ style }) => (
+    <View style={[StyleSheet.absoluteFill, {
+      borderRadius: 24.5, overflow: "hidden",
+      backgroundColor: useAndroidGlass ? "transparent" : surface,
+      borderWidth: 1, borderColor: border,
+    }, style]}>
+      {useAndroidGlass && LiquidGlassViewAndroid && (
+        <LiquidGlassViewAndroid
+          providerId="main"
+          interactive={isLiquidGlassSupportedAndroid}
+          {...glassProps}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+    </View>
+  );
+
+  return (
+    <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
+      {/* Left pill: main tabs */}
+      <View
+        renderToHardwareTextureAndroid
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w && w !== pillWidth) setPillWidth(w);
+        }}
+        style={[{
+          flex: 1, height: 49, borderRadius: 24.5, marginRight: 12,
+          backgroundColor: "transparent",
+          flexDirection: "row", alignItems: "center",
+          elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
+          shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+          overflow: "hidden",
+        },
+        // Android's `elevation` shadow always renders dark/black and ignores
+        // borderRadius clipping, poking a square corner out past this pill's
+        // rounded edge against the dark theme background.
+        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
+      >
+        <PillBackground />
+        <Animated.View
+          renderToHardwareTextureAndroid
+          style={{
+            position: "absolute", width: buttonWidth, height: 49,
+            borderRadius: 24.5, top: 0, left: 0,
+            opacity, transform: [{ translateX: slideAnim }],
+            backgroundColor: indicator,
+          }}
+        />
+        {leftRoutes.map((route) => {
+          const focused = route.name === activeRouteName;
+          const color = focused ? activeColor : inactiveColor;
+          const icons = ANDROID_ICON_MAP[route.name];
+          const iconName = focused ? icons?.focused : icons?.outline;
+          const badge = route.name === "Chat" ? chatUnreadCount : (route.name === "Notifications" ? notificationUnreadCount : 0);
+          const label = descriptors[route.key]?.options?.title || route.name;
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 }}
+              onPress={() => {
+                const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+                if (!event.defaultPrevented) navigation.jumpTo(route.name, route.params);
+              }}
+              activeOpacity={0.8}
+            >
+              <View style={{ position: "relative" }}>
+                <Ionicons name={iconName} size={22} color={color} />
+                {badge > 0 && (
+                  <View style={{
+                    position: "absolute", top: -4, right: -8,
+                    backgroundColor: "red", borderRadius: 8,
+                    minWidth: 14, height: 14, alignItems: "center",
+                    justifyContent: "center", paddingHorizontal: 2,
+                  }}>
+                    <Text style={{ color: "white", fontSize: 9, fontWeight: "bold" }}>
+                      {badge > 99 ? "99+" : badge}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {!hideTabLabels && (
+                <Text style={{ fontSize: 9, color, fontWeight: "bold", marginTop: 2 }}>{label}</Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* Right pill: create button */}
+      <TouchableOpacity
+        onPress={() => stackNavigation.navigate("CreatePostScreen")}
+        activeOpacity={0.8}
+        style={[{
+          width: 53, height: 53, borderRadius: 26.5,
+          backgroundColor: "transparent",
+          elevation: 8, alignItems: "center", justifyContent: "center",
+          shadowColor: "#000", shadowOpacity: 0.12,
+          shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+          overflow: "hidden",
+        },
+        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
+      >
+        <PillBackground style={{ borderRadius: 26.5 }} />
+        <Ionicons name="add" size={28} color={activeColor} />
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 // Returns a tabBarIcon function using SF Symbols on iOS and Material Symbols
 // on Android — the native tab bar renders these natively, no icon library needed.
@@ -52,6 +211,19 @@ const tabIcon = (sfFilled, sfOutline, materialName) => ({ focused }) =>
 // the create menu just above the tab bar — react-navigation v8's native
 // bottom tabs don't yet expose a reliable useBottomTabBarHeight() for this.
 const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
+
+// Defined outside MainScreens so its identity is stable across re-renders.
+// Re-mounting it would remount the entire Tab.Navigator, causing tab-switch lag.
+const TabWrapper = ({ children }) => {
+  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+    return (
+      <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
+        {children}
+      </LiquidGlassProviderAndroid>
+    );
+  }
+  return children;
+};
 
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = useState(false);
@@ -124,10 +296,56 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
   const createButtonBottomOffset = insets.bottom + NATIVE_TAB_BAR_CONTENT_HEIGHT + 8;
 
+  const setHomeScrollTrigger = useCallback((triggerFn) => {
+    homeScreenScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setForumScrollTrigger = useCallback((triggerFn) => {
+    forumScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setChatScrollTrigger = useCallback((triggerFn) => {
+    chatScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setNotificationScrollTrigger = useCallback((triggerFn) => {
+    notificationScrollTriggerRef.current = triggerFn;
+  }, []);
+
+  const renderHomeScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <HomeScreen {...props} scrollTriggerRef={setHomeScrollTrigger} />
+    </ScreenWrapper>
+  ), [setHomeScrollTrigger]);
+
+  const renderForumScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <MenuScreen {...props} scrollTriggerRef={setForumScrollTrigger} />
+    </ScreenWrapper>
+  ), [setForumScrollTrigger]);
+
+  const renderChatScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <ChatScreen {...props} scrollTriggerRef={setChatScrollTrigger} />
+    </ScreenWrapper>
+  ), [setChatScrollTrigger]);
+
+  const renderNotificationScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <NotificationScreen {...props} scrollTriggerRef={setNotificationScrollTrigger} />
+    </ScreenWrapper>
+  ), [setNotificationScrollTrigger]);
+
   return (
     <View style={{ flex: 1 }}>
+      <TabWrapper>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
+          tabBar={Platform.OS === "android" ? (props) => (
+            <AndroidTabBar
+              {...props}
+              chatUnreadCount={chatUnreadCount}
+              notificationUnreadCount={notificationUnreadCount}
+              stackNavigation={stackNavigation}
+            />
+          ) : undefined}
           screenOptions={{
             lazy: true,
             unmountOnBlur: false,
@@ -186,16 +404,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Home">
-                <HomeScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    homeScreenScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderHomeScreen}
           </Tab.Screen>
 
           <Tab.Screen
@@ -213,16 +422,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Forum">
-                <MenuScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    forumScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderForumScreen}
           </Tab.Screen>
 
           <Tab.Screen
@@ -260,16 +460,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Chat">
-                <ChatScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    chatScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderChatScreen}
           </Tab.Screen>
 
           <Tab.Screen
@@ -288,19 +479,11 @@ export default function MainScreens({ navigation: stackNavigation }) {
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Notifications">
-                <NotificationScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    notificationScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderNotificationScreen}
           </Tab.Screen>
         </Tab.Navigator>
       </View>
+      </TabWrapper>
 
       {/* Create menu. The "+" lives in the native center tab ("Tạo"); tapping
           it opens this glass menu via the ref instead of navigating. */}

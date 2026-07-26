@@ -3,7 +3,6 @@ import {
   Alert,
   Animated,
   RefreshControl,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -17,6 +16,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import {
   cancelWithdrawalRequest,
   getWalletBalance,
@@ -57,6 +57,7 @@ export default function PointWalletScreen({ navigation }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language?.split("-")[0] || "vi";
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const insets = useSafeAreaInsets();
   const [balance, setBalance] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -133,7 +134,6 @@ export default function PointWalletScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
-      <StatusBar translucent backgroundColor="transparent" barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74 }]} pointerEvents="box-none">
         <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -148,21 +148,16 @@ export default function PointWalletScreen({ navigation }) {
 
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: 60 + insets.top, paddingHorizontal: 16, paddingBottom: 36 + insets.bottom }}
+        contentContainerStyle={{ paddingTop: 90 + insets.top, paddingHorizontal: 16, paddingBottom: 36 + insets.bottom }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} tintColor={theme.primary} colors={[theme.primary]} />}
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
-        <View style={[styles.heroCard, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderColor: theme.border }]}> 
-          <Text style={[styles.heroTitle, { color: theme.text }]}>{t("wallet.currentBalance")}</Text>
-          <Text style={[styles.heroText, { color: theme.subText }]}>{t("wallet.minWithdrawal", { points: formatNumber(balance?.min_withdrawal_points, lang), vnd: balance?.min_withdrawal_vnd ? t("wallet.minWithdrawalVnd", { value: formatNumber(balance.min_withdrawal_vnd, lang) }) : "" })}</Text>
-        </View>
-
         <LinearGradient
           colors={isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.balanceCard}
+          style={[styles.balanceCard, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
         >
           <View style={styles.balanceTopRow}>
             <View style={{ flex: 1 }}>
@@ -188,7 +183,7 @@ export default function PointWalletScreen({ navigation }) {
         </View>
 
         <SectionTitle icon="swap-vertical-outline" title={t("wallet.transactionHistory")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           {transactions.length === 0 ? (
             <EmptyState text={t("wallet.emptyTransactions")} theme={theme} />
           ) : (
@@ -208,7 +203,7 @@ export default function PointWalletScreen({ navigation }) {
         </View>
 
         <SectionTitle icon="time-outline" title={t("wallet.withdrawalRequests")} theme={theme} />
-        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}> 
+        <View style={[styles.section, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           {withdrawalRequests.length === 0 ? (
             <EmptyState text={t("wallet.emptyWithdrawalRequests")} theme={theme} />
           ) : (
@@ -268,19 +263,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 16, fontWeight: "700" },
   largeTitle: { fontSize: 28, fontWeight: "800", marginBottom: 14 },
-  heroCard: {
-    borderRadius: 22,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 1,
-    shadowColor: "#0F172A",
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 2,
-  },
-  heroTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
-  heroText: { fontSize: 13, lineHeight: 18 },
   balanceCard: {
     borderRadius: 24,
     padding: 20,

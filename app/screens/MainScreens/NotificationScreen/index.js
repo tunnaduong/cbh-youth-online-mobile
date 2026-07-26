@@ -5,13 +5,13 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Modal,
   RefreshControl,
   Animated,
   DeviceEventEmitter,
   Platform,
 } from "react-native";
+import FastImage from "../../../components/FastImage";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -447,7 +447,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
           </View>
         ) : (
-          <Image
+          <FastImage
             source={
               !isSystemMessage
                 ? {
@@ -500,7 +500,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         activeOpacity={1}
         onPress={() => setShowActionMenu(false)}
       >
-        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <TouchableOpacity
             style={[
               styles.actionItem,
@@ -584,18 +584,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         </LiquidButton>
       </View>
 
-      {refreshing && (
-        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{ width: 40, height: 40 }}
-            ref={lottieRef}
-            loop
-            autoPlay
-          />
-        </View>
-      )}
-
       {loading && notifications.length === 0 ? (
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
@@ -636,7 +624,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Image
+              <FastImage
                 source={require("../../../assets/sad_frog.png")}
                 style={styles.emptyImage}
               />

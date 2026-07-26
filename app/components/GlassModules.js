@@ -74,7 +74,8 @@ const androidApiLevel = Platform.OS === "android" ? Platform.Version : 0;
 // scrim, not a real glass render — which was silently routing API 32 and
 // below (including Android 9) into the "glass supported" branch with only
 // that weak scrim/fallback tint showing, instead of our own fallback UI.
-const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 33;
+// TEMP: Android liquid glass disabled until stable
+const shouldUseAndroidGlass = false;
 
 if (Platform.OS === "android") {
   try {
