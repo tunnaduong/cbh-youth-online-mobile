@@ -163,8 +163,7 @@ const injectTimeHeaders = (messages, t) => {
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
-const VideoViewerModal = ({ visible, uri, onClose }) => {
-  const insets = useSafeAreaInsets();
+const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = false;
     if (uri) p.play();
@@ -174,7 +173,7 @@ const VideoViewerModal = ({ visible, uri, onClose }) => {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.videoViewerBackdrop}>
         <TouchableOpacity
-          style={[styles.videoViewerClose, { top: insets.top + 12 }]}
+          style={[styles.videoViewerClose, { top: insetsTop + 12 }]}
           onPress={onClose}
           hitSlop={12}
         >
@@ -2044,6 +2043,7 @@ const ConversationScreen = ({ navigation, route }) => {
           visible={videoViewer.visible}
           uri={videoViewer.uri}
           onClose={() => setVideoViewer({ visible: false, uri: null })}
+          insetsTop={insets.top}
         />
       )}
 
