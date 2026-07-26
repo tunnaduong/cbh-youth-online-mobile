@@ -740,16 +740,14 @@ const ConversationScreen = ({ navigation, route }) => {
         name: fileName,
       });
       formData.append("type", type);
-      // The backend's `content` column is NOT NULL and required_without:file
-      // still runs the `string` rule on whatever is present, so the field
-      // can't be omitted. A literal empty string has also been observed to
-      // arrive server-side in a form that fails that `string` check (a
-      // React Native FormData/multipart quirk), so use a single space as an
-      // effectively-empty placeholder for images instead - the bubble is the
-      // image itself, so content is never shown for these anyway. Generic
-      // files keep sending the original filename, since the server-stored
-      // file_url uses a generated, non-human name.
-      formData.append("content", type === "image" ? " " : fileName);
+      // The backend's `content` column is NOT NULL, and both omitting the
+      // field and sending an empty/whitespace-only string have been observed
+      // to fail server-side validation ("content must be a string") despite
+      // the file being attached. A real, non-empty value is the only thing
+      // that's worked reliably in testing, so reuse the same filename value
+      // already used for non-image attachments - it's never shown for images
+      // anyway since the bubble renders the image itself, not `content`.
+      formData.append("content", fileName);
 
       // Optimistic message
       const optimisticMessage = {
