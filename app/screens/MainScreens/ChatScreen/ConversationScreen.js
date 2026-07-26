@@ -344,14 +344,15 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (!isNewConversation) {
       loadInitialMessages();
-      markConversationAsRead(currentConversationId || conversationId).catch(
-        (error) => {
+      const idToMark = currentConversationId || conversationId;
+      if (idToMark) {
+        markConversationAsRead(idToMark).catch((error) => {
           console.log(
             "[ConversationScreen] Error marking conversation as read:",
             error?.response?.data || error?.message,
           );
-        },
-      );
+        });
+      }
     }
   }, []);
 

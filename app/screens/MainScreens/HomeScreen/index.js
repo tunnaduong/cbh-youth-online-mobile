@@ -1250,14 +1250,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
           username: user.username, // Store username
-          source: {
-            uri: `https://api.chuyenbienhoa.com${story.media_url}`,
-          },
+          source: story.media_url
+            ? { uri: `https://api.chuyenbienhoa.com${story.media_url}` }
+            : undefined,
           duration: story.duration,
           viewers_count: story.viewers?.length || 0,
           renderContent: () => (
             <ZoomableStoryImage
-              uri={`https://api.chuyenbienhoa.com${story.media_url}`}
+              uri={story.media_url ? `https://api.chuyenbienhoa.com${story.media_url}` : undefined}
               style={{
                 width: SCREEN_WIDTH,
                 height: SCREEN_HEIGHT,
@@ -1408,7 +1408,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <View>
                 {/* Story Image */}
                 <Image
-                  source={{ uri: user.stories[0].source.uri }}
+                  source={{ uri: user.stories[0].source?.uri }}
                   style={{ width: 100, height: 160 }}
                 />
 
@@ -1889,6 +1889,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
+            paddingTop: 50 + insets.top,
             paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
           }}

@@ -376,6 +376,10 @@ export const createConversation = (id) => {
   });
 };
 
+export const markConversationAsRead = (id) => {
+  return Api.postRequest(`/v1.0/chat/conversations/${id}/read`);
+};
+
 // Notifications
 export const getNotifications = (page = 1, perPage = 20) => {
   return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`);
