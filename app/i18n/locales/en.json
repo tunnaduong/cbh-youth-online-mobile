@@ -445,7 +445,8 @@
     "anonymous": "Anonymous",
     "am": "AM",
     "pm": "PM",
-    "members": "members"
+    "members": "members",
+    "sendVideoError": "Unable to send video. Please try again."
   },
   "blockedUsers": {
     "title": "Blocked users",

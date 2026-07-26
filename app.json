@@ -144,7 +144,8 @@
             "buildReactNativeFromSource": true
           }
         }
-      ]
+      ],
+      "expo-video"
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",

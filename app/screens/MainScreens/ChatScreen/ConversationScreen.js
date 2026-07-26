@@ -5,6 +5,7 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Pressable,
   Image,
   Platform,
   ActivityIndicator,
@@ -12,12 +13,15 @@ import {
   StatusBar,
   Dimensions,
   Linking,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useSafeAreaInsets,
   SafeAreaView,
 } from "react-native-safe-area-context";
+import ImageView from "react-native-image-viewing";
+import { useVideoPlayer, VideoView } from "expo-video";
 // import FastImage from "../../../components/FastImage";
 import {
   getConversationMessages,
@@ -27,9 +31,14 @@ import {
   markConversationAsRead,
   blockUser,
   reportUser,
+  reactToMessage,
+  removeMessageReaction,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
+import MessageReactionPicker, {
+  REACTION_EMOJI_BY_TYPE,
+} from "../../../components/MessageReactionPicker";
 import { Alert, ActionSheetIOS, KeyboardAvoidingView } from "react-native";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
@@ -51,6 +60,21 @@ import {
   KeyboardStickyView,
   KeyboardGestureArea,
 } from "react-native-keyboard-controller";
+
+// Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
+// local optimistic messages use file:// or content:// URIs, and http(s) may
+// already be absolute if the backend ever returns a CDN url.
+const resolveMediaUrl = (url) => {
+  if (!url) return null;
+  if (
+    url.startsWith("http") ||
+    url.startsWith("file:") ||
+    url.startsWith("content:")
+  ) {
+    return url;
+  }
+  return `https://chuyenbienhoa.com${url}`;
+};
 
 dayjs.locale(i18n.language || "vi");
 
@@ -127,6 +151,34 @@ const injectTimeHeaders = (messages, t) => {
   return result;
 };
 
+// Full-screen video player - a separate component so useVideoPlayer only ever
+// mounts (and allocates a native player) while the modal is actually open.
+const VideoViewerModal = ({ visible, uri, onClose }) => {
+  const player = useVideoPlayer(uri || null, (p) => {
+    p.loop = false;
+    if (uri) p.play();
+  });
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.videoViewerBackdrop}>
+        <TouchableOpacity style={styles.videoViewerClose} onPress={onClose} hitSlop={12}>
+          <Ionicons name="close" size={28} color="#fff" />
+        </TouchableOpacity>
+        {uri && (
+          <VideoView
+            style={styles.videoViewerPlayer}
+            player={player}
+            allowsFullscreen
+            allowsPictureInPicture
+            nativeControls
+          />
+        )}
+      </View>
+    </Modal>
+  );
+};
+
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const BUTTON_SIZE = 47;
@@ -159,10 +211,23 @@ const ConversationScreen = ({ navigation, route }) => {
     useState(conversationId);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t } = useTranslation();
-  const { onMessageSent, onMessageRead, onMessageDeleted, onTyping, sendTyping } =
-    useChatSocket();
+  const {
+    onMessageSent,
+    onMessageRead,
+    onMessageDeleted,
+    onMessageReacted,
+    onTyping,
+    sendTyping,
+  } = useChatSocket();
   const [typingUser, setTypingUser] = useState(null);
   const typingTimeoutRef = useRef(null);
+  const [imageViewer, setImageViewer] = useState({ visible: false, uri: null });
+  const [videoViewer, setVideoViewer] = useState({ visible: false, uri: null });
+  const [reactionPicker, setReactionPicker] = useState({
+    visible: false,
+    message: null,
+    anchor: null,
+  });
 
   // Keep the header visually light until the user scrolls enough.
   // This mirrors the other screens: the back button stays visible, while the
@@ -491,16 +556,22 @@ const ConversationScreen = ({ navigation, route }) => {
         setTypingUser(null);
       }, 4000);
     };
+    const handleReacted = (data) => {
+      if (!data?.message_id) return;
+      applyReactionUpdate(data.message_id, data.reactions);
+    };
     const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
     const unsubscribeRead = onMessageRead(activeId, refresh);
     const unsubscribeDeleted = onMessageDeleted(activeId, refresh);
     const unsubscribeTyping = onTyping(activeId, handleTyping);
+    const unsubscribeReacted = onMessageReacted(activeId, handleReacted);
 
     return () => {
       unsubscribeSent();
       unsubscribeRead();
       unsubscribeDeleted();
       unsubscribeTyping();
+      unsubscribeReacted();
       clearTimeout(typingTimeoutRef.current);
       setTypingUser(null);
     };
@@ -511,6 +582,7 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageSent,
     onMessageRead,
     onMessageDeleted,
+    onMessageReacted,
     onTyping,
   ]);
 
@@ -545,16 +617,19 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const pickImage = async () => {
     try {
-      // Launch image picker
+      // Launch the combined image/video picker - the same attach button handles both.
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        aspect: [4, 3],
+        mediaTypes: ["images", "videos"],
         quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
-        await sendImageMessage(result.assets[0].uri);
+        const asset = result.assets[0];
+        if (asset.type === "video") {
+          await sendVideoMessage(asset);
+        } else {
+          await sendImageMessage(asset.uri);
+        }
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -609,6 +684,18 @@ const ConversationScreen = ({ navigation, route }) => {
       type: "image",
       fileName,
       fileType: "image/jpeg",
+    });
+  };
+
+  const sendVideoMessage = async (asset) => {
+    const fileName =
+      asset.fileName || asset.uri.split("/").pop() || "video.mp4";
+    await sendAttachmentMessage({
+      uri: asset.uri,
+      type: "video",
+      fileName,
+      fileType: asset.mimeType || "video/mp4",
+      fileSize: asset.fileSize,
     });
   };
 
@@ -849,7 +936,12 @@ const ConversationScreen = ({ navigation, route }) => {
         text2:
           type === "image"
             ? t("chatConversation.sendImageError")
-            : t("chatConversation.sendFileError"),
+            : type === "video"
+              ? t(
+                  "chatConversation.sendVideoError",
+                  "Không thể gửi video. Vui lòng thử lại.",
+                )
+              : t("chatConversation.sendFileError"),
       });
     } finally {
       setSending(false);
@@ -1129,6 +1221,173 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
+  // Reactions ---------------------------------------------------------------
+
+  const applyReactionUpdate = (messageId, reactions) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.type === "message" && m.id === messageId ? { ...m, reactions } : m,
+      ),
+    );
+  };
+
+  const buildOptimisticReaction = (message, type) => {
+    const current = message.reactions || { summary: [], total: 0, my_reaction: null };
+    const prevMine = current.my_reaction;
+    let summary = (current.summary || []).map((s) => ({ ...s }));
+
+    if (prevMine) {
+      summary = summary
+        .map((s) => (s.type === prevMine ? { ...s, count: Math.max(0, s.count - 1) } : s))
+        .filter((s) => s.count > 0);
+    }
+
+    const existing = summary.find((s) => s.type === type);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      summary.push({ type, count: 1, users: [] });
+    }
+
+    return {
+      summary,
+      total: summary.reduce((sum, s) => sum + s.count, 0),
+      my_reaction: type,
+    };
+  };
+
+  const buildOptimisticRemove = (message) => {
+    const current = message.reactions || { summary: [], total: 0, my_reaction: null };
+    if (!current.my_reaction) return current;
+
+    const summary = (current.summary || [])
+      .map((s) => (s.type === current.my_reaction ? { ...s, count: Math.max(0, s.count - 1) } : s))
+      .filter((s) => s.count > 0);
+
+    return {
+      summary,
+      total: summary.reduce((sum, s) => sum + s.count, 0),
+      my_reaction: null,
+    };
+  };
+
+  const openReactionPicker = (item, evt) => {
+    // Only persisted messages (numeric backend id) can be reacted to - optimistic
+    // messages still carry a string tempId while the upload/send is in flight.
+    if (!item || typeof item.id !== "number") return;
+
+    const pageX = evt?.nativeEvent?.pageX ?? Dimensions.get("window").width / 2;
+    const pageY = evt?.nativeEvent?.pageY ?? 200;
+
+    setReactionPicker({
+      visible: true,
+      message: item,
+      anchor: {
+        x: pageX,
+        y: Math.max(60, pageY - 56),
+        alignRight: item.is_myself,
+      },
+    });
+  };
+
+  const closeReactionPicker = () => {
+    setReactionPicker((prev) => ({ ...prev, visible: false }));
+  };
+
+  const handleSelectReaction = async (type) => {
+    const message = reactionPicker.message;
+    closeReactionPicker();
+    if (!message) return;
+
+    const previousReactions = message.reactions;
+    applyReactionUpdate(message.id, buildOptimisticReaction(message, type));
+
+    try {
+      const response = await reactToMessage(message.id, type);
+      applyReactionUpdate(message.id, response.data.reactions);
+    } catch (error) {
+      console.error("Error reacting to message:", error?.response?.data || error);
+      applyReactionUpdate(message.id, previousReactions);
+    }
+  };
+
+  const handleRemoveReaction = async () => {
+    const message = reactionPicker.message;
+    closeReactionPicker();
+    if (!message || !message.reactions?.my_reaction) return;
+
+    const previousReactions = message.reactions;
+    applyReactionUpdate(message.id, buildOptimisticRemove(message));
+
+    try {
+      const response = await removeMessageReaction(message.id);
+      applyReactionUpdate(message.id, response.data.reactions);
+    } catch (error) {
+      console.error("Error removing message reaction:", error?.response?.data || error);
+      applyReactionUpdate(message.id, previousReactions);
+    }
+  };
+
+  const renderReactionBadge = (item) => {
+    // Reactions aren't available yet for a message still in flight.
+    if (typeof item.id !== "number") return null;
+
+    const reactions = item.reactions;
+    const hasReactions = reactions && reactions.total > 0;
+    const sideStyle = item.is_myself ? { left: -6 } : { right: -6 };
+
+    if (!hasReactions) {
+      return (
+        <TouchableOpacity
+          onPress={(evt) => openReactionPicker(item, evt)}
+          style={[
+            styles.reactionAddBadge,
+            sideStyle,
+            {
+              backgroundColor: isDarkMode ? "#262626" : "#ffffff",
+              borderColor: theme.border,
+            },
+          ]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="happy-outline" size={13} color={theme.subText} />
+        </TouchableOpacity>
+      );
+    }
+
+    const topEmoji =
+      [...reactions.summary].sort((a, b) => b.count - a.count)[0]?.type;
+
+    return (
+      <TouchableOpacity
+        onPress={(evt) => openReactionPicker(item, evt)}
+        style={[
+          styles.reactionPillBadge,
+          sideStyle,
+          {
+            backgroundColor: isDarkMode ? "#262626" : "#ffffff",
+            borderColor: reactions.my_reaction ? theme.primary : theme.border,
+            borderWidth: reactions.my_reaction ? 1.5 : 1,
+          },
+        ]}
+      >
+        <Text style={styles.reactionPillEmoji}>
+          {REACTION_EMOJI_BY_TYPE[topEmoji] || "👍"}
+        </Text>
+        {reactions.total > 1 && (
+          <Text style={[styles.reactionPillCount, { color: theme.subText }]}>
+            {reactions.total}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  // Media viewers -------------------------------------------------------------
+
+  const openImageViewer = (uri) => setImageViewer({ visible: true, uri });
+  const openVideoViewer = (uri) => setVideoViewer({ visible: true, uri });
+
   const renderMessage = (itemOrInfo, indexArg) => {
     // Array.map passes the message directly, while FlatList passes { item, index }.
     const item = itemOrInfo?.item ?? itemOrInfo;
@@ -1235,7 +1494,11 @@ const ConversationScreen = ({ navigation, route }) => {
     // rendering as images/file cards instead of falling back to plain text.
     const isImageMessage =
       item.type === "image" || item.content_type === "image";
+    const isVideoMessage =
+      item.type === "video" || item.content_type === "video";
     const isFileMessage = item.type === "file" || item.content_type === "file";
+    const resolvedFileUrl = resolveMediaUrl(item.file_url);
+    const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
 
     return (
       <View
@@ -1336,122 +1599,133 @@ const ConversationScreen = ({ navigation, route }) => {
               style={styles.messageAvatar}
             />
           )}
-          <View
-            style={[
-              styles.messageBubble,
-              isImageMessage
-                ? styles.imageMessageBubble
-                : isFileMessage
-                  ? styles.fileMessageBubble
-                  : item.type === "chat" || item.type === "part"
-                  ? [
-                      item.is_myself
-                        ? styles.myMessageBubble
-                        : styles.theirMessageBubble,
-                      styles.chatMessageBubble,
-                      {
-                        borderColor: isDarkMode
-                          ? "rgba(255,255,255,0.12)"
-                          : "rgba(0,0,0,0.08)",
-                      },
-                    ]
-                  : item.is_myself
+          <View style={{ position: "relative" }}>
+            <Pressable
+              style={[
+                styles.messageBubble,
+                isImageMessage || isVideoMessage
+                  ? styles.imageMessageBubble
+                  : isFileMessage
+                    ? styles.fileMessageBubble
+                    : item.type === "chat" || item.type === "part"
                     ? [
-                        styles.myMessageBubble,
-                        { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" },
+                        item.is_myself
+                          ? styles.myMessageBubble
+                          : styles.theirMessageBubble,
+                        styles.chatMessageBubble,
+                        {
+                          borderColor: isDarkMode
+                            ? "rgba(255,255,255,0.12)"
+                            : "rgba(0,0,0,0.08)",
+                        },
                       ]
-                    : [
-                        styles.theirMessageBubble,
-                        { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" },
-                      ],
-              !item.is_myself && !isLastInGroup && { marginLeft: 40 },
-            ]}
-          >
-            {isImageMessage && item.file_url ? (
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={() => {
-                  // TODO: Open image in full screen viewer
-                }}
-              >
-                <Image
-                  source={{
-                    uri: item.file_url.startsWith("http") || item.file_url.startsWith("file:")
-                      ? item.file_url
-                      : `https://chuyenbienhoa.com${item.file_url}`,
-                  }}
-                  style={styles.messageImage}
-                  resizeMode={"cover"}
-                />
-                {sending && item.is_myself && !item.read_at && (
-                  <View style={styles.imageLoadingOverlay}>
-                    <ActivityIndicator size="small" color="#fff" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ) : isFileMessage ? (
-              <TouchableOpacity
-                activeOpacity={0.8}
-                style={styles.fileMessageContent}
-                onPress={() => {
-                  const url =
-                    item.file_url &&
-                    (item.file_url.startsWith("http") ||
-                      item.file_url.startsWith("file:"))
-                      ? item.file_url
-                      : `https://chuyenbienhoa.com${item.file_url || ""}`;
-                  if (item.file_url) {
-                    Linking.openURL(url).catch(() => {});
-                  }
-                }}
-              >
-                <View style={styles.fileIconWrapper}>
-                  <Ionicons
-                    name="document-text-outline"
-                    size={22}
-                    color={theme.primary}
+                    : item.is_myself
+                      ? [
+                          styles.myMessageBubble,
+                          { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" },
+                        ]
+                      : [
+                          styles.theirMessageBubble,
+                          { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" },
+                        ],
+                !item.is_myself && !isLastInGroup && { marginLeft: 40 },
+              ]}
+              onLongPress={(evt) => openReactionPicker(item, evt)}
+              delayLongPress={350}
+              onPress={
+                isImageMessage && resolvedFileUrl
+                  ? () => openImageViewer(resolvedFileUrl)
+                  : isVideoMessage && resolvedFileUrl
+                    ? () => openVideoViewer(resolvedFileUrl)
+                    : isFileMessage && resolvedFileUrl
+                      ? () => Linking.openURL(resolvedFileUrl).catch(() => {})
+                      : undefined
+              }
+            >
+              {isImageMessage && item.file_url ? (
+                <>
+                  <Image
+                    source={{ uri: resolvedFileUrl }}
+                    style={styles.messageImage}
+                    resizeMode={"cover"}
                   />
+                  {sending && item.is_myself && !item.read_at && (
+                    <View style={styles.imageLoadingOverlay}>
+                      <ActivityIndicator size="small" color="#fff" />
+                    </View>
+                  )}
+                </>
+              ) : isVideoMessage ? (
+                <>
+                  {resolvedThumbnailUrl ? (
+                    <Image
+                      source={{ uri: resolvedThumbnailUrl }}
+                      style={styles.messageImage}
+                      resizeMode={"cover"}
+                    />
+                  ) : (
+                    <View style={[styles.messageImage, styles.videoPlaceholder]} />
+                  )}
+                  <View style={styles.videoPlayOverlay}>
+                    <Ionicons name="play" size={22} color="#fff" />
+                  </View>
+                  {item.is_sending && (
+                    <View style={styles.imageLoadingOverlay}>
+                      <ActivityIndicator size="small" color="#fff" />
+                    </View>
+                  )}
+                </>
+              ) : isFileMessage ? (
+                <View style={styles.fileMessageContent}>
+                  <View style={styles.fileIconWrapper}>
+                    <Ionicons
+                      name="document-text-outline"
+                      size={22}
+                      color={theme.primary}
+                    />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      style={[
+                        styles.fileMessageName,
+                        {
+                          color: item.is_myself
+                            ? isDarkMode
+                              ? "#ecfdf5"
+                              : "#000"
+                            : theme.text,
+                        },
+                      ]}
+                      numberOfLines={1}
+                      ellipsizeMode="middle"
+                    >
+                      {item.content || item.file_name || t("chatConversation.attachment", "Tệp đính kèm")}
+                    </Text>
+                    <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
+                      {item.is_sending
+                        ? t("chatConversation.sending", "Đang gửi...")
+                        : t("chatConversation.tapToOpen", "Nhấn để mở")}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    style={[
-                      styles.fileMessageName,
-                      {
-                        color: item.is_myself
-                          ? isDarkMode
-                            ? "#ecfdf5"
-                            : "#000"
-                          : theme.text,
-                      },
-                    ]}
-                    numberOfLines={1}
-                    ellipsizeMode="middle"
-                  >
-                    {item.content || item.file_name || t("chatConversation.attachment", "Tệp đính kèm")}
-                  </Text>
-                  <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
-                    {item.is_sending
-                      ? t("chatConversation.sending", "Đang gửi...")
-                      : t("chatConversation.tapToOpen", "Nhấn để mở")}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ) : (
-              <Text
-                style={[
-                  styles.messageText,
-                  {
-                    color: item.is_myself
-                      ? isDarkMode
-                        ? "#ecfdf5"
-                        : "#000"
-                      : theme.text,
-                  },
-                ]}
-              >
-                {item.content}
-              </Text>
-            )}
+              ) : (
+                <Text
+                  style={[
+                    styles.messageText,
+                    {
+                      color: item.is_myself
+                        ? isDarkMode
+                          ? "#ecfdf5"
+                          : "#000"
+                        : theme.text,
+                    },
+                  ]}
+                >
+                  {item.content}
+                </Text>
+              )}
+            </Pressable>
+            {renderReactionBadge(item)}
           </View>
         </View>
         {isLastInGroup && (
@@ -1576,6 +1850,30 @@ const ConversationScreen = ({ navigation, route }) => {
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
+      />
+
+      <ImageView
+        images={imageViewer.uri ? [{ uri: imageViewer.uri }] : []}
+        imageIndex={0}
+        visible={imageViewer.visible}
+        onRequestClose={() => setImageViewer({ visible: false, uri: null })}
+      />
+
+      {videoViewer.uri && (
+        <VideoViewerModal
+          visible={videoViewer.visible}
+          uri={videoViewer.uri}
+          onClose={() => setVideoViewer({ visible: false, uri: null })}
+        />
+      )}
+
+      <MessageReactionPicker
+        visible={reactionPicker.visible}
+        anchor={reactionPicker.anchor}
+        currentReaction={reactionPicker.message?.reactions?.my_reaction}
+        onSelect={handleSelectReaction}
+        onRemove={handleRemoveReaction}
+        onClose={closeReactionPicker}
       />
 
       {/* (profile block and floating button moved into header) */}
@@ -2012,6 +2310,65 @@ const styles = StyleSheet.create({
   },
   checkOverlap: {
     marginRight: -6,
+  },
+  videoPlaceholder: {
+    backgroundColor: "#000",
+  },
+  videoPlayOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  videoViewerBackdrop: {
+    flex: 1,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoViewerClose: {
+    position: "absolute",
+    top: 56,
+    right: 20,
+    zIndex: 1,
+    padding: 6,
+  },
+  videoViewerPlayer: {
+    width: "100%",
+    height: "100%",
+  },
+  reactionAddBadge: {
+    position: "absolute",
+    bottom: -10,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  reactionPillBadge: {
+    position: "absolute",
+    bottom: -12,
+    minWidth: 32,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reactionPillEmoji: {
+    fontSize: 13,
+  },
+  reactionPillCount: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginLeft: 3,
   },
 });
 
