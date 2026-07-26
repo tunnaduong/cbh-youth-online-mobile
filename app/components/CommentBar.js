@@ -116,11 +116,15 @@ const CommentBar = React.forwardRef(
               shadowRadius: 8,
               elevation: 3,
             },
-            // Android's `elevation` shadow always renders dark/black and ignores
-            // borderRadius clipping, which pokes a square corner out past this
-            // pill's rounded edge against the dark background. Drop it in dark
-            // mode; the border already gives the pill definition.
-            isDarkMode && { elevation: 0, shadowOpacity: 0 },
+            // Android's `elevation` shadow is drawn by the OS against the
+            // view's rectangular bounding box, ignoring borderRadius/
+            // overflow:hidden clipping entirely - it pokes a flat-edged
+            // rectangle out past this pill's rounded corners in both themes
+            // (worse the taller the pill grows, e.g. typing a 2nd line).
+            // Drop it on Android across the board; the border already gives
+            // the pill definition, and iOS's shadow* props render correctly
+            // without this issue so they're left alone.
+            !isIOS && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
           {isIOS && useIOSGlass && LiquidGlassView && (
