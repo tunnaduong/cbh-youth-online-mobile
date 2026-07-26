@@ -90,6 +90,25 @@ const ArchiveScreen = ({ route, navigation }) => {
     return null;
   };
 
+  const normalizeAssetUrl = (url) => {
+    if (typeof url !== "string" || !url.trim()) return null;
+    const normalized = url.trim();
+    if (/^https?:\/\//i.test(normalized)) return normalized;
+    if (normalized.startsWith("/")) return `https://api.chuyenbienhoa.com${normalized}`;
+    return `https://api.chuyenbienhoa.com/${normalized.replace(/^\/+/, "")}`;
+  };
+
+  // For video stories the backend renders a proper first-frame thumbnail
+  // (video_first_frame_url) - prefer that over the raw video file, which an
+  // <Image>/<FastImage> can't decode as a static preview.
+  const resolveStoryThumbnailUrl = (story) => {
+    const storyType = String(story?.type || story?.media_type || "").toLowerCase();
+    if (storyType === "video" && story?.video_first_frame_url) {
+      return normalizeAssetUrl(story.video_first_frame_url);
+    }
+    return resolveStoryMediaUrl(story);
+  };
+
   const fetchArchive = async () => {
     try {
       setLoading(true);
@@ -166,6 +185,15 @@ const ArchiveScreen = ({ route, navigation }) => {
           storyType === "video" ||
           /\.(mp4|mov|m4v|avi)$/i.test(mediaUrl)
         );
+        // A text story has no media at all - it's rendered from its own
+        // background/text fields, not from source.uri (which just falls back
+        // to a generic placeholder image the library still mounts underneath).
+        const isTextStory = !mediaUrl && !isVideoStory;
+        const textContent = (story.text_content || story.content || '').trim();
+        const gradientColorsRaw = normalizeGradientColors(story);
+        const gradientColors = gradientColorsRaw.length > 1
+          ? gradientColorsRaw
+          : [gradientColorsRaw[0], shadeHex(gradientColorsRaw[0], -12)];
 
         return {
         id: story.id,
@@ -178,6 +206,38 @@ const ArchiveScreen = ({ route, navigation }) => {
         media_type: isVideoStory ? "video" : storyType || "image",
         is_muted: story.is_muted || false,
         date: formatTime(story.created_at || story.created_at_human),
+        renderContent: isTextStory
+          ? () => (
+              <LinearGradient
+                colors={gradientColors}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingHorizontal: 30,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#ffffff",
+                    fontSize: 24,
+                    fontWeight: "600",
+                    textAlign: "center",
+                    fontStyle: story.font_style || "normal",
+                    textShadowColor: "rgba(0, 0, 0, 0.3)",
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 3,
+                    includeFontPadding: false,
+                  }}
+                >
+                  {textContent}
+                </Text>
+              </LinearGradient>
+            )
+          : undefined,
         renderFooter: () => (
           <View
             style={{
@@ -243,7 +303,7 @@ const ArchiveScreen = ({ route, navigation }) => {
         onPress={() => handleStoryPress([story], 0)}
       >
         {(() => {
-          const mediaUri = resolveStoryMediaUrl(story);
+          const mediaUri = resolveStoryThumbnailUrl(story);
           if (mediaUri) {
             return (
               <FastImage
