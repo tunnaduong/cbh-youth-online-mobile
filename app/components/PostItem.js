@@ -10,7 +10,11 @@ import {
   Linking,
 } from "react-native";
 import FastImage from "./FastImage";
-import RenderHTML from "react-native-render-html";
+import RenderHTML, {
+  HTMLElementModel,
+  HTMLContentModel,
+} from "react-native-render-html";
+import { WebView } from "react-native-webview";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
@@ -32,6 +36,48 @@ import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
+
+// react-native-render-html doesn't know about <iframe> by default (it's not
+// a real HTML content tag), so it has to be registered as a custom element
+// and given a custom renderer that plays the embed in a WebView.
+const customHTMLElementModels = {
+  iframe: HTMLElementModel.fromCustomModel({
+    tagName: "iframe",
+    contentModel: HTMLContentModel.block,
+  }),
+};
+
+const YouTubeIframeRenderer = ({ tnode }) => {
+  const rawSrc = tnode?.attributes?.src;
+  if (!rawSrc) return null;
+  const src = rawSrc.startsWith("//") ? `https:${rawSrc}` : rawSrc;
+  const width = Dimensions.get("window").width - 30;
+  const height = (width * 9) / 16;
+
+  return (
+    <View
+      style={{
+        width,
+        height,
+        marginVertical: 8,
+        borderRadius: 8,
+        overflow: "hidden",
+        backgroundColor: "#000",
+      }}
+    >
+      <WebView
+        source={{ uri: src }}
+        style={{ width, height }}
+        javaScriptEnabled
+        domStorageEnabled
+        allowsFullscreenVideo
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        originWhitelist={["*"]}
+      />
+    </View>
+  );
+};
 
 const PostItem = ({
   navigation,
@@ -398,6 +444,8 @@ const PostItem = ({
         <View style={{ paddingHorizontal: 15 }}>
           <RenderHTML
             contentWidth={Dimensions.get("window").width - 30}
+            customHTMLElementModels={customHTMLElementModels}
+            renderers={{ iframe: YouTubeIframeRenderer }}
             renderersProps={{
               a: { onPress: (event, href) => handleContentLinkPress(event, href) },
             }}
