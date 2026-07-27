@@ -649,7 +649,15 @@ const ProfileScreen = ({ route, navigation }) => {
 
                 <TouchableOpacity
                   onPress={() =>
-                    navigation.navigate("ConversationScreen", {
+                    // Use push (not navigate) so this always mounts a fresh
+                    // ConversationScreen instance. If a ConversationScreen for a
+                    // different chat is already in the stack (e.g. this profile
+                    // was opened from within one), navigate() would pop back to
+                    // that existing instance and merge these params into its
+                    // stale conversation/conversationId params instead of
+                    // starting a new conversation, leaving the screen looking
+                    // empty/broken.
+                    navigation.push("ConversationScreen", {
                       isNewConversation: true,
                       selectedUser: {
                         id: userData?.id,

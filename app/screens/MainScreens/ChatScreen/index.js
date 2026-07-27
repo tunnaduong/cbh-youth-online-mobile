@@ -322,14 +322,22 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
         pointerEvents="box-none"
       >
-        <Text style={[styles.headerTitleText, { color: theme.primary }]}>{t('chat.title')}</Text>
+        <Animated.Text
+          style={[
+            styles.headerTitleText,
+            { color: theme.primary, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] },
+          ]}
+        >
+          {t('chat.title')}
+        </Animated.Text>
         <LiquidButton
           providerId="Chat"
           onPress={() => navigation.navigate("NewConversationScreen")}
           scrollY={scrollY}
           alwaysBorder
+          borderColor={theme.primary}
           size={44}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: theme.primary, backgroundColor: 'transparent' }}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent' }}
           borderRadius={22}
         >
           <Ionicons

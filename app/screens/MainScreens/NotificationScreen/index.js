@@ -576,8 +576,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           disabled={unreadCount === 0}
           scrollY={scrollY}
           alwaysBorder
+          borderColor={unreadCount > 0 ? theme.primary : theme.border}
           size={44}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 44, borderWidth: 1, borderColor: unreadCount > 0 ? theme.primary : theme.border, backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44, backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
           borderRadius={22}
         >
           <Text

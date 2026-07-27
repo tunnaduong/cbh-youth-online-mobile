@@ -9,6 +9,7 @@ import {
   Dimensions,
   Linking,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
 import RenderHTML, {
   HTMLElementModel,
@@ -94,6 +95,7 @@ const PostItem = ({
   onSave: onSaveCallback, // Callback for single view save updates
 }) => {
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
+  const insets = useSafeAreaInsets();
   const { username, userInfo } = useContext(AuthContext);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
@@ -542,6 +544,30 @@ const PostItem = ({
             imageIndex={visible}
             visible={visible !== false}
             onRequestClose={() => setIsVisible(false)}
+            HeaderComponent={() => (
+              // react-native-image-viewing's default header uses RN's plain
+              // SafeAreaView, which on Android applies no top inset at all,
+              // so the close button sits under (behind) the status bar and
+              // can't be tapped. Supply our own header using the safe area
+              // insets we already have (same fix as ConversationScreen's
+              // image viewer).
+              <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
+                <TouchableOpacity
+                  onPress={() => setIsVisible(false)}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: "#00000077",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+                >
+                  <Ionicons name="close" size={22} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
           />
         </View>
       )}

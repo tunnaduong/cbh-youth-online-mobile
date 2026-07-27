@@ -890,6 +890,7 @@ const ConversationScreen = ({ navigation, route }) => {
               id: selectedUser.id,
               profile_name: selectedUser.profile_name,
               avatar_url: selectedUser.avatar_url,
+              username: selectedUser.username,
             },
           ],
           id: newConversationId,
@@ -911,6 +912,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 id: selectedUser.id,
                 profile_name: selectedUser.profile_name,
                 avatar_url: selectedUser.avatar_url,
+                username: selectedUser.username,
               },
             ],
             id: newConversationId,
@@ -1141,6 +1143,7 @@ const ConversationScreen = ({ navigation, route }) => {
               id: selectedUser.id,
               profile_name: selectedUser.profile_name,
               avatar_url: selectedUser.avatar_url,
+              username: selectedUser.username,
             },
           ],
           id: newConversationId,
@@ -1167,6 +1170,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 id: selectedUser.id,
                 profile_name: selectedUser.profile_name,
                 avatar_url: selectedUser.avatar_url,
+                username: selectedUser.username,
               },
             ],
             id: newConversationId,
@@ -1852,7 +1856,7 @@ const ConversationScreen = ({ navigation, route }) => {
                       }}
                     />
                   )}
-                  {sending && item.is_myself && !item.read_at && (
+                  {item.is_sending && (
                     <View style={styles.imageLoadingOverlay}>
                       <ActivityIndicator size="small" color="#fff" />
                     </View>

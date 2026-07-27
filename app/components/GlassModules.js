@@ -69,13 +69,15 @@ let isLiquidGlassSupportedAndroid = false;
 let AnimatedLiquidGlassViewAndroid = null;
 
 const androidApiLevel = Platform.OS === "android" ? Platform.Version : 0;
-// This app only wants liquid-glass-kit's real SHADER tier (API 33+). The
-// library's own isLiquidGlassSupported() reports "supported" all the way
-// down to API 21 via its SCRIM tier — a deliberately subtle translucent
-// scrim, not a real glass render — which was silently routing API 32 and
-// below (including Android 9) into the "glass supported" branch with only
-// that weak scrim/fallback tint showing, instead of our own fallback UI.
-const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 33;
+// This app only wants liquid-glass-kit's real SHADER (API 33+) and BLUR
+// (API 31-32) tiers. The library's own isLiquidGlassSupported() reports
+// "supported" all the way down to API 21 via its SCRIM tier — a deliberately
+// subtle translucent scrim, not a real glass render — which was silently
+// routing API 30 and below (including Android 9) into the "glass supported"
+// branch with only that weak scrim/fallback tint showing, instead of our own
+// fallback UI. BLUR (API 31-32) uses a real RenderEffect blur + saturation
+// with a clipped shape, so it's a legitimate glass render worth enabling.
+const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 31;
 
 if (Platform.OS === "android") {
   try {
@@ -89,7 +91,7 @@ if (Platform.OS === "android") {
     if (__DEV__) {
       console.log(
         `[GlassModules] Android Liquid Glass: ${isLiquidGlassSupportedAndroid ? "SUPPORTED" : "NOT supported"} ` +
-        `(API ${androidApiLevel}, requires 33+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
+        `(API ${androidApiLevel}, requires 31+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
       );
     }
   } catch (error) {

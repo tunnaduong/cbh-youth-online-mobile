@@ -28,6 +28,7 @@ const LiquidButton = ({
   scrollY,
   alwaysBorder = false,
   backgroundColor,
+  borderColor,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
@@ -42,6 +43,19 @@ const LiquidButton = ({
         extrapolate: "clamp",
       })
     : 1;
+
+  // The outline is only useful while the background is still translucent (top
+  // of the scroll) so the pill reads as a button against the content behind
+  // it. Once bgOpacity fades in to a solid pill, the outline just doubles up
+  // as a redundant ring around an already-solid shape, so fade it out too.
+  const borderOpacity =
+    alwaysBorder && scrollY
+      ? scrollY.interpolate({
+          inputRange: [0, 40],
+          outputRange: [1, 0],
+          extrapolate: "clamp",
+        })
+      : 1;
 
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
@@ -142,8 +156,8 @@ const LiquidButton = ({
       width: size,
       height: size,
       borderRadius: defaultRadius,
-      borderWidth: alwaysBorder ? 1 : 0,
-      borderColor: alwaysBorder ? theme.primary : "transparent",
+      borderWidth: 0,
+      borderColor: "transparent",
     },
     style,
   ];
@@ -168,6 +182,20 @@ const LiquidButton = ({
         >
           {renderGlassBackground()}
         </Animated.View>
+        {alwaysBorder && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                borderRadius: defaultRadius,
+                borderWidth: 1,
+                borderColor: borderColor ?? theme.primary,
+                opacity: borderOpacity,
+              },
+            ]}
+          />
+        )}
         {children}
       </TouchableOpacity>
     </Animated.View>
