@@ -117,6 +117,8 @@
   "chat": {
     "title": "Tin nhắn",
     "you": "Bạn: ",
+    "photo": "Hình ảnh",
+    "video": "Video",
     "search": "Tìm kiếm cuộc trò chuyện...",
     "newMessage": "Tin nhắn mới",
     "send": "Gửi",

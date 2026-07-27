@@ -223,6 +223,39 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     return null;
   };
 
+  const renderLastMessagePreview = (latestMessage) => {
+    if (!latestMessage) return t("chat.noMessages");
+
+    const type = latestMessage.type || latestMessage.content_type;
+
+    if (type === "image") {
+      return (
+        <>
+          <Ionicons name="image-outline" size={14} color={theme.subText} />{" "}
+          {t("chat.photo")}
+        </>
+      );
+    }
+    if (type === "video") {
+      return (
+        <>
+          <Ionicons name="videocam-outline" size={14} color={theme.subText} />{" "}
+          {t("chat.video")}
+        </>
+      );
+    }
+    if (type === "file") {
+      return (
+        <>
+          <Ionicons name="document-text-outline" size={14} color={theme.subText} />{" "}
+          {latestMessage.file_name || latestMessage.content}
+        </>
+      );
+    }
+
+    return latestMessage.content || t("chat.noMessages");
+  };
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.conversation, { backgroundColor: theme.background }]}
@@ -251,7 +284,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         </Text>
         <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
           {item.latest_message?.is_myself ? t('chat.you') : ""}
-          {item.latest_message?.content || t('chat.noMessages')}
+          {renderLastMessagePreview(item.latest_message)}
         </Text>
       </View>
       <View style={styles.meta}>
