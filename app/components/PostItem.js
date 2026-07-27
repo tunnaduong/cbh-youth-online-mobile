@@ -167,6 +167,15 @@ const YouTubeIframeRenderer = ({ tnode }) => {
         overflow: "hidden",
         backgroundColor: "#000",
       }}
+      // This whole embed sits inside the post content's collapse/expand
+      // Pressable. Tapping inside a WebView (e.g. the play button) doesn't
+      // reliably consume the native touch before it reaches that ancestor,
+      // so without this, pressing play was also toggling handleExpandPost
+      // and collapsing the post - hiding the embed along with it. Claiming
+      // the responder here for any touch starting inside the embed, and
+      // refusing to hand it back, keeps every tap local to the player.
+      onStartShouldSetResponder={() => true}
+      onResponderTerminationRequest={() => false}
     >
       <WebView
         source={source}
