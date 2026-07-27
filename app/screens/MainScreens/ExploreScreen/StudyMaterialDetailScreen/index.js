@@ -545,8 +545,16 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                   domStorageEnabled
                   originWhitelist={["*"]}
                   allowsBackForwardNavigationGestures={false}
-                  scrollEnabled={false}
-                  nestedScrollEnabled={false}
+                  // This box is a fixed 320px window onto a document that's
+                  // almost always taller - it needs its own internal scroll
+                  // to see the rest of it. scrollEnabled/nestedScrollEnabled
+                  // were both false, which killed that entirely: nothing
+                  // inside this WebView could ever scroll. nestedScrollEnabled
+                  // (Android) lets it properly hand the gesture off to/from
+                  // the surrounding page ScrollView instead of one blocking
+                  // the other.
+                  scrollEnabled
+                  nestedScrollEnabled
                 />
               </View>
             </View>

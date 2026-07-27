@@ -181,6 +181,14 @@ const YouTubeIframeRenderer = ({ tnode }) => {
         thirdPartyCookiesEnabled
         sharedCookiesEnabled
         userAgent={MOBILE_USER_AGENT}
+        // Android's default hardware-accelerated video surface (a
+        // SurfaceView the WebView punches through the normal view stack for)
+        // doesn't composite correctly once actual video playback starts
+        // inside a parent with rounded corners/overflow:hidden clipping like
+        // this embed's wrapper - the content goes invisible right when
+        // playback would otherwise start. Forcing a software layer avoids
+        // that surface entirely.
+        androidLayerType="software"
         onMessage={(event) => {
           let parsed;
           try {
