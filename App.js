@@ -299,18 +299,20 @@ const App = () => {
         isLoggedIn,
         hasNavigationRef: !!navigationRef.current,
       });
-      // Same temporary on-screen debug as NotificationContext - blocking so
-      // it can't be missed or scroll by unnoticed like a Toast can. Confirms
-      // the event actually reached App.js (vs. being lost to a
+      // Same temporary on-screen debug as NotificationContext's Toast -
+      // confirms the event actually reached App.js (vs. being lost to a
       // listener-registration timing race) and whether it navigated
       // immediately or got queued. Remove once the chat notification
       // navigation bug is confirmed fixed.
-      Alert.alert(
-        '[Debug] App.js got NAVIGATE_FROM_NOTIFICATION',
-        `target: ${JSON.stringify(target)}\nisLoggedIn=${isLoggedIn}\nnavReady=${!!navigationRef.current}\n-> ${
+      Toast.show({
+        type: 'info',
+        text1: '[Debug] App.js got NAVIGATE_FROM_NOTIFICATION',
+        text2: `isLoggedIn=${isLoggedIn} navReady=${!!navigationRef.current} -> ${
           isLoggedIn && navigationRef.current ? 'navigating now' : 'QUEUED (not flushed yet)'
         }`,
-      );
+        visibilityTime: 8000,
+        autoHide: true,
+      });
       if (!target) return;
       if (isLoggedIn && navigationRef.current) {
         navigateToDeepLinkTarget(target);

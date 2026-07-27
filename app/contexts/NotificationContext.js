@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform, DeviceEventEmitter, Alert } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import {
   getExpoPushToken,
   setupNotificationListeners,
@@ -13,6 +13,7 @@ import {
   getUnreadNotificationCount,
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
+import Toast from 'react-native-toast-message';
 
 export const NotificationContext = createContext();
 
@@ -155,17 +156,6 @@ export const NotificationProvider = ({ children }) => {
     // see the actual payload a real push notification arrived with, since
     // it comes from the backend, not from anything reproducible locally.
     console.log('[Push] Notification tapped, raw data:', JSON.stringify(data));
-
-    // Blocking, impossible-to-miss debug popup (a Toast can go unnoticed or
-    // disappear before it's read) - shown unconditionally, including when
-    // there's no data at all, since "the payload has no data field" is
-    // itself the answer if that's what's happening. Temporary; remove once
-    // the chat notification navigation bug is confirmed fixed.
-    Alert.alert(
-      '[Debug] Notification tapped',
-      `Raw data:\n${JSON.stringify(data, null, 2) || '(none - notification has no data payload at all)'}`,
-    );
-
     if (!data) return;
 
     const type = data.type;
@@ -199,10 +189,19 @@ export const NotificationProvider = ({ children }) => {
 
     console.log('[Push] Resolved navigation target:', target);
 
-    Alert.alert(
-      '[Debug] Resolved target',
-      target ? `${target.screen}\n${JSON.stringify(target.params, null, 2)}` : 'NO TARGET RESOLVED (nothing will happen)',
-    );
+    // On-screen version of the log above - checking logcat/Metro output is
+    // real friction for testing this on a device without a computer handy.
+    // Temporary, same as the "Debug" section in Settings; remove once the
+    // chat notification navigation bug is confirmed fixed.
+    Toast.show({
+      type: target ? 'info' : 'error',
+      text1: '[Debug] Notification tapped',
+      text2: `type=${String(type)} conv=${String(conversationId)} -> ${
+        target ? `${target.screen} ${JSON.stringify(target.params)}` : 'NO TARGET RESOLVED'
+      }`,
+      visibilityTime: 8000,
+      autoHide: true,
+    });
 
     if (target) {
       DeviceEventEmitter.emit('NAVIGATE_FROM_NOTIFICATION', target);
