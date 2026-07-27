@@ -55,14 +55,7 @@ import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
-import {
-  BlurView,
-  LiquidGlassView,
-  useIOSGlass,
-  AndroidGlassBackdrop,
-  LiquidGlassViewAndroid,
-  useAndroidGlass,
-} from "../../../components/GlassModules";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 import {
   KeyboardChatScrollView,
@@ -2185,21 +2178,6 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
           offset={{ opened: 20 }}
         >
-          {/* Single glass layer for the whole floating bar: CommentBar's own
-              pill stays transparent (androidTransparentPill) so it doesn't
-              also sample the backdrop — two independent real-glass renders
-              of the same provider stacked on top of each other produced a
-              visible double-refraction artifact (a blotchy discolored
-              patch). */}
-          {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && (
-            <LiquidGlassViewAndroid
-              providerId="ConversationScreen"
-              interactive={false}
-              blurRadius={Platform.Version >= 33 ? 16 : 10}
-              tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
-              style={StyleSheet.absoluteFill}
-            />
-          )}
           <View
             style={{
               backgroundColor: "transparent",
@@ -2210,7 +2188,7 @@ const ConversationScreen = ({ navigation, route }) => {
           >
             <CommentBar
               ref={inputRef}
-              androidTransparentPill
+              providerId="ConversationScreen"
               placeholderText={t("chat.typeMessage")}
               onSubmit={handleSendMessage}
               onChangeText={(text) => {
