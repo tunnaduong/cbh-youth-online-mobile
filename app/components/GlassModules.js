@@ -1,3 +1,4 @@
+import React from "react";
 import { Animated, Platform } from "react-native";
 
 // ---------------------------------------------------------------------------
@@ -74,8 +75,7 @@ const androidApiLevel = Platform.OS === "android" ? Platform.Version : 0;
 // scrim, not a real glass render — which was silently routing API 32 and
 // below (including Android 9) into the "glass supported" branch with only
 // that weak scrim/fallback tint showing, instead of our own fallback UI.
-// TEMP: Android liquid glass disabled until stable
-const shouldUseAndroidGlass = false;
+const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 33;
 
 if (Platform.OS === "android") {
   try {
@@ -110,6 +110,23 @@ if (Platform.OS === "android") {
 const useIOSGlass = shouldUseIOSGlass && !!LiquidGlassView && !!LiquidGlassContainer;
 const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
 
+// Wraps `children` (the backdrop content) in a local Android LiquidGlassProvider
+// keyed by `providerId`, on Android when glass is available; plain passthrough
+// otherwise. Callers still need to render their own LiquidGlassView(Android)
+// glass elements as JSX SIBLINGS of this wrapper (never inside it) — nesting a
+// glass view inside the provider it samples recurses the native RenderNode
+// capture into itself, which is what crashes the app.
+const AndroidGlassBackdrop = ({ providerId, style, children }) => {
+  if (Platform.OS === "android" && useAndroidGlass && LiquidGlassProviderAndroid) {
+    return (
+      <LiquidGlassProviderAndroid providerId={providerId} style={style}>
+        {children}
+      </LiquidGlassProviderAndroid>
+    );
+  }
+  return children;
+};
+
 export {
   BlurView,
   LiquidGlassView,
@@ -122,6 +139,7 @@ export {
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
   useAndroidGlass,
+  AndroidGlassBackdrop,
 };
 
 export default {
@@ -136,4 +154,5 @@ export default {
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
   useAndroidGlass,
+  AndroidGlassBackdrop,
 };

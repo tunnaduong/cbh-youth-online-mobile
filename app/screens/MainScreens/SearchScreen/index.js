@@ -17,6 +17,7 @@ import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
@@ -265,7 +266,7 @@ export default function SearchScreen({ navigation, route }) {
               )}
             </View>
             <LiquidButton
-              providerId="SearchScreenFilter"
+              providerId="SearchScreen"
               onPress={() => setShowFilterMenu((prev) => !prev)}
               scrollY={scrollY}
               size={40}
@@ -278,6 +279,7 @@ export default function SearchScreen({ navigation, route }) {
         {showFilterMenu && renderFilterMenu()}
       </Animated.View>
 
+      <AndroidGlassBackdrop providerId="SearchScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={styles.resultsContainer}
         contentContainerStyle={{ paddingTop: 40 + inset.top, paddingBottom: inset.bottom + 16 }}
@@ -386,6 +388,7 @@ export default function SearchScreen({ navigation, route }) {
             </>
           )}
         </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }

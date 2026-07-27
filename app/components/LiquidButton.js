@@ -11,6 +11,9 @@ import {
   LiquidGlassView,
   useIOSGlass,
   BlurView,
+  LiquidGlassViewAndroid,
+  useAndroidGlass,
+  isLiquidGlassSupportedAndroid,
 } from "./GlassModules";
 
 const LiquidButton = ({
@@ -73,6 +76,34 @@ const LiquidButton = ({
           />
         );
       }
+    }
+
+    // No implicit fallback providerId: most LiquidButton call sites in the
+    // app don't pass one, and defaulting them to "main" silently nested a
+    // "main"-id glass view inside the "main" LiquidGlassProviderAndroid
+    // (e.g. ForumScreen's header button, which lives inside MainScreens'
+    // "main" backdrop) — a glass view can never share its provider's own id
+    // while living inside that provider's subtree; the provider's RenderNode
+    // capture ends up drawing itself, recursing until the native stack
+    // overflows (confirmed via on-device SIGSEGV tombstone). Only render
+    // real glass when the caller explicitly opts a screen in with a
+    // matching local provider.
+    if (Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && providerId) {
+      return (
+        <LiquidGlassViewAndroid
+          providerId={providerId}
+          interactive={isLiquidGlassSupportedAndroid}
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: defaultRadius,
+              overflow: "hidden",
+            },
+          ]}
+          blurRadius={Platform.Version >= 33 ? 12 : 10}
+          tint={backgroundColor ?? (isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)")}
+        />
+      );
     }
 
     // Android & fallbacks: OneUI-style tinted transparent button background

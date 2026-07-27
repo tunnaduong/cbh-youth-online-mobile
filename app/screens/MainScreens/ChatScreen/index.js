@@ -25,6 +25,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LottieView from "lottie-react-native";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -343,6 +344,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         </LiquidButton>
       </View>
 
+      <AndroidGlassBackdrop providerId="Chat" style={{ flex: 1 }}>
       <FlatList
         ref={flatListRef}
         data={filteredConversations}
@@ -407,6 +409,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           </View>
         }
       />
+      </AndroidGlassBackdrop>
     </View>
   );
 }

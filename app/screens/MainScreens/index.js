@@ -13,12 +13,7 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import {
-  LiquidGlassProviderAndroid,
-  LiquidGlassViewAndroid,
-  useAndroidGlass,
-  isLiquidGlassSupportedAndroid,
-} from "../../components/GlassModules";
+import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop } from "../../components/GlassModules";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -39,7 +34,18 @@ const ANDROID_ICON_MAP = {
   Notifications: { focused: "notifications", outline: "notifications-outline" },
 };
 
-const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, notificationUnreadCount, stackNavigation }) => {
+// Rendered as a true JSX sibling of TabWrapper's `providerId="main"`
+// LiquidGlassProviderAndroid (see MainScreens' return below) — NOT via
+// Tab.Navigator's `tabBar` render prop, which would mount it *inside* that
+// provider's own captured subtree. A glass view can never be a descendant of
+// the provider it samples: the provider's RenderNode capture would have to
+// draw the glass view, which samples the RenderNode being captured,
+// recursing forever and blowing the native stack (confirmed on-device via a
+// SIGSEGV tombstone in android::uirenderer::RenderNode::prepareTreeImpl).
+// Driven directly by MainScreens' own `currentRoute` state and navigation
+// instead of react-navigation's tabBar props, since it's no longer mounted
+// through that render prop.
+const AndroidTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -47,8 +53,10 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
   const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 108);
 
   const LEFT_ROUTES = ["Home", "Forum", "Chat", "Notifications"];
-  const leftRoutes = state.routes.filter((r) => LEFT_ROUTES.includes(r.name));
-  const activeRouteName = state.routes[state.index]?.name;
+  const leftRoutes = LEFT_ROUTES.map((name) => ({
+    name,
+    label: t(`navigation.${name.toLowerCase()}`),
+  }));
   const activeLeftIndex = leftRoutes.findIndex((r) => r.name === activeRouteName);
 
   const buttonWidth = pillWidth / Math.max(1, leftRoutes.length);
@@ -142,16 +150,13 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
           const icons = ANDROID_ICON_MAP[route.name];
           const iconName = focused ? icons?.focused : icons?.outline;
           const badge = route.name === "Chat" ? chatUnreadCount : (route.name === "Notifications" ? notificationUnreadCount : 0);
-          const label = descriptors[route.key]?.options?.title || route.name;
+          const label = route.label;
 
           return (
             <TouchableOpacity
-              key={route.key}
+              key={route.name}
               style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 }}
-              onPress={() => {
-                const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
-                if (!event.defaultPrevented) navigation.jumpTo(route.name, route.params);
-              }}
+              onPress={() => onTabPress(route.name)}
               activeOpacity={0.8}
             >
               <View style={{ position: "relative" }}>
@@ -179,7 +184,7 @@ const AndroidTabBar = memo(({ state, descriptors, navigation, chatUnreadCount, n
 
       {/* Right pill: create button */}
       <TouchableOpacity
-        onPress={() => stackNavigation.navigate("CreatePostScreen")}
+        onPress={onCreatePress}
         activeOpacity={0.8}
         style={[{
           width: 53, height: 53, borderRadius: 26.5,
@@ -279,6 +284,24 @@ export default function MainScreens({ navigation: stackNavigation }) {
     }
   };
 
+  // Re-tapping the already-active tab scrolls/reloads it instead of
+  // navigating (mirrors each Tab.Screen's own `listeners.tabPress` above),
+  // since this tab bar is a standalone sibling rather than react-navigation's
+  // tabBar render prop and so no longer emits its tabPress events.
+  const TAB_RELOAD_TRIGGERS = {
+    Home: triggerHomeScrollOrReload,
+    Forum: triggerForumScrollOrReload,
+    Chat: triggerChatScrollOrReload,
+    Notifications: triggerNotificationScrollOrReload,
+  };
+  const handleAndroidTabPress = (routeName) => {
+    if (currentRoute === routeName) {
+      TAB_RELOAD_TRIGGERS[routeName]?.();
+    } else {
+      stackNavigation.navigate("MainScreens", { screen: routeName });
+    }
+  };
+
   // Add navigation state listener to track current route
   useEffect(() => {
     const unsubscribe = stackNavigation.addListener("state", (e) => {
@@ -311,7 +334,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
   const renderHomeScreen = useCallback((props) => (
     <ScreenWrapper>
-      <HomeScreen {...props} scrollTriggerRef={setHomeScrollTrigger} />
+      <AndroidGlassBackdrop providerId="Home" style={{ flex: 1 }}>
+        <HomeScreen {...props} scrollTriggerRef={setHomeScrollTrigger} />
+      </AndroidGlassBackdrop>
     </ScreenWrapper>
   ), [setHomeScrollTrigger]);
 
@@ -338,14 +363,11 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <TabWrapper>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
-          tabBar={Platform.OS === "android" ? (props) => (
-            <AndroidTabBar
-              {...props}
-              chatUnreadCount={chatUnreadCount}
-              notificationUnreadCount={notificationUnreadCount}
-              stackNavigation={stackNavigation}
-            />
-          ) : undefined}
+          // Android's tab bar chrome is rendered separately below, as a true
+          // JSX sibling of TabWrapper's glass provider (see AndroidTabBar's
+          // comment) rather than through this render prop, which would mount
+          // it *inside* the provider's own subtree.
+          tabBar={Platform.OS === "android" ? () => null : undefined}
           screenOptions={{
             lazy: true,
             unmountOnBlur: false,
@@ -484,6 +506,16 @@ export default function MainScreens({ navigation: stackNavigation }) {
         </Tab.Navigator>
       </View>
       </TabWrapper>
+
+      {Platform.OS === "android" && (
+        <AndroidTabBar
+          activeRouteName={currentRoute}
+          chatUnreadCount={chatUnreadCount}
+          notificationUnreadCount={notificationUnreadCount}
+          onTabPress={handleAndroidTabPress}
+          onCreatePress={() => stackNavigation.navigate("CreatePostScreen")}
+        />
+      )}
 
       {/* Create menu. The "+" lives in the native center tab ("Tạo"); tapping
           it opens this glass menu via the ref instead of navigating. */}

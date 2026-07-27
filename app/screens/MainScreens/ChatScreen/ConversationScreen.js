@@ -55,7 +55,7 @@ import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
-import { BlurView, LiquidGlassView, useIOSGlass } from "../../../components/GlassModules";
+import { BlurView, LiquidGlassView, useIOSGlass, AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 import {
   KeyboardChatScrollView,
@@ -1999,7 +1999,7 @@ const ConversationScreen = ({ navigation, route }) => {
         ]}
       >
         <View style={styles.headerContent}>
-          <LiquidButton size={BUTTON_SIZE} onPress={() => navigation.goBack()}>
+          <LiquidButton size={BUTTON_SIZE} providerId="ConversationScreen" onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
 
@@ -2009,6 +2009,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 currentConversation?.type !== "group" &&
                 navigation.navigate("ProfileScreen", { username: otherUser?.username })
               }
+              providerId="ConversationScreen"
               size={BUTTON_SIZE}
               style={[
                 styles.headerCenterPill,
@@ -2057,7 +2058,7 @@ const ConversationScreen = ({ navigation, route }) => {
             </LiquidButton>
           </View>
 
-          <LiquidButton size={BUTTON_SIZE} onPress={showOptions}>
+          <LiquidButton size={BUTTON_SIZE} providerId="ConversationScreen" onPress={showOptions}>
             <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
           </LiquidButton>
         </View>
@@ -2102,6 +2103,7 @@ const ConversationScreen = ({ navigation, route }) => {
         textInputNativeID="chat-input"
       >
         {/* Messages List */}
+        <AndroidGlassBackdrop providerId="ConversationScreen" style={{ flex: 1 }}>
         <KeyboardChatScrollView
           ref={messagesScrollRef}
           style={styles.messagesList}
@@ -2157,6 +2159,7 @@ const ConversationScreen = ({ navigation, route }) => {
           )}
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
+        </AndroidGlassBackdrop>
 
         {/* Input Bar - positioned above messages */}
         <KeyboardStickyView

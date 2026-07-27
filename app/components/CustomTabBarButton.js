@@ -295,7 +295,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
         <Pressable style={styles.buttonContainer} onPress={handlePress}>
           <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
             <LiquidGlassViewAndroid
-              providerId={currentRoute}
+              providerId="main"
               interactive={isLiquidGlassSupportedAndroid}
               {...btnGlassProps}
               style={[

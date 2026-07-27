@@ -34,6 +34,7 @@ import {
   isLiquidGlassSupportedAndroid,
   useIOSGlass,
   BlurView,
+  AndroidGlassBackdrop,
 } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 
@@ -591,6 +592,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         </LiquidButton>
       </View>
 
+      <AndroidGlassBackdrop providerId="Notifications" style={{ flex: 1 }}>
       {loading && notifications.length === 0 ? (
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
@@ -640,6 +642,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           }
         />
       )}
+      </AndroidGlassBackdrop>
 
       <ActionMenu />
     </View>

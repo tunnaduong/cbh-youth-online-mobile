@@ -37,6 +37,7 @@ import {
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
@@ -1209,6 +1210,7 @@ const PostScreen = ({ route, navigation }) => {
               <LiquidButton
                 size={44}
                 scrollY={scrollY}
+                providerId="PostScreen"
                 onPress={() => navigation.goBack()}
               >
                 <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -1231,6 +1233,7 @@ const PostScreen = ({ route, navigation }) => {
               <LiquidButton
                 size={44}
                 scrollY={scrollY}
+                providerId="PostScreen"
                 onPress={handleOpenBottomSheet}
               >
                 <Ionicons
@@ -1264,6 +1267,7 @@ const PostScreen = ({ route, navigation }) => {
             />
           </View>
         )}
+        <AndroidGlassBackdrop providerId="PostScreen" style={{ flex: 1 }}>
         <KeyboardChatScrollView
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
@@ -1330,6 +1334,7 @@ const PostScreen = ({ route, navigation }) => {
           {/* Spacer to prevent comment bar from covering last comments */}
           <View style={{ height: 50, backgroundColor: "transparent" }} />
         </KeyboardChatScrollView>
+        </AndroidGlassBackdrop>
         <ReportModal
           visible={reportModalVisible}
           onClose={() => setReportModalVisible(false)}

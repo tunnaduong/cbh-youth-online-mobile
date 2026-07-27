@@ -11,7 +11,7 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid } from "../../../components/GlassModules";
+import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
@@ -356,7 +356,7 @@ const CreatePostScreen = ({ navigation }) => {
       >
         {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid ? (
           <LiquidGlassViewAndroid
-            providerId="main"
+            providerId="CreatePostScreen"
             interactive={isLiquidGlassSupportedAndroid}
             blurRadius={Platform.Version >= 33 ? 16 : 10}
             tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
@@ -369,6 +369,7 @@ const CreatePostScreen = ({ navigation }) => {
             scrollY={scrollY}
             onPress={() => navigation.goBack()}
             roundedOnScroll
+            providerId="CreatePostScreen"
             style={Platform.OS === "android" ? { borderRadius: 22 } : undefined}
           >
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -394,6 +395,7 @@ const CreatePostScreen = ({ navigation }) => {
             scrollY={scrollY}
             onPress={handlePost}
             roundedOnScroll
+            providerId="CreatePostScreen"
             style={styles.publishButton}
           >
             <Text style={[styles.publishButtonText, { color: theme.primary }]}>
@@ -403,6 +405,7 @@ const CreatePostScreen = ({ navigation }) => {
         </Animated.View>
       </Animated.View>
 
+      <AndroidGlassBackdrop providerId="CreatePostScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
@@ -754,6 +757,7 @@ const CreatePostScreen = ({ navigation }) => {
           )}
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 };

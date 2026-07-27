@@ -11,7 +11,7 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid } from "../../../components/GlassModules";
+import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
@@ -436,7 +436,7 @@ const PostEditScreen = ({ navigation, route }) => {
       >
         {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid ? (
           <LiquidGlassViewAndroid
-            providerId="main"
+            providerId="PostEditScreen"
             interactive={isLiquidGlassSupportedAndroid}
             blurRadius={Platform.Version >= 33 ? 16 : 10}
             tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
@@ -444,18 +444,19 @@ const PostEditScreen = ({ navigation, route }) => {
           />
         ) : null}
         <Animated.View style={{ opacity: headerButtonOpacity }}>
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll style={Platform.OS === "android" ? { borderRadius: 22 } : undefined}>
+          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll providerId="PostEditScreen" style={Platform.OS === "android" ? { borderRadius: 22 } : undefined}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </Animated.View>
         <Animated.Text style={[styles.topTitle, { flex: 1, textAlign: 'center', opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
         <Animated.View style={{ opacity: headerButtonOpacity }}>
-          <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdate} roundedOnScroll style={styles.publishButton}>
+          <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdate} roundedOnScroll providerId="PostEditScreen" style={styles.publishButton}>
             <Text style={[styles.publishButtonText, { color: theme.primary }]}>{t('editPost.save')}</Text>
           </LiquidButton>
         </Animated.View>
       </Animated.View>
 
+      <AndroidGlassBackdrop providerId="PostEditScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 24 }}
@@ -590,6 +591,7 @@ const PostEditScreen = ({ navigation, route }) => {
           )}
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 };

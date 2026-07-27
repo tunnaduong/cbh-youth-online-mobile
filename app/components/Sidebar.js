@@ -22,7 +22,14 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView, useIOSGlass, BlurView } from "./GlassModules";
+import {
+  LiquidGlassView,
+  useIOSGlass,
+  BlurView,
+  LiquidGlassViewAndroid,
+  useAndroidGlass,
+  isLiquidGlassSupportedAndroid,
+} from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -293,8 +300,44 @@ const Sidebar = ({ providerId, isOpen }) => {
             }}
           />
         )
+      ) : useAndroidGlass && LiquidGlassViewAndroid ? (
+        // Android: real liquid glass, sampling the "main" backdrop this
+        // sidebar floats above (a true sibling of it in MainScreens).
+        <>
+          <LiquidGlassViewAndroid
+            providerId="main"
+            interactive={isLiquidGlassSupportedAndroid}
+            blurRadius={Platform.Version >= 33 ? 16 : 10}
+            tint={sidebarTint}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderTopRightRadius: 24,
+              borderBottomRightRadius: 24,
+            }}
+          />
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderTopRightRadius: 24,
+              borderBottomRightRadius: 24,
+              borderRightWidth: 1,
+              borderColor: isDarkMode
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.06)",
+            }}
+          />
+        </>
       ) : (
-        // Android: OneUI-style transparent tint (no liquid glass for sidebar)
+        // Android fallback: OneUI-style transparent tint
         <View
           style={{
             position: "absolute",

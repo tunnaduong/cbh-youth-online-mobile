@@ -35,6 +35,7 @@ import FastImage from "../../../components/FastImage";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -529,6 +530,7 @@ const ProfileScreen = ({ route, navigation }) => {
             top: headerHeight + 10,
           }}
         />
+        <AndroidGlassBackdrop providerId="ProfileScreen" style={{ flex: 1 }}>
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
@@ -858,6 +860,7 @@ const ProfileScreen = ({ route, navigation }) => {
             </View>
           )}
         </Animated.ScrollView>
+        </AndroidGlassBackdrop>
       </View>
     </>
   );
