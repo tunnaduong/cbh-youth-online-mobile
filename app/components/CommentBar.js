@@ -15,7 +15,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { BlurView, LiquidGlassView, useIOSGlass } from "./GlassModules";
+import {
+  BlurView,
+  LiquidGlassView,
+  useIOSGlass,
+  LiquidGlassViewAndroid,
+  useAndroidGlass,
+  isLiquidGlassSupportedAndroid,
+} from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
 const isAndroid = Platform.OS === "android";
@@ -39,12 +46,14 @@ const CommentBar = React.forwardRef(
       onClearStatus,
       style,
       leftAccessory,
-      nativeID
+      nativeID,
+      providerId,
     },
     ref
   ) => {
     const { theme, isDarkMode } = useTheme();
     const { t } = useTranslation();
+    const useRealAndroidGlass = isAndroid && useAndroidGlass && LiquidGlassViewAndroid && !!providerId;
 
     return (
       <RootView
@@ -100,7 +109,7 @@ const CommentBar = React.forwardRef(
             {
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: isIOS
+              backgroundColor: isIOS || useRealAndroidGlass
                 ? "transparent"
                 : isDarkMode
                 ? "rgba(18, 18, 18, 0.85)"
@@ -139,6 +148,15 @@ const CommentBar = React.forwardRef(
             <BlurView
               blurType={isDarkMode ? "dark" : "light"}
               blurAmount={10}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+          {useRealAndroidGlass && (
+            <LiquidGlassViewAndroid
+              providerId={providerId}
+              interactive={isLiquidGlassSupportedAndroid}
+              blurRadius={Platform.Version >= 33 ? 14 : 10}
+              tint={isDarkMode ? "rgba(18, 18, 18, 0.6)" : "rgba(255, 255, 255, 0.5)"}
               style={StyleSheet.absoluteFill}
             />
           )}

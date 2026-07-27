@@ -22,6 +22,7 @@ import * as Application from "expo-application";
 import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const SettingItem = ({
   icon,
@@ -113,7 +114,7 @@ export default function SettingsScreen({ navigation }) {
         style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, height: 58 + insets.top }]}
         pointerEvents="box-none"
       >
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+        <LiquidButton size={44} scrollY={scrollY} providerId="SettingsScreen" onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
 
@@ -128,6 +129,7 @@ export default function SettingsScreen({ navigation }) {
         <View style={{ width: 44 }} />
       </View>
 
+      <AndroidGlassBackdrop providerId="SettingsScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         contentContainerStyle={{ paddingTop: 58 + insets.top, paddingBottom: insets.bottom + 32 }}
         onScroll={Animated.event(
@@ -320,6 +322,7 @@ export default function SettingsScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }

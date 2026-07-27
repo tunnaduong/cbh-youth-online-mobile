@@ -24,6 +24,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
+import { AndroidGlassBackdrop } from "../../components/GlassModules";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -186,11 +187,12 @@ const LoginScreen = ({ navigation }) => {
 
             {/* Floating back button */}
             <View style={[styles.headerRow, { paddingTop: insets.top + 8, position: "absolute", top: 0, left: 0, zIndex: 10 }]} pointerEvents="box-none">
-              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <LiquidButton providerId="LoginScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
                 <Ionicons name="chevron-back" size={24} color={theme.primary} />
               </LiquidButton>
             </View>
 
+            <AndroidGlassBackdrop providerId="LoginScreen" style={{ flex: 1 }}>
             <Animated.ScrollView
               style={styles.scroll}
               contentContainerStyle={[
@@ -366,6 +368,7 @@ const LoginScreen = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
             </Animated.ScrollView>
+            </AndroidGlassBackdrop>
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

@@ -12,6 +12,7 @@ import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const Section = ({ title, children, theme }) => (
   <View style={styles.sectionWrapper}>
@@ -60,7 +61,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
         />
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
           <View style={{ width: 44 }}>
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+            <LiquidButton size={44} scrollY={scrollY} providerId="PrivacyPolicyScreen" onPress={() => navigation.goBack()}>
               <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
@@ -79,8 +80,9 @@ export default function PrivacyPolicyScreen({ navigation }) {
         </View>
       </View>
 
-      <Animated.ScrollView 
-        style={{ flex: 1 }} 
+      <AndroidGlassBackdrop providerId="PrivacyPolicyScreen" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
@@ -219,6 +221,7 @@ export default function PrivacyPolicyScreen({ navigation }) {
           </Text>
         </Section>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }

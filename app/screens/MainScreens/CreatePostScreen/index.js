@@ -11,7 +11,7 @@ import {
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
@@ -354,15 +354,11 @@ const CreatePostScreen = ({ navigation }) => {
         ]}
         pointerEvents="box-none"
       >
-        {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid ? (
-          <LiquidGlassViewAndroid
-            providerId="CreatePostScreen"
-            interactive={isLiquidGlassSupportedAndroid}
-            blurRadius={Platform.Version >= 33 ? 16 : 10}
-            tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
-            style={StyleSheet.absoluteFill}
-          />
-        ) : null}
+        {/* No full-bar glass panel here: each LiquidButton below already
+            renders its own real glass pill (providerId="CreatePostScreen"),
+            and stacking a second bar-wide glass sample behind them produced
+            a visible double-refraction artifact (a blotchy discolored patch
+            reaching up toward the status bar). One glass layer per element. */}
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton
             size={44}

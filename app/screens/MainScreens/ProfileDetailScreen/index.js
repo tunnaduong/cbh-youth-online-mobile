@@ -19,6 +19,7 @@ import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const ProfileDetailScreen = ({ navigation, route }) => {
   const {
@@ -235,7 +236,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           }}
         />
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top, justifyContent: 'space-between' }}>
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+          <LiquidButton providerId="ProfileDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
           <Animated.Text
@@ -250,17 +251,18 @@ const ProfileDetailScreen = ({ navigation, route }) => {
             {t('profile.title')}
           </Animated.Text>
           {isCurrentUser ? (
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("EditProfileScreen")}>
+            <LiquidButton providerId="ProfileDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.navigate("EditProfileScreen")}>
               <Ionicons name="create-outline" size={24} color={theme.primary} />
             </LiquidButton>
           ) : (
-            <LiquidButton size={44} scrollY={scrollY} onPress={showOptions}>
+            <LiquidButton providerId="ProfileDetailScreen" size={44} scrollY={scrollY} onPress={showOptions}>
               <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
             </LiquidButton>
           )}
         </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="ProfileDetailScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -312,6 +314,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           {renderInfoItem("time-outline", t('profile.joined'), profileData?.joined_at)}
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 };

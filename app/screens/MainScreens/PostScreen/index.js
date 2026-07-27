@@ -1355,6 +1355,7 @@ const PostScreen = ({ route, navigation }) => {
             offset={{ opened: 20 }}
           >
             <CommentBar
+              providerId="PostScreen"
               statusText={
                 parentId || editingCommentId
                   ? editingCommentId
@@ -1403,6 +1404,7 @@ const PostScreen = ({ route, navigation }) => {
             }}
           >
             <CommentBar
+              providerId="PostScreen"
               statusText={
                 parentId || editingCommentId
                   ? editingCommentId

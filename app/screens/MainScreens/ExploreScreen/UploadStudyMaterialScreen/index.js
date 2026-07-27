@@ -19,6 +19,7 @@ import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import {
   createStudyMaterial,
@@ -267,7 +268,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="UploadStudyMaterialScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
@@ -284,6 +285,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         <View style={styles.headerSpacer} />
       </View>
 
+      <AndroidGlassBackdrop providerId="UploadStudyMaterialScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.contentContainer, { paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 24 }]}
@@ -422,6 +424,7 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
           {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>{t("studyMaterial.publish")}</Text>}
         </TouchableOpacity>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </KeyboardAvoidingView>
   );
 };

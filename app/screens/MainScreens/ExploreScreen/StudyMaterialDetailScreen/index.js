@@ -23,6 +23,7 @@ import { useTheme } from "../../../../contexts/ThemeContext";
 import { useAuthContext } from "../../../../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import axiosInstance from "../../../../services/api/axiosInstance";
 import WebView from "react-native-webview";
@@ -453,7 +454,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="StudyMaterialDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
@@ -481,6 +482,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
           <Text style={[styles.emptyText, { color: theme.text }]}>{t("studyMaterial.notFound")}</Text>
         </View>
       ) : (
+        <AndroidGlassBackdrop providerId="StudyMaterialDetailScreen" style={{ flex: 1 }}>
         <Animated.ScrollView
           contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: 40 + insets.bottom }}
           onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
@@ -627,6 +629,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
             </View>
           ) : null}
         </Animated.ScrollView>
+        </AndroidGlassBackdrop>
       )}
 
       <Modal

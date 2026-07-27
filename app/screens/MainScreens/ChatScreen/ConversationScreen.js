@@ -55,7 +55,12 @@ import * as Api from "../../../services/api/ApiByAxios";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
-import { BlurView, LiquidGlassView, useIOSGlass, AndroidGlassBackdrop } from "../../../components/GlassModules";
+import {
+  BlurView,
+  LiquidGlassView,
+  useIOSGlass,
+  AndroidGlassBackdrop,
+} from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 import {
   KeyboardChatScrollView,
@@ -2174,6 +2179,12 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
           offset={{ opened: 20 }}
         >
+          {/* No full-block glass panel here: CommentBar already renders its
+              own real glass pill (providerId="ConversationScreen") around
+              the input itself, and stacking a second, block-wide glass
+              sample behind it produced a visible double-refraction artifact
+              (a large blotchy discolored patch under the input). One glass
+              layer per element — the pill is the "real needed" one. */}
           <View
             style={{
               backgroundColor: "transparent",
@@ -2184,6 +2195,7 @@ const ConversationScreen = ({ navigation, route }) => {
           >
             <CommentBar
               ref={inputRef}
+              providerId="ConversationScreen"
               placeholderText={t("chat.typeMessage")}
               onSubmit={handleSendMessage}
               onChangeText={(text) => {

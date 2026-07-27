@@ -11,6 +11,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CommonActions } from "@react-navigation/native";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -53,6 +54,7 @@ export default function Success({ navigation }) {
       >
         <View style={{ width: 44 }}>
           <LiquidButton
+            providerId="ReportSuccess"
             size={44}
             onPress={() => navigation.goBack()}
           >
@@ -69,6 +71,7 @@ export default function Success({ navigation }) {
       </View>
 
       <View style={styles.body}>
+      <AndroidGlassBackdrop providerId="ReportSuccess" style={{ flex: 1 }}>
         {/* Gradient info card */}
         <LinearGradient
           colors={
@@ -138,6 +141,7 @@ export default function Success({ navigation }) {
             </Text>
           </LinearGradient>
         </View>
+      </AndroidGlassBackdrop>
       </View>
 
       {/* Return button */}

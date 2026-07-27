@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
+import { AndroidGlassBackdrop } from "../../components/GlassModules";
 import { useRef } from "react";
 
 const ForgotPasswordScreen = ({ navigation }) => {
@@ -82,12 +83,13 @@ const ForgotPasswordScreen = ({ navigation }) => {
 
             {/* Floating back button */}
             <View style={[styles.headerRow, { paddingTop: insets.top + 8, position: "absolute", top: 0, left: 0, zIndex: 10 }]} pointerEvents="box-none">
-              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <LiquidButton providerId="ForgotPasswordScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
                 <Ionicons name="chevron-back" size={24} color={theme.primary} />
               </LiquidButton>
             </View>
 
             {/* Scrollable content */}
+            <AndroidGlassBackdrop providerId="ForgotPasswordScreen" style={{ flex: 1 }}>
             <Animated.ScrollView
               style={styles.scroll}
               contentContainerStyle={[
@@ -161,6 +163,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 </Text>
               </TouchableOpacity>
             </Animated.ScrollView>
+            </AndroidGlassBackdrop>
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

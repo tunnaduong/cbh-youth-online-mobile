@@ -24,6 +24,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 import { getCategoryName, getCategoryDescription } from "../../../utils/forumUtils";
 
@@ -31,7 +32,7 @@ const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity,
   <View pointerEvents="box-none" style={styles.floatingHeader}>
     <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 64 + insets.top }}>
       <View style={{ width: 44 }}>
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="CategoryScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
       </View>
@@ -253,6 +254,7 @@ const CategoryScreen = ({ navigation, route }) => {
         insets={insets}
       />
 
+      <AndroidGlassBackdrop providerId="CategoryScreen" style={{ flex: 1 }}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -312,6 +314,7 @@ const CategoryScreen = ({ navigation, route }) => {
           </View>
         )}
       </ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 };

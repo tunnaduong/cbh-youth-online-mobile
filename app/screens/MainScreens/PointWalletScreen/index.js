@@ -14,6 +14,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -135,17 +136,18 @@ export default function PointWalletScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}> 
       <View style={[styles.header, { paddingTop: insets.top + 8, height: insets.top + 74 }]} pointerEvents="box-none">
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
+        <LiquidButton providerId="PointWalletScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()} roundedOnScroll>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
-        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}> 
+        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 40], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
           {t("wallet.title")}
         </Animated.Text>
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => loadData(true)} roundedOnScroll>
+        <LiquidButton providerId="PointWalletScreen" size={44} scrollY={scrollY} onPress={() => loadData(true)} roundedOnScroll>
           <Ionicons name="refresh-outline" size={21} color={theme.primary} />
         </LiquidButton>
       </View>
 
+      <AndroidGlassBackdrop providerId="PointWalletScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 90 + insets.top, paddingHorizontal: 16, paddingBottom: 36 + insets.bottom }}
@@ -224,6 +226,7 @@ export default function PointWalletScreen({ navigation }) {
           )}
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }

@@ -32,6 +32,7 @@ import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const EditProfileScreen = ({ navigation }) => {
   const { username, userInfo, setUserInfo, bumpAvatarVersion, bumpCoverVersion, getCoverUrl } = useContext(AuthContext);
@@ -273,7 +274,7 @@ const EditProfileScreen = ({ navigation }) => {
           />
           <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top, justifyContent: 'space-between' }}>
             <View style={{ width: 60, alignItems: 'flex-start' }}>
-              <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <LiquidButton providerId="EditProfileScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
                 <Ionicons name="close" size={24} color={theme.primary} />
               </LiquidButton>
             </View>
@@ -289,7 +290,7 @@ const EditProfileScreen = ({ navigation }) => {
               {t('settings.editProfile')}
             </Animated.Text>
             <View style={{ width: 60, alignItems: 'flex-end' }}>
-              <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdateProfile} disabled={loading}>
+              <LiquidButton providerId="EditProfileScreen" size={44} scrollY={scrollY} onPress={handleUpdateProfile} disabled={loading}>
                 {loading ? (
                   <ActivityIndicator size="small" color={theme.primary} />
                 ) : (
@@ -300,6 +301,7 @@ const EditProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
+        <AndroidGlassBackdrop providerId="EditProfileScreen" style={{ flex: 1 }}>
         <Animated.ScrollView
           scrollEnabled={true}
           keyboardShouldPersistTaps="handled"
@@ -454,6 +456,7 @@ const EditProfileScreen = ({ navigation }) => {
             </View>
           </View>
         </Animated.ScrollView>
+        </AndroidGlassBackdrop>
       </KeyboardAvoidingView>
     </View>
   );

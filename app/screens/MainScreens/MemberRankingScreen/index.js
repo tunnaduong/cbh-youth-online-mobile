@@ -16,6 +16,7 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 export default function MemberRankingScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
@@ -194,7 +195,7 @@ export default function MemberRankingScreen({ navigation }) {
       <View pointerEvents="box-none" style={styles.floatingHeader}>
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
           <View style={{ width: 44 }}>
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+            <LiquidButton providerId="MemberRankingScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
               <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
@@ -208,6 +209,7 @@ export default function MemberRankingScreen({ navigation }) {
         </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="MemberRankingScreen" style={{ flex: 1 }}>
       <FlatList
         data={rankingData}
         keyExtractor={(item) => item.username}
@@ -227,6 +229,7 @@ export default function MemberRankingScreen({ navigation }) {
           />
         }
       />
+      </AndroidGlassBackdrop>
     </View>
   );
 }

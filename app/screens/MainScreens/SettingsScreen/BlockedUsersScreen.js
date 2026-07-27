@@ -30,6 +30,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const SettingItem = ({
   icon,
@@ -193,7 +194,7 @@ export default function BlockedUsersScreen({ navigation }) {
         />
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
           <View style={{ width: 44 }}>
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+            <LiquidButton size={44} scrollY={scrollY} providerId="BlockedUsersScreen" onPress={() => navigation.goBack()}>
               <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
@@ -222,8 +223,9 @@ export default function BlockedUsersScreen({ navigation }) {
           <Text style={{ marginTop: 10, color: theme.subText }}>{t('blockedUsers.empty')}</Text>
         </View>
       ) : (
-        <Animated.ScrollView 
-          style={styles.content} 
+        <AndroidGlassBackdrop providerId="BlockedUsersScreen" style={{ flex: 1 }}>
+        <Animated.ScrollView
+          style={styles.content}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -253,6 +255,7 @@ export default function BlockedUsersScreen({ navigation }) {
             </View>
           ))}
         </Animated.ScrollView>
+        </AndroidGlassBackdrop>
       )}
       <Toast topOffset={60} />
     </View>

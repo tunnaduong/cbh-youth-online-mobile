@@ -14,6 +14,7 @@ import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const { width } = Dimensions.get("window");
@@ -78,7 +79,7 @@ const ExploreScreen = ({ navigation }) => {
         style={[styles.header, { paddingTop: insets.top + 6, height: headerHeight }]}
         pointerEvents="box-none"
       >
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="ExploreScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
@@ -95,6 +96,7 @@ const ExploreScreen = ({ navigation }) => {
         <View style={styles.headerSpacer} />
       </View>
 
+      <AndroidGlassBackdrop providerId="ExploreScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight }]}
@@ -146,6 +148,7 @@ const ExploreScreen = ({ navigation }) => {
           </View>
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 };

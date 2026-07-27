@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -177,6 +178,7 @@ export default function Step3({ navigation, route }) {
         >
           <View style={{ width: 44 }}>
             <LiquidButton
+              providerId="ReportStep3"
               size={44}
               scrollY={scrollY}
               onPress={() => navigation.goBack()}
@@ -194,6 +196,7 @@ export default function Step3({ navigation, route }) {
         </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="ReportStep3" style={{ flex: 1 }}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
@@ -342,6 +345,7 @@ export default function Step3({ navigation, route }) {
           </Text>
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
 
       {/* Submit button */}
       <View

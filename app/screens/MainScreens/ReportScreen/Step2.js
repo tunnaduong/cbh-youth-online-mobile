@@ -21,6 +21,7 @@ import BottomSheet, {
 } from "@gorhom/bottom-sheet";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -513,6 +514,7 @@ export default function Step2({ navigation, route }) {
         >
           <View style={{ width: 44 }}>
             <LiquidButton
+              providerId="ReportStep2"
               size={44}
               scrollY={scrollY}
               onPress={() => navigation.goBack()}
@@ -530,6 +532,7 @@ export default function Step2({ navigation, route }) {
         </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="ReportStep2" style={{ flex: 1 }}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
@@ -609,6 +612,7 @@ export default function Step2({ navigation, route }) {
           />
         </View>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
 
       {/* Continue button */}
       <View

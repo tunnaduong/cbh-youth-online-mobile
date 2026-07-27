@@ -19,6 +19,7 @@ import Toast from "react-native-toast-message";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import {
   getStudyMaterialCategories,
@@ -289,19 +290,20 @@ const StudyMaterialScreen = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { paddingTop: insets.top + 6, height: insets.top + 64 }]} pointerEvents="box-none">
-        <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="StudyMaterialScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={theme.primary} />
         </LiquidButton>
         <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }) }]}>
           {headerTitle}
         </Animated.Text>
         <View style={styles.headerActions}>
-          <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.navigate("UploadStudyMaterialScreen")}>
+          <LiquidButton providerId="StudyMaterialScreen" size={44} scrollY={scrollY} onPress={() => navigation.navigate("UploadStudyMaterialScreen")}>
             <Ionicons name="cloud-upload-outline" size={22} color={theme.primary} />
           </LiquidButton>
         </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="StudyMaterialScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={styles.scrollView}
         contentContainerStyle={{ paddingTop: 70 + insets.top, paddingBottom: 40 + insets.bottom }}
@@ -399,6 +401,7 @@ const StudyMaterialScreen = ({ navigation }) => {
           </View>
         )}
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 };

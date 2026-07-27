@@ -19,6 +19,7 @@ import {
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const SettingItem = ({
   icon,
@@ -243,7 +244,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         />
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
           <View style={{ width: 44 }}>
-            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+            <LiquidButton size={44} scrollY={scrollY} providerId="NotificationSettingsScreen" onPress={() => navigation.goBack()}>
               <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
@@ -262,6 +263,7 @@ export default function NotificationSettingsScreen({ navigation }) {
         </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="NotificationSettingsScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
@@ -362,6 +364,7 @@ export default function NotificationSettingsScreen({ navigation }) {
           />
         </SettingSection>
       </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }
