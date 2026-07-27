@@ -73,6 +73,14 @@ const YOUTUBE_ERROR_MESSAGES = {
   100: "Video not found (removed or private)",
   101: "Video owner disabled embedded playback",
   150: "Video owner disabled embedded playback",
+  // Not in Google's official docs, but a very commonly reported real-world
+  // error from the current player script when running inside an embedded
+  // WebView (rather than a normal browser tab) - seen for otherwise-playable
+  // videos. Widely worked around by serving the player from the privacy-
+  // enhanced youtube-nocookie.com host instead (see the `host` player param
+  // below), which sidesteps whatever ad/tracking-cookie-dependent code path
+  // is throwing this.
+  152: "Player error (WebView-specific, see youtube-nocookie.com fix)",
 };
 
 const YouTubeIframeRenderer = ({ tnode }) => {
@@ -120,6 +128,7 @@ const YouTubeIframeRenderer = ({ tnode }) => {
     post('apiready', {});
     new YT.Player('player', {
       videoId: '${videoId}',
+      host: 'https://www.youtube-nocookie.com',
       playerVars: { playsinline: 1, modestbranding: 1, rel: 0 },
       events: {
         onReady: function () { post('ready', {}); },
@@ -153,6 +162,8 @@ const YouTubeIframeRenderer = ({ tnode }) => {
         mediaPlaybackRequiresUserAction={false}
         originWhitelist={["*"]}
         mixedContentMode="always"
+        thirdPartyCookiesEnabled
+        sharedCookiesEnabled
         userAgent={MOBILE_USER_AGENT}
         onMessage={(event) => {
           let parsed;
