@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
+import { useTranslation } from "react-i18next";
 
 // Matches the reaction types the backend accepts (like,love,haha,wow,sad,angry).
 export const REACTION_EMOJIS = [
@@ -34,9 +35,11 @@ const MessageReactionPicker = ({
   currentReaction,
   onSelect,
   onRemove,
+  onReply,
   onClose,
 }) => {
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
 
   if (!visible || !anchor) return null;
 
@@ -62,7 +65,7 @@ const MessageReactionPicker = ({
         <TouchableWithoutFeedback>
           <View
             style={[
-              styles.picker,
+              styles.pickerContainer,
               {
                 left,
                 top,
@@ -71,39 +74,53 @@ const MessageReactionPicker = ({
               },
             ]}
           >
-            {REACTION_EMOJIS.map(({ type, emoji }) => (
+            <View style={styles.emojiRow}>
+              {REACTION_EMOJIS.map(({ type, emoji }) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.emojiButton,
+                    currentReaction === type && {
+                      backgroundColor: isDarkMode
+                        ? "rgba(76,175,80,0.25)"
+                        : "rgba(49,149,39,0.15)",
+                    },
+                  ]}
+                  onPress={() => onSelect(type)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={styles.emojiText}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
               <TouchableOpacity
-                key={type}
                 style={[
                   styles.emojiButton,
-                  currentReaction === type && {
-                    backgroundColor: isDarkMode
-                      ? "rgba(76,175,80,0.25)"
-                      : "rgba(49,149,39,0.15)",
-                  },
+                  styles.removeButton,
+                  { borderColor: theme.border },
                 ]}
-                onPress={() => onSelect(type)}
+                onPress={onRemove}
+                activeOpacity={0.6}
+                disabled={!currentReaction}
+              >
+                <Ionicons
+                  name="close"
+                  size={18}
+                  color={currentReaction ? theme.subText : theme.placeholder}
+                />
+              </TouchableOpacity>
+            </View>
+            {onReply && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onReply}
                 activeOpacity={0.6}
               >
-                <Text style={styles.emojiText}>{emoji}</Text>
+                <Ionicons name="arrow-undo-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.reply", "Trả lời")}
+                </Text>
               </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[
-                styles.emojiButton,
-                styles.removeButton,
-                { borderColor: theme.border },
-              ]}
-              onPress={onRemove}
-              activeOpacity={0.6}
-              disabled={!currentReaction}
-            >
-              <Ionicons
-                name="close"
-                size={18}
-                color={currentReaction ? theme.subText : theme.placeholder}
-              />
-            </TouchableOpacity>
+            )}
           </View>
         </TouchableWithoutFeedback>
       </View>
@@ -119,19 +136,21 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     elevation: 20,
   },
-  picker: {
+  pickerContainer: {
     position: "absolute",
     width: PICKER_WIDTH,
-    borderRadius: 28,
+    borderRadius: 24,
     paddingVertical: 8,
     paddingHorizontal: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
+  },
+  emojiRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   emojiButton: {
     width: 38,
@@ -145,6 +164,19 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     borderWidth: 1,
+  },
+  replyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
+    paddingTop: 8,
+    paddingHorizontal: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  replyText: {
+    fontSize: 15,
+    fontWeight: "500",
+    marginLeft: 10,
   },
 });
 

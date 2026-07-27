@@ -415,6 +415,17 @@
     "copyright": "© Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
   },
   "chatConversation": {
+    "you": "Bạn",
+    "reply": "Trả lời",
+    "replyPhoto": "Hình ảnh",
+    "replyVideo": "Video",
+    "replyFile": "Tệp đính kèm",
+    "repliedToOwnMessage": "Bạn đã trả lời tin nhắn của chính bạn",
+    "repliedToTheirOwnMessage": "{{name}} đã trả lời tin nhắn của chính họ",
+    "repliedToMessage": "{{replier}} đã trả lời tin nhắn của {{target}}",
+    "replyingTo": "Đang trả lời tin nhắn của {{name}}",
+    "replyingToSelf": "chính bạn",
+    "repliedMessageNotFound": "Không tìm thấy tin nhắn gốc",
     "today": "Hôm nay",
     "yesterday": "Hôm qua",
     "blockTitle": "Chặn người dùng?",

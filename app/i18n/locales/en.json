@@ -426,6 +426,17 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Built by students, for students."
   },
   "chatConversation": {
+    "you": "You",
+    "reply": "Reply",
+    "replyPhoto": "Photo",
+    "replyVideo": "Video",
+    "replyFile": "Attachment",
+    "repliedToOwnMessage": "You replied to your own message",
+    "repliedToTheirOwnMessage": "{{name}} replied to their own message",
+    "repliedToMessage": "{{replier}} replied to {{target}}'s message",
+    "replyingTo": "Replying to {{name}}",
+    "replyingToSelf": "yourself",
+    "repliedMessageNotFound": "Could not find the original message",
     "today": "Today",
     "yesterday": "Yesterday",
     "blockTitle": "Block user?",

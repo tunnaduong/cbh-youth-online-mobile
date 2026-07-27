@@ -35,6 +35,8 @@ import {
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
+import ReplyPreviewBubble from "../../../components/ReplyPreviewBubble";
+import ReplyComposerBar from "../../../components/ReplyComposerBar";
 import MessageReactionPicker, {
   REACTION_EMOJI_BY_TYPE,
 } from "../../../components/MessageReactionPicker";
@@ -259,6 +261,9 @@ const ConversationScreen = ({ navigation, route }) => {
     message: null,
     anchor: null,
   });
+  // { id, content, type, file_url, sender } | null - the message currently
+  // being replied to, shown in ReplyComposerBar above the input.
+  const [replyingTo, setReplyingTo] = useState(null);
   // DEBUG: id -> error string, for surfacing why an image/video thumbnail
   // failed to load directly in the bubble instead of just going blank.
   const [mediaLoadErrors, setMediaLoadErrors] = useState({});
@@ -633,8 +638,11 @@ const ConversationScreen = ({ navigation, route }) => {
     });
   };
 
-  const attemptScrollToHighlight = () => {
-    const targetId = pendingHighlightMessageIdRef.current;
+  // Scrolls to and briefly highlights a message already present in the
+  // currently loaded list, if it's laid out yet. Returns false (without
+  // side effects) if it isn't loaded/laid out, so callers can fall back to
+  // fetching more messages first (see handleJumpToRepliedMessage).
+  const scrollToMessageAndHighlight = (targetId) => {
     if (targetId == null) return false;
     const y = messageLayoutOffsetsRef.current[targetId];
     if (y == null) return false;
@@ -645,9 +653,39 @@ const ConversationScreen = ({ navigation, route }) => {
       });
     });
     setHighlightedMessageId(targetId);
-    pendingHighlightMessageIdRef.current = null;
     setTimeout(() => setHighlightedMessageId(null), 2500);
     return true;
+  };
+
+  const attemptScrollToHighlight = () => {
+    const targetId = pendingHighlightMessageIdRef.current;
+    if (targetId == null) return false;
+    const didScroll = scrollToMessageAndHighlight(targetId);
+    if (didScroll) pendingHighlightMessageIdRef.current = null;
+    return didScroll;
+  };
+
+  // Tapping a ReplyPreviewBubble jumps to the original message. If it's not
+  // in the currently loaded page (an older message), keep loading older
+  // pages until it turns up or we run out.
+  const handleJumpToRepliedMessage = async (replyToId) => {
+    if (replyToId == null) return;
+    if (scrollToMessageAndHighlight(replyToId)) return;
+
+    const MAX_ATTEMPTS = 8;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      if (!hasMore) break;
+      await fetchMessages(false);
+      // Let onLayout populate messageLayoutOffsetsRef for the newly
+      // prepended messages before checking again.
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      if (scrollToMessageAndHighlight(replyToId)) return;
+    }
+
+    Toast.show({
+      type: "error",
+      text1: t("chatConversation.repliedMessageNotFound", "Không tìm thấy tin nhắn gốc"),
+    });
   };
 
   const handleMessagesContentSizeChange = () => {
@@ -778,6 +816,9 @@ const ConversationScreen = ({ navigation, route }) => {
     fileSize,
   }) => {
     const tempId = Date.now().toString();
+    // Same reasoning as handleSendMessage: declared before try/catch so the
+    // catch block can restore it on failure.
+    const replySnapshot = replyingTo;
     try {
       if (sending) return;
 
@@ -801,6 +842,9 @@ const ConversationScreen = ({ navigation, route }) => {
       // already used for non-image attachments - it's never shown for images
       // anyway since the bubble renders the image itself, not `content`.
       formData.append("content", fileName);
+      if (replySnapshot?.id) {
+        formData.append("reply_to_message_id", replySnapshot.id);
+      }
 
       // Optimistic message
       const optimisticMessage = {
@@ -820,7 +864,18 @@ const ConversationScreen = ({ navigation, route }) => {
           avatar_url: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
           profile_name: profileName || username,
         },
+        reply_to: replySnapshot
+          ? {
+              id: replySnapshot.id,
+              content: replySnapshot.content,
+              type: replySnapshot.type,
+              file_url: replySnapshot.file_url,
+              sender: replySnapshot.sender,
+            }
+          : undefined,
       };
+
+      setReplyingTo(null);
 
       // Add optimistic message to UI
       setMessages((prev) => {
@@ -1009,6 +1064,8 @@ const ConversationScreen = ({ navigation, route }) => {
         });
       });
 
+      if (replySnapshot) setReplyingTo(replySnapshot);
+
       Toast.show({
         type: "error",
         text1: t("common.error"),
@@ -1030,6 +1087,10 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleSendMessage = async () => {
     scrollToLatestMessageAnimated();
     const tempId = Date.now().toString();
+    // Declared outside the try block (not just above the catch) so it's
+    // still in scope if something throws before it would otherwise be set -
+    // catch needs it to restore the reply state on failure.
+    const replySnapshot = replyingTo;
     try {
       if (!message.trim() || sending) return;
 
@@ -1055,10 +1116,20 @@ const ConversationScreen = ({ navigation, route }) => {
           avatar_url: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
           profile_name: profileName || username,
         },
+        reply_to: replySnapshot
+          ? {
+              id: replySnapshot.id,
+              content: replySnapshot.content,
+              type: replySnapshot.type,
+              file_url: replySnapshot.file_url,
+              sender: replySnapshot.sender,
+            }
+          : undefined,
       };
 
       // Clear input immediately
       setMessage("");
+      setReplyingTo(null);
 
       console.log("[Debug] Adding optimistic message:", optimisticMessage);
 
@@ -1154,6 +1225,7 @@ const ConversationScreen = ({ navigation, route }) => {
         response = await sendMessage(newConversationId, {
           content: trimmedMessage,
           type: "text",
+          reply_to_message_id: replySnapshot?.id,
         });
         console.log("[Debug] Send message response:", response.data);
 
@@ -1184,6 +1256,7 @@ const ConversationScreen = ({ navigation, route }) => {
         response = await sendMessage(currentConversationId, {
           content: trimmedMessage,
           type: "text",
+          reply_to_message_id: replySnapshot?.id,
         });
         console.log("[Debug] Send message response:", response.data);
       }
@@ -1292,6 +1365,10 @@ const ConversationScreen = ({ navigation, route }) => {
         });
       });
 
+      // Give the reply context back so retrying the send doesn't require
+      // re-selecting what to reply to.
+      if (replySnapshot) setReplyingTo(replySnapshot);
+
       Toast.show({
         type: "error",
         text1: t("common.error"),
@@ -1374,6 +1451,30 @@ const ConversationScreen = ({ navigation, route }) => {
   const closeReactionPicker = () => {
     setReactionPicker((prev) => ({ ...prev, visible: false }));
   };
+
+  const handleReplyToMessage = () => {
+    const item = reactionPicker.message;
+    closeReactionPicker();
+    if (!item || typeof item.id !== "number") return;
+
+    const contentType =
+      item.type === "image" || item.type === "video" || item.type === "file"
+        ? item.type
+        : item.content_type === "image" || item.content_type === "video" || item.content_type === "file"
+          ? item.content_type
+          : "text";
+
+    setReplyingTo({
+      id: item.id,
+      content: contentType === "text" ? item.content : null,
+      type: contentType,
+      file_url: item.file_url ?? null,
+      sender: item.sender,
+    });
+    inputRef.current?.focus?.();
+  };
+
+  const cancelReply = () => setReplyingTo(null);
 
   const handleSelectReaction = async (type) => {
     const message = reactionPicker.message;
@@ -1812,6 +1913,13 @@ const ConversationScreen = ({ navigation, route }) => {
                       : undefined
               }
             >
+              {item.reply_to && (
+                <ReplyPreviewBubble
+                  item={item}
+                  currentUsername={username}
+                  onPress={() => handleJumpToRepliedMessage(item.reply_to.id)}
+                />
+              )}
               {isImageMessage && item.file_url ? (
                 <>
                   {console.log("[ChatMedia] rendering image", {
@@ -2098,6 +2206,7 @@ const ConversationScreen = ({ navigation, route }) => {
         currentReaction={reactionPicker.message?.reactions?.my_reaction}
         onSelect={handleSelectReaction}
         onRemove={handleRemoveReaction}
+        onReply={handleReplyToMessage}
         onClose={closeReactionPicker}
       />
 
@@ -2180,6 +2289,11 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
           offset={{ opened: 20 }}
         >
+          <ReplyComposerBar
+            replyingTo={replyingTo}
+            currentUsername={username}
+            onCancel={cancelReply}
+          />
           <View
             style={{
               backgroundColor: "transparent",

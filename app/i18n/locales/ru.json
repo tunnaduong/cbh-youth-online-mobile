@@ -436,6 +436,17 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Разработано учениками для учеников."
   },
   "chatConversation": {
+    "you": "Вы",
+    "reply": "Ответить",
+    "replyPhoto": "Фото",
+    "replyVideo": "Видео",
+    "replyFile": "Вложение",
+    "repliedToOwnMessage": "Вы ответили на своё собственное сообщение",
+    "repliedToTheirOwnMessage": "{{name}} ответил(а) на своё собственное сообщение",
+    "repliedToMessage": "{{replier}} ответил(а) на сообщение {{target}}",
+    "replyingTo": "Ответ на сообщение {{name}}",
+    "replyingToSelf": "самому себе",
+    "repliedMessageNotFound": "Не удалось найти исходное сообщение",
     "today": "Сегодня",
     "yesterday": "Вчера",
     "blockTitle": "Заблокировать пользователя?",
