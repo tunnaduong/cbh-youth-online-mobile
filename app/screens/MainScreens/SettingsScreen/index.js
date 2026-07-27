@@ -23,8 +23,6 @@ import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import * as Notifications from "expo-notifications";
-import { getConversations } from "../../../services/api/Api";
 
 const SettingItem = ({
   icon,
@@ -108,69 +106,6 @@ export default function SettingsScreen({ navigation }) {
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
-
-  // Debug tool for the "tapping a chat push notification doesn't open the
-  // chat" bug: fires a LOCAL notification carrying the same data shape a
-  // real chat_message push should. expo-notifications routes local and
-  // remote notifications through the identical
-  // addNotificationResponseReceivedListener/getLastNotificationResponseAsync
-  // path on tap, so this exercises the exact same handling code
-  // (NotificationContext.handleNotificationTapped) without needing a real
-  // backend push - useful since that's otherwise only testable by actually
-  // receiving one. Background or lock the screen after tapping "Send", then
-  // tap the notification when it appears ~3s later.
-  const sendTestChatNotification = async () => {
-    try {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== "granted") {
-        const { status: requested } = await Notifications.requestPermissionsAsync();
-        if (requested !== "granted") {
-          Toast.show({ type: "error", text1: "Notification permission not granted" });
-          return;
-        }
-      }
-
-      let conversationId = null;
-      try {
-        const response = await getConversations();
-        conversationId = response?.data?.[0]?.id ?? null;
-      } catch (error) {
-        console.log("[Push][Test] Could not fetch a real conversation to test with:", error?.message);
-      }
-
-      if (!conversationId) {
-        Toast.show({
-          type: "error",
-          text1: "No conversation to test with",
-          text2: "Open at least one chat first, then try again.",
-        });
-        return;
-      }
-
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Test message",
-          body: "This is a test chat_message push notification",
-          data: {
-            type: "chat_message",
-            conversation_id: conversationId,
-            message_id: `test-${Date.now()}`,
-          },
-        },
-        trigger: { seconds: 3 },
-      });
-
-      Toast.show({
-        type: "success",
-        text1: "Test notification scheduled",
-        text2: "Background the app now - it fires in ~3s. Tap it when it appears.",
-        visibilityTime: 4000,
-      });
-    } catch (error) {
-      console.log("[Push][Test] Error scheduling test notification:", error);
-      Toast.show({ type: "error", text1: "Could not schedule test notification" });
-    }
-  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -332,17 +267,6 @@ export default function SettingsScreen({ navigation }) {
             icon="information-circle-outline"
             title={t("settings.about")}
             onPress={() => navigation.navigate("AboutScreen")}
-          />
-        </SettingSection>
-
-        {/* Debug tools - temporary, for diagnosing the chat push notification
-            navigation bug. Remove once that's confirmed fixed. */}
-        <SettingSection title="Debug" theme={theme}>
-          <SettingItem
-            icon="bug-outline"
-            title="Send test chat notification"
-            chevron={false}
-            onPress={sendTestChatNotification}
           />
         </SettingSection>
 

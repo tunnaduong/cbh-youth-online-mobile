@@ -13,7 +13,6 @@ import {
   getUnreadNotificationCount,
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
-import Toast from 'react-native-toast-message';
 
 export const NotificationContext = createContext();
 
@@ -188,20 +187,6 @@ export const NotificationProvider = ({ children }) => {
     }
 
     console.log('[Push] Resolved navigation target:', target);
-
-    // On-screen version of the log above - checking logcat/Metro output is
-    // real friction for testing this on a device without a computer handy.
-    // Temporary, same as the "Debug" section in Settings; remove once the
-    // chat notification navigation bug is confirmed fixed.
-    Toast.show({
-      type: target ? 'info' : 'error',
-      text1: '[Debug] Notification tapped',
-      text2: `type=${String(type)} conv=${String(conversationId)} -> ${
-        target ? `${target.screen} ${JSON.stringify(target.params)}` : 'NO TARGET RESOLVED'
-      }`,
-      visibilityTime: 8000,
-      autoHide: true,
-    });
 
     if (target) {
       DeviceEventEmitter.emit('NAVIGATE_FROM_NOTIFICATION', target);
