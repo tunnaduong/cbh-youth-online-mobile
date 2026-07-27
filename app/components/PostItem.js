@@ -8,6 +8,7 @@ import {
   Alert,
   Dimensions,
   Linking,
+  ScrollView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
@@ -37,6 +38,7 @@ import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
+import VideoThumbnail from "./VideoThumbnail";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -55,6 +57,15 @@ const YouTubeIframeRenderer = ({ tnode }) => {
   const width = Dimensions.get("window").width - 30;
   const height = (width * 9) / 16;
 
+  // Loading the bare youtube.com/embed/<id> URL directly as the WebView's
+  // `uri` source gives the YouTube iframe API no real embedding-page origin
+  // to validate against, which is what surfaces as player error 153
+  // ("invalid embed configuration") - it's fine on a real website because
+  // the browser page has an actual origin, but a raw WebView request has
+  // none. Wrapping the same src in a real (tiny) HTML document with a
+  // baseUrl gives the iframe that origin, resolving the check.
+  const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}</style></head><body><iframe src="${src}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></body></html>`;
+
   return (
     <View
       style={{
@@ -67,7 +78,7 @@ const YouTubeIframeRenderer = ({ tnode }) => {
       }}
     >
       <WebView
-        source={{ uri: src }}
+        source={{ html, baseUrl: "https://www.youtube.com" }}
         style={{ width, height }}
         javaScriptEnabled
         domStorageEnabled
@@ -570,6 +581,25 @@ const PostItem = ({
             )}
           />
         </View>
+      )}
+
+      {/* Video attachment display */}
+      {item.video_urls && item.video_urls.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 15, paddingTop: 8, gap: 8 }}
+        >
+          {item.video_urls.map((url, index) => (
+            <VideoThumbnail
+              key={`${url}-${index}`}
+              uri={url}
+              width={single ? 260 : 220}
+              height={single ? 180 : 150}
+              borderRadius={12}
+            />
+          ))}
+        </ScrollView>
       )}
 
       {/* Document attachment display */}

@@ -47,6 +47,7 @@ import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import * as ImagePicker from "expo-image-picker";
+import * as Clipboard from "expo-clipboard";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
@@ -203,8 +204,12 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const BUTTON_SIZE = 47;
+  // Back/3-dot buttons are plain icon buttons (no label), so they read as
+  // oversized next to the center profile pill at the same BUTTON_SIZE - keep
+  // the pill's height but shrink just the two icon buttons.
+  const ICON_BUTTON_SIZE = 40;
   const HEADER_HEIGHT = BUTTON_SIZE + 14 + insets.top;
-  const CENTER_MAX_WIDTH = Dimensions.get("window").width - BUTTON_SIZE * 2 - 32;
+  const CENTER_MAX_WIDTH = Dimensions.get("window").width - ICON_BUTTON_SIZE * 2 - 32;
   // Reserve space for avatar + small gap inside the pill so text never pushes avatar out
   const AVATAR_WRAPPER_SIZE = 40;
   const CENTER_TEXT_MAX = Math.max(80, CENTER_MAX_WIDTH - (AVATAR_WRAPPER_SIZE + 12));
@@ -719,6 +724,66 @@ const ConversationScreen = ({ navigation, route }) => {
         type: "error",
         text1: t("common.error"),
         text2: t("chatConversation.sendFileError"),
+      });
+    }
+  };
+
+  // Mobile OS clipboards only ever carry text/HTML or a raster image - there's
+  // no cross-app "copy this video/file" primitive on iOS or Android the way
+  // there is on desktop, so genuine video/file paste isn't something this (or
+  // any) app can support. This covers what actually is possible: an image
+  // copied from the gallery/another app/a keyboard's image picker, pasted and
+  // sent immediately (no extra tap), same as the attach buttons. As a bonus,
+  // if some other app put a local media file's path on the clipboard as
+  // plain text (some file managers do this instead of real image data), that
+  // gets picked up too - video included, in that one case.
+  const pasteFromClipboard = async () => {
+    try {
+      const hasImage = await Clipboard.hasImageAsync();
+      if (hasImage) {
+        const clipboardImage = await Clipboard.getImageAsync({ format: "png" });
+        if (clipboardImage?.data) {
+          const base64 = clipboardImage.data.split(",").pop();
+          const fileUri = `${FileSystem.cacheDirectory}pasted_${Date.now()}.png`;
+          await FileSystem.writeAsStringAsync(fileUri, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          await sendImageMessage(fileUri);
+          return;
+        }
+      }
+
+      const hasString = await Clipboard.hasStringAsync();
+      if (hasString) {
+        const text = (await Clipboard.getStringAsync())?.trim();
+        const isLocalMediaFile = /^(file|content):\/\/.+\.(jpe?g|png|gif|webp|heic|mp4|mov|avi|webm|mkv)$/i.test(
+          text || "",
+        );
+        if (isLocalMediaFile) {
+          const isVideo = /\.(mp4|mov|avi|webm|mkv)$/i.test(text);
+          if (isVideo) {
+            await sendVideoMessage({ uri: text, fileName: text.split("/").pop() });
+          } else {
+            await sendImageMessage(text);
+          }
+          return;
+        }
+      }
+
+      Toast.show({
+        type: "info",
+        text1: t("chatConversation.pasteNothingTitle", "Không có gì để dán"),
+        text2: t(
+          "chatConversation.pasteNothingBody",
+          "Chỉ hỗ trợ dán ảnh từ clipboard.",
+        ),
+      });
+    } catch (error) {
+      console.error("Error pasting from clipboard:", error);
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: t("chatConversation.pasteError", "Không thể dán từ clipboard."),
       });
     }
   };
@@ -2003,8 +2068,8 @@ const ConversationScreen = ({ navigation, route }) => {
         ]}
       >
         <View style={styles.headerContent}>
-          <LiquidButton size={BUTTON_SIZE} providerId="ConversationScreen" onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
+          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={22} color={theme.primary} />
           </LiquidButton>
 
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} pointerEvents="box-none">
@@ -2062,8 +2127,8 @@ const ConversationScreen = ({ navigation, route }) => {
             </LiquidButton>
           </View>
 
-          <LiquidButton size={BUTTON_SIZE} providerId="ConversationScreen" onPress={showOptions}>
-            <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
+          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={showOptions}>
+            <Ionicons name="ellipsis-vertical" size={22} color={theme.primary} />
           </LiquidButton>
         </View>
       </View>
@@ -2225,6 +2290,17 @@ const ConversationScreen = ({ navigation, route }) => {
                   >
                     <Ionicons
                       name="attach-outline"
+                      size={20}
+                      color={theme.subText}
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.attachButton, { marginLeft: 6 }]}
+                    onPress={pasteFromClipboard}
+                    disabled={sending}
+                  >
+                    <Ionicons
+                      name="clipboard-outline"
                       size={20}
                       color={theme.subText}
                     />

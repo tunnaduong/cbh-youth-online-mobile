@@ -313,10 +313,15 @@
     "markdown": "Поддержка Markdown",
     "rules": "Правила",
     "addImage": "Добавить фото",
+    "addVideo": "Добавить видео",
     "addDocument": "Добавить документ",
     "posting": "Публикация...",
     "pickImageError": "Ошибка выбора изображения",
+    "pickVideoError": "Ошибка выбора видео",
     "pickDocumentError": "Ошибка выбора документа",
+    "videoTypeUnsupported": "Некоторые видео имеют неподдерживаемый формат и были пропущены (разрешено: mp4, mov, avi, webm, mkv)",
+    "videoTooLarge": "Некоторые видео превышают 100 МБ и были пропущены",
+    "uploadingVideo": "Загрузка видео {{current}}/{{total}}...",
     "retry": "Пожалуйста, попробуйте снова.",
     "cannotPost": "Пока не удается опубликовать",
     "missingFields": "Пожалуйста, введите заголовок и содержимое поста.",
@@ -383,6 +388,7 @@
     "replyingTo": "Ответ пользователю {{username}}...",
     "commentPlaceholder": "Написать комментарий...",
     "tapToViewDoc": "Нажмите для просмотра документа",
+    "tapToPlayVideo": "Нажмите для воспроизведения видео",
     "anonymousUser": "Анонимный пользователь",
     "anonymous": "Анонимный",
     "reply": "Ответить"
@@ -430,6 +436,9 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Разработано учениками для учеников."
   },
   "chatConversation": {
+    "pasteNothingTitle": "Нечего вставить",
+    "pasteNothingBody": "Поддерживается вставка только изображений из буфера обмена.",
+    "pasteError": "Не удалось вставить из буфера обмена.",
     "today": "Сегодня",
     "yesterday": "Вчера",
     "blockTitle": "Заблокировать пользователя?",
@@ -584,6 +593,8 @@
     "errorLoadDesc": "Пожалуйста, попробуйте позже.",
     "errorImageTitle": "Ошибка выбора изображения",
     "errorImageDesc": "Пожалуйста, попробуйте снова.",
+    "errorVideoTitle": "Ошибка выбора видео",
+    "errorVideoDesc": "Пожалуйста, попробуйте снова.",
     "errorUpdateTitle": "Пока не удалось обновить пост",
     "errorUpdateDesc": "Пожалуйста, введите заголовок и содержимое поста.",
     "updating": "Обновление...",
@@ -596,7 +607,11 @@
     "placeholderCategory": "Выберите категорию для этого поста",
     "markdown": "Поддержка Markdown",
     "rules": "Правила",
-    "addImage": "Добавить фото"
+    "addImage": "Добавить фото",
+    "addVideo": "Добавить видео",
+    "uploadingVideo": "Загрузка видео {{current}}/{{total}}...",
+    "videoTypeUnsupported": "Некоторые видео имеют неподдерживаемый формат и были пропущены (разрешено: mp4, mov, avi, webm, mkv)",
+    "videoTooLarge": "Некоторые видео превышают 100 МБ и были пропущены"
   },
   "profile": {
     "title": "Профиль",

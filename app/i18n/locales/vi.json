@@ -292,10 +292,15 @@
     "markdown": "Hỗ trợ Markdown",
     "rules": "Quy tắc",
     "addImage": "Thêm ảnh",
+    "addVideo": "Thêm video",
     "addDocument": "Thêm tài liệu",
     "posting": "Đang đăng...",
     "pickImageError": "Lỗi chọn ảnh",
+    "pickVideoError": "Lỗi chọn video",
     "pickDocumentError": "Lỗi chọn tài liệu",
+    "videoTypeUnsupported": "Một số video có định dạng không được hỗ trợ và đã bị bỏ qua (chỉ chấp nhận: mp4, mov, avi, webm, mkv)",
+    "videoTooLarge": "Một số video vượt quá 100MB và đã bị bỏ qua",
+    "uploadingVideo": "Đang tải video {{current}}/{{total}}...",
     "retry": "Vui lòng thử lại.",
     "cannotPost": "Chưa thể đăng bài viết",
     "missingFields": "Vui lòng nhập tiêu đề và nội dung bài viết.",
@@ -362,6 +367,7 @@
     "replyingTo": "Đang trả lời bình luận của {{username}}...",
     "commentPlaceholder": "Viết bình luận...",
     "tapToViewDoc": "Nhấn để xem tài liệu",
+    "tapToPlayVideo": "Nhấn để phát video",
     "anonymousUser": "Người dùng ẩn danh",
     "anonymous": "Ẩn danh",
     "reply": "Trả lời"
@@ -409,6 +415,9 @@
     "copyright": "© Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
   },
   "chatConversation": {
+    "pasteNothingTitle": "Không có gì để dán",
+    "pasteNothingBody": "Chỉ hỗ trợ dán ảnh từ clipboard.",
+    "pasteError": "Không thể dán từ clipboard.",
     "today": "Hôm nay",
     "yesterday": "Hôm qua",
     "blockTitle": "Chặn người dùng?",
@@ -564,6 +573,8 @@
     "errorLoadDesc": "Vui lòng thử lại sau.",
     "errorImageTitle": "Lỗi chọn ảnh",
     "errorImageDesc": "Vui lòng thử lại.",
+    "errorVideoTitle": "Lỗi chọn video",
+    "errorVideoDesc": "Vui lòng thử lại.",
     "errorUpdateTitle": "Chưa thể cập nhật bài viết",
     "errorUpdateDesc": "Vui lòng nhập tiêu đề và nội dung bài viết.",
     "updating": "Đang cập nhật...",
@@ -576,7 +587,11 @@
     "placeholderCategory": "Chọn chuyên mục cho bài viết này",
     "markdown": "Hỗ trợ Markdown",
     "rules": "Quy tắc",
-    "addImage": "Thêm ảnh"
+    "addImage": "Thêm ảnh",
+    "addVideo": "Thêm video",
+    "uploadingVideo": "Đang tải video {{current}}/{{total}}...",
+    "videoTypeUnsupported": "Một số video có định dạng không được hỗ trợ và đã bị bỏ qua (chỉ chấp nhận: mp4, mov, avi, webm, mkv)",
+    "videoTooLarge": "Một số video vượt quá 100MB và đã bị bỏ qua"
   },
   "profile": {
     "title": "Thông tin cá nhân",

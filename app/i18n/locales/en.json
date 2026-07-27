@@ -303,10 +303,15 @@
     "markdown": "Markdown Support",
     "rules": "Rules",
     "addImage": "Add image",
+    "addVideo": "Add video",
     "addDocument": "Add document",
     "posting": "Posting...",
     "pickImageError": "Error picking image",
+    "pickVideoError": "Error picking video",
     "pickDocumentError": "Error picking document",
+    "videoTypeUnsupported": "Some videos have an unsupported format and were skipped (allowed: mp4, mov, avi, webm, mkv)",
+    "videoTooLarge": "Some videos are over 100MB and were skipped",
+    "uploadingVideo": "Uploading video {{current}}/{{total}}...",
     "retry": "Please try again.",
     "cannotPost": "Cannot post yet",
     "missingFields": "Please enter the title and content of the post.",
@@ -373,6 +378,7 @@
     "replyingTo": "Replying to {{username}}...",
     "commentPlaceholder": "Write a comment...",
     "tapToViewDoc": "Tap to view document",
+    "tapToPlayVideo": "Tap to play video",
     "anonymousUser": "Anonymous user",
     "anonymous": "Anonymous",
     "reply": "Reply"
@@ -420,6 +426,9 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Built by students, for students."
   },
   "chatConversation": {
+    "pasteNothingTitle": "Nothing to paste",
+    "pasteNothingBody": "Only pasting images from the clipboard is supported.",
+    "pasteError": "Could not paste from clipboard.",
     "today": "Today",
     "yesterday": "Yesterday",
     "blockTitle": "Block user?",
@@ -575,6 +584,8 @@
     "errorLoadDesc": "Please try again later.",
     "errorImageTitle": "Error picking image",
     "errorImageDesc": "Please try again.",
+    "errorVideoTitle": "Error picking video",
+    "errorVideoDesc": "Please try again.",
     "errorUpdateTitle": "Cannot update post yet",
     "errorUpdateDesc": "Please enter the title and content of the post.",
     "updating": "Updating...",
@@ -587,7 +598,11 @@
     "placeholderCategory": "Select a category for this post",
     "markdown": "Markdown Support",
     "rules": "Rules",
-    "addImage": "Add image"
+    "addImage": "Add image",
+    "addVideo": "Add video",
+    "uploadingVideo": "Uploading video {{current}}/{{total}}...",
+    "videoTypeUnsupported": "Some videos have an unsupported format and were skipped (allowed: mp4, mov, avi, webm, mkv)",
+    "videoTooLarge": "Some videos are over 100MB and were skipped"
   },
   "profile": {
     "title": "Profile Information",

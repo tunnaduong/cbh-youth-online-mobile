@@ -211,6 +211,28 @@ const App = () => {
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
+  // These screens fetch their data once in a mount-only effect keyed off
+  // their own local state, not off route.params changes. navigate() to a
+  // screen name already in the stack doesn't remount it - it just merges the
+  // new params into the existing instance - so e.g. opening a link to post B
+  // while post A's PostScreen is still on the stack silently updated params
+  // that nothing re-read, and the screen kept showing post A. push() always
+  // mounts a fresh instance, so the new target's data actually loads. (Same
+  // fix as ProfileScreen's Message button - see ConversationScreen history.)
+  // MainScreens/PointWalletScreen aren't in this list: MainScreens is the
+  // persistent tab container and its story deep-link effect already re-runs
+  // off route.params changes, so re-pushing it would stack a duplicate tab
+  // bar on top of itself instead of reusing the singleton.
+  const DEEP_LINK_TARGETS_NEEDING_FRESH_SCREEN = ["PostScreen", "ConversationScreen"];
+
+  const navigateToDeepLinkTarget = (target) => {
+    if (!target || !navigationRef.current) return;
+    const method = DEEP_LINK_TARGETS_NEEDING_FRESH_SCREEN.includes(target.screen)
+      ? "push"
+      : "navigate";
+    navigationRef.current[method](target.screen, target.params);
+  };
+
   const enqueueDeepLinkTarget = (target) => {
     if (!target) return;
     pendingDeepLinkQueue.current.push(target);
@@ -222,7 +244,7 @@ const App = () => {
     while (pendingDeepLinkQueue.current.length > 0) {
       const nextTarget = pendingDeepLinkQueue.current.shift();
       if (nextTarget) {
-        navigationRef.current.navigate(nextTarget.screen, nextTarget.params);
+        navigateToDeepLinkTarget(nextTarget);
       }
     }
   };
@@ -250,7 +272,7 @@ const App = () => {
       if (!target) return;
 
       if (isLoggedIn && navigationRef.current) {
-        navigationRef.current.navigate(target.screen, target.params);
+        navigateToDeepLinkTarget(target);
       } else {
         enqueueDeepLinkTarget(target);
       }
@@ -264,7 +286,7 @@ const App = () => {
     const sub = DeviceEventEmitter.addListener('NAVIGATE_FROM_NOTIFICATION', (target) => {
       if (!target) return;
       if (isLoggedIn && navigationRef.current) {
-        navigationRef.current.navigate(target.screen, target.params);
+        navigateToDeepLinkTarget(target);
       } else {
         enqueueDeepLinkTarget(target);
       }
