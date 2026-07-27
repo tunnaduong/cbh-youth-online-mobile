@@ -154,8 +154,15 @@ const injectTimeHeaders = (messages, t) => {
     // `type` doubles as the list-envelope discriminator ("message" vs "date"/"time"
     // headers) elsewhere in this screen, which would otherwise clobber the backend's
     // content type (text/image/file) - keep that around separately so attachment
-    // bubbles still render correctly after any refetch.
-    result.push({ ...msg, type: "message", content_type: msg.type });
+    // bubbles still render correctly after any refetch. Messages that already went
+    // through this function (e.g. re-merged on scroll-up pagination) have `type`
+    // set to "message" already, so fall back to their existing `content_type`
+    // instead of overwriting it.
+    result.push({
+      ...msg,
+      type: "message",
+      content_type: msg.content_type ?? msg.type,
+    });
   });
 
   return result;
