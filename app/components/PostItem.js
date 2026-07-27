@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import {
   View,
   Pressable,
@@ -74,37 +74,41 @@ const YOUTUBE_ERROR_MESSAGES = {
   100: "Video not found (removed or private)",
   101: "Video owner disabled embedded playback",
   150: "Video owner disabled embedded playback",
-  // Not in Google's official docs. Since a YouTube API change on 2025-07-09,
-  // the embedded player strictly verifies the embedding page's identity via
-  // the HTTP Referer header of the request that loaded it - and WebViews
-  // (unlike a real browser tab) often don't send one at all, or send one
-  // that doesn't match, under their default referrer policy. That's what
-  // surfaces as this error. Fixed via the page-level
-  // <meta name="referrer" content="strict-origin-when-cross-origin"> tag
-  // below, which is YouTube's own recommended policy for embedding pages.
-  152: "Player error - referrer policy (see the <meta name=referrer> fix)",
+  // Not in Google's official docs. A referrer-policy meta tag alone didn't
+  // fix this (tried first). What did, in a working reference fix for this
+  // same error in another embedded-WebView YouTube player (Flutter's
+  // youtube_player_flutter, PR #1086): the page (`baseUrl`) and the
+  // player's own iframe (`host`) need to be same-origin, both on
+  // youtube-nocookie.com - see those two below.
+  152: "Player error (see baseUrl/host same-origin fix)",
 };
 
 const YouTubeIframeRenderer = ({ tnode }) => {
   const rawSrc = tnode?.attributes?.src;
-  if (!rawSrc) return null;
-  const src = rawSrc.startsWith("//") ? `https:${rawSrc}` : rawSrc;
+  const src = rawSrc ? (rawSrc.startsWith("//") ? `https:${rawSrc}` : rawSrc) : null;
+  const videoId = src ? extractYouTubeId(src) : null;
   const width = Dimensions.get("window").width - 30;
   const height = (width * 9) / 16;
-
-  const videoId = extractYouTubeId(src);
-  if (!videoId) return null;
 
   // Load the real YouTube IFrame Player API (iframe_api) and construct the
   // player through it instead of dropping a bare <iframe> in - a bare iframe
   // can silently fail with no way to surface why, whereas the JS API's
   // onError/onReady/onStateChange callbacks give the actual numeric error
-  // code YouTube considers this the real thing to check for embed problems,
-  // and it's what youtube.com's own embed helper generates. `baseUrl` on the
-  // WebView gives the page a real https://www.youtube.com origin (a raw
+  // code. `baseUrl` on the WebView gives the page a real origin (a raw
   // WebView `uri` load or file:// context has none, which the player
-  // validates against and refuses to play without).
-  const html = `<!DOCTYPE html>
+  // validates against and refuses to play without) - it has to match the
+  // player's own `host` below, not youtube.com: a working fix for this same
+  // error 152 in another embedded-WebView YouTube player (Flutter's
+  // youtube_player_flutter, see its PR #1086) was pairing
+  // baseUrl=youtube-nocookie.com with host=youtube-nocookie.com, i.e. the
+  // page and the player iframe it creates being same-origin.
+  // Memoized so the WebView's `source` object identity stays stable across
+  // re-renders of the surrounding post (RenderHTML re-invokes this renderer
+  // on every parent render) - otherwise a fresh {html, baseUrl} object each
+  // time made the WebView think its source changed and reload the whole
+  // player, which was showing up as duplicate boot/apiready log pairs.
+  const html = useMemo(
+    () => `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -142,7 +146,16 @@ const YouTubeIframeRenderer = ({ tnode }) => {
   }
 </script>
 </body>
-</html>`;
+</html>`,
+    [videoId],
+  );
+
+  const source = useMemo(
+    () => ({ html, baseUrl: "https://www.youtube-nocookie.com" }),
+    [html],
+  );
+
+  if (!rawSrc || !videoId) return null;
 
   return (
     <View
@@ -156,7 +169,7 @@ const YouTubeIframeRenderer = ({ tnode }) => {
       }}
     >
       <WebView
-        source={{ html, baseUrl: "https://www.youtube.com" }}
+        source={source}
         style={{ width, height }}
         javaScriptEnabled
         domStorageEnabled
