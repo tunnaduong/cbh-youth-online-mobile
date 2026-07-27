@@ -1,13 +1,16 @@
-import React, { useState } from "react";
-import { View, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as VideoThumbnails from "expo-video-thumbnails";
 import VideoPlayerModal from "./VideoPlayerModal";
 
-// A single reusable tile for a video attachment: a placeholder + play button
-// that opens the shared full-screen VideoPlayerModal on tap, with an optional
-// remove (trash) badge for picker/edit contexts. Used by the create-post
-// composer, edit-post form, and the post feed/detail card so there's one
-// video-attachment tile implementation instead of three.
+// A single reusable tile for a video attachment: a real first-frame
+// thumbnail (extracted via the native video decoder - no player is ever
+// mounted here, so there's no chance of it playing in the background) with
+// a play button that opens the shared full-screen VideoPlayerModal on tap,
+// plus an optional remove (trash) badge for picker/edit contexts. Used by
+// the create-post composer, edit-post form, and the post feed/detail card
+// so there's one video-attachment tile implementation instead of three.
 const VideoThumbnail = ({
   uri,
   width = 130,
@@ -17,6 +20,27 @@ const VideoThumbnail = ({
   style,
 }) => {
   const [previewVisible, setPreviewVisible] = useState(false);
+  const [thumbnailUri, setThumbnailUri] = useState(null);
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setThumbnailUri(null);
+    setThumbnailFailed(false);
+    if (!uri) return undefined;
+
+    VideoThumbnails.getThumbnailAsync(uri, { time: 0 })
+      .then((result) => {
+        if (!cancelled) setThumbnailUri(result.uri);
+      })
+      .catch(() => {
+        if (!cancelled) setThumbnailFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [uri]);
 
   return (
     <View style={[{ width, height, borderRadius }, styles.wrapper, style]}>
@@ -25,7 +49,17 @@ const VideoThumbnail = ({
         onPress={() => setPreviewVisible(true)}
         style={[styles.tile, { borderRadius }]}
       >
-        <Ionicons name="videocam" size={28} color="rgba(255,255,255,0.85)" />
+        {thumbnailUri ? (
+          <Image
+            source={{ uri: thumbnailUri }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : thumbnailFailed ? (
+          <Ionicons name="videocam" size={28} color="rgba(255,255,255,0.85)" />
+        ) : (
+          <ActivityIndicator size="small" color="rgba(255,255,255,0.85)" />
+        )}
         <View style={styles.playBadge}>
           <Ionicons name="play" size={18} color="#fff" style={{ marginLeft: 2 }} />
         </View>
@@ -35,11 +69,19 @@ const VideoThumbnail = ({
           <Ionicons name="trash" size={16} color="#fff" />
         </TouchableOpacity>
       )}
-      <VideoPlayerModal
-        visible={previewVisible}
-        uri={uri}
-        onClose={() => setPreviewVisible(false)}
-      />
+      {/* Only mount the modal (and the player it creates) once the user has
+          actually tapped to open it - useVideoPlayer's setup calls .play()
+          as soon as it's created, and Modal keeps its children mounted in
+          the tree even while visible={false}, so rendering this
+          unconditionally would start real playback in the background the
+          instant every tile in a list/feed appears. */}
+      {previewVisible && (
+        <VideoPlayerModal
+          visible={previewVisible}
+          uri={uri}
+          onClose={() => setPreviewVisible(false)}
+        />
+      )}
     </View>
   );
 };

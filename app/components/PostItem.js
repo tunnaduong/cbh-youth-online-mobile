@@ -60,8 +60,9 @@ const extractYouTubeId = (url) => {
 // "Dalvik/..." string) isn't a UA YouTube's embedded player recognizes as a
 // supported browser, and it refuses to play at all rather than degrading
 // gracefully, which is what actually surfaced as the numbered player error.
+// Pixel 9 Pro XL, Android 15 QPR1 stable (AP4A.241205.013).
 const MOBILE_USER_AGENT =
-  "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+  "Mozilla/5.0 (Linux; Android 15; Pixel 9 Pro XL Build/AP4A.241205.013) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36";
 
 // Numeric codes the YouTube IFrame Player API's onError event actually
 // documents - a bare <iframe> with no JS API attached can't report *any* of
@@ -73,14 +74,15 @@ const YOUTUBE_ERROR_MESSAGES = {
   100: "Video not found (removed or private)",
   101: "Video owner disabled embedded playback",
   150: "Video owner disabled embedded playback",
-  // Not in Google's official docs, but a very commonly reported real-world
-  // error from the current player script when running inside an embedded
-  // WebView (rather than a normal browser tab) - seen for otherwise-playable
-  // videos. Widely worked around by serving the player from the privacy-
-  // enhanced youtube-nocookie.com host instead (see the `host` player param
-  // below), which sidesteps whatever ad/tracking-cookie-dependent code path
-  // is throwing this.
-  152: "Player error (WebView-specific, see youtube-nocookie.com fix)",
+  // Not in Google's official docs. Since a YouTube API change on 2025-07-09,
+  // the embedded player strictly verifies the embedding page's identity via
+  // the HTTP Referer header of the request that loaded it - and WebViews
+  // (unlike a real browser tab) often don't send one at all, or send one
+  // that doesn't match, under their default referrer policy. That's what
+  // surfaces as this error. Fixed via the page-level
+  // <meta name="referrer" content="strict-origin-when-cross-origin"> tag
+  // below, which is YouTube's own recommended policy for embedding pages.
+  152: "Player error - referrer policy (see the <meta name=referrer> fix)",
 };
 
 const YouTubeIframeRenderer = ({ tnode }) => {
@@ -106,6 +108,7 @@ const YouTubeIframeRenderer = ({ tnode }) => {
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}#player{position:absolute;top:0;left:0;width:100%;height:100%;}</style>
 </head>
 <body>
