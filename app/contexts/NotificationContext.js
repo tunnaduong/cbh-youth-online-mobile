@@ -162,7 +162,8 @@ export const NotificationProvider = ({ children }) => {
     let target = null;
 
     if (type === 'chat_message' && conversationId) {
-      target = { screen: 'ConversationScreen', params: { conversationId } };
+      const messageId = data.message_id ?? data.messageId;
+      target = { screen: 'ConversationScreen', params: { conversationId, highlightMessageId: messageId } };
     } else if (type === 'story_reacted' && storyId) {
       target = { screen: 'MainScreens', params: { screen: 'Home', params: { openStoryId: storyId } } };
     } else if (type === 'story_replied' || type === 'message_reacted') {
