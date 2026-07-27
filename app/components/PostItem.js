@@ -50,6 +50,19 @@ const customHTMLElementModels = {
   }),
 };
 
+// Handles youtube.com/embed/<id>, youtube.com/watch?v=<id>, and youtu.be/<id>.
+const extractYouTubeId = (url) => {
+  const match = url.match(/(?:embed\/|[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+};
+
+// A real mobile browser's UA - the default RN WebView Android UA (a
+// "Dalvik/..." string) isn't a UA YouTube's embedded player recognizes as a
+// supported browser, and it refuses to play at all rather than degrading
+// gracefully, which is what actually surfaced as the numbered player error.
+const MOBILE_USER_AGENT =
+  "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+
 const YouTubeIframeRenderer = ({ tnode }) => {
   const rawSrc = tnode?.attributes?.src;
   if (!rawSrc) return null;
@@ -57,14 +70,19 @@ const YouTubeIframeRenderer = ({ tnode }) => {
   const width = Dimensions.get("window").width - 30;
   const height = (width * 9) / 16;
 
-  // Loading the bare youtube.com/embed/<id> URL directly as the WebView's
-  // `uri` source gives the YouTube iframe API no real embedding-page origin
-  // to validate against, which is what surfaces as player error 153
-  // ("invalid embed configuration") - it's fine on a real website because
-  // the browser page has an actual origin, but a raw WebView request has
-  // none. Wrapping the same src in a real (tiny) HTML document with a
-  // baseUrl gives the iframe that origin, resolving the check.
-  const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}</style></head><body><iframe src="${src}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></body></html>`;
+  const videoId = extractYouTubeId(src);
+  if (!videoId) return null;
+
+  // Two things the CMS's raw embed src was missing that YouTube's iframe
+  // player validates before it'll play at all:
+  // 1. An `origin` query param matching a real page origin - loading the
+  //    bare embed URL directly as the WebView's `uri` source (or an iframe
+  //    with no explicit origin) gives the player nothing to validate against.
+  // 2. A `baseUrl` on the WebView matching that same origin, so the iframe
+  //    is actually served from a page with that origin rather than a
+  //    file:// context.
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?playsinline=1&modestbranding=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com`;
+  const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}</style></head><body><iframe src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></body></html>`;
 
   return (
     <View
@@ -86,6 +104,7 @@ const YouTubeIframeRenderer = ({ tnode }) => {
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         originWhitelist={["*"]}
+        userAgent={MOBILE_USER_AGENT}
       />
     </View>
   );

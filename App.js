@@ -227,10 +227,20 @@ const App = () => {
 
   const navigateToDeepLinkTarget = (target) => {
     if (!target || !navigationRef.current) return;
-    const method = DEEP_LINK_TARGETS_NEEDING_FRESH_SCREEN.includes(target.screen)
-      ? "push"
-      : "navigate";
-    navigationRef.current[method](target.screen, target.params);
+    // The container ref only implements the base NavigationHelpers surface
+    // (navigate/goBack/reset/dispatch, no `.push`) - `.push` only exists on
+    // the `navigation` prop a stack screen receives, which is why calling
+    // navigationRef.current.push(...) threw "not a function". Dispatching a
+    // stack PUSH action directly (what StackActions.push() builds under the
+    // hood) is the container-ref equivalent, with no extra dependency needed.
+    if (DEEP_LINK_TARGETS_NEEDING_FRESH_SCREEN.includes(target.screen)) {
+      navigationRef.current.dispatch({
+        type: "PUSH",
+        payload: { name: target.screen, params: target.params },
+      });
+    } else {
+      navigationRef.current.navigate(target.screen, target.params);
+    }
   };
 
   const enqueueDeepLinkTarget = (target) => {

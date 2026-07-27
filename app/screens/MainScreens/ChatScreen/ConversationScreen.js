@@ -203,10 +203,8 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const BUTTON_SIZE = 47;
-  // Back/3-dot buttons are plain icon buttons (no label), so they read as
-  // oversized next to the center profile pill at the same BUTTON_SIZE - keep
-  // the pill's height but shrink just the two icon buttons.
-  const ICON_BUTTON_SIZE = 40;
+  // Back/3-dot buttons match the center profile pill's height.
+  const ICON_BUTTON_SIZE = BUTTON_SIZE;
   const HEADER_HEIGHT = BUTTON_SIZE + 14 + insets.top;
   const CENTER_MAX_WIDTH = Dimensions.get("window").width - ICON_BUTTON_SIZE * 2 - 32;
   // Reserve space for avatar + small gap inside the pill so text never pushes avatar out
