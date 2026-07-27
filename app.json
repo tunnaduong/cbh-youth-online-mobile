@@ -145,7 +145,8 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      "./plugins/withOnNewIntent.js"
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",
