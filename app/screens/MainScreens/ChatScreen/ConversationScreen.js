@@ -60,6 +60,8 @@ import {
   LiquidGlassView,
   useIOSGlass,
   AndroidGlassBackdrop,
+  LiquidGlassViewAndroid,
+  useAndroidGlass,
 } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 import {
@@ -2179,12 +2181,21 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
           offset={{ opened: 20 }}
         >
-          {/* No full-block glass panel here: CommentBar already renders its
-              own real glass pill (providerId="ConversationScreen") around
-              the input itself, and stacking a second, block-wide glass
-              sample behind it produced a visible double-refraction artifact
-              (a large blotchy discolored patch under the input). One glass
-              layer per element — the pill is the "real needed" one. */}
+          {/* Single glass layer for the whole floating bar: CommentBar's own
+              pill stays transparent (androidTransparentPill) so it doesn't
+              also sample the backdrop — two independent real-glass renders
+              of the same provider stacked on top of each other produced a
+              visible double-refraction artifact (a blotchy discolored
+              patch). */}
+          {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && (
+            <LiquidGlassViewAndroid
+              providerId="ConversationScreen"
+              interactive={false}
+              blurRadius={Platform.Version >= 33 ? 16 : 10}
+              tint={isDarkMode ? "rgba(0,0,0,0.35)" : "rgba(255,255,255,0.25)"}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
           <View
             style={{
               backgroundColor: "transparent",
@@ -2195,7 +2206,7 @@ const ConversationScreen = ({ navigation, route }) => {
           >
             <CommentBar
               ref={inputRef}
-              providerId="ConversationScreen"
+              androidTransparentPill
               placeholderText={t("chat.typeMessage")}
               onSubmit={handleSendMessage}
               onChangeText={(text) => {

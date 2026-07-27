@@ -48,12 +48,20 @@ const CommentBar = React.forwardRef(
       leftAccessory,
       nativeID,
       providerId,
+      // Android only: when the parent already renders its own single glass
+      // layer behind this whole bar (e.g. ConversationScreen's floating
+      // input block), the pill itself should stay fully transparent instead
+      // of also sampling the backdrop — two independent real-glass renders
+      // of the same provider stacked on top of each other produced a
+      // visible double-refraction artifact (a blotchy discolored patch).
+      androidTransparentPill = false,
     },
     ref
   ) => {
     const { theme, isDarkMode } = useTheme();
     const { t } = useTranslation();
-    const useRealAndroidGlass = isAndroid && useAndroidGlass && LiquidGlassViewAndroid && !!providerId;
+    const useRealAndroidGlass =
+      isAndroid && useAndroidGlass && LiquidGlassViewAndroid && !!providerId && !androidTransparentPill;
 
     return (
       <RootView
@@ -109,14 +117,14 @@ const CommentBar = React.forwardRef(
             {
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: isIOS || useRealAndroidGlass
+              backgroundColor: isIOS || useRealAndroidGlass || (isAndroid && androidTransparentPill)
                 ? "transparent"
                 : isDarkMode
                 ? "rgba(18, 18, 18, 0.85)"
                 : "rgba(255, 255, 255, 0.75)",
               borderRadius: 30, // floating pill shape
               padding: 4,
-              borderWidth: StyleSheet.hairlineWidth,
+              borderWidth: isAndroid && androidTransparentPill ? 0 : StyleSheet.hairlineWidth,
               borderColor: theme.border,
               overflow: "hidden",
               shadowColor: "#000",
