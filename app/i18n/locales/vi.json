@@ -415,9 +415,6 @@
     "copyright": "© Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
   },
   "chatConversation": {
-    "pasteNothingTitle": "Không có gì để dán",
-    "pasteNothingBody": "Chỉ hỗ trợ dán ảnh từ clipboard.",
-    "pasteError": "Không thể dán từ clipboard.",
     "today": "Hôm nay",
     "yesterday": "Hôm qua",
     "blockTitle": "Chặn người dùng?",

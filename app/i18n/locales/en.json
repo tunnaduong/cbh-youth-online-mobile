@@ -426,9 +426,6 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Built by students, for students."
   },
   "chatConversation": {
-    "pasteNothingTitle": "Nothing to paste",
-    "pasteNothingBody": "Only pasting images from the clipboard is supported.",
-    "pasteError": "Could not paste from clipboard.",
     "today": "Today",
     "yesterday": "Yesterday",
     "blockTitle": "Block user?",

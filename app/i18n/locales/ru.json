@@ -436,9 +436,6 @@
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Разработано учениками для учеников."
   },
   "chatConversation": {
-    "pasteNothingTitle": "Нечего вставить",
-    "pasteNothingBody": "Поддерживается вставка только изображений из буфера обмена.",
-    "pasteError": "Не удалось вставить из буфера обмена.",
     "today": "Сегодня",
     "yesterday": "Вчера",
     "blockTitle": "Заблокировать пользователя?",

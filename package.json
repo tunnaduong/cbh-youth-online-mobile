@@ -35,7 +35,6 @@
     "expo-auth-session": "~55.0.17",
     "expo-build-properties": "~55.0.16",
     "expo-camera": "~55.0.21",
-    "expo-clipboard": "~55.0.15",
     "expo-constants": "~55.0.17",
     "expo-dev-client": "~55.0.37",
     "expo-document-picker": "~55.0.15",
