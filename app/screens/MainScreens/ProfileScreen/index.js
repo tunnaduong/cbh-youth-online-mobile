@@ -27,6 +27,7 @@ import {
   unfollowUser,
   blockUser,
   reportUser,
+  getConversations,
 } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -43,6 +44,7 @@ import { useTranslation } from "react-i18next";
 const ProfileScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
+  const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
   const { username, profileName, blockUser: blockUserInContext } = React.useContext(AuthContext);
   const userId = route?.params?.username; // Default to current user if no ID passed
@@ -173,6 +175,55 @@ const ProfileScreen = ({ route, navigation }) => {
     } catch (error) {
       // console.error("Error toggling follow state:", error);
     }
+  };
+
+  // The Message button always used to push a brand-new conversation
+  // (isNewConversation: true), even when a conversation with this user
+  // already existed - ConversationScreen then skips loading any history for
+  // isNewConversation screens, so it looked like the chat was empty/broken
+  // until the user backed out and reopened the same conversation from the
+  // Chat tab, where the existing history loaded normally. Look up any
+  // existing private conversation with this user first and open that
+  // instead of always starting a new one.
+  const handleMessagePress = async () => {
+    if (messagePressLoading) return;
+    setMessagePressLoading(true);
+    try {
+      const response = await getConversations();
+      const existingConversation = (response?.data || []).find(
+        (conv) =>
+          conv.type === "private" &&
+          conv.participants?.some(
+            (participant) => participant.id === userData?.id
+          )
+      );
+
+      if (existingConversation) {
+        navigation.push("ConversationScreen", {
+          conversation: existingConversation,
+          conversationId: existingConversation.id,
+        });
+        return;
+      }
+    } catch (error) {
+      console.log(
+        "[ProfileScreen] Error checking for existing conversation:",
+        error?.response?.data || error?.message
+      );
+      // Fall through to starting a new conversation below.
+    } finally {
+      setMessagePressLoading(false);
+    }
+
+    navigation.push("ConversationScreen", {
+      isNewConversation: true,
+      selectedUser: {
+        id: userData?.id,
+        profile_name: userData?.profile?.profile_name,
+        avatar_url: userData?.profile?.profile_picture,
+        username: userData?.username,
+      },
+    });
   };
 
   useFocusEffect(
@@ -648,35 +699,24 @@ const ProfileScreen = ({ route, navigation }) => {
                 )}
 
                 <TouchableOpacity
-                  onPress={() =>
-                    // Use push (not navigate) so this always mounts a fresh
-                    // ConversationScreen instance. If a ConversationScreen for a
-                    // different chat is already in the stack (e.g. this profile
-                    // was opened from within one), navigate() would pop back to
-                    // that existing instance and merge these params into its
-                    // stale conversation/conversationId params instead of
-                    // starting a new conversation, leaving the screen looking
-                    // empty/broken.
-                    navigation.push("ConversationScreen", {
-                      isNewConversation: true,
-                      selectedUser: {
-                        id: userData?.id,
-                        profile_name: userData?.profile?.profile_name,
-                        avatar_url: userData?.profile?.profile_picture,
-                        username: userData?.username,
-                      },
-                    })
-                  }
+                  onPress={handleMessagePress}
+                  disabled={messagePressLoading}
                   style={{ backgroundColor: isDarkMode ? "#374151" : "#f3f4f6", height: 44, borderRadius: 999, justifyContent: "center", alignItems: "center", flexDirection: "row", flex: 1 }}
                 >
-                  <Ionicons
-                    name="chatbubble-ellipses-outline"
-                    size={20}
-                    color={theme.text}
-                  />
-                  <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: theme.text }}>
-                    {t('follow.message')}
-                  </Text>
+                  {messagePressLoading ? (
+                    <ActivityIndicator size="small" color={theme.text} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="chatbubble-ellipses-outline"
+                        size={20}
+                        color={theme.text}
+                      />
+                      <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: theme.text }}>
+                        {t('follow.message')}
+                      </Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
