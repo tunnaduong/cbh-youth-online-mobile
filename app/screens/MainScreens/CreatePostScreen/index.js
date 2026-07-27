@@ -28,12 +28,22 @@ import ProgressHUD from "../../../components/ProgressHUD";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
+import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import { LinearGradient } from "expo-linear-gradient";
 import LiquidButton from "../../../components/LiquidButton";
+import {
+  getVideoExtension,
+  getVideoMimeType,
+  validateVideoAsset,
+} from "../../../utils/videoUpload";
+
+// Large video uploads (up to 100MB) need more headroom than the axios
+// instance's default 10s timeout.
+const VIDEO_UPLOAD_TIMEOUT = 300000;
 
 const CreatePostScreen = ({ navigation }) => {
   const [postContent, setPostContent] = useState("");
@@ -85,6 +95,9 @@ const CreatePostScreen = ({ navigation }) => {
   const [selectedImages, setSelectedImages] = useState([]);
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState([]);
+  const [selectedVideos, setSelectedVideos] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const [uploadProgressText, setUploadProgressText] = useState(null);
 
   useEffect(() => {
     if (isAnonymous && viewSelected.value === "followers") {
@@ -192,6 +205,77 @@ const CreatePostScreen = ({ navigation }) => {
     }
   };
 
+  const pickVideo = async () => {
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["videos"],
+        allowsMultipleSelection: true,
+      });
+
+      if (result.canceled || !result.assets) return;
+
+      const accepted = [];
+      let hadTypeRejection = false;
+      let hadSizeRejection = false;
+
+      for (const asset of result.assets) {
+        const validation = await validateVideoAsset(asset);
+        if (!validation.ok) {
+          if (validation.reason === "type") hadTypeRejection = true;
+          if (validation.reason === "size") hadSizeRejection = true;
+          continue;
+        }
+        accepted.push({
+          uri: asset.uri,
+          fileName: asset.fileName || `video_${Date.now()}.${validation.extension}`,
+          mimeType: asset.mimeType || getVideoMimeType(validation.extension),
+          fileSize: validation.size,
+        });
+      }
+
+      if (hadTypeRejection) {
+        Toast.show({
+          type: "error",
+          text1: t("createPost.pickVideoError"),
+          text2: t("createPost.videoTypeUnsupported"),
+          autoHide: true,
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+      }
+      if (hadSizeRejection) {
+        Toast.show({
+          type: "error",
+          text1: t("createPost.pickVideoError"),
+          text2: t("createPost.videoTooLarge"),
+          autoHide: true,
+          visibilityTime: 4000,
+          topOffset: 60,
+        });
+      }
+
+      if (accepted.length > 0) {
+        setSelectedVideos((prev) => [...prev, ...accepted]);
+      }
+    } catch (error) {
+      console.log("Error picking video:", error);
+      Toast.show({
+        type: "error",
+        text1: t("createPost.pickVideoError"),
+        text2: t("createPost.retry"),
+        autoHide: true,
+        visibilityTime: 3000,
+        topOffset: 60,
+      });
+    }
+  };
+
+  const removeVideo = (indexToRemove) => {
+    setSelectedVideos((prev) =>
+      prev.filter((_, index) => index !== indexToRemove),
+    );
+  };
+
   const removeImage = (indexToRemove) => {
     setSelectedImages((prev) =>
       prev.filter((_, index) => index !== indexToRemove),
@@ -263,11 +347,54 @@ const CreatePostScreen = ({ navigation }) => {
         }
       }
 
+      let videoIds = [];
+      if (selectedVideos.length > 0) {
+        // Upload all videos - same two-step (upload -> cdn id) pattern as
+        // images/documents above, just with a longer timeout and progress
+        // tracking given videos can be up to 100MB.
+        for (let i = 0; i < selectedVideos.length; i++) {
+          const video = selectedVideos[i];
+          const formData = new FormData();
+          const extension = getVideoExtension(video.fileName || video.uri) || "mp4";
+
+          formData.append("uid", userInfo.id);
+          formData.append("file", {
+            uri: video.uri,
+            name: video.fileName || `video.${extension}`,
+            type: video.mimeType || getVideoMimeType(extension),
+          });
+
+          setUploadProgressText(
+            t("createPost.uploadingVideo", {
+              current: i + 1,
+              total: selectedVideos.length,
+            }),
+          );
+          setUploadProgress(0);
+
+          const uploadResponse = await uploadFile(formData, {
+            timeout: VIDEO_UPLOAD_TIMEOUT,
+            onUploadProgress: (progressEvent) => {
+              if (!progressEvent.total) return;
+              const fileProgress = progressEvent.loaded / progressEvent.total;
+              setUploadProgress(
+                ((i + fileProgress) / selectedVideos.length) * 100,
+              );
+            },
+          });
+          videoIds.push(uploadResponse.data.id);
+        }
+      }
+
+      setUploadProgress(null);
+      setUploadProgressText(null);
+
       const response = await createPost({
         title,
         description: postContent,
         cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
         cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
+        cdn_video_id: videoIds.length > 0 ? videoIds.join(",") : null,
         subforum_id: selected?.value ?? null,
         visibility: 0,
         privacy: viewSelected.value,
@@ -325,12 +452,18 @@ const CreatePostScreen = ({ navigation }) => {
       });
     } finally {
       setLoading(false);
+      setUploadProgress(null);
+      setUploadProgressText(null);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      <ProgressHUD loadText={t("createPost.posting")} visible={loading} />
+      <ProgressHUD
+        loadText={uploadProgressText || t("createPost.posting")}
+        visible={loading}
+        progress={uploadProgress}
+      />
 
       <Animated.View
         style={[
@@ -669,7 +802,10 @@ const CreatePostScreen = ({ navigation }) => {
             </View>
           )}
 
-          {selectedImages.length > 0 ? (
+          {selectedImages.length > 0 || selectedVideos.length > 0 ? (
+            // Photos and videos share one media row/section (rather than a
+            // separate video section) so attaching either feels like the
+            // same action.
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -692,10 +828,26 @@ const CreatePostScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
               ))}
+              {selectedVideos.map((video, index) => (
+                <VideoThumbnail
+                  key={`video-${index}-${video.uri}`}
+                  uri={video.uri}
+                  width={130}
+                  height={130}
+                  style={styles.mediaThumb}
+                  onRemove={() => removeVideo(index)}
+                />
+              ))}
               <TouchableOpacity onPress={pickImage} style={styles.mediaAddTile}>
-                <Ionicons name="add-outline" size={34} color={theme.primary} />
+                <Ionicons name="image-outline" size={30} color={theme.primary} />
                 <Text style={[styles.mediaAddText, { color: theme.primary }]}>
                   {t("createPost.addImage")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={pickVideo} style={styles.mediaAddTile}>
+                <Ionicons name="videocam-outline" size={30} color={theme.primary} />
+                <Text style={[styles.mediaAddText, { color: theme.primary }]}>
+                  {t("createPost.addVideo")}
                 </Text>
               </TouchableOpacity>
             </ScrollView>
@@ -723,6 +875,30 @@ const CreatePostScreen = ({ navigation }) => {
                   style={[styles.mediaPickerText, { color: theme.primary }]}
                 >
                   {t("createPost.addImage")}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={pickVideo}
+                style={[
+                  styles.mediaPickerTile,
+                  {
+                    backgroundColor: isDarkMode
+                      ? theme.surface
+                      : "rgba(255,255,255,0.98)",
+                    borderWidth: 1,
+                    borderColor: isDarkMode ? theme.border : "#D1D5DB",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="videocam-outline"
+                  size={28}
+                  color={theme.primary}
+                />
+                <Text
+                  style={[styles.mediaPickerText, { color: theme.primary }]}
+                >
+                  {t("createPost.addVideo")}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity

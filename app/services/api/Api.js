@@ -157,8 +157,8 @@ export const forgotPassword = (params) => {
   return Api.postRequest("/v1.0/password/reset", params);
 };
 
-export const uploadFile = (formData) => {
-  return Api.postFormDataRequest("/v1.0/upload", formData);
+export const uploadFile = (formData, config = {}) => {
+  return Api.postFormDataRequest("/v1.0/upload", formData, config);
 };
 
 // Study materials / marketplace
