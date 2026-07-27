@@ -294,6 +294,11 @@ const App = () => {
   // Navigate (or queue for later) when a push notification is tapped
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('NAVIGATE_FROM_NOTIFICATION', (target) => {
+      console.log('[Push] App.js received NAVIGATE_FROM_NOTIFICATION', {
+        target,
+        isLoggedIn,
+        hasNavigationRef: !!navigationRef.current,
+      });
       if (!target) return;
       if (isLoggedIn && navigationRef.current) {
         navigateToDeepLinkTarget(target);

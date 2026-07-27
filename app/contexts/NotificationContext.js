@@ -151,6 +151,10 @@ export const NotificationProvider = ({ children }) => {
 
   const handleNotificationTapped = (response) => {
     const data = response?.notification?.request?.content?.data;
+    // Left in deliberately (not gated on __DEV__): this is the only way to
+    // see the actual payload a real push notification arrived with, since
+    // it comes from the backend, not from anything reproducible locally.
+    console.log('[Push] Notification tapped, raw data:', JSON.stringify(data));
     if (!data) return;
 
     const type = data.type;
@@ -158,25 +162,31 @@ export const NotificationProvider = ({ children }) => {
     const postId = data.post_id ?? data.postId ?? topicId;
     const conversationId = data.conversation_id ?? data.conversationId;
     const storyId = data.story_id ?? data.storyId;
+    const messageId = data.message_id ?? data.messageId;
 
     let target = null;
 
-    if (type === 'chat_message' && conversationId) {
-      const messageId = data.message_id ?? data.messageId;
+    // Route by the presence of conversation_id rather than requiring an
+    // exact `type` string match first - a chat-message push not matching
+    // whatever type string was assumed here (e.g. 'chat_message') meant this
+    // branch was silently skipped entirely and nothing happened at all, in
+    // every app state (foreground, background, killed) alike, since the
+    // fallback branches below don't handle conversations either.
+    if (conversationId) {
       target = { screen: 'ConversationScreen', params: { conversationId, highlightMessageId: messageId } };
     } else if (type === 'story_reacted' && storyId) {
       target = { screen: 'MainScreens', params: { screen: 'Home', params: { openStoryId: storyId } } };
     } else if (type === 'story_replied' || type === 'message_reacted') {
-      const messageId = data.message_id ?? data.messageId;
-      target = conversationId
-        ? { screen: 'ConversationScreen', params: { conversationId, highlightMessageId: messageId } }
-        : { screen: 'MainScreens', params: { screen: 'Chat' } };
+      // No conversation_id on this payload - best we can do is the Chat tab.
+      target = { screen: 'MainScreens', params: { screen: 'Chat' } };
     } else if (type === 'payment_received' || data.url === '/wallet') {
       target = { screen: 'PointWalletScreen', params: undefined };
     } else if (postId) {
       const id = parseInt(postId, 10);
       target = { screen: 'PostScreen', params: { postId: isNaN(id) ? postId : id, item: null } };
     }
+
+    console.log('[Push] Resolved navigation target:', target);
 
     if (target) {
       DeviceEventEmitter.emit('NAVIGATE_FROM_NOTIFICATION', target);
