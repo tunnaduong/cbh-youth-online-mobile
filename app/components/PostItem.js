@@ -9,6 +9,7 @@ import {
   Dimensions,
   Linking,
   ScrollView,
+  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
@@ -164,7 +165,16 @@ const YouTubeIframeRenderer = ({ tnode }) => {
         height,
         marginVertical: 8,
         borderRadius: 8,
-        overflow: "hidden",
+        // Android: overflow:hidden clips via a software canvas path, which
+        // hardware-decoded video content (a SurfaceTexture the WebView's
+        // Chromium compositor draws outside the normal view draw() call)
+        // isn't part of - it doesn't get captured into that clip, and the
+        // surface ends up not compositing at all: black screen, audio and
+        // controls still work fine since those aren't part of view
+        // rendering. Only clipping here on iOS (WKWebView doesn't have this
+        // problem) trades rounded corners for the video actually being
+        // visible on Android.
+        overflow: Platform.OS === "ios" ? "hidden" : "visible",
         backgroundColor: "#000",
       }}
       // This whole embed sits inside the post content's collapse/expand
@@ -190,14 +200,6 @@ const YouTubeIframeRenderer = ({ tnode }) => {
         thirdPartyCookiesEnabled
         sharedCookiesEnabled
         userAgent={MOBILE_USER_AGENT}
-        // Android's default hardware-accelerated video surface (a
-        // SurfaceView the WebView punches through the normal view stack for)
-        // doesn't composite correctly once actual video playback starts
-        // inside a parent with rounded corners/overflow:hidden clipping like
-        // this embed's wrapper - the content goes invisible right when
-        // playback would otherwise start. Forcing a software layer avoids
-        // that surface entirely.
-        androidLayerType="software"
         onMessage={(event) => {
           let parsed;
           try {
