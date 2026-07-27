@@ -63,6 +63,18 @@ const extractYouTubeId = (url) => {
 const MOBILE_USER_AGENT =
   "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
 
+// Numeric codes the YouTube IFrame Player API's onError event actually
+// documents - a bare <iframe> with no JS API attached can't report *any* of
+// this, it just silently fails, which is why the previous version of this
+// component had no way to confirm what was actually going wrong.
+const YOUTUBE_ERROR_MESSAGES = {
+  2: "Invalid video ID/parameter",
+  5: "HTML5 player error",
+  100: "Video not found (removed or private)",
+  101: "Video owner disabled embedded playback",
+  150: "Video owner disabled embedded playback",
+};
+
 const YouTubeIframeRenderer = ({ tnode }) => {
   const rawSrc = tnode?.attributes?.src;
   if (!rawSrc) return null;
@@ -73,16 +85,52 @@ const YouTubeIframeRenderer = ({ tnode }) => {
   const videoId = extractYouTubeId(src);
   if (!videoId) return null;
 
-  // Two things the CMS's raw embed src was missing that YouTube's iframe
-  // player validates before it'll play at all:
-  // 1. An `origin` query param matching a real page origin - loading the
-  //    bare embed URL directly as the WebView's `uri` source (or an iframe
-  //    with no explicit origin) gives the player nothing to validate against.
-  // 2. A `baseUrl` on the WebView matching that same origin, so the iframe
-  //    is actually served from a page with that origin rather than a
-  //    file:// context.
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?playsinline=1&modestbranding=1&rel=0&origin=https%3A%2F%2Fwww.youtube.com`;
-  const html = `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}</style></head><body><iframe src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></body></html>`;
+  // Load the real YouTube IFrame Player API (iframe_api) and construct the
+  // player through it instead of dropping a bare <iframe> in - a bare iframe
+  // can silently fail with no way to surface why, whereas the JS API's
+  // onError/onReady/onStateChange callbacks give the actual numeric error
+  // code YouTube considers this the real thing to check for embed problems,
+  // and it's what youtube.com's own embed helper generates. `baseUrl` on the
+  // WebView gives the page a real https://www.youtube.com origin (a raw
+  // WebView `uri` load or file:// context has none, which the player
+  // validates against and refuses to play without).
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}#player{position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+<body>
+<div id="player"></div>
+<script>
+  function post(type, data) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: type, data: data || {} }));
+    }
+  }
+  window.onerror = function (message, source, lineno, colno) {
+    post('jserror', { message: message, source: source, lineno: lineno, colno: colno });
+  };
+  post('boot', {});
+  var tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  function onYouTubeIframeAPIReady() {
+    post('apiready', {});
+    new YT.Player('player', {
+      videoId: '${videoId}',
+      playerVars: { playsinline: 1, modestbranding: 1, rel: 0 },
+      events: {
+        onReady: function () { post('ready', {}); },
+        onError: function (e) { post('error', { code: e.data }); },
+        onStateChange: function (e) { post('statechange', { state: e.data }); }
+      }
+    });
+  }
+</script>
+</body>
+</html>`;
 
   return (
     <View
@@ -104,7 +152,33 @@ const YouTubeIframeRenderer = ({ tnode }) => {
         allowsInlineMediaPlayback
         mediaPlaybackRequiresUserAction={false}
         originWhitelist={["*"]}
+        mixedContentMode="always"
         userAgent={MOBILE_USER_AGENT}
+        onMessage={(event) => {
+          let parsed;
+          try {
+            parsed = JSON.parse(event.nativeEvent.data);
+          } catch (e) {
+            console.log("[YouTubeEmbed] raw message", event.nativeEvent.data);
+            return;
+          }
+          if (parsed.type === "error") {
+            console.log(
+              `[YouTubeEmbed] player error ${parsed.data.code}: ${
+                YOUTUBE_ERROR_MESSAGES[parsed.data.code] || "unknown error code"
+              }`,
+              { videoId, src },
+            );
+          } else {
+            console.log(`[YouTubeEmbed] ${parsed.type}`, parsed.data, { videoId });
+          }
+        }}
+        onError={(syntheticEvent) => {
+          console.log("[YouTubeEmbed] WebView onError", syntheticEvent.nativeEvent);
+        }}
+        onHttpError={(syntheticEvent) => {
+          console.log("[YouTubeEmbed] WebView onHttpError", syntheticEvent.nativeEvent);
+        }}
       />
     </View>
   );
