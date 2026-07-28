@@ -472,7 +472,11 @@
     "copied": "Copied",
     "isTyping": "is typing...",
     "typing": "Typing...",
-    "storyNotAvailable": "This story is no longer available."
+    "storyNotAvailable": "This story is no longer available.",
+    "recall": "Unsend",
+    "recalled": "This message was unsent",
+    "recallTitle": "Unsend message",
+    "recallConfirm": "This message will be unsent for everyone."
   },
   "blockedUsers": {
     "title": "Blocked users",

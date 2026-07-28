@@ -461,7 +461,11 @@
     "copied": "Đã sao chép",
     "isTyping": "đang nhập...",
     "typing": "Đang nhập...",
-    "storyNotAvailable": "Không tìm thấy tin này nữa."
+    "storyNotAvailable": "Không tìm thấy tin này nữa.",
+    "recall": "Thu hồi",
+    "recalled": "Tin nhắn đã bị thu hồi",
+    "recallTitle": "Thu hồi tin nhắn",
+    "recallConfirm": "Tin nhắn sẽ bị thu hồi với tất cả mọi người."
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",

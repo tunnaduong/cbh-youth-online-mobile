@@ -37,6 +37,7 @@ const MessageReactionPicker = ({
   onRemove,
   onReply,
   onCopy,
+  onRecall,
   onClose,
 }) => {
   const { theme, isDarkMode } = useTheme();
@@ -131,6 +132,18 @@ const MessageReactionPicker = ({
                 <Ionicons name="arrow-undo-outline" size={18} color={theme.text} />
                 <Text style={[styles.replyText, { color: theme.text }]}>
                   {t("chatConversation.reply", "Trả lời")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onRecall && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onRecall}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="arrow-undo-circle-outline" size={18} color="#ef4444" />
+                <Text style={[styles.replyText, { color: "#ef4444" }]}>
+                  {t("chatConversation.recall", "Thu hồi")}
                 </Text>
               </TouchableOpacity>
             )}

@@ -33,6 +33,7 @@ import {
   reportUser,
   reactToMessage,
   removeMessageReaction,
+  recallMessage,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
@@ -325,6 +326,7 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageRead,
     onMessageDeleted,
     onMessageReacted,
+    onMessageRecalled,
     onTyping,
     sendTyping,
   } = useChatSocket();
@@ -679,11 +681,23 @@ const ConversationScreen = ({ navigation, route }) => {
       if (!data?.message_id) return;
       applyReactionUpdate(data.message_id, data.reactions);
     };
+    const handleRecalled = (data) => {
+      if (!data?.message_id) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === data.message_id
+            ? { ...m, is_recalled: true, content: null, file_url: null, metadata: null }
+            : m
+        )
+      );
+    };
+
     const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
     const unsubscribeRead = onMessageRead(activeId, refresh);
     const unsubscribeDeleted = onMessageDeleted(activeId, refresh);
     const unsubscribeTyping = onTyping(activeId, handleTyping);
     const unsubscribeReacted = onMessageReacted(activeId, handleReacted);
+    const unsubscribeRecalled = onMessageRecalled(activeId, handleRecalled);
 
     return () => {
       unsubscribeSent();
@@ -691,6 +705,7 @@ const ConversationScreen = ({ navigation, route }) => {
       unsubscribeDeleted();
       unsubscribeTyping();
       unsubscribeReacted();
+      unsubscribeRecalled();
       clearTimeout(typingTimeoutRef.current);
       setTypingUser(null);
     };
@@ -702,6 +717,7 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageRead,
     onMessageDeleted,
     onMessageReacted,
+    onMessageRecalled,
     onTyping,
   ]);
 
@@ -1568,6 +1584,43 @@ const ConversationScreen = ({ navigation, route }) => {
     Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
   };
 
+  const handleRecallMessage = () => {
+    const item = reactionPicker.message;
+    closeReactionPicker();
+    if (!item) return;
+
+    Alert.alert(
+      t("chatConversation.recallTitle", "Thu hồi tin nhắn"),
+      t("chatConversation.recallConfirm", "Tin nhắn sẽ bị thu hồi với tất cả mọi người."),
+      [
+        { text: t("settings.cancel", "Hủy"), style: "cancel" },
+        {
+          text: t("chatConversation.recall", "Thu hồi"),
+          style: "destructive",
+          onPress: async () => {
+            // Optimistic update
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === item.id
+                  ? { ...m, is_recalled: true, content: null, file_url: null, metadata: null }
+                  : m
+              )
+            );
+            try {
+              await recallMessage(item.id);
+            } catch (e) {
+              // Revert on error
+              setMessages((prev) =>
+                prev.map((m) => (m.id === item.id ? item : m))
+              );
+              Toast.show({ type: "error", text1: t("common.error"), text2: e?.message });
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleSelectReaction = async (type) => {
     const message = reactionPicker.message;
     closeReactionPicker();
@@ -2011,9 +2064,10 @@ const ConversationScreen = ({ navigation, route }) => {
                         ],
                 !item.is_myself && !isLastInGroup && { marginLeft: 40 },
               ]}
-              onLongPress={(evt) => openReactionPicker(item, evt)}
+              onLongPress={item.is_recalled ? undefined : (evt) => openReactionPicker(item, evt)}
               delayLongPress={350}
               onPress={
+                item.is_recalled ? undefined :
                 isImageMessage && resolvedFileUrl
                   ? () => openImageViewer(resolvedFileUrl)
                   : isVideoMessage && resolvedFileUrl
@@ -2023,14 +2077,22 @@ const ConversationScreen = ({ navigation, route }) => {
                       : undefined
               }
             >
-              {item.reply_to && (
+              {item.is_recalled ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, opacity: 0.55 }}>
+                  <Ionicons name="arrow-undo-outline" size={14} color={item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555")} />
+                  <Text style={{ fontStyle: "italic", color: item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555"), fontSize: 14 }}>
+                    {t("chatConversation.recalled", "Tin nhắn đã bị thu hồi")}
+                  </Text>
+                </View>
+              ) : null}
+              {item.reply_to && !item.is_recalled && (
                 <ReplyPreviewBubble
                   item={item}
                   currentUsername={username}
                   onPress={() => handleJumpToRepliedMessage(item.reply_to.id)}
                 />
               )}
-              {isImageMessage && item.file_url ? (
+              {!item.is_recalled && isImageMessage && item.file_url ? (
                 <>
                   {console.log("[ChatMedia] rendering image", {
                     id: item.id,
@@ -2075,7 +2137,7 @@ const ConversationScreen = ({ navigation, route }) => {
                     </View>
                   )}
                 </>
-              ) : isVideoMessage ? (
+              ) : !item.is_recalled && isVideoMessage ? (
                 <>
                   {console.log("[ChatMedia] rendering video", {
                     id: item.id,
@@ -2109,7 +2171,7 @@ const ConversationScreen = ({ navigation, route }) => {
                     </View>
                   )}
                 </>
-              ) : isFileMessage ? (
+              ) : !item.is_recalled && isFileMessage ? (
                 <View style={styles.fileMessageContent}>
                   <View style={styles.fileIconWrapper}>
                     {downloadingFileId === item.id ? (
@@ -2148,7 +2210,7 @@ const ConversationScreen = ({ navigation, route }) => {
                     </Text>
                   </View>
                 </View>
-              ) : (
+              ) : !item.is_recalled ? (
                 <Text
                   style={[
                     styles.messageText,
@@ -2319,6 +2381,7 @@ const ConversationScreen = ({ navigation, route }) => {
         onRemove={handleRemoveReaction}
         onCopy={
           reactionPicker.message?.content &&
+          !reactionPicker.message?.is_recalled &&
           reactionPicker.message?.type !== "image" &&
           reactionPicker.message?.type !== "video" &&
           reactionPicker.message?.type !== "file" &&
@@ -2328,7 +2391,12 @@ const ConversationScreen = ({ navigation, route }) => {
             ? handleCopyMessage
             : undefined
         }
-        onReply={handleReplyToMessage}
+        onReply={reactionPicker.message?.is_recalled ? undefined : handleReplyToMessage}
+        onRecall={
+          reactionPicker.message?.is_myself && !reactionPicker.message?.is_recalled
+            ? handleRecallMessage
+            : undefined
+        }
         onClose={closeReactionPicker}
       />
 
