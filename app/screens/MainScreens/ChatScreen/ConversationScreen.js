@@ -273,6 +273,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // This mirrors the other screens: the back button stays visible, while the
   // profile/title area fades in only after scrolling.
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const scrollContentHeightRef = useRef(0);
+  const scrollViewHeightRef = useRef(0);
 
   const headerBgOpacity = scrollY.interpolate({
     inputRange: [0, 60],
@@ -709,6 +712,8 @@ const ConversationScreen = ({ navigation, route }) => {
       loadingMoreRef.current = true;
       fetchMessages(false);
     }
+    const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
+    setShowScrollButton(distanceFromBottom > 150);
   };
 
   const pickImage = async () => {
@@ -2229,7 +2234,13 @@ const ConversationScreen = ({ navigation, route }) => {
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
-          onContentSizeChange={handleMessagesContentSizeChange}
+          onContentSizeChange={(w, h) => {
+            scrollContentHeightRef.current = h;
+            handleMessagesContentSizeChange(w, h);
+          }}
+          onLayout={(e) => {
+            scrollViewHeightRef.current = e.nativeEvent.layout.height;
+          }}
         >
           {messages.map((value, index) => (
             <View
@@ -2275,6 +2286,33 @@ const ConversationScreen = ({ navigation, route }) => {
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
         </AndroidGlassBackdrop>
+
+        {/* Scroll-to-bottom button */}
+        {showScrollButton && (
+          <TouchableOpacity
+            onPress={scrollToLatestMessageAnimated}
+            style={{
+              position: "absolute",
+              right: 16,
+              bottom: 80,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
+              alignItems: "center",
+              justifyContent: "center",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 5,
+              borderWidth: 1,
+              borderColor: isDarkMode ? "#333" : "#e0e0e0",
+            }}
+          >
+            <Ionicons name="chevron-down" size={22} color={isDarkMode ? "#fff" : "#333"} />
+          </TouchableOpacity>
+        )}
 
         {/* Input Bar - positioned above messages */}
         <KeyboardStickyView
