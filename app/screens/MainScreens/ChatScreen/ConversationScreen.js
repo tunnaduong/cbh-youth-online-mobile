@@ -1562,17 +1562,7 @@ const ConversationScreen = ({ navigation, route }) => {
     closeReactionPicker();
     if (!item) return;
 
-    const isImage = item.type === "image" || item.content_type === "image";
-    const isVideo = item.type === "video" || item.content_type === "video";
-    const isFile  = item.type === "file"  || item.content_type === "file";
-
-    let textToCopy = "";
-    if (isImage || isVideo || isFile) {
-      textToCopy = resolveMediaUrl(item.file_url) || "";
-    } else {
-      textToCopy = item.content || "";
-    }
-
+    const textToCopy = item.content || "";
     if (!textToCopy) return;
     Clipboard.setString(textToCopy);
     Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
@@ -2327,7 +2317,17 @@ const ConversationScreen = ({ navigation, route }) => {
         currentReaction={reactionPicker.message?.reactions?.my_reaction}
         onSelect={handleSelectReaction}
         onRemove={handleRemoveReaction}
-        onCopy={handleCopyMessage}
+        onCopy={
+          reactionPicker.message?.content &&
+          reactionPicker.message?.type !== "image" &&
+          reactionPicker.message?.type !== "video" &&
+          reactionPicker.message?.type !== "file" &&
+          reactionPicker.message?.content_type !== "image" &&
+          reactionPicker.message?.content_type !== "video" &&
+          reactionPicker.message?.content_type !== "file"
+            ? handleCopyMessage
+            : undefined
+        }
         onReply={handleReplyToMessage}
         onClose={closeReactionPicker}
       />
