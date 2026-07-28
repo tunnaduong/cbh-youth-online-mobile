@@ -2225,7 +2225,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 >
                   {item.content}
                 </Text>
-              )}
+              ) : null}
             </Pressable>
             {renderReactionBadge(item)}
           </View>
