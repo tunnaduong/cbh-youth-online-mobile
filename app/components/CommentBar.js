@@ -48,7 +48,7 @@ const CommentBar = React.forwardRef(
       style,
       leftAccessory,
       onPickImage,
-      selectedImage,
+      selectedImages,
       onClearImage,
       nativeID,
       providerId,
@@ -80,11 +80,12 @@ const CommentBar = React.forwardRef(
           style,
         ]}
       >
-        {selectedImage ? (
+        {selectedImages?.length > 0 ? (
           <View
             style={{
               flexDirection: "row",
-              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 6,
               marginBottom: 8,
               paddingHorizontal: 16,
               paddingVertical: 8,
@@ -94,29 +95,33 @@ const CommentBar = React.forwardRef(
               backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
             }}
           >
-            <Image
-              source={{ uri: selectedImage }}
-              style={{ width: 48, height: 48, borderRadius: 8 }}
-              resizeMode="cover"
-            />
-            {onClearImage ? (
-              <TouchableOpacity
-                onPress={onClearImage}
-                style={{
-                  position: "absolute",
-                  top: 2,
-                  left: 56,
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: isDarkMode ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Ionicons name="close" size={12} color="#fff" />
-              </TouchableOpacity>
-            ) : null}
+            {selectedImages.map((uri, index) => (
+              <View key={index} style={{ position: "relative" }}>
+                <Image
+                  source={{ uri }}
+                  style={{ width: 56, height: 56, borderRadius: 8 }}
+                  resizeMode="cover"
+                />
+                {onClearImage ? (
+                  <TouchableOpacity
+                    onPress={() => onClearImage(index)}
+                    style={{
+                      position: "absolute",
+                      top: -4,
+                      right: -4,
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      backgroundColor: isDarkMode ? "rgba(0,0,0,0.8)" : "rgba(0,0,0,0.6)",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Ionicons name="close" size={11} color="#fff" />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            ))}
           </View>
         ) : null}
         {statusText ? (
@@ -274,9 +279,9 @@ const CommentBar = React.forwardRef(
                 onPress={onPickImage}
               >
                 <Ionicons
-                  name={selectedImage ? "image" : "image-outline"}
+                  name={selectedImages?.length > 0 ? "image" : "image-outline"}
                   size={20}
-                  color={selectedImage ? theme.primary : theme.text}
+                  color={selectedImages?.length > 0 ? theme.primary : theme.text}
                 />
               </TouchableOpacity>
             )}

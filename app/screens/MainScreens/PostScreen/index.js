@@ -5,6 +5,8 @@ import React, {
   useLayoutEffect,
   useEffect,
 } from "react";
+import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import {
   View,
   ScrollView,
@@ -28,6 +30,7 @@ import {
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
+  commentPostWithImages,
   deletePost,
   getPostDetail,
   incrementPostView,
@@ -72,6 +75,7 @@ const PostScreen = ({ route, navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState("");
+  const [selectedCommentImages, setSelectedCommentImages] = useState([]);
   const commentInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
@@ -406,6 +410,67 @@ const PostScreen = ({ route, navigation }) => {
     return null; // Return null if the target comment is not found
   };
 
+  const MAX_COMMENT_IMAGES = 10;
+
+  const launchCommentImagePicker = async (source) => {
+    const remaining = MAX_COMMENT_IMAGES - selectedCommentImages.length;
+    if (remaining <= 0) return;
+    try {
+      let result;
+      if (source === "camera") {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(t("common.error"), t("chatConversation.cameraPermissionDenied", "Không có quyền truy cập camera."));
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.85 });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          quality: 0.85,
+          allowsMultipleSelection: true,
+          selectionLimit: remaining,
+        });
+      }
+      if (!result.canceled && result.assets?.length > 0) {
+        const normalized = await Promise.all(
+          result.assets.map(async (asset) => {
+            try {
+              const r = await manipulateAsync(asset.uri, [], { compress: 0.85, format: SaveFormat.JPEG });
+              return r.uri;
+            } catch (_) {
+              return asset.uri;
+            }
+          })
+        );
+        setSelectedCommentImages((prev) => [...prev, ...normalized].slice(0, MAX_COMMENT_IMAGES));
+      }
+    } catch (e) {
+      console.error("Error picking comment image:", e);
+    }
+  };
+
+  const pickCommentImage = () => {
+    const takePhoto = t("chatConversation.takePhoto", "Chụp ảnh");
+    const chooseLibrary = t("chatConversation.chooseFromLibrary", "Chọn từ thư viện");
+    const cancel = t("common.cancel", "Hủy");
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [cancel, takePhoto, chooseLibrary], cancelButtonIndex: 0 },
+        (idx) => {
+          if (idx === 1) launchCommentImagePicker("camera");
+          else if (idx === 2) launchCommentImagePicker("library");
+        },
+      );
+    } else {
+      Alert.alert(t("chatConversation.attachMedia", "Đính kèm ảnh"), null, [
+        { text: takePhoto, onPress: () => launchCommentImagePicker("camera") },
+        { text: chooseLibrary, onPress: () => launchCommentImagePicker("library") },
+        { text: cancel, style: "cancel" },
+      ]);
+    }
+  };
+
   const onSubmit = async () => {
     // Handle editing comment
     if (editingCommentId) {
@@ -414,22 +479,27 @@ const PostScreen = ({ route, navigation }) => {
     }
 
     // Handle new comment or reply
-    if (!commentText.trim() || isSubmitting) return;
+    const trimmedText = commentText.trim();
+    if ((!trimmedText && selectedCommentImages.length === 0) || isSubmitting) return;
 
     let replyingToId = parentId;
 
     setIsSubmitting(true);
     try {
-      // Send comment to API
-      const resp = await commentPost(post.id, {
-        comment: commentText.trim(),
+      const params = {
+        comment: trimmedText || undefined,
         topic_id: post.id,
         replying_to: replyingToId,
         is_anonymous: isAnonymousComment,
-      });
+      };
+      // Send comment to API
+      const resp = selectedCommentImages.length > 0
+        ? await commentPostWithImages(post.id, params, selectedCommentImages)
+        : await commentPost(post.id, params);
 
       // Reset input state
       setCommentText("");
+      setSelectedCommentImages([]);
       setIsAnonymousComment(false);
       setParentId(null);
       setReplyingTo(null);
@@ -1369,6 +1439,7 @@ const PostScreen = ({ route, navigation }) => {
                 setEditingCommentId(null);
                 setEditingCommentText("");
                 setCommentText("");
+                setSelectedCommentImages([]);
                 setIsAnonymousComment(false);
               }}
               value={editingCommentId ? editingCommentText : commentText}
@@ -1384,11 +1455,14 @@ const PostScreen = ({ route, navigation }) => {
               disabled={
                 editingCommentId
                   ? !editingCommentText.trim()
-                  : !commentText.trim()
+                  : !commentText.trim() && selectedCommentImages.length === 0
               }
               isAnonymous={isAnonymousComment}
               onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
               anonymousDisabled={!!editingCommentId}
+              onPickImage={!editingCommentId ? pickCommentImage : undefined}
+              selectedImages={!editingCommentId ? selectedCommentImages : undefined}
+              onClearImage={!editingCommentId ? (index) => setSelectedCommentImages((prev) => prev.filter((_, i) => i !== index)) : undefined}
             />
           </KeyboardStickyView>
         ) : (
@@ -1418,6 +1492,7 @@ const PostScreen = ({ route, navigation }) => {
                 setEditingCommentId(null);
                 setEditingCommentText("");
                 setCommentText("");
+                setSelectedCommentImages([]);
                 setIsAnonymousComment(false);
               }}
               value={editingCommentId ? editingCommentText : commentText}
@@ -1433,11 +1508,14 @@ const PostScreen = ({ route, navigation }) => {
               disabled={
                 editingCommentId
                   ? !editingCommentText.trim()
-                  : !commentText.trim()
+                  : !commentText.trim() && selectedCommentImages.length === 0
               }
               isAnonymous={isAnonymousComment}
               onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
               anonymousDisabled={!!editingCommentId}
+              onPickImage={!editingCommentId ? pickCommentImage : undefined}
+              selectedImages={!editingCommentId ? selectedCommentImages : undefined}
+              onClearImage={!editingCommentId ? (index) => setSelectedCommentImages((prev) => prev.filter((_, i) => i !== index)) : undefined}
             />
           </View>
         )}

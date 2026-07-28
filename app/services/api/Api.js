@@ -267,15 +267,17 @@ export const commentPost = (id, params) => {
   return Api.postRequest("/v1.0/topics/" + id + "/comments", params);
 };
 
-export const commentPostWithImage = (id, params, imageUri) => {
+export const commentPostWithImages = (id, params, imageUris) => {
   const formData = new FormData();
   if (params.comment) formData.append("comment", params.comment);
   formData.append("topic_id", String(params.topic_id));
   if (params.replying_to != null) formData.append("replying_to", String(params.replying_to));
   if (params.is_anonymous != null) formData.append("is_anonymous", params.is_anonymous ? "1" : "0");
-  const ext = imageUri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
-  const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
-  formData.append("image", { uri: imageUri, name: `comment_image.${ext}`, type: mime });
+  (Array.isArray(imageUris) ? imageUris : [imageUris]).forEach((uri, i) => {
+    const ext = uri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
+    const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+    formData.append("images[]", { uri, name: `comment_image_${i}.${ext}`, type: mime });
+  });
   return Api.postFormDataRequest("/v1.0/topics/" + id + "/comments", formData);
 };
 
