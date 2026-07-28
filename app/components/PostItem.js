@@ -677,68 +677,64 @@ const PostItem = ({
           />
         </View>
       </Pressable>
-      {item.image_urls && item.image_urls.length > 0 && (
+      {((item.image_urls && item.image_urls.length > 0) || (item.video_urls && item.video_urls.length > 0)) && (
         <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
-          <FBCollage
-            images={item.image_urls}
-            imageOnPress={(index) => {
-              setIsVisible(index);
-            }}
-            height={350}
-            width={Dimensions.get("window").width}
-          />
-          <ImageView
-            images={item.image_urls.map((url) => ({
-              uri: url,
-            }))}
-            imageIndex={visible}
-            visible={visible !== false}
-            onRequestClose={() => setIsVisible(false)}
-            HeaderComponent={() => (
-              // react-native-image-viewing's default header uses RN's plain
-              // SafeAreaView, which on Android applies no top inset at all,
-              // so the close button sits under (behind) the status bar and
-              // can't be tapped. Supply our own header using the safe area
-              // insets we already have (same fix as ConversationScreen's
-              // image viewer).
-              <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
-                <TouchableOpacity
-                  onPress={() => setIsVisible(false)}
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    backgroundColor: "#00000077",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
-                >
-                  <Ionicons name="close" size={22} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            )}
-          />
+          {item.image_urls && item.image_urls.length > 0 && (
+            <>
+              <FBCollage
+                images={item.image_urls}
+                imageOnPress={(index) => {
+                  setIsVisible(index);
+                }}
+                height={350}
+                width={Dimensions.get("window").width}
+              />
+              <ImageView
+                images={item.image_urls.map((url) => ({
+                  uri: url,
+                }))}
+                imageIndex={visible}
+                visible={visible !== false}
+                onRequestClose={() => setIsVisible(false)}
+                HeaderComponent={() => (
+                  <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
+                    <TouchableOpacity
+                      onPress={() => setIsVisible(false)}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: "#00000077",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+                    >
+                      <Ionicons name="close" size={22} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+            </>
+          )}
+          {item.video_urls && item.video_urls.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10, gap: 8 }}
+            >
+              {item.video_urls.map((url, index) => (
+                <VideoThumbnail
+                  key={`${url}-${index}`}
+                  uri={url}
+                  width={single ? 260 : 220}
+                  height={single ? 180 : 150}
+                  borderRadius={12}
+                />
+              ))}
+            </ScrollView>
+          )}
         </View>
-      )}
-
-      {/* Video attachment display */}
-      {item.video_urls && item.video_urls.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 15, paddingTop: 8, gap: 8 }}
-        >
-          {item.video_urls.map((url, index) => (
-            <VideoThumbnail
-              key={`${url}-${index}`}
-              uri={url}
-              width={single ? 260 : 220}
-              height={single ? 180 : 150}
-              borderRadius={12}
-            />
-          ))}
-        </ScrollView>
       )}
 
       {/* Document attachment display */}
