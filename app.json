@@ -88,7 +88,7 @@
       },
       "package": "com.fatties.youth",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 313,
+      "versionCode": 421,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
