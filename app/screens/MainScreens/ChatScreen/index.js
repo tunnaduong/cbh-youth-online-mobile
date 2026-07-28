@@ -40,7 +40,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers } = useContext(AuthContext);
-  const { onMessageSent, onMessageRead, onMessageDeleted } = useChatSocket();
+  const { onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited } = useChatSocket();
   const flatListRef = useRef(null);
   const scrollPositionRef = useRef(0);
   const isProcessingRef = useRef(false);
@@ -173,10 +173,12 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       onMessageSent(id, refresh),
       onMessageRead(id, refresh),
       onMessageDeleted(id, refresh),
-    ]);
+      onMessageRecalled ? onMessageRecalled(id, refresh) : null,
+      onMessageEdited ? onMessageEdited(id, refresh) : null,
+    ].filter(Boolean));
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted]);
+  }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited]);
 
   const filteredConversations = conversations.filter((item) => {
     if (
