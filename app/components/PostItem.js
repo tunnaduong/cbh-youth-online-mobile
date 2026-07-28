@@ -244,6 +244,15 @@ const PostItem = ({
   onVote: onVoteCallback, // Callback for single view vote updates
   onSave: onSaveCallback, // Callback for single view save updates
 }) => {
+  const videoUrls = Array.isArray(item.video_urls)
+    ? item.video_urls
+    : (typeof item.video_urls === "string" && item.video_urls)
+      ? item.video_urls.split(",").map((v) => v.trim()).filter(Boolean)
+      : item.video_url
+        ? [item.video_url]
+        : item.video
+          ? [item.video]
+          : [];
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
   const insets = useSafeAreaInsets();
   const { username, userInfo } = useContext(AuthContext);
@@ -677,7 +686,7 @@ const PostItem = ({
           />
         </View>
       </Pressable>
-      {((item.image_urls && item.image_urls.length > 0) || (item.video_urls && item.video_urls.length > 0)) && (
+      {((item.image_urls && item.image_urls.length > 0) || (videoUrls && videoUrls.length > 0)) && (
         <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
           {item.image_urls && item.image_urls.length > 0 && (
             <>
@@ -717,7 +726,7 @@ const PostItem = ({
               />
             </>
           )}
-          {item.video_urls && item.video_urls.length > 0 && (() => {
+          {videoUrls && videoUrls.length > 0 && (() => {
             const hasImages = item.image_urls && item.image_urls.length > 0;
             const screenWidth = Dimensions.get("window").width;
             if (!hasImages) {
@@ -730,7 +739,7 @@ const PostItem = ({
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={{ gap: 4 }}
                 >
-                  {item.video_urls.map((url, index) => (
+                  {videoUrls.map((url, index) => (
                     <VideoThumbnail
                       key={`${url}-${index}`}
                       uri={url}
@@ -749,7 +758,7 @@ const PostItem = ({
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10, gap: 8 }}
               >
-                {item.video_urls.map((url, index) => (
+                {videoUrls.map((url, index) => (
                   <VideoThumbnail
                     key={`${url}-${index}`}
                     uri={url}
