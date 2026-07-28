@@ -71,20 +71,41 @@ const formatNotificationMessage = (notification, t) => {
   switch (type) {
     case "topic_liked":
       return `${t('notifications.likedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
+    case "topic_downvoted":
+      return `${t('notifications.downvotedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
     case "topic_commented":
       return `${t('notifications.commentedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
+    case "topic_pinned":
+      return `${t('notifications.pinnedPost')} "${data?.topic_title || ""}"`;
+    case "topic_moved":
+      return `${t('notifications.movedPost')} "${data?.topic_title || ""}"`;
+    case "topic_closed":
+      return `${t('notifications.closedPost')} "${data?.topic_title || ""}"`;
     case "comment_liked":
       return t('notifications.likedComment');
+    case "comment_downvoted":
+      return t('notifications.downvotedComment');
     case "comment_replied":
       return t('notifications.repliedComment');
     case "mentioned":
       return t('notifications.mentionedComment');
+    case "followed":
+      return t('notifications.followedYou');
     case "story_reacted":
       return `${t('notifications.reactedStory')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourStory')}`;
     case "story_replied":
       return t('notifications.repliedStory');
     case "message_reacted":
       return `${t('notifications.reactedMessage')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourMessage')}`;
+    case "message_replied":
+      return t('notifications.repliedMessage');
+    case "study_material_purchased":
+      return `${t('notifications.purchasedMaterial')} "${data?.material_title || ""}"`;
+    case "study_material_rated":
+      return `${t('notifications.ratedMaterial')} "${data?.material_title || ""}"`;
+    case "system_message":
+    case "system_alert":
+      return data?.message || t('notifications.systemSentMessage');
     // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
       return `${t('notifications.likedPost')} "${data?.post_title || data?.topic_title || ""}" ${t('notifications.ofYours')}`;
@@ -410,6 +431,11 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             item.data?.message?.includes("Chào mừng")
           ) {
             navigation.navigate("PostScreen", { postId: 173336279 });
+          } else if (
+            item.type === "system_message" &&
+            item.data?.url === "/wallet"
+          ) {
+            navigation.navigate("PointWalletScreen");
           } else if (item.type === "story_reacted") {
             // Navigate to the Home tab so the story viewer can open the requested story.
             navigation.navigate("MainScreens", {
@@ -420,18 +446,33 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             });
           } else if (
             item.type === "story_replied" ||
-            item.type === "message_reacted"
+            item.type === "message_reacted" ||
+            item.type === "message_replied"
           ) {
             // Navigate to conversation screen
             if (item.data?.conversation_id) {
               navigation.navigate("ConversationScreen", {
                 conversationId: item.data.conversation_id,
                 highlightMessageId:
-                  item.data?.message_id ?? item.data?.messageId,
+                  item.data?.reply_message_id ?? item.data?.message_id ?? item.data?.messageId,
               });
             } else {
-              // Fallback to chat screen if conversation_id is missing
               navigation.navigate("Chat");
+            }
+          } else if (item.type === "followed") {
+            if (item.actor?.username && !isAnonymous) {
+              navigation.navigate("ProfileScreen", {
+                username: item.actor.username,
+              });
+            }
+          } else if (
+            item.type === "study_material_purchased" ||
+            item.type === "study_material_rated"
+          ) {
+            if (item.data?.material_id) {
+              navigation.navigate("StudyMaterialDetailScreen", {
+                materialId: item.data.material_id,
+              });
             }
           } else if (
             item.type === "payment_received" ||

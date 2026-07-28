@@ -172,6 +172,9 @@ export const NotificationProvider = ({ children }) => {
     // branch was silently skipped entirely and nothing happened at all, in
     // every app state (foreground, background, killed) alike, since the
     // fallback branches below don't handle conversations either.
+    const materialId = data.material_id ?? data.materialId;
+    const actorUsername = data.actor?.username ?? data.actor_username ?? data.actorUsername;
+
     if (conversationId) {
       target = { screen: 'ConversationScreen', params: { conversationId, highlightMessageId: messageId } };
     } else if (type === 'story_reacted' && storyId) {
@@ -181,6 +184,12 @@ export const NotificationProvider = ({ children }) => {
       target = { screen: 'MainScreens', params: { screen: 'Chat' } };
     } else if (type === 'payment_received' || data.url === '/wallet') {
       target = { screen: 'PointWalletScreen', params: undefined };
+    } else if (type === 'study_material_purchased' || type === 'study_material_rated') {
+      if (materialId) {
+        target = { screen: 'StudyMaterialDetailScreen', params: { materialId } };
+      }
+    } else if (type === 'followed' && actorUsername) {
+      target = { screen: 'ProfileScreen', params: { username: actorUsername } };
     } else if (postId) {
       const id = parseInt(postId, 10);
       target = { screen: 'PostScreen', params: { postId: isNaN(id) ? postId : id, item: null } };
