@@ -761,13 +761,8 @@ const ReplyBar = ({
 
   const handleViewCountPress = () => {
     if (navigation && storyId) {
-      if (onDismissStory) {
-        onDismissStory();
-      }
       setTimeout(() => {
-        navigation.navigate("StoryViewersScreen", {
-          storyId: storyId,
-        });
+        DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", { storyId, isOwn: true });
       }, 100);
     }
   };
@@ -905,6 +900,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [clientMuted, setClientMuted] = useState({});
+
+  const toggleClientMute = (storyId) => {
+    setClientMuted((prev) => ({
+      ...prev,
+      [storyId]: !prev[storyId],
+    }));
+  };
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(
@@ -2129,6 +2132,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           videoProps={{
             resizeMode: "contain",
             repeat: false,
+            muted: Boolean(currentStory && (clientMuted[currentStory] || (() => {
+              try {
+                const user = userStories.find((u) => u.stories.some((s) => s.storyId === currentStory || s.id === currentStory));
+                if (!user) return false;
+                const story = user.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                return story?.is_muted;
+              } catch (e) {
+                return false;
+              }
+            })())),
             style: {
               width: SCREEN_WIDTH,
               height: SCREEN_HEIGHT,
@@ -2153,17 +2166,72 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           storyAvatarSize={30}
+          renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId }) => (
+            <View style={{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Pressable
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                onPress={() => {
+                  if (userId) {
+                    const user = userStories.find((u) => u.id === userId || u.uid === userId);
+                    if (user) {
+                      updateCurrentStoryUser({ id: user.uid, username: user.id });
+                    }
+                  }
+                  if (userId) {
+                    const username = userId;
+                    dismissStoryModal();
+                    setTimeout(() => navigation.navigate("ProfileScreen", { username }), 300);
+                  }
+                }}
+              >
+                {avatarSource && (
+                  <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
+                    <Image source={avatarSource} style={{ width: 28, height: 28 }} />
+                  </View>
+                )}
+                <View style={{ flexDirection: 'column' }}>
+                  {name && <Text style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
+                  {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12 }}>{date}</Text>}
+                </View>
+              </Pressable>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {(() => {
+                  try {
+                    const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
+                    if (!u) return null;
+                    const st = u.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                    if (st && (st.mediaType === 'video' || st.media_type === 'video')) {
+                      const isServerMuted = Boolean(st?.is_muted);
+                      const isAudioMuted = Boolean(currentStory && (clientMuted[currentStory] || isServerMuted));
+                      return (
+                        <TouchableOpacity
+                          disabled={isServerMuted}
+                          onPress={() => { if (!isServerMuted) toggleClientMute(currentStory); }}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          style={{
+                            width: 36, height: 36, borderRadius: 18,
+                            backgroundColor: 'rgba(0,0,0,0.35)',
+                            alignItems: 'center', justifyContent: 'center',
+                            opacity: isServerMuted ? 0.7 : 1,
+                          }}
+                        >
+                          <Ionicons name={isAudioMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
+                        </TouchableOpacity>
+                      );
+                    }
+                  } catch (e) { return null; }
+                  return null;
+                })()}
+                {onMore && (
+                  <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
           onStoryHeaderPress={(userId) => {
             console.log("Global Story Header Pressed for:", userId);
-            if (userId) {
-              const username = userId; // In my transform, id IS the username
-              dismissStoryModal();
-              setTimeout(() => {
-                navigation.navigate("ProfileScreen", {
-                  username: username,
-                });
-              }, 300);
-            }
           }}
           onMore={handleStoryOptions}
           onShow={handleStoryShow}
