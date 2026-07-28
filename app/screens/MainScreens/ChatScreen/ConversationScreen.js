@@ -322,6 +322,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const [hasMore, setHasMore] = useState(true);
   const inputRef = useRef(null);
   const messagesScrollRef = useRef(null);
+  const lastTapRef = useRef({});
   const initialScrollDoneRef = useRef(false);
   const loadingMoreRef = useRef(false);
   const {
@@ -1765,6 +1766,33 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
+  const handleDoubleTapMessage = async (message) => {
+    if (!message || message.is_recalled) return;
+
+    const hasLoved = message.reactions?.my_reactions?.includes("love");
+    const previousReactions = message.reactions;
+
+    if (hasLoved) {
+      applyReactionUpdate(message.id, buildOptimisticRemove(message));
+      try {
+        const response = await removeMessageReaction(message.id);
+        applyReactionUpdate(message.id, response.data.reactions);
+      } catch (error) {
+        console.error("Error removing message reaction on double tap:", error?.response?.data || error);
+        applyReactionUpdate(message.id, previousReactions);
+      }
+    } else {
+      applyReactionUpdate(message.id, buildOptimisticReaction(message, "love"));
+      try {
+        const response = await reactToMessage(message.id, "love");
+        applyReactionUpdate(message.id, response.data.reactions);
+      } catch (error) {
+        console.error("Error reacting to message on double tap:", error?.response?.data || error);
+        applyReactionUpdate(message.id, previousReactions);
+      }
+    }
+  };
+
   const handleRemoveAllReactions = async () => {
     const message = reactionPicker.message;
     closeReactionPicker();
@@ -2280,14 +2308,22 @@ const ConversationScreen = ({ navigation, route }) => {
               onLongPress={(evt) => openReactionPicker(item, evt)}
               delayLongPress={350}
               onPress={
-                item.is_recalled ? undefined :
-                isImageMessage && resolvedFileUrl
-                  ? () => openImageViewer(resolvedFileUrl)
-                  : isVideoMessage && resolvedFileUrl
-                    ? () => openVideoViewer(resolvedFileUrl)
-                    : isFileMessage && resolvedFileUrl
-                      ? () => handleOpenFile(item)
-                      : undefined
+                item.is_recalled ? undefined : () => {
+                  const now = Date.now();
+                  const lastTap = lastTapRef.current[item.id] || 0;
+                  if (now - lastTap < 300) {
+                    handleDoubleTapMessage(item);
+                  } else {
+                    lastTapRef.current[item.id] = now;
+                    if (isImageMessage && resolvedFileUrl) {
+                      openImageViewer(resolvedFileUrl);
+                    } else if (isVideoMessage && resolvedFileUrl) {
+                      openVideoViewer(resolvedFileUrl);
+                    } else if (isFileMessage && resolvedFileUrl) {
+                      handleOpenFile(item);
+                    }
+                  }
+                }
               }
             >
               {item.is_recalled ? (
