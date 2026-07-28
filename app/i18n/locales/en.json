@@ -467,7 +467,12 @@
     "am": "AM",
     "pm": "PM",
     "members": "members",
-    "sendVideoError": "Unable to send video. Please try again."
+    "sendVideoError": "Unable to send video. Please try again.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "isTyping": "is typing...",
+    "typing": "Typing...",
+    "storyNotAvailable": "This story is no longer available."
   },
   "blockedUsers": {
     "title": "Blocked users",
