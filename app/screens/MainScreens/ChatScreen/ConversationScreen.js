@@ -2287,33 +2287,6 @@ const ConversationScreen = ({ navigation, route }) => {
         </KeyboardChatScrollView>
         </AndroidGlassBackdrop>
 
-        {/* Scroll-to-bottom button */}
-        {showScrollButton && (
-          <TouchableOpacity
-            onPress={scrollToLatestMessageAnimated}
-            style={{
-              position: "absolute",
-              right: 16,
-              bottom: 80,
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
-              alignItems: "center",
-              justifyContent: "center",
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 4,
-              elevation: 5,
-              borderWidth: 1,
-              borderColor: isDarkMode ? "#333" : "#e0e0e0",
-            }}
-          >
-            <Ionicons name="chevron-down" size={22} color={isDarkMode ? "#fff" : "#333"} />
-          </TouchableOpacity>
-        )}
-
         {/* Input Bar - positioned above messages */}
         <KeyboardStickyView
           style={{
@@ -2327,6 +2300,30 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
           offset={{ opened: 20 }}
         >
+          {showScrollButton && (
+            <TouchableOpacity
+              onPress={scrollToLatestMessageAnimated}
+              style={{
+                alignSelf: "center",
+                marginBottom: 8,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
+                alignItems: "center",
+                justifyContent: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 4,
+                elevation: 5,
+                borderWidth: 1,
+                borderColor: isDarkMode ? "#333" : "#e0e0e0",
+              }}
+            >
+              <Ionicons name="chevron-down" size={22} color={isDarkMode ? "#fff" : "#333"} />
+            </TouchableOpacity>
+          )}
           <ReplyComposerBar
             replyingTo={replyingTo}
             currentUsername={username}
