@@ -302,6 +302,8 @@ const StoryOptionsModal = ({
   const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
   const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
   const insets = useSafeAreaInsets();
+  const isOpeningReportRef = useRef(false);
+  const isOpeningDeleteRef = useRef(false);
 
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
 
@@ -324,6 +326,11 @@ const StoryOptionsModal = ({
         marginTop: 10,
       }}
       onClose={() => {
+        if (isOpeningReportRef.current || isOpeningDeleteRef.current) {
+          isOpeningReportRef.current = false;
+          isOpeningDeleteRef.current = false;
+          return;
+        }
         storyRef.current?.resume?.(); // Resume story timer when sheet closes
       }}
       gestureEnabled={true}
@@ -425,10 +432,18 @@ const StoryOptionsModal = ({
           <Pressable
             style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             onPress={() => {
+              isOpeningDeleteRef.current = true;
+              storyRef.current?.pause?.();
               actionSheetRef.current?.hide();
               setTimeout(() => {
                 Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
-                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                  {
+                    text: t('settings.cancel') || "Hủy",
+                    style: "cancel",
+                    onPress: () => {
+                      storyRef.current?.resume?.();
+                    },
+                  },
                   {
                     text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
                       try {
@@ -443,6 +458,7 @@ const StoryOptionsModal = ({
                           });
                         }
                       } catch (e) {
+                        storyRef.current?.resume?.();
                         Toast.show({
                           type: "error",
                           text1: t('common.error'),
@@ -481,8 +497,10 @@ const StoryOptionsModal = ({
             <Pressable
               style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
               onPress={() => {
-                actionSheetRef.current?.hide();
+                isOpeningReportRef.current = true;
+                storyRef.current?.pause?.();
                 setReportModalVisible(true);
+                actionSheetRef.current?.hide();
               }}
             >
               <View style={{
@@ -897,6 +915,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     );
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    const openSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_OPENED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.pause?.();
+      }
+    });
+    const closeSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_CLOSED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.resume?.();
+      }
+    });
+    return () => {
+      openSub.remove();
+      closeSub.remove();
+    };
+  }, [isStoryVisible]);
 
   React.useEffect(() => {
     if (!isLoggedIn) {
@@ -2152,7 +2187,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             <>
               <ReportModal
                 visible={reportModalVisible}
-                onClose={() => setReportModalVisible(false)}
+                onClose={() => {
+                  setReportModalVisible(false);
+                  if (isStoryVisible) {
+                    storyRef.current?.resume?.();
+                  }
+                }}
                 onSubmit={handleReportSubmit}
               />
               <StoryOptionsModal
