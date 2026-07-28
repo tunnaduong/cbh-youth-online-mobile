@@ -49,6 +49,7 @@ import {
   unfollowUser,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
+import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -2278,6 +2279,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }
         />
         <ResendVerificationModal />
+        <StoryViewersSheet />
       </View>
     </>
   );
