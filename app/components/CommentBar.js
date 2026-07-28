@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Platform,
   StyleSheet,
+  Image,
 } from "react-native";
 // @expo/vector-icons (not react-native-vector-icons) - its fonts are loaded
 // via expo-font and don't need a native rebuild to pick up newer glyphs, so
@@ -46,6 +47,9 @@ const CommentBar = React.forwardRef(
       onClearStatus,
       style,
       leftAccessory,
+      onPickImage,
+      selectedImage,
+      onClearImage,
       nativeID,
       providerId,
       // Android only: when the parent already renders its own single glass
@@ -76,6 +80,45 @@ const CommentBar = React.forwardRef(
           style,
         ]}
       >
+        {selectedImage ? (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: 8,
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 22,
+              borderWidth: StyleSheet.hairlineWidth,
+              borderColor: theme.border,
+              backgroundColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+            }}
+          >
+            <Image
+              source={{ uri: selectedImage }}
+              style={{ width: 48, height: 48, borderRadius: 8 }}
+              resizeMode="cover"
+            />
+            {onClearImage ? (
+              <TouchableOpacity
+                onPress={onClearImage}
+                style={{
+                  position: "absolute",
+                  top: 2,
+                  left: 56,
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: isDarkMode ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="close" size={12} color="#fff" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : null}
         {statusText ? (
           <View
             style={{
@@ -213,6 +256,30 @@ const CommentBar = React.forwardRef(
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 5 }}>
+            {onPickImage && (
+              <TouchableOpacity
+                style={{
+                  marginRight: 4,
+                  backgroundColor: isIOS
+                    ? "rgba(150,150,150,0.15)"
+                    : isDarkMode
+                    ? "rgba(255,255,255,0.05)"
+                    : "rgba(0,0,0,0.05)",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                onPress={onPickImage}
+              >
+                <Ionicons
+                  name={selectedImage ? "image" : "image-outline"}
+                  size={20}
+                  color={selectedImage ? theme.primary : theme.text}
+                />
+              </TouchableOpacity>
+            )}
             {onToggleAnonymous && (
               <TouchableOpacity
                 style={{

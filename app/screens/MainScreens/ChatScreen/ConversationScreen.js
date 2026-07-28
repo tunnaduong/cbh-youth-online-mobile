@@ -212,7 +212,6 @@ const SWIPE_ICON_OFFSET = 44;
 
 const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
   const translateX = useRef(new Animated.Value(0)).current;
-  const iconOpacity = useRef(new Animated.Value(0)).current;
   const triggeredRef = useRef(false);
 
   const panResponder = useRef(
@@ -223,14 +222,10 @@ const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
         triggeredRef.current = false;
       },
       onPanResponderMove: (_, g) => {
-        // My messages: swipe left (negative dx), others: swipe right (positive dx)
-        const raw = isMyMessage ? Math.min(0, g.dx) : Math.max(0, g.dx);
-        const clamped = isMyMessage
-          ? Math.max(-SWIPE_THRESHOLD - 10, raw)
-          : Math.min(SWIPE_THRESHOLD + 10, raw);
+        const clamped = g.dx > 0
+          ? Math.min(SWIPE_THRESHOLD + 10, g.dx)
+          : Math.max(-(SWIPE_THRESHOLD + 10), g.dx);
         translateX.setValue(clamped);
-        const progress = Math.min(Math.abs(clamped) / SWIPE_THRESHOLD, 1);
-        iconOpacity.setValue(progress);
         if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
           triggeredRef.current = true;
           onSwipe?.();
@@ -238,36 +233,59 @@ const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
       },
       onPanResponderRelease: () => {
         Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 120, friction: 10 }).start();
-        Animated.timing(iconOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
       },
     })
   ).current;
 
-  const iconTranslateX = translateX.interpolate({
-    inputRange: isMyMessage ? [-(SWIPE_THRESHOLD + 10), 0] : [0, SWIPE_THRESHOLD + 10],
-    outputRange: isMyMessage ? [-(SWIPE_ICON_OFFSET + 10), 0] : [0, SWIPE_ICON_OFFSET + 10],
+  // Left icon: visible when swiping right (positive translateX)
+  const leftIconOpacity = translateX.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const leftIconTranslateX = translateX.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD + 10],
+    outputRange: [0, SWIPE_ICON_OFFSET + 10],
     extrapolate: "clamp",
   });
 
+  // Right icon: visible when swiping left (negative translateX)
+  const rightIconOpacity = translateX.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, 0],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const rightIconTranslateX = translateX.interpolate({
+    inputRange: [-(SWIPE_THRESHOLD + 10), 0],
+    outputRange: [-(SWIPE_ICON_OFFSET + 10), 0],
+    extrapolate: "clamp",
+  });
+
+  const iconStyle = {
+    position: "absolute",
+    top: "50%",
+    marginTop: -14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  };
+
   return (
     <View style={{ overflow: "visible" }}>
-      {/* Reply icon — appears on the opposite side of the bubble */}
+      {/* Left icon — appears when swiping right */}
       <Animated.View
-        style={{
-          position: "absolute",
-          [isMyMessage ? "left" : "right"]: 4,
-          top: "50%",
-          marginTop: -14,
-          opacity: iconOpacity,
-          transform: [{ translateX: iconTranslateX }],
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: "rgba(0,0,0,0.15)",
-          alignItems: "center",
-          justifyContent: "center",
-          zIndex: 1,
-        }}
+        style={[iconStyle, { left: 4, opacity: leftIconOpacity, transform: [{ translateX: leftIconTranslateX }] }]}
+        pointerEvents="none"
+      >
+        <Ionicons name="arrow-undo" size={16} color="#fff" />
+      </Animated.View>
+      {/* Right icon — appears when swiping left */}
+      <Animated.View
+        style={[iconStyle, { right: 4, opacity: rightIconOpacity, transform: [{ translateX: rightIconTranslateX }] }]}
         pointerEvents="none"
       >
         <Ionicons name="arrow-undo" size={16} color="#fff" />
@@ -831,13 +849,25 @@ const ConversationScreen = ({ navigation, route }) => {
     setShowScrollButton(distanceFromBottom > 150);
   };
 
-  const pickImage = async () => {
+  const launchMediaPicker = async (source) => {
     try {
-      // Launch the combined image/video picker - the same attach button handles both.
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images", "videos"],
-        quality: 0.8,
-      });
+      let result;
+      if (source === "camera_photo" || source === "camera_video") {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Toast.show({ type: "error", text1: t("common.error"), text2: t("chatConversation.cameraPermissionDenied") });
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({
+          mediaTypes: source === "camera_video" ? ["videos"] : ["images"],
+          quality: 0.8,
+        });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images", "videos"],
+          quality: 0.8,
+        });
+      }
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
@@ -848,12 +878,37 @@ const ConversationScreen = ({ navigation, route }) => {
         }
       }
     } catch (error) {
-      console.error("Error picking image:", error);
+      console.error("Error picking media:", error);
       Toast.show({
         type: "error",
         text1: t("common.error"),
         text2: t("chatConversation.sendImageError"),
       });
+    }
+  };
+
+  const pickImage = () => {
+    const takePhoto = t("chatConversation.takePhoto", "Chụp ảnh");
+    const recordVideo = t("chatConversation.recordVideo", "Quay video");
+    const chooseLibrary = t("chatConversation.chooseFromLibrary", "Chọn từ thư viện");
+    const cancel = t("common.cancel", "Hủy");
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [cancel, takePhoto, recordVideo, chooseLibrary], cancelButtonIndex: 0 },
+        (idx) => {
+          if (idx === 1) launchMediaPicker("camera_photo");
+          else if (idx === 2) launchMediaPicker("camera_video");
+          else if (idx === 3) launchMediaPicker("library");
+        },
+      );
+    } else {
+      Alert.alert(t("chatConversation.attachMedia", "Đính kèm ảnh / video"), null, [
+        { text: takePhoto, onPress: () => launchMediaPicker("camera_photo") },
+        { text: recordVideo, onPress: () => launchMediaPicker("camera_video") },
+        { text: chooseLibrary, onPress: () => launchMediaPicker("library") },
+        { text: cancel, style: "cancel" },
+      ]);
     }
   };
 
