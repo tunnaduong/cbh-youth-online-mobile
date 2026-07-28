@@ -480,7 +480,15 @@
     "editMessage": "Edit",
     "editingMessage": "Editing message",
     "editMessageError": "Could not edit message. Please try again.",
-    "edited": "(Edited)"
+    "edited": "(Edited)",
+    "reactionCount": "{{count}} reactions",
+    "reactionTimes": "{{count}} times",
+    "shareUnavailable": "Sharing is not available on this device.",
+    "loadImageError": "Could not load image",
+    "sending": "Sending...",
+    "downloading": "Downloading...",
+    "tapToOpen": "Tap to open",
+    "attachment": "Attachment"
   },
   "blockedUsers": {
     "title": "Blocked users",

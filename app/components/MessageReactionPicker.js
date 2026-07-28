@@ -32,9 +32,9 @@ const PICKER_WIDTH = 280;
 const MessageReactionPicker = ({
   visible,
   anchor, // { x, y, alignRight }
-  currentReaction,
+  myReactions, // array of reaction types I've added, e.g. ["love", "love", "haha"]
   onSelect,
-  onRemove,
+  onRemoveAll,
   onReply,
   onCopy,
   onEdit,
@@ -54,16 +54,15 @@ const MessageReactionPicker = ({
 
   const top = Math.max(insetsSafeTop, anchor.y);
 
-  // Deliberately not RN's <Modal>: on Android a Modal opens a separate native
-  // window, which can trip the keyboard controller's resize/frame listeners
-  // and shove the conversation's keyboard-aware content upward even though no
-  // text input is involved. Rendering as a plain in-tree overlay (a sibling
-  // absolutely positioned above everything else) avoids that entirely.
+  // Count per type in my reactions
+  const myReactionCounts = (myReactions || []).reduce((acc, type) => {
+    acc[type] = (acc[type] || 0) + 1;
+    return acc;
+  }, {});
+  const hasAnyMyReaction = (myReactions || []).length > 0;
+
   return (
     <TouchableWithoutFeedback onPress={onClose}>
-      {/* box-none here would let taps outside the picker fall through to
-          whatever's underneath (the message list) instead of just closing
-          the picker - the backdrop needs to swallow the touch itself. */}
       <View style={styles.backdrop}>
         <TouchableWithoutFeedback>
           <View
@@ -78,37 +77,43 @@ const MessageReactionPicker = ({
             ]}
           >
             <View style={styles.emojiRow}>
-              {REACTION_EMOJIS.map(({ type, emoji }) => (
-                <TouchableOpacity
-                  key={type}
-                  style={[
-                    styles.emojiButton,
-                    currentReaction === type && {
-                      backgroundColor: isDarkMode
-                        ? "rgba(76,175,80,0.25)"
-                        : "rgba(49,149,39,0.15)",
-                    },
-                  ]}
-                  onPress={() => onSelect(type)}
-                  activeOpacity={0.6}
-                >
-                  <Text style={styles.emojiText}>{emoji}</Text>
-                </TouchableOpacity>
-              ))}
+              {REACTION_EMOJIS.map(({ type, emoji }) => {
+                const myCount = myReactionCounts[type] || 0;
+                return (
+                  <TouchableOpacity
+                    key={type}
+                    style={styles.emojiButton}
+                    onPress={() => onSelect(type)}
+                    activeOpacity={0.6}
+                  >
+                    <Text style={styles.emojiText}>{emoji}</Text>
+                    {myCount > 0 && (
+                      <View
+                        style={[
+                          styles.myCountBadge,
+                          { backgroundColor: theme.primary },
+                        ]}
+                      >
+                        <Text style={styles.myCountText}>{myCount}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
               <TouchableOpacity
                 style={[
                   styles.emojiButton,
                   styles.removeButton,
                   { borderColor: theme.border },
                 ]}
-                onPress={onRemove}
+                onPress={onRemoveAll}
                 activeOpacity={0.6}
-                disabled={!currentReaction}
+                disabled={!hasAnyMyReaction}
               >
                 <Ionicons
                   name="close"
                   size={18}
-                  color={currentReaction ? theme.subText : theme.placeholder}
+                  color={hasAnyMyReaction ? theme.subText : theme.placeholder}
                 />
               </TouchableOpacity>
             </View>
@@ -200,6 +205,22 @@ const styles = StyleSheet.create({
   },
   emojiText: {
     fontSize: 22,
+  },
+  myCountBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 2,
+  },
+  myCountText: {
+    color: "#fff",
+    fontSize: 9,
+    fontWeight: "700",
   },
   removeButton: {
     borderWidth: 1,

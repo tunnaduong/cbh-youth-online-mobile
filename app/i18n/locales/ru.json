@@ -489,7 +489,15 @@
     "editMessage": "Редактировать",
     "editingMessage": "Редактирование сообщения",
     "editMessageError": "Не удалось изменить сообщение. Попробуйте ещё раз.",
-    "edited": "(Изменено)"
+    "edited": "(Изменено)",
+    "reactionCount": "{{count}} реакций",
+    "reactionTimes": "{{count}} раз",
+    "shareUnavailable": "Общий доступ недоступен на этом устройстве.",
+    "loadImageError": "Не удалось загрузить изображение",
+    "sending": "Отправка...",
+    "downloading": "Загрузка...",
+    "tapToOpen": "Нажмите, чтобы открыть",
+    "attachment": "Вложение"
   },
   "blockedUsers": {
     "title": "Заблокированные пользователи",

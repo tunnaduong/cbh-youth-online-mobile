@@ -14,6 +14,7 @@ import {
   Dimensions,
   Modal,
   PanResponder,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -42,6 +43,7 @@ import ReplyPreviewBubble from "../../../components/ReplyPreviewBubble";
 import ReplyComposerBar from "../../../components/ReplyComposerBar";
 import MessageReactionPicker, {
   REACTION_EMOJI_BY_TYPE,
+  REACTION_EMOJIS,
 } from "../../../components/MessageReactionPicker";
 import { Alert, ActionSheetIOS, KeyboardAvoidingView, Clipboard } from "react-native";
 import Toast from "react-native-toast-message";
@@ -342,6 +344,10 @@ const ConversationScreen = ({ navigation, route }) => {
     visible: false,
     message: null,
     anchor: null,
+  });
+  const [reactionModal, setReactionModal] = useState({
+    visible: false,
+    reactions: null,
   });
   // { id, content, type, file_url, sender } | null - the message currently
   // being replied to, shown in ReplyComposerBar above the input.
@@ -1504,15 +1510,8 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const buildOptimisticReaction = (message, type) => {
-    const current = message.reactions || { summary: [], total: 0, my_reaction: null };
-    const prevMine = current.my_reaction;
+    const current = message.reactions || { summary: [], total: 0, my_reactions: [] };
     let summary = (current.summary || []).map((s) => ({ ...s }));
-
-    if (prevMine) {
-      summary = summary
-        .map((s) => (s.type === prevMine ? { ...s, count: Math.max(0, s.count - 1) } : s))
-        .filter((s) => s.count > 0);
-    }
 
     const existing = summary.find((s) => s.type === type);
     if (existing) {
@@ -1524,22 +1523,29 @@ const ConversationScreen = ({ navigation, route }) => {
     return {
       summary,
       total: summary.reduce((sum, s) => sum + s.count, 0),
-      my_reaction: type,
+      my_reactions: [...(current.my_reactions || []), type],
     };
   };
 
   const buildOptimisticRemove = (message) => {
-    const current = message.reactions || { summary: [], total: 0, my_reaction: null };
-    if (!current.my_reaction) return current;
+    const current = message.reactions || { summary: [], total: 0, my_reactions: [] };
+    const myReactions = current.my_reactions || [];
+    if (myReactions.length === 0) return current;
+
+    // Remove all my reactions from summary counts
+    const removeCounts = myReactions.reduce((acc, t) => {
+      acc[t] = (acc[t] || 0) + 1;
+      return acc;
+    }, {});
 
     const summary = (current.summary || [])
-      .map((s) => (s.type === current.my_reaction ? { ...s, count: Math.max(0, s.count - 1) } : s))
+      .map((s) => ({ ...s, count: Math.max(0, s.count - (removeCounts[s.type] || 0)) }))
       .filter((s) => s.count > 0);
 
     return {
       summary,
       total: summary.reduce((sum, s) => sum + s.count, 0),
-      my_reaction: null,
+      my_reactions: [],
     };
   };
 
@@ -1704,10 +1710,10 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleRemoveReaction = async () => {
+  const handleRemoveAllReactions = async () => {
     const message = reactionPicker.message;
     closeReactionPicker();
-    if (!message || !message.reactions?.my_reaction) return;
+    if (!message || !(message.reactions?.my_reactions?.length > 0)) return;
 
     const previousReactions = message.reactions;
     applyReactionUpdate(message.id, buildOptimisticRemove(message));
@@ -1727,52 +1733,138 @@ const ConversationScreen = ({ navigation, route }) => {
 
     const reactions = item.reactions;
     const hasReactions = reactions && reactions.total > 0;
-    const sideStyle = item.is_myself ? { left: -6 } : { right: -6 };
 
-    if (!hasReactions) {
-      return (
-        <TouchableOpacity
-          onPress={(evt) => openReactionPicker(item, evt)}
-          style={[
-            styles.reactionAddBadge,
-            sideStyle,
-            {
-              backgroundColor: isDarkMode ? "#262626" : "#ffffff",
-              borderColor: theme.border,
-            },
-          ]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="happy-outline" size={13} color={theme.subText} />
-        </TouchableOpacity>
-      );
-    }
+    // For my messages: row anchored at bottom-left → [...] [👍]
+    // For theirs: row anchored at bottom-right → [👍] [...]
+    const rowAnchor = item.is_myself
+      ? { left: -6 }
+      : { right: -6 };
 
-    const topEmoji =
-      [...reactions.summary].sort((a, b) => b.count - a.count)[0]?.type;
+    const bgColor = isDarkMode ? "#262626" : "#ffffff";
 
-    return (
+    // Top 2 emojis by count for the pill
+    const topTwo = hasReactions
+      ? [...reactions.summary]
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 2)
+          .map((s) => REACTION_EMOJI_BY_TYPE[s.type] || "👍")
+      : [];
+
+    const dotsBtn = (
       <TouchableOpacity
+        key="dots"
         onPress={(evt) => openReactionPicker(item, evt)}
         style={[
+          styles.reactionIconBtn,
+          { backgroundColor: bgColor, borderColor: theme.border },
+        ]}
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+      >
+        <Ionicons name="happy-outline" size={13} color={theme.subText} />
+      </TouchableOpacity>
+    );
+
+    const pill = hasReactions ? (
+      <TouchableOpacity
+        key="pill"
+        onPress={() => setReactionModal({ visible: true, reactions })}
+        style={[
           styles.reactionPillBadge,
-          sideStyle,
-          {
-            backgroundColor: isDarkMode ? "#262626" : "#ffffff",
-            borderColor: reactions.my_reaction ? theme.primary : theme.border,
-            borderWidth: reactions.my_reaction ? 1.5 : 1,
-          },
+          { backgroundColor: bgColor, borderColor: theme.border },
         ]}
       >
-        <Text style={styles.reactionPillEmoji}>
-          {REACTION_EMOJI_BY_TYPE[topEmoji] || "👍"}
+        <Text style={styles.reactionPillEmoji}>{topTwo.join("")}</Text>
+        <Text style={[styles.reactionPillCount, { color: theme.subText }]}>
+          {reactions.total}
         </Text>
-        {reactions.total > 1 && (
-          <Text style={[styles.reactionPillCount, { color: theme.subText }]}>
-            {reactions.total}
-          </Text>
-        )}
       </TouchableOpacity>
+    ) : null;
+
+    // Mine: [...] [pill?]  anchored at left
+    // Theirs: [pill?] [...]  anchored at right
+    const children = item.is_myself
+      ? [dotsBtn, pill]
+      : [pill, dotsBtn];
+
+    return (
+      <View
+        style={[
+          styles.reactionBadgeRow,
+          rowAnchor,
+        ]}
+      >
+        {children}
+      </View>
+    );
+  };
+
+  const renderReactionModal = () => {
+    const { visible, reactions } = reactionModal;
+    if (!visible || !reactions) return null;
+
+    const summary = reactions.summary || [];
+    const sorted = [...summary].sort((a, b) => b.count - a.count);
+
+    return (
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReactionModal({ visible: false, reactions: null })}
+      >
+        <TouchableWithoutFeedback
+          onPress={() => setReactionModal({ visible: false, reactions: null })}
+        >
+          <View style={styles.reactionModalBackdrop}>
+            <TouchableWithoutFeedback>
+              <View
+                style={[
+                  styles.reactionModalContainer,
+                  { backgroundColor: isDarkMode ? "#1c1c1e" : "#ffffff" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.reactionModalTitle,
+                    { color: theme.text },
+                  ]}
+                >
+                  {t("chatConversation.reactionCount", "{{count}} lượt thả cảm xúc", { count: reactions.total })}
+                </Text>
+                {sorted.map((s) => (
+                  <View key={s.type} style={styles.reactionModalRow}>
+                    <Text style={styles.reactionModalEmoji}>
+                      {REACTION_EMOJI_BY_TYPE[s.type] || "👍"}
+                    </Text>
+                    <View style={{ flex: 1 }}>
+                      {(s.users || []).map((u) => (
+                        <View key={u.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                          <Text
+                            style={[styles.reactionModalUser, { color: theme.text, flex: 1 }]}
+                            numberOfLines={1}
+                          >
+                            {u.profile_name || u.username}
+                          </Text>
+                          {u.count > 1 && (
+                            <Text style={[styles.reactionModalCount, { color: theme.subText, marginLeft: 6 }]}>
+                              ×{u.count}
+                            </Text>
+                          )}
+                        </View>
+                      ))}
+                      {(!s.users || s.users.length === 0) && (
+                        <Text style={[styles.reactionModalUser, { color: theme.subText }]}>
+                          {t("chatConversation.reactionTimes", "{{count}} lượt", { count: s.count })}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     );
   };
 
@@ -2444,12 +2536,14 @@ const ConversationScreen = ({ navigation, route }) => {
         />
       )}
 
+      {renderReactionModal()}
+
       <MessageReactionPicker
         visible={reactionPicker.visible}
         anchor={reactionPicker.anchor}
-        currentReaction={reactionPicker.message?.reactions?.my_reaction}
+        myReactions={reactionPicker.message?.reactions?.my_reactions || []}
         onSelect={handleSelectReaction}
-        onRemove={handleRemoveReaction}
+        onRemoveAll={handleRemoveAllReactions}
         onCopy={
           reactionPicker.message?.content &&
           !reactionPicker.message?.is_recalled &&
@@ -3053,9 +3147,14 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  reactionAddBadge: {
+  reactionBadgeRow: {
     position: "absolute",
-    bottom: -10,
+    bottom: -14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  reactionIconBtn: {
     width: 24,
     height: 24,
     borderRadius: 12,
@@ -3064,23 +3163,63 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   reactionPillBadge: {
-    position: "absolute",
-    bottom: -12,
-    minWidth: 32,
     height: 24,
     borderRadius: 12,
+    borderWidth: 1,
     paddingHorizontal: 6,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 2,
   },
   reactionPillEmoji: {
-    fontSize: 13,
+    fontSize: 12,
   },
   reactionPillCount: {
     fontSize: 11,
     fontWeight: "600",
-    marginLeft: 3,
+  },
+  reactionModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  reactionModalContainer: {
+    width: "100%",
+    maxWidth: 340,
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  reactionModalTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 14,
+    textAlign: "center",
+  },
+  reactionModalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    gap: 12,
+  },
+  reactionModalEmoji: {
+    fontSize: 28,
+  },
+  reactionModalUser: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  reactionModalCount: {
+    fontSize: 13,
+    fontWeight: "600",
   },
 });
 

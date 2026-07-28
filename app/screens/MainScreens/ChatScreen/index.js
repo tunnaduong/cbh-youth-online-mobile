@@ -169,13 +169,36 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (ids.length === 0) return undefined;
 
     const refresh = () => fetchConversationsRef.current?.();
-    const unsubscribers = ids.flatMap((id) => [
-      onMessageSent(id, refresh),
-      onMessageRead(id, refresh),
-      onMessageDeleted(id, refresh),
-      onMessageRecalled ? onMessageRecalled(id, refresh) : null,
-      onMessageEdited ? onMessageEdited(id, refresh) : null,
-    ].filter(Boolean));
+    const unsubscribers = ids.flatMap((id) => {
+      const numId = Number(id);
+      const handleRecalled = (data) => {
+        if (!data?.message_id) return;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === numId && c.latest_message?.id === data.message_id
+              ? { ...c, latest_message: { ...c.latest_message, is_recalled: true, content: null } }
+              : c
+          )
+        );
+      };
+      const handleEdited = (data) => {
+        if (!data?.message_id) return;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === numId && c.latest_message?.id === data.message_id
+              ? { ...c, latest_message: { ...c.latest_message, content: data.content, is_edited: true } }
+              : c
+          )
+        );
+      };
+      return [
+        onMessageSent(id, refresh),
+        onMessageRead(id, refresh),
+        onMessageDeleted(id, refresh),
+        onMessageRecalled ? onMessageRecalled(id, handleRecalled) : null,
+        onMessageEdited ? onMessageEdited(id, handleEdited) : null,
+      ].filter(Boolean);
+    });
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited]);

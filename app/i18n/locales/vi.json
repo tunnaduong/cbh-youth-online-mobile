@@ -469,7 +469,15 @@
     "editMessage": "Chỉnh sửa",
     "editingMessage": "Đang chỉnh sửa tin nhắn",
     "editMessageError": "Không thể chỉnh sửa tin nhắn. Vui lòng thử lại.",
-    "edited": "(Đã sửa)"
+    "edited": "(Đã sửa)",
+    "reactionCount": "{{count}} lượt thả cảm xúc",
+    "reactionTimes": "{{count}} lượt",
+    "shareUnavailable": "Chia sẻ không khả dụng trên thiết bị này.",
+    "loadImageError": "Không tải được ảnh",
+    "sending": "Đang gửi...",
+    "downloading": "Đang tải...",
+    "tapToOpen": "Nhấn để mở",
+    "attachment": "Tệp đính kèm"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
