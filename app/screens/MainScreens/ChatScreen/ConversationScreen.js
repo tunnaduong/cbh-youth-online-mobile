@@ -729,7 +729,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const fetchMessagesRef = useRef(fetchMessages);
   useEffect(() => {
     fetchMessagesRef.current = fetchMessages;
-  });
+  }); // intentionally omits dep array – always keeps the latest closure without re-subscribing sockets
 
   // Realtime: refresh messages the instant the backend pushes a chat event for this
   // conversation, replacing the old 5s poll.
@@ -807,7 +807,10 @@ const ConversationScreen = ({ navigation, route }) => {
       unsubscribeRecalled();
       unsubscribeEdited();
       clearTimeout(typingTimeoutRef.current);
-      setTypingUser(null);
+      // NOTE: Do NOT call setTypingUser(null) here.
+      // Calling setState inside a useEffect cleanup causes React to schedule
+      // another render → cleanup → setState → infinite "Maximum update depth"
+      // loop that also blocks the hardware back button.
     };
   }, [
     isNewConversation,
