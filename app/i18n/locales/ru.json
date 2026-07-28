@@ -527,6 +527,8 @@
     "downvotedPost": "не понравился ваш пост",
     "downvotedComment": "не понравился ваш комментарий",
     "mentionedComment": "упомянул вас в комментарии",
+    "mentionedInPost": "упомянул вас в публикации",
+    "mentionedInChat": "упомянул вас в сообщении",
     "reactedStory": "отреагировал",
     "toYourStory": "на вашу историю",
     "repliedStory": "прокомментировал вашу историю",

@@ -21,6 +21,7 @@ import {
   Animated,
   RefreshControl,
   Platform,
+  Keyboard,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
@@ -37,8 +38,11 @@ import {
   voteComment,
   updateComment,
   deleteComment,
+  getMentionSuggestions,
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
+import MentionText from "../../../components/MentionText";
+import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
@@ -98,6 +102,28 @@ const PostScreen = ({ route, navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingPost, setLoadingPost] = useState(false);
   const lottieRef = useRef(null);
+
+  const { mentionProps: commentMentionProps, suggestions: commentSuggestions, onSelectMention: onSelectCommentMention } = useMentionInput({
+    value: commentText,
+    onChange: setCommentText,
+    fetchSuggestions: getMentionSuggestions,
+  });
+
+  const { mentionProps: editMentionProps, suggestions: editSuggestions, onSelectMention: onSelectEditMention } = useMentionInput({
+    value: editingCommentText,
+    onChange: setEditingCommentText,
+    fetchSuggestions: getMentionSuggestions,
+  });
+
+  const activeSuggestions = editingCommentId ? editSuggestions : commentSuggestions;
+  const onSelectActiveMention = editingCommentId ? onSelectEditMention : onSelectCommentMention;
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -1075,14 +1101,17 @@ const PostScreen = ({ route, navigation }) => {
                   </View>
                 )}
                 {!!content && (
-                  <Text
+                  <MentionText
                     style={{
                       flexShrink: 1,
                       color: theme.text,
                     }}
+                    onMentionPress={(username) =>
+                      navigation.navigate("ProfileScreen", { username })
+                    }
                   >
                     {String(content)}
-                  </Text>
+                  </MentionText>
                 )}
                 {comment.image_urls?.length > 0 && (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
@@ -1261,6 +1290,23 @@ const PostScreen = ({ route, navigation }) => {
   ) : (
     <>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {activeSuggestions.length > 0 && (
+          <View
+            style={{
+              position: "absolute",
+              bottom: (keyboardHeight || insets.bottom) + 72,
+              left: 0,
+              right: 0,
+              zIndex: 50,
+            }}
+            pointerEvents="box-none"
+          >
+            <MentionSuggestions
+              suggestions={activeSuggestions}
+              onSelect={onSelectActiveMention}
+            />
+          </View>
+        )}
         {/* Floating header */}
         <View
           pointerEvents="box-none"
@@ -1461,11 +1507,7 @@ const PostScreen = ({ route, navigation }) => {
                 setIsAnonymousComment(false);
               }}
               value={editingCommentId ? editingCommentText : commentText}
-              onChangeText={(text) =>
-                editingCommentId
-                  ? setEditingCommentText(text)
-                  : setCommentText(text)
-              }
+              onChangeText={editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText}
               placeholderText={t("post.commentPlaceholder")}
               onSubmit={onSubmit}
               ref={commentInputRef}
@@ -1514,11 +1556,7 @@ const PostScreen = ({ route, navigation }) => {
                 setIsAnonymousComment(false);
               }}
               value={editingCommentId ? editingCommentText : commentText}
-              onChangeText={(text) =>
-                editingCommentId
-                  ? setEditingCommentText(text)
-                  : setCommentText(text)
-              }
+              onChangeText={editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText}
               placeholderText={t("post.commentPlaceholder")}
               onSubmit={onSubmit}
               ref={commentInputRef}

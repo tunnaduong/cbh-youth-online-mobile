@@ -15,12 +15,15 @@ import {
   Modal,
   PanResponder,
   TouchableWithoutFeedback,
+  Keyboard,
+  BackHandler,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useSafeAreaInsets,
   SafeAreaView,
 } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import ImageView from "react-native-image-viewing";
 import { useVideoPlayer, VideoView } from "expo-video";
 // import FastImage from "../../../components/FastImage";
@@ -36,7 +39,11 @@ import {
   removeMessageReaction,
   recallMessage,
   editMessage,
+  getConversationMentionSuggestions,
+  getMentionSuggestions,
 } from "../../../services/api/Api";
+import MentionText from "../../../components/MentionText";
+import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
 import ReplyPreviewBubble from "../../../components/ReplyPreviewBubble";
@@ -314,9 +321,57 @@ const ConversationScreen = ({ navigation, route }) => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
+  const activeConversationId = React.useRef(null);
+  const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention } = useMentionInput({
+    value: message,
+    onChange: setMessage,
+    fetchSuggestions: async (q) => {
+      const cid = activeConversationId.current;
+      if (cid) {
+        try {
+          return await getConversationMentionSuggestions(cid, q);
+        } catch (e) {
+          if (e?.response?.status === 404) {
+            return getMentionSuggestions(q);
+          }
+          throw e;
+        }
+      }
+      return getMentionSuggestions(q);
+    },
+  });
+
+  const [chatKeyboardHeight, setChatKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => setChatKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setChatKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
   useEffect(() => {
     dayjs.locale(i18n.language || "vi");
   }, [i18n.language]);
+
+  const safeGoBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate("MainScreens", { screen: "Chat" });
+    }
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        safeGoBack();
+        return true;
+      };
+
+      BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+    }, [navigation]),
+  );
+
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -341,6 +396,10 @@ const ConversationScreen = ({ navigation, route }) => {
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
+  // Keep the ref used by useMentionInput in sync with the resolved conversation id
+  React.useEffect(() => {
+    activeConversationId.current = currentConversationId || conversationId;
+  }, [currentConversationId, conversationId]);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t } = useTranslation();
   const {
@@ -419,7 +478,7 @@ const ConversationScreen = ({ navigation, route }) => {
               Alert.alert(
                 t("chatConversation.blockedTitle"),
                 t("chatConversation.blockedBody"),
-                [{ text: t("common.ok"), onPress: () => navigation.goBack() }],
+                [{ text: t("common.ok"), onPress: safeGoBack }],
               );
             } catch (e) {
               const errorMessage =
@@ -2460,7 +2519,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   </View>
                 </View>
               ) : !item.is_recalled ? (
-                <Text
+                <MentionText
                   style={[
                     styles.messageText,
                     {
@@ -2471,9 +2530,12 @@ const ConversationScreen = ({ navigation, route }) => {
                         : theme.text,
                     },
                   ]}
+                  onMentionPress={(username) =>
+                    navigation.navigate("ProfileScreen", { username })
+                  }
                 >
                   {item.content}
-                </Text>
+                </MentionText>
               ) : null}
             </Pressable>
             {renderReactionBadge(item)}
@@ -2527,6 +2589,23 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {messageSuggestions.length > 0 && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: (chatKeyboardHeight || insets.bottom) + 72,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+          }}
+          pointerEvents="box-none"
+        >
+          <MentionSuggestions
+            suggestions={messageSuggestions}
+            onSelect={onSelectMessageMention}
+          />
+        </View>
+      )}
       {/* Header */}
       <View
         pointerEvents="box-none"
@@ -2540,7 +2619,7 @@ const ConversationScreen = ({ navigation, route }) => {
         ]}
       >
         <View style={styles.headerContent}>
-          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={() => navigation.goBack()}>
+          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={safeGoBack}>
             <Ionicons name="chevron-back" size={22} color={theme.primary} />
           </LiquidButton>
 
@@ -2823,7 +2902,7 @@ const ConversationScreen = ({ navigation, route }) => {
               placeholderText={t("chat.typeMessage")}
               onSubmit={handleSendMessage}
               onChangeText={(text) => {
-                setMessage(text);
+                messageMentionProps.onChangeText(text);
                 sendTyping(currentConversationId || conversationId);
               }}
               value={message}

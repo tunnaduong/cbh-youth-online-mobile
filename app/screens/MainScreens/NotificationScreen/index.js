@@ -88,7 +88,9 @@ const formatNotificationMessage = (notification, t) => {
     case "comment_replied":
       return t('notifications.repliedComment');
     case "mentioned":
-      return t('notifications.mentionedComment');
+      if (data?.conversation_id) return t('notifications.mentionedInChat');
+      if (data?.comment_id) return t('notifications.mentionedComment');
+      return t('notifications.mentionedInPost');
     case "followed":
       return t('notifications.followedYou');
     case "story_reacted":
@@ -459,6 +461,11 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             } else {
               navigation.navigate("Chat");
             }
+          } else if (item.type === "mentioned" && item.data?.conversation_id) {
+            navigation.navigate("ConversationScreen", {
+              conversationId: item.data.conversation_id,
+              highlightMessageId: item.data?.message_id,
+            });
           } else if (item.type === "followed") {
             if (item.actor?.username && !isAnonymous) {
               navigation.navigate("ProfileScreen", {

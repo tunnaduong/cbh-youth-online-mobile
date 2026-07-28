@@ -518,6 +518,8 @@
     "downvotedPost": "disliked your post",
     "downvotedComment": "disliked your comment",
     "mentionedComment": "mentioned you in a comment",
+    "mentionedInPost": "mentioned you in a post",
+    "mentionedInChat": "mentioned you in a message",
     "reactedStory": "reacted",
     "toYourStory": "to your story",
     "repliedStory": "commented on your story",

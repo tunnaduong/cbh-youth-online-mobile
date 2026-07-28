@@ -551,3 +551,11 @@ export const unblockUser = (userId) => {
 export const getBlockedUsers = () => {
   return Api.getRequest("/v1.0/users/blocked");
 };
+
+export const getMentionSuggestions = (q) => {
+  return Api.getRequest(`/v1.0/mention-suggestions?q=${encodeURIComponent(q)}`);
+};
+
+export const getConversationMentionSuggestions = (conversationId, q) => {
+  return Api.getRequest(`/v1.0/conversations/${conversationId}/mention-suggestions?q=${encodeURIComponent(q)}`);
+};

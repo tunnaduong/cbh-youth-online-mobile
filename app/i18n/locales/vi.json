@@ -507,6 +507,8 @@
     "downvotedPost": "không thích bài đăng",
     "downvotedComment": "không thích bình luận của bạn",
     "mentionedComment": "nhắc đến bạn trong một bình luận",
+    "mentionedInPost": "nhắc đến bạn trong một bài viết",
+    "mentionedInChat": "nhắc đến bạn trong tin nhắn",
     "reactedStory": "đã thả cảm xúc",
     "toYourStory": "vào tin của bạn",
     "repliedStory": "đã bình luận về tin của bạn",
