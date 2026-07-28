@@ -13,6 +13,7 @@ import {
   StatusBar,
   Dimensions,
   Modal,
+  PanResponder,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -199,6 +200,81 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
         )}
       </View>
     </Modal>
+  );
+};
+
+const SWIPE_THRESHOLD = 55;
+const SWIPE_ICON_OFFSET = 44;
+
+const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const iconOpacity = useRef(new Animated.Value(0)).current;
+  const triggeredRef = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderGrant: () => {
+        triggeredRef.current = false;
+      },
+      onPanResponderMove: (_, g) => {
+        // My messages: swipe left (negative dx), others: swipe right (positive dx)
+        const raw = isMyMessage ? Math.min(0, g.dx) : Math.max(0, g.dx);
+        const clamped = isMyMessage
+          ? Math.max(-SWIPE_THRESHOLD - 10, raw)
+          : Math.min(SWIPE_THRESHOLD + 10, raw);
+        translateX.setValue(clamped);
+        const progress = Math.min(Math.abs(clamped) / SWIPE_THRESHOLD, 1);
+        iconOpacity.setValue(progress);
+        if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
+          triggeredRef.current = true;
+          onSwipe?.();
+        }
+      },
+      onPanResponderRelease: () => {
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 120, friction: 10 }).start();
+        Animated.timing(iconOpacity, { toValue: 0, duration: 150, useNativeDriver: true }).start();
+      },
+    })
+  ).current;
+
+  const iconTranslateX = translateX.interpolate({
+    inputRange: isMyMessage ? [-(SWIPE_THRESHOLD + 10), 0] : [0, SWIPE_THRESHOLD + 10],
+    outputRange: isMyMessage ? [-(SWIPE_ICON_OFFSET + 10), 0] : [0, SWIPE_ICON_OFFSET + 10],
+    extrapolate: "clamp",
+  });
+
+  return (
+    <View style={{ overflow: "visible" }}>
+      {/* Reply icon — appears on the opposite side of the bubble */}
+      <Animated.View
+        style={{
+          position: "absolute",
+          [isMyMessage ? "left" : "right"]: 4,
+          top: "50%",
+          marginTop: -14,
+          opacity: iconOpacity,
+          transform: [{ translateX: iconTranslateX }],
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          backgroundColor: "rgba(0,0,0,0.15)",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1,
+        }}
+        pointerEvents="none"
+      >
+        <Ionicons name="arrow-undo" size={16} color="#fff" />
+      </Animated.View>
+      <Animated.View
+        style={{ transform: [{ translateX }] }}
+        {...panResponder.panHandlers}
+      >
+        {children}
+      </Animated.View>
+    </View>
   );
 };
 
@@ -1761,7 +1837,25 @@ const ConversationScreen = ({ navigation, route }) => {
     const resolvedFileUrl = resolveMediaUrl(item.file_url);
     const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
 
+    const handleSwipeReply = () => {
+      const contentType =
+        item.type === "image" || item.type === "video" || item.type === "file"
+          ? item.type
+          : item.content_type === "image" || item.content_type === "video" || item.content_type === "file"
+            ? item.content_type
+            : "text";
+      setReplyingTo({
+        id: item.id,
+        content: contentType === "text" ? item.content : null,
+        type: contentType,
+        file_url: item.file_url ?? null,
+        sender: item.sender,
+      });
+      inputRef.current?.focus?.();
+    };
+
     return (
+      <SwipeableMessage isMyMessage={item.is_myself} onSwipe={handleSwipeReply}>
       <View
         style={[
           // Add extra spacing for group chats when sender changes (applies to entire message block)
@@ -2100,6 +2194,7 @@ const ConversationScreen = ({ navigation, route }) => {
           </View>
         )}
       </View>
+      </SwipeableMessage>
     );
   };
 
