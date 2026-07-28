@@ -141,7 +141,7 @@ const MessageReactionPicker = ({
                 onPress={onRecall}
                 activeOpacity={0.6}
               >
-                <Ionicons name="arrow-undo-circle-outline" size={18} color="#ef4444" />
+                <Ionicons name="trash-outline" size={18} color="#ef4444" />
                 <Text style={[styles.replyText, { color: "#ef4444" }]}>
                   {t("chatConversation.recall", "Thu hồi")}
                 </Text>
