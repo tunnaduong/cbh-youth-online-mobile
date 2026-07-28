@@ -2064,7 +2064,7 @@ const ConversationScreen = ({ navigation, route }) => {
                         ],
                 !item.is_myself && !isLastInGroup && { marginLeft: 40 },
               ]}
-              onLongPress={item.is_recalled ? undefined : (evt) => openReactionPicker(item, evt)}
+              onLongPress={(evt) => openReactionPicker(item, evt)}
               delayLongPress={350}
               onPress={
                 item.is_recalled ? undefined :

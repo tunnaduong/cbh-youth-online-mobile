@@ -227,6 +227,15 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const renderLastMessagePreview = (latestMessage) => {
     if (!latestMessage) return t("chat.noMessages");
 
+    if (latestMessage.is_recalled) {
+      return (
+        <>
+          <Ionicons name="arrow-undo-outline" size={14} color={theme.subText} />{" "}
+          {t("chatConversation.recalled", "Tin nhắn đã bị thu hồi")}
+        </>
+      );
+    }
+
     const type = latestMessage.type || latestMessage.content_type;
 
     if (type === "image") {
