@@ -1074,14 +1074,32 @@ const PostScreen = ({ route, navigation }) => {
                     </Text>
                   </View>
                 )}
-                <Text
-                  style={{
-                    flexShrink: 1,
-                    color: theme.text,
-                  }}
-                >
-                  {String(content)}
-                </Text>
+                {!!content && (
+                  <Text
+                    style={{
+                      flexShrink: 1,
+                      color: theme.text,
+                    }}
+                  >
+                    {String(content)}
+                  </Text>
+                )}
+                {comment.image_urls?.length > 0 && (
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
+                    {comment.image_urls.map((url, idx) => (
+                      <Image
+                        key={idx}
+                        source={{ uri: url }}
+                        style={{
+                          width: comment.image_urls.length === 1 ? 200 : 96,
+                          height: comment.image_urls.length === 1 ? 200 : 96,
+                          borderRadius: 8,
+                        }}
+                        resizeMode="cover"
+                      />
+                    ))}
+                  </View>
+                )}
                 <View className="flex-row items-center mt-1">
                   <Text style={{ fontSize: 12, color: "gray" }}>
                     {comment.created_at ? formatTime(comment.created_at) : ""}
