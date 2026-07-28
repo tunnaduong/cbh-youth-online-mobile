@@ -263,7 +263,11 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       );
     }
 
-    return latestMessage.content || t("chat.noMessages");
+    const content = latestMessage.content || t("chat.noMessages");
+    if (latestMessage.is_edited) {
+      return `${content} ${t("chatConversation.edited", "(Đã sửa)")}`;
+    }
+    return content;
   };
 
   const renderItem = ({ item }) => (

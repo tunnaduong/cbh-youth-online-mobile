@@ -28,6 +28,7 @@ export const ChatSocketProvider = ({ children }) => {
         typing: new Set(),
         reacted: new Set(),
         recalled: new Set(),
+        edited: new Set(),
       };
     }
     return listenersRef.current[id];
@@ -64,6 +65,10 @@ export const ChatSocketProvider = ({ children }) => {
       .listen(".message.recalled", (e) => {
         console.log("[ChatSocket] message.recalled on chat." + id, e);
         bucket.recalled.forEach((cb) => cb(e));
+      })
+      .listen(".message.edited", (e) => {
+        console.log("[ChatSocket] message.edited on chat." + id, e);
+        bucket.edited.forEach((cb) => cb(e));
       })
       .listenForWhisper("typing", (data) => {
         if (!data || String(data.user_id) === String(userInfo?.id)) return;
@@ -124,6 +129,10 @@ export const ChatSocketProvider = ({ children }) => {
     (conversationId, callback) => addListener("recalled", conversationId, callback),
     [addListener]
   );
+  const onMessageEdited = useCallback(
+    (conversationId, callback) => addListener("edited", conversationId, callback),
+    [addListener]
+  );
 
   const sendTyping = useCallback(
     (conversationId) => {
@@ -166,6 +175,7 @@ export const ChatSocketProvider = ({ children }) => {
     onMessageDeleted,
     onMessageReacted,
     onMessageRecalled,
+    onMessageEdited,
     onTyping,
     sendTyping,
   };

@@ -465,7 +465,11 @@
     "recall": "Thu hồi",
     "recalled": "Tin nhắn đã bị thu hồi",
     "recallTitle": "Thu hồi tin nhắn",
-    "recallConfirm": "Tin nhắn sẽ bị thu hồi với tất cả mọi người."
+    "recallConfirm": "Tin nhắn sẽ bị thu hồi với tất cả mọi người.",
+    "editMessage": "Chỉnh sửa",
+    "editingMessage": "Đang chỉnh sửa tin nhắn",
+    "editMessageError": "Không thể chỉnh sửa tin nhắn. Vui lòng thử lại.",
+    "edited": "(Đã sửa)"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",

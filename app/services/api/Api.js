@@ -473,6 +473,10 @@ export const removeMessageReaction = (messageId) => {
 
 export const recallMessage = (messageId) => {
   return Api.postRequest(`/v1.0/chat/messages/${messageId}/recall`);
+}
+
+export const editMessage = (messageId, content) => {
+  return Api.putRequest(`/v1.0/chat/messages/${messageId}`, { content });
 };
 
 // Notifications

@@ -34,6 +34,7 @@ import {
   reactToMessage,
   removeMessageReaction,
   recallMessage,
+  editMessage,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
 import CommentBar from "../../../components/CommentBar";
@@ -327,9 +328,12 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageDeleted,
     onMessageReacted,
     onMessageRecalled,
+    onMessageEdited,
     onTyping,
     sendTyping,
   } = useChatSocket();
+  // { id, content } | null — message currently being edited
+  const [editingMessage, setEditingMessage] = useState(null);
   const [typingUser, setTypingUser] = useState(null);
   const typingTimeoutRef = useRef(null);
   const [imageViewer, setImageViewer] = useState({ visible: false, uri: null });
@@ -691,6 +695,16 @@ const ConversationScreen = ({ navigation, route }) => {
         )
       );
     };
+    const handleEdited = (data) => {
+      if (!data?.message_id) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === data.message_id
+            ? { ...m, content: data.content, is_edited: true }
+            : m
+        )
+      );
+    };
 
     const unsubscribeSent = onMessageSent(activeId, refreshAndScroll);
     const unsubscribeRead = onMessageRead(activeId, refresh);
@@ -698,6 +712,7 @@ const ConversationScreen = ({ navigation, route }) => {
     const unsubscribeTyping = onTyping(activeId, handleTyping);
     const unsubscribeReacted = onMessageReacted(activeId, handleReacted);
     const unsubscribeRecalled = onMessageRecalled(activeId, handleRecalled);
+    const unsubscribeEdited = onMessageEdited ? onMessageEdited(activeId, handleEdited) : () => {};
 
     return () => {
       unsubscribeSent();
@@ -706,6 +721,7 @@ const ConversationScreen = ({ navigation, route }) => {
       unsubscribeTyping();
       unsubscribeReacted();
       unsubscribeRecalled();
+      unsubscribeEdited();
       clearTimeout(typingTimeoutRef.current);
       setTypingUser(null);
     };
@@ -718,6 +734,7 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageDeleted,
     onMessageReacted,
     onMessageRecalled,
+    onMessageEdited,
     onTyping,
   ]);
 
@@ -1181,7 +1198,7 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleSendMessage = async () => {
+  const handleSendNewMessage = async () => {
     scrollToLatestMessageAnimated();
     const tempId = Date.now().toString();
     // Declared outside the try block (not just above the catch) so it's
@@ -1619,6 +1636,55 @@ const ConversationScreen = ({ navigation, route }) => {
         },
       ]
     );
+  };
+
+  const handleEditMessageAction = () => {
+    const item = reactionPicker.message;
+    closeReactionPicker();
+    if (!item || item.is_recalled) return;
+    setEditingMessage({ id: item.id, originalContent: item.content });
+    setMessage(item.content || "");
+    inputRef.current?.focus?.();
+  };
+
+  const cancelEdit = () => {
+    setEditingMessage(null);
+    setMessage("");
+  };
+
+  const handleSendMessage = async () => {
+    if (editingMessage) {
+      await handleSubmitEdit();
+      return;
+    }
+    await handleSendNewMessage();
+  };
+
+  const handleSubmitEdit = async () => {
+    const trimmed = message.trim();
+    if (!trimmed || sending) return;
+    const { id, originalContent } = editingMessage;
+
+    setEditingMessage(null);
+    setMessage("");
+    // Optimistic update
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, content: trimmed, is_edited: true } : m
+      )
+    );
+
+    try {
+      await editMessage(id, trimmed);
+    } catch (e) {
+      // Revert on error
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === id ? { ...m, content: originalContent, is_edited: m.is_edited } : m
+        )
+      );
+      Toast.show({ type: "error", text1: t("common.error"), text2: t("chatConversation.editMessageError", "Không thể chỉnh sửa tin nhắn") });
+    }
   };
 
   const handleSelectReaction = async (type) => {
@@ -2242,6 +2308,11 @@ const ConversationScreen = ({ navigation, route }) => {
           >
             <Text style={[styles.messageTime, { color: theme.subText }]}>
               {formatMessageTime(item.created_at, t)}
+              {item.is_edited && !item.is_recalled ? (
+                <Text style={{ fontSize: 11, fontStyle: "italic", color: theme.subText }}>
+                  {" "}{t("chatConversation.edited", "(Đã sửa)")}
+                </Text>
+              ) : null}
             </Text>
             {item.is_myself && (
               <View style={styles.readStatus}>
@@ -2392,6 +2463,19 @@ const ConversationScreen = ({ navigation, route }) => {
             : undefined
         }
         onReply={reactionPicker.message?.is_recalled ? undefined : handleReplyToMessage}
+        onEdit={
+          reactionPicker.message?.is_myself &&
+          !reactionPicker.message?.is_recalled &&
+          (reactionPicker.message?.type === "message" || reactionPicker.message?.content_type == null || reactionPicker.message?.content_type === "text") &&
+          reactionPicker.message?.content_type !== "image" &&
+          reactionPicker.message?.content_type !== "video" &&
+          reactionPicker.message?.content_type !== "file" &&
+          reactionPicker.message?.type !== "image" &&
+          reactionPicker.message?.type !== "video" &&
+          reactionPicker.message?.type !== "file"
+            ? handleEditMessageAction
+            : undefined
+        }
         onRecall={
           reactionPicker.message?.is_myself && !reactionPicker.message?.is_recalled
             ? handleRecallMessage
@@ -2509,8 +2593,34 @@ const ConversationScreen = ({ navigation, route }) => {
               <Ionicons name="chevron-down" size={22} color={isDarkMode ? "#fff" : "#333"} />
             </TouchableOpacity>
           )}
+          {editingMessage && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0",
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: theme.border,
+              }}
+            >
+              <Ionicons name="pencil-outline" size={16} color={theme.primary} style={{ marginRight: 8 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: theme.primary }} numberOfLines={1}>
+                  {t("chatConversation.editingMessage", "Đang chỉnh sửa tin nhắn")}
+                </Text>
+                <Text style={{ fontSize: 13, color: theme.subText }} numberOfLines={1}>
+                  {editingMessage.originalContent}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={cancelEdit} hitSlop={10} style={{ marginLeft: 8, padding: 4 }}>
+                <Ionicons name="close" size={18} color={theme.subText} />
+              </TouchableOpacity>
+            </View>
+          )}
           <ReplyComposerBar
-            replyingTo={replyingTo}
+            replyingTo={editingMessage ? null : replyingTo}
             currentUsername={username}
             onCancel={cancelReply}
           />

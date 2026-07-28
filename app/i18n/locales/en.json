@@ -476,7 +476,11 @@
     "recall": "Unsend",
     "recalled": "This message was unsent",
     "recallTitle": "Unsend message",
-    "recallConfirm": "This message will be unsent for everyone."
+    "recallConfirm": "This message will be unsent for everyone.",
+    "editMessage": "Edit",
+    "editingMessage": "Editing message",
+    "editMessageError": "Could not edit message. Please try again.",
+    "edited": "(Edited)"
   },
   "blockedUsers": {
     "title": "Blocked users",

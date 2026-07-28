@@ -37,6 +37,7 @@ const MessageReactionPicker = ({
   onRemove,
   onReply,
   onCopy,
+  onEdit,
   onRecall,
   onClose,
 }) => {
@@ -132,6 +133,18 @@ const MessageReactionPicker = ({
                 <Ionicons name="arrow-undo-outline" size={18} color={theme.text} />
                 <Text style={[styles.replyText, { color: theme.text }]}>
                   {t("chatConversation.reply", "Trả lời")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onEdit && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onEdit}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="pencil-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.editMessage", "Chỉnh sửa")}
                 </Text>
               </TouchableOpacity>
             )}
