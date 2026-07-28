@@ -41,7 +41,7 @@ import ReplyComposerBar from "../../../components/ReplyComposerBar";
 import MessageReactionPicker, {
   REACTION_EMOJI_BY_TYPE,
 } from "../../../components/MessageReactionPicker";
-import { Alert, ActionSheetIOS, KeyboardAvoidingView } from "react-native";
+import { Alert, ActionSheetIOS, KeyboardAvoidingView, Clipboard } from "react-native";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
 import "dayjs/locale/vi";
@@ -1557,6 +1557,27 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const cancelReply = () => setReplyingTo(null);
 
+  const handleCopyMessage = () => {
+    const item = reactionPicker.message;
+    closeReactionPicker();
+    if (!item) return;
+
+    const isImage = item.type === "image" || item.content_type === "image";
+    const isVideo = item.type === "video" || item.content_type === "video";
+    const isFile  = item.type === "file"  || item.content_type === "file";
+
+    let textToCopy = "";
+    if (isImage || isVideo || isFile) {
+      textToCopy = resolveMediaUrl(item.file_url) || "";
+    } else {
+      textToCopy = item.content || "";
+    }
+
+    if (!textToCopy) return;
+    Clipboard.setString(textToCopy);
+    Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
+  };
+
   const handleSelectReaction = async (type) => {
     const message = reactionPicker.message;
     closeReactionPicker();
@@ -2306,6 +2327,7 @@ const ConversationScreen = ({ navigation, route }) => {
         currentReaction={reactionPicker.message?.reactions?.my_reaction}
         onSelect={handleSelectReaction}
         onRemove={handleRemoveReaction}
+        onCopy={handleCopyMessage}
         onReply={handleReplyToMessage}
         onClose={closeReactionPicker}
       />

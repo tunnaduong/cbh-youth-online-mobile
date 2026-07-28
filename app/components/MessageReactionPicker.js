@@ -36,6 +36,7 @@ const MessageReactionPicker = ({
   onSelect,
   onRemove,
   onReply,
+  onCopy,
   onClose,
 }) => {
   const { theme, isDarkMode } = useTheme();
@@ -109,6 +110,18 @@ const MessageReactionPicker = ({
                 />
               </TouchableOpacity>
             </View>
+            {onCopy && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onCopy}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="copy-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.copy", "Sao chép")}
+                </Text>
+              </TouchableOpacity>
+            )}
             {onReply && (
               <TouchableOpacity
                 style={[styles.replyRow, { borderTopColor: theme.border }]}
