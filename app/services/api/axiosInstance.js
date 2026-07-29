@@ -2,6 +2,11 @@ import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSocketId } from "../echo/echo";
 
+// Online-status should not be hammered on every API response.
+// Throttle to at most once every 60 seconds.
+let lastOnlineStatusAt = 0;
+const ONLINE_STATUS_INTERVAL = 60_000;
+
 // You can define the base URL here or make it dynamic
 const axiosInstance = axios.create({
   baseURL: "https://api.chuyenbienhoa.com/", // Replace with your API's base URL
@@ -80,13 +85,16 @@ axiosInstance.interceptors.response.use(
 
       // Don't call updateOnlineStatus if the current request is already updating online status
       // or if the user is not authenticated
+      const now = Date.now();
       if (
         token &&
         !response.config.url.includes("/v1.0/online-status") &&
         !response.config.url.includes("/v1.0/login") &&
-        !response.config.url.includes("/v1.0/register")
+        !response.config.url.includes("/v1.0/register") &&
+        now - lastOnlineStatusAt >= ONLINE_STATUS_INTERVAL
       ) {
-        await axiosInstance.post("/v1.0/online-status");
+        lastOnlineStatusAt = now;
+        axiosInstance.post("/v1.0/online-status").catch(() => {});
       }
     } catch (error) {
       console.error("--- ONLINE STATUS UPDATE ERROR ---");
