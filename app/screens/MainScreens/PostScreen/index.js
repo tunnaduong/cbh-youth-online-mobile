@@ -1183,9 +1183,11 @@ const PostScreen = ({ route, navigation }) => {
                       setCommentVotesModal({
                         visible: true,
                         commentId: comment.id,
-                        commentPreview: comment.content ?? "",
+                        commentPreview: typeof comment.content === "string" ? comment.content : "",
                       })
                     }
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ alignItems: "center", paddingVertical: 4, paddingHorizontal: 6 }}
                   >
                     <Text
                       style={[
