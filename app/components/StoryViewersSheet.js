@@ -17,6 +17,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
+import formatTime from "../utils/formatTime";
 
 // Map reaction types to emojis
 const reactionToEmoji = {
@@ -171,7 +172,7 @@ const StoryViewersSheet = () => {
       {item.viewed_at ? (
         <View style={styles.metaWrap}>
           <Ionicons name="time-outline" size={13} color={theme.subText} />
-          <Text style={[styles.viewedAt, { color: theme.subText }]}>{item.viewed_at_human || item.viewed_at}</Text>
+          <Text style={[styles.viewedAt, { color: theme.subText }]}>{formatTime(item.viewed_at || item.viewed_at_human)}</Text>
         </View>
       ) : null}
     </TouchableOpacity>
