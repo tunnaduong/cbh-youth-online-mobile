@@ -1530,6 +1530,24 @@ const PostScreen = ({ route, navigation }) => {
           imageIndex={imageViewer.index}
           visible={imageViewer.visible}
           onRequestClose={() => setImageViewer({ visible: false, images: [], index: 0 })}
+          HeaderComponent={() => (
+            <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
+              <TouchableOpacity
+                onPress={() => setImageViewer({ visible: false, images: [], index: 0 })}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: "#00000077",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+                hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+              >
+                <Ionicons name="close" size={22} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          )}
         />
 
         {Platform.OS === 'android' || Platform.OS === 'ios' ? (
