@@ -23,12 +23,23 @@ const LiquidHeaderBackground = ({ providerId }) => {
       );
     }
     if (BlurView) {
+      // iOS < 26 has no real Liquid Glass, so the plain blur reads as too
+      // transparent/washed out on its own - stack a theme tint on top to
+      // match the tinted look Android and iOS 26+ glass already have.
       return (
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType={isDarkMode ? "dark" : "light"}
-          blurAmount={10}
-        />
+        <View style={StyleSheet.absoluteFill}>
+          <BlurView
+            style={StyleSheet.absoluteFill}
+            blurType={isDarkMode ? "dark" : "light"}
+            blurAmount={10}
+          />
+          <View
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: isDarkMode ? "rgba(17,17,17,0.55)" : "rgba(248,248,248,0.55)" },
+            ]}
+          />
+        </View>
       );
     }
     return (

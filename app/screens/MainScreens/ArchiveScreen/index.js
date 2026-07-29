@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  Animated,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryArchive } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
@@ -23,6 +24,8 @@ import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const { width } = Dimensions.get("window");
 const STORY_SIZE = (width - 48) / 3; // 3 columns with padding
@@ -37,6 +40,17 @@ const ArchiveScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = 64 + insets.top;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false }
+  );
 
   const formatDateHeader = (dateStr) => {
     if (!dateStr) return "";
@@ -370,44 +384,58 @@ const ArchiveScreen = ({ route, navigation }) => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { backgroundColor: theme.headerBackground, borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="#319527" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('archive.title')}</Text>
-        <View style={{ width: 24 }} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Floating header */}
+      <View pointerEvents="box-none" style={styles.floatingHeader}>
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
+          <View style={{ width: 44 }}>
+            <LiquidButton providerId="ArchiveScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={22} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
+            numberOfLines={1}
+          >
+            {t('archive.title')}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
-      {/* Privacy notice */}
-      <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-        <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
-        <Text style={[styles.privacyText, { color: theme.subText }]}>
-          {t('archive.privacyNotice')}
-        </Text>
-      </View>
-
-      {loading ? (
-        <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
-          <ActivityIndicator size="large" color="#319527" />
-        </View>
-      ) : archiveData.length === 0 ? (
-        <View style={[styles.emptyContainer, { backgroundColor: theme.background }]}>
-          <Ionicons name="archive-outline" size={64} color={theme.placeholder} />
-          <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.empty')}</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={archiveData}
-          renderItem={renderDateSection}
-          keyExtractor={(item) => item.date}
-          initialNumToRender={5}
-          maxToRenderPerBatch={5}
-          windowSize={5}
-          removeClippedSubviews={Platform.OS === 'android'}
-          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 16 }]}
-        />
-      )}
+      <AndroidGlassBackdrop providerId="ArchiveScreen" style={{ flex: 1 }}>
+        {loading ? (
+          <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+            <ActivityIndicator size="large" color="#319527" />
+          </View>
+        ) : archiveData.length === 0 ? (
+          <View style={[styles.emptyContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+            <Ionicons name="archive-outline" size={64} color={theme.placeholder} />
+            <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.empty')}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={archiveData}
+            renderItem={renderDateSection}
+            keyExtractor={(item) => item.date}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            initialNumToRender={5}
+            maxToRenderPerBatch={5}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
+            ListHeaderComponent={
+              <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
+                <Text style={[styles.privacyText, { color: theme.subText }]}>
+                  {t('archive.privacyNotice')}
+                </Text>
+              </View>
+            }
+            contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }]}
+          />
+        )}
+      </AndroidGlassBackdrop>
 
       {selectedStories && (
         <InstagramStories
@@ -432,7 +460,7 @@ const ArchiveScreen = ({ route, navigation }) => {
       )}
 
       <StoryViewersSheet />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -441,19 +469,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#319527",
   },
   privacyNotice: {
     flexDirection: "row",
