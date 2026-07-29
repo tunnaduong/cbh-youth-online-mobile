@@ -28,6 +28,8 @@ const SettingItem = ({
   icon,
   title,
   onPress,
+  onLongPress,
+  delayLongPress,
   value,
   isSwitch,
   chevron = true,
@@ -41,6 +43,8 @@ const SettingItem = ({
       { borderBottomColor: theme.border },
     ]}
     onPress={onPress}
+    onLongPress={onLongPress}
+    delayLongPress={delayLongPress}
     disabled={isSwitch}
     activeOpacity={0.7}
   >
@@ -267,6 +271,8 @@ export default function SettingsScreen({ navigation }) {
             icon="information-circle-outline"
             title={t("settings.about")}
             onPress={() => navigation.navigate("AboutScreen")}
+            onLongPress={() => navigation.navigate("EasterEggScreen")}
+            delayLongPress={3000}
           />
         </SettingSection>
 
@@ -319,6 +325,12 @@ export default function SettingsScreen({ navigation }) {
             style={[styles.socialButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
           >
             <Ionicons name="logo-facebook" size={22} color="#1877F2" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => Linking.openURL("https://discord.chuyenbienhoa.com/")}
+            style={[styles.socialButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
+          >
+            <Ionicons name="logo-discord" size={22} color="#5865F2" />
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>

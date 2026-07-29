@@ -39,6 +39,7 @@ import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
+import EasterEggScreen from "./app/screens/MainScreens/SettingsScreen/EasterEggScreen";
 import TermsOfServiceScreen from "./app/screens/MainScreens/SettingsScreen/TermsOfServiceScreen";
 import PrivacyPolicyScreen from "./app/screens/MainScreens/SettingsScreen/PrivacyPolicyScreen";
 import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
@@ -552,6 +553,13 @@ const App = () => {
               <Stack.Screen
                 name="AboutScreen"
                 component={AboutScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="EasterEggScreen"
+                component={EasterEggScreen}
                 options={{
                   headerShown: false,
                 }}
