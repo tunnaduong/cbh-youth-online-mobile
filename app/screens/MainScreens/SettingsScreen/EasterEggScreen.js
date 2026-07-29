@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, StatusBar } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,10 +8,17 @@ import LiquidButton from "../../../components/LiquidButton";
 
 export default function EasterEggScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={theme.background}
+      />
+      {/* Status-bar coloured fill so the WebView doesn't bleed behind it */}
+      <View style={{ height: insets.top, backgroundColor: theme.background }} />
+
       {/* Floating back button */}
       <View
         pointerEvents="box-none"

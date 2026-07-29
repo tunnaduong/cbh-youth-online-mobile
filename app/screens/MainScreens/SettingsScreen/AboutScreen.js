@@ -96,7 +96,7 @@ export default function AboutScreen({ navigation }) {
         <View style={styles.schoolInfo}>
           <Image
             source={require("../../../assets/school-logo-removebg.png")}
-            style={[styles.schoolLogo, { resizeMode: 'contain' }]}
+            style={[styles.schoolLogo, { resizeMode: 'contain', borderRadius: 0, backgroundColor: isDarkMode ? '#ffffff' : 'transparent' }]}
           />
           <Text style={[styles.schoolName, { color: theme.primary }]}>{t("about.schoolName")}</Text>
         </View>
