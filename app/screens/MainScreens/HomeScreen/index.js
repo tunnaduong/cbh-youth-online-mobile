@@ -1377,6 +1377,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return "https://placehold.co/1080x1920/111827/ffffff.png?text=Story";
   };
 
+  // The feed's embedded `story.viewers` array includes the owner's own
+  // auto-recorded view, unlike the dedicated /stories/{id}/viewers endpoint
+  // used by the viewers-list modal, so it must be excluded here to match.
+  const getStoryViewersCount = (story) => {
+    const viewers = story?.viewers || [];
+    return viewers.filter((viewer) => {
+      const viewerId = viewer?.id ?? viewer?.user_id;
+      if (viewerId != null && userInfo?.id != null) {
+        return String(viewerId) !== String(userInfo.id);
+      }
+      return viewer?.username !== userInfo?.username;
+    }).length;
+  };
+
   const transformStoriesData = (apiResponse) => {
     if (!apiResponse?.data) return [];
 
@@ -1442,7 +1456,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           previewText: textContent,
           mediaType: isVideoStory ? "video" : undefined,
           duration: story.duration,
-          viewers_count: story.viewers?.length || 0,
+          viewers_count: getStoryViewersCount(story),
           is_muted: story.is_muted || false,
           renderContent: (() => {
             const colors = gradientColors;
@@ -1500,7 +1514,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               userId={user.id}
               username={user.username}
               navigation={navigation}
-              viewersCount={story.viewers?.length || 0}
+              viewersCount={getStoryViewersCount(story)}
               onDismissStory={dismissStoryModal}
               storyRef={storyRef}
             />

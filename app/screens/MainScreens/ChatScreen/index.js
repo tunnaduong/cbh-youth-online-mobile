@@ -349,9 +349,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           style={[styles.avatar, { backgroundColor: theme.border }]}
         />
         {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
-          <View style={[styles.onlineDotOuter, { borderColor: theme.background }]}>
-            <View style={styles.onlineDotInner} />
-          </View>
+          <View style={styles.onlineDot} />
         ) : null}
       </View>
       <View style={styles.info}>
@@ -545,18 +543,10 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
   },
-  onlineDotOuter: {
+  onlineDot: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 15,
-    height: 15,
-    borderRadius: 999,
-    borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  onlineDotInner: {
     width: 9,
     height: 9,
     borderRadius: 999,

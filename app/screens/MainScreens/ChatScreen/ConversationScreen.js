@@ -2589,9 +2589,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   />
                 </View>
                 {currentConversation?.type !== "group" && isOtherUserOnline ? (
-                  <View style={[styles.headerOnlineDotOuter, { borderColor: theme.background }]}>
-                    <View style={styles.headerOnlineDotInner} />
-                  </View>
+                  <View style={styles.headerOnlineDot} />
                 ) : null}
               </View>
               <View style={[styles.headerTextContainer, { maxWidth: CENTER_TEXT_MAX, flexShrink: 1 }]}> 
@@ -3009,18 +3007,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "transparent",
   },
-  headerOnlineDotOuter: {
+  headerOnlineDot: {
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 13,
-    height: 13,
-    borderRadius: 999,
-    borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerOnlineDotInner: {
     width: 7,
     height: 7,
     borderRadius: 999,
