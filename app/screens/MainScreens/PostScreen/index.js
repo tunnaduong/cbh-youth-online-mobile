@@ -1110,6 +1110,7 @@ const PostScreen = ({ route, navigation }) => {
                       flexShrink: 1,
                       color: theme.text,
                     }}
+                    mentions={comment.mentions}
                     onMentionPress={(username) =>
                       navigation.navigate("ProfileScreen", { username })
                     }

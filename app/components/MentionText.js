@@ -4,7 +4,6 @@ import { useTheme } from "../contexts/ThemeContext";
 import axiosInstance from "../services/api/axiosInstance";
 
 // Module-level cache so each username is only validated once per app session.
-// "true" = exists, "false" = does not exist, undefined = not checked yet.
 const usernameCache = {};
 const inFlight = {};
 
@@ -46,32 +45,60 @@ function buildParts(text) {
   return parts;
 }
 
-// Renders @username as highlighted + tappable only if the user actually exists.
-const MentionText = ({ children, style, onMentionPress, ...rest }) => {
+/**
+ * Renders @username as highlighted + tappable only if the user actually exists.
+ *
+ * Props:
+ *   children   - string message content
+ *   mentions   - optional array of {username, user_id} from the server.
+ *                When provided, skips async profile validation entirely.
+ *   onMentionPress(username) - called when a valid mention is tapped
+ */
+const MentionText = ({ children, style, onMentionPress, mentions, ...rest }) => {
   const { theme } = useTheme();
   const text = typeof children === "string" ? children : String(children ?? "");
 
-  const mentions = extractMentions(text);
+  const tokenMentions = extractMentions(text);
+
+  // If server provided mentions, build the valid set immediately (no async needed).
+  const serverValidSet = React.useMemo(() => {
+    if (!mentions) return null;
+    const s = new Set();
+    mentions.forEach((m) => s.add(m.username.toLowerCase()));
+    return s;
+  }, [mentions]);
 
   // Seed initial valid set from cache so cached hits render immediately.
   const [validUsernames, setValidUsernames] = useState(() => {
+    if (serverValidSet) return serverValidSet;
     const s = new Set();
-    mentions.forEach((u) => {
+    tokenMentions.forEach((u) => {
       if (usernameCache[u.toLowerCase()] === true) s.add(u.toLowerCase());
     });
     return s;
   });
 
   useEffect(() => {
-    if (mentions.length === 0) return;
+    // When server provides mentions, use them directly — no async calls needed.
+    if (serverValidSet !== null) {
+      setValidUsernames(serverValidSet);
+      // Populate the module-level cache so other components benefit.
+      tokenMentions.forEach((u) => {
+        const key = u.toLowerCase();
+        usernameCache[key] = serverValidSet.has(key);
+      });
+      return;
+    }
+
+    if (tokenMentions.length === 0) return;
     let cancelled = false;
-    const unchecked = mentions.filter((u) => !(u.toLowerCase() in usernameCache));
+    const unchecked = tokenMentions.filter((u) => !(u.toLowerCase() in usernameCache));
     if (unchecked.length === 0) return;
     Promise.all(unchecked.map((u) => checkUsername(u))).then(() => {
       if (cancelled) return;
       setValidUsernames((prev) => {
         const next = new Set(prev);
-        mentions.forEach((u) => {
+        tokenMentions.forEach((u) => {
           if (usernameCache[u.toLowerCase()] === true) next.add(u.toLowerCase());
         });
         return next;
@@ -79,9 +106,9 @@ const MentionText = ({ children, style, onMentionPress, ...rest }) => {
     });
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text]);
+  }, [text, serverValidSet]);
 
-  if (mentions.length === 0) {
+  if (tokenMentions.length === 0) {
     return <Text style={style} {...rest}>{text}</Text>;
   }
 
@@ -103,7 +130,7 @@ const MentionText = ({ children, style, onMentionPress, ...rest }) => {
             {part.value}
           </Text>
         ) : (
-          <Text key={i}>{part.type === "mention" ? part.value : part.value}</Text>
+          <Text key={i}>{part.value}</Text>
         )
       )}
     </Text>

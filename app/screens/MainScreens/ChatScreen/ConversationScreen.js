@@ -2535,6 +2535,7 @@ const ConversationScreen = ({ navigation, route }) => {
                         : theme.text,
                     },
                   ]}
+                  mentions={item.mentions}
                   onMentionPress={(username) =>
                     navigation.navigate("ProfileScreen", { username })
                   }
