@@ -137,6 +137,15 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
           </TouchableOpacity>
         </View>
 
+        <View style={styles.summaryRow}>
+          <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+            <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.voteCount", { count: votes.length })}</Text>
+          </View>
+          <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+            <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.score", { value: votes.reduce((s, v) => s + Number(v.vote_value || 0), 0) })}</Text>
+          </View>
+        </View>
+
         {loading ? (
           <View style={styles.loadingWrapper}>
             <ActivityIndicator size="large" color={theme.primary} />
@@ -173,6 +182,9 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, lineHeight: 18 },
   closeButton: { paddingVertical: 6, paddingHorizontal: 10 },
   closeButtonText: { fontSize: 15, fontWeight: "700" },
+  summaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  summaryPill: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1 },
+  summaryText: { fontSize: 13, fontWeight: "700" },
   loadingWrapper: { minHeight: 180, justifyContent: "center", alignItems: "center" },
   errorWrapper: { minHeight: 120, justifyContent: "center", alignItems: "center" },
   errorText: { fontSize: 15, textAlign: "center" },
