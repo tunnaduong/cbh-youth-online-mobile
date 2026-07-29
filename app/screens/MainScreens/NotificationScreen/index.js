@@ -466,6 +466,17 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               conversationId: item.data.conversation_id,
               highlightMessageId: item.data?.message_id,
             });
+          } else if (
+            item.type === "mentioned" &&
+            item.data?.comment_id &&
+            item.data?.topic_id
+          ) {
+            navigation.navigate("PostScreen", {
+              postId: item.data.topic_id,
+              highlightCommentId: item.data.comment_id,
+            });
+          } else if (item.type === "mentioned" && item.data?.topic_id) {
+            navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.type === "followed") {
             if (item.actor?.username && !isAnonymous) {
               navigation.navigate("ProfileScreen", {

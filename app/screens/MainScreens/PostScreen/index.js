@@ -66,7 +66,7 @@ import ImageView from "react-native-image-viewing";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
-  const { item, postId, screenName } = route.params; // Destructure item from route.params
+  const { item, postId, screenName, highlightCommentId } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
   const [isSaved, setIsSaved] = useState(
@@ -85,6 +85,7 @@ const PostScreen = ({ route, navigation }) => {
   const commentInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
+  const [highlightedCommentId, setHighlightedCommentId] = useState(null);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const isCurrentUser =
@@ -311,6 +312,14 @@ const PostScreen = ({ route, navigation }) => {
       setVotes(topic?.votes ?? []); // Update votes state
       setIsSaved(topic?.is_saved ?? false); // Update saved status
       setComments(comments ?? []);
+
+      if (highlightCommentId) {
+        setHighlightedCommentId(highlightCommentId);
+        setTimeout(() => {
+          scrollToComment(highlightCommentId);
+          setTimeout(() => setHighlightedCommentId(null), 2500);
+        }, 600);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -973,12 +982,19 @@ const PostScreen = ({ route, navigation }) => {
       const author = comment.author ?? {};
       const content = comment.content ?? "";
       const replies = comment.replies ?? [];
+      const isHighlighted = highlightedCommentId === comment.id;
 
       return (
         <View
           ref={ref} // Attach ref here
           style={{
             marginLeft: level * 20, // Indent based on the nesting level
+            backgroundColor: isHighlighted
+              ? isDarkMode
+                ? "rgba(99,179,237,0.18)"
+                : "rgba(66,153,225,0.12)"
+              : "transparent",
+            borderRadius: isHighlighted ? 10 : 0,
           }}
         >
           {/* Render the main comment */}
