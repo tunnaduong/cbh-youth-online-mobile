@@ -61,6 +61,7 @@ import {
   KeyboardChatScrollView,
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
+import CommentVotesModal from "../../../components/CommentVotesModal";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -96,6 +97,7 @@ const PostScreen = ({ route, navigation }) => {
     post?.is_mine === true ||
     post?.is_author === true;
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [commentVotesModal, setCommentVotesModal] = useState({ visible: false, commentId: null, commentPreview: "" });
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
   const { t } = useTranslation();
@@ -1176,29 +1178,39 @@ const PostScreen = ({ route, navigation }) => {
                       }
                     />
                   </TouchableOpacity>
-                  <Text
-                    style={[
-                      { fontSize: 14, fontWeight: "600" },
-                      { color: theme.subText, textAlign: "center" },
-                      votes.some(
-                        (vote) =>
-                          vote.username === username && vote.vote_value === 1,
-                      )
-                        ? { color: "#22c55e" }
-                        : votes.some(
-                              (vote) =>
-                                vote.username === username &&
-                                vote.vote_value === -1,
-                            )
-                          ? { color: "#ef4444" }
-                          : { color: theme.subText },
-                    ]}
+                  <TouchableOpacity
+                    onPress={() =>
+                      setCommentVotesModal({
+                        visible: true,
+                        commentId: comment.id,
+                        commentPreview: comment.content ?? "",
+                      })
+                    }
                   >
-                    {votes.reduce(
-                      (acc, vote) => acc + (vote.vote_value || 0),
-                      0,
-                    )}
-                  </Text>
+                    <Text
+                      style={[
+                        { fontSize: 14, fontWeight: "600" },
+                        { color: theme.subText, textAlign: "center" },
+                        votes.some(
+                          (vote) =>
+                            vote.username === username && vote.vote_value === 1,
+                        )
+                          ? { color: "#22c55e" }
+                          : votes.some(
+                                (vote) =>
+                                  vote.username === username &&
+                                  vote.vote_value === -1,
+                              )
+                            ? { color: "#ef4444" }
+                            : { color: theme.subText },
+                      ]}
+                    >
+                      {votes.reduce(
+                        (acc, vote) => acc + (vote.vote_value || 0),
+                        0,
+                      )}
+                    </Text>
+                  </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleCommentVote(comment.id, -1)}
                   >
@@ -1473,6 +1485,13 @@ const PostScreen = ({ route, navigation }) => {
           visible={reportModalVisible}
           onClose={() => setReportModalVisible(false)}
           onSubmit={handleReportSubmit}
+        />
+        <CommentVotesModal
+          visible={commentVotesModal.visible}
+          commentId={commentVotesModal.commentId}
+          commentPreview={commentVotesModal.commentPreview}
+          navigation={navigation}
+          onClose={() => setCommentVotesModal({ visible: false, commentId: null, commentPreview: "" })}
         />
 
         {Platform.OS === 'android' || Platform.OS === 'ios' ? (
