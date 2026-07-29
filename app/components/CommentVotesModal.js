@@ -16,6 +16,12 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getCommentVotes } from "../services/api/Api";
 
+// API may return flat { username, profile_name, vote_value } or nested { user: { username, profile_name }, vote_value }
+const flatten = (item) => {
+  if (item.user) return { ...item.user, vote_value: item.vote_value };
+  return item;
+};
+
 const getAvatarUri = (vote) => {
   if (vote.avatar_url) return vote.avatar_url;
   if (vote.username) return `https://api.chuyenbienhoa.com/v1.0/users/${vote.username}/avatar`;
@@ -60,7 +66,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
     setVotes([]);
     getCommentVotes(commentId)
       .then((res) => {
-        if (active) setVotes(normalizeVotes(res?.data ?? res));
+        if (active) setVotes(normalizeVotes(res?.data ?? res).map(flatten));
       })
       .catch((err) => {
         if (active) setError(err?.response?.data?.message || err?.message || t("commentVoteModal.loadError"));
