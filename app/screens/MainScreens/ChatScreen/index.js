@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
-import { getConversations } from "../../../services/api/Api";
+import { getConversations, getOnlineStatus } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import { useFocusEffect } from "@react-navigation/native";
@@ -34,6 +34,7 @@ const formatMessageTime = (timestamp) => {
 export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const [conversations, setConversations] = useState([]);
+  const [onlineStatuses, setOnlineStatuses] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const { t } = useTranslation();
@@ -140,6 +141,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       setConversations(response.data);
       storage.set("conversations", JSON.stringify(response.data));
       refreshChatCount();
+      fetchOnlineStatuses(response.data);
     } catch (error) {
       console.error("Error fetching conversations:", error);
       Toast.show({
@@ -148,6 +150,34 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         text2: t('home.loadingError'),
       });
     }
+  };
+
+  // Fetch the online status of every private-chat partner shown in the list.
+  const fetchOnlineStatuses = async (convos) => {
+    const usernames = [
+      ...new Set(
+        convos
+          .filter((c) => c.type === "private" && c.participants[0]?.username)
+          .map((c) => c.participants[0].username)
+      ),
+    ];
+    if (usernames.length === 0) return;
+
+    const results = await Promise.all(
+      usernames.map((username) =>
+        getOnlineStatus(username)
+          .then((res) => [username, !!res.data?.is_online])
+          .catch(() => [username, undefined])
+      )
+    );
+
+    setOnlineStatuses((prev) => {
+      const next = { ...prev };
+      results.forEach(([username, isOnline]) => {
+        if (isOnline !== undefined) next[username] = isOnline;
+      });
+      return next;
+    });
   };
 
   // Keep the latest fetchConversations closure available to the realtime listeners
@@ -305,18 +335,25 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         });
       }}
     >
-      <Image
-        source={
-          getAvatar(item) === "local:chat.jpg"
-            ? require("../../../assets/chat.jpg")
-            : {
-              uri:
-                getAvatar(item) ||
-                "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-            }
-        }
-        style={[styles.avatar, { backgroundColor: theme.border }]}
-      />
+      <View style={styles.avatarWrapper}>
+        <Image
+          source={
+            getAvatar(item) === "local:chat.jpg"
+              ? require("../../../assets/chat.jpg")
+              : {
+                uri:
+                  getAvatar(item) ||
+                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+              }
+          }
+          style={[styles.avatar, { backgroundColor: theme.border }]}
+        />
+        {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
+          <View style={[styles.onlineDotOuter, { borderColor: theme.background }]}>
+            <View style={styles.onlineDotInner} />
+          </View>
+        ) : null}
+      </View>
       <View style={styles.info}>
         <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
           {getChatName(item)}
@@ -500,11 +537,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
+  avatarWrapper: {
+    marginRight: 14,
+  },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginRight: 14,
+  },
+  onlineDotOuter: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 15,
+    height: 15,
+    borderRadius: 999,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  onlineDotInner: {
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+    backgroundColor: "#16a34a",
   },
   info: {
     flex: 1,

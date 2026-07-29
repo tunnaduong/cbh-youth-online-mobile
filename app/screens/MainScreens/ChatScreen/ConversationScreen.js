@@ -41,6 +41,7 @@ import {
   editMessage,
   getConversationMentionSuggestions,
   getMentionSuggestions,
+  getOnlineStatus,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
@@ -464,6 +465,20 @@ const ConversationScreen = ({ navigation, route }) => {
       ? currentConversation?.participants?.[0]
       : null;
 
+  const [isOtherUserOnline, setIsOtherUserOnline] = useState(false);
+  const otherUsername = otherUser?.username;
+
+  const refreshOtherUserOnlineStatus = React.useCallback(() => {
+    if (!otherUsername) return;
+    getOnlineStatus(otherUsername)
+      .then((res) => setIsOtherUserOnline(!!res.data?.is_online))
+      .catch(() => {});
+  }, [otherUsername]);
+
+  useEffect(() => {
+    refreshOtherUserOnlineStatus();
+  }, [refreshOtherUserOnlineStatus]);
+
   const confirmBlock = () => {
     if (!otherUser) return;
     Alert.alert(
@@ -759,6 +774,8 @@ const ConversationScreen = ({ navigation, route }) => {
           error?.response?.data || error?.message,
         );
       });
+      // Any incoming activity from the other user is a good moment to re-check their online dot.
+      refreshOtherUserOnlineStatus();
     };
     const handleTyping = (data) => {
       setTypingUser({ name: data?.name });
@@ -825,6 +842,7 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageRecalled,
     onMessageEdited,
     onTyping,
+    refreshOtherUserOnlineStatus,
   ]);
 
   const scrollToLatestMessage = () => {
@@ -2559,15 +2577,22 @@ const ConversationScreen = ({ navigation, route }) => {
                 },
               ]}
             >
-              <View style={styles.headerAvatarWrapper}>
-                <Image
-                  source={
-                    getHeaderAvatar() === "local:chat.jpg"
-                      ? require("../../../assets/chat.jpg")
-                      : { uri: getHeaderAvatar() || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg" }
-                  }
-                  style={styles.headerAvatarLarge}
-                />
+              <View style={styles.headerAvatarOuter}>
+                <View style={styles.headerAvatarWrapper}>
+                  <Image
+                    source={
+                      getHeaderAvatar() === "local:chat.jpg"
+                        ? require("../../../assets/chat.jpg")
+                        : { uri: getHeaderAvatar() || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg" }
+                    }
+                    style={styles.headerAvatarLarge}
+                  />
+                </View>
+                {currentConversation?.type !== "group" && isOtherUserOnline ? (
+                  <View style={[styles.headerOnlineDotOuter, { borderColor: theme.background }]}>
+                    <View style={styles.headerOnlineDotInner} />
+                  </View>
+                ) : null}
               </View>
               <View style={[styles.headerTextContainer, { maxWidth: CENTER_TEXT_MAX, flexShrink: 1 }]}> 
                 <Text
@@ -2968,6 +2993,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flex: 1,
   },
+  headerAvatarOuter: {
+    width: 40,
+    height: 40,
+    marginRight: 10,
+  },
   headerAvatarWrapper: {
     width: 40,
     height: 40,
@@ -2977,8 +3007,24 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.12)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
     backgroundColor: "transparent",
+  },
+  headerOnlineDotOuter: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 13,
+    height: 13,
+    borderRadius: 999,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerOnlineDotInner: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: "#16a34a",
   },
   headerAvatarLarge: {
     width: 36,
