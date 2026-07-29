@@ -66,6 +66,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
     setVotes([]);
     getCommentVotes(commentId)
       .then((res) => {
+        console.log("[CommentVotesModal] raw response:", JSON.stringify(res?.data ?? res));
         if (active) setVotes(normalizeVotes(res?.data ?? res).map(flatten));
       })
       .catch((err) => {
