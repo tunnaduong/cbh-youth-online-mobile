@@ -92,18 +92,9 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  if (!userInfo) return null;
-
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
-  const languageCode = i18n.language?.split("-")[0] || "vi";
-  const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
-  const currentThemeLabel = useSystemTheme
-    ? t("settings.auto")
-    : isDarkMode
-    ? t("settings.dark")
-    : t("settings.light");
 
   useFocusEffect(
     React.useCallback(() => {
@@ -111,6 +102,16 @@ export default function SettingsScreen({ navigation }) {
       if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
     }, [isDarkMode, theme.background])
   );
+
+  if (!userInfo) return null;
+
+  const languageCode = i18n.language?.split("-")[0] || "vi";
+  const currentLanguage = languageCode === "ru" ? "ru" : languageCode === "en" ? "en" : "vi";
+  const currentThemeLabel = useSystemTheme
+    ? t("settings.auto")
+    : isDarkMode
+    ? t("settings.dark")
+    : t("settings.light");
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
