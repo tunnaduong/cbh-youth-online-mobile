@@ -4,7 +4,7 @@ import { useTheme } from "../contexts/ThemeContext";
 
 function buildParts(text) {
   const parts = [];
-  const regex = /@([\w.]+)/g;
+  const regex = /@([\w.-]+)/g;
   let lastIndex = 0;
   let match;
   while ((match = regex.exec(text)) !== null) {
