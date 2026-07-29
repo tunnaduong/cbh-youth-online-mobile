@@ -135,6 +135,26 @@ const formatTime = (dateString) => {
     }
   }
 
+  if (cleaned === "just now" || cleaned === "a few seconds ago") {
+    return i18n.t("time.justNow");
+  }
+
+  const enUnitMap = {
+    second: "seconds",
+    minute: "minutes",
+    hour: "hours",
+    day: "days",
+    week: "weeks",
+    month: "months",
+    year: "years",
+  };
+
+  const enMatch = cleaned.match(/^(\d+)\s+(second|minute|hour|day|week|month|year)s?\s+ago$/);
+  if (enMatch) {
+    const count = parseInt(enMatch[1], 10);
+    return getTranslation(enUnitMap[enMatch[2]], count);
+  }
+
   return dateString;
 };
 
