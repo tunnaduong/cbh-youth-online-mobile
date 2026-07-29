@@ -4,6 +4,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
+import i18n from "./app/i18n";
 
 if (Platform.OS === "android") {
   Alert.alert = CustomAlert.alert;
@@ -209,6 +210,22 @@ const App = () => {
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
+  // i18n.init() reads the saved language from AsyncStorage asynchronously, so
+  // i18n.language is undefined for a brief window after app start. Screens
+  // that fetch and format data (e.g. story/post timestamps) as soon as they
+  // mount can race ahead of that, causing formatTime to fall back to "vi"
+  // (its default when language is unknown) even when the user has English
+  // selected. Gating first render on this avoids that race.
+  const [i18nReady, setI18nReady] = useState(i18n.isInitialized);
+  useEffect(() => {
+    if (i18n.isInitialized) {
+      setI18nReady(true);
+      return;
+    }
+    const handleInitialized = () => setI18nReady(true);
+    i18n.on("initialized", handleInitialized);
+    return () => i18n.off("initialized", handleInitialized);
+  }, []);
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
@@ -391,7 +408,7 @@ const App = () => {
     StatusBar.setBackgroundColor(latestColor, true);
   };
 
-  if (showSplash) {
+  if (showSplash || !i18nReady) {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 

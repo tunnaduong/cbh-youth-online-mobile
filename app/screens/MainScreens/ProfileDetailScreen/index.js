@@ -35,7 +35,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const isCurrentUser = username === currentUsername;
   const insets = useSafeAreaInsets();
   const isBlocked = blockedUsers?.includes(username);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
@@ -91,7 +91,8 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const formatDate = (dateString) => {
     if (!dateString) return t('profile.notUpdated');
     const date = new Date(dateString);
-    return date.toLocaleDateString("vi-VN", {
+    const locale = { vi: "vi-VN", en: "en-US", ru: "ru-RU" }[i18n.language?.split("-")[0]] || "vi-VN";
+    return date.toLocaleDateString(locale, {
       day: "numeric",
       month: "long",
       year: "numeric",

@@ -41,7 +41,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { isLoggedIn, userInfo, refreshUserInfo } = useAuthContext();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
 
   const [material, setMaterial] = useState(null);
@@ -517,7 +517,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="calendar-outline" size={18} color={theme.primary} />
-              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.createdAt", { value: new Date(material.created_at).toLocaleDateString() })}</Text>
+              <Text style={[styles.infoValue, { color: theme.subText }]}>{t("studyMaterial.createdAt", { value: new Date(material.created_at).toLocaleDateString({ vi: "vi-VN", en: "en-US", ru: "ru-RU" }[i18n.language?.split("-")[0]] || "vi-VN") })}</Text>
             </View>
           </View>
 

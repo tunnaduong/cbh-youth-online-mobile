@@ -155,6 +155,15 @@ const formatTime = (dateString) => {
     return getTranslation(enUnitMap[enMatch[2]], count);
   }
 
+  const enSingularMatch = cleaned.match(/^an?\s+(second|minute|hour|day|week|month|year)\s+ago$/);
+  if (enSingularMatch) {
+    return getTranslation(enUnitMap[enSingularMatch[1]], 1);
+  }
+
+  if (cleaned === "yesterday") {
+    return getTranslation("days", 1);
+  }
+
   return dateString;
 };
 
