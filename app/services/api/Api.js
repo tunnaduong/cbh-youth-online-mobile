@@ -104,6 +104,14 @@ export const getPersonalizedFeed = (page = 1) => {
   return Api.getRequest("/v1.0/topics/feed?page=" + page);
 };
 
+export const getFeedRefreshCheck = () => {
+  return Api.getRequest("/v1.0/topics/feed/refresh-check");
+};
+
+export const getLatestFeed = (page = 1) => {
+  return Api.getRequest("/v1.0/topics/feed?mode=latest&page=" + page);
+};
+
 export const incrementPostView = (id) => {
   return Api.postRequest("/v1.0/topics/" + id + "/views");
 };

@@ -35,6 +35,8 @@ import {
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   getPersonalizedFeed,
+  getFeedRefreshCheck,
+  getLatestFeed,
   getStories,
   incrementPostView,
   resendVerificationEmail,
@@ -848,6 +850,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
+  const [feedMode, setFeedMode] = React.useState("personalized");
+  const [latestPage, setLatestPage] = React.useState(1);
+  const deliveredIdsRef = useRef(new Set());
   const viewedPosts = useRef(new Set());
   const flatListRef = React.useRef(null);
   const { feed, setFeed } = useContext(FeedContext);
@@ -944,6 +949,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       setRefreshing(false);
       setHasMore(true);
       setCurrentPage(2);
+      setFeedMode("personalized");
+      setLatestPage(1);
+      deliveredIdsRef.current = new Set();
       viewedPosts.current = new Set();
     }
   }, [isLoggedIn]);
@@ -1019,6 +1027,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       const posts = response?.data?.data;
       const validPosts = Array.isArray(posts) ? posts : [];
       setFeed(validPosts);
+      validPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
 
       if (page === 1 && validPosts.length > 0) {
         storage.set("cached_feed", JSON.stringify(validPosts));
@@ -1050,18 +1059,53 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const onEndReached = () => {
     if (!hasMore) return;
 
+    if (feedMode === "latest") {
+      getLatestFeed(latestPage)
+        .then((response) => {
+          const newPosts = response?.data?.data;
+          if (!Array.isArray(newPosts) || newPosts.length === 0) {
+            setHasMore(false);
+            return;
+          }
+          const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
+          freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+          if (freshPosts.length > 0) {
+            setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
+          }
+          setLatestPage((prevPage) => prevPage + 1);
+        })
+        .catch((error) => {
+          console.error("Error loading more posts:", error);
+        });
+      return;
+    }
+
     getPersonalizedFeed(currentPage)
       .then((response) => {
         const newPosts = response?.data?.data;
-        if (!Array.isArray(newPosts) || newPosts.length === 0) {
-          setHasMore(false);
-          return;
+        const exhausted = response?.data?.exhausted || !Array.isArray(newPosts) || newPosts.length === 0;
+
+        if (Array.isArray(newPosts) && newPosts.length > 0) {
+          newPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+          setFeed((prevData) => {
+            if (!Array.isArray(prevData)) return newPosts;
+            return [...prevData, ...newPosts];
+          });
+          setCurrentPage((prevPage) => prevPage + 1);
         }
-        setFeed((prevData) => {
-          if (!Array.isArray(prevData)) return newPosts;
-          return [...prevData, ...newPosts];
-        });
-        setCurrentPage((prevPage) => prevPage + 1);
+
+        if (exhausted) {
+          setFeedMode("latest");
+          setLatestPage(1);
+          setFeed((prevData) => {
+            const divider = {
+              id: "feed-divider-latest",
+              type: "divider",
+              label: t("home.feedExhaustedDivider"),
+            };
+            return Array.isArray(prevData) ? [...prevData, divider] : [divider];
+          });
+        }
       })
       .catch((error) => {
         console.error("Error loading more posts:", error);
@@ -1126,6 +1170,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     if (!viewableItems) return;
     viewableItems.forEach((viewableItem) => {
       if (!viewableItem?.item) return;
+      if (viewableItem.item.type === "divider") return;
       const postId = viewableItem.item.id;
 
       if (postId != null && !viewedPosts.current.has(postId)) {
@@ -1709,9 +1754,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     isProcessingRef.current = true;
     setRefreshing(true);
-    setHasMore(true);
-    setCurrentPage(2);
-    viewedPosts.current = new Set(); // Reset viewed posts
 
     // Don't manually scroll - let RefreshControl handle it naturally
     // This prevents content from being pushed down
@@ -1723,15 +1765,39 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       refreshUserInfo();
     }
 
-    handleFetchFeed().finally(() => {
+    const finishRefresh = () => {
       setTimeout(() => {
         setRefreshing(false);
         isProcessingRef.current = false;
         // Reset scroll position after refresh completes
         scrollPositionRef.current = 0;
       }, 1000);
-    });
-  }, [isLoggedIn, refreshUserInfo]);
+    };
+
+    if (feed == null) {
+      // Cold start / previously empty or errored feed: do a full load instead
+      // of a refresh-check, since there's nothing yet to prepend new posts onto.
+      handleFetchFeed().finally(finishRefresh);
+      return;
+    }
+
+    getFeedRefreshCheck()
+      .then((response) => {
+        const hasNew = response?.data?.has_new;
+        const newPosts = response?.data?.new_posts;
+
+        if (hasNew && Array.isArray(newPosts) && newPosts.length > 0) {
+          newPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+          setFeed((prevData) => [...newPosts, ...(Array.isArray(prevData) ? prevData : [])]);
+        }
+        // No new posts: leave the feed exactly as-is, nothing to prepend.
+      })
+      .catch((error) => {
+        console.log("Error checking for new feed posts, falling back to full reload:", error);
+        return handleFetchFeed();
+      })
+      .finally(finishRefresh);
+  }, [isLoggedIn, refreshUserInfo, feed]);
 
   // Function to scroll to top or reload
   const scrollToTopOrReload = React.useCallback(() => {
@@ -2087,13 +2153,21 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (
-            <PostItem
-              item={item}
-              onExpand={() => handleExpandPost(index)}
-              onVoteUpdate={handleVoteUpdate}
-              onSaveUpdate={handleSaveUpdate}
-              navigation={navigation}
-            />
+            item.type === "divider" ? (
+              <View style={{ paddingVertical: 16, paddingHorizontal: 20, alignItems: "center" }}>
+                <Text style={{ color: theme.textSecondary || theme.text, fontSize: 13 }}>
+                  {item.label}
+                </Text>
+              </View>
+            ) : (
+              <PostItem
+                item={item}
+                onExpand={() => handleExpandPost(index)}
+                onVoteUpdate={handleVoteUpdate}
+                onSaveUpdate={handleSaveUpdate}
+                navigation={navigation}
+              />
+            )
           )}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
