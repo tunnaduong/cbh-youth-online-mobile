@@ -146,9 +146,10 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
       return;
     }
 
+    // Show the popup spinner immediately — before the debounce fires
+    setLoading(true);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
-      setLoading(true);
       try {
         const res = await fetchSuggestions(mentionQuery);
         const results = res?.data?.suggestions ?? res?.suggestions ?? [];
