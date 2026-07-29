@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   Animated,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -44,6 +45,10 @@ export default function AboutScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar
+        barStyle={isDarkMode ? "light-content" : "dark-content"}
+        backgroundColor={theme.background}
+      />
 
       {/* Floating header */}
       <View
