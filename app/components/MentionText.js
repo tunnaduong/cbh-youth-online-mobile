@@ -60,9 +60,7 @@ const MentionText = ({ children, style, onMentionPress, mentions, ...rest }) => 
           >
             {part.value}
           </Text>
-        ) : (
-          <Text key={i}>{part.value}</Text>
-        )
+        ) : part.value
       )}
     </Text>
   );
