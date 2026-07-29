@@ -13,7 +13,13 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop } from "../../components/GlassModules";
+import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlass } from "../../components/GlassModules";
+
+// iOS < 26 has no Liquid Glass API, so the native tab bar there renders as a
+// plain opaque bar with square corners on translucent styling — this custom
+// bar (Android-style pill + BlurView) is used instead. iOS 26+ keeps the
+// native react-navigation tab bar, which renders real UIGlassEffect.
+const useCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && !useIOSGlass);
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -45,7 +51,7 @@ const ANDROID_ICON_MAP = {
 // Driven directly by MainScreens' own `currentRoute` state and navigation
 // instead of react-navigation's tabBar props, since it's no longer mounted
 // through that render prop.
-const AndroidTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
+const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -98,15 +104,22 @@ const AndroidTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, noti
   const PillBackground = ({ style }) => (
     <View style={[StyleSheet.absoluteFill, {
       borderRadius: 24.5, overflow: "hidden",
-      backgroundColor: useAndroidGlass ? "transparent" : surface,
+      backgroundColor: (useAndroidGlass || (Platform.OS === "ios" && BlurView)) ? "transparent" : surface,
       borderWidth: 1, borderColor: border,
     }, style]}>
-      {useAndroidGlass && LiquidGlassViewAndroid && (
+      {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && (
         <LiquidGlassViewAndroid
           providerId="main"
           interactive={isLiquidGlassSupportedAndroid}
           {...glassProps}
           style={StyleSheet.absoluteFill}
+        />
+      )}
+      {Platform.OS === "ios" && BlurView && (
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType={isDarkMode ? "dark" : "light"}
+          blurAmount={20}
         />
       )}
     </View>
@@ -363,11 +376,12 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <TabWrapper>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
-          // Android's tab bar chrome is rendered separately below, as a true
-          // JSX sibling of TabWrapper's glass provider (see AndroidTabBar's
-          // comment) rather than through this render prop, which would mount
-          // it *inside* the provider's own subtree.
-          tabBar={Platform.OS === "android" ? () => null : undefined}
+          // The custom tab bar chrome (Android, and iOS < 26) is rendered
+          // separately below, as a true JSX sibling of TabWrapper's glass
+          // provider (see CustomTabBar's comment) rather than through this
+          // render prop, which would mount it *inside* the provider's own
+          // subtree.
+          tabBar={useCustomTabBar ? () => null : undefined}
           screenOptions={{
             lazy: true,
             unmountOnBlur: false,
@@ -507,8 +521,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
       </View>
       </TabWrapper>
 
-      {Platform.OS === "android" && (
-        <AndroidTabBar
+      {useCustomTabBar && (
+        <CustomTabBar
           activeRouteName={currentRoute}
           chatUnreadCount={chatUnreadCount}
           notificationUnreadCount={notificationUnreadCount}
