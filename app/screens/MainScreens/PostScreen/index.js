@@ -62,6 +62,7 @@ import {
   KeyboardStickyView,
 } from "react-native-keyboard-controller";
 import CommentVotesModal from "../../../components/CommentVotesModal";
+import ImageView from "react-native-image-viewing";
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
@@ -98,6 +99,7 @@ const PostScreen = ({ route, navigation }) => {
     post?.is_author === true;
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [commentVotesModal, setCommentVotesModal] = useState({ visible: false, commentId: null, commentPreview: "" });
+  const [imageViewer, setImageViewer] = useState({ visible: false, images: [], index: 0 });
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
   const { t } = useTranslation();
@@ -1118,16 +1120,27 @@ const PostScreen = ({ route, navigation }) => {
                 {comment.image_urls?.length > 0 && (
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
                     {comment.image_urls.map((url, idx) => (
-                      <Image
+                      <TouchableOpacity
                         key={idx}
-                        source={{ uri: url }}
-                        style={{
-                          width: comment.image_urls.length === 1 ? 200 : 96,
-                          height: comment.image_urls.length === 1 ? 200 : 96,
-                          borderRadius: 8,
-                        }}
-                        resizeMode="cover"
-                      />
+                        activeOpacity={0.85}
+                        onPress={() =>
+                          setImageViewer({
+                            visible: true,
+                            images: comment.image_urls.map((u) => ({ uri: u })),
+                            index: idx,
+                          })
+                        }
+                      >
+                        <Image
+                          source={{ uri: url }}
+                          style={{
+                            width: comment.image_urls.length === 1 ? 200 : 96,
+                            height: comment.image_urls.length === 1 ? 200 : 96,
+                            borderRadius: 8,
+                          }}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
                     ))}
                   </View>
                 )}
@@ -1494,6 +1507,12 @@ const PostScreen = ({ route, navigation }) => {
           commentPreview={commentVotesModal.commentPreview}
           navigation={navigation}
           onClose={() => setCommentVotesModal({ visible: false, commentId: null, commentPreview: "" })}
+        />
+        <ImageView
+          images={imageViewer.images}
+          imageIndex={imageViewer.index}
+          visible={imageViewer.visible}
+          onRequestClose={() => setImageViewer({ visible: false, images: [], index: 0 })}
         />
 
         {Platform.OS === 'android' || Platform.OS === 'ios' ? (
