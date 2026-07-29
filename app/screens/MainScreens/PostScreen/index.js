@@ -1200,7 +1200,7 @@ const PostScreen = ({ route, navigation }) => {
                       })
                     }
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={{ alignItems: "center", paddingVertical: 4, paddingHorizontal: 6 }}
+                    style={{ alignItems: "center", paddingVertical: 4 }}
                   >
                     <Text
                       style={[

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -16,12 +16,6 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getCommentVotes } from "../services/api/Api";
 
-const getVoteLabel = (t, voteValue) => {
-  if (voteValue === 1) return t("voteModal.upvote");
-  if (voteValue === -1) return t("voteModal.downvote");
-  return t("voteModal.vote");
-};
-
 const getAvatarUri = (vote) => {
   if (vote.avatar_url) return vote.avatar_url;
   if (vote.username) return `https://api.chuyenbienhoa.com/v1.0/users/${vote.username}/avatar`;
@@ -29,13 +23,20 @@ const getAvatarUri = (vote) => {
 };
 
 const getInitials = (name) =>
-  name
+  String(name)
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
-    .map((part) => part[0])
+    .map((p) => p[0])
     .join("")
     .toUpperCase();
+
+const normalizeVotes = (data) => {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.data)) return data.data;
+  if (data && Array.isArray(data.votes)) return data.votes;
+  return [];
+};
 
 export default function CommentVotesModal({ visible, onClose, commentId, commentPreview, navigation }) {
   const actionSheetRef = useRef(null);
@@ -48,57 +49,41 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
   const { height: windowHeight } = useWindowDimensions();
 
   useEffect(() => {
-    if (visible) {
-      actionSheetRef.current?.show();
-    }
+    if (visible) actionSheetRef.current?.show();
   }, [visible]);
 
   useEffect(() => {
     if (!visible || !commentId) return;
-
-    let isActive = true;
-
-    const fetchVotes = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await getCommentVotes(commentId);
-        const data = response?.data ?? response;
-        if (isActive) setVotes(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (isActive) {
-          setError(err?.response?.data?.message || err?.message || t("voteModal.loadError"));
-          setVotes([]);
-        }
-      } finally {
-        if (isActive) setLoading(false);
-      }
-    };
-
-    fetchVotes();
-    return () => { isActive = false; };
+    let active = true;
+    setLoading(true);
+    setError(null);
+    setVotes([]);
+    getCommentVotes(commentId)
+      .then((res) => {
+        if (active) setVotes(normalizeVotes(res?.data ?? res));
+      })
+      .catch((err) => {
+        if (active) setError(err?.response?.data?.message || err?.message || t("voteModal.loadError"));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
   }, [visible, commentId]);
-
-  const voteSummary = useMemo(() => {
-    const totalVotes = votes.reduce((sum, vote) => sum + Number(vote.vote_value || 0), 0);
-    return { totalVotes, voteCount: votes.length };
-  }, [votes]);
 
   const renderItem = ({ item }) => {
     const profileName = item.profile_name || item.username || t("voteModal.defaultUser");
     const avatarUri = getAvatarUri(item);
-    const voteLabel = getVoteLabel(t, item.vote_value);
-
-    const handlePress = () => {
-      if (navigation && item.username) {
-        onClose();
-        navigation.navigate("ProfileScreen", { username: item.username });
-      }
-    };
+    const isUpvote = Number(item.vote_value) === 1;
 
     return (
       <Pressable
-        onPress={handlePress}
+        onPress={() => {
+          if (navigation && item.username) {
+            onClose();
+            navigation.navigate("ProfileScreen", { username: item.username });
+          }
+        }}
         style={[styles.voteItem, { borderColor: theme.border, backgroundColor: theme.cardBackground }]}
       >
         <View style={[styles.avatarContainer, { backgroundColor: theme.iconBackground }]}>
@@ -113,21 +98,9 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
             <Text style={[styles.voteName, { color: theme.text }]} numberOfLines={1}>
               {profileName}
             </Text>
-            <View
-              style={[
-                styles.voteTag,
-                item.vote_value === 1 && styles.upvoteTag,
-                item.vote_value === -1 && styles.downvoteTag,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.voteTagText,
-                  item.vote_value === 1 && styles.upvoteTagText,
-                  item.vote_value === -1 && styles.downvoteTagText,
-                ]}
-              >
-                {voteLabel}
+            <View style={[styles.voteTag, isUpvote ? styles.upvoteTag : styles.downvoteTag]}>
+              <Text style={[styles.voteTagText, isUpvote ? styles.upvoteTagText : styles.downvoteTagText]}>
+                {isUpvote ? t("voteModal.upvote") : t("voteModal.downvote")}
               </Text>
             </View>
           </View>
@@ -136,6 +109,8 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
       </Pressable>
     );
   };
+
+  const preview = typeof commentPreview === "string" ? commentPreview.trim() : "";
 
   return (
     <ActionSheet
@@ -149,24 +124,15 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: theme.text }]}>{t("voteModal.title")}</Text>
-            {!!commentPreview && (
+            {!!preview && (
               <Text style={[styles.subtitle, { color: theme.subText }]} numberOfLines={1}>
-                {commentPreview}
+                {preview}
               </Text>
             )}
           </View>
           <TouchableOpacity onPress={() => actionSheetRef.current?.hide()} style={styles.closeButton}>
             <Text style={[styles.closeButtonText, { color: theme.primary }]}>{t("common.close")}</Text>
           </TouchableOpacity>
-        </View>
-
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
-            <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.voteCount", { count: voteSummary.voteCount })}</Text>
-          </View>
-          <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
-            <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.score", { value: voteSummary.totalVotes })}</Text>
-          </View>
         </View>
 
         {loading ? (
@@ -184,7 +150,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
         ) : (
           <FlatList
             data={votes}
-            keyExtractor={(item) => item.user_id?.toString() || item.username || JSON.stringify(item)}
+            keyExtractor={(item, i) => item.user_id?.toString() || item.username || String(i)}
             renderItem={renderItem}
             style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
             contentContainerStyle={styles.listContent}
@@ -205,9 +171,6 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, lineHeight: 18 },
   closeButton: { paddingVertical: 6, paddingHorizontal: 10 },
   closeButtonText: { fontSize: 15, fontWeight: "700" },
-  summaryRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  summaryPill: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999, borderWidth: 1 },
-  summaryText: { fontSize: 13, fontWeight: "700" },
   loadingWrapper: { minHeight: 180, justifyContent: "center", alignItems: "center" },
   errorWrapper: { minHeight: 120, justifyContent: "center", alignItems: "center" },
   errorText: { fontSize: 15, textAlign: "center" },
