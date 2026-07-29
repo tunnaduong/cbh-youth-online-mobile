@@ -911,7 +911,8 @@ const ConversationScreen = ({ navigation, route }) => {
       fetchMessages(false);
     }
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
-    setShowScrollButton(distanceFromBottom > 150);
+    const shouldShow = distanceFromBottom > 150;
+    setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
   };
 
   const launchMediaPicker = async (source) => {
@@ -1336,12 +1337,6 @@ const ConversationScreen = ({ navigation, route }) => {
 
       const trimmedMessage = message.trim();
       const now = new Date().toISOString();
-      console.log("[Debug] Starting to send message:", {
-        trimmedMessage,
-        isNewConversation,
-        selectedUser: selectedUser?.id,
-        currentConversationId,
-      });
 
       const optimisticMessage = {
         id: tempId,
@@ -1371,11 +1366,8 @@ const ConversationScreen = ({ navigation, route }) => {
       setMessage("");
       setReplyingTo(null);
 
-      console.log("[Debug] Adding optimistic message:", optimisticMessage);
-
       // Add time header if needed and optimistic message
       setMessages((prev) => {
-        console.log("[Debug] Current messages:", prev);
         const lastMessage = prev[prev.length - 1];
         const newMessages = [...prev];
         const messagesToAdd = [];
@@ -1421,26 +1413,14 @@ const ConversationScreen = ({ navigation, route }) => {
         }
 
         messagesToAdd.push(optimisticMessage);
-        const result = [...newMessages, ...messagesToAdd];
-        console.log("[Debug] Updated messages with optimistic:", result);
-        return result;
+        return [...newMessages, ...messagesToAdd];
       });
 
       setSending(true);
 
       let response;
       if (isNewConversation) {
-        // Create conversation first
-        console.log(
-          "[Debug] Creating new conversation for user:",
-          selectedUser?.id,
-        );
         const createResponse = await createConversation(selectedUser.id);
-        console.log(
-          "[Debug] Create conversation response:",
-          createResponse.data,
-        );
-
         const newConversationId = createResponse.data.conversation_id;
         setCurrentConversationId(newConversationId);
         setCurrentConversation({
@@ -1457,17 +1437,11 @@ const ConversationScreen = ({ navigation, route }) => {
           type: "private",
         });
 
-        // Then send message
-        console.log(
-          "[Debug] Sending first message to new conversation:",
-          newConversationId,
-        );
         response = await sendMessage(newConversationId, {
           content: trimmedMessage,
           type: "text",
           reply_to_message_id: replySnapshot?.id,
         });
-        console.log("[Debug] Send message response:", response.data);
 
         // Update navigation params
         navigation.setParams({
@@ -1489,31 +1463,17 @@ const ConversationScreen = ({ navigation, route }) => {
           selectedUser: null,
         });
       } else {
-        console.log(
-          "[Debug] Sending message to existing conversation:",
-          currentConversationId,
-        );
         response = await sendMessage(currentConversationId, {
           content: trimmedMessage,
           type: "text",
           reply_to_message_id: replySnapshot?.id,
         });
-        console.log("[Debug] Send message response:", response.data);
       }
 
       // Replace optimistic message with real one and update storage
       setMessages((prev) => {
-        console.log(
-          "[Debug] Replacing optimistic message. Current messages:",
-          prev,
-        );
-        // First, get all messages except the temporary ones
         const baseMessages = prev.filter((msg) => {
-          // Check if msg and msg.id exist before using includes
-          if (!msg || !msg.id || typeof msg.id !== "string") {
-            console.log("[Debug] Found invalid message:", msg);
-            return true;
-          }
+          if (!msg || !msg.id || typeof msg.id !== "string") return true;
           return !msg.id.includes(tempId);
         });
 
@@ -1562,43 +1522,24 @@ const ConversationScreen = ({ navigation, route }) => {
         }
 
         messagesToAdd.push(response.data);
-        const updatedMessages = [...baseMessages, ...messagesToAdd];
-        console.log("[Debug] Final messages after update:", updatedMessages);
-        return updatedMessages;
+        return [...baseMessages, ...messagesToAdd];
       });
 
-      // Update cached messages
       const cachedData = storage.getString(getCacheKey(currentConversationId));
-      console.log("[Debug] Current cache for conversation:", {
-        conversationId: currentConversationId,
-        hasCachedData: !!cachedData,
-      });
-
       if (cachedData) {
         try {
           const cachedMessages = JSON.parse(cachedData);
           cachedMessages.push(response.data);
-          storage.set(
-            getCacheKey(currentConversationId),
-            JSON.stringify(cachedMessages),
-          );
+          storage.set(getCacheKey(currentConversationId), JSON.stringify(cachedMessages));
           storage.set(getTimestampKey(currentConversationId), Date.now());
-          console.log("[Debug] Cache updated successfully");
         } catch (error) {
-          console.error("[Debug] Cache update error:", error);
+          console.error("Cache update error:", error);
         }
       }
     } catch (error) {
-      console.error("[Debug] Error in handleSendMessage:", {
-        error: error.response?.data || error,
-        tempId,
-        isNewConversation,
-        selectedUser: selectedUser?.id,
-        currentConversationId,
-      });
+      console.error("Error in handleSendMessage:", error.response?.data || error);
 
       setMessages((prev) => {
-        console.log("[Debug] Removing failed message. Current messages:", prev);
         return prev.filter((msg) => {
           if (!msg || !msg.id || typeof msg.id !== "string") return true;
           return !msg.id.includes(tempId);
@@ -2017,14 +1958,8 @@ const ConversationScreen = ({ navigation, route }) => {
 
   // Media viewers -------------------------------------------------------------
 
-  const openImageViewer = (uri) => {
-    console.log("[ChatMedia] openImageViewer", { uri });
-    setImageViewer({ visible: true, uri });
-  };
-  const openVideoViewer = (uri) => {
-    console.log("[ChatMedia] openVideoViewer", { uri });
-    setVideoViewer({ visible: true, uri });
-  };
+  const openImageViewer = (uri) => setImageViewer({ visible: true, uri });
+  const openVideoViewer = (uri) => setVideoViewer({ visible: true, uri });
 
   // react-native-image-viewing's default header positions the close button
   // with RN's own <SafeAreaView>, which is an iOS-only no-op - on Android it
@@ -2094,7 +2029,7 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
-  const renderMessage = (itemOrInfo, indexArg) => {
+  const renderMessage = (itemOrInfo, indexArg, prevArg, nextArg) => {
     // Array.map passes the message directly, while FlatList passes { item, index }.
     const item = itemOrInfo?.item ?? itemOrInfo;
     const index = itemOrInfo?.item ? itemOrInfo.index : indexArg;
@@ -2145,22 +2080,21 @@ const ConversationScreen = ({ navigation, route }) => {
     // Check if this is a group chat
     const isGroupChat = currentConversation?.type === "group";
 
-    // Get previous and next messages (skip date/time headers)
-    let prevMessage = null;
-    for (let i = index - 1; i >= 0; i--) {
-      if (messages[i].type !== "date" && messages[i].type !== "time") {
-        prevMessage = messages[i];
-        break;
+    // prevArg/nextArg are pre-computed message neighbours passed from the map
+    // site, so we avoid an O(n) scan inside every renderMessage call.
+    const prevMessage = prevArg !== undefined ? prevArg : (() => {
+      for (let i = index - 1; i >= 0; i--) {
+        if (messages[i].type !== "date" && messages[i].type !== "time") return messages[i];
       }
-    }
+      return null;
+    })();
 
-    let nextMessage = null;
-    for (let i = index + 1; i < messages.length; i++) {
-      if (messages[i].type !== "date" && messages[i].type !== "time") {
-        nextMessage = messages[i];
-        break;
+    const nextMessage = nextArg !== undefined ? nextArg : (() => {
+      for (let i = index + 1; i < messages.length; i++) {
+        if (messages[i].type !== "date" && messages[i].type !== "time") return messages[i];
       }
-    }
+      return null;
+    })();
 
     // For group chats, check if sender changed from previous message
     const senderChanged =
@@ -2407,11 +2341,6 @@ const ConversationScreen = ({ navigation, route }) => {
               )}
               {!item.is_recalled && isImageMessage && item.file_url ? (
                 <>
-                  {console.log("[ChatMedia] rendering image", {
-                    id: item.id,
-                    raw_file_url: item.file_url,
-                    resolved: resolvedFileUrl,
-                  })}
                   {mediaLoadErrors[item.id] ? (
                     <View style={[styles.messageImage, styles.mediaErrorFallback]}>
                       <Ionicons name="image-outline" size={28} color="#fff" />
@@ -2426,12 +2355,6 @@ const ConversationScreen = ({ navigation, route }) => {
                       source={{ uri: resolvedFileUrl }}
                       style={styles.messageImage}
                       resizeMode={"cover"}
-                      onLoad={() =>
-                        console.log("[ChatMedia] image loaded OK", {
-                          id: item.id,
-                          resolved: resolvedFileUrl,
-                        })
-                      }
                       onError={(e) => {
                         const reason = e?.nativeEvent?.error || "unknown error";
                         console.error("[ChatMedia] image FAILED to load", {
@@ -2452,25 +2375,12 @@ const ConversationScreen = ({ navigation, route }) => {
                 </>
               ) : !item.is_recalled && isVideoMessage ? (
                 <>
-                  {console.log("[ChatMedia] rendering video", {
-                    id: item.id,
-                    raw_file_url: item.file_url,
-                    resolved_file_url: resolvedFileUrl,
-                    raw_metadata: item.metadata,
-                    resolved_thumbnail: resolvedThumbnailUrl,
-                  })}
                   {resolvedThumbnailUrl ? (
                     <Image
                       source={{ uri: resolvedThumbnailUrl }}
                       style={styles.messageImage}
                       resizeMode={"cover"}
-                      onError={(e) =>
-                        console.error("[ChatMedia] video thumbnail FAILED to load", {
-                          id: item.id,
-                          resolved_thumbnail: resolvedThumbnailUrl,
-                          reason: e?.nativeEvent?.error,
-                        })
-                      }
+                      onError={undefined}
                     />
                   ) : (
                     <View style={[styles.messageImage, styles.videoPlaceholder]} />
@@ -2781,32 +2691,60 @@ const ConversationScreen = ({ navigation, route }) => {
             scrollViewHeightRef.current = e.nativeEvent.layout.height;
           }}
         >
-          {messages.map((value, index) => (
-            <View
-              key={`${value.type}-${value.id}-${index}`}
-              onLayout={(e) => {
-                if (value.type === "message" && value.id != null) {
-                  messageLayoutOffsetsRef.current[value.id] =
-                    e.nativeEvent.layout.y;
-                  if (pendingHighlightMessageIdRef.current === value.id) {
-                    attemptScrollToHighlight();
-                  }
+          {(() => {
+            // Pre-compute nearest real-message neighbours for each item so
+            // renderMessage doesn't have to O(n)-scan the array itself.
+            const realMessages = [];
+            messages.forEach((m, i) => {
+              if (m.type !== "date" && m.type !== "time") realMessages.push({ m, i });
+            });
+            const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
+
+            return messages.map((value, index) => {
+              let prev = null;
+              let next = null;
+              const ri = realIdxOf.get(index);
+              if (ri != null) {
+                prev = ri > 0 ? realMessages[ri - 1].m : null;
+                next = ri < realMessages.length - 1 ? realMessages[ri + 1].m : null;
+              } else {
+                // date/time header — walk to find adjacent real messages
+                for (let i = index - 1; i >= 0; i--) {
+                  if (messages[i].type !== "date" && messages[i].type !== "time") { prev = messages[i]; break; }
                 }
-              }}
-              style={
-                value.id === highlightedMessageId
-                  ? {
-                      backgroundColor: isDarkMode
-                        ? "rgba(250,204,21,0.15)"
-                        : "rgba(250,204,21,0.25)",
-                      borderRadius: 12,
-                    }
-                  : undefined
+                for (let i = index + 1; i < messages.length; i++) {
+                  if (messages[i].type !== "date" && messages[i].type !== "time") { next = messages[i]; break; }
+                }
               }
-            >
-              {renderMessage(value, index)}
-            </View>
-          ))}
+
+              return (
+                <View
+                  key={`${value.type}-${value.id}-${index}`}
+                  onLayout={(e) => {
+                    if (value.type === "message" && value.id != null) {
+                      messageLayoutOffsetsRef.current[value.id] =
+                        e.nativeEvent.layout.y;
+                      if (pendingHighlightMessageIdRef.current === value.id) {
+                        attemptScrollToHighlight();
+                      }
+                    }
+                  }}
+                  style={
+                    value.id === highlightedMessageId
+                      ? {
+                          backgroundColor: isDarkMode
+                            ? "rgba(250,204,21,0.15)"
+                            : "rgba(250,204,21,0.25)",
+                          borderRadius: 12,
+                        }
+                      : undefined
+                  }
+                >
+                  {renderMessage(value, index, prev, next)}
+                </View>
+              );
+            });
+          })()}
           {typingUser && (
             <Text
               style={{

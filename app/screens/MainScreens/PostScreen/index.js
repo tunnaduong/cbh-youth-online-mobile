@@ -64,6 +64,140 @@ import {
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
 
+const Comment = React.forwardRef(
+  ({ comment, level = 0, border = false, commentRefs,
+     highlightedCommentId, isDarkMode, theme, t, username,
+     navigation, focusCommentInput, handleCommentVote,
+     setCommentVotesModal, setImageViewer, handleLongPressComment }, ref) => {
+    if (!comment || !comment.id) return null;
+
+    const votes = comment.votes ?? [];
+    const author = comment.author ?? {};
+    const content = comment.content ?? "";
+    const replies = comment.replies ?? [];
+    const isHighlighted = highlightedCommentId === comment.id;
+
+    const sharedProps = {
+      commentRefs, highlightedCommentId, isDarkMode, theme, t, username,
+      navigation, focusCommentInput, handleCommentVote,
+      setCommentVotesModal, setImageViewer, handleLongPressComment,
+    };
+
+    return (
+      <View
+        ref={ref}
+        style={{
+          marginLeft: level * 20,
+          backgroundColor: isHighlighted
+            ? isDarkMode ? "rgba(99,179,237,0.18)" : "rgba(66,153,225,0.12)"
+            : "transparent",
+          borderRadius: isHighlighted ? 10 : 0,
+        }}
+      >
+        <Pressable onLongPress={() => handleLongPressComment(comment.id)} delayLongPress={500}>
+          <View
+            style={[
+              { paddingVertical: 10, flexDirection: "row", gap: 10 },
+              border && { borderLeftWidth: 3, borderLeftColor: theme.border, paddingLeft: 10 },
+            ]}
+          >
+            <Pressable
+              onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
+              disabled={!author.username || !!comment.is_anonymous}
+            >
+              <View style={{ backgroundColor: theme.background, width: 42, height: 42, borderRadius: 21, overflow: "hidden", borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
+                {comment.is_anonymous ? (
+                  <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
+                  </View>
+                ) : author.username ? (
+                  <Image source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
+                ) : null}
+              </View>
+            </Pressable>
+            <View style={{ flexShrink: 1 }}>
+              <Pressable
+                onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
+                disabled={!author.username || !!comment.is_anonymous}
+              >
+                <Text style={{ fontWeight: "bold", color: theme.primary }}>
+                  {comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || ""}
+                  {author.verified && !comment.is_anonymous && (
+                    <View>
+                      <Verified width={15} height={15} color={theme.primary} style={{ marginBottom: -3 }} />
+                    </View>
+                  )}
+                </Text>
+              </Pressable>
+              {comment.deleted_parent_username && (
+                <View style={{ marginVertical: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.iconBackground, borderRadius: 8, borderWidth: 1, borderColor: theme.border }}>
+                  <Text style={{ fontSize: 12, color: theme.subText }}>
+                    {t("post.replyDeletedPrefix")}{" "}
+                    <Text style={{ fontWeight: "600", color: theme.text }}>{author.profile_name || author.username || t("post.anonymous")}</Text>{" "}
+                    {t("post.replyDeletedSuffix")}
+                  </Text>
+                </View>
+              )}
+              {!!content && (
+                <MentionText style={{ flexShrink: 1, color: theme.text }} mentions={comment.mentions} onMentionPress={(u) => navigation.navigate("ProfileScreen", { username: u })}>
+                  {String(content)}
+                </MentionText>
+              )}
+              {comment.image_urls?.length > 0 && (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
+                  {comment.image_urls.map((url, idx) => (
+                    <TouchableOpacity key={idx} activeOpacity={0.85} onPress={() => setImageViewer({ visible: true, images: comment.image_urls.map((u) => ({ uri: u })), index: idx })}>
+                      <Image source={{ uri: url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              <View className="flex-row items-center mt-1">
+                <Text style={{ fontSize: 12, color: "gray" }}>
+                  {comment.created_at ? formatTime(comment.created_at) : ""}
+                  {comment.is_edited ? ` (${t("post.edited")})` : ""} ·
+                </Text>
+                <TouchableOpacity onPress={() => focusCommentInput(comment.id, comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || "", level)}>
+                  <Text style={{ color: theme.subText, fontWeight: "bold", fontSize: 12 }}>{" "}{t("post.reply")}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View className="flex-1 items-end shrink-0">
+              <View>
+                <TouchableOpacity onPress={() => handleCommentVote(comment.id, 1)}>
+                  <Ionicons name="arrow-up-outline" size={18} color={votes.some((v) => v.username === username && v.vote_value === 1) ? "#22c55e" : theme.subText} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCommentVotesModal({ visible: true, commentId: comment.id, commentPreview: typeof comment.content === "string" ? comment.content : "" })} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ alignItems: "center", paddingVertical: 4 }}>
+                  <Text style={[{ fontSize: 14, fontWeight: "600" }, votes.some((v) => v.username === username && v.vote_value === 1) ? { color: "#22c55e" } : votes.some((v) => v.username === username && v.vote_value === -1) ? { color: "#ef4444" } : { color: theme.subText }, { textAlign: "center" }]}>
+                    {votes.reduce((acc, v) => acc + (v.vote_value || 0), 0)}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleCommentVote(comment.id, -1)}>
+                  <Ionicons name="arrow-down-outline" size={18} color={votes.some((v) => v.username === username && v.vote_value === -1) ? "#ef4444" : theme.subText} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Pressable>
+        {replies.length > 0 && (
+          <View style={{ marginTop: 10 }}>
+            {replies.map((reply) => (
+              <Comment
+                key={reply.id}
+                comment={reply}
+                level={level + 1}
+                border={true}
+                ref={(r) => (commentRefs.current[reply.id] = r)}
+                {...sharedProps}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  },
+);
+
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
   const { item, postId, screenName, highlightCommentId } = route.params; // Destructure item from route.params
@@ -152,10 +286,10 @@ const PostScreen = ({ route, navigation }) => {
   }, []);
 
   useEffect(() => {
-    if (post) {
+    if (post?.id) {
       incrementPostView(post.id);
     }
-  }, [post]);
+  }, [post?.id]);
 
   const handleOpenBottomSheet = () => {
     showBottomSheet(
@@ -972,317 +1106,6 @@ const PostScreen = ({ route, navigation }) => {
     }
   };
 
-  const Comment = React.forwardRef(
-    ({ comment, level = 0, border = false }, ref) => {
-      if (!comment || !comment.id) {
-        return null;
-      }
-
-      const votes = comment.votes ?? [];
-      const author = comment.author ?? {};
-      const content = comment.content ?? "";
-      const replies = comment.replies ?? [];
-      const isHighlighted = highlightedCommentId === comment.id;
-
-      return (
-        <View
-          ref={ref} // Attach ref here
-          style={{
-            marginLeft: level * 20, // Indent based on the nesting level
-            backgroundColor: isHighlighted
-              ? isDarkMode
-                ? "rgba(99,179,237,0.18)"
-                : "rgba(66,153,225,0.12)"
-              : "transparent",
-            borderRadius: isHighlighted ? 10 : 0,
-          }}
-        >
-          {/* Render the main comment */}
-
-          <Pressable
-            onLongPress={() => handleLongPressComment(comment.id)}
-            delayLongPress={500}
-          >
-            <View
-              style={[
-                {
-                  paddingVertical: 10,
-                  flexDirection: "row",
-                  gap: 10,
-                },
-                border && {
-                  borderLeftWidth: 3,
-                  borderLeftColor: theme.border,
-                  paddingLeft: 10,
-                },
-              ]}
-            >
-              <Pressable
-                onPress={() =>
-                  author.username &&
-                  !comment.is_anonymous &&
-                  navigation.navigate("ProfileScreen", {
-                    username: author.username,
-                  })
-                }
-                disabled={!author.username || !!comment.is_anonymous}
-              >
-                <View
-                  style={{
-                    backgroundColor: theme.background,
-                    width: 42,
-                    height: 42,
-                    borderRadius: 21,
-                    overflow: "hidden",
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {comment.is_anonymous ? (
-                    <View
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        backgroundColor: theme.iconBackground,
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: theme.text,
-                          fontWeight: "bold",
-                          fontSize: 20,
-                        }}
-                      >
-                        ?
-                      </Text>
-                    </View>
-                  ) : author.username ? (
-                    <Image
-                      source={{
-                        uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
-                      }}
-                      style={{ width: 40, height: 40, borderRadius: 30 }}
-                    />
-                  ) : null}
-                </View>
-              </Pressable>
-              <View style={{ flexShrink: 1 }}>
-                <Pressable
-                  onPress={() =>
-                    author.username &&
-                    !comment.is_anonymous &&
-                    navigation.navigate("ProfileScreen", {
-                      username: author.username,
-                    })
-                  }
-                  disabled={!author.username || !!comment.is_anonymous}
-                >
-                  <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                    {comment.is_anonymous
-                      ? t("post.anonymousUser")
-                      : author.profile_name || author.username || ""}
-                    {author.verified && !comment.is_anonymous && (
-                      <View>
-                        <Verified
-                          width={15}
-                          height={15}
-                          color={theme.primary}
-                          style={{ marginBottom: -3 }}
-                        />
-                      </View>
-                    )}
-                  </Text>
-                </Pressable>
-                {comment.deleted_parent_username && (
-                  <View
-                    style={{
-                      marginVertical: 8,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      backgroundColor: theme.iconBackground,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: theme.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12, color: theme.subText }}>
-                      {t("post.replyDeletedPrefix")}{" "}
-                      <Text style={{ fontWeight: "600", color: theme.text }}>
-                        {author.profile_name ||
-                          author.username ||
-                          t("post.anonymous")}
-                      </Text>{" "}
-                      {t("post.replyDeletedSuffix")}
-                    </Text>
-                  </View>
-                )}
-                {!!content && (
-                  <MentionText
-                    style={{
-                      flexShrink: 1,
-                      color: theme.text,
-                    }}
-                    mentions={comment.mentions}
-                    onMentionPress={(username) =>
-                      navigation.navigate("ProfileScreen", { username })
-                    }
-                  >
-                    {String(content)}
-                  </MentionText>
-                )}
-                {comment.image_urls?.length > 0 && (
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
-                    {comment.image_urls.map((url, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        activeOpacity={0.85}
-                        onPress={() =>
-                          setImageViewer({
-                            visible: true,
-                            images: comment.image_urls.map((u) => ({ uri: u })),
-                            index: idx,
-                          })
-                        }
-                      >
-                        <Image
-                          source={{ uri: url }}
-                          style={{
-                            width: comment.image_urls.length === 1 ? 200 : 96,
-                            height: comment.image_urls.length === 1 ? 200 : 96,
-                            borderRadius: 8,
-                          }}
-                          resizeMode="cover"
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-                <View className="flex-row items-center mt-1">
-                  <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""}
-                    {comment.is_edited ? ` (${t("post.edited")})` : ""} ·
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      focusCommentInput(
-                        comment.id,
-                        comment.is_anonymous
-                          ? t("post.anonymousUser")
-                          : author.profile_name || author.username || "",
-                        level,
-                      )
-                    }
-                  >
-                    <Text
-                      style={{
-                        color: theme.subText,
-                        fontWeight: "bold",
-                        fontSize: 12,
-                      }}
-                    >
-                      {" "}
-                      {t("post.reply")}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View className="flex-1 items-end shrink-0">
-                <View>
-                  <TouchableOpacity
-                    onPress={() => handleCommentVote(comment.id, 1)}
-                  >
-                    <Ionicons
-                      name="arrow-up-outline"
-                      size={18}
-                      color={
-                        votes.some(
-                          (vote) =>
-                            vote.username === username && vote.vote_value === 1,
-                        )
-                          ? "#22c55e"
-                          : theme.subText
-                      }
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() =>
-                      setCommentVotesModal({
-                        visible: true,
-                        commentId: comment.id,
-                        commentPreview: typeof comment.content === "string" ? comment.content : "",
-                      })
-                    }
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    style={{ alignItems: "center", paddingVertical: 4 }}
-                  >
-                    <Text
-                      style={[
-                        { fontSize: 14, fontWeight: "600" },
-                        { color: theme.subText, textAlign: "center" },
-                        votes.some(
-                          (vote) =>
-                            vote.username === username && vote.vote_value === 1,
-                        )
-                          ? { color: "#22c55e" }
-                          : votes.some(
-                                (vote) =>
-                                  vote.username === username &&
-                                  vote.vote_value === -1,
-                              )
-                            ? { color: "#ef4444" }
-                            : { color: theme.subText },
-                      ]}
-                    >
-                      {votes.reduce(
-                        (acc, vote) => acc + (vote.vote_value || 0),
-                        0,
-                      )}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleCommentVote(comment.id, -1)}
-                  >
-                    <Ionicons
-                      name="arrow-down-outline"
-                      size={18}
-                      color={
-                        votes.some(
-                          (vote) =>
-                            vote.username === username &&
-                            vote.vote_value === -1,
-                        )
-                          ? "#ef4444"
-                          : theme.subText
-                      }
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Pressable>
-
-          {/* Render replies recursively */}
-          {replies.length > 0 && (
-            <View style={{ marginTop: 10 }}>
-              {replies.map((reply) => (
-                <Comment
-                  key={reply.id}
-                  comment={reply}
-                  level={level + 1}
-                  border={true}
-                  ref={(ref) => (commentRefs.current[reply.id] = ref)}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-      );
-    },
-  );
 
   // Froggy loading animation
   const bounceValue = useRef(new Animated.Value(0)).current;
@@ -1505,6 +1328,18 @@ const PostScreen = ({ route, navigation }) => {
                   key={comment.id}
                   comment={comment}
                   ref={(ref) => (commentRefs.current[comment.id] = ref)}
+                  commentRefs={commentRefs}
+                  highlightedCommentId={highlightedCommentId}
+                  isDarkMode={isDarkMode}
+                  theme={theme}
+                  t={t}
+                  username={username}
+                  navigation={navigation}
+                  focusCommentInput={focusCommentInput}
+                  handleCommentVote={handleCommentVote}
+                  setCommentVotesModal={setCommentVotesModal}
+                  setImageViewer={setImageViewer}
+                  handleLongPressComment={handleLongPressComment}
                 />
               ))
             )}
