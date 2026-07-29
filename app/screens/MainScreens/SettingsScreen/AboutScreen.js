@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
@@ -32,6 +33,13 @@ export default function AboutScreen({ navigation }) {
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
+      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
+    }, [isDarkMode, theme.background])
+  );
+
   const headerBgOpacity = scrollY.interpolate({
     inputRange: [0, 10, 60],
     outputRange: [0, 0, 0],
@@ -45,11 +53,6 @@ export default function AboutScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor={theme.background}
-      />
-
       {/* Floating header */}
       <View
         pointerEvents="box-none"

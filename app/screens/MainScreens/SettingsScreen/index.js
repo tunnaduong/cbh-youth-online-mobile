@@ -8,10 +8,12 @@ import {
   Image,
   Linking,
   Animated,
+  StatusBar,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
@@ -102,6 +104,13 @@ export default function SettingsScreen({ navigation }) {
     : isDarkMode
     ? t("settings.dark")
     : t("settings.light");
+
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
+      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
+    }, [isDarkMode, theme.background])
+  );
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
