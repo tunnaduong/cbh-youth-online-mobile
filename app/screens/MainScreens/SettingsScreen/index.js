@@ -10,8 +10,7 @@ import {
   Animated,
   StatusBar,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import DiscordIcon from "../../../assets/DiscordIcon";
+import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
@@ -341,7 +340,7 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => Linking.openURL("https://discord.chuyenbienhoa.com/")}
             style={[styles.socialButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
           >
-            <DiscordIcon size={22} color="#5865F2" />
+            <FontAwesome name="discord" size={22} color="#5865F2" />
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>
