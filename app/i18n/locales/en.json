@@ -1320,5 +1320,10 @@
     "voteCount_other": "{{count}} people voted",
     "score": "Score: {{value}}",
     "empty": "No votes yet"
+  },
+  "commentVoteModal": {
+    "title": "Who voted on this comment",
+    "empty": "No votes yet",
+    "loadError": "Could not load voters list"
   }
 }

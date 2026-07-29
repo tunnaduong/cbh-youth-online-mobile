@@ -63,7 +63,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
         if (active) setVotes(normalizeVotes(res?.data ?? res));
       })
       .catch((err) => {
-        if (active) setError(err?.response?.data?.message || err?.message || t("voteModal.loadError"));
+        if (active) setError(err?.response?.data?.message || err?.message || t("commentVoteModal.loadError"));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -123,7 +123,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
       <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <Text style={[styles.title, { color: theme.text }]}>{t("voteModal.title")}</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{t("commentVoteModal.title")}</Text>
             {!!preview && (
               <Text style={[styles.subtitle, { color: theme.subText }]} numberOfLines={1}>
                 {preview}
@@ -145,7 +145,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
           </View>
         ) : votes.length === 0 ? (
           <View style={styles.emptyWrapper}>
-            <Text style={[styles.emptyText, { color: theme.subText }]}>{t("voteModal.empty")}</Text>
+            <Text style={[styles.emptyText, { color: theme.subText }]}>{t("commentVoteModal.empty")}</Text>
           </View>
         ) : (
           <FlatList

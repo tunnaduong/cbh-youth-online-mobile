@@ -1307,5 +1307,10 @@
     "voteCount": "{{count}} người đã vote",
     "score": "Tổng điểm: {{value}}",
     "empty": "Chưa có lượt vote nào"
+  },
+  "commentVoteModal": {
+    "title": "Người đã vote bình luận",
+    "empty": "Chưa có lượt vote nào",
+    "loadError": "Không thể tải danh sách người vote"
   }
 }
