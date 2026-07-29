@@ -337,7 +337,7 @@ const ConversationScreen = ({ navigation, route }) => {
     return getMentionSuggestions(q);
   }, []);
 
-  const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention } = useMentionInput({
+  const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention, loading: messageSuggestionsLoading } = useMentionInput({
     value: message,
     onChange: setMessage,
     fetchSuggestions: fetchMessageMentionSuggestions,
@@ -2505,7 +2505,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {messageSuggestions.length > 0 && (
+      {(messageSuggestions.length > 0 || messageSuggestionsLoading) && (
         <View
           style={{
             position: "absolute",
@@ -2519,6 +2519,7 @@ const ConversationScreen = ({ navigation, route }) => {
           <MentionSuggestions
             suggestions={messageSuggestions}
             onSelect={onSelectMessageMention}
+            loading={messageSuggestionsLoading}
           />
         </View>
       )}

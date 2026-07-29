@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Image,
   Text,
@@ -18,26 +19,34 @@ const MentionSuggestions = ({ suggestions, onSelect, loading }) => {
 
   if (!loading && (!suggestions || suggestions.length === 0)) return null;
 
+  const containerStyle = {
+    maxHeight: 200,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginHorizontal: 20,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: theme.border,
+    backgroundColor: isDarkMode
+      ? "rgba(30,30,30,0.97)"
+      : "rgba(255,255,255,0.97)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 5,
+  };
+
+  if (loading && suggestions.length === 0) {
+    return (
+      <View style={[containerStyle, { paddingVertical: 14, alignItems: "center" }]}>
+        <ActivityIndicator size="small" color={theme.primary} />
+      </View>
+    );
+  }
+
   return (
-    <View
-      style={{
-        maxHeight: 200,
-        borderRadius: 12,
-        overflow: "hidden",
-        marginHorizontal: 20,
-        marginBottom: 6,
-        borderWidth: 1,
-        borderColor: theme.border,
-        backgroundColor: isDarkMode
-          ? "rgba(30,30,30,0.97)"
-          : "rgba(255,255,255,0.97)",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        elevation: 5,
-      }}
-    >
+    <View style={containerStyle}>
       <FlatList
         data={suggestions}
         keyExtractor={(item) => String(item.id)}
@@ -97,6 +106,9 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
   const [loading, setLoading] = useState(false);
   const [mentionQuery, setMentionQuery] = useState(null); // null = not in mention mode
   const debounceRef = useRef(null);
+  // Per-instance cache: query string → result array. Lives for the component's
+  // lifetime so repeated keystrokes return instantly without a second API call.
+  const cacheRef = useRef(new Map());
 
   // Detect if cursor is inside an @mention query
   const handleChangeText = useCallback(
@@ -123,22 +135,31 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
   );
 
   useEffect(() => {
-    if (mentionQuery === null || mentionQuery === "") {
+    if (mentionQuery === null) {
       setSuggestions([]);
       return;
     }
+
+    // Serve from cache immediately so the list appears without any delay
+    if (cacheRef.current.has(mentionQuery)) {
+      setSuggestions(cacheRef.current.get(mentionQuery));
+      return;
+    }
+
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
         const res = await fetchSuggestions(mentionQuery);
-        setSuggestions(res?.data?.suggestions ?? res?.suggestions ?? []);
+        const results = res?.data?.suggestions ?? res?.suggestions ?? [];
+        cacheRef.current.set(mentionQuery, results);
+        setSuggestions(results);
       } catch {
         setSuggestions([]);
       } finally {
         setLoading(false);
       }
-    }, 100);
+    }, 120);
     return () => clearTimeout(debounceRef.current);
   }, [mentionQuery, fetchSuggestions]);
 
@@ -157,6 +178,7 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
   return {
     mentionProps: { onChangeText: handleChangeText },
     suggestions,
+    loading,
     onSelectMention: handleSelect,
     hasSuggestions: suggestions.length > 0 || loading,
   };

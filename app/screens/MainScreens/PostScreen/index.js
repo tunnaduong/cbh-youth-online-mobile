@@ -242,19 +242,20 @@ const PostScreen = ({ route, navigation }) => {
   const [loadingPost, setLoadingPost] = useState(false);
   const lottieRef = useRef(null);
 
-  const { mentionProps: commentMentionProps, suggestions: commentSuggestions, onSelectMention: onSelectCommentMention } = useMentionInput({
+  const { mentionProps: commentMentionProps, suggestions: commentSuggestions, onSelectMention: onSelectCommentMention, loading: commentSuggestionsLoading } = useMentionInput({
     value: commentText,
     onChange: setCommentText,
     fetchSuggestions: getMentionSuggestions,
   });
 
-  const { mentionProps: editMentionProps, suggestions: editSuggestions, onSelectMention: onSelectEditMention } = useMentionInput({
+  const { mentionProps: editMentionProps, suggestions: editSuggestions, onSelectMention: onSelectEditMention, loading: editSuggestionsLoading } = useMentionInput({
     value: editingCommentText,
     onChange: setEditingCommentText,
     fetchSuggestions: getMentionSuggestions,
   });
 
   const activeSuggestions = editingCommentId ? editSuggestions : commentSuggestions;
+  const activeSuggestionsLoading = editingCommentId ? editSuggestionsLoading : commentSuggestionsLoading;
   const onSelectActiveMention = editingCommentId ? onSelectEditMention : onSelectCommentMention;
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -1157,7 +1158,7 @@ const PostScreen = ({ route, navigation }) => {
   ) : (
     <>
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        {activeSuggestions.length > 0 && (
+        {(activeSuggestions.length > 0 || activeSuggestionsLoading) && (
           <View
             style={{
               position: "absolute",
@@ -1171,6 +1172,7 @@ const PostScreen = ({ route, navigation }) => {
             <MentionSuggestions
               suggestions={activeSuggestions}
               onSelect={onSelectActiveMention}
+              loading={activeSuggestionsLoading}
             />
           </View>
         )}
