@@ -340,7 +340,7 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => Linking.openURL("https://discord.chuyenbienhoa.com/")}
             style={[styles.socialButton, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}
           >
-            <Ionicons name="logo-discord" size={22} color="#5865F2" />
+            <Ionicons name="logo-react" size={22} color="#61DAFB" />
           </TouchableOpacity>
         </View>
       </Animated.ScrollView>
