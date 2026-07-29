@@ -135,8 +135,9 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
   );
 
   useEffect(() => {
-    if (mentionQuery === null) {
+    if (mentionQuery === null || mentionQuery === "") {
       setSuggestions([]);
+      setLoading(false);
       return;
     }
 
