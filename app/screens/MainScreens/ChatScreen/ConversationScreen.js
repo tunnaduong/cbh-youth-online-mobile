@@ -322,23 +322,25 @@ const ConversationScreen = ({ navigation, route }) => {
   const [messages, setMessages] = useState([]);
 
   const activeConversationId = React.useRef(null);
+  const fetchMessageMentionSuggestions = React.useCallback(async (q) => {
+    const cid = activeConversationId.current;
+    if (cid) {
+      try {
+        return await getConversationMentionSuggestions(cid, q);
+      } catch (e) {
+        if (e?.response?.status === 404) {
+          return getMentionSuggestions(q);
+        }
+        throw e;
+      }
+    }
+    return getMentionSuggestions(q);
+  }, []);
+
   const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention } = useMentionInput({
     value: message,
     onChange: setMessage,
-    fetchSuggestions: async (q) => {
-      const cid = activeConversationId.current;
-      if (cid) {
-        try {
-          return await getConversationMentionSuggestions(cid, q);
-        } catch (e) {
-          if (e?.response?.status === 404) {
-            return getMentionSuggestions(q);
-          }
-          throw e;
-        }
-      }
-      return getMentionSuggestions(q);
-    },
+    fetchSuggestions: fetchMessageMentionSuggestions,
   });
 
   const [chatKeyboardHeight, setChatKeyboardHeight] = useState(0);
@@ -367,8 +369,8 @@ const ConversationScreen = ({ navigation, route }) => {
         return true;
       };
 
-      BackHandler.addEventListener("hardwareBackPress", onBackPress);
-      return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+      const sub = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => sub.remove();
     }, [navigation]),
   );
 
