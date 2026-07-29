@@ -35,7 +35,6 @@ import {
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   getPersonalizedFeed,
-  getFeedRefreshCheck,
   getLatestFeed,
   getStories,
   incrementPostView,
@@ -1775,29 +1774,50 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     };
 
     if (feed == null) {
-      // Cold start / previously empty or errored feed: do a full load instead
-      // of a refresh-check, since there's nothing yet to prepend new posts onto.
+      // Cold start / previously empty or errored feed: full load.
       handleFetchFeed().finally(finishRefresh);
       return;
     }
 
-    getFeedRefreshCheck()
-      .then((response) => {
-        const hasNew = response?.data?.has_new;
-        const newPosts = response?.data?.new_posts;
+    // Load the next page of unseen ranked posts and prepend them so they
+    // appear immediately at the top after the user pulls down.
+    const loadNextPage = feedMode === "latest"
+      ? getLatestFeed(latestPage)
+      : getPersonalizedFeed(currentPage);
 
-        if (hasNew && Array.isArray(newPosts) && newPosts.length > 0) {
-          newPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
-          setFeed((prevData) => [...newPosts, ...(Array.isArray(prevData) ? prevData : [])]);
+    loadNextPage
+      .then((response) => {
+        const newPosts = response?.data?.data;
+        const exhausted = response?.data?.exhausted ||
+          !Array.isArray(newPosts) || newPosts.length === 0;
+
+        if (Array.isArray(newPosts) && newPosts.length > 0) {
+          const fresh = newPosts.filter(
+            (p) => p?.id == null || !deliveredIdsRef.current.has(p.id)
+          );
+          fresh.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+
+          if (fresh.length > 0) {
+            setFeed((prev) => [...fresh, ...(Array.isArray(prev) ? prev : [])]);
+          }
+
+          if (feedMode === "latest") {
+            setLatestPage((p) => p + 1);
+          } else {
+            setCurrentPage((p) => p + 1);
+          }
         }
-        // No new posts: leave the feed exactly as-is, nothing to prepend.
+
+        if (feedMode !== "latest" && exhausted) {
+          setFeedMode("latest");
+          setLatestPage(1);
+        }
       })
       .catch((error) => {
-        console.log("Error checking for new feed posts, falling back to full reload:", error);
-        return handleFetchFeed();
+        console.log("Error loading next feed page on refresh:", error);
       })
       .finally(finishRefresh);
-  }, [isLoggedIn, refreshUserInfo, feed]);
+  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage]);
 
   // Function to scroll to top or reload
   const scrollToTopOrReload = React.useCallback(() => {
