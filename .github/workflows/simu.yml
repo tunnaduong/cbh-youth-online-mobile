@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'dhphuc-55'
+      - 'dhphuc'
   workflow_dispatch:
 
 permissions:
