@@ -29,28 +29,6 @@ const isIOS = Platform.OS === "ios";
 const isAndroid = Platform.OS === "android";
 const RootView = View;
 
-// Client-side only: splits the draft text into plain/@mention segments so the
-// overlay below can bold+underline a mention as soon as it's inserted (either
-// typed or auto-filled from the suggestion list), without altering the raw
-// text that actually gets sent/stored.
-const MENTION_REGEX = /@[\w.-]+/g;
-function buildMentionParts(text) {
-  const parts = [];
-  let lastIndex = 0;
-  let match;
-  MENTION_REGEX.lastIndex = 0;
-  while ((match = MENTION_REGEX.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push({ mention: false, value: text.slice(lastIndex, match.index) });
-    }
-    parts.push({ mention: true, value: match[0] });
-    lastIndex = match.index + match[0].length;
-  }
-  if (lastIndex < text.length) {
-    parts.push({ mention: false, value: text.slice(lastIndex) });
-  }
-  return parts;
-}
 
 const CommentBar = React.forwardRef(
   (
@@ -82,7 +60,6 @@ const CommentBar = React.forwardRef(
       // of the same provider stacked on top of each other produced a
       // visible double-refraction artifact (a blotchy discolored patch).
       androidTransparentPill = false,
-      inMentionMode = false,
     },
     ref
   ) => {
@@ -100,8 +77,6 @@ const CommentBar = React.forwardRef(
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
     };
-    const hasMentionOverlay = inMentionMode;
-
     return (
       <RootView
         style={[
@@ -272,9 +247,9 @@ const CommentBar = React.forwardRef(
                 {leftAccessory}
               </View>
             ) : null}
-            <View style={{ flex: 1, position: "relative" }}>
+            <View style={{ flex: 1 }}>
               <TextInput
-                style={[inputTextStyle, hasMentionOverlay && { color: "transparent", backgroundColor: "transparent" }]}
+                style={inputTextStyle}
                 placeholder={placeholderText}
                 placeholderTextColor={theme.subText}
                 multiline={true}
@@ -286,30 +261,6 @@ const CommentBar = React.forwardRef(
                 nativeID={nativeID}
                 cursorColor={theme.text}
               />
-              {hasMentionOverlay ? (
-                <View
-                  pointerEvents="none"
-                  style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
-                >
-                  <Text style={[inputTextStyle, { flex: undefined, color: theme.text }]}>
-                    {buildMentionParts(value).map((part, i) =>
-                      part.mention ? (
-                        <Text
-                          key={i}
-                          style={{
-                            color: isDarkMode ? "#6bcf60" : "#319527",
-                            textDecorationLine: "underline",
-                          }}
-                        >
-                          {part.value}
-                        </Text>
-                      ) : (
-                        part.value
-                      )
-                    )}
-                  </Text>
-                </View>
-              ) : null}
             </View>
           </View>
 

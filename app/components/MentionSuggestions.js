@@ -183,7 +183,6 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
     loading,
     onSelectMention: handleSelect,
     hasSuggestions: suggestions.length > 0 || loading,
-    inMentionMode: mentionQuery !== null,
   };
 };
 
