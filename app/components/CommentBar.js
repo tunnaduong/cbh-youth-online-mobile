@@ -29,6 +29,29 @@ const isIOS = Platform.OS === "ios";
 const isAndroid = Platform.OS === "android";
 const RootView = View;
 
+// Client-side only: splits the draft text into plain/@mention segments so the
+// overlay below can bold+underline a mention as soon as it's inserted (either
+// typed or auto-filled from the suggestion list), without altering the raw
+// text that actually gets sent/stored.
+const MENTION_REGEX = /@[\w.-]+/g;
+function buildMentionParts(text) {
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  MENTION_REGEX.lastIndex = 0;
+  while ((match = MENTION_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ mention: false, value: text.slice(lastIndex, match.index) });
+    }
+    parts.push({ mention: true, value: match[0] });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    parts.push({ mention: false, value: text.slice(lastIndex) });
+  }
+  return parts;
+}
+
 const CommentBar = React.forwardRef(
   (
     {
@@ -66,6 +89,18 @@ const CommentBar = React.forwardRef(
     const { t } = useTranslation();
     const useRealAndroidGlass =
       isAndroid && useAndroidGlass && LiquidGlassViewAndroid && !!providerId && !androidTransparentPill;
+
+    const inputTextStyle = {
+      fontSize: 14,
+      flex: 1,
+      padding: 2,
+      color: theme.text,
+      minHeight: isAndroid ? 34 : 28,
+      textAlignVertical: "center",
+      paddingTop: isIOS ? 5 : 8,
+      paddingBottom: isAndroid ? 6 : 2,
+    };
+    const hasMentionOverlay = !!value && /@[\w.-]+/.test(value);
 
     return (
       <RootView
@@ -237,27 +272,37 @@ const CommentBar = React.forwardRef(
                 {leftAccessory}
               </View>
             ) : null}
-            <TextInput
-              style={{
-                fontSize: 14,
-                flex: 1,
-                padding: 2,
-                color: theme.text,
-                minHeight: isAndroid ? 34 : 28,
-                textAlignVertical: "center",
-                paddingTop: isIOS ? 5 : 8,
-                paddingBottom: isAndroid ? 6 : 2,
-              }}
-              placeholder={placeholderText}
-              placeholderTextColor={theme.subText}
-              multiline={true}
-              ref={ref}
-              onChangeText={onChangeText}
-              value={value}
-              onKeyPress={onKeyPress}
-              editable={editable}
-              nativeID={nativeID}
-            />
+            <View style={{ flex: 1, position: "relative" }}>
+              {hasMentionOverlay ? (
+                <Text
+                  pointerEvents="none"
+                  style={[inputTextStyle, { position: "absolute", left: 0, right: 0, top: 0 }]}
+                >
+                  {buildMentionParts(value).map((part, i) =>
+                    part.mention ? (
+                      <Text key={i} style={{ fontWeight: "700", textDecorationLine: "underline" }}>
+                        {part.value}
+                      </Text>
+                    ) : (
+                      part.value
+                    )
+                  )}
+                </Text>
+              ) : null}
+              <TextInput
+                style={[inputTextStyle, hasMentionOverlay && { color: "transparent" }]}
+                placeholder={placeholderText}
+                placeholderTextColor={theme.subText}
+                multiline={true}
+                ref={ref}
+                onChangeText={onChangeText}
+                value={value}
+                onKeyPress={onKeyPress}
+                editable={editable}
+                nativeID={nativeID}
+                cursorColor={theme.text}
+              />
+            </View>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 5 }}>
