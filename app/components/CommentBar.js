@@ -29,6 +29,22 @@ const isIOS = Platform.OS === "ios";
 const isAndroid = Platform.OS === "android";
 const RootView = View;
 
+const MENTION_REGEX = /@[\w.-]+/g;
+const buildMentionParts = (text) => {
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  MENTION_REGEX.lastIndex = 0;
+  while ((match = MENTION_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex)
+      parts.push({ mention: false, value: text.slice(lastIndex, match.index) });
+    parts.push({ mention: true, value: match[0] });
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < (text?.length ?? 0))
+    parts.push({ mention: false, value: text.slice(lastIndex) });
+  return parts;
+};
 
 const CommentBar = React.forwardRef(
   (
@@ -76,27 +92,6 @@ const CommentBar = React.forwardRef(
       paddingTop: isAndroid ? 9 : 5,
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
-    };
-
-    // Computed synchronously from value — no state hop, no render delay.
-    // Stays true after a mention is picked so the green tag persists.
-    const hasMentionOverlay = !!value && /@[\w.-]*/.test(value);
-
-    const MENTION_REGEX = /@[\w.-]+/g;
-    const buildMentionParts = (text) => {
-      const parts = [];
-      let lastIndex = 0;
-      let match;
-      MENTION_REGEX.lastIndex = 0;
-      while ((match = MENTION_REGEX.exec(text)) !== null) {
-        if (match.index > lastIndex)
-          parts.push({ mention: false, value: text.slice(lastIndex, match.index) });
-        parts.push({ mention: true, value: match[0] });
-        lastIndex = match.index + match[0].length;
-      }
-      if (lastIndex < text.length)
-        parts.push({ mention: false, value: text.slice(lastIndex) });
-      return parts;
     };
 
     return (
@@ -271,7 +266,7 @@ const CommentBar = React.forwardRef(
             ) : null}
             <View style={{ flex: 1, position: "relative" }}>
               <TextInput
-                style={[inputTextStyle, hasMentionOverlay && { color: "transparent", backgroundColor: "transparent" }]}
+                style={[inputTextStyle, { color: "transparent", backgroundColor: "transparent" }]}
                 placeholder={placeholderText}
                 placeholderTextColor={theme.subText}
                 multiline={true}
@@ -283,30 +278,28 @@ const CommentBar = React.forwardRef(
                 nativeID={nativeID}
                 cursorColor={theme.text}
               />
-              {hasMentionOverlay ? (
-                <View
-                  pointerEvents="none"
-                  style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
-                >
-                  <Text style={[inputTextStyle, { flex: undefined, color: theme.text }]}>
-                    {buildMentionParts(value).map((part, i) =>
-                      part.mention ? (
-                        <Text
-                          key={i}
-                          style={{
-                            color: isDarkMode ? "#6bcf60" : "#319527",
-                            textDecorationLine: "underline",
-                          }}
-                        >
-                          {part.value}
-                        </Text>
-                      ) : (
-                        part.value
-                      )
-                    )}
-                  </Text>
-                </View>
-              ) : null}
+              <View
+                pointerEvents="none"
+                style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
+              >
+                <Text style={[inputTextStyle, { flex: undefined, color: theme.text }]}>
+                  {buildMentionParts(value).map((part, i) =>
+                    part.mention ? (
+                      <Text
+                        key={i}
+                        style={{
+                          color: isDarkMode ? "#6bcf60" : "#319527",
+                          textDecorationLine: "underline",
+                        }}
+                      >
+                        {part.value}
+                      </Text>
+                    ) : (
+                      part.value
+                    )
+                  )}
+                </Text>
+              </View>
             </View>
           </View>
 
