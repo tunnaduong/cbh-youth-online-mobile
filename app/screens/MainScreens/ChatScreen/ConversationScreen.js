@@ -2592,7 +2592,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   <View style={styles.headerOnlineDot} />
                 ) : null}
               </View>
-              <View style={[styles.headerTextContainer, { flex: 1, minWidth: 0 }]}>
+              <View style={[styles.headerTextContainer, { flexShrink: 1, minWidth: 0 }]}>
                 <Text
                   style={[styles.headerName, { color: theme.text }]}
                   numberOfLines={1}
