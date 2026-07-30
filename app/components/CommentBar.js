@@ -265,41 +265,52 @@ const CommentBar = React.forwardRef(
               </View>
             ) : null}
             <View style={{ flex: 1, position: "relative" }}>
-              <TextInput
-                style={[inputTextStyle, { color: "transparent", backgroundColor: "transparent" }]}
-                placeholder={placeholderText}
-                placeholderTextColor={theme.subText}
-                multiline={true}
-                ref={ref}
-                onChangeText={onChangeText}
-                value={value}
-                onKeyPress={onKeyPress}
-                editable={editable}
-                nativeID={nativeID}
-                cursorColor={theme.text}
-              />
-              <View
-                pointerEvents="none"
-                style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
-              >
-                <Text style={[inputTextStyle, { flex: undefined, color: theme.text }]}>
-                  {buildMentionParts(value).map((part, i) =>
-                    part.mention ? (
-                      <Text
-                        key={i}
-                        style={{
-                          color: isDarkMode ? "#6bcf60" : "#319527",
-                          textDecorationLine: "underline",
-                        }}
-                      >
-                        {part.value}
+              {(() => {
+                const hasMention = /@[\w.-]+/.test(value || "");
+                const mentionColor = isDarkMode ? "#6bcf60" : "#319527";
+                return (
+                  <>
+                    <TextInput
+                      style={[inputTextStyle, {
+                        color: hasMention ? "transparent" : theme.text,
+                        backgroundColor: "transparent",
+                      }]}
+                      placeholder={placeholderText}
+                      placeholderTextColor={theme.subText}
+                      multiline={true}
+                      ref={ref}
+                      onChangeText={onChangeText}
+                      value={value}
+                      onKeyPress={onKeyPress}
+                      editable={editable}
+                      nativeID={nativeID}
+                      cursorColor={theme.text}
+                    />
+                    <View
+                      pointerEvents="none"
+                      style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
+                    >
+                      <Text style={[inputTextStyle, { flex: undefined, color: "transparent" }]}>
+                        {buildMentionParts(value).map((part, i) =>
+                          part.mention ? (
+                            <Text
+                              key={i}
+                              style={{
+                                color: mentionColor,
+                                textDecorationLine: "underline",
+                              }}
+                            >
+                              {part.value}
+                            </Text>
+                          ) : (
+                            <Text key={i} style={{ color: "transparent" }}>{part.value}</Text>
+                          )
+                        )}
                       </Text>
-                    ) : (
-                      part.value
-                    )
-                  )}
-                </Text>
-              </View>
+                    </View>
+                  </>
+                );
+              })()}
             </View>
           </View>
 
