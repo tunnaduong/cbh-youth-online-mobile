@@ -274,20 +274,22 @@ const CommentBar = React.forwardRef(
             ) : null}
             <View style={{ flex: 1, position: "relative" }}>
               {hasMentionOverlay ? (
-                <Text
+                <View
                   pointerEvents="none"
-                  style={[inputTextStyle, { position: "absolute", left: 0, right: 0, top: 0 }]}
+                  style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
                 >
-                  {buildMentionParts(value).map((part, i) =>
-                    part.mention ? (
-                      <Text key={i} style={{ fontWeight: "700", textDecorationLine: "underline" }}>
-                        {part.value}
-                      </Text>
-                    ) : (
-                      part.value
-                    )
-                  )}
-                </Text>
+                  <Text style={inputTextStyle}>
+                    {buildMentionParts(value).map((part, i) =>
+                      part.mention ? (
+                        <Text key={i} style={{ textDecorationLine: "underline" }}>
+                          {part.value}
+                        </Text>
+                      ) : (
+                        part.value
+                      )
+                    )}
+                  </Text>
+                </View>
               ) : null}
               <TextInput
                 style={[inputTextStyle, hasMentionOverlay && { color: "transparent" }]}
