@@ -5,13 +5,13 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   Modal,
   RefreshControl,
   Animated,
   DeviceEventEmitter,
   Platform,
 } from "react-native";
+import FastImage from "../../../components/FastImage";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -28,10 +28,24 @@ import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
+import {
+  LiquidGlassView,
+  LiquidGlassViewAndroid,
+  isLiquidGlassSupportedAndroid,
+  useIOSGlass,
+  BlurView,
+  AndroidGlassBackdrop,
+} from "../../../components/GlassModules";
+import LiquidButton from "../../../components/LiquidButton";
+
 
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification, t) => {
   const { type, data, actor } = notification;
+
+  if (type === "payment_received") {
+    return data?.message || data?.title || t('notifications.newNotification');
+  }
 
   // System messages don't have an actor
   if (type === "system_message") {
@@ -57,18 +71,43 @@ const formatNotificationMessage = (notification, t) => {
   switch (type) {
     case "topic_liked":
       return `${t('notifications.likedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
+    case "topic_downvoted":
+      return `${t('notifications.downvotedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
     case "topic_commented":
       return `${t('notifications.commentedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
+    case "topic_pinned":
+      return `${t('notifications.pinnedPost')} "${data?.topic_title || ""}"`;
+    case "topic_moved":
+      return `${t('notifications.movedPost')} "${data?.topic_title || ""}"`;
+    case "topic_closed":
+      return `${t('notifications.closedPost')} "${data?.topic_title || ""}"`;
     case "comment_liked":
       return t('notifications.likedComment');
+    case "comment_downvoted":
+      return t('notifications.downvotedComment');
     case "comment_replied":
       return t('notifications.repliedComment');
     case "mentioned":
-      return t('notifications.mentionedComment');
+      if (data?.conversation_id) return t('notifications.mentionedInChat');
+      if (data?.comment_id) return t('notifications.mentionedComment');
+      return t('notifications.mentionedInPost');
+    case "followed":
+      return t('notifications.followedYou');
     case "story_reacted":
       return `${t('notifications.reactedStory')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourStory')}`;
     case "story_replied":
       return t('notifications.repliedStory');
+    case "message_reacted":
+      return `${t('notifications.reactedMessage')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourMessage')}`;
+    case "message_replied":
+      return t('notifications.repliedMessage');
+    case "study_material_purchased":
+      return `${t('notifications.purchasedMaterial')} "${data?.material_title || ""}"`;
+    case "study_material_rated":
+      return `${t('notifications.ratedMaterial')} "${data?.material_title || ""}"`;
+    case "system_message":
+    case "system_alert":
+      return data?.message || t('notifications.systemSentMessage');
     // Legacy types (if still in use)
     case "App\\Notifications\\PostLiked":
       return `${t('notifications.likedPost')} "${data?.post_title || data?.topic_title || ""}" ${t('notifications.ofYours')}`;
@@ -97,6 +136,20 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const insets = useSafeAreaInsets();
   const lottieRef = useRef(null);
   const { t } = useTranslation();
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
@@ -228,16 +281,8 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
-    // Auto hide bottom tab bar
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
 
     if (!refreshing) {
@@ -351,8 +396,17 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     }
   };
 
+  // Only these notification types mean the actor authored the anonymous
+  // content themselves (their own anonymous reply/comment). Voters/likers
+  // are never anonymous, even when they vote on someone else's anonymous
+  // comment/post, so `data.is_anonymous` must not hide them for those types.
+  const ANONYMOUS_ACTOR_TYPES = ["comment_replied", "topic_commented"];
+
   const renderItem = ({ item }) => {
-    const isAnonymous = (item.actor && item.actor.id === null) || item.data?.is_anonymous === true || item.data?.anonymous === true;
+    const isAnonymous =
+      (item.actor && item.actor.id === null) ||
+      (ANONYMOUS_ACTOR_TYPES.includes(item.type) &&
+        (item.data?.is_anonymous === true || item.data?.anonymous === true));
     const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
     const userName = isSystemMessage
       ? t('notifications.system')
@@ -379,21 +433,69 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             item.data?.message?.includes("Chào mừng")
           ) {
             navigation.navigate("PostScreen", { postId: 173336279 });
+          } else if (
+            item.type === "system_message" &&
+            item.data?.url === "/wallet"
+          ) {
+            navigation.navigate("PointWalletScreen");
           } else if (item.type === "story_reacted") {
             // Navigate to the Home tab so the story viewer can open the requested story.
-            navigation.navigate("Home", {
-              highlightStoryId: item.data?.story_id,
+            navigation.navigate("MainScreens", {
+              screen: "Home",
+              params: {
+                openStoryId: item.data?.story_id ?? item.data?.storyId,
+              },
             });
-          } else if (item.type === "story_replied") {
+          } else if (
+            item.type === "story_replied" ||
+            item.type === "message_reacted" ||
+            item.type === "message_replied"
+          ) {
             // Navigate to conversation screen
             if (item.data?.conversation_id) {
               navigation.navigate("ConversationScreen", {
                 conversationId: item.data.conversation_id,
+                highlightMessageId:
+                  item.data?.reply_message_id ?? item.data?.message_id ?? item.data?.messageId,
               });
             } else {
-              // Fallback to chat screen if conversation_id is missing
               navigation.navigate("Chat");
             }
+          } else if (item.type === "mentioned" && item.data?.conversation_id) {
+            navigation.navigate("ConversationScreen", {
+              conversationId: item.data.conversation_id,
+              highlightMessageId: item.data?.message_id,
+            });
+          } else if (item.data?.comment_id && item.data?.topic_id) {
+            // Any comment-related notification (mention, reply, reaction, etc.)
+            // jumps straight to the comment and highlights it.
+            navigation.navigate("PostScreen", {
+              postId: item.data.topic_id,
+              highlightCommentId: item.data.comment_id,
+            });
+          } else if (item.type === "mentioned" && item.data?.topic_id) {
+            navigation.navigate("PostScreen", { postId: item.data.topic_id });
+          } else if (item.type === "followed") {
+            if (item.actor?.username && !isAnonymous) {
+              navigation.navigate("ProfileScreen", {
+                username: item.actor.username,
+              });
+            }
+          } else if (
+            item.type === "study_material_purchased" ||
+            item.type === "study_material_rated"
+          ) {
+            if (item.data?.material_id) {
+              navigation.navigate("StudyMaterialDetailScreen", {
+                materialId: item.data.material_id,
+              });
+            }
+          } else if (
+            item.type === "payment_received" ||
+            item.raw?.url === "/wallet" ||
+            item.data?.url === "/wallet"
+          ) {
+            navigation.navigate("PointWalletScreen");
           } else if (item.data?.topic_id) {
             navigation.navigate("PostScreen", { postId: item.data.topic_id });
           } else if (item.data?.post_id) {
@@ -410,7 +512,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
           </View>
         ) : (
-          <Image
+          <FastImage
             source={
               !isSystemMessage
                 ? {
@@ -463,7 +565,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         activeOpacity={1}
         onPress={() => setShowActionMenu(false)}
       >
-        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }]}>
+        <View style={[styles.actionMenu, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <TouchableOpacity
             style={[
               styles.actionItem,
@@ -523,41 +625,32 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      <View style={[styles.header, { marginTop: insets.top, backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('navigation.notifications')}</Text>
-        <TouchableOpacity
-          style={[
-            styles.readAllButton,
-            { backgroundColor: theme.primary },
-            unreadCount === 0 && (isDarkMode ? { backgroundColor: "#2e2e2e", elevation: 0, shadowOpacity: 0 } : styles.readAllButtonDisabled),
-          ]}
+      <View style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, backgroundColor: 'transparent', borderBottomColor: 'transparent', height: 58 + insets.top }]} pointerEvents="box-none">
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, backgroundColor: 'transparent', textShadowColor: isDarkMode ? '#000' : '#FFF', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] }]}>{t('navigation.notifications')}</Animated.Text>
+        <LiquidButton
+          providerId="Notifications"
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
+          scrollY={scrollY}
+          alwaysBorder
+          borderColor={unreadCount > 0 ? theme.primary : theme.border}
+          size={44}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44, backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
+          borderRadius={22}
         >
           <Text
             style={[
               styles.readAllText,
-              { color: "#fff" },
+              { color: unreadCount > 0 ? theme.primary : theme.text },
               unreadCount === 0 && (isDarkMode ? { color: "#666" } : styles.readAllTextDisabled),
             ]}
           >
             {t('notifications.readAll')} ({unreadCount})
           </Text>
-        </TouchableOpacity>
+        </LiquidButton>
       </View>
 
-      {refreshing && (
-        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{ width: 40, height: 40 }}
-            ref={lottieRef}
-            loop
-            autoPlay
-          />
-        </View>
-      )}
-
+      <AndroidGlassBackdrop providerId="Notifications" style={{ flex: 1 }}>
       {loading && notifications.length === 0 ? (
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
@@ -577,6 +670,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           removeClippedSubviews={Platform.OS === 'android'}
           renderItem={renderItem}
           contentContainerStyle={{
+            paddingTop: 58 + insets.top,
             paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
             flex: notifications.length === 0 ? 1 : undefined,
@@ -597,7 +691,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           onEndReachedThreshold={0.5}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Image
+              <FastImage
                 source={require("../../../assets/sad_frog.png")}
                 style={styles.emptyImage}
               />
@@ -606,6 +700,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           }
         />
       )}
+      </AndroidGlassBackdrop>
 
       <ActionMenu />
     </View>
@@ -622,10 +717,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    height: 50,
-    marginTop: 0.3,
-    borderBottomWidth: 1,
+    gap: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#f0f0f0",
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 28,

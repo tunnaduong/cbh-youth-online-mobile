@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   logoutRequest,
@@ -10,6 +10,14 @@ import { storage } from "../global/storage";
 
 export const AuthContext = createContext();
 
+export const useAuthContext = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuthContext must be used within an AuthProvider");
+  }
+  return context;
+};
+
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,8 +28,11 @@ export const AuthProvider = ({ children }) => {
   const [blockedUsers, setBlockedUsers] = useState([]);
   // Incremented when current user updates their avatar → busts expo-image cache
   const [avatarVersion, setAvatarVersion] = useState(1);
+  // Incremented when current user updates their cover photo → busts expo-image cache
+  const [coverVersion, setCoverVersion] = useState(1);
 
   const bumpAvatarVersion = () => setAvatarVersion((v) => v + 1);
+  const bumpCoverVersion = () => setCoverVersion((v) => v + 1);
 
   // Helper to build an avatar URL with cache-busting for the current user
   const getAvatarUrl = (uname) => {
@@ -29,6 +40,16 @@ export const AuthProvider = ({ children }) => {
     // Only bust cache for the currently logged-in user
     if (uname === username && avatarVersion > 1) {
       return `${base}?v=${avatarVersion}`;
+    }
+    return base;
+  };
+
+  // Helper to build a cover photo URL with cache-busting for the current user
+  const getCoverUrl = (uname) => {
+    const base = `https://api.chuyenbienhoa.com/v1.0/users/${uname}/cover`;
+    // Only bust cache for the currently logged-in user
+    if (uname === username && coverVersion > 1) {
+      return `${base}?v=${coverVersion}`;
     }
     return base;
   };
@@ -74,6 +95,12 @@ export const AuthProvider = ({ children }) => {
               setBlockedUsers(JSON.parse(storedBlockedUsers));
             }
           }
+
+          try {
+            await refreshUserInfo();
+          } catch (refreshError) {
+            console.error("Failed to refresh current user info:", refreshError);
+          }
         } else {
           // Not logged in, clear or blocked users irrelevant
           setBlockedUsers([]);
@@ -109,6 +136,20 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (e) {
       console.error("Error fetching blocked users on login:", e);
+    }
+
+    try {
+      const currentUserResponse = await getCurrentUser();
+      if (currentUserResponse?.data) {
+        const user = currentUserResponse.data;
+        setUsername(user.username || null);
+        setProfileName(user.profile_name || null);
+        setUserInfo(user);
+        setEmailVerifiedAt(user.email_verified_at || null);
+        await AsyncStorage.setItem("user_info", JSON.stringify(user));
+      }
+    } catch (e) {
+      console.error("Error fetching current user profile on login:", e);
     }
   };
 
@@ -178,7 +219,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const refreshUserInfo = async () => {
-    if (!isLoggedIn) {
+    const token = await AsyncStorage.getItem("auth_token");
+    if (!token) {
       return;
     }
 
@@ -186,6 +228,7 @@ export const AuthProvider = ({ children }) => {
       const response = await getCurrentUser();
       if (response?.data) {
         const user = response.data;
+        setIsLoggedIn(true);
         setUsername(user.username || null);
         setProfileName(user.profile_name || null);
         setUserInfo(user);
@@ -221,6 +264,10 @@ export const AuthProvider = ({ children }) => {
         avatarVersion,
         bumpAvatarVersion,
         getAvatarUrl,
+        // Cover photo cache busting
+        coverVersion,
+        bumpCoverVersion,
+        getCoverUrl,
       }}
     >
       {children}

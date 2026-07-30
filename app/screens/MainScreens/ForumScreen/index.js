@@ -4,6 +4,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  ImageBackground,
   StyleSheet,
   Image,
   RefreshControl,
@@ -20,63 +21,79 @@ import CustomLoading from "../../../components/CustomLoading";
 import LottieView from "lottie-react-native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
 import { storage } from "../../../global/storage";
+import LiquidButton from "../../../components/LiquidButton";
 
 const { width } = Dimensions.get("window");
 
 
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
-  <View style={[styles.sectionBox, { borderColor: theme.primary, backgroundColor: theme.cardBackground, shadowColor: isDarkMode ? "#000" : theme.primary }]}>
-    <TouchableOpacity
-      onPress={() =>
-        navigation.navigate("CategoryScreen", { categoryId: section.id })
-      }
+  <TouchableOpacity
+    onPress={() => navigation.navigate("CategoryScreen", { categoryId: section.id })}
+    activeOpacity={0.9}
+    style={[
+      styles.sectionBox,
+      {
+        borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+        backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.7)",
+      },
+    ]}
+  >
+    <ImageBackground
+      source={{ uri: "https://www.chuyenbienhoa.com/images/" + section.background_image }}
+      resizeMode="cover"
+      style={styles.sectionBackground}
+      imageStyle={styles.sectionBackgroundImage}
     >
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{getCategoryName(section.name, t)}</Text>
-      <View style={styles.sectionStats}>
-        <Text style={[styles.statText, { color: theme.text }]}>
-          {t('forum.posts')}: <Text style={[styles.statBold, { color: theme.text }]}>{section.post_count}</Text>
-        </Text>
-        <Text style={[styles.statText, { color: theme.text }]}>
-          {t('forum.comments')}:{" "}
-          <Text style={[styles.statBold, { color: theme.text }]}>{section.comment_count}</Text>
-        </Text>
-      </View>
-    </TouchableOpacity>
-    <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
-      {section.latest_post ? (
-        <>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("PostScreen", {
-                postId: section.latest_post.id,
-              })
-            }
-          >
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.latest')}</Text>
-              <Text style={[styles.latestTime, { color: theme.subText }]}>
-                {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
-              </Text>
-            </View>
-            <Text style={[styles.latestContent, { color: theme.text }]}>
-              <Text style={[styles.latestAuthor, { color: theme.primary }]}>
-                {section.latest_post.user.name}:
-              </Text>{" "}
-              {section.latest_post.title}
+      <LinearGradient
+        colors={[theme.background, "transparent"]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 3, y: 0 }}
+        style={{ position: "absolute", width: "150%", height: "400%", transform: [{rotate: '-35deg'}, {translateY: -150}] }}
+      />
+        <View style={styles.sectionHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{getCategoryName(section.name, t)}</Text>
+            <Text style={[styles.sectionSubtitle, { color: theme.subText }]}>
+              {section.post_count} {t('forum.posts').toLowerCase()} · {section.comment_count} {t('forum.comments').toLowerCase()}
             </Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
-      )}
-    </View>
-  </View>
-);
+          </View>
+          <View style={[styles.sectionBadge, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.1)" }]}> 
+            <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+          </View>
+        </View>
+
+        <View style={[styles.latestBox, { backgroundColor: isDarkMode ? "rgba(49,149,39,0.1)" : "rgba(49,149,39,0.06)" }]}> 
+          {section.latest_post ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("PostScreen", { postId: section.latest_post.id })}
+              activeOpacity={0.8}
+            >
+              <View style={styles.latestMetaRow}>
+                <Text style={[styles.latestLabel, { color: theme.primary }]}>{t('forum.latest')}</Text>
+                <Text style={[styles.latestTime, { color: theme.subText }]}> 
+                  {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
+                </Text>
+              </View>
+              <Text style={[styles.latestContent, { color: theme.text }]} numberOfLines={2}> 
+                <Text style={[styles.latestAuthor, { color: theme.primary }]}> 
+                  {section.latest_post.user.name}:
+                </Text>{" "}
+                {section.latest_post.title}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={[styles.latestLabel, { color: theme.subText }]}>{t('forum.noNewPosts')}</Text>
+          )}
+        </View>
+    </ImageBackground>
+  </TouchableOpacity>
+)
 
 export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
@@ -87,13 +104,14 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const [loading, setLoading] = useState(true);
   const [forumSections, setForumSections] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const lottieRef = useRef(null);
   const flatListRef = useRef(null);
   const tabScrollViewRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = 58 + insets.top;
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(
@@ -120,21 +138,9 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
-    // Auto hide bottom tab bar
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
-
-    if (!refreshing) {
-      lottieRef.current?.play();
-    }
   };
 
   const scrollToTopOrReload = React.useCallback(() => {
@@ -246,28 +252,20 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
 
   if (loading) {
     return (
-      <View
-        style={[
-          { flex: 1, backgroundColor: theme.background },
-          { paddingTop: insets.top },
-        ]}
-      >
-        
-        <View style={styles.header}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
           <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("ProfileScreen", { username })}
-          >
+          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("ProfileScreen", { username })} style={{ padding: 2 }}>
             <FastImage
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}
-              style={[styles.avatar, { borderColor: theme.border }]}
+              style={styles.avatar}
             />
-          </TouchableOpacity>
+          </LiquidButton>
         </View>
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
+          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background, paddingTop: headerHeight }}
         >
           <CustomLoading />
           <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
@@ -277,28 +275,23 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   }
 
   return (
-    <View
-      style={[{ flex: 1, backgroundColor: theme.background }, { paddingTop: insets.top }]}
-    >
-      
-      <View style={styles.header}>
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Floating header */}
+      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent", backgroundColor: "transparent" }]} pointerEvents="box-none">
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("MemberRankingScreen")}
-          style={{ marginRight: 15 }}
-        >
-          <Ionicons name="trophy-outline" size={26} color={theme.primary} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("ProfileScreen", { username })}
-        >
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={[styles.avatar, { borderColor: theme.border }]}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("MemberRankingScreen")}>
+            <Ionicons name="trophy-outline" size={22} color={theme.primary} />
+          </LiquidButton>
+          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("ProfileScreen", { username })} style={{ padding: 2 }}>
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={styles.avatar}
+            />
+          </LiquidButton>
+        </View>
       </View>
 
       <ScrollView
@@ -307,7 +300,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabScrollContent}
         scrollEnabled={scrollEnabled}
-        style={[styles.tabContainer, { backgroundColor: theme.background }]}
+        style={[styles.tabContainer, { backgroundColor: "transparent" }]}
       >
         {categories.map((cat, index) => (
           <TouchableOpacity
@@ -332,19 +325,6 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         ))}
       </ScrollView>
 
-      <AnimatedLottieView
-        source={require("../../../assets/refresh.json")}
-        style={{
-          width: 40,
-          height: 40,
-          position: "absolute",
-          zIndex: 0,
-          alignSelf: "center",
-          top: 50 + insets.top + 10 + 45,
-        }}
-        ref={lottieRef}
-      />
-
       <FlatList
         ref={flatListRef}
         data={categories}
@@ -357,6 +337,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         maxToRenderPerBatch={5}
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
+        style={{ backgroundColor: theme.background }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
           {
@@ -388,10 +369,10 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
           <ScrollView
             style={{ flex: 1, width, backgroundColor: theme.background }}
             contentContainerStyle={{
-              backgroundColor: theme.background,
+              backgroundColor: "transparent",
               paddingHorizontal: 16,
               paddingBottom: 110 + insets.bottom,
-              paddingTop: 5,
+              paddingTop: 8,
             }}
             showsVerticalScrollIndicator={false}
             onScroll={(e) => {
@@ -409,7 +390,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
                 tintColor="transparent"
                 colors={["transparent"]}
                 progressBackgroundColor="transparent"
-                style={{ backgroundColor: "transparent" }}
+                style={{ backgroundColor: theme.background }}
                 progressViewOffset={-1000}
               />
             }
@@ -435,19 +416,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16,
-    height: 50,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
     flex: 1,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
   avatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderWidth: 2,
   },
   tabContainer: {
     height: 45,
@@ -477,45 +462,61 @@ const styles = StyleSheet.create({
   },
   sectionBox: {
     borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 16,
+    borderRadius: 16,
+    marginBottom: 14,
+    overflow: "hidden",
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+    marginRight: 14,
   },
   sectionTitle: {
     fontSize: 17,
-    fontWeight: "bold",
-    marginBottom: 6,
+    fontWeight: "700",
+    marginBottom: 4,
   },
-  sectionStats: {
-    flexDirection: "row",
-    marginBottom: 8,
-    gap: 18,
+  sectionSubtitle: {
+    fontSize: 13,
   },
-  statText: {
-    fontSize: 14,
+  sectionBackground: {
+    padding: 14,
+    width: "105%",
+    borderRadius: 16,
+    overflow: "hidden",
   },
-  statBold: {
-    fontWeight: "bold",
+  sectionBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
   },
   latestBox: {
-    borderRadius: 6,
-    padding: 8,
-    marginTop: 2,
+    borderRadius: 12,
+    padding: 10,
+    marginRight: 14
+  },
+  latestMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
   },
   latestLabel: {
     fontSize: 13,
-    fontWeight: "bold",
-    marginBottom: 2,
+    fontWeight: "700",
   },
   latestContent: {
     fontSize: 14,
-    marginBottom: 2,
+    lineHeight: 20,
   },
   latestAuthor: {
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   latestTime: {
     fontSize: 12,
-    marginLeft: "auto",
   },
 });

@@ -1,124 +1,136 @@
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  memo,
-  useRef,
-} from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ScrollView,
-  Modal,
+  Animated,
   FlatList,
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import DatePicker from "react-native-date-picker";
 import BottomSheet, {
   BottomSheetBackdrop,
+  BottomSheetScrollView,
   BottomSheetTextInput,
-  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import ReportHeader from "../../../components/ReportHeader";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
-const SuggestionItem = ({ item, onPress }) => {
-  const { theme } = useTheme();
+const STEPS = [
+  { id: 1, titleKey: "report.step1" },
+  { id: 2, titleKey: "report.step2" },
+  { id: 3, titleKey: "report.step3" },
+];
+
+function StepIndicator({ currentStep, theme, isDarkMode, t }) {
   return (
-    <TouchableOpacity style={[styles.suggestionItem, { borderBottomColor: theme.border }]} onPress={() => onPress(item)}>
+    <View style={styles.stepContainer}>
+      {STEPS.map((step, index) => (
+        <React.Fragment key={step.id}>
+          <View style={styles.stepItem}>
+            <View
+              style={[
+                styles.stepNumber,
+                {
+                  backgroundColor:
+                    step.id <= currentStep
+                      ? theme.primary
+                      : isDarkMode
+                      ? "#374151"
+                      : "#E5E5E5",
+                },
+              ]}
+            >
+              {step.id < currentStep ? (
+                <Ionicons name="checkmark" size={16} color="#fff" />
+              ) : (
+                <Text
+                  style={[
+                    styles.stepNumberText,
+                    {
+                      color:
+                        step.id <= currentStep ? "#fff" : theme.subText,
+                    },
+                  ]}
+                >
+                  {step.id}
+                </Text>
+              )}
+            </View>
+            <Text
+              style={[
+                styles.stepText,
+                {
+                  color:
+                    step.id <= currentStep ? theme.primary : theme.subText,
+                },
+              ]}
+            >
+              {t(step.titleKey)}
+            </Text>
+          </View>
+          {index < STEPS.length - 1 && (
+            <View
+              style={[
+                styles.stepLine,
+                {
+                  backgroundColor:
+                    step.id < currentStep
+                      ? theme.primary
+                      : isDarkMode
+                      ? "#374151"
+                      : "#E5E5E5",
+                },
+              ]}
+            />
+          )}
+        </React.Fragment>
+      ))}
+    </View>
+  );
+}
+
+function SuggestionItem({ item, onPress, theme }) {
+  return (
+    <TouchableOpacity
+      style={[styles.suggestionItem, { borderBottomColor: theme.border }]}
+      onPress={() => onPress(item)}
+    >
       <Text style={[styles.suggestionText, { color: theme.text }]}>{item}</Text>
     </TouchableOpacity>
   );
-};
+}
 
-const SelectedTag = ({ tag, onRemove }) => {
-  const { theme, isDarkMode } = useTheme();
+function SelectedTag({ tag, onRemove, theme, isDarkMode }) {
   return (
-    <View style={[styles.selectedTag, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }]}>
-      <Text style={[styles.selectedTagText, { color: theme.primary }]}>{tag}</Text>
+    <View
+      style={[
+        styles.selectedTag,
+        {
+          backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1",
+          borderColor: theme.primary,
+        },
+      ]}
+    >
+      <Text style={[styles.selectedTagText, { color: theme.primary }]}>
+        {tag}
+      </Text>
       <TouchableOpacity onPress={() => onRemove(tag)}>
         <Ionicons name="close-circle" size={18} color={theme.subText} />
       </TouchableOpacity>
     </View>
   );
-};
-
-const TagInput = ({
-  tagInput,
-  onChangeText,
-  selectedTags,
-  onRemoveTag,
-  suggestions,
-  loading,
-  onAddTag,
-}) => {
-  const { theme, isDarkMode } = useTheme();
-  const { t } = useTranslation();
-  return (
-    <KeyboardAvoidingView behavior={"padding"} keyboardVerticalOffset={110}>
-      <View style={[styles.modalContent, { backgroundColor: theme.cardBackground }]}>
-        <View style={styles.modalHeader}>
-          <Text style={[styles.modalTitle, { color: theme.text }]}>{t('report.addOtherViolation')}</Text>
-        </View>
-
-        <View style={styles.selectedTagsContainer}>
-          {selectedTags.map((tag) => (
-            <SelectedTag key={tag} tag={tag} onRemove={onRemoveTag} />
-          ))}
-        </View>
-
-        <View style={styles.searchContainer}>
-          <BottomSheetTextInput
-            style={[styles.searchInput, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-            placeholder={t('report.searchViolation')}
-            placeholderTextColor={theme.subText}
-            value={tagInput}
-            onChangeText={onChangeText}
-            maxLength={100}
-          />
-          {loading && (
-            <ActivityIndicator style={styles.loadingIndicator} color={theme.primary} />
-          )}
-        </View>
-
-        {suggestions.length > 0 && (
-          <FlatList
-            data={suggestions}
-            keyExtractor={(item) => item}
-            renderItem={({ item }) => (
-              <SuggestionItem item={item} onPress={onAddTag} />
-            )}
-            style={styles.suggestionsList}
-            keyboardShouldPersistTaps="handled"
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            windowSize={10}
-            initialNumToRender={10}
-          />
-        )}
-
-        <TouchableOpacity
-          style={[
-            styles.addCustomButton,
-            { backgroundColor: theme.primary, opacity: tagInput.length > 0 ? 1 : 0.5 },
-          ]}
-          disabled={tagInput.length === 0}
-          onPress={() => onAddTag(tagInput)}
-        >
-          <Text style={styles.addCustomButtonText}>{t('report.addNewViolation')}</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
-  );
-};
+}
 
 export default function Step2({ navigation, route }) {
   const { violationType: selectedViolationType } = route.params;
@@ -137,275 +149,62 @@ export default function Step2({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const bottomSheetRef = useRef(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  // iOS: presentation:"modal" renders as a floating card (not full-bleed
+  // like Android), which already clears the notch/status bar on its own —
+  // adding the full device insets.top double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
 
-  const STEPS = [
-    { id: 1, titleKey: "report.step1" },
-    { id: 2, titleKey: "report.step2" },
-    { id: 3, titleKey: "report.step3" },
-  ];
+  const STUDENT_VIOLATION_TYPES = t("report.studentViolationTypes", {
+    returnObjects: true,
+  });
+  const CLASS_VIOLATION_TYPES = t("report.classViolationTypes", {
+    returnObjects: true,
+  });
+  const CLEANLINESS_STATUS = t("report.cleanliness", { returnObjects: true });
+  const UNIFORM_STATUS = t("report.uniformStatus", { returnObjects: true });
 
-  const STUDENT_VIOLATION_TYPES = t('report.studentViolationTypes', { returnObjects: true });
-  const CLASS_VIOLATION_TYPES = t('report.classViolationTypes', { returnObjects: true });
-  const CLEANLINESS_STATUS = t('report.cleanliness', { returnObjects: true });
-  const UNIFORM_STATUS = t('report.uniformStatus', { returnObjects: true });
-
-  const StepIndicator = () => (
-    <View style={styles.stepContainer}>
-      {STEPS.map((step, index) => (
-        <React.Fragment key={step.id}>
-          <View style={styles.stepItem}>
-            <View
-              style={[
-                styles.stepNumber,
-                {
-                  backgroundColor: step.id <= 2 ? theme.primary : (isDarkMode ? "#374151" : "#E5E5E5"),
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.stepNumberText,
-                  { color: step.id <= 2 ? "#fff" : theme.subText },
-                ]}
-              >
-                {step.id}
-              </Text>
-            </View>
-            <Text
-              style={[
-                styles.stepText,
-                { color: step.id <= 2 ? theme.primary : theme.subText },
-              ]}
-            >
-              {t(step.titleKey)}
-            </Text>
-          </View>
-          {index < STEPS.length - 1 && (
-            <View
-              style={[
-                styles.stepLine,
-                { backgroundColor: index === 0 ? theme.primary : (isDarkMode ? "#374151" : "#E5E5E5") },
-              ]}
-            />
-          )}
-        </React.Fragment>
-      ))}
-    </View>
-  );
-
-  const handleDateChange = (selectedDate) => {
-    setReportDate(selectedDate);
-  };
-
-  const formatDate = (date) => {
-    return date.toLocaleString("vi-VN", {
+  const formatDate = (date) =>
+    date.toLocaleString("vi-VN", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
-  };
 
   const handleTextChange = (text) => {
     setTagInput(text);
-
     if (!text.trim()) {
       setSuggestions([]);
       return;
     }
-
-    // Mock suggestions based on query
-    const mockSuggestions = t('report.mockViolations', { returnObjects: true }).filter((item) => item.toLowerCase().includes(text.toLowerCase()));
-
+    const mockSuggestions = t("report.mockViolations", {
+      returnObjects: true,
+    }).filter((item) => item.toLowerCase().includes(text.toLowerCase()));
     setSuggestions(mockSuggestions);
   };
 
   const handleAddTag = (tag) => {
-    setSelectedTags([tag]); // Only keep one tag
+    setSelectedTags([tag]);
     setTagInput("");
     setViolationType(tag);
     setSuggestions([]);
     bottomSheetRef.current?.close();
   };
 
-  const handleRemoveTag = (tagToRemove) => {
+  const handleRemoveTag = () => {
     setSelectedTags([]);
     setViolationType("");
   };
-
-  const renderViolationTypes = () => (
-    <View style={styles.inputContainer}>
-      <Text style={[styles.label, { color: theme.subText }]}>{t('report.violationType')}</Text>
-      <View style={styles.violationTypesContainer}>
-        {(selectedViolationType === "class"
-          ? CLASS_VIOLATION_TYPES
-          : STUDENT_VIOLATION_TYPES
-        ).map((type) => (
-          <TouchableOpacity
-            key={type}
-            style={[
-              styles.violationTypeChip,
-              { borderColor: theme.border },
-              (type === t('common.other') && selectedTags.length > 0) ||
-                violationType === type
-                ? [styles.selectedViolationType, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }]
-                : null,
-            ]}
-            onPress={() => {
-              if (type === t('common.other')) {
-                handleShowTagInput();
-              } else {
-                setViolationType(type);
-                setSelectedTags([]);
-              }
-            }}
-          >
-            <Text
-              style={[
-                styles.violationTypeText,
-                { color: theme.subText },
-                (type === t('common.other') && selectedTags.length > 0) ||
-                  violationType === type
-                  ? [styles.selectedViolationTypeText, { color: theme.primary }]
-                  : null,
-              ]}
-            >
-              {type === t('common.other') && selectedTags.length > 0 ? t('common.other') : type}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {selectedTags.length > 0 && (
-        <View style={styles.selectedTagsPreview}>
-          <View style={[styles.selectedTagPreviewItem, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }]}>
-            <Text style={[styles.selectedTagPreviewText, { color: theme.primary }]}>{selectedTags[0]}</Text>
-          </View>
-        </View>
-      )}
-    </View>
-  );
-
-  const renderDateInput = () => (
-    <View style={styles.inputContainer}>
-      <Text style={[styles.label, { color: theme.subText }]}>{t('report.reportTime')}</Text>
-      <View style={[styles.dateInput, { borderColor: theme.border, backgroundColor: isDarkMode ? "#1f2937" : "#fff" }]}>
-        <Ionicons
-          name="calendar-outline"
-          size={20}
-          color={theme.subText}
-          style={styles.dateIcon}
-        />
-        <Text style={[styles.dateText, { color: theme.text }]}>{formatDate(reportDate)}</Text>
-      </View>
-    </View>
-  );
-
-  const renderStudentForm = () => (
-    <>
-      {/* Student Name Input */}
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>{t('report.studentName')}</Text>
-        <TextInput
-          style={[styles.input, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-          placeholder={t('report.studentNamePlaceholder')}
-          placeholderTextColor={theme.subText}
-          value={studentName}
-          onChangeText={setStudentName}
-        />
-      </View>
-
-      {renderDateInput()}
-
-      {renderViolationTypes()}
-    </>
-  );
-
-  const renderClassForm = () => (
-    <View style={styles.formSection}>
-      <Text style={[styles.sectionTitle, { color: theme.primary }]}>{t('report.classInfo')}</Text>
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>{t('report.className')}</Text>
-        <TextInput
-          style={[styles.input, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-          value={className}
-          onChangeText={setClassName}
-          placeholder={t('report.classNamePlaceholder')}
-          placeholderTextColor={theme.subText}
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>{t('report.absentStudents')}</Text>
-        <TextInput
-          style={[styles.input, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-          value={absences}
-          onChangeText={setAbsences}
-          placeholder="0"
-          placeholderTextColor={theme.subText}
-          keyboardType="numeric"
-        />
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>{t('report.hygiene')}</Text>
-        <View style={styles.optionsContainer}>
-          {CLEANLINESS_STATUS.map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.optionButton,
-                { borderColor: theme.border },
-                cleanliness === status && [styles.selectedOption, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }],
-              ]}
-              onPress={() => setCleanliness(status)}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  { color: theme.subText },
-                  cleanliness === status && [styles.selectedOptionText, { color: theme.primary }],
-                ]}
-              >
-                {status}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.inputContainer}>
-        <Text style={[styles.label, { color: theme.subText }]}>{t('report.uniform')}</Text>
-        <View style={styles.optionsContainer}>
-          {UNIFORM_STATUS.map((status) => (
-            <TouchableOpacity
-              key={status}
-              style={[
-                styles.optionButton,
-                { borderColor: theme.border },
-                uniform === status && [styles.selectedOption, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }],
-              ]}
-              onPress={() => setUniform(status)}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  { color: theme.subText },
-                  uniform === status && [styles.selectedOptionText, { color: theme.primary }],
-                ]}
-              >
-                {status}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {renderViolationTypes()}
-    </View>
-  );
 
   const handleShowTagInput = () => {
     bottomSheetRef.current?.snapToIndex(0);
@@ -430,79 +229,427 @@ export default function Step2({ navigation, route }) {
     return Boolean(studentName && violationType);
   };
 
+  const renderViolationTypes = () => (
+    <View style={styles.inputContainer}>
+      <Text style={[styles.label, { color: theme.subText }]}>
+        {t("report.violationType")}
+      </Text>
+      <View style={styles.chipsRow}>
+        {(selectedViolationType === "class"
+          ? CLASS_VIOLATION_TYPES
+          : STUDENT_VIOLATION_TYPES
+        ).map((type) => {
+          const isOtherSelected =
+            type === t("common.other") && selectedTags.length > 0;
+          const isSelected = isOtherSelected || violationType === type;
+          return (
+            <TouchableOpacity
+              key={type}
+              style={[
+                styles.chip,
+                {
+                  backgroundColor: isSelected
+                    ? isDarkMode
+                      ? "#064e3b"
+                      : "#F3FDF1"
+                    : isDarkMode
+                    ? "rgba(255,255,255,0.06)"
+                    : "#F1F5F9",
+                  borderColor: isSelected ? theme.primary : theme.border,
+                },
+              ]}
+              onPress={() => {
+                if (type === t("common.other")) {
+                  handleShowTagInput();
+                } else {
+                  setViolationType(type);
+                  setSelectedTags([]);
+                }
+              }}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  { color: isSelected ? theme.primary : theme.subText },
+                  isSelected && { fontWeight: "600" },
+                ]}
+              >
+                {type}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+      {selectedTags.length > 0 && (
+        <View style={styles.selectedTagsPreview}>
+          <SelectedTag
+            tag={selectedTags[0]}
+            onRemove={handleRemoveTag}
+            theme={theme}
+            isDarkMode={isDarkMode}
+          />
+        </View>
+      )}
+    </View>
+  );
+
+  const renderStudentForm = () => (
+    <>
+      <View style={styles.inputContainer}>
+        <Text style={[styles.label, { color: theme.subText }]}>
+          {t("report.studentName")}
+        </Text>
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color: theme.text,
+              backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#fff",
+              borderColor: theme.border,
+            },
+          ]}
+          placeholder={t("report.studentNamePlaceholder")}
+          placeholderTextColor={theme.subText}
+          value={studentName}
+          onChangeText={setStudentName}
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Text style={[styles.label, { color: theme.subText }]}>
+          {t("report.reportTime")}
+        </Text>
+        <TouchableOpacity
+          style={[
+            styles.dateInput,
+            {
+              backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#fff",
+              borderColor: theme.border,
+            },
+          ]}
+          onPress={() => setOpenDatePicker(true)}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={20}
+            color={theme.subText}
+            style={{ marginRight: 8 }}
+          />
+          <Text style={[styles.dateText, { color: theme.text }]}>
+            {formatDate(reportDate)}
+          </Text>
+        </TouchableOpacity>
+        <DatePicker
+          modal
+          open={openDatePicker}
+          date={reportDate}
+          onConfirm={(date) => {
+            setOpenDatePicker(false);
+            setReportDate(date);
+          }}
+          onCancel={() => setOpenDatePicker(false)}
+        />
+      </View>
+
+      {renderViolationTypes()}
+    </>
+  );
+
+  const renderClassForm = () => (
+    <>
+      <View style={[styles.sectionCard, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#F8FAFC", borderColor: theme.border }]}>
+        <Text style={[styles.sectionCardTitle, { color: theme.primary }]}>
+          {t("report.classInfo")}
+        </Text>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.subText }]}>
+            {t("report.className")}
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                color: theme.text,
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#fff",
+                borderColor: theme.border,
+              },
+            ]}
+            value={className}
+            onChangeText={setClassName}
+            placeholder={t("report.classNamePlaceholder")}
+            placeholderTextColor={theme.subText}
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.subText }]}>
+            {t("report.absentStudents")}
+          </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                color: theme.text,
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#fff",
+                borderColor: theme.border,
+              },
+            ]}
+            value={absences}
+            onChangeText={setAbsences}
+            placeholder="0"
+            placeholderTextColor={theme.subText}
+            keyboardType="numeric"
+          />
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.subText }]}>
+            {t("report.hygiene")}
+          </Text>
+          <View style={styles.chipsRow}>
+            {CLEANLINESS_STATUS.map((status) => (
+              <TouchableOpacity
+                key={status}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor:
+                      cleanliness === status
+                        ? isDarkMode
+                          ? "#064e3b"
+                          : "#F3FDF1"
+                        : isDarkMode
+                        ? "rgba(255,255,255,0.06)"
+                        : "#F1F5F9",
+                    borderColor:
+                      cleanliness === status ? theme.primary : theme.border,
+                  },
+                ]}
+                onPress={() => setCleanliness(status)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    {
+                      color:
+                        cleanliness === status ? theme.primary : theme.subText,
+                    },
+                    cleanliness === status && { fontWeight: "600" },
+                  ]}
+                >
+                  {status}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.subText }]}>
+            {t("report.uniform")}
+          </Text>
+          <View style={styles.chipsRow}>
+            {UNIFORM_STATUS.map((status) => (
+              <TouchableOpacity
+                key={status}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor:
+                      uniform === status
+                        ? isDarkMode
+                          ? "#064e3b"
+                          : "#F3FDF1"
+                        : isDarkMode
+                        ? "rgba(255,255,255,0.06)"
+                        : "#F1F5F9",
+                    borderColor:
+                      uniform === status ? theme.primary : theme.border,
+                  },
+                ]}
+                onPress={() => setUniform(status)}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    {
+                      color:
+                        uniform === status ? theme.primary : theme.subText,
+                    },
+                    uniform === status && { fontWeight: "600" },
+                  ]}
+                >
+                  {status}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {renderViolationTypes()}
+    </>
+  );
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      
+    <>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      behavior="padding"
+    >
+      {/* Floating header */}
+      <View
+        pointerEvents="box-none"
+        style={[styles.floatingHeader, { height: headerHeight }]}
+      >
+        <View
+          style={{
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
+            paddingBottom: 8,
+            paddingHorizontal: 16,
+            flexDirection: "row",
+            alignItems: "center",
+          }}
+        >
+          <View style={{ width: 44 }}>
+            <LiquidButton
+              providerId="ReportStep2"
+              size={44}
+              scrollY={scrollY}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: titleOpacity }]}
+            numberOfLines={1}
+          >
+            {t("report.createReport")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
+      </View>
 
-      {/* Header */}
-      <ReportHeader navigation={navigation} title={t('report.createReport')} />
+      <AndroidGlassBackdrop providerId="ReportStep2" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingHorizontal: 16,
+          paddingBottom: 24 + (insets.bottom || 0),
+        }}
+      >
 
-      <ScrollView style={[styles.scrollView, { backgroundColor: theme.background }]}>
-        <View style={[styles.header, { backgroundColor: theme.primary }]}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
-            <Text style={styles.headerSubtitle}>
-              {t('report.schoolName')}
+
+        {/* Gradient info card */}
+        <LinearGradient
+          colors={
+            isDarkMode ? ["#173C2B", "#0F261D"] : ["#2BAA5C", "#1A874A"]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientCard}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.gradientTitle}>
+              {t("report.reportViolation")}
             </Text>
+            <Text style={styles.gradientSubtitle}>{t("report.schoolName")}</Text>
           </View>
-          <View style={styles.warningIcon}>
-            <Ionicons name="warning" size={24} color="#fff" />
+          <View style={styles.gradientIconWrap}>
+            <Ionicons name="warning" size={28} color="#FFFFFF" />
           </View>
-        </View>
+        </LinearGradient>
 
-        {/* Step Indicator */}
-        <StepIndicator />
+        {/* Step indicator */}
+        <StepIndicator
+          currentStep={2}
+          theme={theme}
+          isDarkMode={isDarkMode}
+          t={t}
+        />
 
-        {/* Content */}
-        <View style={styles.content}>
-          <Text style={[styles.contentTitle, { color: theme.text }]}>
-            {t('report.step2Title')}
+        <Text style={[styles.contentTitle, { color: theme.text }]}>
+          {t("report.step2Title")}
+        </Text>
+        <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
+          {t("report.step2Subtitle")}
+        </Text>
+
+        {selectedViolationType === "class"
+          ? renderClassForm()
+          : renderStudentForm()}
+
+        {/* Notes */}
+        <View style={styles.inputContainer}>
+          <Text style={[styles.label, { color: theme.subText }]}>
+            {t("report.notes")}
           </Text>
-          <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
-            {t('report.step2Subtitle')}
-          </Text>
-
-          {selectedViolationType === "class"
-            ? renderClassForm()
-            : renderStudentForm()}
-
-          {/* Notes Input */}
-          <View style={styles.inputContainer}>
-            <Text style={[styles.label, { color: theme.subText }]}>{t('report.notes')}</Text>
-            <TextInput
-              style={[styles.input, styles.notesInput, { color: theme.text, backgroundColor: isDarkMode ? "#1f2937" : "#fff", borderColor: theme.border }]}
-              placeholder={t('report.notesPlaceholder')}
-              placeholderTextColor={theme.subText}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              textAlignVertical="top"
-            />
-          </View>
+          <TextInput
+            style={[
+              styles.input,
+              styles.notesInput,
+              {
+                color: theme.text,
+                backgroundColor: isDarkMode ? "rgba(255,255,255,0.06)" : "#fff",
+                borderColor: theme.border,
+              },
+            ]}
+            placeholder={t("report.notesPlaceholder")}
+            placeholderTextColor={theme.subText}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            textAlignVertical="top"
+          />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+      </AndroidGlassBackdrop>
 
-      {/* Continue Button */}
-      <TouchableOpacity
+      {/* Continue button */}
+      <View
         style={[
-          styles.continueButton,
+          styles.bottomBar,
           {
-            backgroundColor: theme.primary,
-            opacity: isFormValid() ? 1 : 0.5,
+            paddingBottom: 16 + (insets.bottom || 0),
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
           },
         ]}
-        disabled={!isFormValid()}
-        onPress={handleSubmit}
       >
-        <Text style={styles.continueButtonText}>{t('report.continue')}</Text>
-        <Ionicons name="arrow-forward" size={24} color="#fff" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            {
+              backgroundColor: theme.primary,
+              opacity: isFormValid() ? 1 : 0.5,
+            },
+          ]}
+          disabled={!isFormValid()}
+          onPress={handleSubmit}
+        >
+          <Text style={styles.continueButtonText}>{t("report.continue")}</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={["90%"]}
+        enableDynamicSizing={false}
         index={-1}
         enablePanDownToClose
         keyboardBehavior="interactive"
+        keyboardBlurBehavior="restore"
         android_keyboardInputMode="adjustResize"
         backgroundStyle={{ backgroundColor: theme.cardBackground }}
         handleIndicatorStyle={{ backgroundColor: theme.border }}
@@ -515,70 +662,133 @@ export default function Step2({ navigation, route }) {
           />
         )}
       >
-        <BottomSheetView style={{ padding: 16, paddingBottom: 50 }}>
-          <TagInput
-            tagInput={tagInput}
-            onChangeText={handleTextChange}
-            selectedTags={selectedTags}
-            onRemoveTag={handleRemoveTag}
-            suggestions={suggestions}
-            loading={loading}
-            onAddTag={handleAddTag}
-          />
-        </BottomSheetView>
+        <BottomSheetScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 16 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[styles.sheetContent, { backgroundColor: theme.cardBackground }]}>
+            <Text style={[styles.sheetTitle, { color: theme.text }]}>
+              {t("report.addOtherViolation")}
+            </Text>
+
+            <View style={styles.selectedTagsContainer}>
+              {selectedTags.map((tag) => (
+                <SelectedTag
+                  key={tag}
+                  tag={tag}
+                  onRemove={handleRemoveTag}
+                  theme={theme}
+                  isDarkMode={isDarkMode}
+                />
+              ))}
+            </View>
+
+            <View style={styles.searchContainer}>
+              <BottomSheetTextInput
+                style={[
+                  styles.searchInput,
+                  {
+                    color: theme.text,
+                    backgroundColor: isDarkMode ? "#1f2937" : "#fff",
+                    borderColor: theme.border,
+                  },
+                ]}
+                placeholder={t("report.searchViolation")}
+                placeholderTextColor={theme.subText}
+                value={tagInput}
+                onChangeText={handleTextChange}
+                maxLength={100}
+              />
+              {loading && (
+                <ActivityIndicator
+                  style={styles.loadingIndicator}
+                  color={theme.primary}
+                />
+              )}
+            </View>
+
+            {suggestions.length > 0 && (
+              <FlatList
+                data={suggestions}
+                keyExtractor={(item) => item}
+                renderItem={({ item }) => (
+                  <SuggestionItem
+                    item={item}
+                    onPress={handleAddTag}
+                    theme={theme}
+                  />
+                )}
+                style={styles.suggestionsList}
+                scrollEnabled={false}
+                keyboardShouldPersistTaps="handled"
+              />
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.addCustomButton,
+                {
+                  backgroundColor: theme.primary,
+                  opacity: tagInput.length > 0 ? 1 : 0.5,
+                },
+              ]}
+              disabled={tagInput.length === 0}
+              onPress={() => handleAddTag(tagInput)}
+            >
+              <Text style={styles.addCustomButtonText}>
+                {t("report.addNewViolation")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheetScrollView>
       </BottomSheet>
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
+  container: { flex: 1 },
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
+  headerTitle: { fontSize: 17, fontWeight: "700" },
+  gradientCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#319527",
-    padding: 16,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 6,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
-  headerContent: {
-    flex: 1,
+  gradientTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#fff",
-    opacity: 0.8,
-  },
-  warningIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  gradientSubtitle: { fontSize: 13, color: "#C7F5D7" },
+  gradientIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
   },
   stepContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 18,
   },
-  stepItem: {
-    alignItems: "center",
-    flex: 1,
-  },
+  stepItem: { alignItems: "center", flex: 1 },
   stepNumber: {
     width: 32,
     height: 32,
@@ -587,249 +797,102 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  stepNumberText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  stepText: {
-    fontSize: 12,
-    textAlign: "center",
-  },
-  stepLine: {
-    height: 1,
-    flex: 0.5,
-    marginHorizontal: -10,
-  },
-  content: {
-    flex: 1,
+  stepNumberText: { fontSize: 14, fontWeight: "700" },
+  stepText: { fontSize: 11, textAlign: "center", fontWeight: "500" },
+  stepLine: { height: 2, flex: 0.5, marginHorizontal: -8, borderRadius: 1 },
+  contentTitle: { fontSize: 22, fontWeight: "800", marginBottom: 6 },
+  contentSubtitle: { fontSize: 14, marginBottom: 20, lineHeight: 20 },
+  sectionCard: {
+    borderRadius: 18,
     padding: 16,
+    borderWidth: 1,
+    marginBottom: 16,
   },
-  contentTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
-    marginBottom: 8,
-  },
-  contentSubtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 24,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
+  sectionCardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 14 },
+  inputContainer: { marginBottom: 18 },
+  label: { fontSize: 13, fontWeight: "500", marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderColor: "#E5E5E5",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: "#000",
+    borderRadius: 12,
+    padding: 13,
+    fontSize: 15,
   },
   dateInput: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E5E5E5",
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 12,
+    padding: 13,
   },
-  dateIcon: {
-    marginRight: 8,
-  },
-  dateText: {
-    fontSize: 16,
-    color: "#c4c4c4",
-  },
-  violationTypesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 8,
-    gap: 8,
-  },
-  violationTypeChip: {
+  dateText: { fontSize: 15 },
+  chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
     borderWidth: 1,
-    borderColor: "#E5E5E5",
     borderRadius: 20,
-    paddingVertical: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
+  },
+  chipText: { fontSize: 13 },
+  selectedTagsPreview: { flexDirection: "row", flexWrap: "wrap", marginTop: 10, gap: 8 },
+  notesInput: { height: 110, textAlignVertical: "top" },
+  bottomBar: {
+    paddingTop: 12,
     paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  selectedViolationType: {
-    backgroundColor: "#F3FDF1",
-    borderColor: "#319527",
-  },
-  violationTypeText: {
-    fontSize: 14,
-    color: "#666",
-  },
-  selectedViolationTypeText: {
-    color: "#319527",
-    fontWeight: "500",
-  },
-  notesInput: {
-    height: 120,
-    textAlignVertical: "top",
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   continueButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#319527",
-    margin: 16,
     padding: 16,
     borderRadius: 30,
+    gap: 8,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  continueButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginRight: 8,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: "#000",
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: "#000",
-  },
-  loadingIndicator: {
-    position: "absolute",
-    right: 12,
-  },
-  suggestionsList: {
-    maxHeight: 200,
-  },
-  suggestionItem: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E5E5",
-  },
-  suggestionText: {
-    fontSize: 16,
-    color: "#000",
-  },
+  continueButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  sheetContent: { borderRadius: 20, padding: 4 },
+  sheetTitle: { fontSize: 20, fontWeight: "700", marginBottom: 16 },
   selectedTagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    marginBottom: 16,
+    marginBottom: 12,
     gap: 8,
   },
   selectedTag: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F3FDF1",
     borderRadius: 16,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: "#319527",
+    gap: 4,
   },
-  selectedTagText: {
-    fontSize: 14,
-    color: "#319527",
-    marginRight: 4,
-  },
-  addCustomButton: {
-    backgroundColor: "#319527",
-    borderRadius: 8,
-    padding: 12,
+  selectedTagText: { fontSize: 14 },
+  searchContainer: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
+    marginBottom: 12,
   },
-  addCustomButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  selectedTagsPreview: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 8,
-    gap: 8,
-  },
-  selectedTagPreviewItem: {
-    backgroundColor: "#F3FDF1",
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+  searchInput: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: "#319527",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
   },
-  selectedTagPreviewText: {
-    fontSize: 14,
-    color: "#319527",
+  loadingIndicator: { position: "absolute", right: 12 },
+  suggestionsList: {},
+  suggestionItem: { padding: 13, borderBottomWidth: StyleSheet.hairlineWidth },
+  suggestionText: { fontSize: 15 },
+  addCustomButton: {
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 12,
   },
-  formSection: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#319527",
-    marginBottom: 8,
-  },
-  optionsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginTop: 8,
-    gap: 8,
-  },
-  optionButton: {
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  selectedOption: {
-    backgroundColor: "#F3FDF1",
-    borderColor: "#319527",
-  },
-  optionText: {
-    fontSize: 14,
-    color: "#666",
-  },
-  selectedOptionText: {
-    color: "#319527",
-    fontWeight: "500",
-  },
+  addCustomButtonText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 });

@@ -22,6 +22,7 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
+import { LiquidGlassView, useIOSGlass, BlurView } from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -68,17 +69,25 @@ const CollapsibleMenuItem = ({
         )}
       />
       <Collapsible collapsed={isCollapsed}>
-        <View style={{ paddingLeft: 40, backgroundColor: theme.background }}>{children}</View>
+        <View style={{ paddingLeft: 40, backgroundColor: theme.background }}>
+          {children}
+        </View>
       </Collapsible>
     </>
   );
 };
 
-const Sidebar = () => {
+const Sidebar = ({ providerId, isOpen }) => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  // stronger tint for glass/background depending on theme (more contrast)
+  const sidebarTint = isDarkMode
+    ? "rgba(0,0,0,0.72)"
+    : "rgba(255,255,255,0.92)";
+  const iosMajorVersion =
+    Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
   const [collapsedSections, setCollapsedSections] = useState({
     community: true,
     reports: true,
@@ -157,8 +166,8 @@ const Sidebar = () => {
   const onPressIOS = () => {
     ActionSheetIOS.showActionSheetWithOptions(
       {
-        title: t('settings.logoutConfirm'),
-        options: [t('settings.cancel'), t('settings.logout')],
+        title: t("settings.logoutConfirm"),
+        options: [t("settings.cancel"), t("settings.logout")],
         destructiveButtonIndex: 1,
         cancelButtonIndex: 0,
         userInterfaceStyle: isDarkMode ? "dark" : "light",
@@ -169,26 +178,26 @@ const Sidebar = () => {
         } else if (buttonIndex === 1) {
           goToScreen();
         }
-      }
+      },
     );
   };
   const onPressAndroid = () =>
     Alert.alert(
-      t('settings.logout'),
-      t('settings.logoutConfirm'),
+      t("settings.logout"),
+      t("settings.logoutConfirm"),
       [
         {
-          text: t('settings.yes'),
+          text: t("settings.yes"),
           onPress: () => {
             goToScreen();
           },
         },
         {
-          text: t('settings.no'),
+          text: t("settings.no"),
           style: "cancel",
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
 
   useEffect(() => {
@@ -205,13 +214,122 @@ const Sidebar = () => {
   }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background, paddingTop: insets.top }}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
-        showsVerticalScrollIndicator={false}
+    <View style={{ flex: 1 }}>
+      {Platform.OS === "ios" ? (
+        useIOSGlass ? (
+          <>
+            <LiquidGlassView
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderTopRightRadius: 24,
+                borderBottomRightRadius: 24,
+              }}
+              effect="clear"
+              tintColor={sidebarTint}
+            />
+            {/* Overlay to guarantee readable contrast over liquid glass */}
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderTopRightRadius: 24,
+                borderBottomRightRadius: 24,
+                backgroundColor: sidebarTint,
+              }}
+            />
+          </>
+        ) : BlurView ? (
+          <>
+            <BlurView
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderTopRightRadius: 24,
+                borderBottomRightRadius: 24,
+              }}
+              blurType={isDarkMode ? "dark" : "light"}
+              blurAmount={22}
+              reducedTransparencyFallbackColor={
+                isDarkMode ? "#050505" : "#FFFFFF"
+              }
+            />
+            {/* Overlay to guarantee readable contrast over blur */}
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                borderTopRightRadius: 24,
+                borderBottomRightRadius: 24,
+                backgroundColor: sidebarTint,
+              }}
+            />
+          </>
+        ) : (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: sidebarTint,
+              borderTopRightRadius: 24,
+              borderBottomRightRadius: 24,
+            }}
+          />
+        )
+      ) : (
+        // Android: OneUI-style transparent tint (no liquid glass for sidebar)
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            borderTopRightRadius: 24,
+            borderBottomRightRadius: 24,
+            backgroundColor: sidebarTint,
+            borderRightWidth: 1,
+            borderColor: isDarkMode
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(0,0,0,0.06)",
+          }}
+        />
+      )}
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "transparent",
+          paddingTop: insets.top,
+        }}
       >
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
+          showsVerticalScrollIndicator={false}
+        >
           <TouchableOpacity
-            style={{ marginHorizontal: 16, marginBottom: 16, marginTop: 16, gap: 8 }}
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 16,
+              marginTop: 16,
+              gap: 8,
+            }}
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
             <FastImage
@@ -221,14 +339,22 @@ const Sidebar = () => {
               style={{ width: 60, height: 60, borderRadius: 30 }}
             />
             <View>
-              <Text style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}>{profileName}</Text>
+              <Text
+                style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}
+              >
+                {profileName}
+              </Text>
               <Text style={{ color: theme.subText }}>@{username}</Text>
             </View>
           </TouchableOpacity>
           <List.Section>
-            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>{t('sidebar.utilities')}</List.Subheader>
+            <List.Subheader
+              style={{ color: theme.primary, fontWeight: "bold" }}
+            >
+              {t("sidebar.utilities")}
+            </List.Subheader>
             <CollapsibleMenuItem
-              title={t('sidebar.community')}
+              title={t("sidebar.community")}
               iconName="people-outline"
               sectionKey="community"
               isCollapsed={collapsedSections.community}
@@ -237,7 +363,7 @@ const Sidebar = () => {
               theme={theme}
             >
               <List.Item
-                title={t('sidebar.feed')}
+                title={t("sidebar.feed")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("MainScreens", { screen: "Home" })
@@ -245,7 +371,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title={t('navigation.forum')}
+                title={t("navigation.forum")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("MainScreens", { screen: "Forum" })
@@ -253,18 +379,18 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title={t('sidebar.loudspeaker')}
+                title={t("sidebar.loudspeaker")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
                     type: "info",
-                    text1: t('sidebar.featureInDevelopment'),
+                    text1: t("sidebar.featureInDevelopment"),
                   })
                 }
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title={t('sidebar.youthUnionNews')}
+                title={t("sidebar.youthUnionNews")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("CategoryScreen", { categoryId: 32 })
@@ -272,14 +398,14 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title={t('sidebar.saved')}
+                title={t("sidebar.saved")}
                 titleStyle={{ color: theme.text }}
                 onPress={() => navigation.navigate("SavedPostsScreen")}
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
             </CollapsibleMenuItem>
             <CollapsibleMenuItem
-              title={t('sidebar.reports')}
+              title={t("sidebar.reports")}
               iconName="alert-circle-outline"
               sectionKey="reports"
               isCollapsed={collapsedSections.reports}
@@ -288,7 +414,7 @@ const Sidebar = () => {
               theme={theme}
             >
               <List.Item
-                title={t('sidebar.studentViolation')}
+                title={t("sidebar.studentViolation")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("ReportScreen", { type: "student" })
@@ -296,7 +422,7 @@ const Sidebar = () => {
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title={t('sidebar.classViolation')}
+                title={t("sidebar.classViolation")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   navigation.navigate("ReportScreen", { type: "class" })
@@ -305,7 +431,7 @@ const Sidebar = () => {
               />
             </CollapsibleMenuItem>
             <CollapsibleMenuItem
-              title={t('sidebar.lookup')}
+              title={t("sidebar.lookup")}
               iconName="search-outline"
               sectionKey="search"
               isCollapsed={collapsedSections.search}
@@ -314,41 +440,36 @@ const Sidebar = () => {
               theme={theme}
             >
               <List.Item
-                title={t('sidebar.timetable')}
+                title={t("sidebar.timetable")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
                     type: "info",
-                    text1: t('sidebar.featureInDevelopment'),
+                    text1: t("sidebar.featureInDevelopment"),
                   })
                 }
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title={t('sidebar.classRanking')}
+                title={t("sidebar.classRanking")}
                 titleStyle={{ color: theme.text }}
                 onPress={() =>
                   Toast.show({
                     type: "info",
-                    text1: t('sidebar.featureInDevelopment'),
+                    text1: t("sidebar.featureInDevelopment"),
                   })
                 }
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
               <List.Item
-                title={t('sidebar.memberRanking')}
+                title={t("sidebar.memberRanking")}
                 titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  Toast.show({
-                    type: "info",
-                    text1: t('sidebar.featureInDevelopment'),
-                  })
-                }
+                onPress={() => navigation.navigate("MemberRankingScreen")}
                 style={{ paddingLeft: 0, marginLeft: 0 }}
               />
             </CollapsibleMenuItem>
             <List.Item
-              title={t('sidebar.explore')}
+              title={t("sidebar.explore")}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("ExploreScreen")}
               left={() => (
@@ -372,11 +493,40 @@ const Sidebar = () => {
                 />
               )}
             />
+            <List.Item
+              title={t("sidebar.pointWallet")}
+              titleStyle={{ color: theme.text }}
+              onPress={() => navigation.navigate("PointWalletScreen")}
+              left={() => (
+                <Ionicons
+                  name="wallet-outline"
+                  size={24}
+                  color={theme.text}
+                  style={{ marginLeft: 14, marginRight: -5 }}
+                />
+              )}
+              right={() => (
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  color={theme.subText}
+                  style={{
+                    marginRight: -10,
+                    marginTop: 3,
+                    transform: [{ rotate: "-90deg" }],
+                  }}
+                />
+              )}
+            />
           </List.Section>
           <List.Section>
-            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>{t('sidebar.settingsGroup')}</List.Subheader>
+            <List.Subheader
+              style={{ color: theme.primary, fontWeight: "bold" }}
+            >
+              {t("sidebar.settingsGroup")}
+            </List.Subheader>
             <List.Item
-              title={t('settings.title')}
+              title={t("settings.title")}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("Settings")}
               left={() => (
@@ -389,7 +539,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title={t('settings.logout')}
+              title={t("settings.logout")}
               onPress={() => {
                 Platform.OS === "ios" ? onPressIOS() : onPressAndroid();
               }}
@@ -405,11 +555,17 @@ const Sidebar = () => {
             />
           </List.Section>
           <List.Section>
-            <List.Subheader style={{ color: theme.primary, fontWeight: "bold" }}>{t('sidebar.support')}</List.Subheader>
+            <List.Subheader
+              style={{ color: theme.primary, fontWeight: "bold" }}
+            >
+              {t("sidebar.support")}
+            </List.Subheader>
             <List.Item
-              title={t('sidebar.about')}
+              title={t("sidebar.about")}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("AboutScreen")}
+              onLongPress={() => navigation.navigate("EasterEggScreen")}
+              delayLongPress={3000}
               left={() => (
                 <Ionicons
                   name="information-circle-outline"
@@ -420,7 +576,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title={t('sidebar.help')}
+              title={t("sidebar.help")}
               titleStyle={{ color: theme.text }}
               onPress={() =>
                 Linking.openURL("https://www.chuyenbienhoa.com/help")
@@ -435,7 +591,22 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title={t('sidebar.privacy')}
+              title={t("sidebar.reportIssue")}
+              titleStyle={{ color: theme.text }}
+              onPress={() =>
+                Linking.openURL("https://forms.gle/XJ3v1vN82BxLUVWo9")
+              }
+              left={() => (
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={24}
+                  color={theme.text}
+                  style={{ marginLeft: 14, marginRight: -5 }}
+                />
+              )}
+            />
+            <List.Item
+              title={t("sidebar.privacy")}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("PrivacyPolicyScreen")}
               left={() => (
@@ -448,7 +619,7 @@ const Sidebar = () => {
               )}
             />
             <List.Item
-              title={t('sidebar.terms')}
+              title={t("sidebar.terms")}
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("TermsOfServiceScreen")}
               left={() => (
@@ -462,6 +633,7 @@ const Sidebar = () => {
             />
           </List.Section>
         </ScrollView>
+      </View>
     </View>
   );
 };

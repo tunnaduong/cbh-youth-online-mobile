@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,55 +6,77 @@ import {
   Dimensions,
   Image,
   TextInput,
-  TouchableHighlight,
   ScrollView,
   Platform,
   TouchableOpacity,
-  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 
-export default function SearchScreen({ navigation }) {
+export default function SearchScreen({ navigation, route }) {
   const inset = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(route?.params?.initialQuery || "");
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [results, setResults] = useState({ users: [], posts: [] });
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [activeFilter, setActiveFilter] = useState("all"); // "all", "user", "post"
+  const [activeFilter, setActiveFilter] = useState(
+    route?.params?.initialFilter || "all"
+  ); // "all", "user", "post", "hashtag"
+  const [hashtagTag, setHashtagTag] = useState(null);
 
   useEffect(() => {
+    const trimmed = query.trim();
+    // Typing "#tag" directly always searches that hashtag, like on web.
+    const isHashtagQuery = trimmed.startsWith("#") && trimmed.length > 1;
+    const effectiveFilter = isHashtagQuery ? "hashtag" : activeFilter;
+    const effectiveQuery = isHashtagQuery ? trimmed.slice(1) : trimmed;
+
     const delayDebounceFn = setTimeout(() => {
-      if (query.trim()) {
+      if (effectiveQuery) {
         setLoading(true);
         setHasSearched(false);
-        searchQuery(query, activeFilter)
+        searchQuery(effectiveQuery, effectiveFilter)
           .then((res) => {
-            if (res?.data?.data) {
-              const searchData = {
+            if (effectiveFilter === "hashtag") {
+              setHashtagTag(res?.data?.data?.hashtag || effectiveQuery);
+              setResults({
+                users: [],
+                posts: Array.isArray(res?.data?.data?.posts)
+                  ? res.data.data.posts
+                  : [],
+              });
+            } else if (res?.data?.data) {
+              setHashtagTag(null);
+              setResults({
                 users: Array.isArray(res.data.data.users)
                   ? res.data.data.users
                   : [],
                 posts: Array.isArray(res.data.data.posts)
                   ? res.data.data.posts
                   : [],
-              };
-              setResults(searchData);
+              });
             } else {
+              setHashtagTag(null);
               setResults({ users: [], posts: [] });
             }
             setHasSearched(true);
           })
           .catch((error) => {
             console.error("Search error:", error);
+            setHashtagTag(null);
             setResults({ users: [], posts: [] });
             setHasSearched(true);
           })
@@ -62,6 +84,7 @@ export default function SearchScreen({ navigation }) {
             setLoading(false);
           });
       } else {
+        setHashtagTag(null);
         setResults({ users: [], posts: [] });
         setHasSearched(false);
       }
@@ -128,57 +151,63 @@ export default function SearchScreen({ navigation }) {
     </TouchableOpacity>
   );
 
-  const renderFilterChips = () => (
-    <View style={[styles.filterContainer, { borderBottomColor: theme.border }]}>
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  const renderFilterMenu = () => (
+    <View
+      style={[
+        styles.filterMenu,
+        { backgroundColor: theme.cardBackground, borderColor: theme.border },
+        isDarkMode && { elevation: 0, shadowOpacity: 0 },
+      ]}
+    >
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "all" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("all")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("all");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "all" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "all" ? theme.primary : theme.text },
           ]}
         >
           {t('search.all')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "user" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("user")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("user");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "user" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "user" ? theme.primary : theme.text },
           ]}
         >
           {t('search.users')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[
-          styles.filterChip,
-          { backgroundColor: isDarkMode ? "#374151" : "#f0f0f0" },
-          activeFilter === "post" && { backgroundColor: theme.primary },
-        ]}
-        onPress={() => setActiveFilter("post")}
+        style={styles.filterMenuItem}
+        onPress={() => {
+          setActiveFilter("post");
+          setShowFilterMenu(false);
+        }}
       >
         <Text
           style={[
-            styles.filterText,
-            { color: theme.subText },
-            activeFilter === "post" && styles.activeFilterText,
+            styles.filterMenuText,
+            { color: activeFilter === "post" ? theme.primary : theme.text },
           ]}
         >
           {t('search.posts')}
@@ -189,18 +218,36 @@ export default function SearchScreen({ navigation }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      
-      <View style={{ flex: 1 }}>
-        <View style={{ paddingTop: inset.top }}>
-          <View style={[styles.topBar, { borderBottomColor: theme.border }]}>
-            <TouchableHighlight
-              style={styles.backButton}
-              underlayColor={isDarkMode ? "rgba(255, 255, 255, .1)" : "rgba(0, 0, 0, .05)"}
-              onPress={() => navigation.goBack()}
+      <Animated.View
+        style={[
+          styles.headerShell,
+          {
+            paddingTop: inset.top,
+          },
+        ]}
+      >
+        <View style={styles.topBar}>
+          <LiquidButton
+            providerId="SearchScreen"
+            onPress={() => navigation.goBack()}
+            scrollY={scrollY}
+            size={40}
+            style={{ marginLeft: 8 }}
+            borderRadius={20}
+          >
+            <Ionicons name="chevron-back-outline" color={theme.text} size={21} />
+          </LiquidButton>
+          <View style={styles.searchControls}>
+            <View
+              style={[
+                styles.searchInputContainer,
+                {
+                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
+                  borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
+                },
+              ]}
             >
-              <Ionicons name="chevron-back-outline" color={theme.text} size={30} />
-            </TouchableHighlight>
-            <View style={[styles.searchInputContainer, { backgroundColor: isDarkMode ? "#374151" : "#DFDEDD" }]}>
+              <Ionicons name="search" size={17} color={theme.subText} />
               <TextInput
                 style={[styles.searchInput, { color: theme.text }]}
                 placeholder={t('search.placeholder')}
@@ -214,16 +261,34 @@ export default function SearchScreen({ navigation }) {
                   style={styles.clearButton}
                   onPress={() => setQuery("")}
                 >
-                  <Ionicons name="close-circle" size={20} color={theme.subText} />
+                  <Ionicons name="close-circle" size={17} color={theme.subText} />
                 </TouchableOpacity>
               )}
             </View>
+            <LiquidButton
+              providerId="SearchScreen"
+              onPress={() => setShowFilterMenu((prev) => !prev)}
+              scrollY={scrollY}
+              size={40}
+              borderRadius={20}
+            >
+              <Ionicons name="options-outline" size={19} color={theme.text} />
+            </LiquidButton>
           </View>
         </View>
+        {showFilterMenu && renderFilterMenu()}
+      </Animated.View>
 
-        {query.trim() && renderFilterChips()}
-
-        <ScrollView style={styles.resultsContainer} contentContainerStyle={{ paddingBottom: inset.bottom + 16 }}>
+      <AndroidGlassBackdrop providerId="SearchScreen" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        style={styles.resultsContainer}
+        contentContainerStyle={{ paddingTop: 40 + inset.top, paddingBottom: inset.bottom + 16 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
           {!query.trim() ? (
             <View style={styles.searchImage}>
               <Image
@@ -244,7 +309,7 @@ export default function SearchScreen({ navigation }) {
             !results.posts?.length ? (
             <View style={styles.noResults}>
               <Image
-                source={require("../../../assets/sad_frog.png")}
+                source={require("../../../assets/search-main.png")}
                 style={styles.noResultsImage}
               />
               <Text style={[styles.noResultsText, { color: theme.subText }]}>
@@ -265,7 +330,7 @@ export default function SearchScreen({ navigation }) {
                       : activeFilter === "user" && (
                         <View style={styles.sectionNoResults}>
                           <Image
-                            source={require("../../../assets/sad_frog.png")}
+                            source={require("../../../assets/search-main.png")}
                             style={styles.sectionNoResultsImage}
                           />
                           <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
@@ -275,22 +340,27 @@ export default function SearchScreen({ navigation }) {
                       )}
                   </View>
                 )}
-              {(activeFilter === "all" || activeFilter === "post") && (
+              {(activeFilter === "all" ||
+                activeFilter === "post" ||
+                activeFilter === "hashtag") && (
                 <View style={styles.section}>
                   {(activeFilter === "post" ||
+                    activeFilter === "hashtag" ||
                     (activeFilter === "all" && results.posts?.length > 0)) && (
                       <>
                         <Text style={[styles.sectionTitle, { color: theme.primary }]}>
-                          {t('search.posts')}{" "}
+                          {hashtagTag
+                            ? t('search.hashtagResultsTitle', { tag: hashtagTag })
+                            : t('search.posts')}{" "}
                           {results.posts?.length > 0 &&
                             `(${results.posts.length})`}
                         </Text>
                         {results.posts?.length > 0
                           ? results.posts.map(renderPostItem)
-                          : activeFilter === "post" && (
+                          : (activeFilter === "post" || activeFilter === "hashtag") && (
                             <View style={styles.sectionNoResults}>
                               <Image
-                                source={require("../../../assets/sad_frog.png")}
+                                source={require("../../../assets/search-main.png")}
                                 style={styles.sectionNoResultsImage}
                               />
                               <Text style={[styles.sectionNoResultsText, { color: theme.subText }]}>
@@ -307,7 +377,7 @@ export default function SearchScreen({ navigation }) {
                 !results.posts?.length && (
                   <View style={styles.noResults}>
                     <Image
-                      source={require("../../../assets/sad_frog.png")}
+                      source={require("../../../assets/search-main.png")}
                       style={styles.noResultsImage}
                     />
                     <Text style={[styles.noResultsText, { color: theme.subText }]}>
@@ -317,54 +387,65 @@ export default function SearchScreen({ navigation }) {
                 )}
             </>
           )}
-        </ScrollView>
-      </View>
+        </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    backgroundColor: "rgba(0, 0, 0, 0)",
-    width: 40,
-    height: 40,
-    borderRadius: 35,
-    marginLeft: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  headerShell: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    paddingBottom: 2,
+    backgroundColor: "transparent",
+  },
+  headerBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
   topBar: {
     flexDirection: "row",
     alignItems: "center",
-    paddingRight: 20,
-    paddingBottom: 7,
-    paddingTop: 10,
-    borderBottomWidth: 1,
-    minHeight: 55,
+    paddingRight: 16,
+    paddingBottom: 3,
+    paddingTop: 3,
+    minHeight: 44,
+  },
+  searchControls: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    marginLeft: 8,
+    gap: 6,
   },
   searchInputContainer: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 50,
-    paddingHorizontal: 13,
-    paddingVertical: Platform.OS === "android" ? 0 : 4,
-    minHeight: 40,
+    borderRadius: 14,
+    paddingHorizontal: 6,
+    paddingVertical: Platform.OS === "android" ? 0 : 2,
+    minHeight: 34,
+    borderWidth: 1,
   },
   searchInput: {
     flex: 1,
-    fontSize: 17,
-    paddingLeft: 8,
-    paddingRight: 35,
+    fontSize: 14,
+    paddingLeft: 6,
+    paddingRight: 2,
     paddingVertical: 0,
-    minHeight: 30,
+    minHeight: 24,
     includeFontPadding: false,
     textAlignVertical: "center",
   },
   clearButton: {
-    padding: 5,
-    position: "absolute",
-    right: 5,
+    padding: 4,
+    marginLeft: 2,
   },
   loadingIndicator: {
     paddingRight: 10,
@@ -386,6 +467,7 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     flex: 1,
+    backgroundColor: "transparent",
   },
   section: {
     paddingVertical: 10,
@@ -474,23 +556,26 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
   },
-  filterContainer: {
-    flexDirection: "row",
+  filterMenu: {
+    position: "absolute",
+    top: 52,
+    right: 16,
+    minWidth: 140,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 4,
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+  },
+  filterMenuItem: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    gap: 8,
+    paddingVertical: 10,
   },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  filterText: {
+  filterMenuText: {
     fontSize: 14,
-  },
-  activeFilterText: {
-    color: "#fff",
     fontWeight: "500",
   },
   sectionNoResults: {

@@ -34,7 +34,8 @@ import {
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
-  getHomePosts,
+  getPersonalizedFeed,
+  getLatestFeed,
   getStories,
   incrementPostView,
   resendVerificationEmail,
@@ -49,6 +50,7 @@ import {
   unfollowUser,
 } from "../../../services/api/Api";
 import ReportModal from "../../../components/ReportModal";
+import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -302,6 +304,8 @@ const StoryOptionsModal = ({
   const { blockUser: blockUserInContext, userInfo } = useContext(AuthContext);
   const isOwnStory = String(currentStoryUserRef.current?.id) === String(userInfo?.id) || String(currentStoryUserRef.current?.uid) === String(userInfo?.id);
   const insets = useSafeAreaInsets();
+  const isOpeningReportRef = useRef(false);
+  const isOpeningDeleteRef = useRef(false);
 
   const [isNotificationsEnabled, setIsNotificationsEnabled] = useState(false);
 
@@ -324,6 +328,11 @@ const StoryOptionsModal = ({
         marginTop: 10,
       }}
       onClose={() => {
+        if (isOpeningReportRef.current || isOpeningDeleteRef.current) {
+          isOpeningReportRef.current = false;
+          isOpeningDeleteRef.current = false;
+          return;
+        }
         storyRef.current?.resume?.(); // Resume story timer when sheet closes
       }}
       gestureEnabled={true}
@@ -425,10 +434,18 @@ const StoryOptionsModal = ({
           <Pressable
             style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
             onPress={() => {
+              isOpeningDeleteRef.current = true;
+              storyRef.current?.pause?.();
               actionSheetRef.current?.hide();
               setTimeout(() => {
                 Alert.alert(t('home.deleteStoryTitle') || "Xóa story", t('home.deleteStoryDesc') || "Bạn có chắc muốn xóa story này?", [
-                  { text: t('settings.cancel') || "Hủy", style: "cancel" },
+                  {
+                    text: t('settings.cancel') || "Hủy",
+                    style: "cancel",
+                    onPress: () => {
+                      storyRef.current?.resume?.();
+                    },
+                  },
                   {
                     text: t('home.deleteStory') || "Xóa", style: "destructive", onPress: async () => {
                       try {
@@ -443,6 +460,7 @@ const StoryOptionsModal = ({
                           });
                         }
                       } catch (e) {
+                        storyRef.current?.resume?.();
                         Toast.show({
                           type: "error",
                           text1: t('common.error'),
@@ -481,8 +499,10 @@ const StoryOptionsModal = ({
             <Pressable
               style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
               onPress={() => {
-                actionSheetRef.current?.hide();
+                isOpeningReportRef.current = true;
+                storyRef.current?.pause?.();
                 setReportModalVisible(true);
+                actionSheetRef.current?.hide();
               }}
             >
               <View style={{
@@ -743,13 +763,8 @@ const ReplyBar = ({
 
   const handleViewCountPress = () => {
     if (navigation && storyId) {
-      if (onDismissStory) {
-        onDismissStory();
-      }
       setTimeout(() => {
-        navigation.navigate("StoryViewersScreen", {
-          storyId: storyId,
-        });
+        DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", { storyId, isOwn: true });
       }, 100);
     }
   };
@@ -764,7 +779,7 @@ const ReplyBar = ({
           >
             <Ionicons name="eye-outline" size={20} color="#fff" />
             <Text style={styles.viewCountText}>
-              {t('home.views', { count: viewersCount === 0 ? 0 : viewersCount - 1 })}
+              {t('home.views', { count: viewersCount })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -834,10 +849,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [refreshing, setRefreshing] = React.useState(false);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
+  const [feedMode, setFeedMode] = React.useState("personalized");
+  const [latestPage, setLatestPage] = React.useState(1);
+  const deliveredIdsRef = useRef(new Set());
   const viewedPosts = useRef(new Set());
   const flatListRef = React.useRef(null);
   const { feed, setFeed } = useContext(FeedContext);
-  const lottieRef = useRef(null);
   const storyRef = useRef(null);
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
@@ -866,6 +883,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     barStyle: "dark-content",
     backgroundColor: "#ffffff",
   });
+
+  // Re-apply Home's own status bar style whenever this tab regains focus,
+  // so a style left over from another tab doesn't stick around after
+  // switching back (only when the story viewer isn't overriding it).
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      if (!isStoryVisible) {
+        updateStatusBar(isDarkMode ? "light-content" : "dark-content", theme.background);
+      }
+    });
+    return unsubscribe;
+  }, [navigation, isDarkMode, theme.background, isStoryVisible, updateStatusBar]);
+
   const [verificationModalVisible, setVerificationModalVisible] =
     useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
@@ -875,6 +905,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
   const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [clientMuted, setClientMuted] = useState({});
+
+  const toggleClientMute = (storyId) => {
+    setClientMuted((prev) => ({
+      ...prev,
+      [storyId]: !prev[storyId],
+    }));
+  };
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(
@@ -886,6 +924,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return () => subscription.remove();
   }, []);
 
+  useEffect(() => {
+    const openSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_OPENED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.pause?.();
+      }
+    });
+    const closeSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_CLOSED", () => {
+      if (isStoryVisible) {
+        storyRef.current?.resume?.();
+      }
+    });
+    return () => {
+      openSub.remove();
+      closeSub.remove();
+    };
+  }, [isStoryVisible]);
+
   React.useEffect(() => {
     if (!isLoggedIn) {
       // Reset feed state when the user signs out
@@ -893,6 +948,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       setRefreshing(false);
       setHasMore(true);
       setCurrentPage(2);
+      setFeedMode("personalized");
+      setLatestPage(1);
+      deliveredIdsRef.current = new Set();
       viewedPosts.current = new Set();
     }
   }, [isLoggedIn]);
@@ -964,10 +1022,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         setRefreshing(true);
       }
 
-      const response = await getHomePosts(page);
+      const response = await getPersonalizedFeed(page);
       const posts = response?.data?.data;
       const validPosts = Array.isArray(posts) ? posts : [];
       setFeed(validPosts);
+      validPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
 
       if (page === 1 && validPosts.length > 0) {
         storage.set("cached_feed", JSON.stringify(validPosts));
@@ -999,18 +1058,53 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const onEndReached = () => {
     if (!hasMore) return;
 
-    getHomePosts(currentPage)
+    if (feedMode === "latest") {
+      getLatestFeed(latestPage)
+        .then((response) => {
+          const newPosts = response?.data?.data;
+          if (!Array.isArray(newPosts) || newPosts.length === 0) {
+            setHasMore(false);
+            return;
+          }
+          const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
+          freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+          if (freshPosts.length > 0) {
+            setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
+          }
+          setLatestPage((prevPage) => prevPage + 1);
+        })
+        .catch((error) => {
+          console.error("Error loading more posts:", error);
+        });
+      return;
+    }
+
+    getPersonalizedFeed(currentPage)
       .then((response) => {
         const newPosts = response?.data?.data;
-        if (!Array.isArray(newPosts) || newPosts.length === 0) {
-          setHasMore(false);
-          return;
+        const exhausted = response?.data?.exhausted || !Array.isArray(newPosts) || newPosts.length === 0;
+
+        if (Array.isArray(newPosts) && newPosts.length > 0) {
+          newPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+          setFeed((prevData) => {
+            if (!Array.isArray(prevData)) return newPosts;
+            return [...prevData, ...newPosts];
+          });
+          setCurrentPage((prevPage) => prevPage + 1);
         }
-        setFeed((prevData) => {
-          if (!Array.isArray(prevData)) return newPosts;
-          return [...prevData, ...newPosts];
-        });
-        setCurrentPage((prevPage) => prevPage + 1);
+
+        if (exhausted) {
+          setFeedMode("latest");
+          setLatestPage(1);
+          setFeed((prevData) => {
+            const divider = {
+              id: "feed-divider-latest",
+              type: "divider",
+              label: t("home.feedExhaustedDivider"),
+            };
+            return Array.isArray(prevData) ? [...prevData, divider] : [divider];
+          });
+        }
       })
       .catch((error) => {
         console.error("Error loading more posts:", error);
@@ -1075,6 +1169,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     if (!viewableItems) return;
     viewableItems.forEach((viewableItem) => {
       if (!viewableItem?.item) return;
+      if (viewableItem.item.type === "divider") return;
       const postId = viewableItem.item.id;
 
       if (postId != null && !viewedPosts.current.has(postId)) {
@@ -1229,6 +1324,73 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     fetchStories();
   }, [blockedUsers]);
 
+  const resolveStoryMediaUrl = (story) => {
+    const candidates = [
+      story?.media_url,
+      story?.thumbnail_url,
+      story?.thumbnail,
+      story?.thumb_url,
+      story?.preview_url,
+      story?.file_url,
+      story?.image_url,
+      story?.media?.url,
+      story?.media?.thumbnail,
+      story?.image?.url,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim()) {
+        const normalized = candidate.trim();
+        if (/^https?:\/\//i.test(normalized)) {
+          return normalized;
+        }
+        if (normalized.startsWith("/")) {
+          return `https://api.chuyenbienhoa.com${normalized}`;
+        }
+        return `https://api.chuyenbienhoa.com/${normalized.replace(/^\/+/, "")}`;
+      }
+    }
+
+    return null;
+  };
+
+  const shadeHex = (hex, percent) => {
+    try {
+      let h = hex.replace('#', '').trim();
+      if (h.length === 3) {
+        h = h.split('').map((c) => c + c).join('');
+      }
+      const num = parseInt(h, 16);
+      let r = (num >> 16) + Math.round(255 * (percent / 100));
+      let g = ((num >> 8) & 0x00ff) + Math.round(255 * (percent / 100));
+      let b = (num & 0x0000ff) + Math.round(255 * (percent / 100));
+      r = Math.max(0, Math.min(255, r));
+      g = Math.max(0, Math.min(255, g));
+      b = Math.max(0, Math.min(255, b));
+      return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    } catch (e) {
+      return hex;
+    }
+  };
+
+  const getStoryPlaceholderUri = () => {
+    return "https://placehold.co/1080x1920/111827/ffffff.png?text=Story";
+  };
+
+  // The feed's embedded `story.viewers` array includes the owner's own
+  // auto-recorded view, unlike the dedicated /stories/{id}/viewers endpoint
+  // used by the viewers-list modal, so it must be excluded here to match.
+  const getStoryViewersCount = (story) => {
+    const viewers = story?.viewers || [];
+    return viewers.filter((viewer) => {
+      const viewerId = viewer?.id ?? viewer?.user_id;
+      if (viewerId != null && userInfo?.id != null) {
+        return String(viewerId) !== String(userInfo.id);
+      }
+      return viewer?.username !== userInfo?.username;
+    }).length;
+  };
+
   const transformStoriesData = (apiResponse) => {
     if (!apiResponse?.data) return [];
 
@@ -1245,32 +1407,114 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
         },
-        stories: user.stories.map((story) => ({
+        stories: user.stories.map((story) => {
+          const mediaUrl = resolveStoryMediaUrl(story);
+          const textContent = story.text_content || story.content || story.text || '';
+          const storyType = String(story?.type || story?.media_type || "").toLowerCase();
+          const isVideoStory = Boolean(mediaUrl) && (
+            storyType === "video" ||
+            storyType === "mp4" ||
+            storyType === "mov" ||
+            /\.(mp4|mov|m4v|avi)$/i.test(mediaUrl)
+          );
+          const shouldRenderAsImage = Boolean(mediaUrl) && !isVideoStory;
+          const isTextStory = !mediaUrl && !isVideoStory;
+
+          let gradientColors = ['#1a1a1a'];
+          if (story.background_color) {
+            try {
+              const parsed = JSON.parse(story.background_color);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                gradientColors = parsed;
+              } else if (typeof parsed === 'string') {
+                gradientColors = [parsed];
+              }
+            } catch {
+              gradientColors = [story.background_color] || ['#1a1a1a'];
+            }
+          }
+
+          // Static thumbnail for the story-row card (not the full-screen
+          // viewer): the backend renders a real first-frame image for video
+          // stories, and text stories have no media at all - both need a
+          // resolved URL distinct from `mediaUrl` (which drives playback).
+          const cardThumbnailUri = isVideoStory
+            ? resolveStoryMediaUrl({ media_url: story.video_first_frame_url }) || mediaUrl
+            : mediaUrl;
+
+          return {
           id: story.id,
           storyId: story.id, // Store the actual story ID
           userId: user.id, // Store user ID
           username: user.username, // Store username
           source: {
-            uri: `https://api.chuyenbienhoa.com${story.media_url}`,
+            uri: mediaUrl || getStoryPlaceholderUri(),
           },
+          isTextStory,
+          cardThumbnailUri,
+          previewGradientColors: gradientColors,
+          previewText: textContent,
+          mediaType: isVideoStory ? "video" : undefined,
           duration: story.duration,
-          viewers_count: story.viewers?.length || 0,
-          renderContent: () => (
-            <ZoomableStoryImage
-              uri={`https://api.chuyenbienhoa.com${story.media_url}`}
-              style={{
-                width: SCREEN_WIDTH,
-                height: SCREEN_HEIGHT,
-              }}
-            />
-          ),
+          viewers_count: getStoryViewersCount(story),
+          is_muted: story.is_muted || false,
+          renderContent: (() => {
+            const colors = gradientColors;
+            const text = textContent;
+
+            return () => {
+              if (isVideoStory) {
+                return null;
+              }
+
+              if (shouldRenderAsImage) {
+                return (
+                  <ZoomableStoryImage
+                    uri={mediaUrl}
+                    style={{
+                      width: SCREEN_WIDTH,
+                      height: SCREEN_HEIGHT,
+                    }}
+                  />
+                );
+              }
+
+              return (
+                <LinearGradient
+                  colors={colors.length > 1 ? colors : [colors[0] || '#1a1a1a', shadeHex(colors[0] || '#1a1a1a', -12)]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
+                  style={{
+                    width: SCREEN_WIDTH,
+                    height: SCREEN_HEIGHT,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingHorizontal: 30,
+                  }}
+                >
+                  <Text style={{
+                    color: '#ffffff',
+                    fontSize: 24,
+                    fontWeight: '600',
+                    textAlign: 'center',
+                    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+                    textShadowOffset: { width: 1, height: 1 },
+                    textShadowRadius: 3,
+                    includeFontPadding: false,
+                  }}>
+                    {text}
+                  </Text>
+                </LinearGradient>
+              );
+            };
+          })(),
           renderFooter: () => (
             <ReplyBar
               storyId={story.id}
               userId={user.id}
               username={user.username}
               navigation={navigation}
-              viewersCount={story.viewers?.length || 0}
+              viewersCount={getStoryViewersCount(story)}
               onDismissStory={dismissStoryModal}
               storyRef={storyRef}
             />
@@ -1282,7 +1526,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setCurrentStory(story.id);
             setCurrentStoryUser({ id: user.id, username: user.username });
           },
-        })),
+          };
+        }),
       }));
   };
 
@@ -1406,11 +1651,40 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               }}
             >
               <View>
-                {/* Story Image */}
-                <Image
-                  source={{ uri: user.stories[0].source.uri }}
-                  style={{ width: 100, height: 160 }}
-                />
+                {/* Story Preview */}
+                {user.stories[0].isTextStory ? (
+                  <LinearGradient
+                    colors={
+                      user.stories[0].previewGradientColors.length > 1
+                        ? user.stories[0].previewGradientColors
+                        : [
+                            user.stories[0].previewGradientColors[0],
+                            shadeHex(user.stories[0].previewGradientColors[0], -12),
+                          ]
+                    }
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={{
+                      width: 100,
+                      height: 160,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      paddingHorizontal: 8,
+                    }}
+                  >
+                    <Text
+                      numberOfLines={4}
+                      style={{ color: "#fff", fontWeight: "700", textAlign: "center", fontSize: 13 }}
+                    >
+                      {user.stories[0].previewText}
+                    </Text>
+                  </LinearGradient>
+                ) : (
+                  <Image
+                    source={{ uri: user.stories[0].cardThumbnailUri }}
+                    style={{ width: 100, height: 160 }}
+                  />
+                )}
 
                 {/* Avatar */}
                 <View style={{ position: "absolute", top: 8, left: 8 }}>
@@ -1462,6 +1736,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY); // Ensure non-negative
     isScrollingRef.current = false;
+    DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
 
     // Auto hide bottom tab bar
     const diff = offsetY - lastScrollYRef.current;
@@ -1492,9 +1767,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     isProcessingRef.current = true;
     setRefreshing(true);
-    setHasMore(true);
-    setCurrentPage(2);
-    viewedPosts.current = new Set(); // Reset viewed posts
 
     // Don't manually scroll - let RefreshControl handle it naturally
     // This prevents content from being pushed down
@@ -1506,15 +1778,60 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       refreshUserInfo();
     }
 
-    handleFetchFeed().finally(() => {
+    const finishRefresh = () => {
       setTimeout(() => {
         setRefreshing(false);
         isProcessingRef.current = false;
         // Reset scroll position after refresh completes
         scrollPositionRef.current = 0;
       }, 1000);
-    });
-  }, [isLoggedIn, refreshUserInfo]);
+    };
+
+    if (feed == null) {
+      // Cold start / previously empty or errored feed: full load.
+      handleFetchFeed().finally(finishRefresh);
+      return;
+    }
+
+    // Load the next page of unseen ranked posts and prepend them so they
+    // appear immediately at the top after the user pulls down.
+    const loadNextPage = feedMode === "latest"
+      ? getLatestFeed(latestPage)
+      : getPersonalizedFeed(currentPage);
+
+    loadNextPage
+      .then((response) => {
+        const newPosts = response?.data?.data;
+        const exhausted = response?.data?.exhausted ||
+          !Array.isArray(newPosts) || newPosts.length === 0;
+
+        if (Array.isArray(newPosts) && newPosts.length > 0) {
+          const fresh = newPosts.filter(
+            (p) => p?.id == null || !deliveredIdsRef.current.has(p.id)
+          );
+          fresh.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+
+          if (fresh.length > 0) {
+            setFeed((prev) => [...fresh, ...(Array.isArray(prev) ? prev : [])]);
+          }
+
+          if (feedMode === "latest") {
+            setLatestPage((p) => p + 1);
+          } else {
+            setCurrentPage((p) => p + 1);
+          }
+        }
+
+        if (feedMode !== "latest" && exhausted) {
+          setFeedMode("latest");
+          setLatestPage(1);
+        }
+      })
+      .catch((error) => {
+        console.log("Error loading next feed page on refresh:", error);
+      })
+      .finally(finishRefresh);
+  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage]);
 
   // Function to scroll to top or reload
   const scrollToTopOrReload = React.useCallback(() => {
@@ -1851,30 +2168,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   ) : (
     <>
       <View style={{ backgroundColor: theme.background, flex: 1 }}>
-        {refreshing && (
-          <View
-            style={{
-              position: "absolute",
-              top: 5,
-              left: 0,
-              right: 0,
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1000,
-            }}
-          >
-            <LottieView
-              source={require("../../../assets/refresh.json")}
-              style={{
-                width: 40,
-                height: 40,
-              }}
-              ref={lottieRef}
-              loop
-              autoPlay
-            />
-          </View>
-        )}
         <FlatList
           onScroll={handleScroll}
           onScrollBeginDrag={handleScrollBeginDrag}
@@ -1889,17 +2182,26 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
           contentContainerStyle={{
+            paddingTop: 50 + insets.top,
             paddingBottom: 110 + insets.bottom,
             backgroundColor: theme.background,
           }}
           renderItem={({ item, index }) => (
-            <PostItem
-              item={item}
-              onExpand={() => handleExpandPost(index)}
-              onVoteUpdate={handleVoteUpdate}
-              onSaveUpdate={handleSaveUpdate}
-              navigation={navigation}
-            />
+            item.type === "divider" ? (
+              <View style={{ paddingVertical: 16, paddingHorizontal: 20, alignItems: "center" }}>
+                <Text style={{ color: theme.textSecondary || theme.text, fontSize: 13 }}>
+                  {item.label}
+                </Text>
+              </View>
+            ) : (
+              <PostItem
+                item={item}
+                onExpand={() => handleExpandPost(index)}
+                onVoteUpdate={handleVoteUpdate}
+                onSaveUpdate={handleSaveUpdate}
+                navigation={navigation}
+              />
+            )
           )}
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
@@ -1936,6 +2238,25 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           imageProps={{ resizeMode: "cover" }}
           imageStyles={StyleSheet.absoluteFillObject}
+          videoProps={{
+            resizeMode: "contain",
+            repeat: false,
+            muted: Boolean(currentStory && (clientMuted[currentStory] || (() => {
+              try {
+                const user = userStories.find((u) => u.stories.some((s) => s.storyId === currentStory || s.id === currentStory));
+                if (!user) return false;
+                const story = user.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                return story?.is_muted;
+              } catch (e) {
+                return false;
+              }
+            })())),
+            style: {
+              width: SCREEN_WIDTH,
+              height: SCREEN_HEIGHT,
+              backgroundColor: '#000000',
+            },
+          }}
           textStyle={{
             color: "#fff",
             textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -1943,22 +2264,83 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             textShadowRadius: 1.5,
             fontWeight: "600",
           }}
+          renderCustomContent={(story) => {
+            if (story.renderContent && story.mediaType !== 'video') {
+              return story.renderContent();
+            }
+            return null;
+          }}
           progressColor="#a4a4a4"
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
           storyAvatarSize={30}
+          renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId }) => (
+            <View style={{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Pressable
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                onPress={() => {
+                  if (userId) {
+                    const user = userStories.find((u) => u.id === userId || u.uid === userId);
+                    if (user) {
+                      updateCurrentStoryUser({ id: user.uid, username: user.id });
+                    }
+                  }
+                  if (userId) {
+                    const username = userId;
+                    dismissStoryModal();
+                    setTimeout(() => navigation.navigate("ProfileScreen", { username }), 300);
+                  }
+                }}
+              >
+                {avatarSource && (
+                  <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
+                    <Image source={avatarSource} style={{ width: 28, height: 28 }} />
+                  </View>
+                )}
+                <View style={{ flexDirection: 'column' }}>
+                  {name && <Text style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
+                  {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12 }}>{date}</Text>}
+                </View>
+              </Pressable>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {(() => {
+                  try {
+                    const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
+                    if (!u) return null;
+                    const st = u.stories.find((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory));
+                    if (st && (st.mediaType === 'video' || st.media_type === 'video')) {
+                      const isServerMuted = Boolean(st?.is_muted);
+                      const isAudioMuted = Boolean(currentStory && (clientMuted[currentStory] || isServerMuted));
+                      return (
+                        <TouchableOpacity
+                          disabled={isServerMuted}
+                          onPress={() => { if (!isServerMuted) toggleClientMute(currentStory); }}
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          style={{
+                            width: 36, height: 36, borderRadius: 18,
+                            backgroundColor: 'rgba(0,0,0,0.35)',
+                            alignItems: 'center', justifyContent: 'center',
+                            opacity: isServerMuted ? 0.7 : 1,
+                          }}
+                        >
+                          <Ionicons name={isAudioMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
+                        </TouchableOpacity>
+                      );
+                    }
+                  } catch (e) { return null; }
+                  return null;
+                })()}
+                {onMore && (
+                  <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
           onStoryHeaderPress={(userId) => {
             console.log("Global Story Header Pressed for:", userId);
-            if (userId) {
-              const username = userId; // In my transform, id IS the username
-              dismissStoryModal();
-              setTimeout(() => {
-                navigation.navigate("ProfileScreen", {
-                  username: username,
-                });
-              }, 300);
-            }
           }}
           onMore={handleStoryOptions}
           onShow={handleStoryShow}
@@ -1982,7 +2364,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             <>
               <ReportModal
                 visible={reportModalVisible}
-                onClose={() => setReportModalVisible(false)}
+                onClose={() => {
+                  setReportModalVisible(false);
+                  if (isStoryVisible) {
+                    storyRef.current?.resume?.();
+                  }
+                }}
                 onSubmit={handleReportSubmit}
               />
               <StoryOptionsModal
@@ -2000,6 +2387,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }
         />
         <ResendVerificationModal />
+        <StoryViewersSheet />
       </View>
     </>
   );

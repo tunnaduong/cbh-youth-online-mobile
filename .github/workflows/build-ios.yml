@@ -3,6 +3,7 @@ name: Build iOS Signed IPA
 on:
   push:
     branches:
+      - dhphuc-55
       - dhphuc
   workflow_dispatch:
 
@@ -90,9 +91,12 @@ jobs:
             ${{ runner.os }}-pods-
 
       - name: Install Pods
+        env:
+          LANG: en_US.UTF-8
+          LC_ALL: en_US.UTF-8
         run: |
           cd ios
-          pod install
+          pod install || (pod update hermes-engine --no-repo-update && pod install)
 
       - name: Detect iOS Project Name
         run: |
@@ -267,4 +271,3 @@ jobs:
                   print("Notification sent successfully:", response.status)
           except Exception as e:
               print("Error sending notification:", e)
-

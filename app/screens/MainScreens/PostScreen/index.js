@@ -5,6 +5,8 @@ import React, {
   useLayoutEffect,
   useEffect,
 } from "react";
+import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import {
   View,
   ScrollView,
@@ -16,23 +18,34 @@ import {
   Image,
   ActionSheetIOS,
   KeyboardAvoidingView,
+  Animated,
   RefreshControl,
   Platform,
+  Keyboard,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
-  useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+  useSafeAreaInsets,
+  SafeAreaView,
+} from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
+  commentPostWithImages,
   deletePost,
   getPostDetail,
   incrementPostView,
   voteComment,
   updateComment,
   deleteComment,
+  getMentionSuggestions,
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
+import MentionText from "../../../components/MentionText";
+import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem from "../../../components/PostItem";
@@ -44,50 +57,241 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
 import LottieView from "lottie-react-native";
+import {
+  KeyboardChatScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
+import CommentVotesModal from "../../../components/CommentVotesModal";
+import ImageView from "react-native-image-viewing";
+
+const Comment = React.forwardRef(
+  ({ comment, level = 0, border = false, commentRefs,
+     highlightedCommentId, isDarkMode, theme, t, username,
+     navigation, focusCommentInput, handleCommentVote,
+     setCommentVotesModal, setImageViewer, handleLongPressComment }, ref) => {
+    if (!comment || !comment.id) return null;
+
+    const votes = comment.votes ?? [];
+    const author = comment.author ?? {};
+    const content = comment.content ?? "";
+    const replies = comment.replies ?? [];
+    const isHighlighted = highlightedCommentId === comment.id;
+
+    const sharedProps = {
+      commentRefs, highlightedCommentId, isDarkMode, theme, t, username,
+      navigation, focusCommentInput, handleCommentVote,
+      setCommentVotesModal, setImageViewer, handleLongPressComment,
+    };
+
+    return (
+      <View
+        ref={ref}
+        style={{
+          marginLeft: level * 20,
+          backgroundColor: isHighlighted
+            ? isDarkMode ? "rgba(99,179,237,0.18)" : "rgba(66,153,225,0.12)"
+            : "transparent",
+          borderRadius: isHighlighted ? 10 : 0,
+        }}
+      >
+        <Pressable onLongPress={() => handleLongPressComment(comment.id)} delayLongPress={500}>
+          <View
+            style={[
+              { paddingVertical: 10, flexDirection: "row", gap: 10 },
+              border && { borderLeftWidth: 3, borderLeftColor: theme.border, paddingLeft: 10 },
+            ]}
+          >
+            <Pressable
+              onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
+              disabled={!author.username || !!comment.is_anonymous}
+            >
+              <View style={{ backgroundColor: theme.background, width: 42, height: 42, borderRadius: 21, overflow: "hidden", borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
+                {comment.is_anonymous ? (
+                  <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
+                  </View>
+                ) : author.username ? (
+                  <Image source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
+                ) : null}
+              </View>
+            </Pressable>
+            <View style={{ flexShrink: 1 }}>
+              <Pressable
+                onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
+                disabled={!author.username || !!comment.is_anonymous}
+              >
+                <Text style={{ fontWeight: "bold", color: theme.primary }}>
+                  {comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || ""}
+                  {author.verified && !comment.is_anonymous && (
+                    <View>
+                      <Verified width={15} height={15} color={theme.primary} style={{ marginBottom: -3 }} />
+                    </View>
+                  )}
+                </Text>
+              </Pressable>
+              {comment.deleted_parent_username && (
+                <View style={{ marginVertical: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.iconBackground, borderRadius: 8, borderWidth: 1, borderColor: theme.border }}>
+                  <Text style={{ fontSize: 12, color: theme.subText }}>
+                    {t("post.replyDeletedPrefix")}{" "}
+                    <Text style={{ fontWeight: "600", color: theme.text }}>{author.profile_name || author.username || t("post.anonymous")}</Text>{" "}
+                    {t("post.replyDeletedSuffix")}
+                  </Text>
+                </View>
+              )}
+              {!!content && (
+                <MentionText style={{ flexShrink: 1, color: theme.text }} mentions={comment.mentions} onMentionPress={(u) => navigation.navigate("ProfileScreen", { username: u })}>
+                  {String(content)}
+                </MentionText>
+              )}
+              {comment.image_urls?.length > 0 && (
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
+                  {comment.image_urls.map((url, idx) => (
+                    <TouchableOpacity key={idx} activeOpacity={0.85} onPress={() => setImageViewer({ visible: true, images: comment.image_urls.map((u) => ({ uri: u })), index: idx })}>
+                      <Image source={{ uri: url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+              <View className="flex-row items-center mt-1">
+                <Text style={{ fontSize: 12, color: "gray" }}>
+                  {comment.created_at ? formatTime(comment.created_at) : ""}
+                  {comment.is_edited ? ` (${t("post.edited")})` : ""} ·
+                </Text>
+                <TouchableOpacity onPress={() => focusCommentInput(comment.id, comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || "", level)}>
+                  <Text style={{ color: theme.subText, fontWeight: "bold", fontSize: 12 }}>{" "}{t("post.reply")}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View className="flex-1 items-end shrink-0">
+              <View>
+                <TouchableOpacity onPress={() => handleCommentVote(comment.id, 1)}>
+                  <Ionicons name="arrow-up-outline" size={18} color={votes.some((v) => v.username === username && v.vote_value === 1) ? "#22c55e" : theme.subText} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setCommentVotesModal({ visible: true, commentId: comment.id, commentPreview: typeof comment.content === "string" ? comment.content : "" })} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} style={{ alignItems: "center", paddingVertical: 4 }}>
+                  <Text style={[{ fontSize: 14, fontWeight: "600" }, votes.some((v) => v.username === username && v.vote_value === 1) ? { color: "#22c55e" } : votes.some((v) => v.username === username && v.vote_value === -1) ? { color: "#ef4444" } : { color: theme.subText }, { textAlign: "center" }]}>
+                    {votes.reduce((acc, v) => acc + (v.vote_value || 0), 0)}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleCommentVote(comment.id, -1)}>
+                  <Ionicons name="arrow-down-outline" size={18} color={votes.some((v) => v.username === username && v.vote_value === -1) ? "#ef4444" : theme.subText} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Pressable>
+        {replies.length > 0 && (
+          <View style={{ marginTop: 10 }}>
+            {replies.map((reply) => (
+              <Comment
+                key={reply.id}
+                comment={reply}
+                level={level + 1}
+                border={true}
+                ref={(r) => (commentRefs.current[reply.id] = r)}
+                {...sharedProps}
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  },
+);
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
-  const { item, postId, screenName } = route.params; // Destructure item from route.params
+  const { item, postId, screenName, highlightCommentId } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
   const [isSaved, setIsSaved] = useState(
-    item?.saved ?? item?.is_saved ?? false
+    item?.saved ?? item?.is_saved ?? false,
   );
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
   const [commentText, setCommentText] = useState("");
+  const latestCommentRef = React.useRef("");
   const [isAnonymousComment, setIsAnonymousComment] = useState(false);
   const [parentId, setParentId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState("");
+  const [selectedCommentImages, setSelectedCommentImages] = useState([]);
   const commentInputRef = useRef(null);
   const scrollViewRef = useRef(null);
   const commentRefs = useRef({});
+  const [highlightedCommentId, setHighlightedCommentId] = useState(null);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
-  const isCurrentUser = post?.is_owner === true || post?.topic?.is_owner === true || post?.author?.username === username || String(post?.author?.id) === String(userInfo?.id) || String(post?.user_id) === String(userInfo?.id) || String(post?.uid) === String(userInfo?.id) || String(post?.userid) === String(userInfo?.id) || post?.is_mine === true || post?.is_author === true;
+  const isCurrentUser =
+    post?.is_owner === true ||
+    post?.topic?.is_owner === true ||
+    post?.author?.username === username ||
+    String(post?.author?.id) === String(userInfo?.id) ||
+    String(post?.user_id) === String(userInfo?.id) ||
+    String(post?.uid) === String(userInfo?.id) ||
+    String(post?.userid) === String(userInfo?.id) ||
+    post?.is_mine === true ||
+    post?.is_author === true;
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [commentVotesModal, setCommentVotesModal] = useState({ visible: false, commentId: null, commentPreview: "" });
+  const [imageViewer, setImageViewer] = useState({ visible: false, images: [], index: 0 });
   const insets = useSafeAreaInsets();
   const headerHeight = 50 + insets.top;
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingPost, setLoadingPost] = useState(false);
   const lottieRef = useRef(null);
 
-  React.useEffect(() => {
-    navigation.setOptions({ title: t('post.details') });
-  }, [navigation, t]);
+  const { mentionProps: commentMentionProps, suggestions: commentSuggestions, onSelectMention: onSelectCommentMention, loading: commentSuggestionsLoading } = useMentionInput({
+    value: commentText,
+    onChange: setCommentText,
+    fetchSuggestions: getMentionSuggestions,
+  });
+
+  const { mentionProps: editMentionProps, suggestions: editSuggestions, onSelectMention: onSelectEditMention, loading: editSuggestionsLoading } = useMentionInput({
+    value: editingCommentText,
+    onChange: setEditingCommentText,
+    fetchSuggestions: getMentionSuggestions,
+  });
+
+  const activeSuggestions = editingCommentId ? editSuggestions : commentSuggestions;
+  const activeSuggestionsLoading = editingCommentId ? editSuggestionsLoading : commentSuggestionsLoading;
+  const onSelectActiveMention = editingCommentId ? onSelectEditMention : onSelectCommentMention;
+
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, [navigation]);
 
   React.useEffect(() => {
     fetchData();
   }, []);
 
   useEffect(() => {
-    if (post) {
+    if (post?.id) {
       incrementPostView(post.id);
     }
-  }, [post]);
+  }, [post?.id]);
 
   const handleOpenBottomSheet = () => {
     showBottomSheet(
@@ -105,21 +309,23 @@ const PostScreen = ({ route, navigation }) => {
               color={isSaved ? theme.primary : theme.text}
             />
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {isSaved ? t('post.unsave') : t('post.save')}
+              {isSaved ? t("post.unsave") : t("post.save")}
             </Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => {
             shareLink(
-              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`
+              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`,
             );
             hideBottomSheet();
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
+            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
+              {t("post.share")}
+            </Text>
           </View>
         </TouchableOpacity>
         {/*
@@ -147,22 +353,24 @@ const PostScreen = ({ route, navigation }) => {
             <View className="flex-row items-center">
               <Ionicons name="create-outline" size={23} color={theme.text} />
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t('post.edit')}
+                {t("post.edit")}
               </Text>
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => {
-          hideBottomSheet();
-          setReportModalVisible(true);
-        }}>
+        <TouchableOpacity
+          onPress={() => {
+            hideBottomSheet();
+            setReportModalVisible(true);
+          }}
+        >
           <View className="flex-row items-center">
             <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
             <Text
               style={{ padding: 12, fontSize: 17 }}
               className="text-red-500"
             >
-              {t('post.report')}
+              {t("post.report")}
             </Text>
           </View>
         </TouchableOpacity>
@@ -174,12 +382,12 @@ const PostScreen = ({ route, navigation }) => {
                 style={{ padding: 12, fontSize: 17 }}
                 className="text-red-500"
               >
-                {t('post.delete')}
+                {t("post.delete")}
               </Text>
             </View>
           </TouchableOpacity>
         )}
-      </View>
+      </View>,
     );
   };
 
@@ -194,56 +402,40 @@ const PostScreen = ({ route, navigation }) => {
   };
 
   const handleDeletePost = async () => {
-    Alert.alert(
-      t('post.deleteConfirmTitle'),
-      t('post.deleteConfirmBody'),
-      [
-        {
-          text: t('post.deleteAction'),
-          style: "destructive",
-          onPress: async () => {
-            await deletePost(post.id);
-            // refresh the post list
-            setFeed((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
-            if (screenName)
-              setRecentPostsProfile((prevPosts) =>
-                prevPosts.filter((p) => p.id !== post.id)
-              );
-            hideBottomSheet();
-            navigation.goBack();
-          },
+    Alert.alert(t("post.deleteConfirmTitle"), t("post.deleteConfirmBody"), [
+      {
+        text: t("post.deleteAction"),
+        style: "destructive",
+        onPress: async () => {
+          await deletePost(post.id);
+          // refresh the post list
+          setFeed((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
+          if (screenName)
+            setRecentPostsProfile((prevPosts) =>
+              prevPosts.filter((p) => p.id !== post.id),
+            );
+          hideBottomSheet();
+          navigation.goBack();
         },
-        {
-          text: t('post.editAction'),
-          style: "default",
-          onPress: () => {
-            navigation.navigate("PostEditScreen", { postId: post.id });
-            hideBottomSheet();
-          },
+      },
+      {
+        text: t("post.editAction"),
+        style: "default",
+        onPress: () => {
+          navigation.navigate("PostEditScreen", { postId: post.id });
+          hideBottomSheet();
         },
-        {
-          text: t('settings.cancel'),
-          style: "cancel",
-        },
-      ]
-    );
+      },
+      {
+        text: t("settings.cancel"),
+        style: "cancel",
+      },
+    ]);
   };
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={handleOpenBottomSheet}
-          style={{ marginRight: 16 }}
-        >
-          <Ionicons name="ellipsis-horizontal" size={24} color={theme.primary} />
-        </TouchableOpacity>
-      ),
-    });
-  }, [navigation, isSaved, post]);
 
   const fetchData = async () => {
     try {
+      setLoadingPost(true);
       const response = await getPostDetail(postId); // Fetch post data from API
       const { post: topic, comments } = response.data;
 
@@ -256,8 +448,18 @@ const PostScreen = ({ route, navigation }) => {
       setVotes(topic?.votes ?? []); // Update votes state
       setIsSaved(topic?.is_saved ?? false); // Update saved status
       setComments(comments ?? []);
+
+      if (highlightCommentId) {
+        setHighlightedCommentId(highlightCommentId);
+        setTimeout(() => {
+          scrollToComment(highlightCommentId);
+          setTimeout(() => setHighlightedCommentId(null), 2500);
+        }, 600);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
+    } finally {
+      setLoadingPost(false);
     }
   };
 
@@ -310,7 +512,7 @@ const PostScreen = ({ route, navigation }) => {
         (x, y) => {
           scrollViewRef.current.scrollTo({ y, animated: true });
         },
-        () => console.log("Error measuring layout")
+        () => console.log("Error measuring layout"),
       );
     }
   };
@@ -322,15 +524,15 @@ const PostScreen = ({ route, navigation }) => {
     // Update the FeedContext
     setFeed((prevFeed) =>
       prevFeed.map((post) =>
-        post.id === postId ? { ...post, votes: newVotes } : post
-      )
+        post.id === postId ? { ...post, votes: newVotes } : post,
+      ),
     );
 
     if (screenName)
       setRecentPostsProfile((prevFeed) =>
         prevFeed.map((post) =>
-          post.id === postId ? { ...post, votes: newVotes } : post
-        )
+          post.id === postId ? { ...post, votes: newVotes } : post,
+        ),
       );
 
     setPost((prevPost) => ({
@@ -345,15 +547,15 @@ const PostScreen = ({ route, navigation }) => {
     // Update the FeedContext
     setFeed((prevFeed) =>
       prevFeed.map((post) =>
-        post.id === postId ? { ...post, saved: newSavedStatus } : post
-      )
+        post.id === postId ? { ...post, saved: newSavedStatus } : post,
+      ),
     );
 
     if (screenName)
       setRecentPostsProfile((prevPosts) =>
         prevPosts.map((post) =>
-          post.id === postId ? { ...post, saved: newSavedStatus } : post
-        )
+          post.id === postId ? { ...post, saved: newSavedStatus } : post,
+        ),
       );
 
     setPost((prevPost) => ({
@@ -373,7 +575,7 @@ const PostScreen = ({ route, navigation }) => {
         const parentId = findParentIdForReply(
           comment.replies,
           targetId,
-          comment.id
+          comment.id,
         );
         if (parentId !== null) {
           return parentId;
@@ -381,6 +583,67 @@ const PostScreen = ({ route, navigation }) => {
       }
     }
     return null; // Return null if the target comment is not found
+  };
+
+  const MAX_COMMENT_IMAGES = 10;
+
+  const launchCommentImagePicker = async (source) => {
+    const remaining = MAX_COMMENT_IMAGES - selectedCommentImages.length;
+    if (remaining <= 0) return;
+    try {
+      let result;
+      if (source === "camera") {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(t("common.error"), t("chatConversation.cameraPermissionDenied", "Không có quyền truy cập camera."));
+          return;
+        }
+        result = await ImagePicker.launchCameraAsync({ mediaTypes: ["images"], quality: 0.85 });
+      } else {
+        result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          quality: 0.85,
+          allowsMultipleSelection: true,
+          selectionLimit: remaining,
+        });
+      }
+      if (!result.canceled && result.assets?.length > 0) {
+        const normalized = await Promise.all(
+          result.assets.map(async (asset) => {
+            try {
+              const r = await manipulateAsync(asset.uri, [], { compress: 0.85, format: SaveFormat.JPEG });
+              return r.uri;
+            } catch (_) {
+              return asset.uri;
+            }
+          })
+        );
+        setSelectedCommentImages((prev) => [...prev, ...normalized].slice(0, MAX_COMMENT_IMAGES));
+      }
+    } catch (e) {
+      console.error("Error picking comment image:", e);
+    }
+  };
+
+  const pickCommentImage = () => {
+    const takePhoto = t("chatConversation.takePhoto", "Chụp ảnh");
+    const chooseLibrary = t("chatConversation.chooseFromLibrary", "Chọn từ thư viện");
+    const cancel = t("common.cancel", "Hủy");
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options: [cancel, takePhoto, chooseLibrary], cancelButtonIndex: 0 },
+        (idx) => {
+          if (idx === 1) launchCommentImagePicker("camera");
+          else if (idx === 2) launchCommentImagePicker("library");
+        },
+      );
+    } else {
+      Alert.alert(t("chatConversation.attachMedia", "Đính kèm ảnh"), null, [
+        { text: takePhoto, onPress: () => launchCommentImagePicker("camera") },
+        { text: chooseLibrary, onPress: () => launchCommentImagePicker("library") },
+        { text: cancel, style: "cancel" },
+      ]);
+    }
   };
 
   const onSubmit = async () => {
@@ -391,22 +654,28 @@ const PostScreen = ({ route, navigation }) => {
     }
 
     // Handle new comment or reply
-    if (!commentText.trim() || isSubmitting) return;
+    const rawText = latestCommentRef.current || commentText;
+    const trimmedText = rawText.trim();
+    if ((!trimmedText && selectedCommentImages.length === 0) || isSubmitting) return;
 
     let replyingToId = parentId;
 
     setIsSubmitting(true);
     try {
-      // Send comment to API
-      const resp = await commentPost(post.id, {
-        comment: commentText.trim(),
+      const params = {
+        comment: trimmedText || undefined,
         topic_id: post.id,
         replying_to: replyingToId,
         is_anonymous: isAnonymousComment,
-      });
+      };
+      // Send comment to API
+      const resp = selectedCommentImages.length > 0
+        ? await commentPostWithImages(post.id, params, selectedCommentImages)
+        : await commentPost(post.id, params);
 
       // Reset input state
       setCommentText("");
+      setSelectedCommentImages([]);
       setIsAnonymousComment(false);
       setParentId(null);
       setReplyingTo(null);
@@ -427,19 +696,19 @@ const PostScreen = ({ route, navigation }) => {
           prevFeed.map((feedItem) =>
             feedItem.id === postId
               ? {
-                ...feedItem,
-                comments:
-                  roundToNearestFive(
-                    response.data.comments
-                      ? response.data.comments.length
-                      : parseInt(
-                        updatedPostData.comments?.replace(/\D/g, ""),
-                        10
-                      ) || 0
-                  ) + "+",
-              }
-              : feedItem
-          )
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                            updatedPostData.comments?.replace(/\D/g, ""),
+                            10,
+                          ) || 0,
+                    ) + "+",
+                }
+              : feedItem,
+          ),
         );
 
         if (screenName) {
@@ -447,19 +716,19 @@ const PostScreen = ({ route, navigation }) => {
             prevFeed.map((feedItem) =>
               feedItem.id === postId
                 ? {
-                  ...feedItem,
-                  comments:
-                    roundToNearestFive(
-                      response.data.comments
-                        ? response.data.comments.length
-                        : parseInt(
-                          updatedPostData.comments?.replace(/\D/g, ""),
-                          10
-                        ) || 0
-                    ) + "+",
-                }
-                : feedItem
-            )
+                    ...feedItem,
+                    comments:
+                      roundToNearestFive(
+                        response.data.comments
+                          ? response.data.comments.length
+                          : parseInt(
+                              updatedPostData.comments?.replace(/\D/g, ""),
+                              10,
+                            ) || 0,
+                      ) + "+",
+                  }
+                : feedItem,
+            ),
           );
         }
       }
@@ -472,16 +741,18 @@ const PostScreen = ({ route, navigation }) => {
 
   const handleReportSubmit = async (reason) => {
     try {
-      const reportedUserId = post?.author?.id || post?.user_id || post?.uid || post?.userid;
-      await reportUser({ reported_user_id: reportedUserId, topic_id: post.id, reason });
-      Alert.alert(
-        t('post.reportSuccessTitle'),
-        t('post.reportSuccessBody')
-      );
+      const reportedUserId =
+        post?.author?.id || post?.user_id || post?.uid || post?.userid;
+      await reportUser({
+        reported_user_id: reportedUserId,
+        topic_id: post.id,
+        reason,
+      });
+      Alert.alert(t("post.reportSuccessTitle"), t("post.reportSuccessBody"));
     } catch (e) {
       Alert.alert(
-        t('profile.errorTitle'),
-        e.response?.data?.message || e.message || t('post.reportError')
+        t("profile.errorTitle"),
+        e.response?.data?.message || e.message || t("post.reportError"),
       );
     }
   };
@@ -510,7 +781,7 @@ const PostScreen = ({ route, navigation }) => {
             if (comment.id === commentId) {
               const votes = comment.votes ?? [];
               const existingVote = votes.find(
-                (vote) => vote.username === username
+                (vote) => vote.username === username,
               );
 
               let newVotes = [...votes];
@@ -524,7 +795,7 @@ const PostScreen = ({ route, navigation }) => {
                   newVotes = votes.map((vote) =>
                     vote.username === username
                       ? { ...vote, vote_value: voteValue }
-                      : vote
+                      : vote,
                   );
                 }
               } else {
@@ -579,7 +850,7 @@ const PostScreen = ({ route, navigation }) => {
                 // Apply the same voting logic to the reply
                 const votes = reply.votes ?? [];
                 const existingVote = votes.find(
-                  (vote) => vote.username === username
+                  (vote) => vote.username === username,
                 );
 
                 let newVotes = [...votes];
@@ -588,14 +859,14 @@ const PostScreen = ({ route, navigation }) => {
                   if (existingVote.vote_value === voteValue) {
                     // User is undoing their vote
                     newVotes = votes.filter(
-                      (vote) => vote.username !== username
+                      (vote) => vote.username !== username,
                     );
                   } else {
                     // User is changing their vote
                     newVotes = votes.map((vote) =>
                       vote.username === username
                         ? { ...vote, vote_value: voteValue }
-                        : vote
+                        : vote,
                     );
                   }
                 } else {
@@ -610,7 +881,7 @@ const PostScreen = ({ route, navigation }) => {
           };
         }
         return comment;
-      })
+      }),
     );
   };
 
@@ -637,7 +908,11 @@ const PostScreen = ({ route, navigation }) => {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: [t('settings.cancel'), t('post.editComment'), t('post.deleteComment')],
+          options: [
+            t("settings.cancel"),
+            t("post.editComment"),
+            t("post.deleteComment"),
+          ],
           destructiveButtonIndex: 2,
           cancelButtonIndex: 0,
         },
@@ -656,19 +931,19 @@ const PostScreen = ({ route, navigation }) => {
             // Delete comment
             handleDeleteComment(commentId);
           }
-        }
+        },
       );
     } else {
       Alert.alert(
-        t('post.optionsTitle'),
-        t('post.selectAction'),
+        t("post.optionsTitle"),
+        t("post.selectAction"),
         [
           {
-            text: t('settings.cancel'),
+            text: t("settings.cancel"),
             style: "cancel",
           },
           {
-            text: t('post.editComment'),
+            text: t("post.editComment"),
             onPress: () => {
               setEditingCommentId(commentId);
               setEditingCommentText(comment.content || "");
@@ -681,24 +956,24 @@ const PostScreen = ({ route, navigation }) => {
             },
           },
           {
-            text: t('post.deleteComment'),
+            text: t("post.deleteComment"),
             style: "destructive",
             onPress: () => handleDeleteComment(commentId),
           },
         ],
-        { cancelable: true }
+        { cancelable: true },
       );
     }
   };
 
   const handleDeleteComment = async (commentId) => {
-    Alert.alert(t('post.deleteComment'), t('post.deleteCommentConfirm'), [
+    Alert.alert(t("post.deleteComment"), t("post.deleteCommentConfirm"), [
       {
-        text: t('settings.cancel'),
+        text: t("settings.cancel"),
         style: "cancel",
       },
       {
-        text: t('post.deleteAction'),
+        text: t("post.deleteAction"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -715,19 +990,19 @@ const PostScreen = ({ route, navigation }) => {
                 prevFeed.map((feedItem) =>
                   feedItem.id === postId
                     ? {
-                      ...feedItem,
-                      comments:
-                        roundToNearestFive(
-                          response.data.comments
-                            ? response.data.comments.length
-                            : parseInt(
-                              updatedPostData.comments?.replace(/\D/g, ""),
-                              10
-                            ) || 0
-                        ) + "+",
-                    }
-                    : feedItem
-                )
+                        ...feedItem,
+                        comments:
+                          roundToNearestFive(
+                            response.data.comments
+                              ? response.data.comments.length
+                              : parseInt(
+                                  updatedPostData.comments?.replace(/\D/g, ""),
+                                  10,
+                                ) || 0,
+                          ) + "+",
+                      }
+                    : feedItem,
+                ),
               );
 
               if (screenName) {
@@ -735,28 +1010,28 @@ const PostScreen = ({ route, navigation }) => {
                   prevFeed.map((feedItem) =>
                     feedItem.id === postId
                       ? {
-                        ...feedItem,
-                        comments:
-                          roundToNearestFive(
-                            response.data.comments
-                              ? response.data.comments.length
-                              : parseInt(
-                                updatedPostData.comments?.replace(
-                                  /\D/g,
-                                  ""
-                                ),
-                                10
-                              ) || 0
-                          ) + "+",
-                      }
-                      : feedItem
-                  )
+                          ...feedItem,
+                          comments:
+                            roundToNearestFive(
+                              response.data.comments
+                                ? response.data.comments.length
+                                : parseInt(
+                                    updatedPostData.comments?.replace(
+                                      /\D/g,
+                                      "",
+                                    ),
+                                    10,
+                                  ) || 0,
+                            ) + "+",
+                        }
+                      : feedItem,
+                  ),
                 );
               }
             }
           } catch (error) {
             console.error("Error deleting comment:", error);
-            Alert.alert(t('profile.errorTitle'), t('post.deleteCommentError'));
+            Alert.alert(t("profile.errorTitle"), t("post.deleteCommentError"));
           }
         },
       },
@@ -790,19 +1065,19 @@ const PostScreen = ({ route, navigation }) => {
           prevFeed.map((feedItem) =>
             feedItem.id === postId
               ? {
-                ...feedItem,
-                comments:
-                  roundToNearestFive(
-                    response.data.comments
-                      ? response.data.comments.length
-                      : parseInt(
-                        updatedPostData.comments?.replace(/\D/g, ""),
-                        10
-                      ) || 0
-                  ) + "+",
-              }
-              : feedItem
-          )
+                  ...feedItem,
+                  comments:
+                    roundToNearestFive(
+                      response.data.comments
+                        ? response.data.comments.length
+                        : parseInt(
+                            updatedPostData.comments?.replace(/\D/g, ""),
+                            10,
+                          ) || 0,
+                    ) + "+",
+                }
+              : feedItem,
+          ),
         );
 
         if (screenName) {
@@ -810,257 +1085,66 @@ const PostScreen = ({ route, navigation }) => {
             prevFeed.map((feedItem) =>
               feedItem.id === postId
                 ? {
-                  ...feedItem,
-                  comments:
-                    roundToNearestFive(
-                      response.data.comments
-                        ? response.data.comments.length
-                        : parseInt(
-                          updatedPostData.comments?.replace(/\D/g, ""),
-                          10
-                        ) || 0
-                    ) + "+",
-                }
-                : feedItem
-            )
+                    ...feedItem,
+                    comments:
+                      roundToNearestFive(
+                        response.data.comments
+                          ? response.data.comments.length
+                          : parseInt(
+                              updatedPostData.comments?.replace(/\D/g, ""),
+                              10,
+                            ) || 0,
+                      ) + "+",
+                  }
+                : feedItem,
+            ),
           );
         }
       }
     } catch (error) {
       console.error("Error updating comment:", error);
-      Alert.alert(t('profile.errorTitle'), t('post.editCommentError'));
+      Alert.alert(t("profile.errorTitle"), t("post.editCommentError"));
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const Comment = React.forwardRef(
-    ({ comment, level = 0, border = false }, ref) => {
-      if (!comment || !comment.id) {
-        return null;
-      }
 
-      const votes = comment.votes ?? [];
-      const author = comment.author ?? {};
-      const content = comment.content ?? "";
-      const replies = comment.replies ?? [];
-
-      return (
-        <View
-          ref={ref} // Attach ref here
-          style={{
-            marginLeft: level * 20, // Indent based on the nesting level
-          }}
-        >
-          {/* Render the main comment */}
-
-          <Pressable
-            onLongPress={() => handleLongPressComment(comment.id)}
-            delayLongPress={500}
-          >
-            <View
-              style={[
-                {
-                  paddingVertical: 10,
-                  flexDirection: "row",
-                  gap: 10,
-                },
-                border && {
-                  borderLeftWidth: 3,
-                  borderLeftColor: isDarkMode ? "#2e4e2a" : "#e4eee3",
-                  paddingLeft: 10,
-                },
-              ]}
-            >
-              <Pressable
-                onPress={() =>
-                  author.username && !comment.is_anonymous &&
-                  navigation.navigate("ProfileScreen", {
-                    username: author.username,
-                  })
-                }
-                disabled={!author.username || !!comment.is_anonymous}
-              >
-                <View
-                  style={{
-                    backgroundColor: theme.background,
-                    width: 42,
-                    height: 42,
-                    borderRadius: 21,
-                    overflow: "hidden",
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {comment.is_anonymous ? (
-                    <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
-                    </View>
-                  ) : author.username ? (
-                    <Image
-                      source={{
-                        uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar`,
-                      }}
-                      style={{ width: 40, height: 40, borderRadius: 30 }}
-                    />
-                  ) : null}
-                </View>
-              </Pressable>
-              <View style={{ flexShrink: 1 }}>
-                <Pressable
-                  onPress={() =>
-                    author.username && !comment.is_anonymous &&
-                    navigation.navigate("ProfileScreen", {
-                      username: author.username,
-                    })
-                  }
-                  disabled={!author.username || !!comment.is_anonymous}
-                >
-                  <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                    {comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || "")}
-                    {author.verified && !comment.is_anonymous && (
-                      <View>
-                        <Verified
-                          width={15}
-                          height={15}
-                          color={theme.primary}
-                          style={{ marginBottom: -3 }}
-                        />
-                      </View>
-                    )}
-                  </Text>
-                </Pressable>
-                {comment.deleted_parent_username && (
-                  <View
-                    style={{
-                      marginVertical: 8,
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6",
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: theme.border,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12, color: theme.subText }}>
-                      {t('post.replyDeletedPrefix')}{" "}
-                      <Text style={{ fontWeight: "600", color: theme.text }}>
-                        {author.profile_name || author.username || t('post.anonymous')}
-                      </Text>{" "}
-                      {t('post.replyDeletedSuffix')}
-                    </Text>
-                  </View>
-                )}
-                <Text
-                  style={{
-                    flexShrink: 1,
-                    color: theme.text,
-                  }}
-                >
-                  {String(content)}
-                </Text>
-                <View className="flex-row items-center mt-1">
-                  <Text style={{ fontSize: 12, color: "gray" }}>
-                    {comment.created_at ? formatTime(comment.created_at) : ""}{comment.is_edited ? ` (${t('post.edited')})` : ""} ·
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      focusCommentInput(
-                        comment.id,
-                        comment.is_anonymous ? t('post.anonymousUser') : (author.profile_name || author.username || ""),
-                        level
-                      )
-                    }
-                  >
-                    <Text style={{ color: theme.subText, fontWeight: "bold", fontSize: 12 }}>
-                      {" "}
-                      {t('post.reply')}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View className="flex-1 items-end shrink-0">
-                <View>
-                  <TouchableOpacity
-                    onPress={() => handleCommentVote(comment.id, 1)}
-                  >
-                    <Ionicons
-                      name="arrow-up-outline"
-                      size={18}
-                      color={
-                        votes.some(
-                          (vote) =>
-                            vote.username === username && vote.vote_value === 1
-                        )
-                          ? "#22c55e"
-                          : theme.subText
-                      }
-                    />
-                  </TouchableOpacity>
-                  <Text
-                    style={[
-                      { fontSize: 14, fontWeight: "600" },
-                      { color: theme.subText, textAlign: "center" },
-                      votes.some(
-                        (vote) =>
-                          vote.username === username && vote.vote_value === 1
-                      )
-                        ? { color: "#22c55e" }
-                        : votes.some(
-                          (vote) =>
-                            vote.username === username &&
-                            vote.vote_value === -1
-                        )
-                          ? { color: "#ef4444" }
-                          : { color: theme.subText },
-                    ]}
-                  >
-                    {votes.reduce(
-                      (acc, vote) => acc + (vote.vote_value || 0),
-                      0
-                    )}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => handleCommentVote(comment.id, -1)}
-                  >
-                    <Ionicons
-                      name="arrow-down-outline"
-                      size={18}
-                      color={
-                        votes.some(
-                          (vote) =>
-                            vote.username === username && vote.vote_value === -1
-                        )
-                          ? "#ef4444"
-                          : theme.subText
-                      }
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Pressable>
-
-          {/* Render replies recursively */}
-          {replies.length > 0 && (
-            <View style={{ marginTop: 10 }}>
-              {replies.map((reply) => (
-                <Comment
-                  key={reply.id}
-                  comment={reply}
-                  level={level + 1}
-                  border={true}
-                  ref={(ref) => (commentRefs.current[reply.id] = ref)}
-                />
-              ))}
-            </View>
-          )}
-        </View>
-      );
+  // Froggy loading animation
+  const bounceValue = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (post == null) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(bounceValue, {
+            toValue: -20,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(bounceValue, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
     }
-  );
+  }, [post]);
+
+  if (loadingPost) {
+    return (
+      <View
+        style={{
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.background,
+          flex: 1,
+        }}
+      >
+        <CustomLoading size={90} />
+      </View>
+    );
+  }
 
   return post == null ? (
     <View
@@ -1070,133 +1154,348 @@ const PostScreen = ({ route, navigation }) => {
         backgroundColor: theme.background,
         flex: 1,
       }}
-    ></View>
+    >
+      <CustomLoading size={90} />
+    </View>
   ) : (
     <>
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: theme.background }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={headerHeight}
-      >
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        {(activeSuggestions.length > 0 || activeSuggestionsLoading) && (
+          <View
+            style={{
+              position: "absolute",
+              bottom: (keyboardHeight || insets.bottom) + 72,
+              left: 0,
+              right: 0,
+              zIndex: 50,
+            }}
+            pointerEvents="box-none"
+          >
+            <MentionSuggestions
+              suggestions={activeSuggestions}
+              onSelect={onSelectActiveMention}
+              loading={activeSuggestionsLoading}
+            />
+          </View>
+        )}
+        {/* Floating header */}
         <View
+          pointerEvents="box-none"
           style={{
-            flex: 1,
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
           }}
         >
-          {refreshing && (
-            <View style={{ position: "absolute", top: 15, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-              <LottieView
-                source={require("../../../assets/refresh.json")}
-                style={{ width: 40, height: 40 }}
-                ref={lottieRef}
-                loop
-                autoPlay
-              />
-            </View>
-          )}
-          <ScrollView
-            contentContainerStyle={{
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
               backgroundColor: theme.background,
+              opacity: headerBgOpacity,
             }}
-            ref={scrollViewRef}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor="transparent"
-                colors={["transparent"]}
-                progressBackgroundColor="transparent"
-                style={{ backgroundColor: "transparent" }}
-                progressViewOffset={-1000}
-              />
-            }
+          />
+          <View
+            style={{
+              paddingTop: insets.top,
+              paddingBottom: 8,
+              flexDirection: "row",
+              alignItems: "center",
+              paddingHorizontal: 16,
+              height: 64 + insets.top,
+            }}
           >
-            <PostItem
-              navigation={navigation}
-              item={post}
-              single={true}
-              votes={votes}
-              saved={isSaved}
-              onVote={handleVote}
-              onSave={handleSavePost}
-              screenName={screenName}
-            />
-            {/* comment section */}
-            <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
-              <Text style={{ fontWeight: "bold", fontSize: 20, marginVertical: 16, color: theme.text }}>{t('post.commentsTitle')}</Text>
-              {comments.length === 0 ? (
-                <Text style={{ color: theme.subText }}>{t('post.noComments')}</Text>
-              ) : (
-                comments.map((comment) => (
-                  <Comment
-                    key={comment.id}
-                    comment={comment}
-                    ref={(ref) => (commentRefs.current[comment.id] = ref)}
-                  />
-                ))
-              )}
+            <View style={{ width: 44 }}>
+              <LiquidButton
+                size={44}
+                scrollY={scrollY}
+                providerId="PostScreen"
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
             </View>
-          </ScrollView>
-          {(parentId || editingCommentId) && (
-            <View
+            <Animated.Text
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 15,
-                paddingVertical: 10,
-                backgroundColor: isDarkMode ? "#1f2937" : "#f3f4f6",
-                borderTopWidth: 1,
-                borderTopColor: theme.border,
+                fontSize: 18,
+                fontWeight: "600",
+                color: theme.primary,
+                flex: 1,
+                textAlign: "center",
+                opacity: headerTitleOpacity,
+              }}
+              numberOfLines={1}
+            >
+              {t("post.details")}
+            </Animated.Text>
+            <View style={{ width: 44, alignItems: "flex-end" }}>
+              <LiquidButton
+                size={44}
+                scrollY={scrollY}
+                providerId="PostScreen"
+                onPress={handleOpenBottomSheet}
+              >
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={24}
+                  color={theme.primary}
+                />
+              </LiquidButton>
+            </View>
+          </View>
+        </View>
+
+        {refreshing && (
+          <View
+            style={{
+              position: "absolute",
+              top: 15,
+              left: 0,
+              right: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+            }}
+          >
+            <LottieView
+              source={require("../../../assets/refresh.json")}
+              style={{ width: 40, height: 40 }}
+              ref={lottieRef}
+              loop
+              autoPlay
+            />
+          </View>
+        )}
+        <AndroidGlassBackdrop providerId="PostScreen" style={{ flex: 1 }}>
+        <KeyboardChatScrollView
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false },
+          )}
+          contentContainerStyle={{
+            paddingTop: 64 + insets.top,
+            paddingBottom: insets.bottom,
+            backgroundColor: theme.background,
+            flexGrow: 1,
+          }}
+          ref={scrollViewRef}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="transparent"
+              colors={["transparent"]}
+              progressBackgroundColor="transparent"
+              style={{ backgroundColor: "transparent" }}
+            />
+          }
+        >
+          <PostItem
+            navigation={navigation}
+            item={post}
+            single={true}
+            votes={votes}
+            saved={isSaved}
+            onVote={handleVote}
+            onSave={handleSavePost}
+            screenName={screenName}
+          />
+          {/* comment section */}
+          <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
+            <Text
+              style={{
+                fontWeight: "bold",
+                fontSize: 20,
+                marginVertical: 16,
+                color: theme.text,
               }}
             >
-              <Text style={{ color: theme.subText, fontSize: 14, flex: 1 }}>
-                {editingCommentId
-                  ? t('post.editingComment')
-                  : t('post.replyingTo', { username: replyingTo })}
+              {t("post.commentsTitle")}
+            </Text>
+            {comments.length === 0 ? (
+              <Text style={{ color: theme.subText }}>
+                {t("post.noComments")}
               </Text>
+            ) : (
+              comments.map((comment) => (
+                <Comment
+                  key={comment.id}
+                  comment={comment}
+                  ref={(ref) => (commentRefs.current[comment.id] = ref)}
+                  commentRefs={commentRefs}
+                  highlightedCommentId={highlightedCommentId}
+                  isDarkMode={isDarkMode}
+                  theme={theme}
+                  t={t}
+                  username={username}
+                  navigation={navigation}
+                  focusCommentInput={focusCommentInput}
+                  handleCommentVote={handleCommentVote}
+                  setCommentVotesModal={setCommentVotesModal}
+                  setImageViewer={setImageViewer}
+                  handleLongPressComment={handleLongPressComment}
+                />
+              ))
+            )}
+          </View>
+          {/* Spacer to prevent comment bar from covering last comments */}
+          <View style={{ height: 50, backgroundColor: "transparent" }} />
+        </KeyboardChatScrollView>
+        </AndroidGlassBackdrop>
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
+        <CommentVotesModal
+          visible={commentVotesModal.visible}
+          commentId={commentVotesModal.commentId}
+          commentPreview={commentVotesModal.commentPreview}
+          navigation={navigation}
+          onClose={() => setCommentVotesModal({ visible: false, commentId: null, commentPreview: "" })}
+        />
+        <ImageView
+          images={imageViewer.images}
+          imageIndex={imageViewer.index}
+          visible={imageViewer.visible}
+          onRequestClose={() => setImageViewer({ visible: false, images: [], index: 0 })}
+          HeaderComponent={() => (
+            <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
               <TouchableOpacity
-                onPress={() => {
-                  setParentId(null);
-                  setReplyingTo(null);
-                  setEditingCommentId(null);
-                  setEditingCommentText("");
-                  setCommentText("");
-                  setIsAnonymousComment(false);
-                }}
+                onPress={() => setImageViewer({ visible: false, images: [], index: 0 })}
                 style={{
-                  marginLeft: 10,
-                  padding: 5,
-                  backgroundColor: isDarkMode ? "#374151" : "#e5e7eb",
-                  borderRadius: 50,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: "#00000077",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
+                hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
               >
-                <Ionicons name="close" size={16} color="#6b7280" />
+                <Ionicons name="close" size={22} color="#fff" />
               </TouchableOpacity>
             </View>
           )}
+        />
 
-          <View style={{ paddingBottom: insets.bottom }}>
+        {Platform.OS === 'android' || Platform.OS === 'ios' ? (
+          <KeyboardStickyView
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "transparent",
+              zIndex: 5,
+              paddingBottom: insets.bottom,
+            }}
+            offset={{ opened: 20 }}
+          >
             <CommentBar
+              providerId="PostScreen"
+              statusText={
+                parentId || editingCommentId
+                  ? editingCommentId
+                    ? t("post.editingComment")
+                    : t("post.replyingTo", { username: replyingTo })
+                  : null
+              }
+              onClearStatus={() => {
+                setParentId(null);
+                setReplyingTo(null);
+                setEditingCommentId(null);
+                setEditingCommentText("");
+                setCommentText("");
+                setSelectedCommentImages([]);
+                setIsAnonymousComment(false);
+              }}
               value={editingCommentId ? editingCommentText : commentText}
-              onChangeText={(text) => editingCommentId ? setEditingCommentText(text) : setCommentText(text)}
-              placeholderText={t('post.commentPlaceholder')}
+              onChangeText={(text) => {
+                if (!editingCommentId) latestCommentRef.current = text;
+                (editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText)(text);
+              }}
+              placeholderText={t("post.commentPlaceholder")}
               onSubmit={onSubmit}
               ref={commentInputRef}
               isSubmitting={isSubmitting}
-              disabled={editingCommentId ? !editingCommentText.trim() : !commentText.trim()}
+              disabled={
+                editingCommentId
+                  ? !editingCommentText.trim()
+                  : !commentText.trim() && selectedCommentImages.length === 0
+              }
               isAnonymous={isAnonymousComment}
               onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
               anonymousDisabled={!!editingCommentId}
+              onPickImage={!editingCommentId ? pickCommentImage : undefined}
+              selectedImages={!editingCommentId ? selectedCommentImages : undefined}
+              onClearImage={!editingCommentId ? (index) => setSelectedCommentImages((prev) => prev.filter((_, i) => i !== index)) : undefined}
+            />
+          </KeyboardStickyView>
+        ) : (
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "transparent",
+              zIndex: 5,
+              paddingBottom: insets.bottom,
+            }}
+          >
+            <CommentBar
+              providerId="PostScreen"
+              statusText={
+                parentId || editingCommentId
+                  ? editingCommentId
+                    ? t("post.editingComment")
+                    : t("post.replyingTo", { username: replyingTo })
+                  : null
+              }
+              onClearStatus={() => {
+                setParentId(null);
+                setReplyingTo(null);
+                setEditingCommentId(null);
+                setEditingCommentText("");
+                setCommentText("");
+                setSelectedCommentImages([]);
+                setIsAnonymousComment(false);
+              }}
+              value={editingCommentId ? editingCommentText : commentText}
+              onChangeText={(text) => {
+                if (!editingCommentId) latestCommentRef.current = text;
+                (editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText)(text);
+              }}
+              placeholderText={t("post.commentPlaceholder")}
+              onSubmit={onSubmit}
+              ref={commentInputRef}
+              isSubmitting={isSubmitting}
+              disabled={
+                editingCommentId
+                  ? !editingCommentText.trim()
+                  : !commentText.trim() && selectedCommentImages.length === 0
+              }
+              isAnonymous={isAnonymousComment}
+              onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
+              anonymousDisabled={!!editingCommentId}
+              onPickImage={!editingCommentId ? pickCommentImage : undefined}
+              selectedImages={!editingCommentId ? selectedCommentImages : undefined}
+              onClearImage={!editingCommentId ? (index) => setSelectedCommentImages((prev) => prev.filter((_, i) => i !== index)) : undefined}
             />
           </View>
-
-          <ReportModal
-            visible={reportModalVisible}
-            onClose={() => setReportModalVisible(false)}
-            onSubmit={handleReportSubmit}
-          />
-        </View>
-      </KeyboardAvoidingView>
+        )}
+      </View>
     </>
   );
 };

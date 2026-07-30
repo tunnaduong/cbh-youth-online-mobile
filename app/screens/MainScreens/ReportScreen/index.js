@@ -1,32 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
+  Animated,
+  Platform,
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
-import ReportHeader from "../../../components/ReportHeader";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const STEPS = [
-  {
-    id: 1,
-    titleKey: "report.step1",
-    subtitleKey: "report.step1Desc",
-  },
-  {
-    id: 2,
-    titleKey: "report.step2",
-    subtitleKey: "report.step2Desc",
-  },
-  {
-    id: 3,
-    titleKey: "report.step3",
-    subtitleKey: "report.step3Desc",
-  },
+  { id: 1, titleKey: "report.step1" },
+  { id: 2, titleKey: "report.step2" },
+  { id: 3, titleKey: "report.step3" },
 ];
 
 const VIOLATION_TYPES = [
@@ -44,13 +37,8 @@ const VIOLATION_TYPES = [
   },
 ];
 
-export default function ReportScreen({ navigation }) {
-  const [selectedType, setSelectedType] = useState(null);
-  const insets = useSafeAreaInsets();
-  const { theme, isDarkMode } = useTheme();
-  const { t } = useTranslation();
-
-  const StepIndicator = () => (
+function StepIndicator({ currentStep, theme, isDarkMode, t }) {
+  return (
     <View style={styles.stepContainer}>
       {STEPS.map((step, index) => (
         <React.Fragment key={step.id}>
@@ -59,176 +47,354 @@ export default function ReportScreen({ navigation }) {
               style={[
                 styles.stepNumber,
                 {
-                  backgroundColor: step.id === 1 ? theme.primary : (isDarkMode ? "#374151" : "#E5E5E5"),
+                  backgroundColor:
+                    step.id <= currentStep
+                      ? theme.primary
+                      : isDarkMode
+                      ? "#374151"
+                      : "#E5E5E5",
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.stepNumberText,
-                  { color: step.id === 1 ? "#fff" : theme.subText },
-                ]}
-              >
-                {step.id}
-              </Text>
+              {step.id < currentStep ? (
+                <Ionicons name="checkmark" size={16} color="#fff" />
+              ) : (
+                <Text
+                  style={[
+                    styles.stepNumberText,
+                    {
+                      color:
+                        step.id <= currentStep ? "#fff" : theme.subText,
+                    },
+                  ]}
+                >
+                  {step.id}
+                </Text>
+              )}
             </View>
             <Text
               style={[
                 styles.stepText,
-                { color: step.id === 1 ? theme.primary : theme.subText },
+                {
+                  color:
+                    step.id <= currentStep ? theme.primary : theme.subText,
+                },
               ]}
             >
               {t(step.titleKey)}
             </Text>
           </View>
           {index < STEPS.length - 1 && (
-            <View style={[styles.stepLine, { backgroundColor: isDarkMode ? "#374151" : "#E5E5E5" }]} />
+            <View
+              style={[
+                styles.stepLine,
+                {
+                  backgroundColor:
+                    step.id < currentStep
+                      ? theme.primary
+                      : isDarkMode
+                      ? "#374151"
+                      : "#E5E5E5",
+                },
+              ]}
+            />
           )}
         </React.Fragment>
       ))}
     </View>
   );
+}
+
+export default function ReportScreen({ navigation }) {
+  const [selectedType, setSelectedType] = useState(null);
+  const insets = useSafeAreaInsets();
+  const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
+  const { t } = useTranslation();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  // iOS: this screen is presented via presentation:"modal", which renders
+  // as a floating card (not full-bleed like Android), so it already clears
+  // the notch/status bar on its own — adding the full device insets.top
+  // double-counts the offset.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
-      
-
-      {/* Header */}
-      <ReportHeader navigation={navigation} title={t('report.createReport')} />
-
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Floating header */}
       <View
-        style={{
-          backgroundColor: isDarkMode ? "#312e16" : "#FFF3CD",
-          borderLeftWidth: 4,
-          borderLeftColor: "#FFC107",
-          padding: 12,
-          marginHorizontal: 15,
-          marginTop: 10,
-          marginBottom: 5,
-          borderRadius: 4,
-          flexDirection: "row",
-          alignItems: "center",
-        }}
+        pointerEvents="box-none"
+        style={[styles.floatingHeader, { height: headerHeight }]}
       >
-        <Ionicons name="alert-circle-outline" size={20} color={isDarkMode ? "#FFC107" : "#856404"} />
-        <Text
+        <View
           style={{
-            marginLeft: 10,
-            color: isDarkMode ? "#fef3c7" : "#856404",
-            fontSize: 14,
-            flex: 1,
+            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
+            paddingBottom: 8,
+            paddingHorizontal: 16,
+            flexDirection: "row",
+            alignItems: "center",
           }}
         >
-          {t('report.previewMode')}
-        </Text>
+          <View style={{ width: 44 }}>
+            <LiquidButton
+              providerId="ReportStep1"
+              size={44}
+              scrollY={scrollY}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: titleOpacity }]}
+            numberOfLines={1}
+          >
+            {t("report.createReport")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
-      <View style={[styles.header, { backgroundColor: theme.primary }]}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{t('report.reportViolation')}</Text>
-          <Text style={styles.headerSubtitle}>
-            {t('report.schoolName')}
+      <AndroidGlassBackdrop providerId="ReportStep1" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingHorizontal: 16,
+          paddingBottom: 16,
+        }}
+      >
+        {/* Warning banner */}
+        <View
+          style={[
+            styles.warningBanner,
+            {
+              backgroundColor: isDarkMode
+                ? "rgba(255,193,7,0.18)"
+                : "rgba(255,193,7,0.10)",
+              borderLeftColor: "#FFC107",
+            },
+          ]}
+        >
+          <Ionicons
+            name="alert-circle-outline"
+            size={20}
+            color={isDarkMode ? "#FFC107" : "#856404"}
+          />
+          <Text
+            style={[
+              styles.warningText,
+              { color: isDarkMode ? "#fef3c7" : "#856404" },
+            ]}
+          >
+            {t("report.previewMode")}
           </Text>
         </View>
-        <View style={styles.warningIcon}>
-          <Ionicons name="warning" size={24} color="#fff" />
-        </View>
-      </View>
 
-      {/* Step Indicator */}
-      <StepIndicator />
+        {/* Gradient info card */}
+        <LinearGradient
+          colors={
+            isDarkMode
+              ? ["#173C2B", "#0F261D"]
+              : ["#2BAA5C", "#1A874A"]
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.gradientCard}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.gradientTitle}>
+              {t("report.reportViolation")}
+            </Text>
+            <Text style={styles.gradientSubtitle}>
+              {t("report.schoolName")}
+            </Text>
+          </View>
+          <View style={styles.gradientIconWrap}>
+            <Ionicons name="warning" size={28} color="#FFFFFF" />
+          </View>
+        </LinearGradient>
 
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={[styles.contentTitle, { color: theme.text }]}>{t('report.step1Title')}</Text>
+        {/* Step indicator */}
+        <StepIndicator
+          currentStep={1}
+          theme={theme}
+          isDarkMode={isDarkMode}
+          t={t}
+        />
+
+        <Text style={[styles.contentTitle, { color: theme.text }]}>
+          {t("report.step1Title")}
+        </Text>
         <Text style={[styles.contentSubtitle, { color: theme.subText }]}>
-          {t('report.step1Desc')}
+          {t("report.step1Desc")}
         </Text>
 
-        {/* Violation Type Cards */}
         {VIOLATION_TYPES.map((type) => (
           <TouchableOpacity
             key={type.id}
             style={[
               styles.card,
-              { backgroundColor: theme.cardBackground, borderColor: theme.border },
-              selectedType === type.id && [styles.selectedCard, { backgroundColor: isDarkMode ? "#064e3b" : "#F3FDF1", borderColor: theme.primary }],
+              {
+                backgroundColor:
+                  selectedType === type.id
+                    ? isDarkMode
+                      ? "#1a3d28"
+                      : "#E8F8E5"
+                    : isDarkMode
+                    ? "rgba(255,255,255,0.04)"
+                    : "#FFFFFF",
+                borderColor:
+                  selectedType === type.id ? theme.primary : theme.border,
+                borderWidth: selectedType === type.id ? 2 : 1,
+                // Android's `elevation` shadow is always rendered dark/black,
+                // ignoring shadowColor. Against a dark theme background
+                // that shadow shows through as a stray black smudge around
+                // the card, since there's little contrast to mask it (unlike
+                // light mode, where a dark shadow on a light background
+                // looks like a normal drop shadow). The border already
+                // gives the card definition, so just drop the shadow in
+                // dark mode instead.
+                ...(isDarkMode ? { elevation: 0, shadowOpacity: 0 } : null),
+              },
             ]}
             onPress={() => setSelectedType(type.id)}
+            activeOpacity={0.75}
           >
-            <View style={[styles.cardIcon, { backgroundColor: isDarkMode ? "#374151" : "#F3FDF1" }]}>
+            <View
+              style={[
+                styles.cardIcon,
+                {
+                  backgroundColor:
+                    selectedType === type.id
+                      ? theme.primary + "26"
+                      : isDarkMode
+                      ? "#374151"
+                      : "#F3FDF1",
+                },
+              ]}
+            >
               <Ionicons name={type.icon} size={24} color={theme.primary} />
             </View>
             <View style={styles.cardContent}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t(type.titleKey)}</Text>
-              <Text style={[styles.cardDescription, { color: theme.subText }]} numberOfLines={3}>
+              <Text style={[styles.cardTitle, { color: theme.text }]}>
+                {t(type.titleKey)}
+              </Text>
+              <Text
+                style={[styles.cardDescription, { color: theme.subText }]}
+                numberOfLines={3}
+              >
                 {t(type.descKey)}
               </Text>
             </View>
+            {selectedType === type.id && (
+              <Ionicons
+                name="checkmark-circle"
+                size={22}
+                color={theme.primary}
+              />
+            )}
           </TouchableOpacity>
         ))}
-      </View>
 
-      {/* Continue Button */}
-      <TouchableOpacity
-        style={[styles.continueButton, { backgroundColor: theme.primary, opacity: selectedType ? 1 : 0.5 }]}
-        disabled={!selectedType}
-        onPress={() => {
-          navigation.navigate("Step2", {
-            violationType: selectedType,
-          });
-        }}
+      </Animated.ScrollView>
+      </AndroidGlassBackdrop>
+
+      {/* Continue button — fixed at bottom */}
+      <View
+        style={[
+          styles.bottomBar,
+          {
+            paddingBottom: 16 + (insets.bottom || 0),
+            backgroundColor: theme.background,
+            borderTopColor: theme.border,
+          },
+        ]}
       >
-        <Text style={styles.continueButtonText}>{t('report.continue')}</Text>
-        <Ionicons name="arrow-forward" size={24} color="#fff" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            {
+              backgroundColor: theme.primary,
+              opacity: selectedType ? 1 : 0.5,
+            },
+          ]}
+          disabled={!selectedType}
+          onPress={() =>
+            navigation.navigate("Step2", { violationType: selectedType })
+          }
+        >
+          <Text style={styles.continueButtonText}>{t("report.continue")}</Text>
+          <Ionicons name="arrow-forward" size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
-  header: {
+  headerTitle: { fontSize: 17, fontWeight: "700" },
+  warningBanner: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    marginTop: 16,
+    borderLeftWidth: 4,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    gap: 10,
   },
-  headerContent: {
-    flex: 1,
+  warningText: { flex: 1, fontSize: 13, lineHeight: 18 },
+  gradientCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 22,
+    padding: 20,
+    marginBottom: 6,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
+  gradientTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#fff",
-    opacity: 0.8,
-  },
-  warningIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  gradientSubtitle: { fontSize: 13, color: "#C7F5D7" },
+  gradientIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255,255,255,0.18)",
     justifyContent: "center",
     alignItems: "center",
   },
   stepContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 18,
   },
-  stepItem: {
-    alignItems: "center",
-    flex: 1,
-  },
+  stepItem: { alignItems: "center", flex: 1 },
   stepNumber: {
     width: 32,
     height: 32,
@@ -237,41 +403,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
-  stepNumberText: {
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  stepText: {
-    fontSize: 12,
-    textAlign: "center",
-  },
-  stepLine: {
-    height: 1,
-    flex: 0.5,
-    marginHorizontal: -10,
-  },
-  content: {
-    flex: 1,
-    padding: 16,
-  },
-  contentTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  contentSubtitle: {
-    fontSize: 16,
-    marginBottom: 24,
-  },
+  stepNumberText: { fontSize: 14, fontWeight: "700" },
+  stepText: { fontSize: 11, textAlign: "center", fontWeight: "500" },
+  stepLine: { height: 2, flex: 0.5, marginHorizontal: -8, borderRadius: 1 },
+  contentTitle: { fontSize: 22, fontWeight: "800", marginBottom: 6 },
+  contentSubtitle: { fontSize: 14, marginBottom: 20, lineHeight: 20 },
   card: {
     flexDirection: "row",
+    alignItems: "center",
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 18,
+    marginBottom: 12,
     borderWidth: 1,
-  },
-  selectedCard: {
-    borderWidth: 1,
+    shadowColor: "#0F172A",
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
   cardIcon: {
     width: 48,
@@ -279,40 +427,28 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 14,
   },
-  cardContent: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
-  },
-  cardDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+  cardContent: { flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: "700", marginBottom: 4 },
+  cardDescription: { fontSize: 13, lineHeight: 19 },
+  bottomBar: {
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   continueButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    margin: 16,
     padding: 16,
     borderRadius: 30,
+    gap: 8,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  continueButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginRight: 8,
-  },
+  continueButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });

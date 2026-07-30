@@ -2,7 +2,8 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "3.1.0",
+    "version": "3.7.4",
+    "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -16,11 +17,13 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "310",
+      "buildNumber": "474",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
         "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
         "ITSAppUsesNonExemptEncryption": false,
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true,
         "NSAppLinksUsageDescription": "Opening content from CBH Youth Online",
         "NSUserActivityTypes": [
           "NSUserActivityTypeBrowsingWeb"
@@ -43,6 +46,9 @@
       ]
     },
     "android": {
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -81,7 +87,8 @@
         "monochromeImage": "./app/assets/adaptive-icon-monochrome.png"
       },
       "package": "com.fatties.youth",
-      "versionCode": 310,
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 474,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -92,7 +99,7 @@
         "projectId": "172eec8c-8c58-453c-a375-258412496e09"
       }
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "4.7.0",
     "updates": {
       "url": "https://u.expo.dev/172eec8c-8c58-453c-a375-258412496e09"
     },
@@ -120,7 +127,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./app/assets/notification.png",
+          "icon": "./app/assets/notification-monochrome.png",
           "color": "#ffffff",
           "sounds": []
         }
@@ -133,13 +140,15 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "15.1"
+            "deploymentTarget": "15.1",
+            "buildReactNativeFromSource": true
           }
         }
-      ]
+      ],
+      "expo-video"
     ],
     "notification": {
-      "icon": "./app/assets/notification.png",
+      "icon": "./app/assets/notification-monochrome.png",
       "color": "#ffffff"
     }
   }

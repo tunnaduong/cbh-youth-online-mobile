@@ -1,1216 +1,271 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Dimensions, View, Platform, StyleSheet, Text, TouchableOpacity, Animated, PanResponder, DeviceEventEmitter, InteractionManager } from "react-native";
-import * as Haptics from "expo-haptics";
-import { createBottomTabNavigator, BottomTabBar } from "@react-navigation/bottom-tabs";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import { Dimensions, View, Platform, StyleSheet, Animated, Easing, DeviceEventEmitter, TouchableWithoutFeedback, TouchableOpacity, Text } from "react-native";
+import Sidebar from "../../components/Sidebar";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
 import MenuScreen from "./ForumScreen";
-import SideMenu from "@chakrahq/react-native-side-menu";
-import Sidebar from "../../components/Sidebar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
-import TabBarBadge from "../../components/TabBarBadge";
-import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LinearGradient } from "expo-linear-gradient";
+import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlass } from "../../components/GlassModules";
 
-import {
-  LiquidGlassView,
-  LiquidGlassContainer,
-  LiquidGlassProviderAndroid,
-  LiquidGlassViewAndroid,
-  AnimatedLiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
-  AnimatedLiquidGlassView,
-  useIOSGlass,
-} from "../../components/GlassModules";
+// iOS < 26 has no Liquid Glass API, so the native tab bar there renders as a
+// plain opaque bar with square corners on translucent styling — this custom
+// bar (Android-style pill + BlurView) is used instead. iOS 26+ keeps the
+// native react-navigation tab bar, which renders real UIGlassEffect.
+const useCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && !useIOSGlass);
 
-// NativeBlurView: raw blur from the already-linked iOS library.
-// Only used on iOS < 26 (where useIOSGlass is false) as the pill background.
-// Imported defensively — null if the library isn't linked or named differently.
-let NativeBlurView = null;
-try {
-  NativeBlurView = require("@sbaiahmed1/react-native-blur").BlurView;
-} catch (e) {
-  // library not linked — fallback renders flat color instead
-}
-
-const AnimatedIndicatorAndroid = AnimatedLiquidGlassViewAndroid || Animated.View;
-
-const ScreenWrapper = ({ children, routeName }) => {
+const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
-  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-    return (
-      <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <LiquidGlassProviderAndroid providerId={routeName} style={StyleSheet.absoluteFill}>
-          <View style={{ flex: 1, backgroundColor: theme.background }}>
-            {children}
-          </View>
-        </LiquidGlassProviderAndroid>
-      </View>
-    );
-  }
-  return children;
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {children}
+    </View>
+  );
 };
 
 const Tab = createBottomTabNavigator();
 const DummyComponent = () => null;
 
-const TabBarBackgroundComponent = ({ currentRoute, isDarkMode, hideTabLabels, theme }) => {
-  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 190);
-  const [glassProviderId, setGlassProviderId] = useState(currentRoute);
-
-  useEffect(() => {
-    setGlassProviderId(currentRoute);
-  }, [currentRoute]);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  const onLayout = (event) => {
-    const { width } = event.nativeEvent.layout;
-    if (width) {
-      setTabBarWidth(width);
-    }
-  };
-
-  const getRouteIndex = (routeName) => {
-    switch (routeName) {
-      case "Home": return 0;
-      case "Forum": return 1;
-      case "Create": return 2;
-      case "Chat": return 3;
-      case "Notifications": return 4;
-      default: return 0;
-    }
-  };
-
-  const activeIndex = getRouteIndex(currentRoute);
-  const usableWidth = tabBarWidth;
-  const buttonWidth = usableWidth / 5;
-
-  const getIndicatorWidth = (index, bWidth) => {
-    return bWidth;
-  };
-
-  const getIndicatorLeft = (index, bWidth) => {
-    return index * bWidth;
-  };
-
-  const currentIndicatorWidth = getIndicatorWidth(activeIndex, buttonWidth);
-  const currentIndicatorLeft = getIndicatorLeft(activeIndex, buttonWidth);
-
-  useEffect(() => {
-    Animated.spring(slideAnim, {
-      toValue: currentIndicatorLeft,
-      useNativeDriver: true,
-      stiffness: 400,
-      damping: 35,
-      mass: 0.5,
-    }).start();
-  }, [currentIndicatorLeft]);
-
-  const opacity = activeIndex === 2 ? 0 : 1;
-
-  if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
-    const isRealGlass = isLiquidGlassSupportedAndroid;
-    const isAndroid33 = Platform.Version >= 33;
-    const glassProps = isAndroid33 ? {
-      blurRadius: 5,
-      refractionAmount: 25,
-      refractionHeight: 12,
-      chromaticAberration: 0.1,
-      highlightAlpha: 0.15,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    } : {
-      blurRadius: 5,
-      refractionAmount: 0,
-      refractionHeight: 0,
-      chromaticAberration: 0,
-      highlightAlpha: 0.1,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    };
-
-    return (
-      <LiquidGlassViewAndroid
-        providerId={glassProviderId}
-        interactive={isRealGlass}
-        onLayout={onLayout}
-        {...glassProps}
-        style={{
-          ...StyleSheet.absoluteFillObject,
-          borderRadius: 24.5,
-          overflow: "hidden",
-          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
-          borderWidth: 1.0,
-          borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
-        }}
-      >
-        {/* Chromatic Aberration - Red channel shift (left offset) */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: -0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
-          }}
-        />
-        {/* Chromatic Aberration - Blue channel shift (right offset) */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: 0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
-          }}
-        />
-        {/* Main Glass Indicator (neutral white/dark) */}
-        <AnimatedIndicatorAndroid
-          providerId={glassProviderId}
-          interactive={isRealGlass}
-          {...glassProps}
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: 0,
-            opacity,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isRealGlass ? "transparent" : fallbackIndicatorTint,
-            shadowColor: isDarkMode ? "#fff" : "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isDarkMode ? 0.3 : 0.15,
-            shadowRadius: 6,
-            elevation: 3,
-            overflow: "hidden",
-          }}
-        >
-          <LinearGradient
-            colors={[
-              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-              "transparent"
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </AnimatedIndicatorAndroid>
-      </LiquidGlassViewAndroid>
-    );
-  }
-
-  const isIOS = Platform.OS === "ios";
-
-  if (isIOS && useIOSGlass) {
-    const isRealGlass = useIOSGlass;
-    return (
-      <LiquidGlassView
-        glassType="clear"
-        glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
-        glassOpacity={1}
-        isInteractive={isRealGlass}
-        onLayout={onLayout}
-        style={{
-          ...StyleSheet.absoluteFillObject,
-          borderRadius: 24.5,
-          overflow: "hidden",
-          backgroundColor: isRealGlass ? "transparent" : (isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)"),
-          borderWidth: 1.0,
-          borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
-        }}
-      >
-        {/* Chromatic Aberration - Red channel shift (left offset) */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: -0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.06)" : "rgba(255, 60, 60, 0.22)",
-          }}
-        />
-        {/* Chromatic Aberration - Blue channel shift (right offset) */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: 0.8,
-            opacity: opacity * 0.35,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.06)" : "rgba(60, 160, 255, 0.22)",
-          }}
-        />
-        {/* Main Glass Indicator - sits on top of outer LiquidGlassView glass layer */}
-        <Animated.View
-          style={{
-            position: "absolute",
-            width: currentIndicatorWidth,
-            height: 49,
-            borderRadius: 24.5,
-            top: 0,
-            left: 0,
-            opacity,
-            transform: [{ translateX: slideAnim }],
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-            shadowColor: isDarkMode ? "#fff" : "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: isDarkMode ? 0.3 : 0.15,
-            shadowRadius: 6,
-            elevation: 3,
-            overflow: "hidden",
-          }}
-        >
-          <LinearGradient
-            colors={[
-              isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-              isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-              "transparent"
-            ]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-        </Animated.View>
-      </LiquidGlassView>
-    );
-  }
-
-  return (
-    <View
-      onLayout={onLayout}
-      style={{
-        ...StyleSheet.absoluteFillObject,
-        borderRadius: 24.5,
-        overflow: "hidden",
-        backgroundColor: fallbackSurfaceTint,
-        borderWidth: 1.0,
-        borderColor: fallbackBorderTint,
-      }}
-    >
-      {/* Chromatic Aberration - Red channel shift (left offset) */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          width: currentIndicatorWidth,
-          height: 49,
-          borderRadius: 24.5,
-          top: 0,
-          left: -0.8,
-          opacity: opacity * 0.15,
-          transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
-        }}
-      />
-      {/* Chromatic Aberration - Blue channel shift (right offset) */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          width: currentIndicatorWidth,
-          height: 49,
-          borderRadius: 24.5,
-          top: 0,
-          left: 0.8,
-          opacity: opacity * 0.15,
-          transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
-        }}
-      />
-      {/* Main Glass Indicator (neutral white/dark) */}
-      <Animated.View
-        style={{
-          position: "absolute",
-          width: currentIndicatorWidth,
-          height: 49,
-          borderRadius: 24.5,
-          top: 0,
-          left: 0,
-          opacity,
-          transform: [{ translateX: slideAnim }],
-          backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-          shadowColor: isDarkMode ? "#fff" : "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDarkMode ? 0.3 : 0.15,
-          shadowRadius: 6,
-          elevation: 3,
-          overflow: "hidden",
-        }}
-      >
-        <LinearGradient
-          colors={[
-            isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-            isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-            "transparent"
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={StyleSheet.absoluteFillObject}
-        />
-      </Animated.View>
-    </View>
-  );
+const ANDROID_ICON_MAP = {
+  Home: { focused: "home", outline: "home-outline" },
+  Forum: { focused: "people", outline: "people-outline" },
+  Chat: { focused: "chatbubble", outline: "chatbubble-outline" },
+  Notifications: { focused: "notifications", outline: "notifications-outline" },
 };
 
-const CustomTabBar = ({
-  state,
-  descriptors,
-  navigation,
-  chatUnreadCount,
-  notificationUnreadCount,
-  triggerHomeScrollOrReload,
-  triggerForumScrollOrReload,
-  triggerChatScrollOrReload,
-  triggerNotificationScrollOrReload,
-  tabBarTranslateY,
-  onLayout,
-}) => {
+// Rendered as a true JSX sibling of TabWrapper's `providerId="main"`
+// LiquidGlassProviderAndroid (see MainScreens' return below) — NOT via
+// Tab.Navigator's `tabBar` render prop, which would mount it *inside* that
+// provider's own captured subtree. A glass view can never be a descendant of
+// the provider it samples: the provider's RenderNode capture would have to
+// draw the glass view, which samples the RenderNode being captured,
+// recursing forever and blowing the native stack (confirmed on-device via a
+// SIGSEGV tombstone in android::uirenderer::RenderNode::prepareTreeImpl).
+// Driven directly by MainScreens' own `currentRoute` state and navigation
+// instead of react-navigation's tabBar props, since it's no longer mounted
+// through that render prop.
+const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
-  const bottomOffset = Platform.OS === 'ios'
-    ? (insets.bottom > 0 ? insets.bottom + 8 : 24)
-    : (insets.bottom > 0 ? insets.bottom + 8 : 16);
   const { t } = useTranslation();
-  const [tabBarWidth, setTabBarWidth] = useState(Dimensions.get("window").width - 108);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 108);
 
-  // nativeSlideAnim: NATIVE DRIVER — chạy trên UI thread, không bị block bởi JS/React mount.
-  // Chỉ dùng cho Animated.timing/spring khi tap tab.
-  const nativeSlideAnim = useRef(new Animated.Value(0)).current;
-  // jsSlideAnim: JS DRIVER — dùng riêng cho PanResponder drag (.setValue() trực tiếp).
-  // Tách 2 value tránh lỗi "mixing native and JS driven animations on same node".
-  const jsSlideAnim = useRef(new Animated.Value(0)).current;
-  // slideAnim alias — trỏ vào jsSlideAnim để giữ tương thích với PanResponder code bên dưới
-  const slideAnim = jsSlideAnim;
+  const LEFT_ROUTES = ["Home", "Forum", "Chat", "Notifications"];
+  const leftRoutes = LEFT_ROUTES.map((name) => ({
+    name,
+    label: t(`navigation.${name.toLowerCase()}`),
+  }));
+  const activeLeftIndex = leftRoutes.findIndex((r) => r.name === activeRouteName);
 
-  // stretchAnim / offsetAnim: liquid-glass stretch during *drag only*.
-  // These drive `width` which is not supported by native driver → JS-only.
-  const stretchAnim = useRef(new Animated.Value(0)).current;
-  const offsetAnim = useRef(new Animated.Value(0)).current;
-
-  // Stable base value for indicator width — JS driver (drives `width` style)
-  const indicatorWidthBase = useRef(new Animated.Value(0)).current;
-  // indicatorAnimatedWidth: JS-driver composed value for width+stretch
-  const indicatorAnimatedWidth = useRef(Animated.add(indicatorWidthBase, stretchAnim)).current;
-  // indicatorDragOffset: JS-driver composed value for stretch direction offset
-  const indicatorDragOffset = useRef(offsetAnim).current;
-  // indicatorAnimatedTranslateX: uses jsSlideAnim (JS driver, for drag compatibility).
-  const indicatorAnimatedTranslateX = useRef(jsSlideAnim).current;
-
-  // isDraggingAnim: switch display giữa native vs JS driver layer
-  const isDragging = useRef(false);
-  const dragStartX = useRef(0);
-  const lastHapticIndex = useRef(-1);
-  const tabBarWidthRef = useRef(tabBarWidth);
-  // Store buttonWidth at gesture-start so stretch math is consistent
-  const bWidthAtGrant = useRef(0);
-
-  const leftRouteNames = ["Home", "Forum", "Chat", "Notifications"];
-  // useMemo prevents leftRoutes from being recreated on every render,
-  // which was causing navigateToLeftIndex → useEffect → ref update chain on each tab press.
-  const leftRoutes = React.useMemo(() => {
-    return state.routes
-      .filter((route) => leftRouteNames.includes(route.name))
-      .map((route) => ({
-        route,
-        index: state.routes.indexOf(route),
-        descriptor: descriptors[route.key],
-      }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.routes, descriptors]);
-
-  const activeRouteName = state.routes[state.index]?.name;
-  const activeLeftIndex = leftRoutes.findIndex(({ route }) => route.name === activeRouteName);
-  const activeLeftIndexRef = useRef(activeLeftIndex);
-
-  const usableWidth = tabBarWidth;
-  const buttonWidth = usableWidth / Math.max(1, leftRoutes.length);
-  const currentIndicatorWidth = buttonWidth;
-  const currentIndicatorLeft = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
-
-  // Keep refs in sync
-  useEffect(() => {
-    tabBarWidthRef.current = tabBarWidth;
-  }, [tabBarWidth]);
+  const buttonWidth = pillWidth / Math.max(1, leftRoutes.length);
+  const indicatorTarget = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
   useEffect(() => {
-    activeLeftIndexRef.current = activeLeftIndex;
-  }, [activeLeftIndex]);
-
-  // Keep the stable width base value in sync with layout-derived buttonWidth
-  useEffect(() => {
-    indicatorWidthBase.setValue(currentIndicatorWidth);
-  }, [currentIndicatorWidth]);
-
-  // Animate indicator to committed tab position (when not dragging).
-  // nativeSlideAnim dùng useNativeDriver:true → chạy trên UI thread, không bị block bởi
-  // React mount màn hình mới trên Android. jsSlideAnim được sync ngay lập tức (setValue)
-  // để drag gesture sau đó có đúng vị trí xuất phát.
-  useEffect(() => {
-    if (isDragging.current) return;
-    // Native-driver animation cho visual indicator — mượt 60fps ngay cả khi JS bận
-    Animated.timing(nativeSlideAnim, {
-      toValue: currentIndicatorLeft,
-      duration: 280,
+    Animated.timing(slideAnim, {
+      toValue: indicatorTarget,
+      duration: 180,
+      easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
-    // Sync JS value để PanResponder có đúng starting position khi drag
-    jsSlideAnim.setValue(currentIndicatorLeft);
-    // Reset drag stretch & offset on tab commit
-    Animated.spring(stretchAnim, {
-      toValue: 0,
-      useNativeDriver: false,
-      stiffness: 400,
-      damping: 35,
-      mass: 0.5,
-    }).start();
-    Animated.spring(offsetAnim, {
-      toValue: 0,
-      useNativeDriver: false,
-      stiffness: 400,
-      damping: 35,
-      mass: 0.5,
-    }).start();
-  }, [currentIndicatorLeft]);
+  }, [indicatorTarget]);
 
-  const onLeftPillLayout = (event) => {
-    const { width } = event.nativeEvent.layout;
-    if (width) {
-      setTabBarWidth(width);
-      tabBarWidthRef.current = width;
-    }
+  const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
+  const surface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";
+  const border = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
+  const indicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
+  const activeColor = theme.primary;
+  const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
+  const opacity = activeRouteName === "Create" ? 0 : 1;
+
+  const glassProps = Platform.Version >= 33 ? {
+    blurRadius: 12,
+    refractionAmount: 40,
+    refractionHeight: 18,
+    chromaticAberration: 0.2,
+    highlightAlpha: 0.25,
+    tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
+  } : {
+    blurRadius: 10,
+    refractionAmount: 0,
+    refractionHeight: 0,
+    chromaticAberration: 0,
+    highlightAlpha: 0.18,
+    tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
   };
 
-  // Use a ref so the PanResponder (created once at mount) always calls the
-  // latest version of navigate without stale closure lag
-  const navigateToLeftIndexRef = useRef(null);
-
-  // Navigate to a tab by left-route index
-  const navigateToLeftIndex = useCallback((leftIdx) => {
-    const target = leftRoutes[leftIdx];
-    if (!target) return;
-    const { route } = target;
-    const event = navigation.emit({
-      type: 'tabPress',
-      target: route.key,
-      canPreventDefault: true,
-    });
-    if (!event.defaultPrevented) {
-      navigation.navigate(route.name, route.params);
-    }
-  }, [leftRoutes, navigation]);
-
-  // Keep the ref in sync with the latest callback
-  useEffect(() => {
-    navigateToLeftIndexRef.current = navigateToLeftIndex;
-  }, [navigateToLeftIndex]);
-
-  // PanResponder for drag-to-switch
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponderCapture: () => false,
-      onMoveShouldSetPanResponderCapture: () => false, // Temporarily disabled drag-to-switch
-      onStartShouldSetPanResponder: () => false,
-      onMoveShouldSetPanResponder: () => false, // Temporarily disabled drag-to-switch
-      onPanResponderTerminationRequest: () => false,
-      // false = let native gesture handlers (horizontal ScrollView/FlatList inside content) still work
-      onShouldBlockNativeResponder: () => false,
-      onPanResponderGrant: (evt, gestureState) => {
-        isDragging.current = true;
-        // Temporarily disable feed/tab scrolling on both Android and iOS to prevent interference
-        DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", false);
-        lastHapticIndex.current = activeLeftIndexRef.current;
-        bWidthAtGrant.current = (tabBarWidthRef.current - 2) / 4;
-        slideAnim.stopAnimation((currentVal) => {
-          dragStartX.current = currentVal;
-        });
-        nativeSlideAnim.stopAnimation();
-        stretchAnim.stopAnimation();
-        offsetAnim.stopAnimation();
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        const bWidth = bWidthAtGrant.current;
-        const rawX = dragStartX.current + gestureState.dx;
-        const minX = 0;
-        const maxX = bWidth * 3;
-
-        let clampedX;
-        if (rawX < minX) {
-          clampedX = minX + (rawX - minX) * 0.2;
-        } else if (rawX > maxX) {
-          clampedX = maxX + (rawX - maxX) * 0.2;
-        } else {
-          clampedX = rawX;
-        }
-
-        slideAnim.setValue(clampedX);
-        // Sync native anim trong drag bằng duration:0 timing
-        Animated.timing(nativeSlideAnim, {
-          toValue: clampedX,
-          duration: 0,
-          useNativeDriver: true,
-        }).start();
-
-        const extraStretch = 0;
-        stretchAnim.setValue(extraStretch);
-
-        const directionOffset = gestureState.dx < 0 ? -extraStretch : 0;
-        offsetAnim.setValue(directionOffset);
-
-        const indicatorCenter = clampedX + bWidth / 2;
-        const hoveredIndex = Math.min(3, Math.max(0, Math.floor(indicatorCenter / bWidth)));
-
-        if (hoveredIndex !== lastHapticIndex.current) {
-          lastHapticIndex.current = hoveredIndex;
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        isDragging.current = false;
-        // Re-enable feed/tab scrolling
-        DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", true);
-        const bWidth = bWidthAtGrant.current;
-
-        const rawX = dragStartX.current + gestureState.dx;
-        const clampedX = Math.min(bWidth * 3, Math.max(0, rawX));
-        const snappedIndex = Math.min(3, Math.max(0, Math.round(clampedX / bWidth)));
-        const snapTarget = snappedIndex * bWidth;
-
-        // Sync JS anim (for internal state)
-        Animated.spring(slideAnim, {
-          toValue: snapTarget,
-          useNativeDriver: false,
-          stiffness: 280,
-          damping: 30,
-          mass: 0.6,
-        }).start();
-        // Native anim snap — chạy trên UI thread
-        Animated.spring(nativeSlideAnim, {
-          toValue: snapTarget,
-          useNativeDriver: true,
-          stiffness: 280,
-          damping: 30,
-          mass: 0.6,
-        }).start();
-
-        Animated.spring(stretchAnim, {
-          toValue: 0,
-          useNativeDriver: false,
-          stiffness: 400,
-          damping: 34,
-          mass: 0.5,
-        }).start();
-        Animated.spring(offsetAnim, {
-          toValue: 0,
-          useNativeDriver: false,
-          stiffness: 400,
-          damping: 34,
-          mass: 0.5,
-        }).start();
-
-        if (snappedIndex !== activeLeftIndexRef.current) {
-          navigateToLeftIndexRef.current?.(snappedIndex);
-        }
-
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      },
-      onPanResponderTerminate: () => {
-        isDragging.current = false;
-        // Re-enable feed/tab scrolling
-        DeviceEventEmitter.emit("SET_FEED_SCROLL_ENABLED", true);
-        const bWidth = bWidthAtGrant.current || (tabBarWidthRef.current - 2) / 4;
-        const snapTarget = (activeLeftIndexRef.current >= 0 ? activeLeftIndexRef.current : 0) * bWidth;
-        Animated.spring(slideAnim, {
-          toValue: snapTarget,
-          useNativeDriver: false,
-          stiffness: 200,
-          damping: 20,
-        }).start();
-        Animated.spring(nativeSlideAnim, {
-          toValue: snapTarget,
-          useNativeDriver: true,
-          stiffness: 200,
-          damping: 20,
-        }).start();
-        Animated.spring(stretchAnim, {
-          toValue: 0,
-          useNativeDriver: false,
-          stiffness: 260,
-          damping: 22,
-        }).start();
-        Animated.spring(offsetAnim, {
-          toValue: 0,
-          useNativeDriver: false,
-          stiffness: 260,
-          damping: 22,
-        }).start();
-      },
-    })
-  ).current;
-
-  const opacity = activeRouteName === "Create" ? 0 : 1;
-  const fallbackSurfaceTint = isDarkMode ? `${theme.primary}16` : `${theme.primary}10`;
-  const fallbackBorderTint = isDarkMode ? `${theme.primary}33` : `${theme.primary}22`;
-  const fallbackIndicatorTint = isDarkMode ? `${theme.primary}18` : `${theme.primary}12`;
-  // Android fallback only (no Liquid Glass support): the low-opacity primary tint
-  // above (~6-9% alpha) reads as an almost-transparent navbar over busy content.
-  // Use the same solid-ish neutral pill tint as the create-button subtabs
-  // (pillBg/pillBorder in CustomTabBarButton.js) instead, so the bar is legible.
-  const androidFallbackSurfaceTint = isDarkMode ? "rgba(18, 18, 18, 0.78)" : "rgba(255, 255, 255, 0.78)";
-  const androidFallbackBorderTint = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
-
-  const renderButtons = useCallback(() => {
-    return leftRoutes.map(({ route, index, descriptor }, leftIdx) => {
-      if (!route) return null;
-      const isFocused = state.routes[state.index]?.key === route.key;
-      const options = descriptor?.options || {};
-
-      const onPress = () => {
-        if (isDragging.current) return;
-        if (isFocused) {
-          if (route.name === "Home") triggerHomeScrollOrReload();
-          else if (route.name === "Forum") triggerForumScrollOrReload();
-          else if (route.name === "Chat") triggerChatScrollOrReload();
-          else if (route.name === "Notifications") triggerNotificationScrollOrReload();
-          return;
-        }
-        const event = navigation.emit({
-          type: 'tabPress',
-          target: route.key,
-          canPreventDefault: true,
-        });
-        if (!event.defaultPrevented) {
-          navigation.navigate(route.name, route.params);
-        }
-      };
-
-      let iconName;
-      let badgeCount = null;
-      if (route.name === "Home") {
-        iconName = isFocused ? "home" : "home-outline";
-      } else if (route.name === "Forum") {
-        iconName = isFocused ? "people" : "people-outline";
-      } else if (route.name === "Chat") {
-        iconName = isFocused ? "chatbubble" : "chatbubble-outline";
-        badgeCount = chatUnreadCount;
-      } else if (route.name === "Notifications") {
-        iconName = isFocused ? "notifications" : "notifications-outline";
-        badgeCount = notificationUnreadCount;
-      }
-
-      const tintColor = isFocused
-        ? theme.primary
-        : (isDarkMode ? "#A0A0A0" : "gray");
-
-      return (
-        <TouchableOpacity
-          key={route.key}
-          onPress={onPress}
-          style={styles.iosTabButton}
-          activeOpacity={0.8}
-        >
-          <View style={styles.iosTabButtonInner}>
-            <View style={{ position: "relative" }}>
-              <Ionicons name={iconName} size={24} color={tintColor} />
-              {badgeCount !== null && <TabBarBadge count={badgeCount} />}
-            </View>
-            {!hideTabLabels && (
-              <Text
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={[
-                  styles.iosTabLabel,
-                  {
-                    color: tintColor,
-                    fontWeight: isFocused ? "bold" : "normal",
-                  },
-                ]}
-              >
-                {options.title || route.name}
-              </Text>
-            )}
-          </View>
-        </TouchableOpacity>
-      );
-    });
-  }, [leftRoutes, state.routes, state.index, isDarkMode, hideTabLabels, theme, navigation,
-      triggerHomeScrollOrReload, triggerForumScrollOrReload, triggerChatScrollOrReload, triggerNotificationScrollOrReload]);
-
-  if (Platform.OS === 'android' && LiquidGlassViewAndroid && isLiquidGlassSupportedAndroid) {
-    const isRealGlass = isLiquidGlassSupportedAndroid;
-    const isAndroid33 = Platform.Version >= 33;
-    const glassProps = isAndroid33 ? {
-      blurRadius: 5,
-      refractionAmount: 25,
-      refractionHeight: 12,
-      chromaticAberration: 0.1,
-      highlightAlpha: 0.15,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    } : {
-      blurRadius: 5,
-      refractionAmount: 0,
-      refractionHeight: 0,
-      chromaticAberration: 0,
-      highlightAlpha: 0.1,
-      tint: isDarkMode ? "rgba(30, 30, 30, 0.15)" : "rgba(255, 255, 255, 0.05)",
-    };
-
-    const pillBg = fallbackSurfaceTint;
-
-    return (
-      <Animated.View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          transform: [{ translateY: tabBarTranslateY }],
-          zIndex: 99,
-        }}
-      >
-        <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-          <View
-            {...panResponder.panHandlers}
-            onLayout={onLeftPillLayout}
-            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
-          >
-            <LiquidGlassViewAndroid
-              providerId={activeRouteName}
-              interactive={isRealGlass}
-              {...glassProps}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 24.5,
-                backgroundColor: isRealGlass ? "transparent" : pillBg,
-                borderWidth: 1.0,
-                borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
-              }}
-            />
-            <Animated.View
-              style={{
-                position: "absolute",
-                top: 1,
-                left: 0,
-                transform: [{ translateX: nativeSlideAnim }],
-              }}
-            >
-              {isRealGlass ? (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 47,
-                    borderRadius: 23.5,
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.1)",
-                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)",
-                    opacity,
-                  }}
-                />
-              ) : (
-                <Animated.View
-                  style={{
-                    position: "absolute",
-                    width: indicatorAnimatedWidth,
-                    height: 47,
-                    borderRadius: 23.5,
-                    borderWidth: 0,
-                    backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.45)",
-                    opacity,
-                    shadowColor: isDarkMode ? "#fff" : "#000",
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                    shadowRadius: 6,
-                    elevation: 3,
-                    overflow: "hidden",
-                  }}
-                >
-                  <LinearGradient
-                    colors={[
-                      isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                      isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                      "transparent"
-                    ]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 0, y: 1 }}
-                    style={StyleSheet.absoluteFillObject}
-                  />
-                </Animated.View>
-              )}
-            </Animated.View>
-            {renderButtons()}
-          </View>
-
-          <View style={styles.iosRightPill}>
-            <LiquidGlassViewAndroid
-              providerId={activeRouteName}
-              interactive={isRealGlass}
-              {...glassProps}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 26.5,
-                backgroundColor: isRealGlass ? "transparent" : pillBg,
-                borderWidth: 1.0,
-                borderColor: fallbackBorderTint,
-              }}
-            />
-            <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
-              <CustomTabBarButton
-                onPress={() => {}}
-                bottomOffset={bottomOffset}
-                currentRoute={activeRouteName}
-              />
-            </View>
-          </View>
-        </View>
-      </Animated.View>
-    );
-  }
-
-  if (Platform.OS === 'ios' && useIOSGlass) {
-    const isRealGlass = useIOSGlass;
-    const pillBg = isDarkMode ? "rgba(30, 30, 30, 0.8)" : "rgba(240, 240, 240, 0.75)";
-    const indicatorBg = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.45)";
-
-    return (
-      <Animated.View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          transform: [{ translateY: tabBarTranslateY }],
-          zIndex: 99,
-        }}
-      >
-        <LiquidGlassContainer spacing={12} style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-          <View
-            {...panResponder.panHandlers}
-            onLayout={onLeftPillLayout}
-            style={[styles.iosLeftPill, { backgroundColor: 'transparent' }]}
-          >
-            <LiquidGlassView
-              glassType="clear"
-              glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
-              glassOpacity={1}
-              isInteractive={isRealGlass}
-              style={{
-                ...StyleSheet.absoluteFillObject,
-                borderRadius: 24.5,
-                backgroundColor: isRealGlass ? "transparent" : pillBg,
-                borderWidth: 1.0,
-                borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
-              }}
-            />
-            <Animated.View
-              style={{
-                position: "absolute",
-                top: 1,
-                left: 0,
-                transform: [{ translateX: nativeSlideAnim }],
-              }}
-            >
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  width: indicatorAnimatedWidth,
-                  height: 47,
-                  borderRadius: 23.5,
-                  backgroundColor: indicatorBg,
-                  opacity,
-                  shadowColor: isDarkMode ? "#fff" : "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  overflow: "hidden",
-                }}
-              >
-                <LinearGradient
-                  colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                    "transparent"
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              </Animated.View>
-            </Animated.View>
-            {renderButtons()}
-          </View>
-
-          <LiquidGlassView
-            glassType="clear"
-            glassTintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF26"}
-            glassOpacity={1}
-            isInteractive={isRealGlass}
-            style={[
-              styles.iosRightPill,
-              {
-                backgroundColor: isRealGlass ? "transparent" : pillBg,
-                borderWidth: 1.0,
-                borderColor: isDarkMode ? `${theme.primary}25` : `${theme.primary}18`,
-              }
-            ]}
-          >
-            <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
-              <CustomTabBarButton
-                onPress={() => {}}
-                bottomOffset={bottomOffset}
-                currentRoute={activeRouteName}
-              />
-            </View>
-          </LiquidGlassView>
-        </LiquidGlassContainer>
-      </Animated.View>
-    );
-  }
+  const PillBackground = ({ style }) => (
+    <View style={[StyleSheet.absoluteFill, {
+      borderRadius: 24.5, overflow: "hidden",
+      backgroundColor: (useAndroidGlass || (Platform.OS === "ios" && BlurView)) ? "transparent" : surface,
+      borderWidth: 1, borderColor: border,
+    }, style]}>
+      {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && (
+        <LiquidGlassViewAndroid
+          providerId="main"
+          interactive={isLiquidGlassSupportedAndroid}
+          {...glassProps}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
+      {Platform.OS === "ios" && BlurView && (
+        <BlurView
+          style={StyleSheet.absoluteFill}
+          blurType={isDarkMode ? "dark" : "light"}
+          blurAmount={20}
+        />
+      )}
+    </View>
+  );
 
   return (
-    <Animated.View
-      onLayout={onLayout}
-      style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        transform: [{ translateY: tabBarTranslateY }],
-        zIndex: 99,
-      }}
-    >
-      <View style={[styles.iosTabBarContainer, { bottom: bottomOffset }]}>
-        <View
-          {...panResponder.panHandlers}
-          onLayout={onLeftPillLayout}
-          style={styles.iosLeftPill}
-        >
-          {/*
-            FIX (iOS <= 18 fallback, no Liquid Glass): the pill's shadow lives on the
-            outer View (styles.iosLeftPill). Adding overflow:"hidden" there to clip
-            content would also kill the iOS shadow. So clipping is done on this
-            separate inner absolute-fill layer instead — it carries ONLY the
-            background, border, borderRadius and (iOS) blur, and clips those to the
-            rounded pill shape.
+    <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
+      {/* Left pill: main tabs */}
+      <View
+        renderToHardwareTextureAndroid
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w && w !== pillWidth) setPillWidth(w);
+        }}
+        style={[{
+          flex: 1, height: 49, borderRadius: 24.5, marginRight: 12,
+          backgroundColor: "transparent",
+          flexDirection: "row", alignItems: "center",
+          elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
+          shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+          overflow: "hidden",
+        },
+        // Android's `elevation` shadow always renders dark/black and ignores
+        // borderRadius clipping, poking a square corner out past this pill's
+        // rounded edge against the dark theme background.
+        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
+      >
+        <PillBackground />
+        <Animated.View
+          renderToHardwareTextureAndroid
+          style={{
+            position: "absolute", width: buttonWidth, height: 49,
+            borderRadius: 24.5, top: 0, left: 0,
+            opacity, transform: [{ translateX: slideAnim }],
+            backgroundColor: indicator,
+          }}
+        />
+        {leftRoutes.map((route) => {
+          const focused = route.name === activeRouteName;
+          const color = focused ? activeColor : inactiveColor;
+          const icons = ANDROID_ICON_MAP[route.name];
+          const iconName = focused ? icons?.focused : icons?.outline;
+          const badge = route.name === "Chat" ? chatUnreadCount : (route.name === "Notifications" ? notificationUnreadCount : 0);
+          const label = route.label;
 
-            The indicator + tab buttons are intentionally rendered as a SEPARATE
-            sibling layer below (not nested inside this clipped view). Two reasons:
-            1) Nesting them inside an overflow:"hidden" + borderWidth:1 container
-               double-insets the indicator's top offset (the 1px border eats into
-               the box, then the indicator's own top:1 offset pushes it down again),
-               which is why the indicator sat a couple pixels below the top of the
-               pill and got its bottom clipped, instead of sitting flush like the
-               Liquid Glass version does.
-            2) The unread-count badge on the Notifications icon needs to render
-               slightly outside the icon's bounds — clipping it to the pill's
-               rounded rect cut it off. Keeping buttons/badges in an unclipped
-               sibling layer fixes both issues while the background layer above
-               still enforces the pill shape. The indicator already carries its own
-               borderRadius (23.5, ≈ its own height/2), so it still reads as fully
-               rounded without needing the parent to clip it too.
-          */}
-          <View
-            collapsable={false}
-            style={{
-              ...StyleSheet.absoluteFillObject,
-              borderRadius: 24.5,
-              overflow: "hidden",
-              backgroundColor: Platform.OS === 'android'
-                ? androidFallbackSurfaceTint
-                : ((Platform.OS === "ios" && NativeBlurView) ? "transparent" : fallbackSurfaceTint),
-              borderWidth: 1.0,
-              borderColor: Platform.OS === 'android' ? androidFallbackBorderTint : fallbackBorderTint,
-            }}
-          >
-            {Platform.OS === "ios" && NativeBlurView && (
-              <NativeBlurView
-                pointerEvents="none"
-                style={{
-                  ...StyleSheet.absoluteFillObject,
-                  borderRadius: 24.5,
-                  overflow: "hidden",
-                  zIndex: -1,
-                  elevation: -1,
-                }}
-                blurType={isDarkMode ? "dark" : "light"}
-                blurAmount={14}
-              />
-            )}
-          </View>
-          {/*
-            flexDirection: 'row' here is NOT optional — RN Views default to
-            column direction. Without it, the 4 tab buttons rendered by
-            renderButtons() (each flex:1, height:'100%') stack vertically
-            instead of spreading across the pill, and since the pill clips at
-            49px tall, only the first (Home) button was ever fully visible —
-            the real cause behind "only Home shows" on both iOS and Android
-            fallback renders, unrelated to the blur z-index issue above.
-
-            This layer sits as a sibling (not a child) of the clipped background
-            layer above, so neither the indicator nor the badges get cut off —
-            see the comment on the background layer for why.
-          */}
-          <View
-            pointerEvents="box-none"
-            style={{ ...StyleSheet.absoluteFillObject, flexDirection: 'row', alignItems: 'center' }}
-          >
-            {/*
-              2-layer indicator architecture:
-              - Outer: nativeSlideAnim (useNativeDriver:true) → chạy trên UI thread, 60fps dù JS bận
-              - Trong drag: jsSlideAnim handle translateX qua indicatorAnimatedTranslateX (inner views)
-                nhưng outer vẫn reset về 0 bằng jsSlideAnim offset được tính trong PanResponder
-            */}
-            <Animated.View
-              style={{
-                position: "absolute",
-                top: 1,
-                left: 0,
-                transform: [{ translateX: nativeSlideAnim }],
-              }}
+          return (
+            <TouchableOpacity
+              key={route.name}
+              style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 }}
+              onPress={() => onTabPress(route.name)}
+              activeOpacity={0.8}
             >
-              {/* Chromatic Aberration - Red */}
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  width: indicatorAnimatedWidth,
-                  height: 47,
-                  borderRadius: 23.5,
-                  top: 0,
-                  left: -0.8,
-                  opacity: opacity * 0.15,
-                  transform: [{ translateX: indicatorDragOffset }],
-                  backgroundColor: isDarkMode ? "rgba(255, 60, 60, 0.03)" : "rgba(255, 60, 60, 0.1)",
-                }}
-              />
-              {/* Chromatic Aberration - Blue */}
-              <Animated.View
-                style={{
-                  position: "absolute",
-                  width: indicatorAnimatedWidth,
-                  height: 47,
-                  borderRadius: 23.5,
-                  top: 0,
-                  left: 0.8,
-                  opacity: opacity * 0.15,
-                  transform: [{ translateX: indicatorDragOffset }],
-                  backgroundColor: isDarkMode ? "rgba(60, 160, 255, 0.03)" : "rgba(60, 160, 255, 0.1)",
-                }}
-              />
-              {/* Main Glass Indicator */}
-              <Animated.View
-                style={{
-                  width: indicatorAnimatedWidth,
-                  height: 47,
-                  borderRadius: 23.5,
-                  opacity,
-                  transform: [{ translateX: indicatorDragOffset }],
-                  backgroundColor: fallbackIndicatorTint,
-                  shadowColor: isDarkMode ? "#fff" : "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isDarkMode ? 0.3 : 0.15,
-                  shadowRadius: 6,
-                  elevation: 3,
-                  overflow: "hidden",
-                }}
-              >
-                <LinearGradient
-                  colors={[
-                    isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.5)",
-                    isDarkMode ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.15)",
-                    "transparent"
-                  ]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 0, y: 1 }}
-                  style={StyleSheet.absoluteFillObject}
-                />
-              </Animated.View>
-            </Animated.View>
-            {renderButtons()}
-          </View>
-        </View>
-
-        <View style={styles.iosRightPill}>
-          <View
-            collapsable={false}
-            style={{
-              ...StyleSheet.absoluteFillObject,
-              borderRadius: 26.5,
-              overflow: "hidden",
-              backgroundColor: Platform.OS === 'android'
-                ? androidFallbackSurfaceTint
-                : ((Platform.OS === "ios" && NativeBlurView) ? "transparent" : fallbackSurfaceTint),
-              borderWidth: 1.0,
-              borderColor: Platform.OS === 'android' ? androidFallbackBorderTint : fallbackBorderTint,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {Platform.OS === "ios" && NativeBlurView && (
-              <NativeBlurView
-                pointerEvents="none"
-                style={{
-                  ...StyleSheet.absoluteFillObject,
-                  borderRadius: 26.5,
-                  overflow: "hidden",
-                  zIndex: -1,
-                  elevation: -1,
-                }}
-                blurType={isDarkMode ? "dark" : "light"}
-                blurAmount={14}
-              />
-            )}
-            <View
-              pointerEvents="box-none"
-              style={
-                Platform.OS === "ios" && NativeBlurView
-                  ? { ...StyleSheet.absoluteFillObject, zIndex: 1, elevation: 1, alignItems: 'center', justifyContent: 'center' }
-                  : { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' }
-              }
-            >
-              <CustomTabBarButton
-                onPress={() => {}}
-                bottomOffset={bottomOffset}
-                currentRoute={activeRouteName}
-              />
-            </View>
-          </View>
-        </View>
+              <View style={{ position: "relative" }}>
+                <Ionicons name={iconName} size={22} color={color} />
+                {badge > 0 && (
+                  <View style={{
+                    position: "absolute", top: -4, right: -8,
+                    backgroundColor: "red", borderRadius: 8,
+                    minWidth: 14, height: 14, alignItems: "center",
+                    justifyContent: "center", paddingHorizontal: 2,
+                  }}>
+                    <Text style={{ color: "white", fontSize: 9, fontWeight: "bold" }}>
+                      {badge > 99 ? "99+" : badge}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {!hideTabLabels && (
+                <Text style={{ fontSize: 9, color, fontWeight: "bold", marginTop: 2 }}>{label}</Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
-    </Animated.View>
+
+      {/* Right pill: create button */}
+      <TouchableOpacity
+        onPress={onCreatePress}
+        activeOpacity={0.8}
+        style={[{
+          width: 53, height: 53, borderRadius: 26.5,
+          backgroundColor: "transparent",
+          elevation: 8, alignItems: "center", justifyContent: "center",
+          shadowColor: "#000", shadowOpacity: 0.12,
+          shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+          overflow: "hidden",
+        },
+        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
+      >
+        <PillBackground style={{ borderRadius: 26.5 }} />
+        <Ionicons name="add" size={28} color={activeColor} />
+      </TouchableOpacity>
+    </View>
   );
+});
+
+// Returns a tabBarIcon function using SF Symbols on iOS and Material Symbols
+// on Android — the native tab bar renders these natively, no icon library needed.
+const tabIcon = (sfFilled, sfOutline, materialName) => ({ focused }) =>
+  Platform.select({
+    ios: { type: "sfSymbol", name: focused ? sfFilled : sfOutline },
+    android: { type: "materialSymbol", name: materialName },
+  });
+
+// Approximate content height of the native bottom tab bar (excludes the
+// safe-area bottom inset, which the OS adds on top of this). Used to anchor
+// the create menu just above the tab bar — react-navigation v8's native
+// bottom tabs don't yet expose a reliable useBottomTabBarHeight() for this.
+const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
+
+// Defined outside MainScreens so its identity is stable across re-renders.
+// Re-mounting it would remount the entire Tab.Navigator, causing tab-switch lag.
+const TabWrapper = ({ children }) => {
+  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
+    return (
+      <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
+        {children}
+      </LiquidGlassProviderAndroid>
+    );
+  }
+  return children;
 };
 
-
 export default function MainScreens({ navigation: stackNavigation }) {
-  const [setting, setSetting] = React.useState(false);
+  const [setting, setSetting] = useState(false);
   const insets = useSafeAreaInsets();
   const [currentRoute, setCurrentRoute] = useState("Home");
-  const tabBarHeightRef = useRef(null);
-  const tabBarHeightForHide = useRef(200); // safe fallback
+  const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(drawerTranslateX, {
+      toValue: setting ? 0 : -Dimensions.get('window').width,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    Animated.timing(backdropOpacity, {
+      toValue: setting ? 1 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [setting, drawerTranslateX, backdropOpacity]);
+
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
-  const tabNavigatorRef = useRef(null);
+  const createMenuRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
   const forumScrollTriggerRef = useRef(null);
   const chatScrollTriggerRef = useRef(null);
@@ -1218,7 +273,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const { t } = useTranslation();
 
-  // Function to trigger scroll to top or reload in HomeScreen
   const triggerHomeScrollOrReload = () => {
     if (homeScreenScrollTriggerRef.current) {
       homeScreenScrollTriggerRef.current(Date.now());
@@ -1243,21 +297,27 @@ export default function MainScreens({ navigation: stackNavigation }) {
     }
   };
 
-  // This will be used to measure the tab bar height
-  const onTabBarLayout = (event) => {
-    const { height } = event.nativeEvent.layout;
-    if (height > 0) {
-      tabBarHeightRef.current = height;
-      // +16 buffer to ensure the pill fully exits the screen on Android
-      // when system navbar is transparent (edge-to-edge), insets.bottom can be 28-48px
-      tabBarHeightForHide.current = height + 16;
+  // Re-tapping the already-active tab scrolls/reloads it instead of
+  // navigating (mirrors each Tab.Screen's own `listeners.tabPress` above),
+  // since this tab bar is a standalone sibling rather than react-navigation's
+  // tabBar render prop and so no longer emits its tabPress events.
+  const TAB_RELOAD_TRIGGERS = {
+    Home: triggerHomeScrollOrReload,
+    Forum: triggerForumScrollOrReload,
+    Chat: triggerChatScrollOrReload,
+    Notifications: triggerNotificationScrollOrReload,
+  };
+  const handleAndroidTabPress = (routeName) => {
+    if (currentRoute === routeName) {
+      TAB_RELOAD_TRIGGERS[routeName]?.();
+    } else {
+      stackNavigation.navigate("MainScreens", { screen: routeName });
     }
   };
 
   // Add navigation state listener to track current route
   useEffect(() => {
     const unsubscribe = stackNavigation.addListener("state", (e) => {
-      // Get the state of the bottom tab navigator
       const bottomTabState = e.data.state?.routes?.[0]?.state;
       if (bottomTabState) {
         const currentRouteName =
@@ -1269,154 +329,69 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return unsubscribe;
   }, [stackNavigation]);
 
-  const tabBarTranslateY = useRef(new Animated.Value(0)).current;
 
-  // Listen for scroll events to auto hide/show tab bar
-  useEffect(() => {
-    let isVisible = true;
-    const subscription = DeviceEventEmitter.addListener("SET_TABBAR_VISIBLE", (visible) => {
-      if (visible === isVisible) return;
-      isVisible = visible;
-      Animated.timing(tabBarTranslateY, {
-        // Use measured height instead of hardcoded 100px.
-        // On Android with transparent system navbar (edge-to-edge), the tab bar
-        // height includes insets.bottom which can exceed 100px, leaving a visible sliver.
-        toValue: visible ? 0 : tabBarHeightForHide.current,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
-    });
-    return () => subscription.remove();
+  const createButtonBottomOffset = insets.bottom + NATIVE_TAB_BAR_CONTENT_HEIGHT + 8;
+
+  const setHomeScrollTrigger = useCallback((triggerFn) => {
+    homeScreenScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setForumScrollTrigger = useCallback((triggerFn) => {
+    forumScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setChatScrollTrigger = useCallback((triggerFn) => {
+    chatScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setNotificationScrollTrigger = useCallback((triggerFn) => {
+    notificationScrollTriggerRef.current = triggerFn;
   }, []);
 
+  const renderHomeScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <AndroidGlassBackdrop providerId="Home" style={{ flex: 1 }}>
+        <HomeScreen {...props} scrollTriggerRef={setHomeScrollTrigger} />
+      </AndroidGlassBackdrop>
+    </ScreenWrapper>
+  ), [setHomeScrollTrigger]);
 
+  const renderForumScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <MenuScreen {...props} scrollTriggerRef={setForumScrollTrigger} />
+    </ScreenWrapper>
+  ), [setForumScrollTrigger]);
+
+  const renderChatScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <ChatScreen {...props} scrollTriggerRef={setChatScrollTrigger} />
+    </ScreenWrapper>
+  ), [setChatScrollTrigger]);
+
+  const renderNotificationScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <NotificationScreen {...props} scrollTriggerRef={setNotificationScrollTrigger} />
+    </ScreenWrapper>
+  ), [setNotificationScrollTrigger]);
 
   return (
-    <SideMenu
-      menu={<Sidebar />}
-      menuPosition="left"
-      isOpen={setting}
-      onChange={(isOpen) => setSetting(isOpen)}
-      edgeHitWidth={100}
-      bounceBackOnOverdraw={false}
-      disableGestures={true}
-    >
-      {(() => {
-        const navContent = (
-          <Tab.Navigator
-          ref={tabNavigatorRef}
-          tabBar={(props) => {
-            return (
-              <CustomTabBar
-                {...props}
-                chatUnreadCount={chatUnreadCount}
-                notificationUnreadCount={notificationUnreadCount}
-                triggerHomeScrollOrReload={triggerHomeScrollOrReload}
-                triggerForumScrollOrReload={triggerForumScrollOrReload}
-                triggerChatScrollOrReload={triggerChatScrollOrReload}
-                triggerNotificationScrollOrReload={triggerNotificationScrollOrReload}
-                tabBarTranslateY={tabBarTranslateY}
-                onLayout={onTabBarLayout}
-              />
-            );
-          }}
-          screenOptions={({ route }) => ({
-            // Android: tắt animation mặc định của bottom tabs (fade JS-driven gây giật)
-            // Tab content switch là tức thì — indicator animation trên tab bar vẫn chạy mượt
-            animation: Platform.OS === 'android' ? 'none' : 'shift',
-            // Tránh re-render toàn bộ scene khi chuyển tab
+    <View style={{ flex: 1 }}>
+      <TabWrapper>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <Tab.Navigator
+          // The custom tab bar chrome (Android, and iOS < 26) is rendered
+          // separately below, as a true JSX sibling of TabWrapper's glass
+          // provider (see CustomTabBar's comment) rather than through this
+          // render prop, which would mount it *inside* the provider's own
+          // subtree.
+          tabBar={useCustomTabBar ? () => null : undefined}
+          screenOptions={{
             lazy: true,
-            // Giữ các screen đã mount (không unmount khi rời tab)
             unmountOnBlur: false,
-            tabBarIcon: ({ focused, color, size }) => {
-              let iconName;
-              let badgeCount = null;
-
-              if (route.name === "Home") {
-                iconName = focused ? "home" : "home-outline";
-              } else if (route.name === "Forum") {
-                iconName = focused ? "people" : "people-outline";
-              } else if (route.name === "Notifications") {
-                iconName = focused ? "notifications" : "notifications-outline";
-                badgeCount = notificationUnreadCount;
-              } else if (route.name === "Chat") {
-                iconName = focused ? "chatbubble" : "chatbubble-outline";
-                badgeCount = chatUnreadCount;
-              }
-
-              return (
-                <View style={{ position: "relative" }}>
-                  <Ionicons name={iconName} size={size} color={color} />
-                  {badgeCount !== null && <TabBarBadge count={badgeCount} />}
-                </View>
-              );
-            },
             tabBarShowLabel: !hideTabLabels,
             tabBarActiveTintColor: theme.primary,
-            tabBarInactiveTintColor: isDarkMode ? "#A0A0A0" : "gray",
-            tabBarButton: (props) => {
-              if (route.name === "Create") {
-                return props.children;
-              }
-              const { children, style, onPress, onLongPress } = props;
-              return (
-                <TouchableOpacity
-                  onPress={onPress}
-                  onLongPress={onLongPress}
-                  style={[
-                    style,
-                    {
-                      justifyContent: "center",
-                      alignItems: "center",
-                    },
-                  ]}
-                  activeOpacity={0.8}
-                >
-                  <View
-                    style={{
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 16,
-                      paddingVertical: 3,
-                      paddingHorizontal: 10,
-                      minWidth: 46,
-                    }}
-                  >
-                    {children}
-                  </View>
-                </TouchableOpacity>
-              );
-            },
-            tabBarStyle: {
-              backgroundColor: 'transparent',
-              borderTopWidth: 0,
-              position: 'absolute',
-              bottom: Platform.OS === 'ios' ? 12 : 5,
-              left: 95,
-              right: 95,
-              elevation: 10,
-              borderRadius: 24.5,
-              height: 49,
-              shadowColor: "#000",
-              shadowOpacity: 0.12,
-              shadowOffset: { width: 0, height: 4 },
-              shadowRadius: 12,
-              paddingBottom: 0,
-              paddingHorizontal: 8,
-            },
-            tabBarBackground: () => (
-              <TabBarBackgroundComponent
-                currentRoute={currentRoute}
-                isDarkMode={isDarkMode}
-                hideTabLabels={hideTabLabels}
-                theme={theme}
-              />
-            ),
-            tabBarLabelStyle: {
-              fontSize: 9, // Font size for labels
-              fontWeight: "bold",
-              marginBottom: 3, // Space between icon and label
-            },
+            tabBarInactiveTintColor: isDarkMode ? "#EBEBF5" : "#1C1C1E",
+            // iOS 15+ native tab bar minimize: shrinks the bar when scrolling
+            // down and expands on scroll up (Threads-style), driven natively
+            // by each screen's scroll view.
+            tabBarMinimizeBehavior: 'onScrollDown',
             headerShadowVisible: false,
             headerTitleAlign: "center",
             headerTitleContainerStyle: {
@@ -1425,15 +400,15 @@ export default function MainScreens({ navigation: stackNavigation }) {
               width: Dimensions.get("window").width,
               alignItems: "center",
             },
-            // Set a consistent header height for all tabs
             headerStyle: {
-              height: 50 + insets.top, // Base height + top safe area inset
-              backgroundColor: theme.headerBackground,
+              height: 50 + insets.top,
+              backgroundColor: "transparent",
               elevation: 0,
               shadowOpacity: 0,
               borderBottomWidth: 0,
             },
-          })}
+            headerTransparent: true,
+          }}
         >
           <Tab.Screen
             name="Home"
@@ -1441,6 +416,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
               title: t('navigation.home'),
               headerShown: true,
               headerBackButtonMenuEnabled: false,
+              tabBarIcon: tabIcon("house.fill", "house", "home"),
               headerTitle: () => (
                 <View style={{ width: Dimensions.get("window").width }}>
                   <SameHeader
@@ -1449,200 +425,136 @@ export default function MainScreens({ navigation: stackNavigation }) {
                     havingIcon
                     setSetting={setSetting}
                     onLogoPress={triggerHomeScrollOrReload}
+                    providerId="Home"
                   />
                 </View>
               ),
             }}
             listeners={{
-              tabPress: (e) => {
-                // Check if already on Home tab using the tracked currentRoute state
-                // This should be reliable since it's updated via navigation state listener
+              tabPress: () => {
+                // No preventDefault: native tab bars don't support it. Re-tapping
+                // the already-active tab doesn't navigate, so just scroll/reload.
                 if (currentRoute === "Home") {
-                  // Prevent default navigation since we're already on Home
-                  e.preventDefault();
-                  // Trigger scroll to top or reload
                   triggerHomeScrollOrReload();
                 }
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Home">
-                <HomeScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    homeScreenScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderHomeScreen}
           </Tab.Screen>
+
           <Tab.Screen
             name="Forum"
-            options={{ title: t('navigation.forum'), headerShown: false }}
+            options={{
+              title: t('navigation.forum'),
+              headerShown: false,
+              tabBarIcon: tabIcon("person.2.fill", "person.2", "group"),
+            }}
             listeners={{
-              tabPress: (e) => {
+              tabPress: () => {
                 if (currentRoute === "Forum") {
-                  e.preventDefault();
                   triggerForumScrollOrReload();
                 }
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Forum">
-                <MenuScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    forumScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderForumScreen}
           </Tab.Screen>
+
           <Tab.Screen
             name="Create"
-            component={DummyComponent} // Use the dummy component
+            component={DummyComponent}
             options={{
-              tabBarIconStyle: {
-                display: "none",
-              },
-              tabBarLabelStyle: {
-                top: 2,
-                fontWeight: "bold",
-              },
-              tabBarButton: (props) => (
-                <CustomTabBarButton
-                  {...props}
-                  currentRoute={currentRoute}
-                  onPress={() => {
-                    // Perform any action you want here
-                    // console.log("Custom button pressed");
-                  }}
-                />
-              ),
               title: t('navigation.create'),
+              headerShown: false,
+              tabBarIcon: tabIcon("plus", "plus", "add"),
+              // Native tab bars don't allow preventDefault on tabPress; this
+              // stops the tab from ever being selected so tapping just opens
+              // the create menu instead of navigating to the dummy screen.
+              tabBarSelectionEnabled: false,
+            }}
+            listeners={{
+              tabPress: () => {
+                stackNavigation.navigate("CreatePostScreen")
+              },
             }}
           />
+
           <Tab.Screen
             name="Chat"
             options={{
               title: t('navigation.chat'),
               headerShown: false,
+              tabBarIcon: tabIcon("bubble.left.fill", "bubble.left", "chat_bubble"),
+              tabBarBadge: chatUnreadCount > 0 ? chatUnreadCount : undefined,
             }}
             listeners={{
-              tabPress: (e) => {
+              tabPress: () => {
                 if (currentRoute === "Chat") {
-                  e.preventDefault();
                   triggerChatScrollOrReload();
                 }
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Chat">
-                <ChatScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    chatScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderChatScreen}
           </Tab.Screen>
+
           <Tab.Screen
             name="Notifications"
             options={{
               title: t('navigation.notifications'),
               headerShown: false,
+              tabBarIcon: tabIcon("bell.fill", "bell", "notifications"),
+              tabBarBadge: notificationUnreadCount > 0 ? notificationUnreadCount : undefined,
             }}
             listeners={{
-              tabPress: (e) => {
+              tabPress: () => {
                 if (currentRoute === "Notifications") {
-                  e.preventDefault();
                   triggerNotificationScrollOrReload();
                 }
               },
             }}
           >
-            {(props) => (
-              <ScreenWrapper routeName="Notifications">
-                <NotificationScreen
-                  {...props}
-                  scrollTriggerRef={(triggerFn) => {
-                    notificationScrollTriggerRef.current = triggerFn;
-                  }}
-                />
-              </ScreenWrapper>
-            )}
+            {renderNotificationScreen}
           </Tab.Screen>
         </Tab.Navigator>
-        );
-        return <View style={{ flex: 1, backgroundColor: theme.background }}>{navContent}</View>;
-      })()}
-    </SideMenu>
+      </View>
+      </TabWrapper>
+
+      {useCustomTabBar && (
+        <CustomTabBar
+          activeRouteName={currentRoute}
+          chatUnreadCount={chatUnreadCount}
+          notificationUnreadCount={notificationUnreadCount}
+          onTabPress={handleAndroidTabPress}
+          onCreatePress={() => stackNavigation.navigate("CreatePostScreen")}
+        />
+      )}
+
+      {/* Create menu. The "+" lives in the native center tab ("Tạo"); tapping
+          it opens this glass menu via the ref instead of navigating. */}
+      <CustomTabBarButton
+        ref={createMenuRef}
+        showButton={false}
+        bottomOffset={createButtonBottomOffset}
+        currentRoute={currentRoute}
+      />
+
+      {/* Overlay Backdrop */}
+      <TouchableWithoutFeedback onPress={() => setSetting(false)}>
+        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, opacity: backdropOpacity }]} pointerEvents={setting ? "auto" : "none"} />
+      </TouchableWithoutFeedback>
+
+      {/* Floating Sidebar Content */}
+      <Animated.View style={{
+        position: 'absolute',
+        top: 0, bottom: 0, left: 0,
+        width: Dimensions.get('window').width * 0.75,
+        zIndex: 101,
+        transform: [{ translateX: drawerTranslateX }]
+      }}>
+        <Sidebar providerId={currentRoute} isOpen={setting} />
+      </Animated.View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  iosTabBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    backgroundColor: 'transparent',
-    zIndex: 99,
-  },
-  iosLeftPill: {
-    flex: 1,
-    height: 49,
-    borderRadius: 24.5,
-    position: 'relative',
-    marginRight: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    backgroundColor: 'transparent',
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  iosTabButton: {
-    flex: 1,
-    minWidth: 0,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'visible',
-  },
-  iosTabButtonInner: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iosTabLabel: {
-    fontSize: 9,
-    marginTop: 2,
-    textAlign: 'center',
-    width: '100%',
-    paddingHorizontal: 2,
-  },
-  iosRightPill: {
-    width: 53,
-    height: 53,
-    borderRadius: 26.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 100,
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 12,
-    elevation: 8,
-  },
-});

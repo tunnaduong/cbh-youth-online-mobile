@@ -117,6 +117,11 @@ export const CustomAlertProvider = () => {
                   backgroundColor: theme.surface,
                   transform: [{ scale: scaleAnim }],
                 },
+                // Android's `elevation` shadow always renders dark/black and
+                // ignores borderRadius clipping, poking a square corner out
+                // past this dialog's rounded edge against the dark theme
+                // background. Drop it in dark mode.
+                isDarkMode && { elevation: 0, shadowOpacity: 0 },
               ]}
             >
               {title ? (

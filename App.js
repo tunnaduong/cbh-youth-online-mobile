@@ -1,9 +1,10 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { View, Text, Platform, Alert, StatusBar, Linking } from "react-native";
+import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
+import i18n from "./app/i18n";
 
 if (Platform.OS === "android") {
   Alert.alert = CustomAlert.alert;
@@ -21,6 +22,10 @@ import MultiContextProvider from "./app/contexts";
 import ProfileScreen from "./app/screens/MainScreens/ProfileScreen";
 import LottieView from "lottie-react-native";
 import SplashScreen from "./app/components/SplashScreen";
+import LiquidHeaderBackground from "./app/components/LiquidHeaderBackground";
+import LiquidButton from "./app/components/LiquidButton";
+import Ionicons from "react-native-vector-icons/Ionicons";
+
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
@@ -35,6 +40,7 @@ import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
+import EasterEggScreen from "./app/screens/MainScreens/SettingsScreen/EasterEggScreen";
 import TermsOfServiceScreen from "./app/screens/MainScreens/SettingsScreen/TermsOfServiceScreen";
 import PrivacyPolicyScreen from "./app/screens/MainScreens/SettingsScreen/PrivacyPolicyScreen";
 import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
@@ -45,9 +51,15 @@ import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
+import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
+import StudyMaterialDetailScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialDetailScreen";
+import UploadStudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/UploadStudyMaterialScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
+import PointWalletScreen from "./app/screens/MainScreens/PointWalletScreen";
+import DepositScreen from "./app/screens/MainScreens/PointWalletScreen/DepositScreen";
+import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/WithdrawScreen";
 
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
@@ -67,29 +79,122 @@ const Stack = createStackNavigator();
  */
 const parseDeepLink = (url) => {
   if (!url) return null;
-  try {
-    // Strip scheme prefix to get  host + path
-    // e.g. "com.fatties.youth://post/366199398-phong-canh"
-    const withoutScheme = url.replace(/^[a-z.]+:\/\//, ""); // "post/366199398-phong-canh"
-    const [host, ...rest] = withoutScheme.split("/");
-    const pathSegment = rest.join("/"); // everything after host
 
-    if (host === "post" && pathSegment) {
-      // Extract numeric post ID from the beginning of the slug (e.g. "366199398-phong-canh" → 366199398)
-      const postId = parseInt(pathSegment.split("-")[0], 10);
-      if (!isNaN(postId)) return { screen: "PostScreen", params: { postId, item: null } };
+  const routeToStory = (storyId) => {
+    if (!storyId) return null;
+    return {
+      screen: "MainScreens",
+      params: {
+        screen: "Home",
+        params: { openStoryId: storyId },
+      },
+    };
+  };
+
+  const parseSearchParams = (query) => {
+    const params = {};
+    if (!query) return params;
+    const queryString = query.replace(/^\?/, "").split("#")[0];
+    queryString.split("&").forEach((pair) => {
+      const [key, value] = pair.split("=");
+      if (key) params[decodeURIComponent(key)] = decodeURIComponent(value || "");
+    });
+    return params;
+  };
+
+  const normalizeIntentUrl = (urlString) => {
+    let normalized = urlString;
+    const intentIndex = normalized.indexOf("#Intent");
+    if (intentIndex >= 0) {
+      normalized = normalized.slice(0, intentIndex);
+    }
+    return normalized;
+  };
+
+  try {
+    let scheme = "";
+    let host = "";
+    let pathSegment = "";
+    let query = "";
+
+    const normalizedUrl = normalizeIntentUrl(url);
+    console.log("[DeepLink] normalize input", normalizedUrl);
+
+    const customSchemeMatch = normalizedUrl.match(/^([a-zA-Z0-9+.-]+):\/\/([^/?#]+)(?:\/([^?#]*))?(?:\?([^#]*))?$/);
+
+    if (customSchemeMatch) {
+      scheme = customSchemeMatch[1];
+      const firstSegment = customSchemeMatch[2].split("?")[0];
+      const restPath = customSchemeMatch[3] || "";
+      const queryPart = customSchemeMatch[4] || "";
+
+      if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
+        if (firstSegment === "post" || firstSegment === "story") {
+          pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
+          host = "";
+        } else {
+          host = firstSegment;
+          pathSegment = restPath;
+        }
+      } else {
+        host = firstSegment;
+        pathSegment = restPath;
+      }
+
+      query = queryPart ? `?${queryPart}` : "";
+    } else {
+      try {
+        const parsedUrl = new URL(normalizedUrl);
+        scheme = parsedUrl.protocol.replace(":", "");
+        host = parsedUrl.hostname;
+        pathSegment = parsedUrl.pathname.replace(/^\//, "");
+        query = parsedUrl.search;
+      } catch (e) {
+        console.warn("[DeepLink] failed to parse URL", normalizedUrl, e);
+      }
     }
 
-    if (host === "story" && pathSegment) {
-      const storyId = pathSegment.split("?")[0]; // strip query if any
-      if (storyId) return {
-        // Story lives inside the Home tab of MainScreens
-        screen: "MainScreens",
-        params: {
-          screen: "Home",
-          params: { openStoryId: storyId },
-        },
-      };
+    if (scheme === "intent") {
+      const intentMatch = url.match(/scheme=([^;]+)/);
+      if (intentMatch) {
+        scheme = intentMatch[1];
+      }
+    }
+
+    console.log("[DeepLink] parsed fields", { scheme, host, pathSegment, query, original: url });
+
+    const params = parseSearchParams(query);
+    const storyIdFromQuery = params.storyId || params.story_id;
+    if (storyIdFromQuery) return routeToStory(storyIdFromQuery);
+
+    if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
+      if (pathSegment.startsWith("post/")) {
+        const postSlug = pathSegment.slice(5).split("?")[0];
+        const postId = parseInt(postSlug.split("-")[0], 10);
+        if (!isNaN(postId)) {
+          return { screen: "PostScreen", params: { postId, item: null } };
+        }
+        return { screen: "PostScreen", params: { postId: null, item: null, slug: postSlug } };
+      }
+      if (pathSegment.startsWith("story/")) {
+        const storyId = pathSegment.slice(6).split("?")[0];
+        return routeToStory(storyId);
+      }
+      if (pathSegment && !pathSegment.includes("/")) {
+        const storyId = pathSegment;
+        return routeToStory(storyId);
+      }
+    }
+
+    if ((scheme === "https" || scheme === "http") && (host === "chuyenbienhoa.com" || host === "www.chuyenbienhoa.com")) {
+      if (pathSegment.startsWith("post/")) {
+        const postId = parseInt(pathSegment.slice(5).split("-")[0], 10);
+        if (!isNaN(postId)) return { screen: "PostScreen", params: { postId, item: null } };
+      }
+      if (pathSegment.startsWith("story/")) {
+        const storyId = pathSegment.slice(6).split("?")[0];
+        return routeToStory(storyId);
+      }
     }
   } catch (e) {
     console.warn("[DeepLink] parse error:", e);
@@ -100,57 +205,139 @@ const parseDeepLink = (url) => {
 // Main App component
 const App = () => {
   const { theme, isDarkMode } = useTheme();
+  const { barStyle, backgroundColor: statusBarColor } = useStatusBar();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const [showSplash, setShowSplash] = useState(true);
+  // i18n.init() reads the saved language from AsyncStorage asynchronously, so
+  // i18n.language is undefined for a brief window after app start. Screens
+  // that fetch and format data (e.g. story/post timestamps) as soon as they
+  // mount can race ahead of that, causing formatTime to fall back to "vi"
+  // (its default when language is unknown) even when the user has English
+  // selected. Gating first render on this avoids that race.
+  const [i18nReady, setI18nReady] = useState(i18n.isInitialized);
+  useEffect(() => {
+    if (i18n.isInitialized) {
+      setI18nReady(true);
+      return;
+    }
+    const handleInitialized = () => setI18nReady(true);
+    i18n.on("initialized", handleInitialized);
+    return () => i18n.off("initialized", handleInitialized);
+  }, []);
   const navigationRef = useRef(null);
-  const pendingDeepLink = useRef(null);
+  const pendingDeepLinkQueue = useRef([]);
+
+  // These screens fetch their data once in a mount-only effect keyed off
+  // their own local state, not off route.params changes. navigate() to a
+  // screen name already in the stack doesn't remount it - it just merges the
+  // new params into the existing instance - so e.g. opening a link to post B
+  // while post A's PostScreen is still on the stack silently updated params
+  // that nothing re-read, and the screen kept showing post A. push() always
+  // mounts a fresh instance, so the new target's data actually loads. (Same
+  // fix as ProfileScreen's Message button - see ConversationScreen history.)
+  // MainScreens/PointWalletScreen aren't in this list: MainScreens is the
+  // persistent tab container and its story deep-link effect already re-runs
+  // off route.params changes, so re-pushing it would stack a duplicate tab
+  // bar on top of itself instead of reusing the singleton.
+  const DEEP_LINK_TARGETS_NEEDING_FRESH_SCREEN = ["PostScreen", "ConversationScreen"];
+
+  const navigateToDeepLinkTarget = (target) => {
+    if (!target || !navigationRef.current) return;
+    // The container ref only implements the base NavigationHelpers surface
+    // (navigate/goBack/reset/dispatch, no `.push`) - `.push` only exists on
+    // the `navigation` prop a stack screen receives, which is why calling
+    // navigationRef.current.push(...) threw "not a function". Dispatching a
+    // stack PUSH action directly (what StackActions.push() builds under the
+    // hood) is the container-ref equivalent, with no extra dependency needed.
+    if (DEEP_LINK_TARGETS_NEEDING_FRESH_SCREEN.includes(target.screen)) {
+      navigationRef.current.dispatch({
+        type: "PUSH",
+        payload: { name: target.screen, params: target.params },
+      });
+    } else {
+      navigationRef.current.navigate(target.screen, target.params);
+    }
+  };
+
+  const enqueueDeepLinkTarget = (target) => {
+    if (!target) return;
+    pendingDeepLinkQueue.current.push(target);
+  };
+
+  const flushPendingDeepLinks = () => {
+    if (!isLoggedIn || !navigationRef.current) return;
+
+    while (pendingDeepLinkQueue.current.length > 0) {
+      const nextTarget = pendingDeepLinkQueue.current.shift();
+      if (nextTarget) {
+        navigateToDeepLinkTarget(nextTarget);
+      }
+    }
+  };
 
   // Handle deep links (custom scheme: com.fatties.youth://post/<id> or story/<id>)
   useEffect(() => {
     // App opened from a cold start via deep link
     Linking.getInitialURL().then((url) => {
       if (url) {
+        console.log("[DeepLink] getInitialURL", url);
         const target = parseDeepLink(url);
-        if (target) pendingDeepLink.current = target;
+        console.log("[DeepLink] parsed initial target", target);
+        if (target) {
+          enqueueDeepLinkTarget(target);
+          flushPendingDeepLinks();
+        }
       }
     });
 
     // App brought to foreground via deep link while already running
     const subscription = Linking.addEventListener("url", ({ url }) => {
+      console.log("[DeepLink] Linking event url", url);
       const target = parseDeepLink(url);
-      if (target && navigationRef.current) {
-        navigationRef.current.navigate(target.screen, target.params);
+      console.log("[DeepLink] parsed event target", target);
+      if (!target) return;
+
+      if (isLoggedIn && navigationRef.current) {
+        navigateToDeepLinkTarget(target);
+      } else {
+        enqueueDeepLinkTarget(target);
       }
     });
 
     return () => subscription.remove();
-  }, []);
+  }, [isLoggedIn]);
 
-  // Once nav is ready + user is logged in, flush the pending deep link
+  // Navigate (or queue for later) when a push notification is tapped
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('NAVIGATE_FROM_NOTIFICATION', (target) => {
+      console.log('[Push] App.js received NAVIGATE_FROM_NOTIFICATION', {
+        target,
+        isLoggedIn,
+        hasNavigationRef: !!navigationRef.current,
+      });
+      if (!target) return;
+      if (isLoggedIn && navigationRef.current) {
+        navigateToDeepLinkTarget(target);
+      } else {
+        enqueueDeepLinkTarget(target);
+      }
+    });
+    return () => sub.remove();
+  }, [isLoggedIn]);
+
+  // Once nav is ready + user is logged in, flush the pending deep links
   const handleNavigationReady = () => {
-    if (pendingDeepLink.current && isLoggedIn) {
-      navigationRef.current?.navigate(
-        pendingDeepLink.current.screen,
-        pendingDeepLink.current.params
-      );
-      pendingDeepLink.current = null;
-    }
+    flushPendingDeepLinks();
   };
 
   // Also flush when user logs in after app was already open (e.g. opened link while logged out)
   useEffect(() => {
-    if (isLoggedIn && pendingDeepLink.current && navigationRef.current) {
+    if (isLoggedIn) {
       // Small delay to ensure navigator is fully mounted after login
       setTimeout(() => {
-        if (pendingDeepLink.current) {
-          navigationRef.current?.navigate(
-            pendingDeepLink.current.screen,
-            pendingDeepLink.current.params
-          );
-          pendingDeepLink.current = null;
-        }
+        flushPendingDeepLinks();
       }, 500);
     }
   }, [isLoggedIn]);
@@ -159,7 +346,69 @@ const App = () => {
     setShowSplash(false);
   };
 
-  if (showSplash) {
+  const effectiveBarStyle = barStyle || (isDarkMode ? "light-content" : "dark-content");
+  const effectiveStatusBarColor = statusBarColor || "transparent";
+
+  // handleNavigationStateChange is handed to NavigationContainer, which may
+  // cache the callback via its own ref-sync effect and invoke a render-old
+  // closure when a navigation event fires in the same tick (observed on
+  // Android: onStateChange applied a stale barStyle from before a theme
+  // toggle had been picked up). Mutating a ref during render — safe, since it
+  // doesn't trigger a re-render or read stale state — guarantees the resync
+  // handler always sees the latest computed value regardless of when it's
+  // actually invoked.
+  const latestStatusBarRef = useRef({ effectiveBarStyle, effectiveStatusBarColor });
+  latestStatusBarRef.current = { effectiveBarStyle, effectiveStatusBarColor };
+
+  // Observability only, both platforms: logs whenever the computed status bar
+  // value changes so iOS behavior can be compared against Android in Metro
+  // logs. Does not call any native StatusBar API — iOS relies entirely on the
+  // declarative <StatusBar> below, which historically doesn't suffer the
+  // native "drift" that necessitates Android's imperative resync further down.
+  useEffect(() => {
+    if (__DEV__) {
+      console.log("[StatusBar] computed value changed", {
+        platform: Platform.OS,
+        isDarkMode,
+        effectiveBarStyle,
+        effectiveStatusBarColor,
+      });
+    }
+  }, [effectiveBarStyle, effectiveStatusBarColor, isDarkMode]);
+
+  // Android only: the declarative <StatusBar> below only re-issues its native
+  // call when these computed values actually change. Most screens (e.g.
+  // Settings, About) never touch StatusBarContext at all, so navigating
+  // between them keeps the same computed value — but the native bar can
+  // still visually drift after a screen transition (icons revert to the
+  // wrong color and stay stuck until the app restarts). Re-applying on every
+  // navigation state change forces Android to resync regardless of whether
+  // the JS-computed value changed.
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    if (__DEV__) {
+      console.log("[StatusBar] App effect resync", { effectiveBarStyle, effectiveStatusBarColor });
+    }
+    StatusBar.setBarStyle(effectiveBarStyle, true);
+    StatusBar.setBackgroundColor(effectiveStatusBarColor, true);
+  }, [effectiveBarStyle, effectiveStatusBarColor]);
+
+  const handleNavigationStateChange = () => {
+    if (Platform.OS !== "android") return;
+    const { effectiveBarStyle: latestBarStyle, effectiveStatusBarColor: latestColor } =
+      latestStatusBarRef.current;
+    if (__DEV__) {
+      console.log("[StatusBar] onStateChange resync", {
+        route: navigationRef.current?.getCurrentRoute?.()?.name,
+        effectiveBarStyle: latestBarStyle,
+        effectiveStatusBarColor: latestColor,
+      });
+    }
+    StatusBar.setBarStyle(latestBarStyle, true);
+    StatusBar.setBackgroundColor(latestColor, true);
+  };
+
+  if (showSplash || !i18nReady) {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
@@ -183,12 +432,16 @@ const App = () => {
   return (
     <>
       <StatusBar
-        barStyle={isDarkMode ? "light-content" : "dark-content"}
-        backgroundColor="transparent"
+        barStyle={effectiveBarStyle}
+        backgroundColor={effectiveStatusBarColor}
         translucent={true}
         animated={true}
       />
-      <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={handleNavigationReady}
+        onStateChange={handleNavigationStateChange}
+      >
         <Stack.Navigator
           screenOptions={{
             headerStyle: {
@@ -233,10 +486,15 @@ const App = () => {
                 name="PostScreen"
                 options={{
                   title: t('post.details'),
-                  headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: theme.primary,
+                  headerBackTitleVisible: false,
+                  headerTransparent: true,
+                  headerLeft: (props) => (
+                    <LiquidButton size={40} providerId="PostScreen" onPress={props.onPress} containerStyle={{ marginLeft: Platform.OS === 'ios' ? 0 : 16 }}>
+                      <Ionicons name="arrow-back" size={22} color={theme.text} />
+                    </LiquidButton>
+                  ),
                   headerStyle: {
-                    backgroundColor: theme.headerBackground,
+                    backgroundColor: "transparent",
                     elevation: 0,
                     shadowOpacity: 0,
                     borderBottomWidth: 0,
@@ -244,6 +502,9 @@ const App = () => {
                   },
                   headerTitleStyle: {
                     color: theme.text,
+                    textShadowColor: isDarkMode ? '#000' : '#FFF',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
                   }
                 }}
                 component={PostScreen}
@@ -309,6 +570,13 @@ const App = () => {
               <Stack.Screen
                 name="AboutScreen"
                 component={AboutScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="EasterEggScreen"
+                component={EasterEggScreen}
                 options={{
                   headerShown: false,
                 }}
@@ -390,6 +658,21 @@ const App = () => {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="PointWalletScreen"
+                component={PointWalletScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="DepositScreen"
+                component={DepositScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="WithdrawScreen"
+                component={WithdrawScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="ConversationScreen"
                 component={ConversationScreen}
                 options={{ headerShown: false }}
@@ -407,17 +690,22 @@ const App = () => {
               <Stack.Screen
                 name="ExploreScreen"
                 component={ExploreScreen}
-                options={{
-                  title: t('sidebar.explore'),
-                  headerBackButtonDisplayMode: "minimal",
-                  headerTintColor: theme.primary,
-                  headerStyle: {
-                    backgroundColor: theme.headerBackground,
-                    borderBottomWidth: 0,
-                    shadowOffset: { height: 0, width: 0 },
-                    elevation: 0,
-                  },
-                }}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="StudyMaterialScreen"
+                component={StudyMaterialScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="StudyMaterialDetailScreen"
+                component={StudyMaterialDetailScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="UploadStudyMaterialScreen"
+                component={UploadStudyMaterialScreen}
+                options={{ headerShown: false }}
               />
               <Stack.Screen
                 name="StoryViewersScreen"

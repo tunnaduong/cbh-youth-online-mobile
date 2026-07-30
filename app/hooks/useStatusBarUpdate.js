@@ -1,5 +1,22 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
+import { Platform, StatusBar } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useStatusBar } from "../contexts/StatusBarContext";
+
+// Applies the native StatusBar call directly, in addition to updating
+// StatusBarContext. Android can otherwise show a stale bar after a
+// navigation transition: the context update only reaches the native
+// module once App.js re-renders and its resync effect runs, and when
+// several screens focus/blur in quick succession (e.g. popping back
+// through two screens at once), that effect can end up reading a value
+// that no longer matches what this screen actually needs. Calling the
+// native API here, synchronously on focus, makes this screen's status
+// bar correct regardless of that downstream timing.
+const applyStatusBarNow = (style, bgColor) => {
+  if (Platform.OS !== "android" || !style) return;
+  StatusBar.setBarStyle(style, true);
+  if (bgColor) StatusBar.setBackgroundColor(bgColor, true);
+};
 
 /**
  * Hook to automatically update status bar based on scroll position
@@ -24,15 +41,29 @@ export const useStatusBarUpdate = ({
   const scrollViewRef = useRef(null);
   const isScrolled = useRef(false);
 
-  useEffect(() => {
-    // Set initial status bar style
-    updateStatusBar(initialStyle, initialBgColor);
+  // Use focus/blur (not mount/unmount) so re-entering an already-mounted
+  // stack screen (e.g. navigating back) reliably re-applies its status bar
+  // style. React Navigation guarantees blur-then-focus ordering, unlike
+  // React's mount/unmount effect timing which can interleave unpredictably
+  // when screens are kept alive underneath the stack.
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) {
+        console.log("[StatusBar] useStatusBarUpdate focus", { initialStyle, initialBgColor });
+      }
+      isScrolled.current = false;
+      updateStatusBar(initialStyle, initialBgColor);
+      applyStatusBarNow(initialStyle, initialBgColor);
 
-    return () => {
-      // Reset to default when component unmounts
-      updateStatusBar("dark-content", "#ffffff");
-    };
-  }, []);
+      return () => {
+        if (__DEV__) {
+          console.log("[StatusBar] useStatusBarUpdate blur, resetting");
+        }
+        updateStatusBar(null, null);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [initialStyle, initialBgColor, updateStatusBar])
+  );
 
   const handleScroll = (event) => {
     const scrollY = event.nativeEvent.contentOffset.y;
@@ -40,10 +71,10 @@ export const useStatusBarUpdate = ({
 
     if (shouldBeScrolled !== isScrolled.current) {
       isScrolled.current = shouldBeScrolled;
-      updateStatusBar(
-        shouldBeScrolled ? scrolledStyle : initialStyle,
-        shouldBeScrolled ? scrolledBgColor : initialBgColor
-      );
+      const nextStyle = shouldBeScrolled ? scrolledStyle : initialStyle;
+      const nextBgColor = shouldBeScrolled ? scrolledBgColor : initialBgColor;
+      updateStatusBar(nextStyle, nextBgColor);
+      applyStatusBarNow(nextStyle, nextBgColor);
     }
   };
 
@@ -66,12 +97,25 @@ export const useStatusBarStyle = (
 ) => {
   const { updateStatusBar } = useStatusBar();
 
-  useEffect(() => {
-    updateStatusBar(style, bgColor);
+  // Use focus/blur instead of mount/unmount: stack screens stay mounted
+  // underneath the active one, so a mount-only effect never re-fires when
+  // navigating back to this screen, and its unmount cleanup can race with
+  // the newly focused screen's mount effect, leaving the wrong style applied.
+  useFocusEffect(
+    useCallback(() => {
+      if (__DEV__) {
+        console.log("[StatusBar] useStatusBarStyle focus", { style, bgColor });
+      }
+      updateStatusBar(style, bgColor);
+      applyStatusBarNow(style, bgColor);
 
-    return () => {
-      // Reset to default when component unmounts
-      updateStatusBar("dark-content", "#ffffff");
-    };
-  }, [style, bgColor, updateStatusBar]);
+      return () => {
+        if (__DEV__) {
+          console.log("[StatusBar] useStatusBarStyle blur, resetting");
+        }
+        updateStatusBar(null, null);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [style, bgColor, updateStatusBar])
+  );
 };

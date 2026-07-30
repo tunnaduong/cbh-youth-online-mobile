@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "53188710954",
+    "project_id": "cbh-youth-online-a4074",
+    "storage_bucket": "cbh-youth-online-a4074.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:53188710954:android:d7982361858851bf466953",
+        "android_client_info": {
+          "package_name": "com.fatties.youth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDoAqSjUipOBQBV0j6tLrZOQ-GxQakgIwQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

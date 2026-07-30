@@ -1,4 +1,5 @@
 import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 // Configure how notifications are handled when app is in foreground
@@ -10,12 +11,32 @@ Notifications.setNotificationHandler({
   }),
 });
 
+function getExpoProjectId() {
+  return (
+    Constants.expoConfig?.projectId ||
+    Constants.expoConfig?.extra?.eas?.projectId ||
+    Constants.manifest?.extra?.eas?.projectId ||
+    null
+  );
+}
+
 /**
  * Request notification permissions
  * @returns {Promise<boolean>} True if permission granted, false otherwise
  */
 export async function requestNotificationPermissions() {
   try {
+    if (Platform.OS === "android") {
+      console.log("[Push] Android: creating notification channel 'default'...");
+      const channel = await Notifications.setNotificationChannelAsync("default", {
+        name: "CBH Online",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#319527",
+      });
+      console.log("[Push] Android: notification channel result:", channel);
+    }
+
     // Check if running on physical device (simulators/emulators can't receive push notifications)
     // For Expo, we'll just try to get permissions and let it fail gracefully if on simulator
     const { status: existingStatus } =
@@ -26,6 +47,11 @@ export async function requestNotificationPermissions() {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
+
+    console.log("Notification permission status:", {
+      existingStatus,
+      finalStatus,
+    });
 
     if (finalStatus !== "granted") {
       console.warn("Failed to get push token for push notification!");
@@ -45,15 +71,38 @@ export async function requestNotificationPermissions() {
  */
 export async function getExpoPushToken() {
   try {
+    // NOTE: Constants.isDevice no longer exists in the installed expo-constants
+    // version (it's undefined), so `!Constants.isDevice` was always true and this
+    // function silently bailed out on every real device, breaking push
+    // registration entirely. getExpoPushTokenAsync already fails gracefully on
+    // simulators/emulators, so we let it handle that case instead.
+    console.log("[Push] getExpoPushToken: requesting permissions...");
     const hasPermission = await requestNotificationPermissions();
+    console.log("[Push] getExpoPushToken: hasPermission =", hasPermission);
     if (!hasPermission) {
       return null;
     }
 
+    const projectId = getExpoProjectId();
+    console.log("[Push] getExpoPushToken: projectId =", projectId);
+    if (!projectId) {
+      console.warn(
+        "Expo projectId is missing from app config. Add expo.projectId to app.json."
+      );
+    }
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: "172eec8c-8c58-453c-a375-258412496e09",
+      projectId: projectId || "172eec8c-8c58-453c-a375-258412496e09",
     });
 
+    console.log("Expo push token response:", tokenData);
+
+    if (!tokenData?.data) {
+      console.error("Expo push token response missing data:", tokenData);
+      return null;
+    }
+
+    console.log("Expo push token obtained:", tokenData.data);
     return tokenData.data;
   } catch (error) {
     console.error("Error getting Expo push token:", error);
@@ -106,6 +155,21 @@ export function setupNotificationListeners(
     });
 
   subscriptions.push(receivedSubscription, responseSubscription);
+
+  Notifications.getLastNotificationResponseAsync()
+    .then((response) => {
+      if (response) {
+        console.log("Initial notification response:", response);
+        if (onNotificationTapped) {
+          onNotificationTapped(response);
+        }
+      } else {
+        console.log("No initial notification response on startup.");
+      }
+    })
+    .catch((error) => {
+      console.error("Error getting last notification response:", error);
+    });
 
   return subscriptions;
 }

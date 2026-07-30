@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -7,9 +7,10 @@ import {
   Switch,
   ScrollView,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import {
   getNotificationSettings,
@@ -17,6 +18,8 @@ import {
 } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const SettingItem = ({
   icon,
@@ -28,13 +31,12 @@ const SettingItem = ({
   lastItem = false,
   disabled = false,
   theme,
-  isDarkMode,
 }) => (
   <View style={[styles.settingItem, lastItem && styles.lastSettingItem, { borderBottomColor: theme.border }]}>
     <View style={styles.settingItemLeft}>
       {icon && (
-        <View style={[styles.settingItemIcon, { backgroundColor: isDarkMode ? "#374151" : "#F1F1F1" }]}>
-          <Ionicons name={icon} size={22} color={theme.subText} />
+        <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+          <Ionicons name={icon} size={20} color={theme.primary} />
         </View>
       )}
       <View style={{ flex: 1, marginRight: 8 }}>
@@ -55,25 +57,24 @@ const SettingItem = ({
       />
     ) : (
       <TouchableOpacity onPress={onPress} disabled={disabled}>
-        <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+        <Ionicons name="chevron-forward" size={18} color={theme.subText} />
       </TouchableOpacity>
     )}
   </View>
 );
 
-const SettingSection = ({ title, children, theme, isDarkMode }) => {
+const SettingSection = ({ title, children, theme }) => {
   const childrenArray = React.Children.toArray(children);
 
   return (
-    <View style={[styles.settingSection, { backgroundColor: isDarkMode ? "#1f2937" : "#FAFAFA" }]}>
+    <View style={styles.sectionWrapper}>
       <Text style={[styles.sectionTitle, { color: theme.primary }]}>{title}</Text>
-      <View style={styles.sectionContent}>
+      <View style={[styles.settingSection, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         {childrenArray.map((child, index) =>
           React.cloneElement(child, {
             lastItem: index === childrenArray.length - 1,
             key: index,
             theme,
-            isDarkMode,
           })
         )}
       </View>
@@ -101,6 +102,19 @@ export default function NotificationSettingsScreen({ navigation }) {
 
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [newsEnabled, setNewsEnabled] = useState(true);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   useEffect(() => {
     fetchSettings();
@@ -211,19 +225,55 @@ export default function NotificationSettingsScreen({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('notificationSettings.title')}</Text>
-        <View style={{ width: 24 }} />
+      {/* Floating header */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+        }}
+      >
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: theme.background,
+            opacity: headerBgOpacity,
+          }}
+        />
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+          <View style={{ width: 44 }}>
+            <LiquidButton size={44} scrollY={scrollY} providerId="NotificationSettingsScreen" onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, {
+              color: theme.primary,
+              flex: 1,
+              textAlign: 'center',
+              opacity: headerTitleOpacity,
+            }]}
+            numberOfLines={1}
+          >
+            {t('notificationSettings.title')}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}>
-        <SettingSection title={t('notificationSettings.pushNotifications')} theme={theme} isDarkMode={isDarkMode}>
+      <AndroidGlassBackdrop providerId="NotificationSettingsScreen" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+        contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
+      >
+        <SettingSection title={t('notificationSettings.pushNotifications')} theme={theme}>
           <SettingItem
             icon="notifications-outline"
             title={t('notificationSettings.allowPush')}
@@ -232,13 +282,12 @@ export default function NotificationSettingsScreen({ navigation }) {
             value={pushEnabled}
             onPress={(v) => handleToggle('pushEnabled', v)}
             theme={theme}
-            isDarkMode={isDarkMode}
           />
         </SettingSection>
 
         {pushEnabled && (
           <>
-            <SettingSection title={t('notificationSettings.interactions')} theme={theme} isDarkMode={isDarkMode}>
+            <SettingSection title={t('notificationSettings.interactions')} theme={theme}>
               <SettingItem
                 icon="heart-outline"
                 title={t('notificationSettings.likes')}
@@ -246,7 +295,6 @@ export default function NotificationSettingsScreen({ navigation }) {
                 value={likesEnabled}
                 onPress={(v) => handleToggle('likesEnabled', v)}
                 theme={theme}
-                isDarkMode={isDarkMode}
               />
               <SettingItem
                 icon="chatbubble-outline"
@@ -255,7 +303,6 @@ export default function NotificationSettingsScreen({ navigation }) {
                 value={commentsEnabled}
                 onPress={(v) => handleToggle('commentsEnabled', v)}
                 theme={theme}
-                isDarkMode={isDarkMode}
               />
               <SettingItem
                 icon="at-outline"
@@ -265,11 +312,10 @@ export default function NotificationSettingsScreen({ navigation }) {
                 onPress={(v) => handleToggle('mentionsEnabled', v)}
                 lastItem
                 theme={theme}
-                isDarkMode={isDarkMode}
               />
             </SettingSection>
 
-            <SettingSection title={t('notificationSettings.connections')} theme={theme} isDarkMode={isDarkMode}>
+            <SettingSection title={t('notificationSettings.connections')} theme={theme}>
               <SettingItem
                 icon="person-add-outline"
                 title={t('notificationSettings.newFollowers')}
@@ -280,7 +326,6 @@ export default function NotificationSettingsScreen({ navigation }) {
                   setMessagesEnabled(v); // Sync simply for UI, backend treats as one
                 }}
                 theme={theme}
-                isDarkMode={isDarkMode}
               />
               <SettingItem
                 icon="mail-outline"
@@ -293,13 +338,12 @@ export default function NotificationSettingsScreen({ navigation }) {
                 }}
                 lastItem
                 theme={theme}
-                isDarkMode={isDarkMode}
               />
             </SettingSection>
           </>
         )}
 
-        <SettingSection title={t('notificationSettings.other')} theme={theme} isDarkMode={isDarkMode}>
+        <SettingSection title={t('notificationSettings.other')} theme={theme}>
           <SettingItem
             icon="mail-open-outline"
             title={t('notificationSettings.emailNotifications')}
@@ -308,7 +352,6 @@ export default function NotificationSettingsScreen({ navigation }) {
             value={emailEnabled}
             onPress={(v) => handleToggle('emailEnabled', v)}
             theme={theme}
-            isDarkMode={isDarkMode}
           />
           <SettingItem
             icon="newspaper-outline"
@@ -318,10 +361,10 @@ export default function NotificationSettingsScreen({ navigation }) {
             onPress={(v) => handleToggle('newsEnabled', v)}
             lastItem
             theme={theme}
-            isDarkMode={isDarkMode}
           />
         </SettingSection>
-      </ScrollView>
+      </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }
@@ -339,41 +382,44 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    height: 50,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    height: 56,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
   },
-  settingSection: {
+  sectionWrapper: {
+    marginHorizontal: 16,
     marginBottom: 24,
-    margin: 15,
-    borderRadius: 15,
-    paddingTop: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "600",
-    marginLeft: 16,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     marginBottom: 8,
+    marginLeft: 4,
   },
-  sectionContent: {
-    // backgroundColor: "#fff",
+  settingSection: {
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
   settingItemIcon: {
-    padding: 7,
-    borderRadius: 30,
-    marginRight: 12,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
   },
   settingItem: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 12,
+    paddingVertical: 13,
     paddingHorizontal: 16,
-    borderBottomWidth: 0.5,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   lastSettingItem: {
     borderBottomWidth: 0,
@@ -385,9 +431,12 @@ const styles = StyleSheet.create({
   },
   settingItemText: {
     fontSize: 16,
+    marginLeft: 12,
+    flexShrink: 1,
   },
   settingItemDescription: {
     fontSize: 12,
     marginTop: 2,
+    marginLeft: 12,
   },
 });

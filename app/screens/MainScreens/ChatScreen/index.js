@@ -9,19 +9,23 @@ import {
   TextInput,
   DeviceEventEmitter,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
-import { getConversations } from "../../../services/api/Api";
+import { getConversations, getOnlineStatus } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
 import { useFocusEffect } from "@react-navigation/native";
 import { useUnreadCountsContext } from "../../../contexts/UnreadCountsContext";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LottieView from "lottie-react-native";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -30,12 +34,14 @@ const formatMessageTime = (timestamp) => {
 export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
   const [conversations, setConversations] = useState([]);
+  const [onlineStatuses, setOnlineStatuses] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers } = useContext(AuthContext);
+  const { onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited } = useChatSocket();
   const flatListRef = useRef(null);
   const scrollPositionRef = useRef(0);
   const isProcessingRef = useRef(false);
@@ -43,18 +49,25 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const lastScrollYRef = useRef(0);
   const lottieRef = useRef(null);
 
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
+
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
+    scrollY.setValue(offsetY);
 
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
   };
 
@@ -128,6 +141,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       setConversations(response.data);
       storage.set("conversations", JSON.stringify(response.data));
       refreshChatCount();
+      fetchOnlineStatuses(response.data);
     } catch (error) {
       console.error("Error fetching conversations:", error);
       Toast.show({
@@ -137,6 +151,87 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       });
     }
   };
+
+  // Fetch the online status of every private-chat partner shown in the list.
+  const fetchOnlineStatuses = async (convos) => {
+    const usernames = [
+      ...new Set(
+        convos
+          .filter((c) => c.type === "private" && c.participants[0]?.username)
+          .map((c) => c.participants[0].username)
+      ),
+    ];
+    if (usernames.length === 0) return;
+
+    const results = await Promise.all(
+      usernames.map((username) =>
+        getOnlineStatus(username)
+          .then((res) => [username, !!res.data?.is_online])
+          .catch(() => [username, undefined])
+      )
+    );
+
+    setOnlineStatuses((prev) => {
+      const next = { ...prev };
+      results.forEach(([username, isOnline]) => {
+        if (isOnline !== undefined) next[username] = isOnline;
+      });
+      return next;
+    });
+  };
+
+  // Keep the latest fetchConversations closure available to the realtime listeners
+  // below without re-subscribing to the socket on every render.
+  const fetchConversationsRef = useRef(null);
+  useEffect(() => {
+    fetchConversationsRef.current = fetchConversations;
+  });
+
+  const conversationIdsKey = React.useMemo(
+    () => conversations.map((c) => c.id).join(","),
+    [conversations]
+  );
+
+  // Realtime: refresh the conversation list (unread badges, last message, ordering)
+  // the instant any of these conversations gets a chat event.
+  useEffect(() => {
+    const ids = conversationIdsKey ? conversationIdsKey.split(",") : [];
+    if (ids.length === 0) return undefined;
+
+    const refresh = () => fetchConversationsRef.current?.();
+    const unsubscribers = ids.flatMap((id) => {
+      const numId = Number(id);
+      const handleRecalled = (data) => {
+        if (!data?.message_id) return;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === numId && c.latest_message?.id === data.message_id
+              ? { ...c, latest_message: { ...c.latest_message, is_recalled: true, content: null } }
+              : c
+          )
+        );
+      };
+      const handleEdited = (data) => {
+        if (!data?.message_id) return;
+        setConversations((prev) =>
+          prev.map((c) =>
+            c.id === numId && c.latest_message?.id === data.message_id
+              ? { ...c, latest_message: { ...c.latest_message, content: data.content, is_edited: true } }
+              : c
+          )
+        );
+      };
+      return [
+        onMessageSent(id, refresh),
+        onMessageRead(id, refresh),
+        onMessageDeleted(id, refresh),
+        onMessageRecalled ? onMessageRecalled(id, handleRecalled) : null,
+        onMessageEdited ? onMessageEdited(id, handleEdited) : null,
+      ].filter(Boolean);
+    });
+
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+  }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited]);
 
   const filteredConversations = conversations.filter((item) => {
     if (
@@ -184,6 +279,52 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     return null;
   };
 
+  const renderLastMessagePreview = (latestMessage) => {
+    if (!latestMessage) return t("chat.noMessages");
+
+    if (latestMessage.is_recalled) {
+      return (
+        <>
+          <Ionicons name="arrow-undo-outline" size={14} color={theme.subText} />{" "}
+          {t("chatConversation.recalled", "Tin nhắn đã bị thu hồi")}
+        </>
+      );
+    }
+
+    const type = latestMessage.type || latestMessage.content_type;
+
+    if (type === "image") {
+      return (
+        <>
+          <Ionicons name="image-outline" size={14} color={theme.subText} />{" "}
+          {t("chat.photo")}
+        </>
+      );
+    }
+    if (type === "video") {
+      return (
+        <>
+          <Ionicons name="videocam-outline" size={14} color={theme.subText} />{" "}
+          {t("chat.video")}
+        </>
+      );
+    }
+    if (type === "file") {
+      return (
+        <>
+          <Ionicons name="document-text-outline" size={14} color={theme.subText} />{" "}
+          {latestMessage.file_name || latestMessage.content}
+        </>
+      );
+    }
+
+    const content = latestMessage.content || t("chat.noMessages");
+    if (latestMessage.is_edited) {
+      return `${content} ${t("chatConversation.edited", "(Đã sửa)")}`;
+    }
+    return content;
+  };
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.conversation, { backgroundColor: theme.background }]}
@@ -194,25 +335,30 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         });
       }}
     >
-      <Image
-        source={
-          getAvatar(item) === "local:chat.jpg"
-            ? require("../../../assets/chat.jpg")
-            : {
-              uri:
-                getAvatar(item) ||
-                "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-            }
-        }
-        style={[styles.avatar, { backgroundColor: theme.border }]}
-      />
+      <View style={styles.avatarWrapper}>
+        <Image
+          source={
+            getAvatar(item) === "local:chat.jpg"
+              ? require("../../../assets/chat.jpg")
+              : {
+                uri:
+                  getAvatar(item) ||
+                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+              }
+          }
+          style={[styles.avatar, { backgroundColor: theme.border }]}
+        />
+        {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
+          <View style={styles.onlineDot} />
+        ) : null}
+      </View>
       <View style={styles.info}>
         <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
           {getChatName(item)}
         </Text>
         <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
           {item.latest_message?.is_myself ? t('chat.you') : ""}
-          {item.latest_message?.content || t('chat.noMessages')}
+          {renderLastMessagePreview(item.latest_message)}
         </Text>
       </View>
       <View style={styles.meta}>
@@ -240,77 +386,46 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     </TouchableOpacity>
   );
 
+  const headerHeight = 58 + insets.top;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      
-      <View style={[styles.header, { marginTop: insets.top }]}>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('chat.title')}</Text>
-        <TouchableOpacity
-          onPress={() => {
-            navigation.navigate("NewConversationScreen");
-          }}
-          style={{ flexShrink: 1 }}
+      {/* Floating header */}
+      <View
+        style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
+        pointerEvents="box-none"
+      >
+        <Animated.Text
+          style={[
+            styles.headerTitleText,
+            { color: theme.primary, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] },
+          ]}
         >
-          <View
-            className="flex-row items-center justify-center rounded-full px-3 py-2"
-            style={{
-              backgroundColor: theme.primary,
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.22,
-              shadowRadius: 2.22,
-              elevation: 3,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              flexDirection: "row",
-              alignItems: "center",
-              borderRadius: 20,
-            }}
-          >
-            <Ionicons
-              name="add"
-              size={20}
-              color="#fff"
-              style={{ marginRight: 4, flexShrink: 0 }}
-            />
-            <Text
-              style={{ color: "#fff", fontWeight: "600" }}
-              numberOfLines={1}
-            >
-              {t('chat.newMessage')}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {refreshing && (
-        <View style={{ position: "absolute", top: insets.top + 50, left: 0, right: 0, alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{ width: 40, height: 40 }}
-            ref={lottieRef}
-            loop
-            autoPlay
+          {t('chat.title')}
+        </Animated.Text>
+        <LiquidButton
+          providerId="Chat"
+          onPress={() => navigation.navigate("NewConversationScreen")}
+          scrollY={scrollY}
+          alwaysBorder
+          borderColor={theme.primary}
+          size={44}
+          style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent' }}
+          borderRadius={22}
+        >
+          <Ionicons
+            name="add"
+            size={20}
+            color={theme.text}
+            style={{ marginRight: 4, flexShrink: 0 }}
           />
-        </View>
-      )}
-
-      <View style={[styles.searchContainer, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
-        <Ionicons
-          name="search"
-          size={20}
-          color={theme.subText}
-          style={{ marginLeft: 10 }}
-        />
-        <TextInput
-          style={[styles.searchInput, { color: theme.text }]}
-          placeholder={t('chat.search')}
-          placeholderTextColor="#A0A0A0"
-          value={search}
-          onChangeText={setSearch}
-        />
+          <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
+            {t('chat.newMessage')}
+          </Text>
+        </LiquidButton>
       </View>
 
+      <AndroidGlassBackdrop providerId="Chat" style={{ flex: 1 }}>
       <FlatList
         ref={flatListRef}
         data={filteredConversations}
@@ -331,9 +446,29 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           />
         }
         contentContainerStyle={{
+          paddingTop: headerHeight + 8,
           paddingBottom: 110 + insets.bottom,
           flex: filteredConversations.length === 0 ? 1 : undefined,
         }}
+        ListHeaderComponent={
+          <>
+            <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <Ionicons
+                name="search"
+                size={18}
+                color={theme.subText}
+                style={{ marginLeft: 12 }}
+              />
+              <TextInput
+                style={[styles.searchInput, { color: theme.text }]}
+                placeholder={t('chat.search')}
+                placeholderTextColor={theme.placeholder}
+                value={search}
+                onChangeText={setSearch}
+              />
+            </View>
+          </>
+        }
         ItemSeparatorComponent={() => (
           <View
             style={{ height: 1, backgroundColor: theme.border, marginLeft: 80 }}
@@ -355,6 +490,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
           </View>
         }
       />
+      </AndroidGlassBackdrop>
     </View>
   );
 }
@@ -362,30 +498,34 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
     justifyContent: "space-between",
-    height: 50,
     gap: 8,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    flexShrink: 1,
+  headerTitleText: {
+    fontSize: 24,
+    fontWeight: "700",
+    flex: 1,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 10,
+    borderRadius: 14,
+    borderWidth: 1,
     marginHorizontal: 16,
-    marginTop: 10,
-    marginBottom: 6,
-    height: 40,
+    marginBottom: 10,
+    height: 44,
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     paddingHorizontal: 10,
     backgroundColor: "transparent",
   },
@@ -395,11 +535,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
+  avatarWrapper: {
+    marginRight: 14,
+  },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    marginRight: 14,
+  },
+  onlineDot: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+    backgroundColor: "#16a34a",
   },
   info: {
     flex: 1,

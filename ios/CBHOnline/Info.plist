@@ -21,7 +21,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>3.1.0</string>
+    <string>3.7.4</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -40,12 +40,14 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>310</string>
+    <string>474</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
     <true/>
     <key>NSAppLinksUsageDescription</key>
     <string>Opening content from CBH Youth Online</string>
@@ -56,8 +58,14 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
+    <key>NSBonjourServices</key>
+    <array>
+      <string>_expo._tcp</string>
+    </array>
     <key>NSCameraUsageDescription</key>
     <string>Cho phép CBH Youth Online truy cập camera của bạn</string>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Expo Dev Launcher uses the local network to discover and connect to development servers running on your computer.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Cho phép CBH Youth Online truy cập microphone của bạn</string>
     <key>NSPhotoLibraryUsageDescription</key>
@@ -66,8 +74,6 @@
     <array>
       <string>NSUserActivityTypeBrowsingWeb</string>
     </array>
-    <key>RCTNewArchEnabled</key>
-    <true/>
     <key>UIApplicationSceneManifest</key>
     <dict>
       <key>UIApplicationSupportsMultipleScenes</key>
@@ -75,6 +81,8 @@
       <key>UISceneConfigurations</key>
       <dict/>
     </dict>
+    <key>UIFileSharingEnabled</key>
+    <true/>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>

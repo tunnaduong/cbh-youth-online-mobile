@@ -10,6 +10,8 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  Animated,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,6 +22,7 @@ import {
   getProfile,
   updateProfile,
   uploadFile,
+  uploadCoverPhoto,
 } from "../../../services/api/Api";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import CustomLoading from "../../../components/CustomLoading";
@@ -28,12 +31,28 @@ import RadioGroup from "react-native-radio-buttons-group";
 import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const EditProfileScreen = ({ navigation }) => {
-  const { username, userInfo, setUserInfo, bumpAvatarVersion } = useContext(AuthContext);
+  const { username, userInfo, setUserInfo, bumpAvatarVersion, bumpCoverVersion, getCoverUrl } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
+
+  const scrollY = React.useRef(new Animated.Value(0)).current;
+
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
   const [loading, setLoading] = useState(false);
   const [loadingFirst, setLoadingFirst] = useState(true);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -114,7 +133,6 @@ const EditProfileScreen = ({ navigation }) => {
   const handleUpdateProfile = async () => {
     setLoading(true);
     let cdnId = null;
-    let cdnCoverId = null;
     try {
       // First handle avatar upload if there's a selected image
       if (selectedImage) {
@@ -131,21 +149,19 @@ const EditProfileScreen = ({ navigation }) => {
         cdnId = response.data.id;
       }
 
-      // Handle cover image upload if selected
+      // Handle cover image upload if selected (dedicated cover endpoint)
       if (selectedCoverImage) {
         const coverFormData = new FormData();
-        coverFormData.append("file", {
+        coverFormData.append("cover_photo", {
           uri: selectedCoverImage,
           type: selectedCoverImage.endsWith(".png")
             ? "image/png"
             : "image/jpeg",
           name: selectedCoverImage.endsWith(".png") ? "cover.png" : "cover.jpg",
         });
-        coverFormData.append("uid", userInfo.id);
 
-        // Call the cover upload API
-        const response = await uploadFile(coverFormData);
-        cdnCoverId = response.data.id;
+        await uploadCoverPhoto(username, coverFormData);
+        bumpCoverVersion();
       }
 
       // then update the profileData with gender and birthday
@@ -180,7 +196,7 @@ const EditProfileScreen = ({ navigation }) => {
       });
       navigation.goBack();
     } catch (error) {
-      console.error("Error updating profile:", error.response.data);
+      console.error("Error updating profile:", error?.response?.data || error?.message);
       Toast.show({
         type: "error",
         text1: t('profile.errorTitle'),
@@ -212,16 +228,11 @@ const EditProfileScreen = ({ navigation }) => {
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [16, 9],
+      quality: 1,
     });
 
     if (!result.canceled) {
       setSelectedCoverImage(result.assets[0].uri);
-      setTimeout(() => {
-        Toast.show({
-          type: "info",
-          text1: t('editProfile.coverDev'),
-        });
-      }, 1000);
     }
   };
 
@@ -244,28 +255,63 @@ const EditProfileScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <KeyboardAvoidingView behavior={"padding"} style={{ flex: 1 }}>
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={24} color={theme.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('settings.editProfile')}</Text>
-          <TouchableOpacity onPress={handleUpdateProfile} disabled={loading}>
-            <Text
-              style={[styles.saveButton, { color: theme.primary }, loading && styles.saveButtonDisabled]}
+        {/* Floating Header */}
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+          }}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: theme.background,
+              opacity: headerBgOpacity,
+            }}
+          />
+          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top, justifyContent: 'space-between' }}>
+            <View style={{ width: 60, alignItems: 'flex-start' }}>
+              <LiquidButton providerId="EditProfileScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+                <Ionicons name="close" size={24} color={theme.primary} />
+              </LiquidButton>
+            </View>
+            <Animated.Text
+              style={[styles.headerTitle, {
+                color: theme.primary,
+                flex: 1,
+                textAlign: 'center',
+                opacity: headerTitleOpacity,
+              }]}
+              numberOfLines={1}
             >
-              {loading ? t('editProfile.saving') : t('settings.save')}
-            </Text>
-          </TouchableOpacity>
+              {t('settings.editProfile')}
+            </Animated.Text>
+            <View style={{ width: 60, alignItems: 'flex-end' }}>
+              <LiquidButton providerId="EditProfileScreen" size={44} scrollY={scrollY} onPress={handleUpdateProfile} disabled={loading}>
+                {loading ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <Ionicons name="checkmark" size={24} color={theme.primary} />
+                )}
+              </LiquidButton>
+            </View>
+          </View>
         </View>
 
-        <ScrollView
+        <AndroidGlassBackdrop providerId="EditProfileScreen" style={{ flex: 1 }}>
+        <Animated.ScrollView
           scrollEnabled={true}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          contentContainerStyle={{ paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 16 }}
         >
           <Text style={[styles.updateAvatarText, { color: theme.text }]}>{t('editProfile.updateAvatar')}</Text>
           {/* Avatar Section */}
@@ -289,7 +335,7 @@ const EditProfileScreen = ({ navigation }) => {
               source={{
                 uri: selectedCoverImage
                   ? selectedCoverImage
-                  : `https://api.chuyenbienhoa.com/v1.0/users/${username}/cover`,
+                  : getCoverUrl(username),
               }}
               style={styles.coverImage}
             />
@@ -409,9 +455,10 @@ const EditProfileScreen = ({ navigation }) => {
               />
             </View>
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
+        </AndroidGlassBackdrop>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 };
 

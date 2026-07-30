@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import {
   getExpoPushToken,
   setupNotificationListeners,
@@ -24,9 +25,10 @@ export const NotificationProvider = ({ children }) => {
 
   // Register push token when user logs in
   useEffect(() => {
-    if (isLoggedIn) {
+    console.log('[Push] registration effect', { isLoggedIn, hasToken: !!expoPushToken, isRegistering });
+    if (isLoggedIn && !expoPushToken && !isRegistering) {
       registerPushToken();
-    } else {
+    } else if (!isLoggedIn) {
       // Unregister when user logs out
       if (registeredTokenRef.current) {
         unregisterPushToken(registeredTokenRef.current);
@@ -42,7 +44,7 @@ export const NotificationProvider = ({ children }) => {
         notificationListeners.current = [];
       }
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, expoPushToken, isRegistering]);
 
   // Set up notification listeners
   useEffect(() => {
@@ -89,9 +91,11 @@ export const NotificationProvider = ({ children }) => {
 
     try {
       setIsRegistering(true);
+      console.log(`[Push] Starting push token registration... (Platform=${Platform.OS})`);
 
       // Get Expo push token
       const token = await getExpoPushToken();
+      console.log("Received push token:", token);
       if (!token) {
         console.warn('Failed to get Expo push token');
         setIsRegistering(false);
@@ -106,6 +110,7 @@ export const NotificationProvider = ({ children }) => {
 
       // Register token with backend
       try {
+        console.log('Registering token with backend...', { token, deviceType });
         await registerExpoPushToken({
           expo_push_token: token,
           device_type: deviceType,
@@ -136,23 +141,64 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const handleNotificationReceived = (notification) => {
-    console.log('Notification received:', notification);
+    console.log('Notification received callback fired:', notification);
+    if (notification?.request?.content) {
+      console.log('Notification content:', notification.request.content);
+    }
     // You can add custom logic here, like updating local state
     // or showing an in-app notification
   };
 
   const handleNotificationTapped = (response) => {
-    console.log('Notification tapped:', response);
-    const data = response.notification.request.content.data;
+    const data = response?.notification?.request?.content?.data;
+    // Left in deliberately (not gated on __DEV__): this is the only way to
+    // see the actual payload a real push notification arrived with, since
+    // it comes from the backend, not from anything reproducible locally.
+    console.log('[Push] Notification tapped, raw data:', JSON.stringify(data));
+    if (!data) return;
 
-    // Handle navigation based on notification data
-    // This will be handled by the navigation system
-    // You can emit an event or use a navigation service here
-    if (data?.type === 'chat_message' && data?.conversation_id) {
-      // Navigate to chat conversation
-      // Navigation will be handled by the app's navigation system
-    } else if (data?.type === 'notification' && data?.url) {
-      // Navigate to notification or specific content
+    const type = data.type;
+    const topicId = data.topic_id ?? data.topicId;
+    const postId = data.post_id ?? data.postId ?? topicId;
+    const conversationId = data.conversation_id ?? data.conversationId;
+    const storyId = data.story_id ?? data.storyId;
+    const messageId = data.message_id ?? data.messageId;
+
+    let target = null;
+
+    // Route by the presence of conversation_id rather than requiring an
+    // exact `type` string match first - a chat-message push not matching
+    // whatever type string was assumed here (e.g. 'chat_message') meant this
+    // branch was silently skipped entirely and nothing happened at all, in
+    // every app state (foreground, background, killed) alike, since the
+    // fallback branches below don't handle conversations either.
+    const materialId = data.material_id ?? data.materialId;
+    const actorUsername = data.actor?.username ?? data.actor_username ?? data.actorUsername;
+
+    if (conversationId) {
+      target = { screen: 'ConversationScreen', params: { conversationId, highlightMessageId: messageId } };
+    } else if (type === 'story_reacted' && storyId) {
+      target = { screen: 'MainScreens', params: { screen: 'Home', params: { openStoryId: storyId } } };
+    } else if (type === 'story_replied' || type === 'message_reacted') {
+      // No conversation_id on this payload - best we can do is the Chat tab.
+      target = { screen: 'MainScreens', params: { screen: 'Chat' } };
+    } else if (type === 'payment_received' || data.url === '/wallet') {
+      target = { screen: 'PointWalletScreen', params: undefined };
+    } else if (type === 'study_material_purchased' || type === 'study_material_rated') {
+      if (materialId) {
+        target = { screen: 'StudyMaterialDetailScreen', params: { materialId } };
+      }
+    } else if (type === 'followed' && actorUsername) {
+      target = { screen: 'ProfileScreen', params: { username: actorUsername } };
+    } else if (postId) {
+      const id = parseInt(postId, 10);
+      target = { screen: 'PostScreen', params: { postId: isNaN(id) ? postId : id, item: null } };
+    }
+
+    console.log('[Push] Resolved navigation target:', target);
+
+    if (target) {
+      DeviceEventEmitter.emit('NAVIGATE_FROM_NOTIFICATION', target);
     }
   };
 

@@ -1,16 +1,23 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useMemo, useState } from "react";
 import {
   View,
   Pressable,
   Text,
-  Image,
   TouchableOpacity,
   Share,
   Alert,
   Dimensions,
   Linking,
+  ScrollView,
+  Platform,
 } from "react-native";
-import RenderHTML from "react-native-render-html";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import FastImage from "./FastImage";
+import RenderHTML, {
+  HTMLElementModel,
+  HTMLContentModel,
+} from "react-native-render-html";
+import { WebView } from "react-native-webview";
 import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
@@ -23,6 +30,7 @@ import {
   reportUser,
 } from "../services/api/Api";
 import ReportModal from "./ReportModal";
+import PostVotesModal from "./PostVotesModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
@@ -31,6 +39,196 @@ import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
+import VideoThumbnail from "./VideoThumbnail";
+
+// react-native-render-html doesn't know about <iframe> by default (it's not
+// a real HTML content tag), so it has to be registered as a custom element
+// and given a custom renderer that plays the embed in a WebView.
+const customHTMLElementModels = {
+  iframe: HTMLElementModel.fromCustomModel({
+    tagName: "iframe",
+    contentModel: HTMLContentModel.block,
+  }),
+};
+
+// Handles youtube.com/embed/<id>, youtube.com/watch?v=<id>, and youtu.be/<id>.
+const extractYouTubeId = (url) => {
+  const match = url.match(/(?:embed\/|[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+};
+
+// A real mobile browser's UA - the default RN WebView Android UA (a
+// "Dalvik/..." string) isn't a UA YouTube's embedded player recognizes as a
+// supported browser, and it refuses to play at all rather than degrading
+// gracefully, which is what actually surfaced as the numbered player error.
+// Pixel 9 Pro XL, Android 15 QPR1 stable (AP4A.241205.013).
+const MOBILE_USER_AGENT =
+  "Mozilla/5.0 (Linux; Android 15; Pixel 9 Pro XL Build/AP4A.241205.013) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36";
+
+// Numeric codes the YouTube IFrame Player API's onError event actually
+// documents - a bare <iframe> with no JS API attached can't report *any* of
+// this, it just silently fails, which is why the previous version of this
+// component had no way to confirm what was actually going wrong.
+const YOUTUBE_ERROR_MESSAGES = {
+  2: "Invalid video ID/parameter",
+  5: "HTML5 player error",
+  100: "Video not found (removed or private)",
+  101: "Video owner disabled embedded playback",
+  150: "Video owner disabled embedded playback",
+  // Not in Google's official docs. A referrer-policy meta tag alone didn't
+  // fix this (tried first). What did, in a working reference fix for this
+  // same error in another embedded-WebView YouTube player (Flutter's
+  // youtube_player_flutter, PR #1086): the page (`baseUrl`) and the
+  // player's own iframe (`host`) need to be same-origin, both on
+  // youtube-nocookie.com - see those two below.
+  152: "Player error (see baseUrl/host same-origin fix)",
+};
+
+const YouTubeIframeRenderer = ({ tnode }) => {
+  const rawSrc = tnode?.attributes?.src;
+  const src = rawSrc ? (rawSrc.startsWith("//") ? `https:${rawSrc}` : rawSrc) : null;
+  const videoId = src ? extractYouTubeId(src) : null;
+  const width = Dimensions.get("window").width - 30;
+  const height = (width * 9) / 16;
+
+  // Load the real YouTube IFrame Player API (iframe_api) and construct the
+  // player through it instead of dropping a bare <iframe> in - a bare iframe
+  // can silently fail with no way to surface why, whereas the JS API's
+  // onError/onReady/onStateChange callbacks give the actual numeric error
+  // code. `baseUrl` on the WebView gives the page a real origin (a raw
+  // WebView `uri` load or file:// context has none, which the player
+  // validates against and refuses to play without) - it has to match the
+  // player's own `host` below, not youtube.com: a working fix for this same
+  // error 152 in another embedded-WebView YouTube player (Flutter's
+  // youtube_player_flutter, see its PR #1086) was pairing
+  // baseUrl=youtube-nocookie.com with host=youtube-nocookie.com, i.e. the
+  // page and the player iframe it creates being same-origin.
+  // Memoized so the WebView's `source` object identity stays stable across
+  // re-renders of the surrounding post (RenderHTML re-invokes this renderer
+  // on every parent render) - otherwise a fresh {html, baseUrl} object each
+  // time made the WebView think its source changed and reload the whole
+  // player, which was showing up as duplicate boot/apiready log pairs.
+  const html = useMemo(
+    () => `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}#player{position:absolute;top:0;left:0;width:100%;height:100%;}</style>
+</head>
+<body>
+<div id="player"></div>
+<script>
+  function post(type, data) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: type, data: data || {} }));
+    }
+  }
+  window.onerror = function (message, source, lineno, colno) {
+    post('jserror', { message: message, source: source, lineno: lineno, colno: colno });
+  };
+  post('boot', {});
+  var tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+  function onYouTubeIframeAPIReady() {
+    post('apiready', {});
+    new YT.Player('player', {
+      videoId: '${videoId}',
+      host: 'https://www.youtube-nocookie.com',
+      playerVars: { playsinline: 1, modestbranding: 1, rel: 0 },
+      events: {
+        onReady: function () { post('ready', {}); },
+        onError: function (e) { post('error', { code: e.data }); },
+        onStateChange: function (e) { post('statechange', { state: e.data }); }
+      }
+    });
+  }
+</script>
+</body>
+</html>`,
+    [videoId],
+  );
+
+  const source = useMemo(
+    () => ({ html, baseUrl: "https://www.youtube-nocookie.com" }),
+    [html],
+  );
+
+  if (!rawSrc || !videoId) return null;
+
+  return (
+    <View
+      style={{
+        width,
+        height,
+        marginVertical: 8,
+        borderRadius: 8,
+        // Android: overflow:hidden clips via a software canvas path, which
+        // hardware-decoded video content (a SurfaceTexture the WebView's
+        // Chromium compositor draws outside the normal view draw() call)
+        // isn't part of - it doesn't get captured into that clip, and the
+        // surface ends up not compositing at all: black screen, audio and
+        // controls still work fine since those aren't part of view
+        // rendering. Only clipping here on iOS (WKWebView doesn't have this
+        // problem) trades rounded corners for the video actually being
+        // visible on Android.
+        overflow: Platform.OS === "ios" ? "hidden" : "visible",
+        backgroundColor: "#000",
+      }}
+      // This whole embed sits inside the post content's collapse/expand
+      // Pressable. Tapping inside a WebView (e.g. the play button) doesn't
+      // reliably consume the native touch before it reaches that ancestor,
+      // so without this, pressing play was also toggling handleExpandPost
+      // and collapsing the post - hiding the embed along with it. Claiming
+      // the responder here for any touch starting inside the embed, and
+      // refusing to hand it back, keeps every tap local to the player.
+      onStartShouldSetResponder={() => true}
+      onResponderTerminationRequest={() => false}
+    >
+      <WebView
+        source={source}
+        style={{ width, height }}
+        javaScriptEnabled
+        domStorageEnabled
+        allowsFullscreenVideo
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        originWhitelist={["*"]}
+        mixedContentMode="always"
+        thirdPartyCookiesEnabled
+        sharedCookiesEnabled
+        userAgent={MOBILE_USER_AGENT}
+        onMessage={(event) => {
+          let parsed;
+          try {
+            parsed = JSON.parse(event.nativeEvent.data);
+          } catch (e) {
+            console.log("[YouTubeEmbed] raw message", event.nativeEvent.data);
+            return;
+          }
+          if (parsed.type === "error") {
+            console.log(
+              `[YouTubeEmbed] player error ${parsed.data.code}: ${
+                YOUTUBE_ERROR_MESSAGES[parsed.data.code] || "unknown error code"
+              }`,
+              { videoId, src },
+            );
+          } else {
+            console.log(`[YouTubeEmbed] ${parsed.type}`, parsed.data, { videoId });
+          }
+        }}
+        onError={(syntheticEvent) => {
+          console.log("[YouTubeEmbed] WebView onError", syntheticEvent.nativeEvent);
+        }}
+        onHttpError={(syntheticEvent) => {
+          console.log("[YouTubeEmbed] WebView onHttpError", syntheticEvent.nativeEvent);
+        }}
+      />
+    </View>
+  );
+};
 
 const PostItem = ({
   navigation,
@@ -46,11 +244,22 @@ const PostItem = ({
   onVote: onVoteCallback, // Callback for single view vote updates
   onSave: onSaveCallback, // Callback for single view save updates
 }) => {
+  const videoUrls = Array.isArray(item.video_urls)
+    ? item.video_urls
+    : (typeof item.video_urls === "string" && item.video_urls)
+      ? item.video_urls.split(",").map((v) => v.trim()).filter(Boolean)
+      : item.video_url
+        ? [item.video_url]
+        : item.video
+          ? [item.video]
+          : [];
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
+  const insets = useSafeAreaInsets();
   const { username, userInfo } = useContext(AuthContext);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [votesModalVisible, setVotesModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -321,6 +530,22 @@ const PostItem = ({
       ? `${item.content.substring(0, 300)}...`
       : item.content || "";
 
+  // Hashtag links in post content point at "/search?type=hashtag&q=tag";
+  // intercept those to navigate in-app instead of trying to open a URL,
+  // and open any other (autolinked) link in the browser.
+  const handleContentLinkPress = (event, href) => {
+    const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
+    if (hashtagMatch) {
+      const tag = decodeURIComponent(hashtagMatch[1]);
+      navigation?.navigate("SearchScreen", {
+        initialQuery: tag,
+        initialFilter: "hashtag",
+      });
+      return;
+    }
+    Linking.openURL(href);
+  };
+
   return (
     <View
       style={{
@@ -334,9 +559,10 @@ const PostItem = ({
           // Single view: no navigation, just show title
           <Text style={{
             fontWeight: "bold",
-            fontSize: 21,
+            fontSize: 28,
             paddingHorizontal: 15,
-            marginTop: 15,
+            marginTop: 0,
+            marginBottom: 10,
             flex: 1,
             color: theme.text
           }}>
@@ -379,6 +605,11 @@ const PostItem = ({
         <View style={{ paddingHorizontal: 15 }}>
           <RenderHTML
             contentWidth={Dimensions.get("window").width - 30}
+            customHTMLElementModels={customHTMLElementModels}
+            renderers={{ iframe: YouTubeIframeRenderer }}
+            renderersProps={{
+              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
+            }}
             source={{
               html:
                 isExpanded || !item.content || item.content.length <= 300
@@ -455,24 +686,90 @@ const PostItem = ({
           />
         </View>
       </Pressable>
-      {item.image_urls && item.image_urls.length > 0 && (
+      {((item.image_urls && item.image_urls.length > 0) || (videoUrls && videoUrls.length > 0)) && (
         <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
-          <FBCollage
-            images={item.image_urls}
-            imageOnPress={(index) => {
-              setIsVisible(index);
-            }}
-            height={350}
-            width={Dimensions.get("window").width}
-          />
-          <ImageView
-            images={item.image_urls.map((url) => ({
-              uri: url,
-            }))}
-            imageIndex={visible}
-            visible={visible !== false}
-            onRequestClose={() => setIsVisible(false)}
-          />
+          {item.image_urls && item.image_urls.length > 0 && (
+            <>
+              <FBCollage
+                images={item.image_urls}
+                imageOnPress={(index) => {
+                  setIsVisible(index);
+                }}
+                height={350}
+                width={Dimensions.get("window").width}
+              />
+              <ImageView
+                images={item.image_urls.map((url) => ({
+                  uri: url,
+                }))}
+                imageIndex={visible}
+                visible={visible !== false}
+                onRequestClose={() => setIsVisible(false)}
+                HeaderComponent={() => (
+                  <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
+                    <TouchableOpacity
+                      onPress={() => setIsVisible(false)}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: "#00000077",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                      hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+                    >
+                      <Ionicons name="close" size={22} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              />
+            </>
+          )}
+          {videoUrls && videoUrls.length > 0 && (() => {
+            const hasImages = item.image_urls && item.image_urls.length > 0;
+            const screenWidth = Dimensions.get("window").width;
+            if (!hasImages) {
+              // Video only — full width edge to edge
+              const videoW = screenWidth;
+              const videoH = Math.round((videoW * 9) / 16);
+              return (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 4 }}
+                >
+                  {videoUrls.map((url, index) => (
+                    <VideoThumbnail
+                      key={`${url}-${index}`}
+                      uri={url}
+                      width={videoW}
+                      height={videoH}
+                      borderRadius={0}
+                    />
+                  ))}
+                </ScrollView>
+              );
+            }
+            // Has images alongside — keep compact size
+            return (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10, gap: 8 }}
+              >
+                {videoUrls.map((url, index) => (
+                  <VideoThumbnail
+                    key={`${url}-${index}`}
+                    uri={url}
+                    width={single ? 260 : 220}
+                    height={single ? 180 : 150}
+                    borderRadius={12}
+                  />
+                ))}
+              </ScrollView>
+            );
+          })()}
         </View>
       )}
 
@@ -545,7 +842,7 @@ const PostItem = ({
             </View>
           ) : (
             item?.author?.username && (
-              <Image
+              <FastImage
                 source={{
                   uri: `https://api.chuyenbienhoa.com/v1.0/users/${item.author.username}/avatar`,
                 }}
@@ -572,11 +869,11 @@ const PostItem = ({
         </Text>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
-        <View style={{ gap: 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
+        <View style={{ gap: single ? 16 : 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
           <Pressable onPress={() => handleVote(1)}>
             <Ionicons
               name="arrow-up-outline"
-              size={28}
+              size={single ? 34 : 28}
               color={
                 currentVotes.some(
                   (vote) => vote?.username === username && vote.vote_value === 1
@@ -586,30 +883,32 @@ const PostItem = ({
               }
             />
           </Pressable>
-          <Text
-            style={[
-              currentVotes.some(
-                (vote) => vote?.username === username && vote.vote_value === 1
-              )
-                ? { color: "#22c55e" } // Apply green color for upvotes
-                : currentVotes.some(
-                  (vote) =>
-                    vote?.username === username && vote.vote_value === -1
+          <Pressable onPress={() => setVotesModalVisible(true)} style={{ justifyContent: "center" }}>
+            <Text
+              style={[
+                currentVotes.some(
+                  (vote) => vote?.username === username && vote.vote_value === 1
                 )
-                  ? { color: "#ef4444" } // Apply red color for downvotes
-                  : { color: theme.subText }, // Default themed color
-              { fontSize: 20, fontWeight: "600" }, // Additional styles
-            ]}
-          >
-            {currentVotes.reduce(
-              (acc, vote) => acc + (vote.vote_value || 0),
-              0
-            ) || 0}
-          </Text>
+                  ? { color: "#22c55e" } // Apply green color for upvotes
+                  : currentVotes.some(
+                      (vote) =>
+                        vote?.username === username && vote.vote_value === -1
+                    )
+                    ? { color: "#ef4444" } // Apply red color for downvotes
+                    : { color: theme.subText }, // Default themed color
+                { fontSize: single ? 24 : 20, fontWeight: "600" }, // Additional styles
+              ]}
+            >
+              {currentVotes.reduce(
+                (acc, vote) => acc + (vote.vote_value || 0),
+                0
+              ) || 0}
+            </Text>
+          </Pressable>
           <Pressable onPress={() => handleVote(-1)}>
             <Ionicons
               name="arrow-down-outline"
-              size={28}
+              size={single ? 34 : 28}
               color={
                 currentVotes.some(
                   (vote) =>
@@ -624,9 +923,9 @@ const PostItem = ({
             onPress={handleSavePost}
             style={[
               {
-                borderRadius: 8, // Rounded corners
-                width: 33.6, // Width of the button
-                height: 33.6, // Height of the button
+                borderRadius: single ? 10 : 8, // Rounded corners
+                width: single ? 42 : 33.6, // Width of the button
+                height: single ? 42 : 33.6, // Height of the button
                 alignItems: "center", // Center the content horizontally
                 justifyContent: "center", // Center the content vertically
               },
@@ -637,24 +936,24 @@ const PostItem = ({
           >
             <Ionicons
               name="bookmark"
-              size={20}
+              size={single ? 24 : 20}
               color={currentSaved ? theme.primary : theme.subText} // Green icon when saved, themed when not saved
             />
           </Pressable>
           <View style={{ flex: 1, flexDirection: "row-reverse", alignItems: "center" }}>
-            <Text style={{ color: theme.subText }}>
+            <Text style={{ color: theme.subText, fontSize: single ? 16 : undefined }}>
               {item.view_count ?? item.views_count ?? item.views ?? 0}
             </Text>
-            <View style={{ marginRight: 4, marginLeft: 8 }}>
-              <Ionicons name="eye-outline" size={20} color={theme.subText} />
+            <View style={{ marginRight: 4, marginLeft: single ? 12 : 8 }}>
+              <Ionicons name="eye-outline" size={single ? 24 : 20} color={theme.subText} />
             </View>
             {single ? (
               // Single view: just show comment count, no navigation
               <View style={{ flexDirection: "row-reverse", alignItems: "center" }}>
-                <Text style={{ color: theme.subText, marginLeft: 4 }}>
+                <Text style={{ color: theme.subText, marginLeft: 4, fontSize: 16 }}>
                   {item.reply_count ?? item.comments ?? 0}
                 </Text>
-                <Ionicons name="chatbox-outline" size={20} color={theme.subText} />
+                <Ionicons name="chatbox-outline" size={24} color={theme.subText} />
               </View>
             ) : (
               // Feed view: clickable comment count that navigates
@@ -679,6 +978,13 @@ const PostItem = ({
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
+      />
+      <PostVotesModal
+        visible={votesModalVisible}
+        onClose={() => setVotesModalVisible(false)}
+        postId={item.id}
+        postTitle={item.title || item?.topic?.title || t("voteModal.postTitleFallback")}
+        navigation={navigation}
       />
     </View >
   );

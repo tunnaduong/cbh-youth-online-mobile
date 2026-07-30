@@ -1,5 +1,11 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getSocketId } from "../echo/echo";
+
+// Online-status should not be hammered on every API response.
+// Throttle to at most once every 60 seconds.
+let lastOnlineStatusAt = 0;
+const ONLINE_STATUS_INTERVAL = 60_000;
 
 // You can define the base URL here or make it dynamic
 const axiosInstance = axios.create({
@@ -21,6 +27,44 @@ axiosInstance.interceptors.request.use(
         // Attach the token to the request header
         config.headers.Authorization = `Bearer ${token}`;
       }
+
+      // Lets broadcast()->toOthers() on the backend exclude this device's own socket
+      const socketId = getSocketId();
+      if (socketId) {
+        config.headers["X-Socket-Id"] = socketId;
+      }
+
+      try {
+        const url = config?.url || "";
+        const isReportEndpoint =
+          (url && url.toLowerCase().includes("/v1.0/reports")) ||
+          (url && url.toLowerCase().includes("report"));
+
+        if (isReportEndpoint) {
+          let dataPreview = null;
+          try {
+            if (config.data && config.data._parts) {
+              dataPreview = "FormData";
+            } else if (config.data) {
+              dataPreview = JSON.stringify(config.data);
+              if (dataPreview && dataPreview.length > 1000)
+                dataPreview = dataPreview.slice(0, 1000) + "...";
+            }
+          } catch (e) {
+            dataPreview = "<unserializable>";
+          }
+
+          console.log("[API REQUEST] REPORT ->", {
+            method: config.method,
+            url: config.url,
+            hasAuthorizationHeader: !!config.headers?.Authorization,
+            dataPreview,
+          });
+        }
+      } catch (e) {
+        // non-fatal logging error
+        console.warn("[API REQUEST] report logging failed", e?.message || e);
+      }
     } catch (error) {
       console.error("Error retrieving token from AsyncStorage:", error);
     }
@@ -41,13 +85,16 @@ axiosInstance.interceptors.response.use(
 
       // Don't call updateOnlineStatus if the current request is already updating online status
       // or if the user is not authenticated
+      const now = Date.now();
       if (
         token &&
         !response.config.url.includes("/v1.0/online-status") &&
         !response.config.url.includes("/v1.0/login") &&
-        !response.config.url.includes("/v1.0/register")
+        !response.config.url.includes("/v1.0/register") &&
+        now - lastOnlineStatusAt >= ONLINE_STATUS_INTERVAL
       ) {
-        await axiosInstance.post("/v1.0/online-status");
+        lastOnlineStatusAt = now;
+        axiosInstance.post("/v1.0/online-status").catch(() => {});
       }
     } catch (error) {
       console.error("--- ONLINE STATUS UPDATE ERROR ---");
@@ -61,9 +108,51 @@ axiosInstance.interceptors.response.use(
       }
       console.error("----------------------------------");
     }
+    try {
+      const url = response?.config?.url || "";
+      const isReportEndpoint =
+        (url && url.toLowerCase().includes("/v1.0/reports")) ||
+        (url && url.toLowerCase().includes("report"));
+
+      if (isReportEndpoint) {
+        console.log("[API RESPONSE] REPORT <-", {
+          url: response.config.url,
+          status: response.status,
+          data: response.data,
+        });
+      }
+    } catch (e) {
+      console.warn("[API RESPONSE] report logging failed", e?.message || e);
+    }
+
     return response;
   },
   (error) => {
+    try {
+      const cfg = error?.config || {};
+      const url = cfg.url || "";
+      const isReportEndpoint =
+        (url && url.toLowerCase().includes("/v1.0/reports")) ||
+        (url && url.toLowerCase().includes("report"));
+
+      const logObj = {
+        url,
+        method: cfg.method,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        responseData: error?.response?.data,
+        hasAuthorizationHeader: !!cfg.headers?.Authorization,
+      };
+
+      console.error("[API ERROR]", logObj);
+
+      if (isReportEndpoint) {
+        console.error("[API ERROR] REPORT DETAILS ->", logObj);
+      }
+    } catch (e) {
+      console.error("[API ERROR] failed to log error details", e?.message || e);
+    }
+
     return Promise.reject(error);
   }
 );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getMemberRanking } from "../../../services/api/Api";
@@ -14,6 +15,8 @@ import FastImage from "../../../components/FastImage";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 export default function MemberRankingScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
@@ -22,6 +25,18 @@ export default function MemberRankingScreen({ navigation }) {
   const [rankingData, setRankingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerHeight = 64 + insets.top;
+
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
+  const handleScroll = (event) => {
+    scrollY.setValue(event.nativeEvent.contentOffset.y);
+  };
 
   const fetchData = async () => {
     try {
@@ -53,7 +68,7 @@ export default function MemberRankingScreen({ navigation }) {
     const [first, second, third] = rankingData;
 
     return (
-      <View style={[styles.top3Container, { backgroundColor: isDarkMode ? "#1e2e1c" : "#F3FDF1" }]}>
+      <View style={[styles.top3Container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         {/* Second Place */}
         <TouchableOpacity
           style={[styles.top3Item, { marginTop: 40 }]}
@@ -143,7 +158,7 @@ export default function MemberRankingScreen({ navigation }) {
 
     return (
       <TouchableOpacity
-        style={[styles.rankItem, { borderBottomColor: theme.border }]}
+        style={[styles.rankItem, { borderBottomColor: theme.border, backgroundColor: theme.cardBackground }]}
         onPress={() =>
           navigation.navigate("ProfileScreen", { username: item.username })
         }
@@ -175,29 +190,38 @@ export default function MemberRankingScreen({ navigation }) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-      
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>{t('profile.ranking')}</Text>
-        <View style={{ width: 24 }} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Floating header */}
+      <View pointerEvents="box-none" style={styles.floatingHeader}>
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
+          <View style={{ width: 44 }}>
+            <LiquidButton providerId="MemberRankingScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
+            numberOfLines={1}
+          >
+            {t('profile.ranking')}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="MemberRankingScreen" style={{ flex: 1 }}>
       <FlatList
         data={rankingData}
         keyExtractor={(item) => item.username}
         renderItem={renderItem}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListHeaderComponent={renderTop3}
-        contentContainerStyle={[styles.listContent, { paddingBottom: 20 + (insets?.bottom || 0) }]}
+        contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: 20 + (insets?.bottom || 0) }]}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
             tintColor="transparent"
             colors={["transparent"]}
             progressBackgroundColor="transparent"
@@ -205,6 +229,7 @@ export default function MemberRankingScreen({ navigation }) {
           />
         }
       />
+      </AndroidGlassBackdrop>
     </View>
   );
 }
@@ -218,20 +243,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    padding: 4,
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
   },
   listContent: {
     paddingBottom: 20,
@@ -239,8 +260,11 @@ const styles = StyleSheet.create({
   top3Container: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 30,
+    paddingVertical: 28,
+    marginHorizontal: 16,
     marginBottom: 10,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
   },
   top3Item: {
     alignItems: "center",

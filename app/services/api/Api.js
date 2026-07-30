@@ -1,4 +1,5 @@
 import * as Api from "./ApiByAxios";
+import axiosInstance from "./axiosInstance";
 import i18n from "../../i18n";
 
 // Authentication
@@ -99,12 +100,32 @@ export const getHomePosts = (page = 1) => {
   return Api.getRequest("/v1.0/topics?page=" + page);
 };
 
+export const getPersonalizedFeed = (page = 1) => {
+  return Api.getRequest("/v1.0/topics/feed?page=" + page);
+};
+
+export const getFeedRefreshCheck = () => {
+  return Api.getRequest("/v1.0/topics/feed/refresh-check");
+};
+
+export const getLatestFeed = (page = 1) => {
+  return Api.getRequest("/v1.0/topics/feed?mode=latest&page=" + page);
+};
+
 export const incrementPostView = (id) => {
   return Api.postRequest("/v1.0/topics/" + id + "/views");
 };
 
 export const votePost = (id, params) => {
   return Api.postRequest("/v1.0/topics/" + id + "/votes", params);
+};
+
+export const getPostVotes = (id) => {
+  return Api.getRequest("/v1.0/topics/" + id + "/votes");
+};
+
+export const getCommentVotes = (id) => {
+  return Api.getRequest("/v1.0/comments/" + id + "/votes");
 };
 
 export const savePost = (id) => {
@@ -148,8 +169,76 @@ export const forgotPassword = (params) => {
   return Api.postRequest("/v1.0/password/reset", params);
 };
 
-export const uploadFile = (formData) => {
-  return Api.postFormDataRequest("/v1.0/upload", formData);
+export const uploadFile = (formData, config = {}) => {
+  return Api.postFormDataRequest("/v1.0/upload", formData, config);
+};
+
+// Study materials / marketplace
+export const getStudyMaterials = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return Api.getRequest(`/v1.0/study-materials${query ? `?${query}` : ""}`);
+};
+
+export const getStudyMaterial = (id) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}`);
+};
+
+export const getStudyMaterialCategories = () => {
+  return Api.getRequest("/v1.0/study-material-categories");
+};
+
+export const createStudyMaterial = (params) => {
+  return Api.postRequest("/v1.0/study-materials", params);
+};
+
+export const purchaseMaterial = (id) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/purchase`);
+};
+
+export const getMaterialRatings = (id) => {
+  return Api.getRequest(`/v1.0/study-materials/${id}/ratings`);
+};
+
+export const rateMaterial = (id, params) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/ratings`, params);
+};
+
+export const downloadMaterial = (id) => {
+  return axiosInstance.get(`/v1.0/study-materials/${id}/download`, {
+    responseType: "blob",
+    headers: {
+      Accept: "application/octet-stream",
+    },
+  });
+};
+
+export const viewMaterial = (id) => {
+  return Api.postRequest(`/v1.0/study-materials/${id}/view`);
+};
+
+// Points wallet
+export const getWalletBalance = () => {
+  return Api.getRequest("/v1.0/wallet/balance");
+};
+
+export const getWalletTransactions = (params = {}) => {
+  return Api.getRequest("/v1.0/wallet/transactions", params);
+};
+
+export const getWithdrawalRequests = () => {
+  return Api.getRequest("/v1.0/wallet/withdrawal-requests");
+};
+
+export const createDepositRequest = (params) => {
+  return Api.postRequest("/v1.0/wallet/deposit-request", params);
+};
+
+export const requestWithdrawal = (params) => {
+  return Api.postRequest("/v1.0/wallet/withdrawal-request", params);
+};
+
+export const cancelWithdrawalRequest = (id) => {
+  return Api.postRequest(`/v1.0/wallet/withdrawal-requests/${id}/cancel`);
 };
 
 export const forgotPasswordVerify = async (params) => {
@@ -190,6 +279,20 @@ export const commentPost = (id, params) => {
   return Api.postRequest("/v1.0/topics/" + id + "/comments", params);
 };
 
+export const commentPostWithImages = (id, params, imageUris) => {
+  const formData = new FormData();
+  if (params.comment) formData.append("comment", params.comment);
+  formData.append("topic_id", String(params.topic_id));
+  if (params.replying_to != null) formData.append("replying_to", String(params.replying_to));
+  if (params.is_anonymous != null) formData.append("is_anonymous", params.is_anonymous ? "1" : "0");
+  (Array.isArray(imageUris) ? imageUris : [imageUris]).forEach((uri, i) => {
+    const ext = uri.split(".").pop()?.split("?")[0]?.toLowerCase() || "jpg";
+    const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+    formData.append("images[]", { uri, name: `comment_image_${i}.${ext}`, type: mime });
+  });
+  return Api.postFormDataRequest("/v1.0/topics/" + id + "/comments", formData);
+};
+
 export const voteComment = (id, params) => {
   return Api.postRequest("/v1.0/comments/" + id + "/votes", params);
 };
@@ -208,6 +311,10 @@ export const getForumCategories = () => {
 
 export const getCurrentUser = () => {
   return Api.getRequest("/v1.0/user");
+};
+
+export const getCurrentPoints = () => {
+  return Api.getRequest("/v1.0/user/current-points");
 };
 
 export const deleteAccount = async (password) => {
@@ -274,6 +381,10 @@ export const getOnlineStatus = (username) => {
 
 export const updateProfile = (username, params) => {
   return Api.putRequest("/v1.0/users/" + username + "/profile", params);
+};
+
+export const uploadCoverPhoto = (username, formData) => {
+  return Api.postFormDataRequest("/v1.0/users/" + username + "/cover", formData);
 };
 
 export const changePassword = (params) => {
@@ -372,6 +483,28 @@ export const createConversation = (id) => {
   });
 };
 
+export const markConversationAsRead = (id) => {
+  return Api.postRequest(`/v1.0/chat/conversations/${id}/read`);
+};
+
+export const reactToMessage = (messageId, reactionType) => {
+  return Api.postRequest(`/v1.0/chat/messages/${messageId}/reactions`, {
+    reaction_type: reactionType,
+  });
+};
+
+export const removeMessageReaction = (messageId) => {
+  return Api.deleteRequest(`/v1.0/chat/messages/${messageId}/reactions`);
+};
+
+export const recallMessage = (messageId) => {
+  return Api.postRequest(`/v1.0/chat/messages/${messageId}/recall`);
+}
+
+export const editMessage = (messageId, content) => {
+  return Api.putRequest(`/v1.0/chat/messages/${messageId}`, { content });
+};
+
 // Notifications
 export const getNotifications = (page = 1, perPage = 20) => {
   return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`);
@@ -429,4 +562,12 @@ export const unblockUser = (userId) => {
 
 export const getBlockedUsers = () => {
   return Api.getRequest("/v1.0/users/blocked");
+};
+
+export const getMentionSuggestions = (q) => {
+  return Api.getRequest(`/v1.0/mention-suggestions?q=${encodeURIComponent(q)}`);
+};
+
+export const getConversationMentionSuggestions = (conversationId, q) => {
+  return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/mention-suggestions?q=${encodeURIComponent(q)}`);
 };

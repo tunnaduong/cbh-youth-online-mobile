@@ -47,6 +47,7 @@ import { captureRef } from "react-native-view-shot";
 import { createStory } from "../../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
 
 const { width, height } = Dimensions.get("window");
@@ -443,7 +444,7 @@ const TrashZone = memo(({ visible, isOver, t }) => {
   );
 });
 
-const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, t }) => {
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, selectedMediaType, isMuted, toggleMute, t }) => {
   const handleTextPress = () => {
     if (onAddText) {
       onAddText();
@@ -458,21 +459,38 @@ const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage,
 
   return (
   <View style={styles.toolsContainer}>
-    <TouchableOpacity style={styles.toolButton} onPress={handleTextPress}>
-      <Ionicons name="text" size={24} color="#fff" />
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
-      <Ionicons name="image" size={24} color="#fff" />
-    </TouchableOpacity>
-    <TouchableOpacity style={[styles.toolButton, isDrawing && styles.activeToolButton]} onPress={() => setIsDrawing(!isDrawing)}>
-      <Ionicons name="brush" size={24} color="#fff" />
-    </TouchableOpacity>
-    <TouchableOpacity
-      style={styles.toolButton}
-      onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
-    >
-      <Ionicons name="musical-notes" size={24} color="#fff" />
-    </TouchableOpacity>
+    {/* If editing a video, only show music and mute controls */}
+    {selectedMediaType === 'video' ? (
+      <>
+        <TouchableOpacity
+          style={styles.toolButton}
+          onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+        >
+          <Ionicons name="musical-notes" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.toolButton} onPress={toggleMute}>
+          <Ionicons name={isMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={24} color="#fff" />
+        </TouchableOpacity>
+      </>
+    ) : (
+      <>
+        <TouchableOpacity style={styles.toolButton} onPress={handleTextPress}>
+          <Ionicons name="text" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
+          <Ionicons name="image" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.toolButton, isDrawing && styles.activeToolButton]} onPress={() => setIsDrawing(!isDrawing)}>
+          <Ionicons name="brush" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.toolButton}
+          onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+        >
+          <Ionicons name="musical-notes" size={24} color="#fff" />
+        </TouchableOpacity>
+      </>
+    )}
   </View>
   );
 };
@@ -482,6 +500,9 @@ const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedMediaType, setSelectedMediaType] = useState(null);
+  const [selectedMediaAsset, setSelectedMediaAsset] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
   const [text, setText] = useState("");
   const [textPosition, setTextPosition] = useState({
     x: 0,
@@ -578,6 +599,9 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const handleTextOnlyStory = () => {
     setSelectedImage(null);
+    setSelectedMediaType(null);
+    setSelectedMediaAsset(null);
+    setIsMuted(false);
     setIsTextOnly(true);
     setIsEditing(true);
     setText("");
@@ -644,23 +668,28 @@ const CreateStoryScreen = ({ navigation }) => {
 
       const formData = new FormData();
 
-      if (isTextOnly && text) {
-        formData.append("content", text);
-      } else if (!isTextOnly && storyTexts.length > 0) {
-        const combinedText = storyTexts
+      const contentText =
+        (isTextOnly && text ? text : "") ||
+        storyTexts
           .filter((item) => item.text)
           .map((item) => item.text)
-          .join("\n");
-        if (combinedText) {
-          formData.append("content", combinedText);
-        }
+          .join("\n")
+          .trim();
+
+      if (contentText) {
+        formData.append("content", contentText);
       }
 
       try {
         let finalImageUri = null;
+        let fileName = "story_image.jpg";
+        let fileType = "image/jpeg";
 
-        // For both image stories and text-only stories, capture the view
-        if (selectedImage || isTextOnly) {
+        if (selectedMediaType === "video") {
+          finalImageUri = selectedImage;
+          fileName = selectedMediaAsset?.fileName || "story_video.mp4";
+          fileType = selectedMediaAsset?.mimeType || "video/mp4";
+        } else if (selectedImage || isTextOnly) {
           // Dismiss keyboard and stop editing first so that overlays are properly rendered in their final state
           Keyboard.dismiss();
           setEditingTextId(null);
@@ -673,21 +702,51 @@ const CreateStoryScreen = ({ navigation }) => {
           }
         }
 
-        if (selectedImage) {
-          formData.append("media_type", "image");
-          formData.append("media_file", {
+        if (selectedMediaType === "video") {
+          const storyFile = {
+            uri: finalImageUri,
+            type: fileType,
+            name: fileName,
+          };
+
+          formData.append("media_type", "video");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
+          formData.append("is_muted", isMuted ? "true" : "false");
+          // If there are text overlays or drawing data, include them as metadata so the server
+          // can persist and the viewer can render overlays on top of the original video.
+          try {
+            if (storyTexts && storyTexts.length > 0) {
+              formData.append("overlays[texts]", JSON.stringify(storyTexts));
+            }
+            const drawingData = drawingRef.current?.getDrawingData?.();
+            if (drawingData && drawingData.paths && drawingData.paths.length > 0) {
+              formData.append("overlays[drawing]", JSON.stringify(drawingData));
+            }
+          } catch (e) {
+            console.warn("Failed to append overlays metadata:", e?.message || e);
+          }
+        } else if (selectedImage) {
+          const storyFile = {
             uri: finalImageUri,
             type: "image/jpeg",
             name: "story_image.jpg",
-          });
+          };
+
+          formData.append("media_type", "image");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
         } else if (isTextOnly) {
           // For text-only stories, we'll send both the text content and the captured image
-          formData.append("media_type", "text");
-          formData.append("media_file", {
+          const storyFile = {
             uri: finalImageUri,
             type: "image/jpeg",
             name: "story_text.jpg",
-          });
+          };
+
+          formData.append("media_type", "text");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
           // Add background color for text-only stories
           if (textBackground && textBackground.length >= 2) {
             formData.append("background_color", JSON.stringify(textBackground));
@@ -696,7 +755,33 @@ const CreateStoryScreen = ({ navigation }) => {
 
         formData.append("privacy", "public");
 
-        await createStory(formData);
+        const requestSummary = {
+          contentLength: contentText?.length || 0,
+          isTextOnly,
+          selectedMediaType,
+          hasMediaFile: Boolean(finalImageUri),
+          isMuted,
+          storyTextCount: storyTexts?.length || 0,
+          hasDrawing: Boolean(
+            drawingRef.current?.getDrawingData?.()?.paths?.length
+          ),
+        };
+
+        console.log("[CreateStory] submitting story", requestSummary);
+
+        try {
+          await createStory(formData);
+        } catch (error) {
+          console.error("[CreateStory] server rejected story upload", {
+            message: error?.message,
+            status: error?.response?.status,
+            statusText: error?.response?.statusText,
+            url: error?.config?.url,
+            requestSummary,
+            responseData: error?.response?.data,
+          });
+          throw error;
+        }
 
         Toast.show({
           type: "success",
@@ -724,11 +809,23 @@ const CreateStoryScreen = ({ navigation }) => {
           ],
         });
       } catch (imageError) {
+        const serverMessage =
+          imageError?.response?.data?.message ||
+          imageError?.response?.data?.error ||
+          imageError?.response?.data?.errors ||
+          imageError?.message;
+
         console.error("Error processing story content:", imageError);
+        console.error("Story upload server details:", {
+          status: imageError?.response?.status,
+          statusText: imageError?.response?.statusText,
+          data: imageError?.response?.data,
+        });
+
         Toast.show({
           type: "error",
           text1: t("story.contentError"),
-          text2: t("story.contentErrorDesc"),
+          text2: serverMessage || t("story.contentErrorDesc"),
         });
         return;
       }
@@ -766,6 +863,9 @@ const CreateStoryScreen = ({ navigation }) => {
             setText("");
           } else if (type === "image") {
             setSelectedImage(null);
+            setSelectedMediaType(null);
+            setSelectedMediaAsset(null);
+            setIsMuted(false);
             setText("");
             setIsEditing(false);
             setStoryTexts([]);
@@ -794,6 +894,9 @@ const CreateStoryScreen = ({ navigation }) => {
               setText("");
             } else if (type === "image") {
               setSelectedImage(null);
+              setSelectedMediaType(null);
+              setSelectedMediaAsset(null);
+              setIsMuted(false);
               setText("");
               setIsEditing(false);
               setStoryTexts([]);
@@ -815,14 +918,20 @@ const CreateStoryScreen = ({ navigation }) => {
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
       aspect: [9, 16],
       quality: 1,
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+      const asset = result.assets?.[0];
+      if (!asset?.uri) return;
+      const mediaType = asset?.type === "video" ? "video" : "image";
+      setSelectedMediaType(mediaType);
+      setSelectedMediaAsset(asset);
+      setSelectedImage(asset.uri);
+      setIsMuted(false);
     }
   };
 
@@ -883,16 +992,65 @@ const CreateStoryScreen = ({ navigation }) => {
         return;
       }
     }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [9, 16],
-      quality: 1,
-    });
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
+    const openCameraPicker = async (preferredType = "image") => {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes:
+          preferredType === "video"
+            ? ImagePicker.MediaTypeOptions.Videos
+            : ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [9, 16],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const asset = result.assets?.[0];
+        if (!asset?.uri) return;
+        const mediaType = asset?.type === "video" ? "video" : "image";
+        setSelectedMediaType(mediaType);
+        setSelectedMediaAsset(asset);
+        setSelectedImage(asset.uri);
+        setIsMuted(false);
+      }
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [
+            t("story.takePhoto"),
+            t("story.recordVideo"),
+            t("common.cancel"),
+          ],
+          cancelButtonIndex: 2,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            openCameraPicker("image");
+          } else if (buttonIndex === 1) {
+            openCameraPicker("video");
+          }
+        }
+      );
+      return;
     }
+
+    Alert.alert(
+      t("story.chooseMedia", "Choose media"),
+      t("story.chooseMediaDesc", "Take a photo or record a video"),
+      [
+        {
+          text: t("story.takePhoto"),
+          onPress: () => openCameraPicker("image"),
+        },
+        {
+          text: t("story.recordVideo"),
+          onPress: () => openCameraPicker("video"),
+        },
+        { text: t("common.cancel"), style: "cancel" },
+      ]
+    );
   };
 
   const handleBackPress = useCallback(() => {
@@ -1011,11 +1169,24 @@ const CreateStoryScreen = ({ navigation }) => {
                     </LinearGradient>
                   ) : (
                     <>
-                      <FastImage
-                        source={{ uri: selectedImage }}
-                        style={StyleSheet.absoluteFill}
-                        resizeMode={FastImage.resizeMode.contain}
-                      />
+                      {selectedMediaType === "video" ? (
+                        <View style={[StyleSheet.absoluteFill, styles.mediaPreviewContainer]}>
+                          <Video
+                            source={{ uri: selectedImage }}
+                            style={styles.videoPreview}
+                            resizeMode="cover"
+                            repeat={false}
+                            paused={false}
+                            muted={isMuted}
+                          />
+                        </View>
+                      ) : (
+                        <FastImage
+                          source={{ uri: selectedImage }}
+                          style={StyleSheet.absoluteFill}
+                          resizeMode={FastImage.resizeMode.contain}
+                        />
+                      )}
 
                       {savedDrawingData && !isDrawing && (
                         <Image
@@ -1024,6 +1195,8 @@ const CreateStoryScreen = ({ navigation }) => {
                           resizeMode="cover"
                         />
                       )}
+
+                      {/* video mute control moved into sidebar ToolsBar; no inline overlay here */}
 
                       {isDrawing && (
                         <DrawingCanvas
@@ -1072,6 +1245,9 @@ const CreateStoryScreen = ({ navigation }) => {
                     setIsDrawing={setIsDrawing}
                     pickImage={pickImage}
                     onAddText={addStoryText}
+                    selectedMediaType={selectedMediaType}
+                    isMuted={isMuted}
+                    toggleMute={() => setIsMuted((p) => !p)}
                     t={t}
                   />
                   {editingTextId && editingTextItem && (
@@ -1135,7 +1311,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       style={{ marginBottom: 3 }}
                     />
                     <Text style={{ color: theme.text }} className="text-md font-semibold">
-                      {t("story.takePhoto")}
+                      {t("story.takePhotoOrVideo")}
                     </Text>
                   </View>
                 </TouchableHighlight>
@@ -1161,7 +1337,7 @@ const CreateStoryScreen = ({ navigation }) => {
                 <View style={styles.imagePickerContent}>
                   <Ionicons name="image" size={40} color={theme.text} />
                   <Text style={[styles.imagePickerText, { color: theme.text }]}>
-                    {t("story.pickFromGallery")}
+                    {t("story.pickPhotoOrVideo")}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -1213,6 +1389,26 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  mediaPreviewContainer: {
+    overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  videoPreview: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#000",
+  },
+  videoMuteButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 10,
   },
   textInputContainer2: {
     position: "absolute",

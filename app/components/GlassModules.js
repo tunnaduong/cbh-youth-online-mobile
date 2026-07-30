@@ -1,13 +1,11 @@
+import React from "react";
 import { Animated, Platform } from "react-native";
 
 // ---------------------------------------------------------------------------
-// iOS: @sbaiahmed1/react-native-blur
-//
-// LiquidGlassView automatically renders true iOS 26+ liquid glass and falls
-// back to a real blur on iOS < 26. LiquidGlassContainer renders a native
-// UIGlassContainerEffect on iOS 26+ and a plain View otherwise. So we simply
-// use these components for every iOS build and the library picks the right
-// effect per OS version.
+// iOS: @callstack/liquid-glass for the real iOS 26+ UIGlassEffect
+// (LiquidGlassView / LiquidGlassContainerView), @sbaiahmed1/react-native-blur
+// for the plain BlurView fallback used on iOS < 26 where there is no glass
+// effect to render at all.
 // ---------------------------------------------------------------------------
 let BlurView = null;
 let LiquidGlassView = null;
@@ -18,47 +16,46 @@ let AnimatedBlurView = null;
 const iosMajorVersion = Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
 const shouldUseIOSGlass = Platform.OS === "ios" && iosMajorVersion >= 26;
 
+console.log(iosMajorVersion)
+
 if (Platform.OS === "ios" && shouldUseIOSGlass) {
   try {
-    const Lib = require("@sbaiahmed1/react-native-blur");
-    BlurView = Lib.BlurView;
+    const Lib = require("@callstack/liquid-glass");
     LiquidGlassView = Lib.LiquidGlassView;
-    LiquidGlassContainer = Lib.LiquidGlassContainer;
+    LiquidGlassContainer = Lib.LiquidGlassContainerView;
     if (LiquidGlassView) {
       AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
-    }
-    if (BlurView) {
-      AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
     if (__DEV__) {
       console.log(
         `[GlassModules] iOS Liquid Glass: ${!!LiquidGlassView && !!LiquidGlassContainer ? "SUPPORTED" : "NOT supported"} ` +
-        `(iOS ${iosMajorVersion}, requires 26+; @sbaiahmed1/react-native-blur loaded: ${!!Lib})`
+        `(iOS ${iosMajorVersion}, requires 26+; @callstack/liquid-glass isLiquidGlassSupported: ${!!Lib.isLiquidGlassSupported})`
       );
     }
   } catch (error) {
-    console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
+    console.warn("Failed to load @callstack/liquid-glass:", error);
     if (__DEV__) {
-      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @sbaiahmed1/react-native-blur failed to load)`);
+      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @callstack/liquid-glass failed to load)`);
     }
   }
-} else if (Platform.OS === "ios") {
+}
+
+if (Platform.OS === "ios") {
   try {
-    const Lib = require("@sbaiahmed1/react-native-blur");
-    BlurView = Lib.BlurView;
+    const BlurLib = require("@sbaiahmed1/react-native-blur");
+    BlurView = BlurLib.BlurView;
     if (BlurView) {
       AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
     if (__DEV__) {
       console.log(
-        `[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, requires 26+; ` +
-        `using BlurView fallback, loaded: ${!!BlurView})`
+        `[GlassModules] iOS BlurView fallback (< 26): loaded: ${!!BlurView}`
       );
     }
   } catch (error) {
     console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
     if (__DEV__) {
-      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @sbaiahmed1/react-native-blur failed to load)`);
+      console.log(`[GlassModules] iOS BlurView fallback (< 26): @sbaiahmed1/react-native-blur failed to load`);
     }
   }
 }
@@ -72,13 +69,15 @@ let isLiquidGlassSupportedAndroid = false;
 let AnimatedLiquidGlassViewAndroid = null;
 
 const androidApiLevel = Platform.OS === "android" ? Platform.Version : 0;
-// This app only wants liquid-glass-kit's real SHADER tier (API 33+). The
-// library's own isLiquidGlassSupported() reports "supported" all the way
-// down to API 21 via its SCRIM tier — a deliberately subtle translucent
-// scrim, not a real glass render — which was silently routing API 32 and
-// below (including Android 9) into the "glass supported" branch with only
-// that weak scrim/fallback tint showing, instead of our own fallback UI.
-const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 33;
+// This app only wants liquid-glass-kit's real SHADER (API 33+) and BLUR
+// (API 31-32) tiers. The library's own isLiquidGlassSupported() reports
+// "supported" all the way down to API 21 via its SCRIM tier — a deliberately
+// subtle translucent scrim, not a real glass render — which was silently
+// routing API 30 and below (including Android 9) into the "glass supported"
+// branch with only that weak scrim/fallback tint showing, instead of our own
+// fallback UI. BLUR (API 31-32) uses a real RenderEffect blur + saturation
+// with a clipped shape, so it's a legitimate glass render worth enabling.
+const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 31;
 
 if (Platform.OS === "android") {
   try {
@@ -92,7 +91,7 @@ if (Platform.OS === "android") {
     if (__DEV__) {
       console.log(
         `[GlassModules] Android Liquid Glass: ${isLiquidGlassSupportedAndroid ? "SUPPORTED" : "NOT supported"} ` +
-        `(API ${androidApiLevel}, requires 33+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
+        `(API ${androidApiLevel}, requires 31+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
       );
     }
   } catch (error) {
@@ -113,6 +112,23 @@ if (Platform.OS === "android") {
 const useIOSGlass = shouldUseIOSGlass && !!LiquidGlassView && !!LiquidGlassContainer;
 const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
 
+// Wraps `children` (the backdrop content) in a local Android LiquidGlassProvider
+// keyed by `providerId`, on Android when glass is available; plain passthrough
+// otherwise. Callers still need to render their own LiquidGlassView(Android)
+// glass elements as JSX SIBLINGS of this wrapper (never inside it) — nesting a
+// glass view inside the provider it samples recurses the native RenderNode
+// capture into itself, which is what crashes the app.
+const AndroidGlassBackdrop = ({ providerId, style, children }) => {
+  if (Platform.OS === "android" && useAndroidGlass && LiquidGlassProviderAndroid) {
+    return (
+      <LiquidGlassProviderAndroid providerId={providerId} style={style}>
+        {children}
+      </LiquidGlassProviderAndroid>
+    );
+  }
+  return children;
+};
+
 export {
   BlurView,
   LiquidGlassView,
@@ -125,6 +141,7 @@ export {
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
   useAndroidGlass,
+  AndroidGlassBackdrop,
 };
 
 export default {
@@ -139,4 +156,5 @@ export default {
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
   useAndroidGlass,
+  AndroidGlassBackdrop,
 };

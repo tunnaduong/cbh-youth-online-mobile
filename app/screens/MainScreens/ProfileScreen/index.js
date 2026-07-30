@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -26,6 +27,7 @@ import {
   unfollowUser,
   blockUser,
   reportUser,
+  getConversations,
 } from "../../../services/api/Api";
 import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,6 +35,8 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import FastImage from "../../../components/FastImage";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -40,6 +44,7 @@ import { useTranslation } from "react-i18next";
 const ProfileScreen = ({ route, navigation }) => {
   const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
+  const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
   const { username, profileName, blockUser: blockUserInContext } = React.useContext(AuthContext);
   const userId = route?.params?.username; // Default to current user if no ID passed
@@ -52,6 +57,20 @@ const ProfileScreen = ({ route, navigation }) => {
   const [followed, setFollowed] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t } = useTranslation();
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  // Scroll-driven header: title START visible at top, fade OUT quickly as user begins scrolling
+  // Background is always transparent to let the page color show through
+  const headerBgOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 60],
+    outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   useFocusEffect(
     React.useCallback(() => {
@@ -156,6 +175,55 @@ const ProfileScreen = ({ route, navigation }) => {
     } catch (error) {
       // console.error("Error toggling follow state:", error);
     }
+  };
+
+  // The Message button always used to push a brand-new conversation
+  // (isNewConversation: true), even when a conversation with this user
+  // already existed - ConversationScreen then skips loading any history for
+  // isNewConversation screens, so it looked like the chat was empty/broken
+  // until the user backed out and reopened the same conversation from the
+  // Chat tab, where the existing history loaded normally. Look up any
+  // existing private conversation with this user first and open that
+  // instead of always starting a new one.
+  const handleMessagePress = async () => {
+    if (messagePressLoading) return;
+    setMessagePressLoading(true);
+    try {
+      const response = await getConversations();
+      const existingConversation = (response?.data || []).find(
+        (conv) =>
+          conv.type === "private" &&
+          conv.participants?.some(
+            (participant) => participant.id === userData?.id
+          )
+      );
+
+      if (existingConversation) {
+        navigation.push("ConversationScreen", {
+          conversation: existingConversation,
+          conversationId: existingConversation.id,
+        });
+        return;
+      }
+    } catch (error) {
+      console.log(
+        "[ProfileScreen] Error checking for existing conversation:",
+        error?.response?.data || error?.message
+      );
+      // Fall through to starting a new conversation below.
+    } finally {
+      setMessagePressLoading(false);
+    }
+
+    navigation.push("ConversationScreen", {
+      isNewConversation: true,
+      selectedUser: {
+        id: userData?.id,
+        profile_name: userData?.profile?.profile_name,
+        avatar_url: userData?.profile?.profile_picture,
+        username: userData?.username,
+      },
+    });
   };
 
   useFocusEffect(
@@ -281,9 +349,9 @@ const ProfileScreen = ({ route, navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
         <CustomLoading />
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -439,34 +507,66 @@ const ProfileScreen = ({ route, navigation }) => {
 
   return (
     <>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         
+        {/* Floating header - always shows buttons, fades in bg + title on scroll */}
         <View
-          style={[styles.header, { height: 50, borderBottomColor: theme.border }]}
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+          }}
           onLayout={(event) => {
             const { height } = event.nativeEvent.layout;
             setHeaderHeight(height);
           }}
         >
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={theme.primary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-            {isCurrentUser ? t('profile.title') : userData?.profile.profile_name}
-          </Text>
-          {isCurrentUser ? (
-            <TouchableOpacity onPress={() => navigation.navigate("Settings")}>
-              <Ionicons name="settings-outline" size={24} color={theme.primary} />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 24 }}></View>
-          )}
-          {!isCurrentUser && (
-            <TouchableOpacity onPress={showOptions} style={{ position: 'absolute', right: 16 }}>
-              <Ionicons name="ellipsis-vertical" size={24} color={theme.primary} />
-            </TouchableOpacity>
-          )}
+          {/* Animated background layer */}
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: theme.background,
+              opacity: headerBgOpacity,
+            }}
+          />
+
+          {/* Header content */}
+          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+            {/* Left: Back button */}
+            <View style={{ width: 44 }}>
+              <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
+              </LiquidButton>
+            </View>
+
+            {/* Center: animated title */}
+            <Animated.Text
+              style={[styles.headerTitle, {
+                color: theme.text,
+                flex: 1,
+                textAlign: 'center',
+                opacity: headerTitleOpacity,
+              }]}
+              numberOfLines={1}
+            >
+              {isCurrentUser ? t('profile.title') : userData?.profile?.profile_name}
+            </Animated.Text>
+
+            {/* Right: Settings or options button */}
+            <View style={{ width: 44, alignItems: 'flex-end' }}>
+              {isCurrentUser ? (
+                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
+                  <Ionicons name="settings-outline" size={22} color={theme.text} />
+                </LiquidButton>
+              ) : (
+                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={showOptions}>
+                  <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
+                </LiquidButton>
+              )}
+            </View>
+          </View>
         </View>
+
         <ReportModal
           visible={reportModalVisible}
           onClose={() => setReportModalVisible(false)}
@@ -478,90 +578,105 @@ const ProfileScreen = ({ route, navigation }) => {
             position: "absolute",
             zIndex: -1,
             alignSelf: "center",
-            top: headerHeight + insets.top + 10,
+            top: headerHeight + 10,
           }}
         />
-        <ScrollView
+        <AndroidGlassBackdrop providerId="ProfileScreen" style={{ flex: 1 }}>
+        <Animated.ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ backgroundColor: theme.background, paddingBottom: insets.bottom + 16 }}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+          contentContainerStyle={{ 
+            paddingTop: headerHeight > 0 ? headerHeight : 56 + insets.top,
+            paddingBottom: insets.bottom + 16 
+          }}
           refreshControl={
             <RefreshControl
               tintColor="transparent"
               colors={["transparent"]}
               progressBackgroundColor="transparent"
               style={{ backgroundColor: "transparent" }}
+              progressViewOffset={headerHeight > 0 ? headerHeight : 56 + insets.top}
               refreshing={refreshing}
               onRefresh={handleRefresh}
             />
           }
         >
           {/* Cover photo */}
-          <View
-            style={{
-              height: 170,
-              backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
-              borderRadius: 15,
-              margin: 16,
-            }}
-          />
+          {userData?.profile?.cover_photo_url ? (
+            <FastImage
+              source={{ uri: userData.profile.cover_photo_url }}
+              style={{
+                height: 170,
+                borderRadius: 15,
+                margin: 16,
+                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
+              }}
+            />
+          ) : (
+            <View
+              style={{
+                height: 170,
+                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
+                borderRadius: 15,
+                margin: 16,
+              }}
+            />
+          )}
 
-          <View
-            style={{
-              position: "relative",
-              top: -35,
-              left: 30,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 10,
-              width: "55%",
-            }}
-          >
-            <View style={{ position: "relative", backgroundColor: theme.background, borderRadius: 999 }}>
-              <FastImage
-                source={{
-                  uri: userData?.profile?.profile_picture,
-                }}
-                style={[styles.avatar, { borderColor: theme.background }]}
-              />
-              {/* Online status */}
-              {userData?.stats?.is_online ? (
-                <View style={{ backgroundColor: theme.background, borderRadius: 999, width: 20, height: 20, position: "absolute", bottom: 0, right: 0, marginRight: 12, marginBottom: 12, justifyContent: "center", alignItems: "center" }}>
-                  <View style={{ width: 14, height: 14, backgroundColor: "#16a34a", borderRadius: 999 }}></View>
-                </View>
-              ) : null}
-            </View>
-            <View>
-              <Text style={[styles.name, { color: theme.text }]} numberOfLines={2}>
-                {userData?.profile?.profile_name}
-                {userData?.profile?.verified && (
-                  <View>
-                    <Verified
-                      width={23}
-                      height={23}
-                      color={theme.primary}
-                      style={{ marginBottom: -5 }}
-                    />
+          {/* Avatar row: avatar overlaps cover, name beside it */}
+          <View style={{ paddingHorizontal: 16, marginTop: -40 }}>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
+              <View style={{ position: "relative", backgroundColor: theme.background, borderRadius: 999 }}>
+                <FastImage
+                  source={{
+                    uri: userData?.profile?.profile_picture,
+                  }}
+                  style={[styles.avatar, { borderColor: theme.background }]}
+                />
+                {/* Online status */}
+                {userData?.stats?.is_online ? (
+                  <View style={{ backgroundColor: theme.background, borderRadius: 999, width: 20, height: 20, position: "absolute", bottom: 4, right: 4, justifyContent: "center", alignItems: "center" }}>
+                    <View style={{ width: 14, height: 14, backgroundColor: "#16a34a", borderRadius: 999 }}></View>
                   </View>
-                )}
-              </Text>
-              <Text style={[styles.username, { color: theme.subText }]} numberOfLines={1}>
-                @{userData?.username}
-              </Text>
+                ) : null}
+              </View>
+              <View style={{ paddingBottom: 16, flex: 1 }}>
+                <Text style={[styles.name, { color: theme.text, marginTop: 0 }]} numberOfLines={2}>
+                  {userData?.profile?.profile_name}
+                  {userData?.profile?.verified && (
+                    <View>
+                      <Verified
+                        width={23}
+                        height={23}
+                        color={theme.primary}
+                        style={{ marginBottom: -5 }}
+                      />
+                    </View>
+                  )}
+                </Text>
+                <Text style={[styles.username, { color: theme.subText }]} numberOfLines={1}>
+                  @{userData?.username}
+                </Text>
+              </View>
             </View>
           </View>
 
-          <View style={{ marginTop: -20 }}>
+          <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
             {isCurrentUser ? (
               <TouchableOpacity
                 onPress={() => navigation.navigate("EditProfileScreen")}
-                style={{ backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999, marginHorizontal: 16 }}
+                style={{ backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999 }}
               >
                 <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
                   {t('follow.editProfile')}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <View style={{ marginTop: -20, paddingHorizontal: 16, flexDirection: "row", gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 {followed ? (
                   <TouchableOpacity
                     onPress={() => handleFollow(userId)}
@@ -584,40 +699,37 @@ const ProfileScreen = ({ route, navigation }) => {
                 )}
 
                 <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("ConversationScreen", {
-                      isNewConversation: true,
-                      selectedUser: {
-                        id: userData?.id,
-                        profile_name: userData?.profile?.profile_name,
-                        avatar_url: userData?.profile?.profile_picture,
-                        username: userData?.username,
-                      },
-                    })
-                  }
+                  onPress={handleMessagePress}
+                  disabled={messagePressLoading}
                   style={{ backgroundColor: isDarkMode ? "#374151" : "#f3f4f6", height: 44, borderRadius: 999, justifyContent: "center", alignItems: "center", flexDirection: "row", flex: 1 }}
                 >
-                  <Ionicons
-                    name="chatbubble-ellipses-outline"
-                    size={20}
-                    color={theme.text}
-                  />
-                  <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: theme.text }}>
-                    {t('follow.message')}
-                  </Text>
+                  {messagePressLoading ? (
+                    <ActivityIndicator size="small" color={theme.text} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name="chatbubble-ellipses-outline"
+                        size={20}
+                        color={theme.text}
+                      />
+                      <Text style={{ textAlign: "center", fontWeight: "600", marginLeft: 4, color: theme.text }}>
+                        {t('follow.message')}
+                      </Text>
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
             )}
           </View>
 
-          <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: isDarkMode ? "#1f2937" : "#f5f5f5", padding: 16, borderRadius: 12 }}>
+          <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: theme.surface, padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border }}>
             <Text style={{ fontWeight: "600", fontSize: 18, color: theme.text }}>{t('profile.title')}</Text>
             {userData?.profile?.bio && (
               <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8, marginBottom: 12 }}>
                 {userData?.profile?.bio}
               </Text>
             )}
-            <View style={{ gap: 2 }}>
+            <View style={{ gap: 4, marginTop: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Ionicons name="school-outline" size={16} color={theme.subText} />
                 <Text style={{ fontSize: 14, color: theme.text }}>
@@ -647,24 +759,17 @@ const ProfileScreen = ({ route, navigation }) => {
                 </View>
               )}
             </View>
-            <TouchableOpacity
-              style={{ position: "absolute", bottom: 20, right: 16 }}
-              onPress={() =>
-                navigation.navigate("ProfileDetailScreen", {
-                  username: userData?.username,
-                })
-              }
-            >
-              <Text style={{ color: theme.primary }}>{t('profile.viewDetail')}</Text>
-              <View
-                style={{
-                  height: 1,
-                  width: "100%",
-                  backgroundColor: theme.primary,
-                  marginTop: 1,
-                }}
-              />
-            </TouchableOpacity>
+            <View style={{ alignItems: "flex-end", marginTop: 12 }}>
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("ProfileDetailScreen", {
+                    username: userData?.username,
+                  })
+                }
+              >
+                <Text style={{ color: theme.primary, fontWeight: "500" }}>{t('profile.viewDetail')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View
@@ -802,8 +907,9 @@ const ProfileScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           )}
-        </ScrollView>
-      </SafeAreaView >
+        </Animated.ScrollView>
+        </AndroidGlassBackdrop>
+      </View>
     </>
   );
 };
