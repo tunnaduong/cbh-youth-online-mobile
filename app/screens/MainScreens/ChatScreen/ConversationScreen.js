@@ -339,7 +339,7 @@ const ConversationScreen = ({ navigation, route }) => {
     return getMentionSuggestions(q);
   }, []);
 
-  const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention, loading: messageSuggestionsLoading, inMentionMode: messageInMentionMode } = useMentionInput({
+  const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention, loading: messageSuggestionsLoading } = useMentionInput({
     value: message,
     onChange: setMessage,
     fetchSuggestions: fetchMessageMentionSuggestions,
@@ -2878,7 +2878,6 @@ const ConversationScreen = ({ navigation, route }) => {
                 sendTyping(currentConversationId || conversationId);
               }}
               value={message}
-              inMentionMode={messageInMentionMode}
               disabled={!message.trim() || sending}
               isSubmitting={sending}
               style={{

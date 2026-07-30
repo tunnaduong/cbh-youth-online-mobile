@@ -60,7 +60,6 @@ const CommentBar = React.forwardRef(
       // of the same provider stacked on top of each other produced a
       // visible double-refraction artifact (a blotchy discolored patch).
       androidTransparentPill = false,
-      inMentionMode = false,
     },
     ref
   ) => {
@@ -78,6 +77,10 @@ const CommentBar = React.forwardRef(
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
     };
+
+    // Computed synchronously from value — no state hop, no render delay.
+    // Stays true after a mention is picked so the green tag persists.
+    const hasMentionOverlay = !!value && /@[\w.-]+/.test(value);
 
     const MENTION_REGEX = /@[\w.-]+/g;
     const buildMentionParts = (text) => {
@@ -268,7 +271,7 @@ const CommentBar = React.forwardRef(
             ) : null}
             <View style={{ flex: 1, position: "relative" }}>
               <TextInput
-                style={[inputTextStyle, inMentionMode && { color: "transparent", backgroundColor: "transparent" }]}
+                style={[inputTextStyle, hasMentionOverlay && { color: "transparent", backgroundColor: "transparent" }]}
                 placeholder={placeholderText}
                 placeholderTextColor={theme.subText}
                 multiline={true}
@@ -280,7 +283,7 @@ const CommentBar = React.forwardRef(
                 nativeID={nativeID}
                 cursorColor={theme.text}
               />
-              {inMentionMode ? (
+              {hasMentionOverlay ? (
                 <View
                   pointerEvents="none"
                   style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
