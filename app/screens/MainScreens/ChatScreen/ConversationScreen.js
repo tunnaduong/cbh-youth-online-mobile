@@ -625,7 +625,7 @@ const ConversationScreen = ({ navigation, route }) => {
       getConversations()
         .then((response) => {
           const found = response?.data?.find(
-            (c) => c.id === conversationId,
+            (c) => String(c.id) === String(conversationId),
           );
           if (found) setCurrentConversation(found);
         })
@@ -2592,7 +2592,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   <View style={styles.headerOnlineDot} />
                 ) : null}
               </View>
-              <View style={[styles.headerTextContainer, { maxWidth: CENTER_TEXT_MAX, flexShrink: 1 }]}> 
+              <View style={[styles.headerTextContainer, { flex: 1, minWidth: 0 }]}>
                 <Text
                   style={[styles.headerName, { color: theme.text }]}
                   numberOfLines={1}
@@ -2612,7 +2612,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
                   {currentConversation?.type === "group"
                     ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
-                    : "@" + otherUser?.username || ""}
+                    : otherUser?.username ? "@" + otherUser.username : ""}
                 </Text>
               </View>
             </LiquidButton>
