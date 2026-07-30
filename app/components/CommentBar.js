@@ -93,12 +93,11 @@ const CommentBar = React.forwardRef(
     const inputTextStyle = {
       fontSize: 14,
       flex: 1,
-      padding: 2,
       color: theme.text,
       minHeight: isAndroid ? 34 : 28,
-      textAlignVertical: "center",
-      paddingTop: isIOS ? 5 : 8,
-      paddingBottom: isAndroid ? 6 : 2,
+      paddingTop: isAndroid ? 9 : 5,
+      paddingBottom: isAndroid ? 9 : 5,
+      paddingHorizontal: 2,
     };
     const hasMentionOverlay = !!value && /@[\w.-]+/.test(value);
 
