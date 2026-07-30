@@ -209,6 +209,7 @@ const PostScreen = ({ route, navigation }) => {
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
   const [commentText, setCommentText] = useState("");
+  const latestCommentRef = React.useRef("");
   const [isAnonymousComment, setIsAnonymousComment] = useState(false);
   const [parentId, setParentId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
@@ -653,7 +654,8 @@ const PostScreen = ({ route, navigation }) => {
     }
 
     // Handle new comment or reply
-    const trimmedText = commentText.trim();
+    const rawText = latestCommentRef.current || commentText;
+    const trimmedText = rawText.trim();
     if ((!trimmedText && selectedCommentImages.length === 0) || isSubmitting) return;
 
     let replyingToId = parentId;
@@ -1419,7 +1421,10 @@ const PostScreen = ({ route, navigation }) => {
                 setIsAnonymousComment(false);
               }}
               value={editingCommentId ? editingCommentText : commentText}
-              onChangeText={editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText}
+              onChangeText={(text) => {
+                if (!editingCommentId) latestCommentRef.current = text;
+                (editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText)(text);
+              }}
               placeholderText={t("post.commentPlaceholder")}
               onSubmit={onSubmit}
               ref={commentInputRef}
@@ -1468,7 +1473,10 @@ const PostScreen = ({ route, navigation }) => {
                 setIsAnonymousComment(false);
               }}
               value={editingCommentId ? editingCommentText : commentText}
-              onChangeText={editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText}
+              onChangeText={(text) => {
+                if (!editingCommentId) latestCommentRef.current = text;
+                (editingCommentId ? editMentionProps.onChangeText : commentMentionProps.onChangeText)(text);
+              }}
               placeholderText={t("post.commentPlaceholder")}
               onSubmit={onSubmit}
               ref={commentInputRef}

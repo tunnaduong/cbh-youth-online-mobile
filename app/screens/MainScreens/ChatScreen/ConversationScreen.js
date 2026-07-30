@@ -320,6 +320,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const CENTER_TEXT_MAX = Math.max(80, CENTER_MAX_WIDTH - (AVATAR_WRAPPER_SIZE + 12));
   const isAndroid = Platform.OS === "android";
   const [message, setMessage] = useState("");
+  const latestMessageRef = React.useRef("");
   const [messages, setMessages] = useState([]);
 
   const activeConversationId = React.useRef(null);
@@ -1351,11 +1352,11 @@ const ConversationScreen = ({ navigation, route }) => {
     // catch needs it to restore the reply state on failure.
     const replySnapshot = replyingTo;
     try {
-      console.log('[Send] raw message state:', JSON.stringify(message));
-      if (!message.trim() || sending) return;
+      const rawMessage = latestMessageRef.current || message;
+      if (!rawMessage.trim() || sending) return;
 
-      const trimmedMessage = message.trim();
-      console.log('[Send] trimmedMessage:', JSON.stringify(trimmedMessage));
+      const trimmedMessage = rawMessage.trim();
+      latestMessageRef.current = "";
       const now = new Date().toISOString();
 
       const optimisticMessage = {
@@ -2872,6 +2873,7 @@ const ConversationScreen = ({ navigation, route }) => {
               placeholderText={t("chat.typeMessage")}
               onSubmit={handleSendMessage}
               onChangeText={(text) => {
+                latestMessageRef.current = text;
                 messageMentionProps.onChangeText(text);
                 sendTyping(currentConversationId || conversationId);
               }}
