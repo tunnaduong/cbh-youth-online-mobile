@@ -80,7 +80,7 @@ const CommentBar = React.forwardRef(
 
     // Computed synchronously from value — no state hop, no render delay.
     // Stays true after a mention is picked so the green tag persists.
-    const hasMentionOverlay = !!value && /@[\w.-]+/.test(value);
+    const hasMentionOverlay = !!value && /@[\w.-]*/.test(value);
 
     const MENTION_REGEX = /@[\w.-]+/g;
     const buildMentionParts = (text) => {
