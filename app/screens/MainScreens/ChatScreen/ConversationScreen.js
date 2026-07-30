@@ -1351,9 +1351,11 @@ const ConversationScreen = ({ navigation, route }) => {
     // catch needs it to restore the reply state on failure.
     const replySnapshot = replyingTo;
     try {
+      console.log('[Send] raw message state:', JSON.stringify(message));
       if (!message.trim() || sending) return;
 
       const trimmedMessage = message.trim();
+      console.log('[Send] trimmedMessage:', JSON.stringify(trimmedMessage));
       const now = new Date().toISOString();
 
       const optimisticMessage = {

@@ -272,6 +272,19 @@ const CommentBar = React.forwardRef(
               </View>
             ) : null}
             <View style={{ flex: 1, position: "relative" }}>
+              <TextInput
+                style={[inputTextStyle, hasMentionOverlay && { color: "transparent", backgroundColor: "transparent" }]}
+                placeholder={placeholderText}
+                placeholderTextColor={theme.subText}
+                multiline={true}
+                ref={ref}
+                onChangeText={onChangeText}
+                value={value}
+                onKeyPress={onKeyPress}
+                editable={editable}
+                nativeID={nativeID}
+                cursorColor={theme.text}
+              />
               {hasMentionOverlay ? (
                 <View
                   pointerEvents="none"
@@ -296,19 +309,6 @@ const CommentBar = React.forwardRef(
                   </Text>
                 </View>
               ) : null}
-              <TextInput
-                style={[inputTextStyle, hasMentionOverlay && { color: "transparent" }]}
-                placeholder={placeholderText}
-                placeholderTextColor={theme.subText}
-                multiline={true}
-                ref={ref}
-                onChangeText={onChangeText}
-                value={value}
-                onKeyPress={onKeyPress}
-                editable={editable}
-                nativeID={nativeID}
-                cursorColor={theme.text}
-              />
             </View>
           </View>
 
