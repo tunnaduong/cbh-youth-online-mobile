@@ -278,10 +278,16 @@ const CommentBar = React.forwardRef(
                   pointerEvents="none"
                   style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
                 >
-                  <Text style={inputTextStyle}>
+                  <Text style={[inputTextStyle, { flex: undefined, color: theme.text }]}>
                     {buildMentionParts(value).map((part, i) =>
                       part.mention ? (
-                        <Text key={i} style={{ textDecorationLine: "underline" }}>
+                        <Text
+                          key={i}
+                          style={{
+                            color: isDarkMode ? "#6bcf60" : "#319527",
+                            textDecorationLine: "underline",
+                          }}
+                        >
                           {part.value}
                         </Text>
                       ) : (
