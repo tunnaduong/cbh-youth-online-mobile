@@ -565,7 +565,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("AboutScreen")}
               onLongPress={() => navigation.navigate("EasterEggScreen")}
-              delayLongPress={3000}
+              delayLongPress={500}
               left={() => (
                 <Ionicons
                   name="information-circle-outline"

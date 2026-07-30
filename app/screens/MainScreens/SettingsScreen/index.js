@@ -282,7 +282,7 @@ export default function SettingsScreen({ navigation }) {
             title={t("settings.about")}
             onPress={() => navigation.navigate("AboutScreen")}
             onLongPress={() => navigation.navigate("EasterEggScreen")}
-            delayLongPress={3000}
+            delayLongPress={500}
           />
         </SettingSection>
 
