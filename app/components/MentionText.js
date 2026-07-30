@@ -54,7 +54,6 @@ const MentionText = ({ children, style, onMentionPress, mentions, ...rest }) => 
             style={{
               color: theme.primary,
               textDecorationLine: "underline",
-              fontWeight: "600",
             }}
             onPress={() => onMentionPress?.(part.username)}
           >
