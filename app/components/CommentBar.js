@@ -335,7 +335,7 @@ const CommentBar = React.forwardRef(
                 // then send after one frame so onChangeText fires with the full text.
                 if (isAndroid && ref?.current) {
                   ref.current.blur();
-                  requestAnimationFrame(onSubmit);
+                  setTimeout(onSubmit, 100);
                 } else {
                   onSubmit();
                 }
