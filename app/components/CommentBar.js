@@ -82,6 +82,7 @@ const CommentBar = React.forwardRef(
       // of the same provider stacked on top of each other produced a
       // visible double-refraction artifact (a blotchy discolored patch).
       androidTransparentPill = false,
+      inMentionMode = false,
     },
     ref
   ) => {
@@ -99,7 +100,7 @@ const CommentBar = React.forwardRef(
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
     };
-    const hasMentionOverlay = !!value && /@[\w.-]+/.test(value);
+    const hasMentionOverlay = inMentionMode;
 
     return (
       <RootView
@@ -378,7 +379,16 @@ const CommentBar = React.forwardRef(
                 height: 36,
                 borderRadius: 18,
               }}
-              onPress={onSubmit}
+              onPress={() => {
+                // On Android, blur first to commit any pending IME composition,
+                // then send after one frame so onChangeText fires with the full text.
+                if (isAndroid && ref?.current) {
+                  ref.current.blur();
+                  requestAnimationFrame(onSubmit);
+                } else {
+                  onSubmit();
+                }
+              }}
               disabled={disabled}
             >
               {isSubmitting ? (
