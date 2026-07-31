@@ -1,0 +1,19 @@
+name: Production Build
+
+on:
+  push:
+    branches:
+      - dhphuc
+
+jobs:
+  build-android:
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  build-ios:
+    type: build
+    params:
+      platform: ios
+      profile: production
