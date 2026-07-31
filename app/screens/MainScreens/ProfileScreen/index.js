@@ -42,7 +42,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 
 const ProfileScreen = ({ route, navigation }) => {
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, autoplayVideos } = useTheme();
   const [loading, setLoading] = useState(true);
   const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -446,6 +446,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   onVoteUpdate={handleVoteUpdate}
                   onSaveUpdate={handleSaveUpdate}
                   screenName={"ProfileScreen"}
+                  isActive={autoplayVideos}
                 />
               ))
             )}

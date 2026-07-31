@@ -199,7 +199,7 @@ const Comment = React.forwardRef(
 );
 
 const PostScreen = ({ route, navigation }) => {
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, autoplayVideos } = useTheme();
   const { item, postId, screenName, highlightCommentId } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
@@ -1309,6 +1309,7 @@ const PostScreen = ({ route, navigation }) => {
             onVote={handleVote}
             onSave={handleSavePost}
             screenName={screenName}
+            isActive={autoplayVideos}
           />
           {/* comment section */}
           <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
