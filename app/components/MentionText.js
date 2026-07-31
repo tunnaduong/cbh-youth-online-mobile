@@ -3,7 +3,12 @@ import { Text } from "react-native";
 
 export function buildParts(text) {
   const parts = [];
-  const regex = /@([\w.-]+)/g;
+  // \w is ASCII-only, so a mention using a Vietnamese display name/username
+  // (diacritics like "@Tuấn" or "@Nguyễn") never matched and stayed
+  // uncolored. \p{L} matches any Unicode letter (precomposed Vietnamese
+  // characters included), \p{M} covers combining diacritical marks for text
+  // still in decomposed (NFD) form.
+  const regex = /@([\p{L}\p{N}\p{M}_.-]+)/gu;
   let lastIndex = 0;
   let match;
   while ((match = regex.exec(text)) !== null) {

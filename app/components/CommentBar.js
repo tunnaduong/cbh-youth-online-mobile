@@ -39,7 +39,12 @@ const RootView = View;
 function mentionParser(input) {
   "worklet";
   const ranges = [];
-  const regex = /@[\w.-]+/g;
+  // \w is ASCII-only, so a mention using Vietnamese characters (diacritics
+  // like "@Tuấn") never matched here either, staying uncolored while typing.
+  // \p{L}/\p{N} match any Unicode letter/digit (English still matches fine,
+  // since those are Unicode letters/digits too), \p{M} covers combining
+  // diacritical marks for text still in decomposed (NFD) form.
+  const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
   let match;
   while ((match = regex.exec(input)) !== null) {
     ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
