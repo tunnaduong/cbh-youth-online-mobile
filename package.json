@@ -30,7 +30,7 @@
     "axios": "^1.7.9",
     "dayjs": "^1.11.13",
     "deprecated-react-native-prop-types": "^5.0.0",
-    "expensify-common": "2.0.115",
+    "expensify-common": "2.0.197",
     "expo": "^55.0.28",
     "expo-apple-authentication": "~55.0.15",
     "expo-application": "~55.0.17",
