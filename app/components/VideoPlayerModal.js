@@ -3,6 +3,7 @@ import { Modal, View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useIsFocused } from "@react-navigation/native";
 import { useTheme } from "../contexts/ThemeContext";
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
@@ -16,6 +17,19 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
     p.loop = false;
     if (uri && autoplayVideos) p.play();
   });
+
+  const isFocused = useIsFocused();
+  // Pause player when containing screen loses focus
+  React.useEffect(() => {
+    if (!player || typeof player !== "object") return;
+    if (!isFocused) {
+      try {
+        if (typeof player.pause === "function") player.pause();
+      } catch (e) {
+        console.warn("VideoPlayerModal: failed to pause player on blur", e);
+      }
+    }
+  }, [isFocused, player]);
 
   // ensure the VideoView remounts if the underlying player reference changes
   const [playerKey, setPlayerKey] = React.useState(0);

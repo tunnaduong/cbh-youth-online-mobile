@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useIsFocused } from "@react-navigation/native";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -20,6 +21,7 @@ import VideoThumbnail from "./VideoThumbnail";
 // this codebase of never keeping a player mounted longer than it's needed.
 const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
   const [muted, setMuted] = useState(true);
+  const isFocused = useIsFocused();
 
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = true;
@@ -37,6 +39,18 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
     if (!player) return;
     player.muted = muted;
   }, [player, muted]);
+
+  // Pause the player when the screen loses focus to avoid autoplay across screens
+  useEffect(() => {
+    if (!player || typeof player !== "object") return;
+    if (!isFocused) {
+      try {
+        if (typeof player.pause === "function") player.pause();
+      } catch (e) {
+        console.warn("InlineVideoPlayer: failed to pause player on blur", e);
+      }
+    }
+  }, [isFocused, player]);
 
   return (
     <>
@@ -83,8 +97,9 @@ const InlineVideoPlayer = ({
   style,
 }) => {
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
+  const isFocused = useIsFocused();
 
-  const showActivePlayer = isActive && !fullscreenVisible;
+  const showActivePlayer = isActive && !fullscreenVisible && isFocused;
 
   return (
     <View style={[{ width, height, borderRadius }, styles.wrapper, style]}>

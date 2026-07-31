@@ -23,7 +23,7 @@ import {
   useSafeAreaInsets,
   SafeAreaView,
 } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import ImageView from "react-native-image-viewing";
 import { useVideoPlayer, VideoView } from "expo-video";
 import FastImage from "../../../components/FastImage";
@@ -187,10 +187,22 @@ const injectTimeHeaders = (messages, t) => {
 // mounts (and allocates a native player) while the modal is actually open.
 const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
   const { autoplayVideos } = useTheme();
+  const isFocused = useIsFocused();
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = false;
     if (uri && autoplayVideos) p.play();
   });
+
+  useEffect(() => {
+    if (!player || typeof player !== "object") return;
+    if (!isFocused) {
+      try {
+        if (typeof player.pause === "function") player.pause();
+      } catch (e) {
+        console.warn("VideoViewerModal: failed to pause player on blur", e);
+      }
+    }
+  }, [isFocused, player]);
 
   // remount the VideoView if the player reference changes to avoid
   // referencing a native player that was already released
