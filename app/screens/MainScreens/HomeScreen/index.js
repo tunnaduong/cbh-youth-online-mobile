@@ -68,6 +68,7 @@ import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useIsFocused } from "@react-navigation/native";
 
 const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
@@ -853,6 +854,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [latestPage, setLatestPage] = React.useState(1);
   const deliveredIdsRef = useRef(new Set());
   const viewedPosts = useRef(new Set());
+  const [activePostId, setActivePostId] = React.useState(null);
+  const isFocused = useIsFocused();
   const flatListRef = React.useRef(null);
   const { feed, setFeed } = useContext(FeedContext);
   const storyRef = useRef(null);
@@ -877,7 +880,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     blockUser: blockUserInContext,
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, autoplayVideos } = useTheme();
   const insets = useSafeAreaInsets();
   const previousStatusBarStyle = useRef({
     barStyle: "dark-content",
@@ -1167,6 +1170,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleViewableItemsChanged = ({ viewableItems }) => {
     if (!viewableItems) return;
+
+    // Facebook-style autoplay: only one post's video plays at a time. The
+    // viewability config below (itemVisiblePercentThreshold: 50) means
+    // viewableItems is already just the post(s) crossing that threshold, in
+    // list order, so the first one is the best candidate to autoplay.
+    let activeItem = null;
+
     viewableItems.forEach((viewableItem) => {
       if (!viewableItem?.item) return;
       if (viewableItem.item.type === "divider") return;
@@ -1176,7 +1186,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         viewedPosts.current.add(postId); // Mark as viewed
         increasePostView(postId); // Call API
       }
+
+      if (!activeItem) activeItem = viewableItem.item;
     });
+
+    setActivePostId(activeItem ? activeItem.id : null);
   };
 
   const increasePostView = async (postId) => {
@@ -2175,7 +2189,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={filteredFeed}
-          extraData={{ t, theme, isDarkMode }}
+          extraData={{ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           initialNumToRender={5}
           maxToRenderPerBatch={5}
@@ -2200,6 +2214,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 onVoteUpdate={handleVoteUpdate}
                 onSaveUpdate={handleSaveUpdate}
                 navigation={navigation}
+                isActive={autoplayVideos && isFocused && item.id === activePostId}
               />
             )
           )}

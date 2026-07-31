@@ -39,7 +39,7 @@ import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
-import VideoThumbnail from "./VideoThumbnail";
+import InlineVideoPlayer from "./InlineVideoPlayer";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -243,6 +243,7 @@ const PostItem = ({
   saved: externalSaved,
   onVote: onVoteCallback, // Callback for single view vote updates
   onSave: onSaveCallback, // Callback for single view save updates
+  isActive = true, // Whether this card is on-screen — drives inline video autoplay
 }) => {
   const videoUrls = Array.isArray(item.video_urls)
     ? item.video_urls
@@ -742,12 +743,13 @@ const PostItem = ({
                   contentContainerStyle={{ gap: 4 }}
                 >
                   {videoUrls.map((url, index) => (
-                    <VideoThumbnail
+                    <InlineVideoPlayer
                       key={`${url}-${index}`}
                       uri={url}
                       width={videoW}
                       height={videoH}
                       borderRadius={0}
+                      isActive={isActive}
                     />
                   ))}
                 </ScrollView>
@@ -761,12 +763,13 @@ const PostItem = ({
                 contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10, gap: 8 }}
               >
                 {videoUrls.map((url, index) => (
-                  <VideoThumbnail
+                  <InlineVideoPlayer
                     key={`${url}-${index}`}
                     uri={url}
                     width={single ? 260 : 220}
                     height={single ? 180 : 150}
                     borderRadius={12}
+                    isActive={isActive}
                   />
                 ))}
               </ScrollView>

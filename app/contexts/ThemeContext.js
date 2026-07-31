@@ -57,6 +57,10 @@ export const ThemeProvider = ({ children }) => {
     return storage.getBoolean("hideTabLabels") ?? false;
   });
 
+  const [autoplayVideos, setAutoplayVideosState] = useState(() => {
+    return storage.getBoolean("autoplayVideos") ?? true;
+  });
+
   useEffect(() => {
     if (useSystemTheme) {
       setIsDarkMode(systemColorScheme === "dark");
@@ -79,6 +83,11 @@ export const ThemeProvider = ({ children }) => {
     storage.set("hideTabLabels", value);
   };
 
+  const setAutoplayVideos = (value) => {
+    setAutoplayVideosState(value);
+    storage.set("autoplayVideos", value);
+  };
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   return (
@@ -91,6 +100,8 @@ export const ThemeProvider = ({ children }) => {
         setUseSystemTheme,
         hideTabLabels,
         setHideTabLabels,
+        autoplayVideos,
+        setAutoplayVideos,
       }}
     >
       {children}
