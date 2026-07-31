@@ -45,7 +45,7 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
         onPress={onOpenFullscreen}
         style={[styles.tile, { borderRadius }]}
       >
-        {player ? (
+        {player && typeof player === "object" ? (
           <VideoView
             key={playerKey}
             style={StyleSheet.absoluteFill}

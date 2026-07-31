@@ -186,9 +186,10 @@ const injectTimeHeaders = (messages, t) => {
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
 const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
+  const { autoplayVideos } = useTheme();
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = false;
-    if (uri) p.play();
+    if (uri && autoplayVideos) p.play();
   });
 
   // remount the VideoView if the player reference changes to avoid
@@ -208,7 +209,7 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
         >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        {player ? (
+        {player && typeof player === "object" ? (
           <VideoView
             key={playerKey}
             style={styles.videoViewerPlayer}
@@ -445,6 +446,27 @@ const MessageRow = React.memo(({
   const isFileMessage = item.type === "file" || item.content_type === "file";
   const resolvedFileUrl = resolveMediaUrl(item.file_url);
   const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
+  const [imageAspectRatio, setImageAspectRatio] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setImageAspectRatio(null);
+    const url = isImageMessage ? resolvedFileUrl : isVideoMessage ? resolvedThumbnailUrl : null;
+    if (!url) return undefined;
+    // Try to get intrinsic size so we can preserve original ratio instead of 1:1 crop
+    Image.getSize(
+      url,
+      (w, h) => {
+        if (!cancelled && w > 0) setImageAspectRatio(w / h);
+      },
+      () => {
+        /* ignore error, keep default square fallback */
+      }
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedFileUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
 
   const handleSwipeReply = () => {
     const contentType =
@@ -659,7 +681,11 @@ const MessageRow = React.memo(({
                 ) : (
                   <FastImage
                     source={{ uri: resolvedFileUrl }}
-                    style={styles.messageImage}
+                    style={
+                      imageAspectRatio
+                        ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
+                        : styles.messageImage
+                    }
                     resizeMode={"cover"}
                     onError={(e) => {
                       const reason = e?.nativeEvent?.error || "unknown error";
@@ -684,7 +710,11 @@ const MessageRow = React.memo(({
                 {resolvedThumbnailUrl ? (
                   <FastImage
                     source={{ uri: resolvedThumbnailUrl }}
-                    style={styles.messageImage}
+                    style={
+                      imageAspectRatio
+                        ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
+                        : styles.messageImage
+                    }
                     resizeMode={"cover"}
                     onError={undefined}
                   />

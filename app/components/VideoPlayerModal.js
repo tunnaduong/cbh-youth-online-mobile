@@ -3,6 +3,7 @@ import { Modal, View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTheme } from "../contexts/ThemeContext";
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
@@ -10,9 +11,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // one full-screen video viewer implementation in the app.
 const VideoPlayerModal = ({ visible, uri, onClose }) => {
   const insets = useSafeAreaInsets();
+  const { autoplayVideos } = useTheme();
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = false;
-    if (uri) p.play();
+    if (uri && autoplayVideos) p.play();
   });
 
   // ensure the VideoView remounts if the underlying player reference changes
@@ -31,7 +33,7 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
         >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        {player ? (
+        {player && typeof player === "object" ? (
           <VideoView
             key={playerKey}
             style={styles.player}
