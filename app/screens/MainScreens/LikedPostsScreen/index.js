@@ -73,6 +73,12 @@ const LikedPostsScreen = ({ navigation }) => {
 
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+
   const handleScroll = (event) => {
     const y = event.nativeEvent.contentOffset.y;
     scrollY.setValue(y);
@@ -193,12 +199,12 @@ const LikedPostsScreen = ({ navigation }) => {
               <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
           </View>
-          <Text
-            style={{ fontSize: 18, fontWeight: "600", color: theme.primary, flex: 1, textAlign: "center" }}
+          <Animated.Text
+            style={{ fontSize: 18, fontWeight: "600", color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }}
             numberOfLines={1}
           >
             {t('likedPosts.title')}
-          </Text>
+          </Animated.Text>
           <View style={{ width: 44 }} />
         </View>
       </View>
