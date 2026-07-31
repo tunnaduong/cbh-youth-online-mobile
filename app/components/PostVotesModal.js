@@ -213,6 +213,8 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
               style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+              scrollEnabled={true}
             />
           )}
         </View>

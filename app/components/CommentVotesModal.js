@@ -165,6 +165,8 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
             style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
+            nestedScrollEnabled={true}
+            scrollEnabled={true}
           />
         )}
       </View>

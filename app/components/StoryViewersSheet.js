@@ -235,6 +235,8 @@ const StoryViewersSheet = () => {
           keyExtractor={(it) => it.id.toString()}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          scrollEnabled={true}
         />
       )}
     </ActionSheet>
