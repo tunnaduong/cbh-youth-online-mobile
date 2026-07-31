@@ -1,29 +1,30 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import VideoPlayerModal from "./VideoPlayerModal";
+import VideoThumbnail from "./VideoThumbnail";
 
-// Facebook-style inline video tile: muted, looping autoplay driven purely by
-// the `isActive` prop (the parent feed decides visibility via
-// onViewableItemsChanged), with a mute toggle and a tap-to-open full-screen
-// player with sound + native controls. One native player is created per
-// tile (feed lists are virtualized, so only on-screen tiles pay this cost).
-const InlineVideoPlayer = ({
-  uri,
-  width,
-  height,
-  borderRadius = 0,
-  isActive = false,
-  style,
-}) => {
+// The real native player - only ever mounted for the single tile that's
+// currently "active" (autoplaying), so at most one expo-video player exists
+// across the whole feed at a time. Every other tile stays a static
+// VideoThumbnail with no player at all.
+//
+// This is deliberate, not an optimization: mounting a player per video tile
+// (even paused/off-screen ones) in a virtualized FlatList caused native
+// crashes ("Cannot use shared object that was already released") as
+// FlatList recycled rows and released players out from under VideoViews
+// that still referenced them. Fully mounting/unmounting this subtree when
+// `isActive` flips (instead of keeping one player alive and toggling
+// play/pause) mirrors VideoThumbnail/VideoPlayerModal's existing pattern in
+// this codebase of never keeping a player mounted longer than it's needed.
+const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
   const [muted, setMuted] = useState(true);
-  const [fullscreenVisible, setFullscreenVisible] = useState(false);
-  const wasActiveBeforeFullscreen = useRef(false);
 
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = true;
     p.muted = true;
+    if (uri) p.play();
   });
 
   useEffect(() => {
@@ -31,40 +32,20 @@ const InlineVideoPlayer = ({
     player.muted = muted;
   }, [player, muted]);
 
-  useEffect(() => {
-    if (!player) return;
-    if (isActive && !fullscreenVisible) {
-      player.play();
-    } else {
-      player.pause();
-    }
-  }, [player, isActive, fullscreenVisible]);
-
-  const openFullscreen = () => {
-    wasActiveBeforeFullscreen.current = isActive;
-    setFullscreenVisible(true);
-  };
-
-  const closeFullscreen = () => {
-    setFullscreenVisible(false);
-  };
-
   return (
-    <View style={[{ width, height, borderRadius }, styles.wrapper, style]}>
+    <>
       <TouchableOpacity
         activeOpacity={1}
-        onPress={openFullscreen}
+        onPress={onOpenFullscreen}
         style={[styles.tile, { borderRadius }]}
       >
-        {uri && (
-          <VideoView
-            style={StyleSheet.absoluteFill}
-            player={player}
-            nativeControls={false}
-            contentFit="cover"
-            pointerEvents="none"
-          />
-        )}
+        <VideoView
+          style={StyleSheet.absoluteFill}
+          player={player}
+          nativeControls={false}
+          contentFit="cover"
+          pointerEvents="none"
+        />
       </TouchableOpacity>
       <TouchableOpacity
         onPress={() => setMuted((m) => !m)}
@@ -77,11 +58,46 @@ const InlineVideoPlayer = ({
           color="#fff"
         />
       </TouchableOpacity>
+    </>
+  );
+};
+
+// Facebook-style inline video tile: the parent feed decides which single
+// post is on-screen (via onViewableItemsChanged) and passes `isActive`
+// accordingly. Tapping opens a full-screen player with sound + controls.
+const InlineVideoPlayer = ({
+  uri,
+  width,
+  height,
+  borderRadius = 0,
+  isActive = false,
+  style,
+}) => {
+  const [fullscreenVisible, setFullscreenVisible] = useState(false);
+
+  const showActivePlayer = isActive && !fullscreenVisible;
+
+  return (
+    <View style={[{ width, height, borderRadius }, styles.wrapper, style]}>
+      {showActivePlayer ? (
+        <ActiveVideoTile
+          uri={uri}
+          borderRadius={borderRadius}
+          onOpenFullscreen={() => setFullscreenVisible(true)}
+        />
+      ) : (
+        <VideoThumbnail
+          uri={uri}
+          width={width}
+          height={height}
+          borderRadius={borderRadius}
+        />
+      )}
       {fullscreenVisible && (
         <VideoPlayerModal
           visible={fullscreenVisible}
           uri={uri}
-          onClose={closeFullscreen}
+          onClose={() => setFullscreenVisible(false)}
         />
       )}
     </View>
