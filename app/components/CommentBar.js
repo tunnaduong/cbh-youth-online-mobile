@@ -3,7 +3,6 @@ import {
   TouchableOpacity,
   View,
   Text,
-  TextInput,
   ActivityIndicator,
   Platform,
   StyleSheet,
@@ -16,7 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { buildParts } from "./MentionText";
+import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
 import {
   BlurView,
   LiquidGlassView,
@@ -30,6 +29,23 @@ const isIOS = Platform.OS === "ios";
 const isAndroid = Platform.OS === "android";
 const RootView = View;
 
+// Runs on the UI thread (native, not JS) on every keystroke inside
+// MarkdownTextInput - flags "@username" tokens as 'mention-user' so they get
+// colored live via markdownStyle.mentionUser below. This replaces an earlier
+// JS-side "transparent TextInput + absolutely-positioned Text overlay" hack
+// that had to redo a full text layout pass on every keystroke and was
+// visibly laggy on mid/low-end Android; coloring here happens natively in
+// the text renderer itself instead.
+function mentionParser(input) {
+  "worklet";
+  const ranges = [];
+  const regex = /@[\w.-]+/g;
+  let match;
+  while ((match = regex.exec(input)) !== null) {
+    ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+  }
+  return ranges;
+}
 
 const CommentBar = React.forwardRef(
   (
@@ -78,18 +94,6 @@ const CommentBar = React.forwardRef(
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
     };
-
-    // Live @mention highlighting while typing: the real TextInput can't
-    // apply mixed styles to its own text, so while the value contains an
-    // "@mention" it's rendered invisible and an absolutely-positioned Text
-    // overlay (identical font metrics) draws the colored version on top.
-    // Skipped entirely when there's no "@" in the text (the common case),
-    // so normal typing pays zero extra cost.
-    const mentionParts = React.useMemo(
-      () => (value && value.indexOf("@") !== -1 ? buildParts(value) : null),
-      [value]
-    );
-    const hasMention = !!mentionParts?.some((p) => p.type === "mention");
 
     return (
       <RootView
@@ -261,39 +265,23 @@ const CommentBar = React.forwardRef(
                 {leftAccessory}
               </View>
             ) : null}
-            <View style={{ flex: 1, position: "relative" }}>
-              {hasMention && (
-                <Text
-                  pointerEvents="none"
-                  style={[inputTextStyle, styles.mentionOverlay]}
-                >
-                  {mentionParts.map((part, i) =>
-                    part.type === "mention" ? (
-                      <Text key={i} style={{ color: "#22c55e" }}>
-                        {part.value}
-                      </Text>
-                    ) : (
-                      <Text key={i} style={{ color: theme.text }}>
-                        {part.value}
-                      </Text>
-                    )
-                  )}
-                </Text>
-              )}
-              <TextInput
-                style={[inputTextStyle, hasMention && { color: "transparent" }]}
-                placeholder={placeholderText}
-                placeholderTextColor={theme.subText}
-                multiline={true}
-                ref={ref}
-                onChangeText={onChangeText}
-                value={value}
-                onKeyPress={onKeyPress}
-                editable={editable}
-                nativeID={nativeID}
-                cursorColor={theme.text}
-              />
-            </View>
+            <MarkdownTextInput
+              style={inputTextStyle}
+              parser={mentionParser}
+              markdownStyle={{
+                mentionUser: { color: "#22c55e", backgroundColor: "transparent" },
+              }}
+              placeholder={placeholderText}
+              placeholderTextColor={theme.subText}
+              multiline={true}
+              ref={ref}
+              onChangeText={onChangeText}
+              value={value}
+              onKeyPress={onKeyPress}
+              editable={editable}
+              nativeID={nativeID}
+              cursorColor={theme.text}
+            />
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 5 }}>
@@ -395,14 +383,5 @@ const CommentBar = React.forwardRef(
     );
   }
 );
-
-const styles = StyleSheet.create({
-  mentionOverlay: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 0,
-  },
-});
 
 export default CommentBar;
