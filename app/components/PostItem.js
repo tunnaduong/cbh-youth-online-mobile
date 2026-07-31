@@ -397,21 +397,23 @@ const PostItem = ({
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          onPress={() => {
-            setReportModalVisible(true);
-            hideBottomSheet();
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
-            <Text
-              style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
-            >
-              {t('post.report')}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity
+            onPress={() => {
+              setReportModalVisible(true);
+              hideBottomSheet();
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
+              <Text
+                style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
+              >
+                {t('post.report')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
         {isCurrentUser && (
           <TouchableOpacity onPress={handleDeletePost}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>

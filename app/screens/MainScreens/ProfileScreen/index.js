@@ -441,7 +441,7 @@ const ProfileScreen = ({ route, navigation }) => {
               recentPostsProfile?.map((post) => (
                 <PostItem
                   key={`post-${post.id}`}
-                  item={post}
+                  item={isCurrentUser ? { ...post, is_owner: true } : post}
                   navigation={navigation}
                   onVoteUpdate={handleVoteUpdate}
                   onSaveUpdate={handleSaveUpdate}
