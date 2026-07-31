@@ -15,7 +15,6 @@ import {
   Alert,
   Text,
   Pressable,
-  Image,
   ActionSheetIOS,
   KeyboardAvoidingView,
   Animated,
@@ -41,6 +40,7 @@ import {
   getMentionSuggestions,
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
+import FastImage from "../../../components/FastImage";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import LiquidButton from "../../../components/LiquidButton";
@@ -64,7 +64,7 @@ import {
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
 
-const Comment = React.forwardRef(
+const Comment = React.memo(React.forwardRef(
   ({ comment, level = 0, border = false, commentRefs,
      highlightedCommentId, isDarkMode, theme, t, username,
      navigation, focusCommentInput, handleCommentVote,
@@ -111,7 +111,7 @@ const Comment = React.forwardRef(
                     <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
                   </View>
                 ) : author.username ? (
-                  <Image source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
+                  <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
                 ) : null}
               </View>
             </Pressable>
@@ -147,7 +147,7 @@ const Comment = React.forwardRef(
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
                   {comment.image_urls.map((url, idx) => (
                     <TouchableOpacity key={idx} activeOpacity={0.85} onPress={() => setImageViewer({ visible: true, images: comment.image_urls.map((u) => ({ uri: u })), index: idx })}>
-                      <Image source={{ uri: url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
+                      <FastImage source={{ uri: url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -196,7 +196,7 @@ const Comment = React.forwardRef(
       </View>
     );
   },
-);
+));
 
 const PostScreen = ({ route, navigation }) => {
   const { theme, isDarkMode, autoplayVideos } = useTheme();
@@ -208,6 +208,17 @@ const PostScreen = ({ route, navigation }) => {
   );
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
+  // Mirrors `comments` for callbacks below that need the latest comment tree
+  // without taking it as a dependency - lets handleCommentVote/
+  // focusCommentInput/handleLongPressComment stay referentially stable
+  // (via useCallback) across renders where the comments themselves didn't
+  // change, which React.memo(Comment) below relies on to avoid re-rendering
+  // the entire (potentially deep) comment tree on every unrelated PostScreen
+  // state change (scroll, keyboard, post-level votes, etc).
+  const commentsRef = useRef(comments);
+  useEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
   const [commentText, setCommentText] = useState("");
   const latestCommentRef = React.useRef("");
   const [isAnonymousComment, setIsAnonymousComment] = useState(false);
@@ -464,6 +475,12 @@ const PostScreen = ({ route, navigation }) => {
       setLoadingPost(false);
     }
   };
+  // Mirror for stable callbacks (see commentsRef above) that need to trigger
+  // a refetch without taking fetchData itself as a dependency.
+  const fetchDataRef = useRef(fetchData);
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  });
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -474,12 +491,12 @@ const PostScreen = ({ route, navigation }) => {
     });
   };
 
-  const focusCommentInput = (id, name) => {
-    const level = getCommentLevel(comments, id);
+  const focusCommentInput = React.useCallback((id, name) => {
+    const level = getCommentLevel(commentsRef.current, id);
 
     if (level >= 3) {
       // Trả lời cấp 4+ thì gán lại parentId là cấp 2
-      const parentCommentId = findParentIdForReply(comments, id);
+      const parentCommentId = findParentIdForReply(commentsRef.current, id);
       setParentId(parentCommentId ?? id); // fallback nếu không tìm được
     } else {
       setParentId(id);
@@ -494,7 +511,7 @@ const PostScreen = ({ route, navigation }) => {
     setTimeout(() => {
       scrollToComment(id);
     }, 100);
-  };
+  }, []);
 
   const getCommentLevel = (comments, id, currentLevel = 1) => {
     for (const comment of comments) {
@@ -772,7 +789,7 @@ const PostScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleCommentVote = async (commentId, voteValue) => {
+  const handleCommentVote = React.useCallback(async (commentId, voteValue) => {
     try {
       // Optimistically update the UI
       setComments((prevComments) => {
@@ -835,9 +852,9 @@ const PostScreen = ({ route, navigation }) => {
       console.error("Error voting on comment:", error);
       // If the API call fails, revert the optimistic update
       // You might want to show an error message to the user as well
-      fetchData(); // Re-fetch the data to revert the changes
+      fetchDataRef.current(); // Re-fetch the data to revert the changes
     }
-  };
+  }, [username]);
 
   const handleVoteReply = (commentId, replyId, voteValue) => {
     setComments((prevComments) =>
@@ -900,8 +917,8 @@ const PostScreen = ({ route, navigation }) => {
     return null;
   };
 
-  const handleLongPressComment = (commentId) => {
-    const comment = findCommentById(comments, commentId);
+  const handleLongPressComment = React.useCallback((commentId) => {
+    const comment = findCommentById(commentsRef.current, commentId);
     if (!comment) return;
 
     const isCommentOwner = comment.author?.username === username;
@@ -931,7 +948,7 @@ const PostScreen = ({ route, navigation }) => {
             }
           } else if (buttonIndex === 2) {
             // Delete comment
-            handleDeleteComment(commentId);
+            handleDeleteCommentRef.current(commentId);
           }
         },
       );
@@ -960,13 +977,13 @@ const PostScreen = ({ route, navigation }) => {
           {
             text: t("post.deleteComment"),
             style: "destructive",
-            onPress: () => handleDeleteComment(commentId),
+            onPress: () => handleDeleteCommentRef.current(commentId),
           },
         ],
         { cancelable: true },
       );
     }
-  };
+  }, [username, t]);
 
   const handleDeleteComment = async (commentId) => {
     Alert.alert(t("post.deleteComment"), t("post.deleteCommentConfirm"), [
@@ -1039,6 +1056,10 @@ const PostScreen = ({ route, navigation }) => {
       },
     ]);
   };
+  const handleDeleteCommentRef = useRef(handleDeleteComment);
+  useEffect(() => {
+    handleDeleteCommentRef.current = handleDeleteComment;
+  });
 
   const handleUpdateComment = async () => {
     if (!editingCommentText.trim() || isSubmitting || !editingCommentId) return;
@@ -1281,8 +1302,15 @@ const PostScreen = ({ route, navigation }) => {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           onScroll={Animated.event(
+            // headerBgOpacity/headerTitleOpacity/LiquidButton's own scrollY
+            // interpolations only ever drive `opacity`, so this can run
+            // fully on the native/UI thread instead of dispatching a scroll
+            // event to JS on every frame - JS was otherwise competing with
+            // laying out the unvirtualized comment tree below while
+            // scrolling, which is a big part of why this screen felt
+            // janky on posts with lots of comments/images.
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false },
+            { useNativeDriver: true },
           )}
           contentContainerStyle={{
             paddingTop: 64 + insets.top,

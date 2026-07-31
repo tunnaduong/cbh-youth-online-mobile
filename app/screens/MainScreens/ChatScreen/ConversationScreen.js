@@ -26,7 +26,7 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import ImageView from "react-native-image-viewing";
 import { useVideoPlayer, VideoView } from "expo-video";
-// import FastImage from "../../../components/FastImage";
+import FastImage from "../../../components/FastImage";
 import {
   getConversationMessages,
   getConversations,
@@ -2269,7 +2269,7 @@ const ConversationScreen = ({ navigation, route }) => {
           ]}
         >
           {!item.is_myself && isLastInGroup && (
-            <Image
+            <FastImage
               source={{
                 uri:
                   item.sender?.avatar_url ||
@@ -2372,7 +2372,7 @@ const ConversationScreen = ({ navigation, route }) => {
                       </Text>
                     </View>
                   ) : (
-                    <Image
+                    <FastImage
                       source={{ uri: resolvedFileUrl }}
                       style={styles.messageImage}
                       resizeMode={"cover"}
@@ -2397,7 +2397,7 @@ const ConversationScreen = ({ navigation, route }) => {
               ) : !item.is_recalled && isVideoMessage ? (
                 <>
                   {resolvedThumbnailUrl ? (
-                    <Image
+                    <FastImage
                       source={{ uri: resolvedThumbnailUrl }}
                       style={styles.messageImage}
                       resizeMode={"cover"}
