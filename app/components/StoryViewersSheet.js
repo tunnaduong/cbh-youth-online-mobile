@@ -2,13 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   DeviceEventEmitter,
 } from "react-native";
-import ActionSheet from "react-native-actions-sheet";
+import ActionSheet, { FlatList } from "react-native-actions-sheet";
 import { getStoryViewers } from "../services/api/Api";
 import FastImage from "./FastImage";
 import Toast from "react-native-toast-message";

@@ -4,13 +4,12 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  FlatList,
   Pressable,
   StyleSheet,
   useWindowDimensions,
 } from "react-native";
 import FastImage from "./FastImage";
-import ActionSheet from "react-native-actions-sheet";
+import ActionSheet, { FlatList } from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
