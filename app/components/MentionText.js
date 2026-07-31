@@ -1,6 +1,5 @@
 import React from "react";
 import { Text } from "react-native";
-import { useTheme } from "../contexts/ThemeContext";
 
 function buildParts(text) {
   const parts = [];
@@ -29,7 +28,6 @@ function buildParts(text) {
  *   onMentionPress(username) - called when a valid mention is tapped
  */
 const MentionText = ({ children, style, onMentionPress, mentions, ...rest }) => {
-  const { theme } = useTheme();
   const text = typeof children === "string" ? children : String(children ?? "");
 
   const validSet = React.useMemo(() => {
@@ -52,8 +50,8 @@ const MentionText = ({ children, style, onMentionPress, mentions, ...rest }) => 
           <Text
             key={i}
             style={{
-              color: theme.primary,
-              textDecorationLine: "underline",
+              color: "#22c55e",
+              fontWeight: "600",
             }}
             onPress={() => onMentionPress?.(part.username)}
           >
