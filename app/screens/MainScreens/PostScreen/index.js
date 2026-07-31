@@ -1455,7 +1455,15 @@ const PostScreen = ({ route, navigation }) => {
               zIndex: 5,
               paddingBottom: insets.bottom,
             }}
-            offset={{ opened: 20 }}
+            // The `opened` lift is intentionally 20px short of the keyboard's
+            // real height - that gap is meant to be absorbed by paddingBottom
+            // (insets.bottom) above, which is ~34 on notched iPhones/Android
+            // gesture nav. On devices with no bottom safe area (iPhone
+            // 6s/7/8/SE - physical home button, insets.bottom === 0) nothing
+            // absorbs it, so the bar renders 20px below the keyboard's top
+            // edge. Drop the offset to 0 there so it lifts exactly to the
+            // keyboard's edge instead.
+            offset={{ opened: insets.bottom > 0 ? 20 : 0 }}
           >
             <CommentBar
               providerId="PostScreen"
