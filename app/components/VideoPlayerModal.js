@@ -31,6 +31,31 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
     }
   }, [isFocused, player]);
 
+  React.useEffect(() => {
+    console.debug("[VideoPlayerModal] player mounted/changed", { uri, player });
+    return () => {
+      if (!player) return;
+      try {
+        if (typeof player.playing !== "undefined" ? player.playing === true : false) {
+          if (typeof player.pause === "function") {
+            player.pause();
+            console.debug("[VideoPlayerModal] paused player during cleanup", { uri });
+          }
+        }
+      } catch (e) {
+        console.warn("[VideoPlayerModal] error pausing player during cleanup", e);
+      }
+      try {
+        if (typeof player.release === "function") {
+          player.release();
+          console.debug("[VideoPlayerModal] released player during cleanup", { uri });
+        }
+      } catch (e) {
+        console.warn("[VideoPlayerModal] error releasing player during cleanup", e);
+      }
+    };
+  }, [player, uri]);
+
   // ensure the VideoView remounts if the underlying player reference changes
   const [playerKey, setPlayerKey] = React.useState(0);
   React.useEffect(() => {

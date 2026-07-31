@@ -204,6 +204,31 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
     }
   }, [isFocused, player]);
 
+  useEffect(() => {
+    console.debug("[VideoViewerModal] player mounted/changed", { uri, player });
+    return () => {
+      if (!player) return;
+      try {
+        if (typeof player.playing !== "undefined" ? player.playing === true : false) {
+          if (typeof player.pause === "function") {
+            player.pause();
+            console.debug("[VideoViewerModal] paused player during cleanup", { uri });
+          }
+        }
+      } catch (e) {
+        console.warn("[VideoViewerModal] error pausing player during cleanup", e);
+      }
+      try {
+        if (typeof player.release === "function") {
+          player.release();
+          console.debug("[VideoViewerModal] released player during cleanup", { uri });
+        }
+      } catch (e) {
+        console.warn("[VideoViewerModal] error releasing player during cleanup", e);
+      }
+    };
+  }, [player, uri]);
+
   // remount the VideoView if the player reference changes to avoid
   // referencing a native player that was already released
   const [playerKey, setPlayerKey] = useState(0);

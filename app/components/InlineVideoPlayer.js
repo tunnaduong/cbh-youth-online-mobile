@@ -29,6 +29,31 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
     if (uri) p.play();
   });
 
+  useEffect(() => {
+    console.debug("[InlineVideoPlayer] player changed", { uri, player });
+    return () => {
+      if (!player) return;
+      try {
+        if (typeof player.playing !== "undefined" ? player.playing === true : false) {
+          if (typeof player.pause === "function") {
+            player.pause();
+            console.debug("[InlineVideoPlayer] paused player during cleanup", { uri });
+          }
+        }
+      } catch (e) {
+        console.warn("[InlineVideoPlayer] error pausing player during cleanup", e);
+      }
+      try {
+        if (typeof player.release === "function") {
+          player.release();
+          console.debug("[InlineVideoPlayer] released player during cleanup", { uri });
+        }
+      } catch (e) {
+        console.warn("[InlineVideoPlayer] error releasing player during cleanup", e);
+      }
+    };
+  }, [player, uri]);
+
   // local key to force VideoView to remount when the `player` reference changes
   const [playerKey, setPlayerKey] = useState(0);
   useEffect(() => {
