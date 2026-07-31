@@ -32,10 +32,10 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Build on EAS
         env:
-          EAS_NO_FINGERPRINT: "1"
+          EAS_SKIP_AUTO_FINGERPRINT: "1"
           EXPO_NO_FINGERPRINT: "1"
         run: eas build --platform ${{ matrix.platform }} --profile production --non-interactive --no-wait
