@@ -358,22 +358,24 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          onPress={() => {
-            hideBottomSheet();
-            setReportModalVisible(true);
-          }}
-        >
-          <View className="flex-row items-center">
-            <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
-            <Text
-              style={{ padding: 12, fontSize: 17 }}
-              className="text-red-500"
-            >
-              {t("post.report")}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity
+            onPress={() => {
+              hideBottomSheet();
+              setReportModalVisible(true);
+            }}
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
+              <Text
+                style={{ padding: 12, fontSize: 17 }}
+                className="text-red-500"
+              >
+                {t("post.report")}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
         {isCurrentUser && (
           <TouchableOpacity onPress={handleDeletePost}>
             <View className="flex-row items-center">
