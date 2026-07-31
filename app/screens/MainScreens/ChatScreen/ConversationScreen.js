@@ -308,6 +308,521 @@ const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
   );
 };
 
+// Reactions row under a message bubble - split out of MessageRow (below) so
+// a reaction change only re-renders this small badge, not the whole bubble.
+const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef }) => {
+  if (typeof item.id !== "number") return null;
+
+  const reactions = item.reactions;
+  const hasReactions = reactions && reactions.total > 0;
+
+  // For my messages: row anchored at bottom-left → [...] [👍]
+  // For theirs: row anchored at bottom-right → [👍] [...]
+  const rowAnchor = item.is_myself ? { left: -6 } : { right: -6 };
+
+  const bgColor = isDarkMode ? "#262626" : "#ffffff";
+
+  // Top 2 emojis by count for the pill
+  const topTwo = hasReactions
+    ? [...reactions.summary]
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 2)
+        .map((s) => REACTION_EMOJI_BY_TYPE[s.type] || "👍")
+    : [];
+
+  const dotsBtn = (
+    <TouchableOpacity
+      key="dots"
+      onPress={(evt) => handlersRef.current.openReactionPicker(item, evt)}
+      style={[
+        styles.reactionIconBtn,
+        { backgroundColor: bgColor, borderColor: theme.border },
+      ]}
+      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+    >
+      <Ionicons name="happy-outline" size={13} color={theme.subText} />
+    </TouchableOpacity>
+  );
+
+  const pill = hasReactions ? (
+    <TouchableOpacity
+      key="pill"
+      onPress={() => handlersRef.current.setReactionModal({ visible: true, reactions })}
+      style={[
+        styles.reactionPillBadge,
+        { backgroundColor: bgColor, borderColor: theme.border },
+      ]}
+    >
+      <Text style={styles.reactionPillEmoji}>{topTwo.join("")}</Text>
+      <Text style={[styles.reactionPillCount, { color: theme.subText }]}>
+        {reactions.total}
+      </Text>
+    </TouchableOpacity>
+  ) : null;
+
+  // Mine: [...] [pill?]  anchored at left
+  // Theirs: [pill?] [...]  anchored at right
+  const children = item.is_myself ? [dotsBtn, pill] : [pill, dotsBtn];
+
+  return (
+    <View style={[styles.reactionBadgeRow, rowAnchor]}>
+      {children}
+    </View>
+  );
+});
+
+// A single message bubble (everything renderMessage used to build inline for
+// item.type === "message"). Split into its own React.memo'd component -
+// previously this was all inline in ConversationScreen's render, so ANY
+// screen state change (typing indicator, a media load error on one message,
+// scroll position) re-rendered and re-diffed EVERY message in the whole
+// conversation, which is the main reason chats with lots of images/videos
+// felt laggy well before you scrolled anywhere near the edge of what's
+// mounted. Handlers are passed via a stable `handlersRef` (see
+// messageHandlersRef in ConversationScreen) instead of directly, so this
+// component's props stay referentially stable across unrelated re-renders
+// and React.memo can actually skip re-rendering a bubble whose own message
+// didn't change.
+const MessageRow = React.memo(({
+  item,
+  prevMessage,
+  nextMessage,
+  index,
+  isGroupChat,
+  theme,
+  isDarkMode,
+  t,
+  username,
+  navigation,
+  mediaLoadError,
+  isDownloadingThis,
+  handlersRef,
+  onImageError,
+}) => {
+  // For group chats, check if sender changed from previous message
+  const senderChanged =
+    isGroupChat &&
+    !item.is_myself &&
+    (!prevMessage ||
+      prevMessage.is_myself !== item.is_myself ||
+      prevMessage.sender?.id !== item.sender?.id ||
+      (prevMessage.sender?.username !== item.sender?.username &&
+        !prevMessage.sender?.id &&
+        !item.sender?.id));
+
+  // Check if this is the last message in a group (same sender and same alignment)
+  // For group chats, also check if the next message is from a different sender
+  const isLastInGroup =
+    !nextMessage ||
+    nextMessage.is_myself !== item.is_myself ||
+    (isGroupChat &&
+      !item.is_myself &&
+      // Different sender IDs (for authenticated users)
+      ((nextMessage.sender?.id &&
+        item.sender?.id &&
+        nextMessage.sender.id !== item.sender.id) ||
+        // Different usernames (for guests or fallback)
+        nextMessage.sender?.username !== item.sender?.username));
+
+  // Check if this is a story reply message
+  const isStoryReply = item.metadata?.story_reply === true;
+  const storyOwnerName = item.metadata?.story_owner_name;
+
+  // `type` is overloaded as the list envelope ("message"/"date"/"time"), so once a
+  // message has gone through a refetch its original content type only survives in
+  // `content_type` (see injectTimeHeaders) - check both so attachments keep
+  // rendering as images/file cards instead of falling back to plain text.
+  const isImageMessage = item.type === "image" || item.content_type === "image";
+  const isVideoMessage = item.type === "video" || item.content_type === "video";
+  const isFileMessage = item.type === "file" || item.content_type === "file";
+  const resolvedFileUrl = resolveMediaUrl(item.file_url);
+  const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
+
+  const handleSwipeReply = () => {
+    const contentType =
+      item.type === "image" || item.type === "video" || item.type === "file"
+        ? item.type
+        : item.content_type === "image" || item.content_type === "video" || item.content_type === "file"
+          ? item.content_type
+          : "text";
+    handlersRef.current.setReplyingTo({
+      id: item.id,
+      content: contentType === "text" ? item.content : null,
+      type: contentType,
+      file_url: item.file_url ?? null,
+      sender: item.sender,
+    });
+    handlersRef.current.focusInput?.();
+  };
+
+  return (
+    <SwipeableMessage isMyMessage={item.is_myself} onSwipe={handleSwipeReply}>
+    <View
+      style={[
+        // Add extra spacing for group chats when sender changes (applies to entire message block)
+        isGroupChat &&
+          !item.is_myself &&
+          senderChanged &&
+          styles.groupMessageWrapper,
+      ]}
+    >
+      {/* Show story reply header */}
+      {isStoryReply && (
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            const storyId = item.metadata?.story_id ?? item.metadata?.storyId;
+            if (storyId) {
+              navigation.navigate("MainScreens", {
+                screen: "Home",
+                params: { openStoryId: storyId },
+              });
+            } else {
+              Toast.show({
+                type: "info",
+                text1: t("common.error"),
+                text2: t("chatConversation.storyNotAvailable"),
+              });
+            }
+          }}
+        >
+          <View
+            style={[
+              styles.storyReplyHeader,
+              item.is_myself && styles.storyReplyHeaderRight,
+            ]}
+          >
+            {item.is_myself ? (
+              <>
+                <Text
+                  style={[
+                    styles.storyReplyText,
+                    styles.storyReplyTextRight,
+                    { color: theme.subText },
+                  ]}
+                >
+                  {t("chatConversation.storyReply.you", {
+                    owner: storyOwnerName || t("chatConversation.anonymous"),
+                  })}
+                </Text>
+                <Ionicons
+                  name="arrow-forward"
+                  size={14}
+                  color={theme.subText}
+                />
+              </>
+            ) : (
+              <>
+                <Ionicons name="arrow-back" size={14} color={theme.subText} />
+                <Text
+                  style={[styles.storyReplyText, { color: theme.subText }]}
+                >
+                  {t("chatConversation.storyReply.other", {
+                    sender:
+                      item.sender?.profile_name ||
+                      item.sender?.username ||
+                      t("chatConversation.anonymous"),
+                  })}
+                </Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      )}
+      {/* Show sender name for group chats when sender changes */}
+      {isGroupChat && !item.is_myself && senderChanged && (
+        <Text style={[styles.senderName, { color: theme.subText }]}>
+          {item.sender?.profile_name ||
+            item.sender?.username ||
+            t("chatConversation.anonymous")}
+        </Text>
+      )}
+      <View
+        style={[
+          styles.messageContainer,
+          item.is_myself
+            ? styles.myMessageContainer
+            : styles.theirMessageContainer,
+        ]}
+      >
+        {!item.is_myself && isLastInGroup && (
+          <FastImage
+            source={{
+              uri:
+                item.sender?.avatar_url ||
+                "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+            }}
+            style={styles.messageAvatar}
+          />
+        )}
+        <View
+          style={{
+            position: "relative",
+            maxWidth: "75%",
+            alignSelf: item.is_myself ? "flex-end" : "flex-start",
+            // The reaction badge hangs off the bottom corner of the bubble
+            // (see reactionAddBadge/reactionPillBadge) - without this the
+            // next message's footer/timestamp sits right underneath it.
+            marginBottom: 16,
+          }}
+        >
+          <Pressable
+            style={[
+              styles.messageBubble,
+              // maxWidth already lives on the wrapper above - a percentage
+              // value here would resolve against this wrapper's own
+              // auto-sized width instead of the row's, collapsing text to
+              // ~1 char per line. Cancel it out.
+              { maxWidth: undefined },
+              isImageMessage || isVideoMessage
+                ? styles.imageMessageBubble
+                : isFileMessage
+                  ? styles.fileMessageBubble
+                  : item.type === "chat" || item.type === "part"
+                  ? [
+                      item.is_myself
+                        ? styles.myMessageBubble
+                        : styles.theirMessageBubble,
+                      styles.chatMessageBubble,
+                      {
+                        borderColor: isDarkMode
+                          ? "rgba(255,255,255,0.12)"
+                          : "rgba(0,0,0,0.08)",
+                      },
+                    ]
+                  : item.is_myself
+                    ? [
+                        styles.myMessageBubble,
+                        { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" },
+                      ]
+                    : [
+                        styles.theirMessageBubble,
+                        { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" },
+                      ],
+              !item.is_myself && !isLastInGroup && { marginLeft: 40 },
+            ]}
+            onLongPress={(evt) => handlersRef.current.openReactionPicker(item, evt)}
+            delayLongPress={350}
+            onPress={
+              item.is_recalled ? undefined : () => {
+                const now = Date.now();
+                const lastTap = handlersRef.current.lastTapRef.current[item.id] || 0;
+                if (now - lastTap < 300) {
+                  handlersRef.current.handleDoubleTapMessage(item);
+                } else {
+                  handlersRef.current.lastTapRef.current[item.id] = now;
+                  if (isImageMessage && resolvedFileUrl) {
+                    handlersRef.current.openImageViewer(resolvedFileUrl);
+                  } else if (isVideoMessage && resolvedFileUrl) {
+                    handlersRef.current.openVideoViewer(resolvedFileUrl);
+                  } else if (isFileMessage && resolvedFileUrl) {
+                    handlersRef.current.handleOpenFile(item);
+                  }
+                }
+              }
+            }
+          >
+            {item.is_recalled ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, opacity: 0.55 }}>
+                <Ionicons name="arrow-undo-outline" size={14} color={item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555")} />
+                <Text style={{ fontStyle: "italic", color: item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555"), fontSize: 14 }}>
+                  {t("chatConversation.recalled", "Tin nhắn đã bị thu hồi")}
+                </Text>
+              </View>
+            ) : null}
+            {item.reply_to && !item.is_recalled && (
+              <ReplyPreviewBubble
+                item={item}
+                currentUsername={username}
+                onPress={() => handlersRef.current.handleJumpToRepliedMessage(item.reply_to.id)}
+              />
+            )}
+            {!item.is_recalled && isImageMessage && item.file_url ? (
+              <>
+                {mediaLoadError ? (
+                  <View style={[styles.messageImage, styles.mediaErrorFallback]}>
+                    <Ionicons name="image-outline" size={28} color="#fff" />
+                    <Text style={styles.mediaErrorText} numberOfLines={2}>
+                      {t("chatConversation.loadImageError", "Không tải được ảnh")}
+                      {"\n"}
+                      {mediaLoadError}
+                    </Text>
+                  </View>
+                ) : (
+                  <FastImage
+                    source={{ uri: resolvedFileUrl }}
+                    style={styles.messageImage}
+                    resizeMode={"cover"}
+                    onError={(e) => {
+                      const reason = e?.nativeEvent?.error || "unknown error";
+                      console.error("[ChatMedia] image FAILED to load", {
+                        id: item.id,
+                        raw_file_url: item.file_url,
+                        resolved: resolvedFileUrl,
+                        reason,
+                      });
+                      onImageError(item.id, reason);
+                    }}
+                  />
+                )}
+                {item.is_sending && (
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                )}
+              </>
+            ) : !item.is_recalled && isVideoMessage ? (
+              <>
+                {resolvedThumbnailUrl ? (
+                  <FastImage
+                    source={{ uri: resolvedThumbnailUrl }}
+                    style={styles.messageImage}
+                    resizeMode={"cover"}
+                    onError={undefined}
+                  />
+                ) : (
+                  <View style={[styles.messageImage, styles.videoPlaceholder]} />
+                )}
+                <View style={styles.videoPlayOverlay}>
+                  <Ionicons name="play" size={22} color="#fff" />
+                </View>
+                {item.is_sending && (
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                )}
+              </>
+            ) : !item.is_recalled && isFileMessage ? (
+              <View style={styles.fileMessageContent}>
+                <View style={styles.fileIconWrapper}>
+                  {isDownloadingThis ? (
+                    <ActivityIndicator size="small" color={theme.primary} />
+                  ) : (
+                    <Ionicons
+                      name="document-text-outline"
+                      size={22}
+                      color={theme.primary}
+                    />
+                  )}
+                </View>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={[
+                      styles.fileMessageName,
+                      {
+                        color: item.is_myself
+                          ? isDarkMode
+                            ? "#ecfdf5"
+                            : "#000"
+                          : theme.text,
+                      },
+                    ]}
+                    numberOfLines={1}
+                    ellipsizeMode="middle"
+                  >
+                    {item.content || item.file_name || t("chatConversation.attachment", "Tệp đính kèm")}
+                  </Text>
+                  <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
+                    {item.is_sending
+                      ? t("chatConversation.sending", "Đang gửi...")
+                      : isDownloadingThis
+                        ? t("chatConversation.downloading", "Đang tải...")
+                        : t("chatConversation.tapToOpen", "Nhấn để mở")}
+                  </Text>
+                </View>
+              </View>
+            ) : !item.is_recalled ? (
+              <MentionText
+                style={[
+                  styles.messageText,
+                  {
+                    color: item.is_myself
+                      ? isDarkMode
+                        ? "#ecfdf5"
+                        : "#000"
+                      : theme.text,
+                  },
+                ]}
+                mentions={item.mentions}
+                onMentionPress={(username) =>
+                  navigation.navigate("ProfileScreen", { username })
+                }
+              >
+                {item.content}
+              </MentionText>
+            ) : null}
+          </Pressable>
+          <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} />
+        </View>
+      </View>
+      {isLastInGroup && (
+        <View
+          style={[
+            styles.messageFooter,
+            item.is_myself
+              ? styles.myMessageFooter
+              : styles.theirMessageFooter,
+            !item.is_myself && { marginLeft: 40 },
+          ]}
+        >
+          <Text style={[styles.messageTime, { color: theme.subText }]}>
+            {formatMessageTime(item.created_at, t)}
+            {item.is_edited && !item.is_recalled ? (
+              <Text style={{ fontSize: 11, fontStyle: "italic", color: theme.subText }}>
+                {" "}{t("chatConversation.edited", "(Đã sửa)")}
+              </Text>
+            ) : null}
+          </Text>
+          {item.is_myself && (
+            <View style={styles.readStatus}>
+              {item.read_at ? (
+                <View style={styles.doubleCheck}>
+                  <Ionicons
+                    name="checkmark"
+                    size={12}
+                    color={theme.primary}
+                    style={styles.checkOverlap}
+                  />
+                  <Ionicons
+                    name="checkmark"
+                    size={12}
+                    color={theme.primary}
+                  />
+                </View>
+              ) : (
+                <Ionicons name="checkmark" size={12} color={theme.subText} />
+              )}
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+    </SwipeableMessage>
+  );
+}, (prev, next) => {
+  // Custom comparator: `mediaLoadError`/`isDownloadingThis` are already
+  // narrowed to this row's own value by the caller, so a plain shallow prop
+  // comparison (React.memo's default) is exactly what we want - no custom
+  // logic needed beyond letting unspecified props fall through to reference
+  // equality. This comparator exists only to document that intent;
+  // functionally it mirrors the default shallow comparison.
+  return (
+    prev.item === next.item &&
+    prev.prevMessage === next.prevMessage &&
+    prev.nextMessage === next.nextMessage &&
+    prev.isGroupChat === next.isGroupChat &&
+    prev.theme === next.theme &&
+    prev.isDarkMode === next.isDarkMode &&
+    prev.t === next.t &&
+    prev.username === next.username &&
+    prev.navigation === next.navigation &&
+    prev.mediaLoadError === next.mediaLoadError &&
+    prev.isDownloadingThis === next.isDownloadingThis &&
+    prev.handlersRef === next.handlersRef &&
+    prev.onImageError === next.onImageError
+  );
+});
+
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const BUTTON_SIZE = 47;
@@ -1836,77 +2351,6 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
-  const renderReactionBadge = (item) => {
-    // Reactions aren't available yet for a message still in flight.
-    if (typeof item.id !== "number") return null;
-
-    const reactions = item.reactions;
-    const hasReactions = reactions && reactions.total > 0;
-
-    // For my messages: row anchored at bottom-left → [...] [👍]
-    // For theirs: row anchored at bottom-right → [👍] [...]
-    const rowAnchor = item.is_myself
-      ? { left: -6 }
-      : { right: -6 };
-
-    const bgColor = isDarkMode ? "#262626" : "#ffffff";
-
-    // Top 2 emojis by count for the pill
-    const topTwo = hasReactions
-      ? [...reactions.summary]
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 2)
-          .map((s) => REACTION_EMOJI_BY_TYPE[s.type] || "👍")
-      : [];
-
-    const dotsBtn = (
-      <TouchableOpacity
-        key="dots"
-        onPress={(evt) => openReactionPicker(item, evt)}
-        style={[
-          styles.reactionIconBtn,
-          { backgroundColor: bgColor, borderColor: theme.border },
-        ]}
-        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-      >
-        <Ionicons name="happy-outline" size={13} color={theme.subText} />
-      </TouchableOpacity>
-    );
-
-    const pill = hasReactions ? (
-      <TouchableOpacity
-        key="pill"
-        onPress={() => setReactionModal({ visible: true, reactions })}
-        style={[
-          styles.reactionPillBadge,
-          { backgroundColor: bgColor, borderColor: theme.border },
-        ]}
-      >
-        <Text style={styles.reactionPillEmoji}>{topTwo.join("")}</Text>
-        <Text style={[styles.reactionPillCount, { color: theme.subText }]}>
-          {reactions.total}
-        </Text>
-      </TouchableOpacity>
-    ) : null;
-
-    // Mine: [...] [pill?]  anchored at left
-    // Theirs: [pill?] [...]  anchored at right
-    const children = item.is_myself
-      ? [dotsBtn, pill]
-      : [pill, dotsBtn];
-
-    return (
-      <View
-        style={[
-          styles.reactionBadgeRow,
-          rowAnchor,
-        ]}
-      >
-        {children}
-      </View>
-    );
-  };
-
   const renderReactionModal = () => {
     const { visible, reactions } = reactionModal;
     if (!visible || !reactions) return null;
@@ -2050,479 +2494,32 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
-  const renderMessage = (itemOrInfo, indexArg, prevArg, nextArg) => {
-    // Array.map passes the message directly, while FlatList passes { item, index }.
-    const item = itemOrInfo?.item ?? itemOrInfo;
-    const index = itemOrInfo?.item ? itemOrInfo.index : indexArg;
-
-    if (!item) {
-      return null;
-    }
-
-    if (item.type === "date") {
-      return (
-        <View
-          style={styles.dateHeaderContainer}
-          key={item.is_myself ? "my" + item.id : "their" + item.id}
-        >
-          <Text
-            style={[
-              styles.dateHeaderText,
-              {
-                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                color: theme.subText,
-              },
-            ]}
-          >
-            {item.date}
-          </Text>
-        </View>
-      );
-    }
-
-    if (item.type === "time") {
-      return (
-        <View style={styles.timeHeaderContainer}>
-          <Text
-            style={[
-              styles.timeHeaderText,
-              {
-                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                color: theme.subText,
-              },
-            ]}
-          >
-            {item.time}
-          </Text>
-        </View>
-      );
-    }
-
-    // Check if this is a group chat
-    const isGroupChat = currentConversation?.type === "group";
-
-    // prevArg/nextArg are pre-computed message neighbours passed from the map
-    // site, so we avoid an O(n) scan inside every renderMessage call.
-    const prevMessage = prevArg !== undefined ? prevArg : (() => {
-      for (let i = index - 1; i >= 0; i--) {
-        if (messages[i].type !== "date" && messages[i].type !== "time") return messages[i];
-      }
-      return null;
-    })();
-
-    const nextMessage = nextArg !== undefined ? nextArg : (() => {
-      for (let i = index + 1; i < messages.length; i++) {
-        if (messages[i].type !== "date" && messages[i].type !== "time") return messages[i];
-      }
-      return null;
-    })();
-
-    // For group chats, check if sender changed from previous message
-    const senderChanged =
-      isGroupChat &&
-      !item.is_myself &&
-      (!prevMessage ||
-        prevMessage.is_myself !== item.is_myself ||
-        prevMessage.sender?.id !== item.sender?.id ||
-        (prevMessage.sender?.username !== item.sender?.username &&
-          !prevMessage.sender?.id &&
-          !item.sender?.id));
-
-    const isFirstInGroup =
-      index === 0 || !prevMessage || prevMessage.is_myself !== item.is_myself;
-
-    // Check if this is the last message in a group (same sender and same alignment)
-    // For group chats, also check if the next message is from a different sender
-    const isLastInGroup =
-      !nextMessage ||
-      nextMessage.is_myself !== item.is_myself ||
-      (isGroupChat &&
-        !item.is_myself &&
-        // Different sender IDs (for authenticated users)
-        ((nextMessage.sender?.id &&
-          item.sender?.id &&
-          nextMessage.sender.id !== item.sender.id) ||
-          // Different usernames (for guests or fallback)
-          nextMessage.sender?.username !== item.sender?.username));
-
-    // Check if this is a story reply message
-    const isStoryReply = item.metadata?.story_reply === true;
-    const storyOwnerName = item.metadata?.story_owner_name;
-
-    // `type` is overloaded as the list envelope ("message"/"date"/"time"), so once a
-    // message has gone through a refetch its original content type only survives in
-    // `content_type` (see injectTimeHeaders) - check both so attachments keep
-    // rendering as images/file cards instead of falling back to plain text.
-    const isImageMessage =
-      item.type === "image" || item.content_type === "image";
-    const isVideoMessage =
-      item.type === "video" || item.content_type === "video";
-    const isFileMessage = item.type === "file" || item.content_type === "file";
-    const resolvedFileUrl = resolveMediaUrl(item.file_url);
-    const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
-
-    const handleSwipeReply = () => {
-      const contentType =
-        item.type === "image" || item.type === "video" || item.type === "file"
-          ? item.type
-          : item.content_type === "image" || item.content_type === "video" || item.content_type === "file"
-            ? item.content_type
-            : "text";
-      setReplyingTo({
-        id: item.id,
-        content: contentType === "text" ? item.content : null,
-        type: contentType,
-        file_url: item.file_url ?? null,
-        sender: item.sender,
-      });
-      inputRef.current?.focus?.();
+  // Stable handle for MessageRow/ReactionBadge (both React.memo'd) to call
+  // back into - kept fresh every render via this ref instead of passing the
+  // functions directly as props, so MessageRow's props (and therefore
+  // whether React.memo can skip re-rendering it) don't change identity just
+  // because e.g. `mediaLoadErrors` or `downloadingFileId` changed for some
+  // *other* message.
+  const messageHandlersRef = useRef({});
+  useEffect(() => {
+    messageHandlersRef.current = {
+      openImageViewer,
+      openVideoViewer,
+      handleOpenFile,
+      handleDoubleTapMessage,
+      openReactionPicker,
+      handleJumpToRepliedMessage,
+      setReplyingTo,
+      setReactionModal,
+      lastTapRef,
+      focusInput: () => inputRef.current?.focus?.(),
     };
+  });
 
-    return (
-      <SwipeableMessage isMyMessage={item.is_myself} onSwipe={handleSwipeReply}>
-      <View
-        style={[
-          // Add extra spacing for group chats when sender changes (applies to entire message block)
-          isGroupChat &&
-            !item.is_myself &&
-            senderChanged &&
-            styles.groupMessageWrapper,
-        ]}
-      >
-        {/* Show story reply header */}
-        {isStoryReply && (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => {
-              const storyId = item.metadata?.story_id ?? item.metadata?.storyId;
-              if (storyId) {
-                navigation.navigate("MainScreens", {
-                  screen: "Home",
-                  params: { openStoryId: storyId },
-                });
-              } else {
-                Toast.show({
-                  type: "info",
-                  text1: t("common.error"),
-                  text2: t("chatConversation.storyNotAvailable"),
-                });
-              }
-            }}
-          >
-            <View
-              style={[
-                styles.storyReplyHeader,
-                item.is_myself && styles.storyReplyHeaderRight,
-              ]}
-            >
-              {item.is_myself ? (
-                <>
-                  <Text
-                    style={[
-                      styles.storyReplyText,
-                      styles.storyReplyTextRight,
-                      { color: theme.subText },
-                    ]}
-                  >
-                    {t("chatConversation.storyReply.you", {
-                      owner: storyOwnerName || t("chatConversation.anonymous"),
-                    })}
-                  </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={14}
-                    color={theme.subText}
-                  />
-                </>
-              ) : (
-                <>
-                  <Ionicons name="arrow-back" size={14} color={theme.subText} />
-                  <Text
-                    style={[styles.storyReplyText, { color: theme.subText }]}
-                  >
-                    {t("chatConversation.storyReply.other", {
-                      sender:
-                        item.sender?.profile_name ||
-                        item.sender?.username ||
-                        t("chatConversation.anonymous"),
-                    })}
-                  </Text>
-                </>
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
-        {/* Show sender name for group chats when sender changes */}
-        {isGroupChat && !item.is_myself && senderChanged && (
-          <Text style={[styles.senderName, { color: theme.subText }]}>
-            {item.sender?.profile_name ||
-              item.sender?.username ||
-              t("chatConversation.anonymous")}
-          </Text>
-        )}
-        <View
-          style={[
-            styles.messageContainer,
-            item.is_myself
-              ? styles.myMessageContainer
-              : styles.theirMessageContainer,
-          ]}
-        >
-          {!item.is_myself && isLastInGroup && (
-            <FastImage
-              source={{
-                uri:
-                  item.sender?.avatar_url ||
-                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-              }}
-              style={styles.messageAvatar}
-            />
-          )}
-          <View
-            style={{
-              position: "relative",
-              maxWidth: "75%",
-              alignSelf: item.is_myself ? "flex-end" : "flex-start",
-              // The reaction badge hangs off the bottom corner of the bubble
-              // (see reactionAddBadge/reactionPillBadge) - without this the
-              // next message's footer/timestamp sits right underneath it.
-              marginBottom: 16,
-            }}
-          >
-            <Pressable
-              style={[
-                styles.messageBubble,
-                // maxWidth already lives on the wrapper above - a percentage
-                // value here would resolve against this wrapper's own
-                // auto-sized width instead of the row's, collapsing text to
-                // ~1 char per line. Cancel it out.
-                { maxWidth: undefined },
-                isImageMessage || isVideoMessage
-                  ? styles.imageMessageBubble
-                  : isFileMessage
-                    ? styles.fileMessageBubble
-                    : item.type === "chat" || item.type === "part"
-                    ? [
-                        item.is_myself
-                          ? styles.myMessageBubble
-                          : styles.theirMessageBubble,
-                        styles.chatMessageBubble,
-                        {
-                          borderColor: isDarkMode
-                            ? "rgba(255,255,255,0.12)"
-                            : "rgba(0,0,0,0.08)",
-                        },
-                      ]
-                    : item.is_myself
-                      ? [
-                          styles.myMessageBubble,
-                          { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" },
-                        ]
-                      : [
-                          styles.theirMessageBubble,
-                          { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" },
-                        ],
-                !item.is_myself && !isLastInGroup && { marginLeft: 40 },
-              ]}
-              onLongPress={(evt) => openReactionPicker(item, evt)}
-              delayLongPress={350}
-              onPress={
-                item.is_recalled ? undefined : () => {
-                  const now = Date.now();
-                  const lastTap = lastTapRef.current[item.id] || 0;
-                  if (now - lastTap < 300) {
-                    handleDoubleTapMessage(item);
-                  } else {
-                    lastTapRef.current[item.id] = now;
-                    if (isImageMessage && resolvedFileUrl) {
-                      openImageViewer(resolvedFileUrl);
-                    } else if (isVideoMessage && resolvedFileUrl) {
-                      openVideoViewer(resolvedFileUrl);
-                    } else if (isFileMessage && resolvedFileUrl) {
-                      handleOpenFile(item);
-                    }
-                  }
-                }
-              }
-            >
-              {item.is_recalled ? (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, opacity: 0.55 }}>
-                  <Ionicons name="arrow-undo-outline" size={14} color={item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555")} />
-                  <Text style={{ fontStyle: "italic", color: item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555"), fontSize: 14 }}>
-                    {t("chatConversation.recalled", "Tin nhắn đã bị thu hồi")}
-                  </Text>
-                </View>
-              ) : null}
-              {item.reply_to && !item.is_recalled && (
-                <ReplyPreviewBubble
-                  item={item}
-                  currentUsername={username}
-                  onPress={() => handleJumpToRepliedMessage(item.reply_to.id)}
-                />
-              )}
-              {!item.is_recalled && isImageMessage && item.file_url ? (
-                <>
-                  {mediaLoadErrors[item.id] ? (
-                    <View style={[styles.messageImage, styles.mediaErrorFallback]}>
-                      <Ionicons name="image-outline" size={28} color="#fff" />
-                      <Text style={styles.mediaErrorText} numberOfLines={2}>
-                        {t("chatConversation.loadImageError", "Không tải được ảnh")}
-                        {"\n"}
-                        {mediaLoadErrors[item.id]}
-                      </Text>
-                    </View>
-                  ) : (
-                    <FastImage
-                      source={{ uri: resolvedFileUrl }}
-                      style={styles.messageImage}
-                      resizeMode={"cover"}
-                      onError={(e) => {
-                        const reason = e?.nativeEvent?.error || "unknown error";
-                        console.error("[ChatMedia] image FAILED to load", {
-                          id: item.id,
-                          raw_file_url: item.file_url,
-                          resolved: resolvedFileUrl,
-                          reason,
-                        });
-                        setMediaLoadErrors((prev) => ({ ...prev, [item.id]: reason }));
-                      }}
-                    />
-                  )}
-                  {item.is_sending && (
-                    <View style={styles.imageLoadingOverlay}>
-                      <ActivityIndicator size="small" color="#fff" />
-                    </View>
-                  )}
-                </>
-              ) : !item.is_recalled && isVideoMessage ? (
-                <>
-                  {resolvedThumbnailUrl ? (
-                    <FastImage
-                      source={{ uri: resolvedThumbnailUrl }}
-                      style={styles.messageImage}
-                      resizeMode={"cover"}
-                      onError={undefined}
-                    />
-                  ) : (
-                    <View style={[styles.messageImage, styles.videoPlaceholder]} />
-                  )}
-                  <View style={styles.videoPlayOverlay}>
-                    <Ionicons name="play" size={22} color="#fff" />
-                  </View>
-                  {item.is_sending && (
-                    <View style={styles.imageLoadingOverlay}>
-                      <ActivityIndicator size="small" color="#fff" />
-                    </View>
-                  )}
-                </>
-              ) : !item.is_recalled && isFileMessage ? (
-                <View style={styles.fileMessageContent}>
-                  <View style={styles.fileIconWrapper}>
-                    {downloadingFileId === item.id ? (
-                      <ActivityIndicator size="small" color={theme.primary} />
-                    ) : (
-                      <Ionicons
-                        name="document-text-outline"
-                        size={22}
-                        color={theme.primary}
-                      />
-                    )}
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text
-                      style={[
-                        styles.fileMessageName,
-                        {
-                          color: item.is_myself
-                            ? isDarkMode
-                              ? "#ecfdf5"
-                              : "#000"
-                            : theme.text,
-                        },
-                      ]}
-                      numberOfLines={1}
-                      ellipsizeMode="middle"
-                    >
-                      {item.content || item.file_name || t("chatConversation.attachment", "Tệp đính kèm")}
-                    </Text>
-                    <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
-                      {item.is_sending
-                        ? t("chatConversation.sending", "Đang gửi...")
-                        : downloadingFileId === item.id
-                          ? t("chatConversation.downloading", "Đang tải...")
-                          : t("chatConversation.tapToOpen", "Nhấn để mở")}
-                    </Text>
-                  </View>
-                </View>
-              ) : !item.is_recalled ? (
-                <MentionText
-                  style={[
-                    styles.messageText,
-                    {
-                      color: item.is_myself
-                        ? isDarkMode
-                          ? "#ecfdf5"
-                          : "#000"
-                        : theme.text,
-                    },
-                  ]}
-                  mentions={item.mentions}
-                  onMentionPress={(username) =>
-                    navigation.navigate("ProfileScreen", { username })
-                  }
-                >
-                  {item.content}
-                </MentionText>
-              ) : null}
-            </Pressable>
-            {renderReactionBadge(item)}
-          </View>
-        </View>
-        {isLastInGroup && (
-          <View
-            style={[
-              styles.messageFooter,
-              item.is_myself
-                ? styles.myMessageFooter
-                : styles.theirMessageFooter,
-              !item.is_myself && { marginLeft: 40 },
-            ]}
-          >
-            <Text style={[styles.messageTime, { color: theme.subText }]}>
-              {formatMessageTime(item.created_at, t)}
-              {item.is_edited && !item.is_recalled ? (
-                <Text style={{ fontSize: 11, fontStyle: "italic", color: theme.subText }}>
-                  {" "}{t("chatConversation.edited", "(Đã sửa)")}
-                </Text>
-              ) : null}
-            </Text>
-            {item.is_myself && (
-              <View style={styles.readStatus}>
-                {item.read_at ? (
-                  <View style={styles.doubleCheck}>
-                    <Ionicons
-                      name="checkmark"
-                      size={12}
-                      color={theme.primary}
-                      style={styles.checkOverlap}
-                    />
-                    <Ionicons
-                      name="checkmark"
-                      size={12}
-                      color={theme.primary}
-                    />
-                  </View>
-                ) : (
-                  <Ionicons name="checkmark" size={12} color={theme.subText} />
-                )}
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-      </SwipeableMessage>
-    );
-  };
+  const handleImageLoadError = React.useCallback((id, reason) => {
+    setMediaLoadErrors((prev) => ({ ...prev, [id]: reason }));
+  }, []);
+
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -2720,12 +2717,13 @@ const ConversationScreen = ({ navigation, route }) => {
         >
           {(() => {
             // Pre-compute nearest real-message neighbours for each item so
-            // renderMessage doesn't have to O(n)-scan the array itself.
+            // MessageRow doesn't have to O(n)-scan the array itself.
             const realMessages = [];
             messages.forEach((m, i) => {
               if (m.type !== "date" && m.type !== "time") realMessages.push({ m, i });
             });
             const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
+            const isGroupChat = currentConversation?.type === "group";
 
             return messages.map((value, index) => {
               let prev = null;
@@ -2767,7 +2765,55 @@ const ConversationScreen = ({ navigation, route }) => {
                       : undefined
                   }
                 >
-                  {renderMessage(value, index, prev, next)}
+                  {value.type === "date" ? (
+                    <View
+                      style={styles.dateHeaderContainer}
+                      key={value.is_myself ? "my" + value.id : "their" + value.id}
+                    >
+                      <Text
+                        style={[
+                          styles.dateHeaderText,
+                          {
+                            backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                            color: theme.subText,
+                          },
+                        ]}
+                      >
+                        {value.date}
+                      </Text>
+                    </View>
+                  ) : value.type === "time" ? (
+                    <View style={styles.timeHeaderContainer}>
+                      <Text
+                        style={[
+                          styles.timeHeaderText,
+                          {
+                            backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                            color: theme.subText,
+                          },
+                        ]}
+                      >
+                        {value.time}
+                      </Text>
+                    </View>
+                  ) : (
+                    <MessageRow
+                      item={value}
+                      prevMessage={prev}
+                      nextMessage={next}
+                      index={index}
+                      isGroupChat={isGroupChat}
+                      theme={theme}
+                      isDarkMode={isDarkMode}
+                      t={t}
+                      username={username}
+                      navigation={navigation}
+                      mediaLoadError={mediaLoadErrors[value.id]}
+                      isDownloadingThis={downloadingFileId === value.id}
+                      handlersRef={messageHandlersRef}
+                      onImageError={handleImageLoadError}
+                    />
+                  )}
                 </View>
               );
             });
