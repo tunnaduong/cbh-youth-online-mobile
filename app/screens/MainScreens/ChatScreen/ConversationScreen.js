@@ -24,6 +24,7 @@ import {
   SafeAreaView,
 } from "react-native-safe-area-context";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
+import InlineVideoPlayer from "../../../components/InlineVideoPlayer";
 import ImageView from "react-native-image-viewing";
 import { useVideoPlayer, VideoView } from "expo-video";
 import FastImage from "../../../components/FastImage";
@@ -444,6 +445,8 @@ const MessageRow = React.memo(({
   isDownloadingThis,
   handlersRef,
   onImageError,
+  activeInlineVideoId,
+  autoplayVideos,
 }) => {
   // For group chats, check if sender changed from previous message
   const senderChanged =
@@ -744,23 +747,43 @@ const MessageRow = React.memo(({
               </>
             ) : !item.is_recalled && isVideoMessage ? (
               <>
-                {resolvedThumbnailUrl ? (
-                  <FastImage
-                    source={{ uri: resolvedThumbnailUrl }}
-                    style={
-                      imageAspectRatio
-                        ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
-                        : styles.messageImage
-                    }
-                    resizeMode={"cover"}
-                    onError={undefined}
-                  />
+                {autoplayVideos && String(item.id) === String(activeInlineVideoId) ? (
+                  (() => {
+                    const thumbWidth = 200;
+                    const thumbHeight = imageAspectRatio
+                      ? Math.round(thumbWidth / imageAspectRatio)
+                      : 200;
+                    return (
+                      <InlineVideoPlayer
+                        uri={resolvedFileUrl}
+                        width={thumbWidth}
+                        height={thumbHeight}
+                        borderRadius={12}
+                        isActive={true}
+                      />
+                    );
+                  })()
                 ) : (
-                  <View style={[styles.messageImage, styles.videoPlaceholder]} />
+                  resolvedThumbnailUrl ? (
+                    <FastImage
+                      source={{ uri: resolvedThumbnailUrl }}
+                      style={
+                        imageAspectRatio
+                          ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
+                          : styles.messageImage
+                      }
+                      resizeMode={"cover"}
+                      onError={undefined}
+                    />
+                  ) : (
+                    <View style={[styles.messageImage, styles.videoPlaceholder]} />
+                  )
                 )}
-                <View style={styles.videoPlayOverlay}>
-                  <Ionicons name="play" size={22} color="#fff" />
-                </View>
+                {!(autoplayVideos && String(item.id) === String(activeInlineVideoId)) && (
+                  <View style={styles.videoPlayOverlay}>
+                    <Ionicons name="play" size={22} color="#fff" />
+                  </View>
+                )}
                 {item.is_sending && (
                   <View style={styles.imageLoadingOverlay}>
                     <ActivityIndicator size="small" color="#fff" />
@@ -893,6 +916,8 @@ const MessageRow = React.memo(({
     prev.navigation === next.navigation &&
     prev.mediaLoadError === next.mediaLoadError &&
     prev.isDownloadingThis === next.isDownloadingThis &&
+    prev.activeInlineVideoId === next.activeInlineVideoId &&
+    prev.autoplayVideos === next.autoplayVideos &&
     prev.handlersRef === next.handlersRef &&
     prev.onImageError === next.onImageError
   );
@@ -990,11 +1015,15 @@ const ConversationScreen = ({ navigation, route }) => {
     highlightMessageId,
   } = route.params;
   const messageLayoutOffsetsRef = useRef({});
+  const activeInlineVideoIdRef = useRef(null);
+  const [activeInlineVideoId, setActiveInlineVideoId] = useState(null);
+  const scrollOffsetRef = useRef(0);
+  const isFocused = useIsFocused();
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
   const { username, profileName } = useContext(AuthContext);
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, autoplayVideos } = useTheme();
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
@@ -1502,11 +1531,11 @@ const ConversationScreen = ({ navigation, route }) => {
   // fetching more messages first (see handleJumpToRepliedMessage).
   const scrollToMessageAndHighlight = (targetId) => {
     if (targetId == null) return false;
-    const y = messageLayoutOffsetsRef.current[targetId];
-    if (y == null) return false;
+    const layout = messageLayoutOffsetsRef.current[targetId];
+    if (!layout || typeof layout.y !== "number") return false;
     requestAnimationFrame(() => {
       messagesScrollRef.current?.scrollTo({
-        y: Math.max(y - 120, 0),
+        y: Math.max(layout.y - 120, 0),
         animated: true,
       });
     });
@@ -1559,6 +1588,32 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
+  useEffect(() => {
+    if (!autoplayVideos || !isFocused) return;
+    if (activeInlineVideoIdRef.current) return;
+    // Initialize active inline video when the screen first appears or messages change.
+    const centerY = scrollOffsetRef.current + (scrollViewHeightRef.current || 0) / 2;
+    let found = null;
+    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
+    for (let i = 0; i < entries.length; i++) {
+      const [key, layout] = entries[i];
+      if (!layout || typeof layout.y !== "number") continue;
+      const top = layout.y;
+      const h = layout.height || 0;
+      if (centerY >= top && centerY <= top + h) {
+        const msg = messages.find((m) => String(m.id) === String(key));
+        if (msg && (msg.type === "video" || msg.content_type === "video")) {
+          found = key;
+        }
+        break;
+      }
+    }
+    if (found && found !== activeInlineVideoIdRef.current) {
+      activeInlineVideoIdRef.current = found;
+      setActiveInlineVideoId(found);
+    }
+  }, [messages, autoplayVideos, isFocused]);
+
   const handleMessagesScroll = ({ nativeEvent }) => {
     const offsetY = nativeEvent.contentOffset.y;
     scrollY.setValue(offsetY);
@@ -1570,6 +1625,37 @@ const ConversationScreen = ({ navigation, route }) => {
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
+
+    scrollOffsetRef.current = offsetY;
+    if (!autoplayVideos || !isFocused) {
+      if (activeInlineVideoId) {
+        activeInlineVideoIdRef.current = null;
+        setActiveInlineVideoId(null);
+      }
+      return;
+    }
+
+    const centerY = offsetY + (scrollViewHeightRef.current || 0) / 2;
+    let found = null;
+    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
+    for (let i = 0; i < entries.length; i++) {
+      const [key, layout] = entries[i];
+      if (!layout || typeof layout.y !== "number") continue;
+      const top = layout.y;
+      const h = layout.height || 0;
+      if (centerY >= top && centerY <= top + h) {
+        const id = key;
+        const msg = messages.find((m) => String(m.id) === String(id));
+        if (msg && (msg.type === "video" || msg.content_type === "video")) {
+          found = id;
+        }
+        break;
+      }
+    }
+    if (found !== activeInlineVideoIdRef.current) {
+      activeInlineVideoIdRef.current = found;
+      setActiveInlineVideoId(found);
+    }
   };
 
   const launchMediaPicker = async (source) => {
@@ -2870,8 +2956,10 @@ const ConversationScreen = ({ navigation, route }) => {
                   key={`${value.type}-${value.id}-${index}`}
                   onLayout={(e) => {
                     if (value.type === "message" && value.id != null) {
-                      messageLayoutOffsetsRef.current[value.id] =
-                        e.nativeEvent.layout.y;
+                      messageLayoutOffsetsRef.current[value.id] = {
+                        y: e.nativeEvent.layout.y,
+                        height: e.nativeEvent.layout.height,
+                      };
                       if (pendingHighlightMessageIdRef.current === value.id) {
                         attemptScrollToHighlight();
                       }
@@ -2935,6 +3023,8 @@ const ConversationScreen = ({ navigation, route }) => {
                       isDownloadingThis={downloadingFileId === value.id}
                       handlersRef={messageHandlersRef}
                       onImageError={handleImageLoadError}
+                      activeInlineVideoId={activeInlineVideoId}
+                      autoplayVideos={autoplayVideos}
                     />
                   )}
                 </View>
