@@ -104,11 +104,6 @@
     "eas-cli": "^21.0.1",
     "metro-react-native-babel-preset": "^0.77.0"
   },
-  "overrides": {
-    "liquid-glass-kit": {
-      "expo-modules-core": "~57.0.0"
-    }
-  },
   "private": true,
   "expo": {
     "install": {
