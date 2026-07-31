@@ -1,7 +1,7 @@
 import React from "react";
 import { Text } from "react-native";
 
-function buildParts(text) {
+export function buildParts(text) {
   const parts = [];
   const regex = /@([\w.-]+)/g;
   let lastIndex = 0;

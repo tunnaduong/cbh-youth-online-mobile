@@ -16,6 +16,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { buildParts } from "./MentionText";
 import {
   BlurView,
   LiquidGlassView,
@@ -77,6 +78,18 @@ const CommentBar = React.forwardRef(
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
     };
+
+    // Live @mention highlighting while typing: the real TextInput can't
+    // apply mixed styles to its own text, so while the value contains an
+    // "@mention" it's rendered invisible and an absolutely-positioned Text
+    // overlay (identical font metrics) draws the colored version on top.
+    // Skipped entirely when there's no "@" in the text (the common case),
+    // so normal typing pays zero extra cost.
+    const mentionParts = React.useMemo(
+      () => (value && value.indexOf("@") !== -1 ? buildParts(value) : null),
+      [value]
+    );
+    const hasMention = !!mentionParts?.some((p) => p.type === "mention");
 
     return (
       <RootView
@@ -248,19 +261,39 @@ const CommentBar = React.forwardRef(
                 {leftAccessory}
               </View>
             ) : null}
-            <TextInput
-              style={inputTextStyle}
-              placeholder={placeholderText}
-              placeholderTextColor={theme.subText}
-              multiline={true}
-              ref={ref}
-              onChangeText={onChangeText}
-              value={value}
-              onKeyPress={onKeyPress}
-              editable={editable}
-              nativeID={nativeID}
-              cursorColor={theme.text}
-            />
+            <View style={{ flex: 1, position: "relative" }}>
+              {hasMention && (
+                <Text
+                  pointerEvents="none"
+                  style={[inputTextStyle, styles.mentionOverlay]}
+                >
+                  {mentionParts.map((part, i) =>
+                    part.type === "mention" ? (
+                      <Text key={i} style={{ color: "#22c55e" }}>
+                        {part.value}
+                      </Text>
+                    ) : (
+                      <Text key={i} style={{ color: theme.text }}>
+                        {part.value}
+                      </Text>
+                    )
+                  )}
+                </Text>
+              )}
+              <TextInput
+                style={[inputTextStyle, hasMention && { color: "transparent" }]}
+                placeholder={placeholderText}
+                placeholderTextColor={theme.subText}
+                multiline={true}
+                ref={ref}
+                onChangeText={onChangeText}
+                value={value}
+                onKeyPress={onKeyPress}
+                editable={editable}
+                nativeID={nativeID}
+                cursorColor={theme.text}
+              />
+            </View>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 5 }}>
@@ -362,5 +395,14 @@ const CommentBar = React.forwardRef(
     );
   }
 );
+
+const styles = StyleSheet.create({
+  mentionOverlay: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+  },
+});
 
 export default CommentBar;
