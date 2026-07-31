@@ -254,7 +254,15 @@ const PostScreen = ({ route, navigation }) => {
 
   const { mentionProps: commentMentionProps, suggestions: commentSuggestions, onSelectMention: onSelectCommentMention, loading: commentSuggestionsLoading } = useMentionInput({
     value: commentText,
-    onChange: setCommentText,
+    // Tapping a mention suggestion updates `commentText` through here, not
+    // through CommentBar's onChangeText below - without also updating
+    // latestCommentRef here, onSubmit's `latestCommentRef.current ||
+    // commentText` would keep using the stale pre-mention-insert text (e.g.
+    // "@tunna" instead of "@tunnaduong ") since the ref wins when truthy.
+    onChange: (text) => {
+      latestCommentRef.current = text;
+      setCommentText(text);
+    },
     fetchSuggestions: getMentionSuggestions,
   });
 

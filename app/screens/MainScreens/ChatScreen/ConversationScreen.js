@@ -856,7 +856,15 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention, loading: messageSuggestionsLoading } = useMentionInput({
     value: message,
-    onChange: setMessage,
+    // Tapping a mention suggestion updates `message` through here, not
+    // through CommentBar's onChangeText below - without also updating
+    // latestMessageRef here, handleSendMessage's `latestMessageRef.current
+    // || message` would keep using the stale pre-mention-insert text (e.g.
+    // "@tunna" instead of "@tunnaduong ") since the ref wins when truthy.
+    onChange: (text) => {
+      latestMessageRef.current = text;
+      setMessage(text);
+    },
     fetchSuggestions: fetchMessageMentionSuggestions,
   });
 
