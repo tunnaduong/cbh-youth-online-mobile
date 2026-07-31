@@ -10,6 +10,7 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import {
   View,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   Share,
   Alert,
@@ -57,10 +58,7 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
 import LottieView from "lottie-react-native";
-import {
-  KeyboardChatScrollView,
-  KeyboardStickyView,
-} from "react-native-keyboard-controller";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
 
@@ -526,10 +524,14 @@ const PostScreen = ({ route, navigation }) => {
 
   const scrollToComment = (id) => {
     if (commentRefs.current[id]) {
+      // FlatList's ref isn't a host node itself (unlike ScrollView) -
+      // getScrollableNode() gets the underlying native scroll view that
+      // measureLayout needs to measure against.
+      const scrollNode = scrollViewRef.current?.getScrollableNode?.() ?? scrollViewRef.current;
       commentRefs.current[id].measureLayout(
-        scrollViewRef.current,
+        scrollNode,
         (x, y) => {
-          scrollViewRef.current.scrollTo({ y, animated: true });
+          scrollViewRef.current?.scrollToOffset({ offset: y, animated: true });
         },
         () => console.log("Error measuring layout"),
       );
@@ -1296,7 +1298,7 @@ const PostScreen = ({ route, navigation }) => {
           </View>
         )}
         <AndroidGlassBackdrop providerId="PostScreen" style={{ flex: 1 }}>
-        <KeyboardChatScrollView
+        <Animated.FlatList
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
@@ -1305,16 +1307,18 @@ const PostScreen = ({ route, navigation }) => {
             // headerBgOpacity/headerTitleOpacity/LiquidButton's own scrollY
             // interpolations only ever drive `opacity`, so this can run
             // fully on the native/UI thread instead of dispatching a scroll
-            // event to JS on every frame - JS was otherwise competing with
-            // laying out the unvirtualized comment tree below while
-            // scrolling, which is a big part of why this screen felt
-            // janky on posts with lots of comments/images.
+            // event to JS on every frame.
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
             { useNativeDriver: true },
           )}
           contentContainerStyle={{
             paddingTop: 64 + insets.top,
-            paddingBottom: insets.bottom,
+            // KeyboardStickyView (below) floats the comment input above the
+            // keyboard independently via its own reanimated tracking, but
+            // this FlatList's own bottom padding still needs to grow while
+            // the keyboard is open so the last comment doesn't end up
+            // hidden behind the now-taller floating input bar.
+            paddingBottom: (keyboardHeight || insets.bottom),
             backgroundColor: theme.background,
             flexGrow: 1,
           }}
@@ -1329,59 +1333,79 @@ const PostScreen = ({ route, navigation }) => {
               style={{ backgroundColor: "transparent" }}
             />
           }
-        >
-          <PostItem
-            navigation={navigation}
-            item={post}
-            single={true}
-            votes={votes}
-            saved={isSaved}
-            onVote={handleVote}
-            onSave={handleSavePost}
-            screenName={screenName}
-            isActive={autoplayVideos}
-          />
-          {/* comment section */}
-          <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: 20,
-                marginVertical: 16,
-                color: theme.text,
-              }}
-            >
-              {t("post.commentsTitle")}
-            </Text>
-            {comments.length === 0 ? (
+          // Windowing is the actual perf win over the old plain ScrollView -
+          // only comments near the viewport stay mounted. initialNumToRender
+          // is generous so scrollToComment's measureLayout (used for
+          // scroll-to-highlighted-comment deep links) can usually find its
+          // target already mounted without needing to scroll first.
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === "android"}
+          data={comments}
+          keyExtractor={(comment) => String(comment.id)}
+          ListHeaderComponent={
+            <>
+              <PostItem
+                navigation={navigation}
+                item={post}
+                single={true}
+                votes={votes}
+                saved={isSaved}
+                onVote={handleVote}
+                onSave={handleSavePost}
+                screenName={screenName}
+                isActive={autoplayVideos}
+              />
+              {/* comment section */}
+              <View style={{ paddingHorizontal: 15 }}>
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: 20,
+                    marginVertical: 16,
+                    color: theme.text,
+                  }}
+                >
+                  {t("post.commentsTitle")}
+                </Text>
+              </View>
+            </>
+          }
+          ListEmptyComponent={
+            <View style={{ paddingHorizontal: 15 }}>
               <Text style={{ color: theme.subText }}>
                 {t("post.noComments")}
               </Text>
-            ) : (
-              comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  comment={comment}
-                  ref={(ref) => (commentRefs.current[comment.id] = ref)}
-                  commentRefs={commentRefs}
-                  highlightedCommentId={highlightedCommentId}
-                  isDarkMode={isDarkMode}
-                  theme={theme}
-                  t={t}
-                  username={username}
-                  navigation={navigation}
-                  focusCommentInput={focusCommentInput}
-                  handleCommentVote={handleCommentVote}
-                  setCommentVotesModal={setCommentVotesModal}
-                  setImageViewer={setImageViewer}
-                  handleLongPressComment={handleLongPressComment}
-                />
-              ))
-            )}
-          </View>
-          {/* Spacer to prevent comment bar from covering last comments */}
-          <View style={{ height: 50, backgroundColor: "transparent" }} />
-        </KeyboardChatScrollView>
+            </View>
+          }
+          renderItem={({ item: comment }) => (
+            <View style={{ paddingHorizontal: 15 }}>
+              <Comment
+                comment={comment}
+                ref={(ref) => (commentRefs.current[comment.id] = ref)}
+                commentRefs={commentRefs}
+                highlightedCommentId={highlightedCommentId}
+                isDarkMode={isDarkMode}
+                theme={theme}
+                t={t}
+                username={username}
+                navigation={navigation}
+                focusCommentInput={focusCommentInput}
+                handleCommentVote={handleCommentVote}
+                setCommentVotesModal={setCommentVotesModal}
+                setImageViewer={setImageViewer}
+                handleLongPressComment={handleLongPressComment}
+              />
+            </View>
+          )}
+          ListFooterComponent={
+            // Combines the original 16px block spacing (after the last
+            // comment/empty-state text) with the 50px spacer that used to
+            // sit below it, before the floating comment input.
+            <View style={{ height: 50, marginTop: 16, backgroundColor: "transparent" }} />
+          }
+        />
         </AndroidGlassBackdrop>
         <ReportModal
           visible={reportModalVisible}
