@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   DeviceEventEmitter,
 } from "react-native";
-import ActionSheet, { FlatList } from "react-native-actions-sheet";
+import ActionSheet, { ScrollView } from "react-native-actions-sheet";
 import { getStoryViewers } from "../services/api/Api";
 import FastImage from "./FastImage";
 import Toast from "react-native-toast-message";
@@ -229,15 +229,18 @@ const StoryViewersSheet = () => {
           <Text style={[styles.emptyText, { color: theme.subText }]}>{t("storyViewers.empty")}</Text>
         </View>
       ) : (
-        <FlatList
-          data={viewers}
-          renderItem={renderItem}
-          keyExtractor={(it) => it.id.toString()}
+        <ScrollView
+          style={{ maxHeight: 400 }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
-          scrollEnabled={true}
-        />
+        >
+          {viewers.map((item, i) => (
+            <React.Fragment key={item.id?.toString() || i.toString()}>
+              {renderItem({ item })}
+            </React.Fragment>
+          ))}
+        </ScrollView>
       )}
     </ActionSheet>
   );

@@ -9,7 +9,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import FastImage from "./FastImage";
-import ActionSheet, { FlatList } from "react-native-actions-sheet";
+import ActionSheet, { ScrollView } from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -158,16 +158,18 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
             <Text style={[styles.emptyText, { color: theme.subText }]}>{t("commentVoteModal.empty")}</Text>
           </View>
         ) : (
-          <FlatList
-            data={votes}
-            keyExtractor={(item, i) => item.user_id?.toString() || item.username || String(i)}
-            renderItem={renderItem}
+          <ScrollView
             style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
-            scrollEnabled={true}
-          />
+          >
+            {votes.map((item, i) => (
+              <React.Fragment key={item.user_id?.toString() || item.username || String(i)}>
+                {renderItem({ item })}
+              </React.Fragment>
+            ))}
+          </ScrollView>
         )}
       </View>
     </ActionSheet>
