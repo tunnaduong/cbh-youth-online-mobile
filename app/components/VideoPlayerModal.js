@@ -15,6 +15,12 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
     if (uri) p.play();
   });
 
+  // ensure the VideoView remounts if the underlying player reference changes
+  const [playerKey, setPlayerKey] = React.useState(0);
+  React.useEffect(() => {
+    setPlayerKey((k) => k + 1);
+  }, [player]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -25,15 +31,16 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
         >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        {uri && (
+        {player ? (
           <VideoView
+            key={playerKey}
             style={styles.player}
             player={player}
             allowsFullscreen
             allowsPictureInPicture
             nativeControls
           />
-        )}
+        ) : null}
       </View>
     </Modal>
   );

@@ -27,6 +27,12 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
     if (uri) p.play();
   });
 
+  // local key to force VideoView to remount when the `player` reference changes
+  const [playerKey, setPlayerKey] = useState(0);
+  useEffect(() => {
+    setPlayerKey((k) => k + 1);
+  }, [player]);
+
   useEffect(() => {
     if (!player) return;
     player.muted = muted;
@@ -39,13 +45,16 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
         onPress={onOpenFullscreen}
         style={[styles.tile, { borderRadius }]}
       >
-        <VideoView
-          style={StyleSheet.absoluteFill}
-          player={player}
-          nativeControls={false}
-          contentFit="cover"
-          pointerEvents="none"
-        />
+        {player ? (
+          <VideoView
+            key={playerKey}
+            style={StyleSheet.absoluteFill}
+            player={player}
+            nativeControls={false}
+            contentFit="cover"
+            pointerEvents="none"
+          />
+        ) : null}
       </TouchableOpacity>
       <TouchableOpacity
         onPress={() => setMuted((m) => !m)}

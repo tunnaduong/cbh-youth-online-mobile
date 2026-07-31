@@ -191,6 +191,13 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
     if (uri) p.play();
   });
 
+  // remount the VideoView if the player reference changes to avoid
+  // referencing a native player that was already released
+  const [playerKey, setPlayerKey] = useState(0);
+  useEffect(() => {
+    setPlayerKey((k) => k + 1);
+  }, [player]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.videoViewerBackdrop}>
@@ -201,15 +208,16 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
         >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        {uri && (
+        {player ? (
           <VideoView
+            key={playerKey}
             style={styles.videoViewerPlayer}
             player={player}
             allowsFullscreen
             allowsPictureInPicture
             nativeControls
           />
-        )}
+        ) : null}
       </View>
     </Modal>
   );
