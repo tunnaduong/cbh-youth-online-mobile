@@ -1279,14 +1279,54 @@ const ConversationScreen = ({ navigation, route }) => {
     if (isNewConversation || !activeId) return undefined;
 
     const refresh = () => fetchMessagesRef.current(true, true);
-    const refreshAndScroll = () => {
+
+    // Optimistically append the just-pushed message straight from the socket
+    // payload, instead of waiting on the REST refetch below - that fetch is a
+    // full network round trip, which is the actual source of the "delay
+    // before a new message shows up while the conversation is open" this is
+    // fixing. This is deliberately defensive about the payload shape (which
+    // isn't otherwise consumed directly anywhere in this codebase, so it's
+    // unverified) - if it doesn't look like a usable message object, this is
+    // a no-op and the screen falls back to waiting on the REST refresh
+    // below exactly like before, so a wrong assumption here can't corrupt
+    // the message list. If it DOES succeed, the REST refresh moments later
+    // still runs and replaces this optimistic entry with the authoritative
+    // copy, self-correcting anything this got slightly wrong.
+    const tryAppendPushedMessage = (e) => {
+      const raw = e?.message && typeof e.message === "object" ? e.message : e;
+      if (!raw || typeof raw !== "object" || raw.id == null || !raw.sender) {
+        return false;
+      }
+
+      setMessages((prev) => {
+        if (prev.some((m) => m.type === "message" && String(m.id) === String(raw.id))) {
+          return prev; // already have it somehow (e.g. our own optimistic send echoed back)
+        }
+        const withMyself = {
+          ...raw,
+          is_myself:
+            raw.is_myself ??
+            String(raw.sender?.username) === String(username),
+        };
+        const existingMessages = prev.filter((item) => item.type === "message");
+        return injectTimeHeaders([...existingMessages, withMyself], t);
+      });
+      return true;
+    };
+
+    const refreshAndScroll = (e) => {
       // A real message arrived, so any "typing..." bubble for this conversation is stale.
       clearTimeout(typingTimeoutRef.current);
       setTypingUser(null);
 
+      if (tryAppendPushedMessage(e)) {
+        scrollToLatestMessageAnimated();
+      }
+
       // Wait for the fetch (and the setMessages it triggers) to actually complete
       // before scrolling - otherwise this scrolls to the end of the *old* list,
-      // before the new message has been added to state.
+      // before the new message has been added to state. Also the source of
+      // truth that reconciles the optimistic append above, if any.
       fetchMessagesRef.current(true, true).then(() => {
         scrollToLatestMessageAnimated();
       });
