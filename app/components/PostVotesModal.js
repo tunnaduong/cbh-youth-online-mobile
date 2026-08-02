@@ -165,7 +165,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
   return (
     <ActionSheet
       ref={actionSheetRef}
-      gestureEnabled
+      gestureEnabled={false}
       defaultOverlayOpacity={0.45}
       onClose={onClose}
       containerStyle={[

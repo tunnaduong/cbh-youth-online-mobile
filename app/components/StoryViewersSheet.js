@@ -194,7 +194,7 @@ const StoryViewersSheet = () => {
         overflow: "hidden",
         maxHeight: windowHeight * 0.85,
       }}
-      gestureEnabled
+      gestureEnabled={false}
       defaultOverlayOpacity={0.45}
       onOpen={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_OPENED")}
       onClose={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_CLOSED")}

@@ -118,7 +118,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
   return (
     <ActionSheet
       ref={actionSheetRef}
-      gestureEnabled
+      gestureEnabled={false}
       defaultOverlayOpacity={0.45}
       onClose={onClose}
       containerStyle={[styles.sheetContainer, { backgroundColor: theme.cardBackground, maxHeight: windowHeight * 0.85 }]}
