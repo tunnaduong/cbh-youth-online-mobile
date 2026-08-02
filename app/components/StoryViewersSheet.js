@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   DeviceEventEmitter,
+  useWindowDimensions,
 } from "react-native";
 import ActionSheet, { ScrollView } from "react-native-actions-sheet";
 import { getStoryViewers } from "../services/api/Api";
@@ -37,6 +38,7 @@ const StoryViewersSheet = () => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const fetchAbortControllerRef = useRef(null);
 
   useEffect(() => {
@@ -188,6 +190,7 @@ const StoryViewersSheet = () => {
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         overflow: "hidden",
+        maxHeight: windowHeight * 0.85,
       }}
       gestureEnabled
       defaultOverlayOpacity={0.45}
@@ -230,7 +233,7 @@ const StoryViewersSheet = () => {
         </View>
       ) : (
         <ScrollView
-          style={{ maxHeight: 400 }}
+          style={{ maxHeight: windowHeight * 0.85 - 100 }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}

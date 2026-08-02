@@ -119,7 +119,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
       gestureEnabled
       defaultOverlayOpacity={0.45}
       onClose={onClose}
-      containerStyle={[styles.sheetContainer, { backgroundColor: theme.cardBackground }]}
+      containerStyle={[styles.sheetContainer, { backgroundColor: theme.cardBackground, maxHeight: windowHeight * 0.85 }]}
     >
       <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <View style={styles.header}>
@@ -159,7 +159,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
           </View>
         ) : (
           <ScrollView
-            style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
+            style={[styles.list, { maxHeight: windowHeight * 0.85 - 140 }]}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}

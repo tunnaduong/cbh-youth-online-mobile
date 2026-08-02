@@ -168,10 +168,10 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
       onClose={onClose}
       containerStyle={[
         styles.sheetContainer,
-        { backgroundColor: theme.cardBackground },
+        { backgroundColor: theme.cardBackground, maxHeight: windowHeight * 0.85 },
       ]}
     >
-        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>          
+        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={styles.header}>
             <View style={styles.headerText}>
               <Text style={[styles.title, { color: theme.text }]}>{t("voteModal.title")}</Text>
@@ -207,7 +207,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
             </View>
           ) : (
             <ScrollView
-              style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
+              style={[styles.list, { maxHeight: windowHeight * 0.85 - 140 }]}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
