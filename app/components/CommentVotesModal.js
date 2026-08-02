@@ -121,7 +121,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
       onClose={onClose}
       containerStyle={[styles.sheetContainer, { backgroundColor: theme.cardBackground, maxHeight: windowHeight * 0.85 }]}
     >
-      <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+      <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: windowHeight * 0.85 }]}>
         <View style={styles.header}>
           <View style={styles.headerText}>
             <Text style={[styles.title, { color: theme.text }]}>{t("commentVoteModal.title")}</Text>
@@ -159,7 +159,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
           </View>
         ) : (
           <ScrollView
-            style={[styles.list, { maxHeight: windowHeight * 0.85 - 140 }]}
+            style={styles.list}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}
@@ -178,7 +178,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
 
 const styles = StyleSheet.create({
   sheetContainer: { borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
-  modalContainer: { padding: 16 },
+  modalContainer: { padding: 16, flexDirection: "column" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   headerText: { flex: 1, paddingRight: 12 },
   title: { fontSize: 17, fontWeight: "700", marginBottom: 4 },
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 15, textAlign: "center" },
   emptyWrapper: { minHeight: 120, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 15 },
-  list: { width: "100%" },
+  list: { width: "100%", flexGrow: 0, flexShrink: 1, minHeight: 0 },
   listContent: { paddingBottom: 8 },
   voteItem: { borderRadius: 16, borderWidth: 1, padding: 12, marginBottom: 10, flexDirection: "row", alignItems: "center" },
   avatarContainer: { width: 44, height: 44, borderRadius: 22, overflow: "hidden", justifyContent: "center", alignItems: "center", marginRight: 12 },

@@ -197,6 +197,7 @@ const StoryViewersSheet = () => {
       onOpen={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_OPENED")}
       onClose={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_CLOSED")}
     >
+      <View style={{ flexDirection: "column", maxHeight: windowHeight * 0.85 }}>
       <LinearGradient
         colors={isDarkMode ? ["rgba(16, 185, 129, 0.24)", "rgba(16, 185, 129, 0.06)"] : ["rgba(16, 185, 129, 0.12)", "rgba(255,255,255,0)"]}
         style={[styles.header, { paddingTop: 6, borderBottomColor: theme.border }]}
@@ -233,7 +234,7 @@ const StoryViewersSheet = () => {
         </View>
       ) : (
         <ScrollView
-          style={{ maxHeight: windowHeight * 0.85 - 100 }}
+          style={{ flexGrow: 0, flexShrink: 1, minHeight: 0 }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
@@ -245,6 +246,7 @@ const StoryViewersSheet = () => {
           ))}
         </ScrollView>
       )}
+      </View>
     </ActionSheet>
   );
 };
