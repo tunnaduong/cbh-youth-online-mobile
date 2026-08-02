@@ -7,9 +7,10 @@ import {
   Pressable,
   StyleSheet,
   useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import FastImage from "./FastImage";
-import ActionSheet, { ScrollView } from "react-native-actions-sheet";
+import ActionSheet from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

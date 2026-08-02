@@ -7,8 +7,9 @@ import {
   ActivityIndicator,
   DeviceEventEmitter,
   useWindowDimensions,
+  ScrollView,
 } from "react-native";
-import ActionSheet, { ScrollView } from "react-native-actions-sheet";
+import ActionSheet from "react-native-actions-sheet";
 import { getStoryViewers } from "../services/api/Api";
 import FastImage from "./FastImage";
 import Toast from "react-native-toast-message";
