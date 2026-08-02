@@ -98,6 +98,23 @@ jobs:
           cd ios
           pod install || (pod update hermes-engine --no-repo-update && pod install)
 
+      - name: Cache Xcode DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}-
+            ${{ runner.os }}-deriveddata-
+
+      - name: Cache CocoaPods build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-
+
       - name: Detect iOS Project Name
         run: |
           cd ios
@@ -112,13 +129,15 @@ jobs:
         run: |
           cd ios
           set -o pipefail
-          xcodebuild clean archive \
+          xcodebuild archive \
             -workspace "${{ env.APP_NAME }}.xcworkspace" \
             -scheme "${{ env.APP_NAME }}" \
             -sdk iphoneos \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
+            -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
             CODE_SIGN_STYLE="Manual" \
             CODE_SIGN_IDENTITY="Apple Development" \
