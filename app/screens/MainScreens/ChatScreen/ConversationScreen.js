@@ -262,6 +262,144 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
   );
 };
 
+// Renders the whole scrollable list of message rows (date/time headers +
+// MessageRow bubbles). Split out from ConversationScreen's render and
+// wrapped in React.memo for one reason: ConversationScreen re-renders on
+// every keystroke in the composer (`message` state / setMessage), and
+// before this split, building this list was an inline IIFE in that same
+// render - so every keystroke re-iterated and rebuilt a React element for
+// EVERY message in the conversation (this app uses a plain ScrollView here,
+// not a virtualized FlatList, so nothing was windowing that cost either).
+// That's what caused the visible stutter/jank while typing in chats with
+// more than a handful of messages. None of this component's props change
+// when `message`/composer text changes, so React.memo now makes typing a
+// no-op for this subtree - it only re-renders when the messages themselves
+// (or the few other props below) actually change.
+const MessagesListContent = React.memo(({
+  messages,
+  isGroupChat,
+  theme,
+  isDarkMode,
+  t,
+  username,
+  navigation,
+  mediaLoadErrors,
+  downloadingFileId,
+  messageHandlersRef,
+  onImageError,
+  activeInlineVideoId,
+  autoplayVideos,
+  highlightedMessageId,
+  messageLayoutOffsetsRef,
+  pendingHighlightMessageIdRef,
+  attemptScrollToHighlightRef,
+}) => {
+  // Pre-compute nearest real-message neighbours for each item so
+  // MessageRow doesn't have to O(n)-scan the array itself.
+  const realMessages = [];
+  messages.forEach((m, i) => {
+    if (m.type !== "date" && m.type !== "time") realMessages.push({ m, i });
+  });
+  const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
+
+  return messages.map((value, index) => {
+    let prev = null;
+    let next = null;
+    const ri = realIdxOf.get(index);
+    if (ri != null) {
+      prev = ri > 0 ? realMessages[ri - 1].m : null;
+      next = ri < realMessages.length - 1 ? realMessages[ri + 1].m : null;
+    } else {
+      // date/time header — walk to find adjacent real messages
+      for (let i = index - 1; i >= 0; i--) {
+        if (messages[i].type !== "date" && messages[i].type !== "time") { prev = messages[i]; break; }
+      }
+      for (let i = index + 1; i < messages.length; i++) {
+        if (messages[i].type !== "date" && messages[i].type !== "time") { next = messages[i]; break; }
+      }
+    }
+
+    return (
+      <View
+        key={`${value.type}-${value.id}-${index}`}
+        onLayout={(e) => {
+          if (value.type === "message" && value.id != null) {
+            messageLayoutOffsetsRef.current[value.id] = {
+              y: e.nativeEvent.layout.y,
+              height: e.nativeEvent.layout.height,
+            };
+            if (pendingHighlightMessageIdRef.current === value.id) {
+              attemptScrollToHighlightRef.current();
+            }
+          }
+        }}
+        style={
+          value.id === highlightedMessageId
+            ? {
+                backgroundColor: isDarkMode
+                  ? "rgba(250,204,21,0.15)"
+                  : "rgba(250,204,21,0.25)",
+                borderRadius: 12,
+              }
+            : undefined
+        }
+      >
+        {value.type === "date" ? (
+          <View
+            style={styles.dateHeaderContainer}
+            key={value.is_myself ? "my" + value.id : "their" + value.id}
+          >
+            <Text
+              style={[
+                styles.dateHeaderText,
+                {
+                  backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                  color: theme.subText,
+                },
+              ]}
+            >
+              {value.date}
+            </Text>
+          </View>
+        ) : value.type === "time" ? (
+          <View style={styles.timeHeaderContainer}>
+            <Text
+              style={[
+                styles.timeHeaderText,
+                {
+                  backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                  color: theme.subText,
+                },
+              ]}
+            >
+              {value.time}
+            </Text>
+          </View>
+        ) : (
+          <MessageRow
+            item={value}
+            prevMessage={prev}
+            nextMessage={next}
+            index={index}
+            isGroupChat={isGroupChat}
+            theme={theme}
+            isDarkMode={isDarkMode}
+            t={t}
+            username={username}
+            navigation={navigation}
+            mediaLoadError={mediaLoadErrors[value.id]}
+            isDownloadingThis={downloadingFileId === value.id}
+            handlersRef={messageHandlersRef}
+            onImageError={onImageError}
+            activeInlineVideoId={activeInlineVideoId}
+            autoplayVideos={autoplayVideos}
+          />
+        )}
+      </View>
+    );
+  });
+});
+
 const SWIPE_THRESHOLD = 55;
 const SWIPE_ICON_OFFSET = 44;
 
@@ -1023,6 +1161,21 @@ const ConversationScreen = ({ navigation, route }) => {
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
   const { username, profileName } = useContext(AuthContext);
+  // The socket effect below (tryAppendPushedMessage) doesn't list `username`
+  // in its dependency array - by design, so it doesn't resubscribe socket
+  // listeners on every render. But that means it was capturing whatever
+  // `username` happened to be at mount time and never updating it. If
+  // AuthContext hadn't finished hydrating yet the moment the conversation
+  // opened, `username` was still empty/stale for that closure, so the
+  // is_myself fallback comparison (raw.sender.username === username) came
+  // out wrong for messages pushed via socket right after opening the chat -
+  // they'd render on "my" side until the REST refetch a moment later
+  // overwrote them with the backend's correct is_myself. Keep a ref that's
+  // always current instead, so the socket handler reads the live username.
+  const usernameRef = useRef(username);
+  useEffect(() => {
+    usernameRef.current = username;
+  }, [username]);
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
@@ -1410,7 +1563,7 @@ const ConversationScreen = ({ navigation, route }) => {
           ...raw,
           is_myself:
             raw.is_myself ??
-            String(raw.sender?.username) === String(username),
+            String(raw.sender?.username) === String(usernameRef.current),
         };
         const existingMessages = prev.filter((item) => item.type === "message");
         return injectTimeHeaders([...existingMessages, withMyself], t);
@@ -1551,6 +1704,16 @@ const ConversationScreen = ({ navigation, route }) => {
     if (didScroll) pendingHighlightMessageIdRef.current = null;
     return didScroll;
   };
+  // attemptScrollToHighlight is redefined every render (plain closure, not
+  // useCallback). It gets passed down into MessagesListContent below, and if
+  // passed directly it would be a new prop identity on every keystroke,
+  // defeating that component's React.memo. Keep a ref to the latest version
+  // instead (same pattern as fetchMessagesRef above) so the prop we hand to
+  // MessagesListContent stays referentially stable.
+  const attemptScrollToHighlightRef = useRef(attemptScrollToHighlight);
+  useEffect(() => {
+    attemptScrollToHighlightRef.current = attemptScrollToHighlight;
+  });
 
   // Tapping a ReplyPreviewBubble jumps to the original message. If it's not
   // in the currently loaded page (an older message), keep loading older
@@ -2924,113 +3087,25 @@ const ConversationScreen = ({ navigation, route }) => {
             scrollViewHeightRef.current = e.nativeEvent.layout.height;
           }}
         >
-          {(() => {
-            // Pre-compute nearest real-message neighbours for each item so
-            // MessageRow doesn't have to O(n)-scan the array itself.
-            const realMessages = [];
-            messages.forEach((m, i) => {
-              if (m.type !== "date" && m.type !== "time") realMessages.push({ m, i });
-            });
-            const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
-            const isGroupChat = currentConversation?.type === "group";
-
-            return messages.map((value, index) => {
-              let prev = null;
-              let next = null;
-              const ri = realIdxOf.get(index);
-              if (ri != null) {
-                prev = ri > 0 ? realMessages[ri - 1].m : null;
-                next = ri < realMessages.length - 1 ? realMessages[ri + 1].m : null;
-              } else {
-                // date/time header — walk to find adjacent real messages
-                for (let i = index - 1; i >= 0; i--) {
-                  if (messages[i].type !== "date" && messages[i].type !== "time") { prev = messages[i]; break; }
-                }
-                for (let i = index + 1; i < messages.length; i++) {
-                  if (messages[i].type !== "date" && messages[i].type !== "time") { next = messages[i]; break; }
-                }
-              }
-
-              return (
-                <View
-                  key={`${value.type}-${value.id}-${index}`}
-                  onLayout={(e) => {
-                    if (value.type === "message" && value.id != null) {
-                      messageLayoutOffsetsRef.current[value.id] = {
-                        y: e.nativeEvent.layout.y,
-                        height: e.nativeEvent.layout.height,
-                      };
-                      if (pendingHighlightMessageIdRef.current === value.id) {
-                        attemptScrollToHighlight();
-                      }
-                    }
-                  }}
-                  style={
-                    value.id === highlightedMessageId
-                      ? {
-                          backgroundColor: isDarkMode
-                            ? "rgba(250,204,21,0.15)"
-                            : "rgba(250,204,21,0.25)",
-                          borderRadius: 12,
-                        }
-                      : undefined
-                  }
-                >
-                  {value.type === "date" ? (
-                    <View
-                      style={styles.dateHeaderContainer}
-                      key={value.is_myself ? "my" + value.id : "their" + value.id}
-                    >
-                      <Text
-                        style={[
-                          styles.dateHeaderText,
-                          {
-                            backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                            color: theme.subText,
-                          },
-                        ]}
-                      >
-                        {value.date}
-                      </Text>
-                    </View>
-                  ) : value.type === "time" ? (
-                    <View style={styles.timeHeaderContainer}>
-                      <Text
-                        style={[
-                          styles.timeHeaderText,
-                          {
-                            backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                            color: theme.subText,
-                          },
-                        ]}
-                      >
-                        {value.time}
-                      </Text>
-                    </View>
-                  ) : (
-                    <MessageRow
-                      item={value}
-                      prevMessage={prev}
-                      nextMessage={next}
-                      index={index}
-                      isGroupChat={isGroupChat}
-                      theme={theme}
-                      isDarkMode={isDarkMode}
-                      t={t}
-                      username={username}
-                      navigation={navigation}
-                      mediaLoadError={mediaLoadErrors[value.id]}
-                      isDownloadingThis={downloadingFileId === value.id}
-                      handlersRef={messageHandlersRef}
-                      onImageError={handleImageLoadError}
-                      activeInlineVideoId={activeInlineVideoId}
-                      autoplayVideos={autoplayVideos}
-                    />
-                  )}
-                </View>
-              );
-            });
-          })()}
+          <MessagesListContent
+            messages={messages}
+            isGroupChat={currentConversation?.type === "group"}
+            theme={theme}
+            isDarkMode={isDarkMode}
+            t={t}
+            username={username}
+            navigation={navigation}
+            mediaLoadErrors={mediaLoadErrors}
+            downloadingFileId={downloadingFileId}
+            messageHandlersRef={messageHandlersRef}
+            onImageError={handleImageLoadError}
+            activeInlineVideoId={activeInlineVideoId}
+            autoplayVideos={autoplayVideos}
+            highlightedMessageId={highlightedMessageId}
+            messageLayoutOffsetsRef={messageLayoutOffsetsRef}
+            pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
+            attemptScrollToHighlightRef={attemptScrollToHighlightRef}
+          />
           {typingUser && (
             <Text
               style={{
