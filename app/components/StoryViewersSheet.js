@@ -234,7 +234,7 @@ const StoryViewersSheet = () => {
         </View>
       ) : (
         <ScrollView
-          style={{ flexGrow: 0, flexShrink: 1, minHeight: 0 }}
+          style={{ flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: windowHeight * 0.85 - 120 }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}

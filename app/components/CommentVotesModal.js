@@ -159,7 +159,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
           </View>
         ) : (
           <ScrollView
-            style={styles.list}
+            style={[styles.list, { maxHeight: windowHeight * 0.85 - 180 }]}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             nestedScrollEnabled={true}

@@ -207,7 +207,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
             </View>
           ) : (
             <ScrollView
-              style={styles.list}
+              style={[styles.list, { maxHeight: windowHeight * 0.85 - 180 }]}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
