@@ -40,6 +40,7 @@ const StoryViewersSheet = () => {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const fetchAbortControllerRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener("SHOW_STORY_VIEWERS", (payload) => {
@@ -157,7 +158,7 @@ const StoryViewersSheet = () => {
     >
       <FastImage source={{ uri: item.profile_picture }} style={styles.avatar} />
       <View style={styles.viewerInfo}>
-        <Text style={[styles.viewerName, { color: theme.text }]}>{item.profile_name}</Text>
+        <Text style={[styles.viewerName, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">{item.profile_name}</Text>
         {item.reactions && item.reactions.length > 0 ? (
           <View style={styles.reactionsWrap}>
             {item.reactions.slice(0, 3).map((reaction, index) => (
@@ -197,8 +198,9 @@ const StoryViewersSheet = () => {
       onOpen={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_OPENED")}
       onClose={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_CLOSED")}
     >
-      <View style={{ flexDirection: "column", maxHeight: windowHeight * 0.85 }}>
+      <View style={{ flexDirection: "column", maxHeight: windowHeight * 0.85, flexShrink: 1 }}>
       <LinearGradient
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         colors={isDarkMode ? ["rgba(16, 185, 129, 0.24)", "rgba(16, 185, 129, 0.06)"] : ["rgba(16, 185, 129, 0.12)", "rgba(255,255,255,0)"]}
         style={[styles.header, { paddingTop: 6, borderBottomColor: theme.border }]}
       >
@@ -234,7 +236,7 @@ const StoryViewersSheet = () => {
         </View>
       ) : (
         <ScrollView
-          style={{ flexGrow: 0, flexShrink: 1, minHeight: 0, maxHeight: windowHeight * 0.85 - 120 }}
+          style={{ flexShrink: 1, minHeight: 0, maxHeight: windowHeight * 0.85 - (headerHeight || 90) - (insets.bottom || 0) }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
@@ -311,7 +313,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: { width: 46, height: 46, borderRadius: 23, marginRight: 12 },
-  viewerInfo: { flex: 1 },
+  viewerInfo: { flex: 1, minWidth: 0 },
   viewerName: { fontSize: 15, fontWeight: "700" },
   reactionsWrap: { flexDirection: "row", flexWrap: "wrap", marginTop: 6, gap: 4, alignItems: "center" },
   reactionEmoji: { fontSize: 20 },
