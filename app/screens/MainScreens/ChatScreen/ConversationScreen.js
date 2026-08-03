@@ -3094,7 +3094,7 @@ const ConversationScreen = ({ navigation, route }) => {
                 </Text>
                 <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
                   {currentConversation?.type === "group"
-                    ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
+                    ? `${(currentConversation?.participants?.length || 0) + 1} ${t("chatConversation.members") || "members"}`
                     : otherUser?.username ? "@" + otherUser.username : ""}
                 </Text>
               </View>
