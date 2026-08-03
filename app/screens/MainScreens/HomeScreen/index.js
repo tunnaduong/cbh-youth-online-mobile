@@ -66,6 +66,7 @@ import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
@@ -1772,14 +1773,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           paddingBottom: 10,
           backgroundColor: theme.background,
         }}>
-          <Text style={{
-            fontSize: 22,
-            fontWeight: "700",
-            color: theme.text,
-            marginBottom: 10,
-          }}>
-            {t('home.feed')}
-          </Text>
           <View style={{ flexDirection: "row", gap: 8 }}>
             <TouchableOpacity
               activeOpacity={0.75}
@@ -1888,8 +1881,25 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     };
 
     if (feed == null) {
-      // Cold start / previously empty or errored feed: full load.
-      handleFetchFeed().finally(finishRefresh);
+      // Cold start / previously empty or errored feed: full load for the active tab.
+      if (feedMode === "latest") {
+        deliveredIdsRef.current = new Set();
+        getLatestFeed(1)
+          .then((response) => {
+            const posts = response?.data?.data;
+            const validPosts = Array.isArray(posts) ? posts : [];
+            setFeed(validPosts);
+            validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+            setLatestPage(2);
+          })
+          .catch((error) => {
+            console.log("Error fetching latest feed on refresh:", error);
+            setFeed((prev) => prev ?? []);
+          })
+          .finally(finishRefresh);
+      } else {
+        handleFetchFeed().finally(finishRefresh);
+      }
       return;
     }
 
@@ -2462,7 +2472,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }}
           toast={<Toast topOffset={60} />}
           footerComponent={
-            <>
+            // react-native-gesture-handler v2 requires a GestureHandlerRootView
+            // ancestor for its PanGestureHandlers to receive touches at all -
+            // the one in App.js only covers the app's normal view tree, not
+            // this InstagramStories footer, which React Native's native
+            // <Modal> renders into a separate native surface/window on iOS.
+            // Without a GestureHandlerRootView inside that surface, the
+            // ActionSheet's internal PanGestureHandler (mounted regardless of
+            // gestureEnabled) grabs the responder and never releases it,
+            // which is what actually caused "viewers sheet shows nothing,
+            // then app is frozen after closing the story" on iOS.
+            <GestureHandlerRootView style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <ReportModal
                 visible={reportModalVisible}
                 onClose={() => {
@@ -2491,7 +2511,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   to silently reject the second native modal presentation,
                   breaking the modal chain and freezing the screen on close. */}
               <StoryViewersSheet />
-            </>
+            </GestureHandlerRootView>
           }
         />
         <ResendVerificationModal />

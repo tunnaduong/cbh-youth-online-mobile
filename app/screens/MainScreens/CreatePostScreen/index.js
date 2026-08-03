@@ -41,7 +41,7 @@ import {
   getVideoMimeType,
   validateVideoAsset,
 } from "../../../utils/videoUpload";
-import { extractYouTubeId } from "../../../utils/youtubeShare";
+import { extractYouTubeId, buildYouTubePlayerHtml, autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
 
 // Large video uploads (up to 100MB) need more headroom than the axios
 // instance's default 10s timeout.
@@ -393,7 +393,10 @@ const CreatePostScreen = ({ navigation, route }) => {
 
       const response = await createPost({
         title,
-        description: postContent,
+        // Auto-wraps a bare youtube.com/youtu.be link typed into the post
+        // in the same <iframe> PostItem already knows how to render, so
+        // users don't have to write the embed markup by hand.
+        description: autoEmbedYouTubeLinks(postContent),
         cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
         cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
         cdn_video_id: videoIds.length > 0 ? videoIds.join(",") : null,
@@ -690,7 +693,6 @@ const CreatePostScreen = ({ navigation, route }) => {
             {(() => {
               const ytId = extractYouTubeId(postContent);
               if (!ytId) return null;
-              const embedUrl = `https://www.youtube-nocookie.com/embed/${ytId}`;
               return (
                 <View style={{
                   marginTop: 12,
@@ -714,7 +716,7 @@ const CreatePostScreen = ({ navigation, route }) => {
                     </TouchableOpacity>
                   </View>
                   <WebView
-                    source={{ uri: embedUrl }}
+                    source={{ html: buildYouTubePlayerHtml(ytId), baseUrl: "https://www.youtube-nocookie.com" }}
                     style={{ width: "100%", height: 200 }}
                     allowsFullscreenVideo
                     javaScriptEnabled

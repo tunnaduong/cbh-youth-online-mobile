@@ -1559,11 +1559,16 @@ const ConversationScreen = ({ navigation, route }) => {
         if (prev.some((m) => m.type === "message" && String(m.id) === String(raw.id))) {
           return prev; // already have it somehow (e.g. our own optimistic send echoed back)
         }
+        // Deliberately ignore raw.is_myself here - it comes from the socket
+        // broadcast, which the backend appears to compute once from the
+        // sender's own perspective and relay verbatim to every participant.
+        // Trusting it made a message the OTHER person just sent flash on
+        // "my" side of the chat for a moment until the REST refetch below
+        // landed and overwrote it with the correct value. Always deriving it
+        // locally from the live username ref avoids that flash entirely.
         const withMyself = {
           ...raw,
-          is_myself:
-            raw.is_myself ??
-            String(raw.sender?.username) === String(usernameRef.current),
+          is_myself: String(raw.sender?.username) === String(usernameRef.current),
         };
         const existingMessages = prev.filter((item) => item.type === "message");
         return injectTimeHeaders([...existingMessages, withMyself], t);

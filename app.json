@@ -18,6 +18,7 @@
       },
       "bundleIdentifier": "com.fatties.youth",
       "buildNumber": "475",
+      "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
         "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",

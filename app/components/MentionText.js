@@ -73,11 +73,14 @@ const MentionText = ({ children, style, onMentionPress, mentions, ...rest }) => 
     <Text style={style} {...rest}>
       {parts.map((part, i) => {
         if (part.type === "mention" && validSet.has(part.username.toLowerCase())) {
+          // @all is a broadcast mention, not a real user - there's no
+          // profile to open, so it renders highlighted but isn't tappable.
+          const isBroadcast = part.username.toLowerCase() === "all";
           return (
             <Text
               key={i}
               style={{ color: "#22c55e", fontWeight: "600" }}
-              onPress={() => onMentionPress?.(part.username)}
+              onPress={isBroadcast ? undefined : () => onMentionPress?.(part.username)}
             >
               {part.value}
             </Text>
