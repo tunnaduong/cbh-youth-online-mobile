@@ -980,6 +980,10 @@ const MessageRow = React.memo(({
                   },
                 ]}
                 mentions={item.mentions}
+                // 1-1 conversations only ever have the two participants -
+                // @all has no meaning there, so it must render as plain
+                // text instead of a highlighted/tappable mention.
+                allowBroadcastMention={isGroupChat}
                 onMentionPress={(username) =>
                   navigation.navigate("ProfileScreen", { username })
                 }

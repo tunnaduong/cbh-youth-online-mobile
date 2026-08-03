@@ -52,15 +52,23 @@ export function buildParts(text) {
  *   children          - string message content
  *   mentions          - array of {username, user_id} from the server (resolved by backend)
  *   onMentionPress(username) - called when a valid mention is tapped
+ *   allowBroadcastMention    - whether @all should render as a highlighted
+ *                              mention at all (default true). 1-on-1 chats
+ *                              only ever have the two participants, so @all
+ *                              is meaningless there and should render as
+ *                              plain text instead.
  */
-const MentionText = ({ children, style, onMentionPress, mentions, ...rest }) => {
+const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcastMention = true, ...rest }) => {
   const text = typeof children === "string" ? children : String(children ?? "");
 
   const validSet = React.useMemo(() => {
     const s = new Set();
-    (mentions ?? []).forEach((m) => s.add(m.username.toLowerCase()));
+    (mentions ?? []).forEach((m) => {
+      if (!allowBroadcastMention && m.username.toLowerCase() === "all") return;
+      s.add(m.username.toLowerCase());
+    });
     return s;
-  }, [mentions]);
+  }, [mentions, allowBroadcastMention]);
 
   const parts = buildParts(text);
   const hasSpecial = parts.some((p) => p.type !== "text");
