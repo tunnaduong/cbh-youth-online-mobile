@@ -187,6 +187,12 @@ const StoryViewersSheet = () => {
   return (
     <ActionSheet
       ref={actionSheetRef}
+      // isModal={false} is required on iOS: InstagramStories renders inside a
+      // native UIModal, and presenting a second native modal on top of it
+      // silently fails — leaving the modal chain broken and the screen frozen
+      // after the story is closed. Rendering as a non-modal overlay inside
+      // the same view tree avoids the double-modal problem entirely.
+      isModal={false}
       containerStyle={{
         backgroundColor: sheetBackground,
         borderTopLeftRadius: 24,

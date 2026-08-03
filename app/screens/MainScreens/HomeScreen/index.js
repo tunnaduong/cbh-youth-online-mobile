@@ -2484,11 +2484,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 dismissStoryModal={dismissStoryModal}
                 fetchStories={fetchStories}
               />
+              {/* StoryViewersSheet must live inside footerComponent (inside
+                  the InstagramStories modal's view tree) so its ActionSheet
+                  (isModal=false) renders as an overlay within the same native
+                  UIModal. Placing it outside and using isModal=true caused iOS
+                  to silently reject the second native modal presentation,
+                  breaking the modal chain and freezing the screen on close. */}
+              <StoryViewersSheet />
             </>
           }
         />
         <ResendVerificationModal />
-        <StoryViewersSheet />
       </View>
     </>
   );
