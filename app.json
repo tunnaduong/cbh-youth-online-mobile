@@ -79,6 +79,17 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "SEND",
+          "data": [
+            {
+              "mimeType": "text/plain"
+            }
+          ],
+          "category": [
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
@@ -145,7 +156,19 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1
+          },
+          "androidMainActivityAttributes": {
+            "android:launchMode": "singleTask"
+          }
+        }
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",

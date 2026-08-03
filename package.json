@@ -48,6 +48,7 @@
     "expo-localization": "~55.0.17",
     "expo-modules-core": "~55.0.25",
     "expo-notifications": "~55.0.25",
+    "expo-share-intent": "^8.0.1",
     "expo-sharing": "~55.0.22",
     "expo-splash-screen": "~55.0.23",
     "expo-status-bar": "~55.0.6",
