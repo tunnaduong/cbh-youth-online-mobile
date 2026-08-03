@@ -768,6 +768,7 @@ const MessageRow = React.memo(({
           style={{
             position: "relative",
             maxWidth: "75%",
+            flexShrink: 1,
             alignSelf: item.is_myself ? "flex-end" : "flex-start",
             // The reaction badge hangs off the bottom corner of the bubble
             // (see reactionAddBadge/reactionPillBadge) - without this the
@@ -782,7 +783,7 @@ const MessageRow = React.memo(({
               // value here would resolve against this wrapper's own
               // auto-sized width instead of the row's, collapsing text to
               // ~1 char per line. Cancel it out.
-              { maxWidth: undefined },
+              { maxWidth: undefined, flexShrink: 1 },
               isImageMessage || isVideoMessage
                 ? styles.imageMessageBubble
                 : isFileMessage
@@ -3435,6 +3436,7 @@ const styles = StyleSheet.create({
     maxWidth: "75%",
     padding: 12,
     borderRadius: 20,
+    overflow: "hidden",
   },
   myMessageBubble: {
     borderBottomRightRadius: 4,
@@ -3494,6 +3496,7 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
+    flexShrink: 1,
   },
   messageTime: {
     fontSize: 12,
