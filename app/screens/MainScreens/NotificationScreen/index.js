@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Modal,
   RefreshControl,
+  ActivityIndicator,
   Animated,
   DeviceEventEmitter,
   Platform,
@@ -15,7 +16,6 @@ import FastImage from "../../../components/FastImage";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
-import LottieView from "lottie-react-native";
 import {
   getNotifications,
   markNotificationAsRead,
@@ -32,7 +32,6 @@ import {
   LiquidGlassView,
   LiquidGlassViewAndroid,
   isLiquidGlassSupportedAndroid,
-  useIOSGlass,
   BlurView,
   AndroidGlassBackdrop,
 } from "../../../components/GlassModules";
@@ -134,7 +133,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const insets = useSafeAreaInsets();
-  const lottieRef = useRef(null);
   const { t } = useTranslation();
 
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -152,7 +150,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-  const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
   const { refreshNotificationCount, setNotificationUnreadCount } =
     useUnreadCountsContext();
@@ -284,10 +281,6 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     scrollY.setValue(offsetY);
 
     lastScrollYRef.current = offsetY;
-
-    if (!refreshing) {
-      lottieRef.current?.play();
-    }
   };
 
   const scrollToTopOrReload = React.useCallback(() => {
@@ -650,6 +643,21 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         </LiquidButton>
       </View>
 
+      {refreshing && (
+        <View
+          style={{
+            position: "absolute",
+            top: 58 + insets.top + 15,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <ActivityIndicator size="small" color={theme.primary} />
+        </View>
+      )}
       <AndroidGlassBackdrop providerId="Notifications" style={{ flex: 1 }}>
       {loading && notifications.length === 0 ? (
         <View

@@ -13,16 +13,22 @@ export default function EasterEggScreen({ navigation }) {
 
   useFocusEffect(
     React.useCallback(() => {
-      StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
-      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
+      // Transparent status bar so the egg's WebView content renders edge-to-edge
+      // underneath it instead of behind an opaque theme-coloured strip.
+      StatusBar.setBarStyle("light-content", true);
+      if (StatusBar.setTranslucent) StatusBar.setTranslucent(true);
+      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor("transparent", true);
+
+      return () => {
+        StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
+        if (StatusBar.setTranslucent) StatusBar.setTranslucent(false);
+        if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
+      };
     }, [isDarkMode, theme.background])
   );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Status-bar coloured fill so the WebView doesn't bleed behind it */}
-      <View style={{ height: insets.top, backgroundColor: theme.background }} />
-
       {/* Floating back button */}
       <View
         pointerEvents="box-none"

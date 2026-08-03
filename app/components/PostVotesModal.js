@@ -4,10 +4,10 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  FlatList,
   Pressable,
   StyleSheet,
   useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import FastImage from "./FastImage";
 import ActionSheet from "react-native-actions-sheet";
@@ -47,6 +47,7 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
     if (visible) {
@@ -164,33 +165,37 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
   return (
     <ActionSheet
       ref={actionSheetRef}
-      gestureEnabled
+      gestureEnabled={false}
       defaultOverlayOpacity={0.45}
       onClose={onClose}
       containerStyle={[
         styles.sheetContainer,
-        { backgroundColor: theme.cardBackground },
+        { backgroundColor: theme.cardBackground, maxHeight: windowHeight * 0.85 },
       ]}
     >
-        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>          
-          <View style={styles.header}>
-            <View style={styles.headerText}>
-              <Text style={[styles.title, { color: theme.text }]}>{t("voteModal.title")}</Text>
-              <Text style={[styles.subtitle, { color: theme.subText }]} numberOfLines={1}>
-                {postTitle || t("voteModal.postTitleFallback")}
-              </Text>
+        <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: windowHeight * 0.85 }, styles.flexContainer]}>
+          <View
+            onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+          >
+            <View style={styles.header}>
+              <View style={styles.headerText}>
+                <Text style={[styles.title, { color: theme.text }]}>{t("voteModal.title")}</Text>
+                <Text style={[styles.subtitle, { color: theme.subText }]} numberOfLines={1}>
+                  {postTitle || t("voteModal.postTitleFallback")}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => actionSheetRef.current?.hide()} style={styles.closeButton}>
+                <Text style={[styles.closeButtonText, { color: theme.primary }]}>{t("common.close")}</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={() => actionSheetRef.current?.hide()} style={styles.closeButton}>
-              <Text style={[styles.closeButtonText, { color: theme.primary }]}>{t("common.close")}</Text>
-            </TouchableOpacity>
-          </View>
 
-          <View style={styles.summaryRow}>
-            <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
-              <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.voteCount", { count: voteSummary.voteCount })}</Text>
-            </View>
-            <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
-              <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.score", { value: voteSummary.totalVotes })}</Text>
+            <View style={styles.summaryRow}>
+              <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+                <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.voteCount", { count: voteSummary.voteCount })}</Text>
+              </View>
+              <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+                <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.score", { value: voteSummary.totalVotes })}</Text>
+              </View>
             </View>
           </View>
 
@@ -207,14 +212,21 @@ export default function PostVotesModal({ visible, onClose, postId, postTitle, na
               <Text style={[styles.emptyText, { color: theme.subText }]}>{t("voteModal.empty")}</Text>
             </View>
           ) : (
-            <FlatList
-              data={votes}
-              keyExtractor={(item) => item.user_id?.toString() || item.username || JSON.stringify(item)}
-              renderItem={renderItem}
-              style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
+            <ScrollView
+              style={[
+                styles.list,
+                { maxHeight: windowHeight * 0.85 - (headerHeight || 160) - Math.max(insets.bottom, 16) },
+              ]}
               contentContainerStyle={styles.listContent}
               showsVerticalScrollIndicator={false}
-            />
+              nestedScrollEnabled={true}
+            >
+              {votes.map((item, i) => (
+                <React.Fragment key={item.user_id?.toString() || item.username || JSON.stringify(item) + i}>
+                  {renderItem({ item })}
+                </React.Fragment>
+              ))}
+            </ScrollView>
           )}
         </View>
     </ActionSheet>
@@ -229,6 +241,10 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     padding: 16,
+    flexDirection: "column",
+  },
+  flexContainer: {
+    flexShrink: 1,
   },
   header: {
     flexDirection: "row",
@@ -297,6 +313,9 @@ const styles = StyleSheet.create({
   },
   list: {
     width: "100%",
+    flexGrow: 1,
+    flexShrink: 1,
+    minHeight: 0,
   },
   listContent: {
     paddingBottom: 8,
@@ -328,6 +347,7 @@ const styles = StyleSheet.create({
   },
   voteContent: {
     flex: 1,
+    minWidth: 0,
   },
   voteHeader: {
     flexDirection: "row",

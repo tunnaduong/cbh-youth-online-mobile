@@ -31,19 +31,22 @@ jobs:
           sudo ln -sf $(which node) /usr/local/bin/node
           echo "export NODE_BINARY=$(which node)" > ios/.xcode.env.local
 
-      - name: Install Apple Certificate and Provisioning Profile
+      - name: Install Apple Certificate and Provisioning Profiles
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
           BUILD_PROVISIONING_PROFILE_BASE64: ${{ secrets.BUILD_PROVISIONING_PROFILE_BASE64 }}
+          SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64: ${{ secrets.SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64 }}
         run: |
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          SHARE_PP_PATH=$RUNNER_TEMP/share_ext_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-build.keychain-db
 
           # Giải mã dữ liệu mã hóa Base64 sang file vật lý trong thư mục tạm
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
           echo -n "$BUILD_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $PP_PATH
+          echo -n "$SHARE_EXTENSION_PROVISIONING_PROFILE_BASE64" | base64 --decode -o $SHARE_PP_PATH
 
           security create-keychain -p "github-actions-pwd" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
@@ -63,7 +66,9 @@ jobs:
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp $SHARE_PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/
 
+          # Main app (com.fatties.youth) profile
           security cms -D -i $PP_PATH > $RUNNER_TEMP/profile.plist
           TEAM_ID=$(plutil -extract TeamIdentifier.0 raw $RUNNER_TEMP/profile.plist || plutil -extract Entitlements.com.apple.developer.team-identifier raw $RUNNER_TEMP/profile.plist)
           UUID=$(plutil -extract UUID raw $RUNNER_TEMP/profile.plist)
@@ -74,10 +79,22 @@ jobs:
             BUNDLE_ID="com.fatties.youth"
           fi
 
+          # ShareExtension (com.fatties.youth.share-extension) profile - separate
+          # target with its own bundle ID and App Groups entitlement, so it needs
+          # its own dedicated provisioning profile, not the main app's.
+          security cms -D -i $SHARE_PP_PATH > $RUNNER_TEMP/share_profile.plist
+          SHARE_UUID=$(plutil -extract UUID raw $RUNNER_TEMP/share_profile.plist)
+          SHARE_PROFILE_NAME=$(plutil -extract Name raw $RUNNER_TEMP/share_profile.plist)
+          SHARE_FULL_APP_ID=$(plutil -extract Entitlements.application-identifier raw $RUNNER_TEMP/share_profile.plist)
+          SHARE_BUNDLE_ID="${SHARE_FULL_APP_ID#*.}"
+
           echo "DEVELOPMENT_TEAM=$TEAM_ID" >> $GITHUB_ENV
           echo "PROVISIONING_PROFILE_UUID=$UUID" >> $GITHUB_ENV
           echo "PROVISIONING_PROFILE_NAME=$PROFILE_NAME" >> $GITHUB_ENV
           echo "BUNDLE_ID=$BUNDLE_ID" >> $GITHUB_ENV
+          echo "SHARE_PROVISIONING_PROFILE_UUID=$SHARE_UUID" >> $GITHUB_ENV
+          echo "SHARE_PROVISIONING_PROFILE_NAME=$SHARE_PROFILE_NAME" >> $GITHUB_ENV
+          echo "SHARE_BUNDLE_ID=$SHARE_BUNDLE_ID" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: npm ci
@@ -98,6 +115,23 @@ jobs:
           cd ios
           pod install || (pod update hermes-engine --no-repo-update && pod install)
 
+      - name: Cache Xcode DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}-
+            ${{ runner.os }}-deriveddata-
+
+      - name: Cache CocoaPods build cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-
+
       - name: Detect iOS Project Name
         run: |
           cd ios
@@ -107,23 +141,73 @@ jobs:
       - name: Install xcbeautify
         run: brew install xcbeautify
 
+      # xcodebuild's command-line KEY=value overrides (as used below) apply to
+      # EVERY target in the build, not just the main app - there's no
+      # supported CLI syntax to scope PROVISIONING_PROFILE_SPECIFIER to a
+      # single target. Since ShareExtension has its own bundle ID
+      # (com.fatties.youth.share-extension) and its own App Groups
+      # entitlement, it needs its own profile, which can only be pinned by
+      # writing it into project.pbxproj per-target before the build runs.
+      # This is exactly what CBHOnline.xcodeproj + com.fatties.youth's
+      # PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}"
+      # override on its own was silently clobbering.
+      - name: Configure per-target code signing
+        run: |
+          cd ios
+          # CocoaPods already depends on xcodeproj, but pin/install it
+          # explicitly (no-op if satisfied) so this step doesn't rely on that.
+          gem list -i xcodeproj > /dev/null || gem install xcodeproj --no-document
+          ruby -rxcodeproj -e '
+            project = Xcodeproj::Project.open("CBHOnline.xcodeproj")
+
+            target_profiles = {
+              "CBHOnline" => {
+                team: ENV["DEVELOPMENT_TEAM"],
+                uuid: ENV["PROVISIONING_PROFILE_UUID"],
+                name: ENV["PROVISIONING_PROFILE_NAME"],
+              },
+              "ShareExtension" => {
+                team: ENV["DEVELOPMENT_TEAM"],
+                uuid: ENV["SHARE_PROVISIONING_PROFILE_UUID"],
+                name: ENV["SHARE_PROVISIONING_PROFILE_NAME"],
+              },
+            }
+
+            project.targets.each do |target|
+              cfg = target_profiles[target.name]
+              next unless cfg
+              target.build_configurations.each do |config|
+                config.build_settings["CODE_SIGN_STYLE"] = "Manual"
+                config.build_settings["DEVELOPMENT_TEAM"] = cfg[:team]
+                config.build_settings["PROVISIONING_PROFILE"] = cfg[:uuid]
+                config.build_settings["PROVISIONING_PROFILE_SPECIFIER"] = cfg[:name]
+                config.build_settings["CODE_SIGN_IDENTITY"] = "Apple Development"
+              end
+            end
+
+            project.save
+          '
+        env:
+          DEVELOPMENT_TEAM: ${{ env.DEVELOPMENT_TEAM }}
+          PROVISIONING_PROFILE_UUID: ${{ env.PROVISIONING_PROFILE_UUID }}
+          PROVISIONING_PROFILE_NAME: ${{ env.PROVISIONING_PROFILE_NAME }}
+          SHARE_PROVISIONING_PROFILE_UUID: ${{ env.SHARE_PROVISIONING_PROFILE_UUID }}
+          SHARE_PROVISIONING_PROFILE_NAME: ${{ env.SHARE_PROVISIONING_PROFILE_NAME }}
+
       # Ép các biến môi trường loại bỏ Simulator ngay tại câu lệnh build xcodebuild
       - name: Build iOS Archive
         run: |
           cd ios
           set -o pipefail
-          xcodebuild clean archive \
+          xcodebuild archive \
             -workspace "${{ env.APP_NAME }}.xcworkspace" \
             -scheme "${{ env.APP_NAME }}" \
             -sdk iphoneos \
             -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/${{ env.APP_NAME }}.xcarchive" \
-            DEVELOPMENT_TEAM="${{ env.DEVELOPMENT_TEAM }}" \
-            CODE_SIGN_STYLE="Manual" \
-            CODE_SIGN_IDENTITY="Apple Development" \
-            PROVISIONING_PROFILE_SPECIFIER="${{ env.PROVISIONING_PROFILE_NAME }}" \
-            PROVISIONING_PROFILE="${{ env.PROVISIONING_PROFILE_UUID }}" \
+            -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             SUPPORTED_PLATFORMS="iphoneos" \
             EXCLUDED_ARCHS="x86_64 i386" \
             | xcbeautify --quiet --renderer github-actions
@@ -149,6 +233,8 @@ jobs:
               <dict>
                   <key>${{ env.BUNDLE_ID }}</key>
                   <string>${{ env.PROVISIONING_PROFILE_NAME }}</string>
+                  <key>${{ env.SHARE_BUNDLE_ID }}</key>
+                  <string>${{ env.SHARE_PROVISIONING_PROFILE_NAME }}</string>
               </dict>
           </dict>
           </plist>

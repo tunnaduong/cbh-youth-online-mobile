@@ -3,6 +3,8 @@ import { Modal, View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useIsFocused } from "@react-navigation/native";
+import { useTheme } from "../contexts/ThemeContext";
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
@@ -10,10 +12,55 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 // one full-screen video viewer implementation in the app.
 const VideoPlayerModal = ({ visible, uri, onClose }) => {
   const insets = useSafeAreaInsets();
+  const { autoplayVideos } = useTheme();
   const player = useVideoPlayer(uri || null, (p) => {
     p.loop = false;
-    if (uri) p.play();
+    if (uri && autoplayVideos) p.play();
   });
+
+  const isFocused = useIsFocused();
+  // Pause player when containing screen loses focus
+  React.useEffect(() => {
+    if (!player || typeof player !== "object") return;
+    if (!isFocused) {
+      try {
+        if (typeof player.pause === "function") player.pause();
+      } catch (e) {
+        console.warn("VideoPlayerModal: failed to pause player on blur", e);
+      }
+    }
+  }, [isFocused, player]);
+
+  React.useEffect(() => {
+    console.debug("[VideoPlayerModal] player mounted/changed", { uri, player });
+    return () => {
+      if (!player) return;
+      try {
+        if (typeof player.playing !== "undefined" ? player.playing === true : false) {
+          if (typeof player.pause === "function") {
+            player.pause();
+            console.debug("[VideoPlayerModal] paused player during cleanup", { uri });
+          }
+        }
+      } catch (e) {
+        console.warn("[VideoPlayerModal] error pausing player during cleanup", e);
+      }
+      try {
+        if (typeof player.release === "function") {
+          player.release();
+          console.debug("[VideoPlayerModal] released player during cleanup", { uri });
+        }
+      } catch (e) {
+        console.warn("[VideoPlayerModal] error releasing player during cleanup", e);
+      }
+    };
+  }, [player, uri]);
+
+  // ensure the VideoView remounts if the underlying player reference changes
+  const [playerKey, setPlayerKey] = React.useState(0);
+  React.useEffect(() => {
+    setPlayerKey((k) => k + 1);
+  }, [player]);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -25,15 +72,16 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
         >
           <Ionicons name="close" size={28} color="#fff" />
         </TouchableOpacity>
-        {uri && (
+        {player && typeof player === "object" ? (
           <VideoView
+            key={playerKey}
             style={styles.player}
             player={player}
             allowsFullscreen
             allowsPictureInPicture
             nativeControls
           />
-        )}
+        ) : null}
       </View>
     </Modal>
   );

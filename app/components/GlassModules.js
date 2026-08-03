@@ -1,5 +1,7 @@
 import React from "react";
-import { Animated, Platform } from "react-native";
+import { Animated, Platform, DeviceEventEmitter } from "react-native";
+
+const GLASS_READY_EVENT = '__iosGlassReady';
 
 // ---------------------------------------------------------------------------
 // iOS: @callstack/liquid-glass for the real iOS 26+ UIGlassEffect
@@ -18,7 +20,18 @@ const shouldUseIOSGlass = Platform.OS === "ios" && iosMajorVersion >= 26;
 
 console.log(iosMajorVersion)
 
-if (Platform.OS === "ios" && shouldUseIOSGlass) {
+// On a genuinely fresh cold start (first launch right after install) on
+// iOS 26+, this require() can run before the @callstack/liquid-glass
+// native/Fabric component has finished registering, so LiquidGlassView
+// comes back undefined and useIOSGlass below gets stuck at false for the
+// rest of this process's lifetime - the nav bar then renders through the
+// plain/opaque fallback until the app is fully restarted (a new process
+// re-runs this module from scratch and the native module is warm by
+// then). Wrapping the attempt in a function that can be re-run lets a
+// couple of short delayed retries recover from that race within the SAME
+// launch, instead of only self-correcting on a manual restart.
+const loadIOSGlass = () => {
+  if (!(Platform.OS === "ios" && shouldUseIOSGlass)) return false;
   try {
     const Lib = require("@callstack/liquid-glass");
     LiquidGlassView = Lib.LiquidGlassView;
@@ -26,18 +39,38 @@ if (Platform.OS === "ios" && shouldUseIOSGlass) {
     if (LiquidGlassView) {
       AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
     }
+    const ok = !!LiquidGlassView && !!LiquidGlassContainer;
     if (__DEV__) {
       console.log(
-        `[GlassModules] iOS Liquid Glass: ${!!LiquidGlassView && !!LiquidGlassContainer ? "SUPPORTED" : "NOT supported"} ` +
+        `[GlassModules] iOS Liquid Glass: ${ok ? "SUPPORTED" : "NOT supported"} ` +
         `(iOS ${iosMajorVersion}, requires 26+; @callstack/liquid-glass isLiquidGlassSupported: ${!!Lib.isLiquidGlassSupported})`
       );
     }
+    return ok;
   } catch (error) {
     console.warn("Failed to load @callstack/liquid-glass:", error);
     if (__DEV__) {
       console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @callstack/liquid-glass failed to load)`);
     }
+    return false;
   }
+};
+
+loadIOSGlass();
+
+if (Platform.OS === "ios" && shouldUseIOSGlass && !(LiquidGlassView && LiquidGlassContainer)) {
+  [300, 1000].forEach((delay) => {
+    setTimeout(() => {
+      if (LiquidGlassView && LiquidGlassContainer) return; // already recovered
+      if (loadIOSGlass()) {
+        useIOSGlass = true;
+        DeviceEventEmitter.emit(GLASS_READY_EVENT);
+        if (__DEV__) {
+          console.log(`[GlassModules] iOS Liquid Glass recovered on retry after ${delay}ms`);
+        }
+      }
+    }, delay);
+  });
 }
 
 if (Platform.OS === "ios") {
@@ -109,7 +142,30 @@ if (Platform.OS === "android") {
 // what caused the square nav bar corners on iOS 18. So on iOS < 26 we report
 // useIOSGlass as false and let call sites use BlurView directly instead,
 // wrapped in a View that actually clips it.
-const useIOSGlass = shouldUseIOSGlass && !!LiquidGlassView && !!LiquidGlassContainer;
+//
+// NOTE: this is a mutable let. Export consumers get a value snapshot at module
+// load time. Use the useIOSGlassSupport() hook inside components so they
+// re-render if the 300 ms / 1000 ms retry fires and sets this to true.
+let useIOSGlass = shouldUseIOSGlass && !!LiquidGlassView && !!LiquidGlassContainer;
+
+// Hook that returns the current iOS glass support flag and re-renders the
+// calling component when the delayed retry succeeds.
+const useIOSGlassSupport = () => {
+  const [supported, setSupported] = React.useState(useIOSGlass);
+  React.useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    // Subscribe before the synchronous check so we never miss an event that
+    // fires between render and this effect body.
+    const sub = DeviceEventEmitter.addListener(GLASS_READY_EVENT, () => {
+      setSupported(true);
+    });
+    // The retry may have already completed between the initial useState() call
+    // and when this effect ran — pick up that case now.
+    if (useIOSGlass) setSupported(true);
+    return () => sub.remove();
+  }, []);
+  return supported;
+};
 const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
 
 // Wraps `children` (the backdrop content) in a local Android LiquidGlassProvider
@@ -140,6 +196,7 @@ export {
   isLiquidGlassSupportedAndroid,
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
+  useIOSGlassSupport,
   useAndroidGlass,
   AndroidGlassBackdrop,
 };
@@ -155,6 +212,7 @@ export default {
   isLiquidGlassSupportedAndroid,
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
+  useIOSGlassSupport,
   useAndroidGlass,
   AndroidGlassBackdrop,
 };

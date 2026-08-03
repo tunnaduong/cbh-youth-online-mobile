@@ -22,7 +22,7 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView, useIOSGlass, BlurView } from "./GlassModules";
+import { LiquidGlassView, useIOSGlassSupport, BlurView } from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -82,6 +82,7 @@ const Sidebar = ({ providerId, isOpen }) => {
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
+  const iosGlass = useIOSGlassSupport();
   // stronger tint for glass/background depending on theme (more contrast)
   const sidebarTint = isDarkMode
     ? "rgba(0,0,0,0.72)"
@@ -216,7 +217,7 @@ const Sidebar = ({ providerId, isOpen }) => {
   return (
     <View style={{ flex: 1 }}>
       {Platform.OS === "ios" ? (
-        useIOSGlass ? (
+        iosGlass ? (
           <>
             <LiquidGlassView
               style={{
@@ -565,7 +566,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("AboutScreen")}
               onLongPress={() => navigation.navigate("EasterEggScreen")}
-              delayLongPress={3000}
+              delayLongPress={500}
               left={() => (
                 <Ionicons
                   name="information-circle-outline"

@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   DeviceEventEmitter,
+  useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import ActionSheet from "react-native-actions-sheet";
 import { getStoryViewers } from "../services/api/Api";
@@ -38,7 +39,9 @@ const StoryViewersSheet = () => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const fetchAbortControllerRef = useRef(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener("SHOW_STORY_VIEWERS", (payload) => {
@@ -156,7 +159,7 @@ const StoryViewersSheet = () => {
     >
       <FastImage source={{ uri: item.profile_picture }} style={styles.avatar} />
       <View style={styles.viewerInfo}>
-        <Text style={[styles.viewerName, { color: theme.text }]}>{item.profile_name}</Text>
+        <Text style={[styles.viewerName, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">{item.profile_name}</Text>
         {item.reactions && item.reactions.length > 0 ? (
           <View style={styles.reactionsWrap}>
             {item.reactions.slice(0, 3).map((reaction, index) => (
@@ -184,18 +187,27 @@ const StoryViewersSheet = () => {
   return (
     <ActionSheet
       ref={actionSheetRef}
+      // isModal={false} is required on iOS: InstagramStories renders inside a
+      // native UIModal, and presenting a second native modal on top of it
+      // silently fails — leaving the modal chain broken and the screen frozen
+      // after the story is closed. Rendering as a non-modal overlay inside
+      // the same view tree avoids the double-modal problem entirely.
+      isModal={false}
       containerStyle={{
         backgroundColor: sheetBackground,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         overflow: "hidden",
+        maxHeight: windowHeight * 0.85,
       }}
-      gestureEnabled
+      gestureEnabled={false}
       defaultOverlayOpacity={0.45}
       onOpen={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_OPENED")}
       onClose={() => DeviceEventEmitter.emit("STORY_VIEWERS_SHEET_CLOSED")}
     >
+      <View style={{ flexDirection: "column", maxHeight: windowHeight * 0.85, flexShrink: 1 }}>
       <LinearGradient
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         colors={isDarkMode ? ["rgba(16, 185, 129, 0.24)", "rgba(16, 185, 129, 0.06)"] : ["rgba(16, 185, 129, 0.12)", "rgba(255,255,255,0)"]}
         style={[styles.header, { paddingTop: 6, borderBottomColor: theme.border }]}
       >
@@ -230,14 +242,20 @@ const StoryViewersSheet = () => {
           <Text style={[styles.emptyText, { color: theme.subText }]}>{t("storyViewers.empty")}</Text>
         </View>
       ) : (
-        <FlatList
-          data={viewers}
-          renderItem={renderItem}
-          keyExtractor={(it) => it.id.toString()}
+        <ScrollView
+          style={{ flexShrink: 1, minHeight: 0, maxHeight: windowHeight * 0.85 - (headerHeight || 90) - (insets.bottom || 0) }}
           contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: (insets.bottom || 0) + 16 }}
           showsVerticalScrollIndicator={false}
-        />
+          nestedScrollEnabled={true}
+        >
+          {viewers.map((item, i) => (
+            <React.Fragment key={item.id?.toString() || i.toString()}>
+              {renderItem({ item })}
+            </React.Fragment>
+          ))}
+        </ScrollView>
       )}
+      </View>
     </ActionSheet>
   );
 };
@@ -302,7 +320,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   avatar: { width: 46, height: 46, borderRadius: 23, marginRight: 12 },
-  viewerInfo: { flex: 1 },
+  viewerInfo: { flex: 1, minWidth: 0 },
   viewerName: { fontSize: 15, fontWeight: "700" },
   reactionsWrap: { flexDirection: "row", flexWrap: "wrap", marginTop: 6, gap: 4, alignItems: "center" },
   reactionEmoji: { fontSize: 20 },

@@ -9,7 +9,7 @@ import {
 import { useTheme } from "../contexts/ThemeContext";
 import {
   LiquidGlassView,
-  useIOSGlass,
+  useIOSGlassSupport,
   BlurView,
   LiquidGlassViewAndroid,
   useAndroidGlass,
@@ -31,6 +31,7 @@ const LiquidButton = ({
   borderColor,
 }) => {
   const { theme, isDarkMode } = useTheme();
+  const iosGlass = useIOSGlassSupport();
   const defaultRadius = borderRadius ?? size / 2;
 
   // When scrollY is provided, background fades in as user scrolls (0→40px).
@@ -59,7 +60,7 @@ const LiquidButton = ({
 
   const renderGlassBackground = () => {
     if (Platform.OS === "ios") {
-      if (useIOSGlass) {
+      if (iosGlass) {
         return (
           <LiquidGlassView
             style={[

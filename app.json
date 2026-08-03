@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "3.7.4",
+    "version": "4.0.1",
     "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
@@ -17,7 +17,8 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "474",
+      "buildNumber": "585",
+      "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
         "NSPhotoLibraryUsageDescription": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
@@ -79,6 +80,17 @@
             "BROWSABLE",
             "DEFAULT"
           ]
+        },
+        {
+          "action": "SEND",
+          "data": [
+            {
+              "mimeType": "text/plain"
+            }
+          ],
+          "category": [
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
@@ -88,7 +100,7 @@
       },
       "package": "com.fatties.youth",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 474,
+      "versionCode": 585,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -145,7 +157,19 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1
+          },
+          "androidMainActivityAttributes": {
+            "android:launchMode": "singleTask"
+          }
+        }
+      ]
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",

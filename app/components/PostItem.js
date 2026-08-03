@@ -39,7 +39,8 @@ import Toast from "react-native-toast-message";
 import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
-import VideoThumbnail from "./VideoThumbnail";
+import InlineVideoPlayer from "./InlineVideoPlayer";
+import { buildYouTubePlayerHtml } from "../utils/youtubeShare";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -82,6 +83,7 @@ const YOUTUBE_ERROR_MESSAGES = {
   // player's own iframe (`host`) need to be same-origin, both on
   // youtube-nocookie.com - see those two below.
   152: "Player error (see baseUrl/host same-origin fix)",
+  153: "Player error (see baseUrl/host same-origin fix)",
 };
 
 const YouTubeIframeRenderer = ({ tnode }) => {
@@ -108,48 +110,7 @@ const YouTubeIframeRenderer = ({ tnode }) => {
   // on every parent render) - otherwise a fresh {html, baseUrl} object each
   // time made the WebView think its source changed and reload the whole
   // player, which was showing up as duplicate boot/apiready log pairs.
-  const html = useMemo(
-    () => `<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="referrer" content="strict-origin-when-cross-origin">
-<style>html,body{margin:0;padding:0;background:#000;overflow:hidden;}#player{position:absolute;top:0;left:0;width:100%;height:100%;}</style>
-</head>
-<body>
-<div id="player"></div>
-<script>
-  function post(type, data) {
-    if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage(JSON.stringify({ type: type, data: data || {} }));
-    }
-  }
-  window.onerror = function (message, source, lineno, colno) {
-    post('jserror', { message: message, source: source, lineno: lineno, colno: colno });
-  };
-  post('boot', {});
-  var tag = document.createElement('script');
-  tag.src = 'https://www.youtube.com/iframe_api';
-  var firstScriptTag = document.getElementsByTagName('script')[0];
-  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-  function onYouTubeIframeAPIReady() {
-    post('apiready', {});
-    new YT.Player('player', {
-      videoId: '${videoId}',
-      host: 'https://www.youtube-nocookie.com',
-      playerVars: { playsinline: 1, modestbranding: 1, rel: 0 },
-      events: {
-        onReady: function () { post('ready', {}); },
-        onError: function (e) { post('error', { code: e.data }); },
-        onStateChange: function (e) { post('statechange', { state: e.data }); }
-      }
-    });
-  }
-</script>
-</body>
-</html>`,
-    [videoId],
-  );
+  const html = useMemo(() => buildYouTubePlayerHtml(videoId), [videoId]);
 
   const source = useMemo(
     () => ({ html, baseUrl: "https://www.youtube-nocookie.com" }),
@@ -243,6 +204,7 @@ const PostItem = ({
   saved: externalSaved,
   onVote: onVoteCallback, // Callback for single view vote updates
   onSave: onSaveCallback, // Callback for single view save updates
+  isActive = true, // Whether this card is on-screen — drives inline video autoplay
 }) => {
   const videoUrls = Array.isArray(item.video_urls)
     ? item.video_urls
@@ -397,21 +359,23 @@ const PostItem = ({
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          onPress={() => {
-            setReportModalVisible(true);
-            hideBottomSheet();
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
-            <Text
-              style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
-            >
-              {t('post.report')}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity
+            onPress={() => {
+              setReportModalVisible(true);
+              hideBottomSheet();
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
+              <Text
+                style={{ padding: 12, fontSize: 17, color: "#ef4444" }}
+              >
+                {t('post.report')}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
         {isCurrentUser && (
           <TouchableOpacity onPress={handleDeletePost}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -740,12 +704,13 @@ const PostItem = ({
                   contentContainerStyle={{ gap: 4 }}
                 >
                   {videoUrls.map((url, index) => (
-                    <VideoThumbnail
+                    <InlineVideoPlayer
                       key={`${url}-${index}`}
                       uri={url}
                       width={videoW}
                       height={videoH}
                       borderRadius={0}
+                      isActive={isActive}
                     />
                   ))}
                 </ScrollView>
@@ -759,12 +724,13 @@ const PostItem = ({
                 contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10, gap: 8 }}
               >
                 {videoUrls.map((url, index) => (
-                  <VideoThumbnail
+                  <InlineVideoPlayer
                     key={`${url}-${index}`}
                     uri={url}
                     width={single ? 260 : 220}
                     height={single ? 180 : 150}
                     borderRadius={12}
+                    isActive={isActive}
                   />
                 ))}
               </ScrollView>

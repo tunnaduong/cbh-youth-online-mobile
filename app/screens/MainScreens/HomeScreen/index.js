@@ -36,6 +36,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import {
   getPersonalizedFeed,
   getLatestFeed,
+  getFollowingFeed,
   getStories,
   incrementPostView,
   resendVerificationEmail,
@@ -60,16 +61,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
-import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
-
-const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
+import { useIsFocused } from "@react-navigation/native";
 
 const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
 
@@ -844,6 +844,103 @@ const ReplyBar = ({
   );
 };
 
+// Darkens/lightens a #rrggbb color by `percent` (negative darkens). Kept at
+// module scope so FeedModeChip's gradient below can use it without pulling
+// in HomeScreen's own local shadeHex (defined inside the component).
+const shadeHexColor = (hex, percent) => {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const clamp = (v) => Math.max(0, Math.min(255, v));
+  const r = clamp((num >> 16) + amt);
+  const g = clamp(((num >> 8) & 0x00ff) + amt);
+  const b = clamp((num & 0x0000ff) + amt);
+  return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+};
+
+// Animated pill used by the feed-mode toggle (Dành cho bạn / Mới nhất /
+// Đang theo dõi): the active chip crossfades in a gradient fill + white
+// label, and every chip gives a small spring "press" bounce for tactile
+// feedback - plain instant style swaps felt flat next to the rest of the
+// app's other animated UI.
+const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode }) => {
+  const activeAnim = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(activeAnim, {
+      toValue: active ? 1 : 0,
+      useNativeDriver: false, // driving backgroundColor/opacity, not transform
+      friction: 8,
+      tension: 80,
+    }).start();
+  }, [active]);
+
+  const inactiveBg = isDarkMode ? theme.cardBackground : "#fff";
+  const textColor = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [isDarkMode ? "#CCC" : "#374151", "#fff"],
+  });
+  const borderWidth = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+  const gradientOpacity = activeAnim;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => {
+        Animated.spring(pressScale, { toValue: 0.93, useNativeDriver: true, speed: 60, bounciness: 6 }).start();
+      }}
+      onPressOut={() => {
+        Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
+      }}
+    >
+      <Animated.View
+        style={{
+          transform: [{ scale: pressScale }],
+          borderRadius: 24,
+          overflow: "hidden",
+        }}
+      >
+        <Animated.View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 9,
+            paddingHorizontal: 16,
+            gap: 6,
+            borderRadius: 24,
+            backgroundColor: inactiveBg,
+            borderWidth,
+            borderColor: isDarkMode ? "#3a3a3a" : "#E2E2E2",
+          }}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFillObject, { opacity: gradientOpacity }]}
+          >
+            <LinearGradient
+              colors={[theme.primary, shadeHexColor(theme.primary, -18)]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+          <Ionicons
+            name={active ? icon : `${icon}-outline`}
+            size={16}
+            color={active ? "#fff" : (isDarkMode ? "#AAA" : "#6B7280")}
+          />
+          <Animated.Text style={{ fontSize: 14, fontWeight: active ? "700" : "500", color: textColor }}>
+            {label}
+          </Animated.Text>
+        </Animated.View>
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -851,8 +948,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [currentPage, setCurrentPage] = React.useState(2);
   const [feedMode, setFeedMode] = React.useState("personalized");
   const [latestPage, setLatestPage] = React.useState(1);
+  const [followingPage, setFollowingPage] = React.useState(1);
   const deliveredIdsRef = useRef(new Set());
   const viewedPosts = useRef(new Set());
+  const [activePostId, setActivePostId] = React.useState(null);
+  const isFocused = useIsFocused();
   const flatListRef = React.useRef(null);
   const { feed, setFeed } = useContext(FeedContext);
   const storyRef = useRef(null);
@@ -877,7 +977,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     blockUser: blockUserInContext,
   } = useContext(AuthContext);
   const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, autoplayVideos } = useTheme();
   const insets = useSafeAreaInsets();
   const previousStatusBarStyle = useRef({
     barStyle: "dark-content",
@@ -1055,6 +1155,41 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     handleFetchFeed();
   }, []);
 
+  // Manual tab switch: reset feed state and reload from the chosen mode.
+  const switchFeedMode = React.useCallback((mode) => {
+    if (mode === feedMode) return;
+    setFeed(null);
+    setHasMore(true);
+    deliveredIdsRef.current = new Set();
+    if (mode === "latest") {
+      setFeedMode("latest");
+      setLatestPage(2);
+      getLatestFeed(1)
+        .then((response) => {
+          const posts = response?.data?.data;
+          const validPosts = Array.isArray(posts) ? posts : [];
+          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+          setFeed(validPosts);
+        })
+        .catch(() => setFeed([]));
+    } else if (mode === "following") {
+      setFeedMode("following");
+      setFollowingPage(2);
+      getFollowingFeed(1)
+        .then((response) => {
+          const posts = response?.data?.data;
+          const validPosts = Array.isArray(posts) ? posts : [];
+          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+          setFeed(validPosts);
+        })
+        .catch(() => setFeed([]));
+    } else {
+      setFeedMode("personalized");
+      setCurrentPage(2);
+      handleFetchFeed(1);
+    }
+  }, [feedMode]);
+
   const onEndReached = () => {
     if (!hasMore) return;
 
@@ -1072,6 +1207,27 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
           }
           setLatestPage((prevPage) => prevPage + 1);
+        })
+        .catch((error) => {
+          console.error("Error loading more posts:", error);
+        });
+      return;
+    }
+
+    if (feedMode === "following") {
+      getFollowingFeed(followingPage)
+        .then((response) => {
+          const newPosts = response?.data?.data;
+          if (!Array.isArray(newPosts) || newPosts.length === 0) {
+            setHasMore(false);
+            return;
+          }
+          const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
+          freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+          if (freshPosts.length > 0) {
+            setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
+          }
+          setFollowingPage((prevPage) => prevPage + 1);
         })
         .catch((error) => {
           console.error("Error loading more posts:", error);
@@ -1122,15 +1278,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             justifyContent: "center",
           }}
         >
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{
-              width: 40,
-              height: 40,
-            }}
-            loop
-            autoPlay
-          />
+          <ActivityIndicator size="small" color={theme.primary} />
         </View>
       );
     }
@@ -1167,6 +1315,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleViewableItemsChanged = ({ viewableItems }) => {
     if (!viewableItems) return;
+
+    // Facebook-style autoplay: only one post's video plays at a time. The
+    // viewability config below (itemVisiblePercentThreshold: 50) means
+    // viewableItems is already just the post(s) crossing that threshold, in
+    // list order, so the first one is the best candidate to autoplay.
+    let activeItem = null;
+
     viewableItems.forEach((viewableItem) => {
       if (!viewableItem?.item) return;
       if (viewableItem.item.type === "divider") return;
@@ -1176,7 +1331,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         viewedPosts.current.add(postId); // Mark as viewed
         increasePostView(postId); // Call API
       }
+
+      if (!activeItem) activeItem = viewableItem.item;
     });
+
+    setActivePostId(activeItem ? activeItem.id : null);
   };
 
   const increasePostView = async (postId) => {
@@ -1572,6 +1731,35 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return (
       <>
         <EmailVerificationAlert />
+        {/* Dành cho bạn / Mới nhất / Đang theo dõi tab toggle — sits above stories */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ backgroundColor: theme.background }}
+          contentContainerStyle={{
+            paddingHorizontal: 15,
+            paddingTop: 14,
+            paddingBottom: 10,
+            gap: 8,
+          }}
+        >
+          {[
+            { mode: "personalized", label: t('home.forYou'), icon: "sparkles" },
+            { mode: "latest", label: t('home.latest'), icon: "flash" },
+            { mode: "following", label: t('home.following'), icon: "people" },
+          ].map(({ mode, label, icon }) => (
+            <FeedModeChip
+              key={mode}
+              mode={mode}
+              label={label}
+              icon={icon}
+              active={feedMode === mode}
+              onPress={() => switchFeedMode(mode)}
+              theme={theme}
+              isDarkMode={isDarkMode}
+            />
+          ))}
+        </ScrollView>
         <ScrollView
           style={{
             borderBottomWidth: 10,
@@ -1788,8 +1976,30 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     };
 
     if (feed == null) {
-      // Cold start / previously empty or errored feed: full load.
-      handleFetchFeed().finally(finishRefresh);
+      // Cold start / previously empty or errored feed: full load for the active tab.
+      if (feedMode === "latest" || feedMode === "following") {
+        deliveredIdsRef.current = new Set();
+        const fetchPage1 = feedMode === "latest" ? getLatestFeed(1) : getFollowingFeed(1);
+        fetchPage1
+          .then((response) => {
+            const posts = response?.data?.data;
+            const validPosts = Array.isArray(posts) ? posts : [];
+            setFeed(validPosts);
+            validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+            if (feedMode === "latest") {
+              setLatestPage(2);
+            } else {
+              setFollowingPage(2);
+            }
+          })
+          .catch((error) => {
+            console.log("Error fetching feed on refresh:", error);
+            setFeed((prev) => prev ?? []);
+          })
+          .finally(finishRefresh);
+      } else {
+        handleFetchFeed().finally(finishRefresh);
+      }
       return;
     }
 
@@ -1797,7 +2007,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     // appear immediately at the top after the user pulls down.
     const loadNextPage = feedMode === "latest"
       ? getLatestFeed(latestPage)
-      : getPersonalizedFeed(currentPage);
+      : feedMode === "following"
+        ? getFollowingFeed(followingPage)
+        : getPersonalizedFeed(currentPage);
 
     loadNextPage
       .then((response) => {
@@ -1817,12 +2029,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
           if (feedMode === "latest") {
             setLatestPage((p) => p + 1);
+          } else if (feedMode === "following") {
+            setFollowingPage((p) => p + 1);
           } else {
             setCurrentPage((p) => p + 1);
           }
         }
 
-        if (feedMode !== "latest" && exhausted) {
+        if (feedMode === "personalized" && exhausted) {
           setFeedMode("latest");
           setLatestPage(1);
         }
@@ -1831,7 +2045,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         console.log("Error loading next feed page on refresh:", error);
       })
       .finally(finishRefresh);
-  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage]);
+  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage, followingPage]);
 
   // Function to scroll to top or reload
   const scrollToTopOrReload = React.useCallback(() => {
@@ -2154,15 +2368,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         />
       }
     >
-      <LottieView
-        source={require("../../../assets/refresh.json")}
-        style={{
-          width: 70,
-          height: 70,
-        }}
-        loop
-        autoPlay
-      />
+      <ActivityIndicator size="large" color={theme.primary} />
       <Text style={{ marginTop: 15, color: theme.text }}>{t('home.loadingFeed')}</Text>
     </ScrollView>
   ) : (
@@ -2175,7 +2381,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={filteredFeed}
-          extraData={{ t, theme, isDarkMode }}
+          extraData={{ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos }}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           initialNumToRender={5}
           maxToRenderPerBatch={5}
@@ -2200,6 +2406,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 onVoteUpdate={handleVoteUpdate}
                 onSaveUpdate={handleSaveUpdate}
                 navigation={navigation}
+                isActive={autoplayVideos && isFocused && item.id === activePostId}
               />
             )
           )}
@@ -2361,7 +2568,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           }}
           toast={<Toast topOffset={60} />}
           footerComponent={
-            <>
+            // react-native-gesture-handler v2 requires a GestureHandlerRootView
+            // ancestor for its PanGestureHandlers to receive touches at all -
+            // the one in App.js only covers the app's normal view tree, not
+            // this InstagramStories footer, which React Native's native
+            // <Modal> renders into a separate native surface/window on iOS.
+            // Without a GestureHandlerRootView inside that surface, the
+            // ActionSheet's internal PanGestureHandler (mounted regardless of
+            // gestureEnabled) grabs the responder and never releases it,
+            // which is what actually caused "viewers sheet shows nothing,
+            // then app is frozen after closing the story" on iOS.
+            <GestureHandlerRootView style={StyleSheet.absoluteFill} pointerEvents="box-none">
               <ReportModal
                 visible={reportModalVisible}
                 onClose={() => {
@@ -2383,11 +2600,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 dismissStoryModal={dismissStoryModal}
                 fetchStories={fetchStories}
               />
-            </>
+              {/* StoryViewersSheet must live inside footerComponent (inside
+                  the InstagramStories modal's view tree) so its ActionSheet
+                  (isModal=false) renders as an overlay within the same native
+                  UIModal. Placing it outside and using isModal=true caused iOS
+                  to silently reject the second native modal presentation,
+                  breaking the modal chain and freezing the screen on close. */}
+              <StoryViewersSheet />
+            </GestureHandlerRootView>
           }
         />
         <ResendVerificationModal />
-        <StoryViewersSheet />
       </View>
     </>
   );

@@ -30,6 +30,7 @@ import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
 import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
+import { WebView } from "react-native-webview";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -40,14 +41,15 @@ import {
   getVideoMimeType,
   validateVideoAsset,
 } from "../../../utils/videoUpload";
+import { extractYouTubeId, buildYouTubePlayerHtml, autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
 
 // Large video uploads (up to 100MB) need more headroom than the axios
 // instance's default 10s timeout.
 const VIDEO_UPLOAD_TIMEOUT = 300000;
 
-const CreatePostScreen = ({ navigation }) => {
-  const [postContent, setPostContent] = useState("");
-  const [title, setTitle] = useState("");
+const CreatePostScreen = ({ navigation, route }) => {
+  const [postContent, setPostContent] = useState(route?.params?.initialContent ?? "");
+  const [title, setTitle] = useState(route?.params?.initialTitle ?? "");
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
@@ -391,7 +393,10 @@ const CreatePostScreen = ({ navigation }) => {
 
       const response = await createPost({
         title,
-        description: postContent,
+        // Auto-wraps a bare youtube.com/youtu.be link typed into the post
+        // in the same <iframe> PostItem already knows how to render, so
+        // users don't have to write the embed markup by hand.
+        description: autoEmbedYouTubeLinks(postContent),
         cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
         cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
         cdn_video_id: videoIds.length > 0 ? videoIds.join(",") : null,
@@ -684,6 +689,42 @@ const CreatePostScreen = ({ navigation }) => {
               multiline
               textAlignVertical="top"
             />
+            {/* YouTube embed preview — shown when content contains an iframe with a YouTube src */}
+            {(() => {
+              const ytId = extractYouTubeId(postContent);
+              if (!ytId) return null;
+              return (
+                <View style={{
+                  marginTop: 12,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  backgroundColor: "#000",
+                }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 8, backgroundColor: isDarkMode ? "#1a1a1a" : "#f5f5f5" }}>
+                    <Ionicons name="logo-youtube" size={18} color="#FF0000" />
+                    <Text style={{ marginLeft: 6, fontSize: 12, color: theme.text, fontWeight: "600" }}>
+                      YouTube Embed
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setPostContent("")}
+                      style={{ marginLeft: "auto" }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="close-circle" size={18} color={theme.subText} />
+                    </TouchableOpacity>
+                  </View>
+                  <WebView
+                    source={{ html: buildYouTubePlayerHtml(ytId), baseUrl: "https://www.youtube-nocookie.com" }}
+                    style={{ width: "100%", height: 200 }}
+                    allowsFullscreenVideo
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+                </View>
+              );
+            })()}
           </View>
 
           <View

@@ -92,7 +92,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels } = useTheme();
+  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
 
@@ -273,6 +273,13 @@ export default function SettingsScreen({ navigation }) {
           </View>
 
           <SettingItem
+            icon="play-circle-outline"
+            title={t("settings.autoplayVideos")}
+            isSwitch
+            value={autoplayVideos}
+            onPress={setAutoplayVideos}
+          />
+          <SettingItem
             icon="ban-outline"
             title={t("settings.blockedUsers")}
             onPress={() => navigation.navigate("BlockedUsersScreen")}
@@ -282,7 +289,7 @@ export default function SettingsScreen({ navigation }) {
             title={t("settings.about")}
             onPress={() => navigation.navigate("AboutScreen")}
             onLongPress={() => navigation.navigate("EasterEggScreen")}
-            delayLongPress={3000}
+            delayLongPress={500}
           />
         </SettingSection>
 

@@ -10,16 +10,17 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import {
   View,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   Share,
   Alert,
   Text,
   Pressable,
-  Image,
   ActionSheetIOS,
   KeyboardAvoidingView,
   Animated,
   RefreshControl,
+  ActivityIndicator,
   Platform,
   Keyboard,
 } from "react-native";
@@ -41,6 +42,7 @@ import {
   getMentionSuggestions,
 } from "../../../services/api/Api";
 import CommentBar from "../../../components/CommentBar";
+import FastImage from "../../../components/FastImage";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import LiquidButton from "../../../components/LiquidButton";
@@ -56,15 +58,11 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
-import LottieView from "lottie-react-native";
-import {
-  KeyboardChatScrollView,
-  KeyboardStickyView,
-} from "react-native-keyboard-controller";
+import { KeyboardStickyView } from "react-native-keyboard-controller";
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
 
-const Comment = React.forwardRef(
+const Comment = React.memo(React.forwardRef(
   ({ comment, level = 0, border = false, commentRefs,
      highlightedCommentId, isDarkMode, theme, t, username,
      navigation, focusCommentInput, handleCommentVote,
@@ -111,7 +109,7 @@ const Comment = React.forwardRef(
                     <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
                   </View>
                 ) : author.username ? (
-                  <Image source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
+                  <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
                 ) : null}
               </View>
             </Pressable>
@@ -147,7 +145,7 @@ const Comment = React.forwardRef(
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
                   {comment.image_urls.map((url, idx) => (
                     <TouchableOpacity key={idx} activeOpacity={0.85} onPress={() => setImageViewer({ visible: true, images: comment.image_urls.map((u) => ({ uri: u })), index: idx })}>
-                      <Image source={{ uri: url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
+                      <FastImage source={{ uri: url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -196,10 +194,10 @@ const Comment = React.forwardRef(
       </View>
     );
   },
-);
+));
 
 const PostScreen = ({ route, navigation }) => {
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, autoplayVideos } = useTheme();
   const { item, postId, screenName, highlightCommentId } = route.params; // Destructure item from route.params
   const { username, profileName, userInfo } = useContext(AuthContext);
   const [votes, setVotes] = useState(item?.votes ?? []); // Local vote state
@@ -208,6 +206,17 @@ const PostScreen = ({ route, navigation }) => {
   );
   const [post, setPost] = useState(item ?? null);
   const [comments, setComments] = useState([]); // Local comment state
+  // Mirrors `comments` for callbacks below that need the latest comment tree
+  // without taking it as a dependency - lets handleCommentVote/
+  // focusCommentInput/handleLongPressComment stay referentially stable
+  // (via useCallback) across renders where the comments themselves didn't
+  // change, which React.memo(Comment) below relies on to avoid re-rendering
+  // the entire (potentially deep) comment tree on every unrelated PostScreen
+  // state change (scroll, keyboard, post-level votes, etc).
+  const commentsRef = useRef(comments);
+  useEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
   const [commentText, setCommentText] = useState("");
   const latestCommentRef = React.useRef("");
   const [isAnonymousComment, setIsAnonymousComment] = useState(false);
@@ -241,11 +250,18 @@ const PostScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const [loadingPost, setLoadingPost] = useState(false);
-  const lottieRef = useRef(null);
 
   const { mentionProps: commentMentionProps, suggestions: commentSuggestions, onSelectMention: onSelectCommentMention, loading: commentSuggestionsLoading } = useMentionInput({
     value: commentText,
-    onChange: setCommentText,
+    // Tapping a mention suggestion updates `commentText` through here, not
+    // through CommentBar's onChangeText below - without also updating
+    // latestCommentRef here, onSubmit's `latestCommentRef.current ||
+    // commentText` would keep using the stale pre-mention-insert text (e.g.
+    // "@tunna" instead of "@tunnaduong ") since the ref wins when truthy.
+    onChange: (text) => {
+      latestCommentRef.current = text;
+      setCommentText(text);
+    },
     fetchSuggestions: getMentionSuggestions,
   });
 
@@ -358,22 +374,24 @@ const PostScreen = ({ route, navigation }) => {
             </View>
           </TouchableOpacity>
         )}
-        <TouchableOpacity
-          onPress={() => {
-            hideBottomSheet();
-            setReportModalVisible(true);
-          }}
-        >
-          <View className="flex-row items-center">
-            <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
-            <Text
-              style={{ padding: 12, fontSize: 17 }}
-              className="text-red-500"
-            >
-              {t("post.report")}
-            </Text>
-          </View>
-        </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity
+            onPress={() => {
+              hideBottomSheet();
+              setReportModalVisible(true);
+            }}
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
+              <Text
+                style={{ padding: 12, fontSize: 17 }}
+                className="text-red-500"
+              >
+                {t("post.report")}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        )}
         {isCurrentUser && (
           <TouchableOpacity onPress={handleDeletePost}>
             <View className="flex-row items-center">
@@ -462,6 +480,12 @@ const PostScreen = ({ route, navigation }) => {
       setLoadingPost(false);
     }
   };
+  // Mirror for stable callbacks (see commentsRef above) that need to trigger
+  // a refetch without taking fetchData itself as a dependency.
+  const fetchDataRef = useRef(fetchData);
+  useEffect(() => {
+    fetchDataRef.current = fetchData;
+  });
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -472,12 +496,12 @@ const PostScreen = ({ route, navigation }) => {
     });
   };
 
-  const focusCommentInput = (id, name) => {
-    const level = getCommentLevel(comments, id);
+  const focusCommentInput = React.useCallback((id, name) => {
+    const level = getCommentLevel(commentsRef.current, id);
 
     if (level >= 3) {
       // Trả lời cấp 4+ thì gán lại parentId là cấp 2
-      const parentCommentId = findParentIdForReply(comments, id);
+      const parentCommentId = findParentIdForReply(commentsRef.current, id);
       setParentId(parentCommentId ?? id); // fallback nếu không tìm được
     } else {
       setParentId(id);
@@ -492,7 +516,7 @@ const PostScreen = ({ route, navigation }) => {
     setTimeout(() => {
       scrollToComment(id);
     }, 100);
-  };
+  }, []);
 
   const getCommentLevel = (comments, id, currentLevel = 1) => {
     for (const comment of comments) {
@@ -507,10 +531,14 @@ const PostScreen = ({ route, navigation }) => {
 
   const scrollToComment = (id) => {
     if (commentRefs.current[id]) {
+      // FlatList's ref isn't a host node itself (unlike ScrollView) -
+      // getScrollableNode() gets the underlying native scroll view that
+      // measureLayout needs to measure against.
+      const scrollNode = scrollViewRef.current?.getScrollableNode?.() ?? scrollViewRef.current;
       commentRefs.current[id].measureLayout(
-        scrollViewRef.current,
+        scrollNode,
         (x, y) => {
-          scrollViewRef.current.scrollTo({ y, animated: true });
+          scrollViewRef.current?.scrollToOffset({ offset: y, animated: true });
         },
         () => console.log("Error measuring layout"),
       );
@@ -770,7 +798,7 @@ const PostScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleCommentVote = async (commentId, voteValue) => {
+  const handleCommentVote = React.useCallback(async (commentId, voteValue) => {
     try {
       // Optimistically update the UI
       setComments((prevComments) => {
@@ -833,9 +861,9 @@ const PostScreen = ({ route, navigation }) => {
       console.error("Error voting on comment:", error);
       // If the API call fails, revert the optimistic update
       // You might want to show an error message to the user as well
-      fetchData(); // Re-fetch the data to revert the changes
+      fetchDataRef.current(); // Re-fetch the data to revert the changes
     }
-  };
+  }, [username]);
 
   const handleVoteReply = (commentId, replyId, voteValue) => {
     setComments((prevComments) =>
@@ -898,8 +926,8 @@ const PostScreen = ({ route, navigation }) => {
     return null;
   };
 
-  const handleLongPressComment = (commentId) => {
-    const comment = findCommentById(comments, commentId);
+  const handleLongPressComment = React.useCallback((commentId) => {
+    const comment = findCommentById(commentsRef.current, commentId);
     if (!comment) return;
 
     const isCommentOwner = comment.author?.username === username;
@@ -929,7 +957,7 @@ const PostScreen = ({ route, navigation }) => {
             }
           } else if (buttonIndex === 2) {
             // Delete comment
-            handleDeleteComment(commentId);
+            handleDeleteCommentRef.current(commentId);
           }
         },
       );
@@ -958,13 +986,13 @@ const PostScreen = ({ route, navigation }) => {
           {
             text: t("post.deleteComment"),
             style: "destructive",
-            onPress: () => handleDeleteComment(commentId),
+            onPress: () => handleDeleteCommentRef.current(commentId),
           },
         ],
         { cancelable: true },
       );
     }
-  };
+  }, [username, t]);
 
   const handleDeleteComment = async (commentId) => {
     Alert.alert(t("post.deleteComment"), t("post.deleteCommentConfirm"), [
@@ -1037,6 +1065,10 @@ const PostScreen = ({ route, navigation }) => {
       },
     ]);
   };
+  const handleDeleteCommentRef = useRef(handleDeleteComment);
+  useEffect(() => {
+    handleDeleteCommentRef.current = handleDeleteComment;
+  });
 
   const handleUpdateComment = async () => {
     if (!editingCommentText.trim() || isSubmitting || !editingCommentId) return;
@@ -1263,28 +1295,31 @@ const PostScreen = ({ route, navigation }) => {
               zIndex: 1000,
             }}
           >
-            <LottieView
-              source={require("../../../assets/refresh.json")}
-              style={{ width: 40, height: 40 }}
-              ref={lottieRef}
-              loop
-              autoPlay
-            />
+            <ActivityIndicator size="small" color={theme.primary} />
           </View>
         )}
         <AndroidGlassBackdrop providerId="PostScreen" style={{ flex: 1 }}>
-        <KeyboardChatScrollView
+        <Animated.FlatList
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           onScroll={Animated.event(
+            // headerBgOpacity/headerTitleOpacity/LiquidButton's own scrollY
+            // interpolations only ever drive `opacity`, so this can run
+            // fully on the native/UI thread instead of dispatching a scroll
+            // event to JS on every frame.
             [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false },
+            { useNativeDriver: true },
           )}
           contentContainerStyle={{
             paddingTop: 64 + insets.top,
-            paddingBottom: insets.bottom,
+            // KeyboardStickyView (below) floats the comment input above the
+            // keyboard independently via its own reanimated tracking, but
+            // this FlatList's own bottom padding still needs to grow while
+            // the keyboard is open so the last comment doesn't end up
+            // hidden behind the now-taller floating input bar.
+            paddingBottom: (keyboardHeight || insets.bottom),
             backgroundColor: theme.background,
             flexGrow: 1,
           }}
@@ -1299,58 +1334,79 @@ const PostScreen = ({ route, navigation }) => {
               style={{ backgroundColor: "transparent" }}
             />
           }
-        >
-          <PostItem
-            navigation={navigation}
-            item={post}
-            single={true}
-            votes={votes}
-            saved={isSaved}
-            onVote={handleVote}
-            onSave={handleSavePost}
-            screenName={screenName}
-          />
-          {/* comment section */}
-          <View style={{ paddingHorizontal: 15, marginBottom: 16 }}>
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: 20,
-                marginVertical: 16,
-                color: theme.text,
-              }}
-            >
-              {t("post.commentsTitle")}
-            </Text>
-            {comments.length === 0 ? (
+          // Windowing is the actual perf win over the old plain ScrollView -
+          // only comments near the viewport stay mounted. initialNumToRender
+          // is generous so scrollToComment's measureLayout (used for
+          // scroll-to-highlighted-comment deep links) can usually find its
+          // target already mounted without needing to scroll first.
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === "android"}
+          data={comments}
+          keyExtractor={(comment) => String(comment.id)}
+          ListHeaderComponent={
+            <>
+              <PostItem
+                navigation={navigation}
+                item={post}
+                single={true}
+                votes={votes}
+                saved={isSaved}
+                onVote={handleVote}
+                onSave={handleSavePost}
+                screenName={screenName}
+                isActive={autoplayVideos}
+              />
+              {/* comment section */}
+              <View style={{ paddingHorizontal: 15 }}>
+                <Text
+                  style={{
+                    fontWeight: "bold",
+                    fontSize: 20,
+                    marginVertical: 16,
+                    color: theme.text,
+                  }}
+                >
+                  {t("post.commentsTitle")}
+                </Text>
+              </View>
+            </>
+          }
+          ListEmptyComponent={
+            <View style={{ paddingHorizontal: 15 }}>
               <Text style={{ color: theme.subText }}>
                 {t("post.noComments")}
               </Text>
-            ) : (
-              comments.map((comment) => (
-                <Comment
-                  key={comment.id}
-                  comment={comment}
-                  ref={(ref) => (commentRefs.current[comment.id] = ref)}
-                  commentRefs={commentRefs}
-                  highlightedCommentId={highlightedCommentId}
-                  isDarkMode={isDarkMode}
-                  theme={theme}
-                  t={t}
-                  username={username}
-                  navigation={navigation}
-                  focusCommentInput={focusCommentInput}
-                  handleCommentVote={handleCommentVote}
-                  setCommentVotesModal={setCommentVotesModal}
-                  setImageViewer={setImageViewer}
-                  handleLongPressComment={handleLongPressComment}
-                />
-              ))
-            )}
-          </View>
-          {/* Spacer to prevent comment bar from covering last comments */}
-          <View style={{ height: 50, backgroundColor: "transparent" }} />
-        </KeyboardChatScrollView>
+            </View>
+          }
+          renderItem={({ item: comment }) => (
+            <View style={{ paddingHorizontal: 15 }}>
+              <Comment
+                comment={comment}
+                ref={(ref) => (commentRefs.current[comment.id] = ref)}
+                commentRefs={commentRefs}
+                highlightedCommentId={highlightedCommentId}
+                isDarkMode={isDarkMode}
+                theme={theme}
+                t={t}
+                username={username}
+                navigation={navigation}
+                focusCommentInput={focusCommentInput}
+                handleCommentVote={handleCommentVote}
+                setCommentVotesModal={setCommentVotesModal}
+                setImageViewer={setImageViewer}
+                handleLongPressComment={handleLongPressComment}
+              />
+            </View>
+          )}
+          ListFooterComponent={
+            // Combines the original 16px block spacing (after the last
+            // comment/empty-state text) with the 50px spacer that used to
+            // sit below it, before the floating comment input.
+            <View style={{ height: 50, marginTop: 16, backgroundColor: "transparent" }} />
+          }
+        />
         </AndroidGlassBackdrop>
         <ReportModal
           visible={reportModalVisible}
@@ -1400,7 +1456,15 @@ const PostScreen = ({ route, navigation }) => {
               zIndex: 5,
               paddingBottom: insets.bottom,
             }}
-            offset={{ opened: 20 }}
+            // The `opened` lift is intentionally 20px short of the keyboard's
+            // real height - that gap is meant to be absorbed by paddingBottom
+            // (insets.bottom) above, which is ~34 on notched iPhones/Android
+            // gesture nav. On devices with no bottom safe area (iPhone
+            // 6s/7/8/SE - physical home button, insets.bottom === 0) nothing
+            // absorbs it, so the bar renders 20px below the keyboard's top
+            // edge. Drop the offset to 0 there so it lifts exactly to the
+            // keyboard's edge instead.
+            offset={{ opened: insets.bottom > 0 ? 20 : 0 }}
           >
             <CommentBar
               providerId="PostScreen"

@@ -22,7 +22,7 @@ import {
   LiquidGlassContainer,
   LiquidGlassViewAndroid,
   isLiquidGlassSupportedAndroid,
-  useIOSGlass,
+  useIOSGlassSupport,
   useAndroidGlass,
 } from "./GlassModules";
 
@@ -47,7 +47,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  const isRealGlass = useIOSGlass;
+  const isRealGlass = useIOSGlassSupport();
 
   // Drive the open animation from a mount effect so the menu view is actually
   // mounted before we animate it in (starting the animation in the same tick

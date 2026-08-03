@@ -4,10 +4,10 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  FlatList,
   Pressable,
   StyleSheet,
   useWindowDimensions,
+  ScrollView,
 } from "react-native";
 import FastImage from "./FastImage";
 import ActionSheet from "react-native-actions-sheet";
@@ -49,6 +49,7 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
+  const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
     if (visible) actionSheetRef.current?.show();
@@ -117,32 +118,34 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
   return (
     <ActionSheet
       ref={actionSheetRef}
-      gestureEnabled
+      gestureEnabled={false}
       defaultOverlayOpacity={0.45}
       onClose={onClose}
-      containerStyle={[styles.sheetContainer, { backgroundColor: theme.cardBackground }]}
+      containerStyle={[styles.sheetContainer, { backgroundColor: theme.cardBackground, maxHeight: windowHeight * 0.85 }]}
     >
-      <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <View style={styles.header}>
-          <View style={styles.headerText}>
-            <Text style={[styles.title, { color: theme.text }]}>{t("commentVoteModal.title")}</Text>
-            {!!preview && (
-              <Text style={[styles.subtitle, { color: theme.subText }]} numberOfLines={1}>
-                {preview}
-              </Text>
-            )}
+      <View style={[styles.modalContainer, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: windowHeight * 0.85 }, styles.flexContainer]}>
+        <View onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}>
+          <View style={styles.header}>
+            <View style={styles.headerText}>
+              <Text style={[styles.title, { color: theme.text }]}>{t("commentVoteModal.title")}</Text>
+              {!!preview && (
+                <Text style={[styles.subtitle, { color: theme.subText }]} numberOfLines={1}>
+                  {preview}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity onPress={() => actionSheetRef.current?.hide()} style={styles.closeButton}>
+              <Text style={[styles.closeButtonText, { color: theme.primary }]}>{t("common.close")}</Text>
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={() => actionSheetRef.current?.hide()} style={styles.closeButton}>
-            <Text style={[styles.closeButtonText, { color: theme.primary }]}>{t("common.close")}</Text>
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.summaryRow}>
-          <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
-            <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.voteCount", { count: votes.length })}</Text>
-          </View>
-          <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
-            <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.score", { value: votes.reduce((s, v) => s + Number(v.vote_value || 0), 0) })}</Text>
+          <View style={styles.summaryRow}>
+            <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+              <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.voteCount", { count: votes.length })}</Text>
+            </View>
+            <View style={[styles.summaryPill, { backgroundColor: `${theme.primary}18`, borderColor: `${theme.primary}40` }]}>
+              <Text style={[styles.summaryText, { color: theme.primary }]}>{t("voteModal.score", { value: votes.reduce((s, v) => s + Number(v.vote_value || 0), 0) })}</Text>
+            </View>
           </View>
         </View>
 
@@ -159,14 +162,21 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
             <Text style={[styles.emptyText, { color: theme.subText }]}>{t("commentVoteModal.empty")}</Text>
           </View>
         ) : (
-          <FlatList
-            data={votes}
-            keyExtractor={(item, i) => item.user_id?.toString() || item.username || String(i)}
-            renderItem={renderItem}
-            style={[styles.list, { maxHeight: windowHeight * 0.68 }]}
+          <ScrollView
+            style={[
+              styles.list,
+              { maxHeight: windowHeight * 0.85 - (headerHeight || 160) - Math.max(insets.bottom, 16) },
+            ]}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
-          />
+            nestedScrollEnabled={true}
+          >
+            {votes.map((item, i) => (
+              <React.Fragment key={item.user_id?.toString() || item.username || String(i)}>
+                {renderItem({ item })}
+              </React.Fragment>
+            ))}
+          </ScrollView>
         )}
       </View>
     </ActionSheet>
@@ -175,7 +185,8 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
 
 const styles = StyleSheet.create({
   sheetContainer: { borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
-  modalContainer: { padding: 16 },
+  modalContainer: { padding: 16, flexDirection: "column" },
+  flexContainer: { flexShrink: 1 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
   headerText: { flex: 1, paddingRight: 12 },
   title: { fontSize: 17, fontWeight: "700", marginBottom: 4 },
@@ -190,13 +201,13 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 15, textAlign: "center" },
   emptyWrapper: { minHeight: 120, justifyContent: "center", alignItems: "center" },
   emptyText: { fontSize: 15 },
-  list: { width: "100%" },
+  list: { width: "100%", flexGrow: 1, flexShrink: 1, minHeight: 0 },
   listContent: { paddingBottom: 8 },
   voteItem: { borderRadius: 16, borderWidth: 1, padding: 12, marginBottom: 10, flexDirection: "row", alignItems: "center" },
   avatarContainer: { width: 44, height: 44, borderRadius: 22, overflow: "hidden", justifyContent: "center", alignItems: "center", marginRight: 12 },
   avatarImage: { width: "100%", height: "100%" },
   avatarFallback: { fontSize: 16, fontWeight: "700" },
-  voteContent: { flex: 1 },
+  voteContent: { flex: 1, minWidth: 0 },
   voteHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   voteName: { fontSize: 15, fontWeight: "700", flex: 1, marginRight: 8 },
   voteUsername: { fontSize: 13 },

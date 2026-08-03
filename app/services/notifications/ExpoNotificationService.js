@@ -2,10 +2,18 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-// Configure how notifications are handled when app is in foreground
+// Configure how notifications are handled when app is in foreground.
+// `shouldShowAlert` is deprecated as of expo-notifications ~55 in favor of
+// `shouldShowBanner`/`shouldShowList` (non-optional in NotificationBehavior) -
+// leaving only the deprecated field set means neither is defined, so no
+// foreground banner shows at all. That's why tapping into a different
+// conversation's new-message notification while already inside a chat
+// screen didn't work: there was nothing to tap - no banner ever appeared.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
   }),

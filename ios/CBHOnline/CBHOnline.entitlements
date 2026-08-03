@@ -13,5 +13,9 @@
       <string>applinks:chuyenbienhoa.com</string>
       <string>applinks:www.chuyenbienhoa.com</string>
     </array>
+    <key>com.apple.security.application-groups</key>
+    <array>
+      <string>group.com.fatties.youth</string>
+    </array>
   </dict>
 </plist>

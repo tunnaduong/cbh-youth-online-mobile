@@ -67,6 +67,8 @@ import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/Blocked
 
 import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import { useShareIntent } from "expo-share-intent";
+import { parseYouTubeShare } from "./app/utils/youtubeShare";
 
 const Stack = createStackNavigator();
 
@@ -209,6 +211,7 @@ const App = () => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
+  const { shareIntent, resetShareIntent } = useShareIntent();
   const [showSplash, setShowSplash] = useState(true);
   // i18n.init() reads the saved language from AsyncStorage asynchronously, so
   // i18n.language is undefined for a brief window after app start. Screens
@@ -308,6 +311,41 @@ const App = () => {
 
     return () => subscription.remove();
   }, [isLoggedIn]);
+
+  // Handle incoming YouTube / YouTube Music shares.
+  // expo-share-intent populates shareIntent when the OS delivers a share to
+  // our app (Android ACTION_SEND or iOS Share Extension). If the shared text
+  // contains a YouTube URL we extract the video ID, build the embed HTML and
+  // open CreatePostScreen with it pre-filled.
+  useEffect(() => {
+    if (!shareIntent || !shareIntent.text) return;
+    const text = shareIntent.text;
+    const ytShare = parseYouTubeShare(text);
+    if (!ytShare) return;
+
+    resetShareIntent();
+
+    const navigate = () => {
+      if (!navigationRef.current) return;
+      navigationRef.current.navigate("CreatePostScreen", {
+        initialContent: ytShare.embedHtml,
+        initialTitle: "",
+      });
+    };
+
+    if (isLoggedIn && navigationRef.current) {
+      navigate();
+    } else {
+      // Wait until the user is logged in and navigation is mounted
+      const checkInterval = setInterval(() => {
+        if (isLoggedIn && navigationRef.current) {
+          clearInterval(checkInterval);
+          navigate();
+        }
+      }, 300);
+      setTimeout(() => clearInterval(checkInterval), 30000);
+    }
+  }, [shareIntent, isLoggedIn]);
 
   // Navigate (or queue for later) when a push notification is tapped
   useEffect(() => {

@@ -31,6 +31,7 @@ import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
 import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
+import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -480,7 +481,9 @@ const PostEditScreen = ({ navigation, route }) => {
 
       const response = await updatePost(route.params.postId, {
         title,
-        description: postContent,
+        // Auto-wraps a bare youtube.com/youtu.be link typed into the post
+        // in the same <iframe> PostItem already knows how to render.
+        description: autoEmbedYouTubeLinks(postContent),
         kept_image_ids: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         kept_document_ids: allDocIds.length > 0 ? allDocIds.join(",") : null,

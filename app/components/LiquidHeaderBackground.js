@@ -5,15 +5,16 @@ import {
   LiquidGlassView,
   LiquidGlassViewAndroid,
   isLiquidGlassSupportedAndroid,
-  useIOSGlass,
+  useIOSGlassSupport,
   BlurView,
 } from "./GlassModules";
 
 const LiquidHeaderBackground = ({ providerId }) => {
   const { isDarkMode } = useTheme();
+  const iosGlass = useIOSGlassSupport();
 
   if (Platform.OS === 'ios') {
-    if (useIOSGlass) {
+    if (iosGlass) {
       return (
         <LiquidGlassView
           style={StyleSheet.absoluteFill}
