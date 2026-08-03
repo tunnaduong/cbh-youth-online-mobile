@@ -67,7 +67,9 @@
     "cancel": "Cancel",
     "other": "Other",
     "unknownError": "An error occurred",
-    "close": "Close"
+    "close": "Close",
+    "save": "Save",
+    "add": "Add"
   },
   "createActions": {
     "post": "Create post",
@@ -498,7 +500,27 @@
     "sending": "Sending...",
     "downloading": "Downloading...",
     "tapToOpen": "Tap to open",
-    "attachment": "Attachment"
+    "attachment": "Attachment",
+    "createGroup": "Create group",
+    "create": "Create",
+    "groupNamePlaceholder": "Group name...",
+    "addMembers": "Add members",
+    "createGroupError": "Could not create group. Please try again.",
+    "groupInfo": "Group info",
+    "loadGroupError": "Could not load group info.",
+    "renameGroup": "Rename group",
+    "renameGroupError": "Could not rename group.",
+    "removeMemberTitle": "Remove member?",
+    "removeMemberBody": "{{name}} will be removed from the group.",
+    "removeMemberAction": "Remove",
+    "removeMemberError": "Could not remove member.",
+    "leaveGroupTitle": "Leave group?",
+    "leaveGroupBody": "You will no longer receive messages from this group.",
+    "leaveGroupAction": "Leave group",
+    "leaveGroupError": "Could not leave group.",
+    "membersCount": "{{count}} members",
+    "owner": "Owner",
+    "addMembersError": "Could not add members."
   },
   "blockedUsers": {
     "title": "Blocked users",

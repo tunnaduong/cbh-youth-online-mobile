@@ -74,7 +74,9 @@
     "cancel": "Отмена",
     "other": "Другое",
     "unknownError": "Произошла ошибка",
-    "close": "Закрыть"
+    "close": "Закрыть",
+    "save": "Сохранить",
+    "add": "Добавить"
   },
   "createActions": {
     "post": "Создать пост",
@@ -507,7 +509,27 @@
     "sending": "Отправка...",
     "downloading": "Загрузка...",
     "tapToOpen": "Нажмите, чтобы открыть",
-    "attachment": "Вложение"
+    "attachment": "Вложение",
+    "createGroup": "Создать группу",
+    "create": "Создать",
+    "groupNamePlaceholder": "Название группы...",
+    "addMembers": "Добавить участников",
+    "createGroupError": "Не удалось создать группу. Попробуйте еще раз.",
+    "groupInfo": "Информация о группе",
+    "loadGroupError": "Не удалось загрузить информацию о группе.",
+    "renameGroup": "Переименовать группу",
+    "renameGroupError": "Не удалось переименовать группу.",
+    "removeMemberTitle": "Удалить участника?",
+    "removeMemberBody": "{{name}} будет удален(а) из группы.",
+    "removeMemberAction": "Удалить",
+    "removeMemberError": "Не удалось удалить участника.",
+    "leaveGroupTitle": "Покинуть группу?",
+    "leaveGroupBody": "Вы больше не будете получать сообщения из этой группы.",
+    "leaveGroupAction": "Покинуть группу",
+    "leaveGroupError": "Не удалось покинуть группу.",
+    "membersCount": "{{count}} участников",
+    "owner": "Владелец",
+    "addMembersError": "Не удалось добавить участников."
   },
   "blockedUsers": {
     "title": "Заблокированные пользователи",

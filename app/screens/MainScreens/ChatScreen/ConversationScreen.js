@@ -43,6 +43,7 @@ import {
   getConversationMentionSuggestions,
   getMentionSuggestions,
   getOnlineStatus,
+  leaveGroupConversation,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
@@ -1332,6 +1333,31 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
+  const handleLeaveGroupFromMenu = (targetConversationId) => {
+    Alert.alert(
+      t("chatConversation.leaveGroupTitle", "Rời nhóm?"),
+      t("chatConversation.leaveGroupBody", "Bạn sẽ không nhận được tin nhắn từ nhóm này nữa."),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("chatConversation.leaveGroupAction", "Rời nhóm"),
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await leaveGroupConversation(targetConversationId);
+              safeGoBack();
+            } catch (error) {
+              Alert.alert(
+                t("common.error"),
+                error?.response?.data?.message || t("chatConversation.leaveGroupError", "Không thể rời nhóm.")
+              );
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const showOptions = () => {
     const options = [
       t("chatConversation.report"),
@@ -1342,16 +1368,35 @@ const ConversationScreen = ({ navigation, route }) => {
     const cancelButtonIndex = 2;
 
     if (!otherUser) {
-      // If no user to block (e.g. group), show limited options or alert
-      // For simple implementation, just show Report if applicable or nothing
-      // Or show "Thông tin nhóm" etc.
-      // I will just show 'Report' if I can report group, else nothing specific for now blocks unless user asked for group blocking.
-      // User asked "user can report ... from chat".
-      // Use limited options
+      // Group conversation (or the singleton public chat, which has no group management).
+      const nameNorm = currentConversation?.name?.trim().normalize("NFC").toLowerCase();
+      const isPublicChat = nameNorm === "tán gẫu linh tinh";
+      const targetConversationId = currentConversationId || conversationId;
+
+      if (isPublicChat) {
+        Alert.alert(t("chatConversation.optionsTitle"), null, [
+          {
+            text: t("chatConversation.report"),
+            onPress: () => setReportModalVisible(true),
+          },
+          { text: t("common.cancel"), style: "cancel" },
+        ]);
+        return;
+      }
+
       Alert.alert(t("chatConversation.optionsTitle"), null, [
+        {
+          text: t("chatConversation.groupInfo", "Thông tin nhóm"),
+          onPress: () => navigation.navigate("GroupInfoScreen", { conversationId: targetConversationId }),
+        },
         {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),
+        },
+        {
+          text: t("chatConversation.leaveGroupAction", "Rời nhóm"),
+          style: "destructive",
+          onPress: () => handleLeaveGroupFromMenu(targetConversationId),
         },
         { text: t("common.cancel"), style: "cancel" },
       ]);
@@ -2953,10 +2998,18 @@ const ConversationScreen = ({ navigation, route }) => {
 
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} pointerEvents="box-none">
             <LiquidButton
-              onPress={() =>
-                currentConversation?.type !== "group" &&
-                navigation.navigate("ProfileScreen", { username: otherUser?.username })
-              }
+              onPress={() => {
+                if (currentConversation?.type === "group") {
+                  const nameNorm = currentConversation?.name?.trim().normalize("NFC").toLowerCase();
+                  if (nameNorm !== "tán gẫu linh tinh") {
+                    navigation.navigate("GroupInfoScreen", {
+                      conversationId: currentConversationId || conversationId,
+                    });
+                  }
+                  return;
+                }
+                navigation.navigate("ProfileScreen", { username: otherUser?.username });
+              }}
               providerId="ConversationScreen"
               size={BUTTON_SIZE}
               style={[

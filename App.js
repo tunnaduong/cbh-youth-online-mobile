@@ -50,6 +50,9 @@ import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
 import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen";
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
+import CreateGroupScreen from "./app/screens/MainScreens/ChatScreen/CreateGroupScreen";
+import GroupInfoScreen from "./app/screens/MainScreens/ChatScreen/GroupInfoScreen";
+import AddGroupMembersScreen from "./app/screens/MainScreens/ChatScreen/AddGroupMembersScreen";
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
 import StudyMaterialDetailScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialDetailScreen";
@@ -724,6 +727,29 @@ const App = () => {
                   gestureEnabled: false,
                 }}
                 component={NewConversationScreen}
+              />
+              <Stack.Screen
+                name="CreateGroupScreen"
+                options={{
+                  headerShown: false,
+                  presentation: "transparentModal",
+                  animation: "slide_from_bottom",
+                  gestureEnabled: false,
+                }}
+                component={CreateGroupScreen}
+              />
+              <Stack.Screen
+                name="GroupInfoScreen"
+                component={GroupInfoScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="AddGroupMembersScreen"
+                options={{
+                  headerShown: false,
+                  presentation: "modal",
+                }}
+                component={AddGroupMembersScreen}
               />
               <Stack.Screen
                 name="ExploreScreen"

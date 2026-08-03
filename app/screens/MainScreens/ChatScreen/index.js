@@ -402,26 +402,28 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         >
           {t('chat.title')}
         </Animated.Text>
-        <LiquidButton
-          providerId="Chat"
-          onPress={() => navigation.navigate("NewConversationScreen")}
-          scrollY={scrollY}
-          alwaysBorder
-          borderColor={theme.primary}
-          size={44}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent' }}
-          borderRadius={22}
-        >
-          <Ionicons
-            name="add"
-            size={20}
-            color={theme.text}
-            style={{ marginRight: 4, flexShrink: 0 }}
-          />
-          <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
-            {t('chat.newMessage')}
-          </Text>
-        </LiquidButton>
+        <View style={styles.headerActions}>
+          <LiquidButton
+            providerId="Chat"
+            onPress={() => navigation.navigate("CreateGroupScreen")}
+            scrollY={scrollY}
+            alwaysBorder
+            borderColor={theme.primary}
+            size={40}
+          >
+            <Ionicons name="people-outline" size={19} color={theme.text} />
+          </LiquidButton>
+          <LiquidButton
+            providerId="Chat"
+            onPress={() => navigation.navigate("NewConversationScreen")}
+            scrollY={scrollY}
+            alwaysBorder
+            borderColor={theme.primary}
+            size={40}
+          >
+            <Ionicons name="add" size={22} color={theme.text} />
+          </LiquidButton>
+        </View>
       </View>
 
       {refreshing && (
@@ -527,6 +529,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   searchContainer: {
     flexDirection: "row",

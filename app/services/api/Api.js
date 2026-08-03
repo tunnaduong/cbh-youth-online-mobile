@@ -516,6 +516,43 @@ export const forwardMessage = (messageId, { conversationIds, userIds } = {}) => 
   });
 };
 
+// Group chat management
+export const createGroupConversation = (name, participantIds) => {
+  return Api.postRequest("/v1.0/chat/groups", {
+    name,
+    participants: participantIds,
+  });
+};
+
+export const getGroupDetails = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}`);
+};
+
+export const renameGroupConversation = (conversationId, name) => {
+  return Api.putRequest(`/v1.0/chat/groups/${conversationId}`, { name });
+};
+
+export const addGroupParticipants = (conversationId, participantIds) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/participants`, {
+    participants: participantIds,
+  });
+};
+
+export const removeGroupParticipant = (conversationId, userId) => {
+  return Api.deleteRequest(`/v1.0/chat/groups/${conversationId}/participants/${userId}`);
+};
+
+export const leaveGroupConversation = (conversationId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/leave`);
+};
+
+// Search users by partial username/display name (e.g. for "create group" / "add members" pickers)
+export const searchUserSuggestions = (query, excludeConversationId) => {
+  const params = new URLSearchParams({ q: query });
+  if (excludeConversationId) params.set("exclude_conversation_id", excludeConversationId);
+  return Api.getRequest(`/v1.0/chat/search/user-suggestions?${params.toString()}`);
+};
+
 // Notifications
 export const getNotifications = (page = 1, perPage = 20) => {
   return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`);

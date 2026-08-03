@@ -60,7 +60,9 @@
     "cancel": "Hủy",
     "other": "Khác",
     "unknownError": "Có lỗi xảy ra",
-    "close": "Đóng"
+    "close": "Đóng",
+    "save": "Lưu",
+    "add": "Thêm"
   },
   "createActions": {
     "post": "Tạo bài viết",
@@ -487,7 +489,27 @@
     "sending": "Đang gửi...",
     "downloading": "Đang tải...",
     "tapToOpen": "Nhấn để mở",
-    "attachment": "Tệp đính kèm"
+    "attachment": "Tệp đính kèm",
+    "createGroup": "Tạo nhóm",
+    "create": "Tạo",
+    "groupNamePlaceholder": "Tên nhóm...",
+    "addMembers": "Thêm thành viên",
+    "createGroupError": "Không thể tạo nhóm. Vui lòng thử lại.",
+    "groupInfo": "Thông tin nhóm",
+    "loadGroupError": "Không thể tải thông tin nhóm.",
+    "renameGroup": "Đổi tên nhóm",
+    "renameGroupError": "Không thể đổi tên nhóm.",
+    "removeMemberTitle": "Xóa thành viên?",
+    "removeMemberBody": "{{name}} sẽ bị xóa khỏi nhóm.",
+    "removeMemberAction": "Xóa",
+    "removeMemberError": "Không thể xóa thành viên.",
+    "leaveGroupTitle": "Rời nhóm?",
+    "leaveGroupBody": "Bạn sẽ không nhận được tin nhắn từ nhóm này nữa.",
+    "leaveGroupAction": "Rời nhóm",
+    "leaveGroupError": "Không thể rời nhóm.",
+    "membersCount": "{{count}} thành viên",
+    "owner": "Trưởng nhóm",
+    "addMembersError": "Không thể thêm thành viên."
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
