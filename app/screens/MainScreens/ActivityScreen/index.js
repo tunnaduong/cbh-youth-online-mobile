@@ -8,10 +8,10 @@ import {
   Image,
   Platform,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getActivities } from "../../../services/api/Api";
-import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
@@ -263,12 +263,7 @@ const ActivityScreen = ({ navigation }) => {
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
-        <LottieView
-          source={require("../../../assets/refresh.json")}
-          style={{ width: 70, height: 70 }}
-          loop
-          autoPlay
-        />
+        <ActivityIndicator size="large" color={theme.primary} />
         <Text className="mt-4" style={{ color: theme.text }}>Đang tải hoạt động...</Text>
       </View>
     );

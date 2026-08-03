@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Image,
   RefreshControl,
+  ActivityIndicator,
   Animated,
   FlatList,
   Dimensions,
@@ -18,7 +19,6 @@ import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getForumCategories } from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
-import LottieView from "lottie-react-native";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -107,7 +107,6 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const flatListRef = useRef(null);
   const tabScrollViewRef = useRef(null);
   const scrollX = useRef(new Animated.Value(0)).current;
-  const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -325,6 +324,21 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
         ))}
       </ScrollView>
 
+      {refreshing && (
+        <View
+          style={{
+            position: "absolute",
+            top: headerHeight + styles.tabContainer.height + 15,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <ActivityIndicator size="small" color={theme.primary} />
+        </View>
+      )}
       <FlatList
         ref={flatListRef}
         data={categories}

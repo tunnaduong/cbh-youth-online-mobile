@@ -20,6 +20,7 @@ import {
   KeyboardAvoidingView,
   Animated,
   RefreshControl,
+  ActivityIndicator,
   Platform,
   Keyboard,
 } from "react-native";
@@ -57,7 +58,6 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
-import LottieView from "lottie-react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
@@ -250,7 +250,6 @@ const PostScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const [loadingPost, setLoadingPost] = useState(false);
-  const lottieRef = useRef(null);
 
   const { mentionProps: commentMentionProps, suggestions: commentSuggestions, onSelectMention: onSelectCommentMention, loading: commentSuggestionsLoading } = useMentionInput({
     value: commentText,
@@ -1296,13 +1295,7 @@ const PostScreen = ({ route, navigation }) => {
               zIndex: 1000,
             }}
           >
-            <LottieView
-              source={require("../../../assets/refresh.json")}
-              style={{ width: 40, height: 40 }}
-              ref={lottieRef}
-              loop
-              autoPlay
-            />
+            <ActivityIndicator size="small" color={theme.primary} />
           </View>
         )}
         <AndroidGlassBackdrop providerId="PostScreen" style={{ flex: 1 }}>

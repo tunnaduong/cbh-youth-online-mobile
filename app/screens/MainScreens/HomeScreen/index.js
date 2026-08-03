@@ -60,7 +60,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
-import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import FastImage from "../../../components/FastImage";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
@@ -70,8 +69,6 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
-
-const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
 const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
 
@@ -1150,15 +1147,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             justifyContent: "center",
           }}
         >
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{
-              width: 40,
-              height: 40,
-            }}
-            loop
-            autoPlay
-          />
+          <ActivityIndicator size="small" color={theme.primary} />
         </View>
       );
     }
@@ -2264,15 +2253,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         />
       }
     >
-      <LottieView
-        source={require("../../../assets/refresh.json")}
-        style={{
-          width: 70,
-          height: 70,
-        }}
-        loop
-        autoPlay
-      />
+      <ActivityIndicator size="large" color={theme.primary} />
       <Text style={{ marginTop: 15, color: theme.text }}>{t('home.loadingFeed')}</Text>
     </ScrollView>
   ) : (

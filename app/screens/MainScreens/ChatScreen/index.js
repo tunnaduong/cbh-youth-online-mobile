@@ -9,6 +9,7 @@ import {
   TextInput,
   DeviceEventEmitter,
   RefreshControl,
+  ActivityIndicator,
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,7 +24,6 @@ import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import LottieView from "lottie-react-native";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
@@ -47,7 +47,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
   const lastScrollYRef = useRef(0);
-  const lottieRef = useRef(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -425,6 +424,21 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         </LiquidButton>
       </View>
 
+      {refreshing && (
+        <View
+          style={{
+            position: "absolute",
+            top: headerHeight + 15,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <ActivityIndicator size="small" color={theme.primary} />
+        </View>
+      )}
       <AndroidGlassBackdrop providerId="Chat" style={{ flex: 1 }}>
       <FlatList
         ref={flatListRef}

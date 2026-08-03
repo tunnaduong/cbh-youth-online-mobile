@@ -7,11 +7,11 @@ import {
   TouchableOpacity,
   Platform,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getLikedPosts } from "../../../services/api/Api";
-import LottieView from "lottie-react-native";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
@@ -164,12 +164,7 @@ const LikedPostsScreen = ({ navigation }) => {
           </View>
         </View>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <LottieView
-            source={require("../../../assets/refresh.json")}
-            style={{ width: 70, height: 70 }}
-            loop
-            autoPlay
-          />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text style={{ marginTop: 16, color: theme.text }}>{t('likedPosts.loading')}</Text>
         </View>
       </View>
