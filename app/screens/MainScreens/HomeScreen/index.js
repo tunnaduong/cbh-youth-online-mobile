@@ -844,6 +844,103 @@ const ReplyBar = ({
   );
 };
 
+// Darkens/lightens a #rrggbb color by `percent` (negative darkens). Kept at
+// module scope so FeedModeChip's gradient below can use it without pulling
+// in HomeScreen's own local shadeHex (defined inside the component).
+const shadeHexColor = (hex, percent) => {
+  const num = parseInt(hex.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const clamp = (v) => Math.max(0, Math.min(255, v));
+  const r = clamp((num >> 16) + amt);
+  const g = clamp(((num >> 8) & 0x00ff) + amt);
+  const b = clamp((num & 0x0000ff) + amt);
+  return `#${(0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1)}`;
+};
+
+// Animated pill used by the feed-mode toggle (Dành cho bạn / Mới nhất /
+// Đang theo dõi): the active chip crossfades in a gradient fill + white
+// label, and every chip gives a small spring "press" bounce for tactile
+// feedback - plain instant style swaps felt flat next to the rest of the
+// app's other animated UI.
+const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode }) => {
+  const activeAnim = useRef(new Animated.Value(active ? 1 : 0)).current;
+  const pressScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.spring(activeAnim, {
+      toValue: active ? 1 : 0,
+      useNativeDriver: false, // driving backgroundColor/opacity, not transform
+      friction: 8,
+      tension: 80,
+    }).start();
+  }, [active]);
+
+  const inactiveBg = isDarkMode ? theme.cardBackground : "#fff";
+  const textColor = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [isDarkMode ? "#CCC" : "#374151", "#fff"],
+  });
+  const borderWidth = activeAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 0],
+  });
+  const gradientOpacity = activeAnim;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={() => {
+        Animated.spring(pressScale, { toValue: 0.93, useNativeDriver: true, speed: 60, bounciness: 6 }).start();
+      }}
+      onPressOut={() => {
+        Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 20, bounciness: 10 }).start();
+      }}
+    >
+      <Animated.View
+        style={{
+          transform: [{ scale: pressScale }],
+          borderRadius: 24,
+          overflow: "hidden",
+        }}
+      >
+        <Animated.View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingVertical: 9,
+            paddingHorizontal: 16,
+            gap: 6,
+            borderRadius: 24,
+            backgroundColor: inactiveBg,
+            borderWidth,
+            borderColor: isDarkMode ? "#3a3a3a" : "#E2E2E2",
+          }}
+        >
+          <Animated.View
+            pointerEvents="none"
+            style={[StyleSheet.absoluteFillObject, { opacity: gradientOpacity }]}
+          >
+            <LinearGradient
+              colors={[theme.primary, shadeHexColor(theme.primary, -18)]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+          </Animated.View>
+          <Ionicons
+            name={active ? icon : `${icon}-outline`}
+            size={16}
+            color={active ? "#fff" : (isDarkMode ? "#AAA" : "#6B7280")}
+          />
+          <Animated.Text style={{ fontSize: 14, fontWeight: active ? "700" : "500", color: textColor }}>
+            {label}
+          </Animated.Text>
+        </Animated.View>
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -1650,47 +1747,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             { mode: "personalized", label: t('home.forYou'), icon: "sparkles" },
             { mode: "latest", label: t('home.latest'), icon: "flash" },
             { mode: "following", label: t('home.following'), icon: "people" },
-          ].map(({ mode, label, icon }) => {
-            const active = feedMode === mode;
-            return (
-              <TouchableOpacity
-                key={mode}
-                activeOpacity={0.75}
-                onPress={() => switchFeedMode(mode)}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingVertical: 9,
-                  paddingHorizontal: 16,
-                  borderRadius: 24,
-                  gap: 6,
-                  backgroundColor: active
-                    ? theme.primary
-                    : (isDarkMode ? theme.cardBackground : "#fff"),
-                  borderWidth: active ? 0 : 1,
-                  borderColor: isDarkMode ? "#3a3a3a" : "#E2E2E2",
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: active ? 0 : (isDarkMode ? 0 : 0.06),
-                  shadowRadius: 2,
-                  elevation: active ? 0 : 1,
-                }}
-              >
-                <Ionicons
-                  name={active ? icon : `${icon}-outline`}
-                  size={16}
-                  color={active ? "#fff" : (isDarkMode ? "#AAA" : "#6B7280")}
-                />
-                <Text style={{
-                  fontSize: 14,
-                  fontWeight: active ? "700" : "500",
-                  color: active ? "#fff" : (isDarkMode ? "#CCC" : "#374151"),
-                }}>
-                  {label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          ].map(({ mode, label, icon }) => (
+            <FeedModeChip
+              key={mode}
+              mode={mode}
+              label={label}
+              icon={icon}
+              active={feedMode === mode}
+              onPress={() => switchFeedMode(mode)}
+              theme={theme}
+              isDarkMode={isDarkMode}
+            />
+          ))}
         </ScrollView>
         <ScrollView
           style={{
