@@ -1058,6 +1058,30 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     handleFetchFeed();
   }, []);
 
+  // Manual tab switch: reset feed state and reload from the chosen mode.
+  const switchFeedMode = React.useCallback((mode) => {
+    if (mode === feedMode) return;
+    setFeed(null);
+    setHasMore(true);
+    deliveredIdsRef.current = new Set();
+    if (mode === "latest") {
+      setFeedMode("latest");
+      setLatestPage(2);
+      getLatestFeed(1)
+        .then((response) => {
+          const posts = response?.data?.data;
+          const validPosts = Array.isArray(posts) ? posts : [];
+          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+          setFeed(validPosts);
+        })
+        .catch(() => setFeed([]));
+    } else {
+      setFeedMode("personalized");
+      setCurrentPage(2);
+      handleFetchFeed(1);
+    }
+  }, [feedMode]);
+
   const onEndReached = () => {
     if (!hasMore) return;
 
@@ -1586,6 +1610,68 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return (
       <>
         <EmailVerificationAlert />
+        {/* Feed title + Dành cho bạn / Mới nhất tab toggle */}
+        <View style={{
+          paddingHorizontal: 15,
+          paddingTop: 14,
+          paddingBottom: 10,
+          backgroundColor: theme.background,
+        }}>
+          <Text style={{
+            fontSize: 22,
+            fontWeight: "700",
+            color: theme.text,
+            marginBottom: 10,
+          }}>
+            {t('home.feed')}
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => switchFeedMode("personalized")}
+              style={{
+                paddingVertical: 7,
+                paddingHorizontal: 18,
+                borderRadius: 20,
+                borderWidth: 1.5,
+                borderColor: feedMode === "personalized" ? theme.primary : (isDarkMode ? "#444" : "#D1D1D6"),
+                backgroundColor: feedMode === "personalized"
+                  ? (isDarkMode ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)")
+                  : "transparent",
+              }}
+            >
+              <Text style={{
+                fontSize: 14,
+                fontWeight: feedMode === "personalized" ? "700" : "400",
+                color: feedMode === "personalized" ? theme.primary : (isDarkMode ? "#AAA" : "#6B7280"),
+              }}>
+                {t('home.forYou')}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.75}
+              onPress={() => switchFeedMode("latest")}
+              style={{
+                paddingVertical: 7,
+                paddingHorizontal: 18,
+                borderRadius: 20,
+                borderWidth: 1.5,
+                borderColor: feedMode === "latest" ? theme.primary : (isDarkMode ? "#444" : "#D1D1D6"),
+                backgroundColor: feedMode === "latest"
+                  ? (isDarkMode ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)")
+                  : "transparent",
+              }}
+            >
+              <Text style={{
+                fontSize: 14,
+                fontWeight: feedMode === "latest" ? "700" : "400",
+                color: feedMode === "latest" ? theme.primary : (isDarkMode ? "#AAA" : "#6B7280"),
+              }}>
+                {t('home.latest')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         <ScrollView
           style={{
             borderBottomWidth: 10,

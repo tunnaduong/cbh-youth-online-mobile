@@ -103,6 +103,8 @@
     "blockedErrorMessage": "Could not find user information",
     "loadingFeed": "Loading feed...",
     "feedExhaustedDivider": "You've seen all your suggested posts — here's what's new",
+    "forYou": "For You",
+    "latest": "Latest",
     "useFullFeatures": "To use all features such as creating posts, you need to verify your email.",
     "replyPlaceholder": "Share your thoughts...",
     "reportSentTitle": "Report sent",
