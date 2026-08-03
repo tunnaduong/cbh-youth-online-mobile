@@ -1900,7 +1900,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     }}
                   />
                   <Text
-                    numberOfLines={2}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                     className="text-[13px] font-semibold text-white p-1.5"
                     style={{
                       textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -2505,8 +2506,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     <Image source={avatarSource} style={{ width: 28, height: 28 }} />
                   </View>
                 )}
-                <View style={{ flexDirection: 'column' }}>
-                  {name && <Text style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
+                <View style={{ flexDirection: 'column', maxWidth: SCREEN_WIDTH - 140 }}>
+                  {name && <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
                   {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12 }}>{date}</Text>}
                 </View>
               </Pressable>
