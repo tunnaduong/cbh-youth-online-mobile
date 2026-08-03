@@ -1484,6 +1484,34 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   }, []);
 
+  // Group metadata (name/avatar/participants) can change from GroupInfoScreen
+  // while this screen is still on the stack underneath it — refetch it on
+  // refocus so e.g. a just-changed group avatar shows up in the header as
+  // soon as you come back, instead of staying stale until a full remount.
+  useFocusEffect(
+    React.useCallback(() => {
+      const activeId = currentConversationId || conversationId;
+      if (isNewConversation || !activeId || currentConversation?.type !== "group") {
+        return;
+      }
+
+      getConversations()
+        .then((response) => {
+          const found = response?.data?.find((c) => String(c.id) === String(activeId));
+          if (found) setCurrentConversation(found);
+        })
+        .catch((error) => {
+          console.log(
+            "[ConversationScreen] Error refreshing group conversation on focus:",
+            error?.response?.data || error?.message,
+          );
+        });
+      // Deliberately runs once per focus, not on every currentConversation change
+      // (which this itself would cause) — id/type are enough to key off.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentConversationId, conversationId, isNewConversation, currentConversation?.type])
+  );
+
   useEffect(() => {
     if (!isNewConversation) {
       loadInitialMessages();

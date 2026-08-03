@@ -569,7 +569,12 @@
     "delete": "Xóa thông báo",
     "readAll": "Đọc tất cả",
     "empty": "Chưa có thông báo nào...",
-    "ofYours": "của bạn"
+    "ofYours": "của bạn",
+    "addedToGroup": "đã thêm bạn vào nhóm",
+    "removedFromGroup": "đã xóa bạn khỏi nhóm",
+    "transferredOwnership": "đã chuyển quyền trưởng nhóm cho bạn trong nhóm",
+    "removedDeputyRole": "đã gỡ vai trò phó nhóm của bạn trong nhóm",
+    "madeDeputy": "đã chỉ định bạn làm phó nhóm"
   },
   "report": {
     "step1": "Chọn đối tượng",

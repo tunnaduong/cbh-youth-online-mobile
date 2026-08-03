@@ -580,7 +580,12 @@
     "delete": "Delete notification",
     "readAll": "Read all",
     "empty": "No notifications yet...",
-    "ofYours": ""
+    "ofYours": "",
+    "addedToGroup": "added you to the group",
+    "removedFromGroup": "removed you from the group",
+    "transferredOwnership": "transferred group ownership to you in",
+    "removedDeputyRole": "removed your deputy role in",
+    "madeDeputy": "made you a deputy of"
   },
   "report": {
     "step1": "Select subject",

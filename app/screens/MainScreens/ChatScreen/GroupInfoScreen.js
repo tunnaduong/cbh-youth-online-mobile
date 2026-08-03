@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useContext, useEffect } from "react";
+import React, { useState, useCallback, useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   TextInput,
   Platform,
   Share,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -22,6 +23,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
+import LiquidButton from "../../../components/LiquidButton";
 import {
   getGroupDetails,
   renameGroupConversation,
@@ -55,6 +57,16 @@ const GroupInfoScreen = ({ navigation, route }) => {
   const [deleting, setDeleting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [invitingLoading, setInvitingLoading] = useState(false);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const handleScroll = (e) => {
+    scrollY.setValue(Math.max(0, e.nativeEvent.contentOffset.y));
+  };
 
   const fetchGroup = useCallback(async () => {
     try {
@@ -354,31 +366,48 @@ const GroupInfoScreen = ({ navigation, route }) => {
   if (loading || !group) {
     return (
       <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.background }]}>
+        <View
+          style={[styles.header, { paddingTop: insets.top, height: 50 + insets.top, backgroundColor: "transparent" }]}
+          pointerEvents="box-none"
+        >
+          <LiquidButton providerId="GroupInfoScreen" size={36} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={20} color={theme.primary} />
+          </LiquidButton>
+        </View>
         <ActivityIndicator size="large" color={theme.primary} />
       </View>
     );
   }
 
+  const headerHeight = 50 + insets.top;
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top, height: 50 + insets.top, backgroundColor: theme.background, borderBottomColor: theme.border },
-        ]}
+        style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
+        pointerEvents="box-none"
       >
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
+        <LiquidButton
+          providerId="GroupInfoScreen"
+          size={36}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={20} color={theme.primary} />
+        </LiquidButton>
+        <Animated.Text
+          style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]}
+          numberOfLines={1}
+        >
           {t("chatConversation.groupInfo", "Thông tin nhóm")}
-        </Text>
-        <View style={{ width: 24 }} />
+        </Animated.Text>
+        <View style={{ width: 36 }} />
       </View>
 
       <FlatList
         data={group.participants}
         keyExtractor={(item) => String(item.id)}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         ListHeaderComponent={
           <View style={styles.groupHeader}>
             <TouchableOpacity onPress={handleChangeAvatar} disabled={uploadingAvatar}>
@@ -507,7 +536,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
             )}
           </View>
         }
-        contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
+        contentContainerStyle={{ paddingTop: headerHeight + 8, paddingBottom: 40 + insets.bottom }}
       />
 
       <Modal visible={renameVisible} transparent animationType="fade" onRequestClose={() => setRenameVisible(false)}>
@@ -549,11 +578,15 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContainer: { justifyContent: "center", alignItems: "center" },
   header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: { fontSize: 17, fontWeight: "600", flex: 1, textAlign: "center" },
   groupHeader: { alignItems: "center", paddingTop: 24, paddingBottom: 8 },

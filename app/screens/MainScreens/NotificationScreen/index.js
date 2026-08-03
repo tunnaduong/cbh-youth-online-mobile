@@ -100,6 +100,18 @@ const formatNotificationMessage = (notification, t) => {
       return `${t('notifications.reactedMessage')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourMessage')}`;
     case "message_replied":
       return t('notifications.repliedMessage');
+    case "added_to_group":
+      return `${t('notifications.addedToGroup')} "${data?.conversation_name || ""}"`;
+    case "removed_from_group":
+      return `${t('notifications.removedFromGroup')} "${data?.conversation_name || ""}"`;
+    case "group_role_changed":
+      if ((data?.role || "") === "owner") {
+        return `${t('notifications.transferredOwnership')} "${data?.conversation_name || ""}"`;
+      }
+      if ((data?.role || "") === "member") {
+        return `${t('notifications.removedDeputyRole')} "${data?.conversation_name || ""}"`;
+      }
+      return `${t('notifications.madeDeputy')} "${data?.conversation_name || ""}"`;
     case "study_material_purchased":
       return `${t('notifications.purchasedMaterial')} "${data?.material_title || ""}"`;
     case "study_material_rated":
