@@ -104,3 +104,19 @@ export const autoEmbedYouTubeLinks = (text) => {
     buildYouTubeEmbed(videoId) +
     text.slice(urlMatch.index + urlMatch[0].length);
 };
+
+// For content already saved by the backend (e.g. someone else's post) that
+// contains a bare YouTube link but was never run through autoEmbedYouTubeLinks
+// at creation time: appends the playable <iframe> below the existing content
+// instead of touching the link text itself. Used at render time in PostItem,
+// so it never mutates what's actually stored server-side.
+export const appendYouTubeEmbedBelow = (html) => {
+  if (!html || typeof html !== "string" || /<iframe[\s>]/i.test(html)) {
+    return html;
+  }
+  const urlMatch = html.match(/https?:\/\/[^\s<>"']*(?:youtube\.com|youtu\.be)[^\s<>"']*/i);
+  if (!urlMatch) return html;
+  const videoId = extractYouTubeId(urlMatch[0]);
+  if (!videoId) return html;
+  return html + buildYouTubeEmbed(videoId);
+};

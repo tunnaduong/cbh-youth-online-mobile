@@ -509,6 +509,13 @@ export const editMessage = (messageId, content) => {
   return Api.putRequest(`/v1.0/chat/messages/${messageId}`, { content });
 };
 
+export const forwardMessage = (messageId, { conversationIds, userIds } = {}) => {
+  return Api.postRequest(`/v1.0/chat/messages/${messageId}/forward`, {
+    conversation_ids: conversationIds || [],
+    user_ids: userIds || [],
+  });
+};
+
 // Notifications
 export const getNotifications = (page = 1, perPage = 20) => {
   return Api.getRequest(`/v1.0/notifications?page=${page}&per_page=${perPage}`);

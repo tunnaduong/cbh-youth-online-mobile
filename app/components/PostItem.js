@@ -40,7 +40,7 @@ import { generatePostSlug } from "../utils/slugify";
 import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
-import { buildYouTubePlayerHtml } from "../utils/youtubeShare";
+import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -575,10 +575,11 @@ const PostItem = ({
               a: { onPress: (event, href) => handleContentLinkPress(event, href) },
             }}
             source={{
-              html:
+              html: appendYouTubeEmbedBelow(
                 isExpanded || !item.content || item.content.length <= 300
                   ? item.content || ""
-                  : truncatedContent,
+                  : truncatedContent
+              ),
             }}
             baseStyle={{
               fontSize: 16,

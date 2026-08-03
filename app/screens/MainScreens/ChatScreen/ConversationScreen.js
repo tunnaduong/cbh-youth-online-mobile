@@ -54,6 +54,7 @@ import MessageReactionPicker, {
   REACTION_EMOJI_BY_TYPE,
   REACTION_EMOJIS,
 } from "../../../components/MessageReactionPicker";
+import ForwardMessageModal from "../../../components/ForwardMessageModal";
 import { Alert, ActionSheetIOS, KeyboardAvoidingView, Clipboard } from "react-native";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
@@ -1218,6 +1219,7 @@ const ConversationScreen = ({ navigation, route }) => {
   // { id, content, type, file_url, sender } | null - the message currently
   // being replied to, shown in ReplyComposerBar above the input.
   const [replyingTo, setReplyingTo] = useState(null);
+  const [forwardModal, setForwardModal] = useState({ visible: false, message: null });
   // DEBUG: id -> error string, for surfacing why an image/video thumbnail
   // failed to load directly in the bubble instead of just going blank.
   const [mediaLoadErrors, setMediaLoadErrors] = useState({});
@@ -2574,6 +2576,15 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const cancelReply = () => setReplyingTo(null);
 
+  const handleForwardMessage = () => {
+    const item = reactionPicker.message;
+    closeReactionPicker();
+    if (!item || typeof item.id !== "number") return;
+    setForwardModal({ visible: true, message: item });
+  };
+
+  const closeForwardModal = () => setForwardModal({ visible: false, message: null });
+
   const handleCopyMessage = () => {
     const item = reactionPicker.message;
     closeReactionPicker();
@@ -3048,6 +3059,7 @@ const ConversationScreen = ({ navigation, route }) => {
             : undefined
         }
         onReply={reactionPicker.message?.is_recalled ? undefined : handleReplyToMessage}
+        onForward={reactionPicker.message?.is_recalled ? undefined : handleForwardMessage}
         onEdit={
           reactionPicker.message?.is_myself &&
           !reactionPicker.message?.is_recalled &&
@@ -3067,6 +3079,12 @@ const ConversationScreen = ({ navigation, route }) => {
             : undefined
         }
         onClose={closeReactionPicker}
+      />
+
+      <ForwardMessageModal
+        visible={forwardModal.visible}
+        message={forwardModal.message}
+        onClose={closeForwardModal}
       />
 
       {/* (profile block and floating button moved into header) */}
