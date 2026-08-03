@@ -26,6 +26,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { isPublicGroupChat } from "../../../utils/chatHelpers";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -257,8 +258,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.profile_name || "Unknown User";
     }
-    const nameNorm = conversation.name?.trim().normalize("NFC").toLowerCase();
-    if (nameNorm === "tán gẫu linh tinh") {
+    if (isPublicGroupChat(conversation)) {
       return t("chatConversation.casualGroupName");
     }
     return conversation.name || "Unnamed Group";
@@ -268,14 +268,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.avatar_url;
     }
-    const nameNorm = conversation.name?.trim().normalize("NFC").toLowerCase();
-    if (
-      conversation.type === "group" &&
-      nameNorm === "tán gẫu linh tinh"
-    ) {
+    if (isPublicGroupChat(conversation)) {
       return "local:chat.jpg";
     }
-    return null;
+    return conversation.avatar_url || null;
   };
 
   const renderLastMessagePreview = (latestMessage) => {
@@ -367,7 +363,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             : ""}
         </Text>
         <View style={styles.unreadContainer}>
-          {item.type === "group" && item.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh" && (
+          {isPublicGroupChat(item) && (
             <Ionicons
               name="notifications-off"
               size={18}

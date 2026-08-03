@@ -74,6 +74,10 @@
             {
               "scheme": "com.fatties.youth",
               "host": "story"
+            },
+            {
+              "scheme": "com.fatties.youth",
+              "host": "group"
             }
           ],
           "category": [

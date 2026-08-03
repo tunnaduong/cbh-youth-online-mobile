@@ -546,6 +546,49 @@ export const leaveGroupConversation = (conversationId) => {
   return Api.postRequest(`/v1.0/chat/groups/${conversationId}/leave`);
 };
 
+export const deleteGroupConversation = (conversationId) => {
+  return Api.deleteRequest(`/v1.0/chat/groups/${conversationId}`);
+};
+
+// imageUri: local file uri from expo-image-picker
+export const updateGroupAvatar = (conversationId, imageUri) => {
+  const formData = new FormData();
+  formData.append("avatar", {
+    uri: imageUri,
+    type: imageUri.endsWith(".png") ? "image/png" : "image/jpeg",
+    name: imageUri.endsWith(".png") ? "group_avatar.png" : "group_avatar.jpg",
+  });
+  return Api.postFormDataRequest(`/v1.0/chat/groups/${conversationId}/avatar`, formData);
+};
+
+export const addGroupDeputy = (conversationId, userId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/deputies`, { user_id: userId });
+};
+
+export const removeGroupDeputy = (conversationId, userId) => {
+  return Api.deleteRequest(`/v1.0/chat/groups/${conversationId}/deputies/${userId}`);
+};
+
+export const transferGroupOwnership = (conversationId, userId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/transfer-ownership`, { user_id: userId });
+};
+
+export const getGroupInviteLink = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}/invite-link`);
+};
+
+export const regenerateGroupInviteLink = (conversationId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/invite-link/regenerate`);
+};
+
+export const getGroupInvitePreview = (token) => {
+  return Api.getRequest(`/v1.0/chat/groups/invite/${token}`);
+};
+
+export const joinGroupViaInvite = (token) => {
+  return Api.postRequest(`/v1.0/chat/groups/invite/${token}/join`);
+};
+
 // Search users by partial username/display name (e.g. for "create group" / "add members" pickers)
 export const searchUserSuggestions = (query, excludeConversationId) => {
   const params = new URLSearchParams({ q: query });

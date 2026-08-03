@@ -64,6 +64,7 @@ import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
+import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import * as DocumentPicker from "expo-document-picker";
@@ -300,7 +301,12 @@ const MessagesListContent = React.memo(({
   // MessageRow doesn't have to O(n)-scan the array itself.
   const realMessages = [];
   messages.forEach((m, i) => {
-    if (m.type !== "date" && m.type !== "time") realMessages.push({ m, i });
+    // System messages ("X added Y to the group") render as a centered pill, not a
+    // bubble - exclude them here too so they don't get counted as a neighbour when
+    // deciding whether consecutive real messages should visually group together.
+    if (m.type !== "date" && m.type !== "time" && m.content_type !== "system") {
+      realMessages.push({ m, i });
+    }
   });
   const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
 
@@ -314,10 +320,10 @@ const MessagesListContent = React.memo(({
     } else {
       // date/time header — walk to find adjacent real messages
       for (let i = index - 1; i >= 0; i--) {
-        if (messages[i].type !== "date" && messages[i].type !== "time") { prev = messages[i]; break; }
+        if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { prev = messages[i]; break; }
       }
       for (let i = index + 1; i < messages.length; i++) {
-        if (messages[i].type !== "date" && messages[i].type !== "time") { next = messages[i]; break; }
+        if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { next = messages[i]; break; }
       }
     }
 
@@ -375,6 +381,17 @@ const MessagesListContent = React.memo(({
               ]}
             >
               {value.time}
+            </Text>
+          </View>
+        ) : value.content_type === "system" ? (
+          <View style={styles.systemMessageContainer}>
+            <Text
+              style={[
+                styles.systemMessageText,
+                { backgroundColor: isDarkMode ? "#262626" : "#f0f0f0", color: theme.subText },
+              ]}
+            >
+              {value.content}
             </Text>
           </View>
         ) : (
@@ -1369,8 +1386,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
     if (!otherUser) {
       // Group conversation (or the singleton public chat, which has no group management).
-      const nameNorm = currentConversation?.name?.trim().normalize("NFC").toLowerCase();
-      const isPublicChat = nameNorm === "tán gẫu linh tinh";
+      const isPublicChat = isPublicGroupChat(currentConversation);
       const targetConversationId = currentConversationId || conversationId;
 
       if (isPublicChat) {
@@ -1438,14 +1454,11 @@ const ConversationScreen = ({ navigation, route }) => {
     if (currentConversation?.type === "private") {
       return currentConversation?.participants[0]?.avatar_url;
     }
-    // Special case for "Tán gẫu linh tinh" group
-    if (
-      currentConversation?.type === "group" &&
-      (currentConversation?.name?.trim().normalize("NFC").toLowerCase() ===
-        "tán gẫu linh tinh" ||
-        currentConversation?.name === t("chatConversation.casualGroupName"))
-    ) {
+    if (isPublicGroupChat(currentConversation) || currentConversation?.name === t("chatConversation.casualGroupName")) {
       return "local:chat.jpg";
+    }
+    if (currentConversation?.type === "group") {
+      return currentConversation?.avatar_url || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg";
     }
     return "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg";
   };
@@ -3000,8 +3013,7 @@ const ConversationScreen = ({ navigation, route }) => {
             <LiquidButton
               onPress={() => {
                 if (currentConversation?.type === "group") {
-                  const nameNorm = currentConversation?.name?.trim().normalize("NFC").toLowerCase();
-                  if (nameNorm !== "tán gẫu linh tinh") {
+                  if (!isPublicGroupChat(currentConversation)) {
                     navigation.navigate("GroupInfoScreen", {
                       conversationId: currentConversationId || conversationId,
                     });
@@ -3047,10 +3059,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   {isNewConversation
                     ? selectedUser.profile_name
                     : currentConversation?.type === "group"
-                      ? currentConversation?.name
-                          ?.trim()
-                          .normalize("NFC")
-                          .toLowerCase() === "tán gẫu linh tinh"
+                      ? isPublicGroupChat(currentConversation)
                         ? t("chatConversation.casualGroupName")
                         : currentConversation?.name || t("chatConversation.casualGroupName")
                       : currentConversation?.participants[0]?.profile_name}
@@ -3642,6 +3651,18 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: "hidden",
     fontWeight: "600",
+  },
+  systemMessageContainer: {
+    alignItems: "center",
+    marginVertical: 8,
+    paddingHorizontal: 8,
+  },
+  systemMessageText: {
+    fontSize: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    overflow: "hidden",
   },
   senderName: {
     fontSize: 12,

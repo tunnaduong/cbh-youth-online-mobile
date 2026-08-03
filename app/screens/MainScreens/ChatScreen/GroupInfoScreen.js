@@ -11,11 +11,13 @@ import {
   Modal,
   TextInput,
   Platform,
+  Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+import * as ImagePicker from "expo-image-picker";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -23,8 +25,14 @@ import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import {
   getGroupDetails,
   renameGroupConversation,
+  updateGroupAvatar,
   removeGroupParticipant,
   leaveGroupConversation,
+  deleteGroupConversation,
+  addGroupDeputy,
+  removeGroupDeputy,
+  transferGroupOwnership,
+  getGroupInviteLink,
 } from "../../../services/api/Api";
 
 const avatarUrl = (u) =>
@@ -40,11 +48,13 @@ const GroupInfoScreen = ({ navigation, route }) => {
 
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [renameVisible, setRenameVisible] = useState(false);
   const [savingName, setSavingName] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [invitingLoading, setInvitingLoading] = useState(false);
 
   const fetchGroup = useCallback(async () => {
     try {
@@ -101,6 +111,29 @@ const GroupInfoScreen = ({ navigation, route }) => {
     }
   };
 
+  const handleChangeAvatar = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    if (result.canceled) return;
+
+    setUploadingAvatar(true);
+    try {
+      const res = await updateGroupAvatar(conversationId, result.assets[0].uri);
+      setGroup((prev) => (prev ? { ...prev, avatar_url: res.data.avatar_url } : prev));
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: t("chatConversation.updateAvatarError", "Không thể đổi ảnh đại diện nhóm."),
+      });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const confirmRemoveParticipant = (participant) => {
     Alert.alert(
       t("chatConversation.removeMemberTitle", "Xóa thành viên?"),
@@ -134,6 +167,130 @@ const GroupInfoScreen = ({ navigation, route }) => {
     );
   };
 
+  const handleMakeDeputy = async (participant) => {
+    try {
+      await addGroupDeputy(conversationId, participant.id);
+      setGroup((prev) =>
+        prev
+          ? {
+              ...prev,
+              participants: prev.participants.map((p) =>
+                p.id === participant.id ? { ...p, role: "deputy" } : p
+              ),
+            }
+          : prev
+      );
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: error?.response?.data?.message || t("chatConversation.makeDeputyError", "Không thể chỉ định phó nhóm."),
+      });
+    }
+  };
+
+  const handleRemoveDeputy = async (participant) => {
+    try {
+      await removeGroupDeputy(conversationId, participant.id);
+      setGroup((prev) =>
+        prev
+          ? {
+              ...prev,
+              participants: prev.participants.map((p) =>
+                p.id === participant.id ? { ...p, role: "member" } : p
+              ),
+            }
+          : prev
+      );
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: error?.response?.data?.message || t("chatConversation.removeDeputyError", "Không thể gỡ vai trò phó nhóm."),
+      });
+    }
+  };
+
+  const confirmTransferOwnership = (participant) => {
+    Alert.alert(
+      t("chatConversation.transferOwnershipTitle", "Chuyển quyền trưởng nhóm?"),
+      t("chatConversation.transferOwnershipBody", "{{name}} sẽ trở thành trưởng nhóm mới thay bạn.", {
+        name: participant.profile_name || participant.username,
+      }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("chatConversation.transferOwnershipAction", "Chuyển quyền"),
+          onPress: async () => {
+            try {
+              await transferGroupOwnership(conversationId, participant.id);
+              fetchGroup();
+            } catch (error) {
+              Toast.show({
+                type: "error",
+                text1:
+                  error?.response?.data?.message ||
+                  t("chatConversation.transferOwnershipError", "Không thể chuyển quyền trưởng nhóm."),
+              });
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openParticipantActions = (participant) => {
+    if (participant.id === userInfo?.id || participant.role === "owner") return;
+
+    const options = [];
+
+    if (group.is_owner) {
+      if (participant.role === "deputy") {
+        options.push({
+          text: t("chatConversation.removeDeputyAction", "Gỡ vai trò phó nhóm"),
+          onPress: () => handleRemoveDeputy(participant),
+        });
+      } else {
+        options.push({
+          text: t("chatConversation.makeDeputyAction", "Chỉ định làm phó nhóm"),
+          onPress: () => handleMakeDeputy(participant),
+        });
+      }
+      options.push({
+        text: t("chatConversation.transferOwnershipAction", "Chuyển quyền trưởng nhóm"),
+        onPress: () => confirmTransferOwnership(participant),
+      });
+    }
+
+    if (group.is_owner || (group.is_deputy && participant.role === "member")) {
+      options.push({
+        text: t("chatConversation.removeMemberAction", "Xóa"),
+        style: "destructive",
+        onPress: () => confirmRemoveParticipant(participant),
+      });
+    }
+
+    if (options.length === 0) return;
+
+    options.push({ text: t("common.cancel"), style: "cancel" });
+
+    Alert.alert(participant.profile_name || participant.username, null, options);
+  };
+
+  const handleInvite = async () => {
+    if (invitingLoading) return;
+    setInvitingLoading(true);
+    try {
+      const res = await getGroupInviteLink(conversationId);
+      await Share.share({ message: res.data.invite_url });
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: t("chatConversation.inviteLinkError", "Không thể tạo liên kết mời."),
+      });
+    } finally {
+      setInvitingLoading(false);
+    }
+  };
+
   const confirmLeaveGroup = () => {
     Alert.alert(
       t("chatConversation.leaveGroupTitle", "Rời nhóm?"),
@@ -164,6 +321,36 @@ const GroupInfoScreen = ({ navigation, route }) => {
     );
   };
 
+  const confirmDeleteGroup = () => {
+    Alert.alert(
+      t("chatConversation.deleteGroupTitle", "Xóa nhóm?"),
+      t("chatConversation.deleteGroupBody", "Nhóm và toàn bộ tin nhắn sẽ bị xóa vĩnh viễn đối với tất cả mọi người."),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("chatConversation.deleteGroupAction", "Xóa nhóm"),
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteGroupConversation(conversationId);
+              navigation.pop(2);
+            } catch (error) {
+              Toast.show({
+                type: "error",
+                text1:
+                  error?.response?.data?.message ||
+                  t("chatConversation.deleteGroupError", "Không thể xóa nhóm."),
+              });
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading || !group) {
     return (
       <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.background }]}>
@@ -171,8 +358,6 @@ const GroupInfoScreen = ({ navigation, route }) => {
       </View>
     );
   }
-
-  const isOwner = group.is_owner;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -196,32 +381,58 @@ const GroupInfoScreen = ({ navigation, route }) => {
         keyExtractor={(item) => String(item.id)}
         ListHeaderComponent={
           <View style={styles.groupHeader}>
-            <View style={[styles.groupAvatar, { backgroundColor: theme.iconBackground }]}>
-              <Ionicons name="people" size={34} color={theme.subText} />
-            </View>
-            <TouchableOpacity
-              style={styles.groupNameRow}
-              onPress={isOwner ? openRename : undefined}
-              activeOpacity={isOwner ? 0.6 : 1}
-            >
+            <TouchableOpacity onPress={handleChangeAvatar} disabled={uploadingAvatar}>
+              {group.avatar_url ? (
+                <Image source={{ uri: group.avatar_url }} style={styles.groupAvatarImage} />
+              ) : (
+                <View style={[styles.groupAvatar, { backgroundColor: theme.iconBackground }]}>
+                  <Ionicons name="people" size={34} color={theme.subText} />
+                </View>
+              )}
+              <View style={[styles.avatarEditBadge, { backgroundColor: theme.primary, borderColor: theme.background }]}>
+                {uploadingAvatar ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="camera" size={14} color="#fff" />
+                )}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.groupNameRow} onPress={openRename} activeOpacity={0.6}>
               <Text style={[styles.groupName, { color: theme.text }]} numberOfLines={2}>
                 {group.name}
               </Text>
-              {isOwner && <Ionicons name="pencil-outline" size={16} color={theme.subText} style={{ marginLeft: 6 }} />}
+              <Ionicons name="pencil-outline" size={16} color={theme.subText} style={{ marginLeft: 6 }} />
             </TouchableOpacity>
             <Text style={[styles.membersCount, { color: theme.subText }]}>
               {t("chatConversation.membersCount", "{{count}} thành viên", { count: group.participants.length })}
             </Text>
 
             <TouchableOpacity
-              style={[styles.addMembersRow, { borderColor: theme.border }]}
+              style={[styles.actionRow, { borderColor: theme.border }]}
               onPress={() => navigation.navigate("AddGroupMembersScreen", { conversationId })}
             >
-              <View style={[styles.addMembersIcon, { backgroundColor: theme.primary }]}>
+              <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
                 <Ionicons name="person-add-outline" size={16} color="#fff" />
               </View>
-              <Text style={[styles.addMembersText, { color: theme.text }]}>
+              <Text style={[styles.actionText, { color: theme.text }]}>
                 {t("chatConversation.addMembers", "Thêm thành viên")}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionRow, { borderColor: theme.border }]}
+              onPress={handleInvite}
+              disabled={invitingLoading}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
+                {invitingLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="link-outline" size={16} color="#fff" />
+                )}
+              </View>
+              <Text style={[styles.actionText, { color: theme.text }]}>
+                {t("chatConversation.inviteViaLink", "Mời qua liên kết")}
               </Text>
             </TouchableOpacity>
 
@@ -230,50 +441,71 @@ const GroupInfoScreen = ({ navigation, route }) => {
             </Text>
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={styles.participantRow}>
-            <Image source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.participantName, { color: theme.text }]} numberOfLines={1}>
-                {item.profile_name || item.username}
-              </Text>
-              <Text style={[styles.participantHandle, { color: theme.subText }]} numberOfLines={1}>
-                @{item.username}
-              </Text>
-            </View>
-            {item.role === "owner" && (
-              <View style={[styles.ownerBadge, { backgroundColor: theme.iconBackground }]}>
-                <Text style={[styles.ownerBadgeText, { color: theme.primary }]}>
-                  {t("chatConversation.owner", "Trưởng nhóm")}
+        renderItem={({ item }) => {
+          const canAct =
+            item.id !== userInfo?.id &&
+            item.role !== "owner" &&
+            (group.is_owner || (group.is_deputy && item.role === "member"));
+          return (
+            <TouchableOpacity
+              style={styles.participantRow}
+              activeOpacity={canAct ? 0.6 : 1}
+              onPress={canAct ? () => openParticipantActions(item) : undefined}
+            >
+              <Image source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.participantName, { color: theme.text }]} numberOfLines={1}>
+                  {item.profile_name || item.username}
+                </Text>
+                <Text style={[styles.participantHandle, { color: theme.subText }]} numberOfLines={1}>
+                  @{item.username}
                 </Text>
               </View>
-            )}
-            {isOwner && item.role !== "owner" && item.id !== userInfo?.id && (
-              <TouchableOpacity
-                onPress={() => confirmRemoveParticipant(item)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                style={{ marginLeft: 8 }}
-              >
-                <Ionicons name="close-circle-outline" size={22} color={theme.subText} />
+              {item.role === "owner" && (
+                <View style={[styles.roleBadge, { backgroundColor: theme.iconBackground }]}>
+                  <Text style={[styles.roleBadgeText, { color: theme.primary }]}>
+                    {t("chatConversation.owner", "Trưởng nhóm")}
+                  </Text>
+                </View>
+              )}
+              {item.role === "deputy" && (
+                <View style={[styles.roleBadge, { backgroundColor: theme.iconBackground }]}>
+                  <Text style={[styles.roleBadgeText, { color: theme.subText }]}>
+                    {t("chatConversation.deputy", "Phó nhóm")}
+                  </Text>
+                </View>
+              )}
+              {canAct && (
+                <Ionicons name="chevron-forward" size={18} color={theme.subText} style={{ marginLeft: 6 }} />
+              )}
+            </TouchableOpacity>
+          );
+        }}
+        ListFooterComponent={
+          <View>
+            <TouchableOpacity style={styles.leaveRow} onPress={confirmLeaveGroup} disabled={leaving}>
+              {leaving ? (
+                <ActivityIndicator size="small" color="#e53935" />
+              ) : (
+                <>
+                  <Ionicons name="exit-outline" size={20} color="#e53935" />
+                  <Text style={styles.leaveText}>{t("chatConversation.leaveGroupAction", "Rời nhóm")}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {group.is_owner && (
+              <TouchableOpacity style={styles.leaveRow} onPress={confirmDeleteGroup} disabled={deleting}>
+                {deleting ? (
+                  <ActivityIndicator size="small" color="#e53935" />
+                ) : (
+                  <>
+                    <Ionicons name="trash-outline" size={20} color="#e53935" />
+                    <Text style={styles.leaveText}>{t("chatConversation.deleteGroupAction", "Xóa nhóm")}</Text>
+                  </>
+                )}
               </TouchableOpacity>
             )}
           </View>
-        )}
-        ListFooterComponent={
-          <TouchableOpacity
-            style={styles.leaveRow}
-            onPress={confirmLeaveGroup}
-            disabled={leaving}
-          >
-            {leaving ? (
-              <ActivityIndicator size="small" color="#e53935" />
-            ) : (
-              <>
-                <Ionicons name="exit-outline" size={20} color="#e53935" />
-                <Text style={styles.leaveText}>{t("chatConversation.leaveGroupAction", "Rời nhóm")}</Text>
-              </>
-            )}
-          </TouchableOpacity>
         }
         contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
       />
@@ -333,10 +565,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 12,
   },
+  groupAvatarImage: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    marginBottom: 12,
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    right: -2,
+    bottom: 10,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   groupNameRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 24 },
   groupName: { fontSize: 19, fontWeight: "700", textAlign: "center" },
   membersCount: { fontSize: 13, marginTop: 4, marginBottom: 20 },
-  addMembersRow: {
+  actionRow: {
     flexDirection: "row",
     alignItems: "center",
     alignSelf: "stretch",
@@ -345,9 +594,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 12,
   },
-  addMembersIcon: {
+  actionIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -355,13 +604,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 12,
   },
-  addMembersText: { fontSize: 15, fontWeight: "500" },
+  actionText: { fontSize: 15, fontWeight: "500" },
   sectionLabel: {
     alignSelf: "stretch",
     fontSize: 13,
     fontWeight: "600",
     textTransform: "uppercase",
     marginHorizontal: 16,
+    marginTop: 8,
     marginBottom: 4,
   },
   participantRow: {
@@ -373,15 +623,14 @@ const styles = StyleSheet.create({
   participantAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
   participantName: { fontSize: 15, fontWeight: "600" },
   participantHandle: { fontSize: 12, marginTop: 1 },
-  ownerBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  ownerBadgeText: { fontSize: 11, fontWeight: "700" },
+  roleBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 6 },
+  roleBadgeText: { fontSize: 11, fontWeight: "700" },
   leaveRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
     paddingVertical: 16,
-    marginTop: 12,
   },
   leaveText: { color: "#e53935", fontSize: 15, fontWeight: "600" },
   modalBackdrop: {
