@@ -1634,82 +1634,64 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     return (
       <>
         <EmailVerificationAlert />
-        {/* Dành cho bạn / Mới nhất tab toggle — sits above stories */}
-        <View style={{
-          paddingHorizontal: 15,
-          paddingTop: 14,
-          paddingBottom: 10,
-          backgroundColor: theme.background,
-        }}>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => switchFeedMode("personalized")}
-              style={{
-                paddingVertical: 7,
-                paddingHorizontal: 18,
-                borderRadius: 20,
-                borderWidth: 1.5,
-                borderColor: feedMode === "personalized" ? theme.primary : (isDarkMode ? "#444" : "#D1D1D6"),
-                backgroundColor: feedMode === "personalized"
-                  ? (isDarkMode ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)")
-                  : "transparent",
-              }}
-            >
-              <Text style={{
-                fontSize: 14,
-                fontWeight: feedMode === "personalized" ? "700" : "400",
-                color: feedMode === "personalized" ? theme.primary : (isDarkMode ? "#AAA" : "#6B7280"),
-              }}>
-                {t('home.forYou')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => switchFeedMode("latest")}
-              style={{
-                paddingVertical: 7,
-                paddingHorizontal: 18,
-                borderRadius: 20,
-                borderWidth: 1.5,
-                borderColor: feedMode === "latest" ? theme.primary : (isDarkMode ? "#444" : "#D1D1D6"),
-                backgroundColor: feedMode === "latest"
-                  ? (isDarkMode ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)")
-                  : "transparent",
-              }}
-            >
-              <Text style={{
-                fontSize: 14,
-                fontWeight: feedMode === "latest" ? "700" : "400",
-                color: feedMode === "latest" ? theme.primary : (isDarkMode ? "#AAA" : "#6B7280"),
-              }}>
-                {t('home.latest')}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              activeOpacity={0.75}
-              onPress={() => switchFeedMode("following")}
-              style={{
-                paddingVertical: 7,
-                paddingHorizontal: 18,
-                borderRadius: 20,
-                borderWidth: 1.5,
-                borderColor: feedMode === "following" ? theme.primary : (isDarkMode ? "#444" : "#D1D1D6"),
-                backgroundColor: feedMode === "following"
-                  ? (isDarkMode ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)")
-                  : "transparent",
-              }}
-            >
-              <Text style={{
-                fontSize: 14,
-                fontWeight: feedMode === "following" ? "700" : "400",
-                color: feedMode === "following" ? theme.primary : (isDarkMode ? "#AAA" : "#6B7280"),
-              }}>
-                {t('home.following')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {/* Dành cho bạn / Mới nhất / Đang theo dõi tab toggle — sits above stories */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ backgroundColor: theme.background }}
+          contentContainerStyle={{
+            paddingHorizontal: 15,
+            paddingTop: 14,
+            paddingBottom: 10,
+            gap: 8,
+          }}
+        >
+          {[
+            { mode: "personalized", label: t('home.forYou'), icon: "sparkles" },
+            { mode: "latest", label: t('home.latest'), icon: "flash" },
+            { mode: "following", label: t('home.following'), icon: "people" },
+          ].map(({ mode, label, icon }) => {
+            const active = feedMode === mode;
+            return (
+              <TouchableOpacity
+                key={mode}
+                activeOpacity={0.75}
+                onPress={() => switchFeedMode(mode)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingVertical: 9,
+                  paddingHorizontal: 16,
+                  borderRadius: 24,
+                  gap: 6,
+                  backgroundColor: active
+                    ? theme.primary
+                    : (isDarkMode ? theme.cardBackground : "#fff"),
+                  borderWidth: active ? 0 : 1,
+                  borderColor: isDarkMode ? "#3a3a3a" : "#E2E2E2",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: active ? 0 : (isDarkMode ? 0 : 0.06),
+                  shadowRadius: 2,
+                  elevation: active ? 0 : 1,
+                }}
+              >
+                <Ionicons
+                  name={active ? icon : `${icon}-outline`}
+                  size={16}
+                  color={active ? "#fff" : (isDarkMode ? "#AAA" : "#6B7280")}
+                />
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: active ? "700" : "500",
+                  color: active ? "#fff" : (isDarkMode ? "#CCC" : "#374151"),
+                }}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
         <ScrollView
           style={{
             borderBottomWidth: 10,
