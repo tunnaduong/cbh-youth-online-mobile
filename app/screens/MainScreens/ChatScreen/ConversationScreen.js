@@ -3231,6 +3231,7 @@ const ConversationScreen = ({ navigation, route }) => {
               value={message}
               disabled={!message.trim() || sending}
               isSubmitting={sending}
+              allowBroadcastMention={currentConversation?.type === "group"}
               style={{
                 paddingHorizontal: 12,
                 paddingBottom: isAndroid ? 14 : 0,

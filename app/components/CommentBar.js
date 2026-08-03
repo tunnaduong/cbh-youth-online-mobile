@@ -36,20 +36,26 @@ const RootView = View;
 // that had to redo a full text layout pass on every keystroke and was
 // visibly laggy on mid/low-end Android; coloring here happens natively in
 // the text renderer itself instead.
-function mentionParser(input) {
-  "worklet";
-  const ranges = [];
-  // \w is ASCII-only, so a mention using Vietnamese characters (diacritics
-  // like "@Tuấn") never matched here either, staying uncolored while typing.
-  // \p{L}/\p{N} match any Unicode letter/digit (English still matches fine,
-  // since those are Unicode letters/digits too), \p{M} covers combining
-  // diacritical marks for text still in decomposed (NFD) form.
-  const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
-  let match;
-  while ((match = regex.exec(input)) !== null) {
-    ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
-  }
-  return ranges;
+function makeMentionParser(allowBroadcastMention) {
+  return function mentionParser(input) {
+    "worklet";
+    const ranges = [];
+    // \w is ASCII-only, so a mention using Vietnamese characters (diacritics
+    // like "@Tuấn") never matched here either, staying uncolored while typing.
+    // \p{L}/\p{N} match any Unicode letter/digit (English still matches fine,
+    // since those are Unicode letters/digits too), \p{M} covers combining
+    // diacritical marks for text still in decomposed (NFD) form.
+    const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
+    let match;
+    while ((match = regex.exec(input)) !== null) {
+      // @all only means something in a group chat - in a 1-on-1
+      // conversation there's no one to broadcast to, so it shouldn't
+      // highlight as a live mention while typing either.
+      if (!allowBroadcastMention && match[0].toLowerCase() === "@all") continue;
+      ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+    }
+    return ranges;
+  };
 }
 
 const CommentBar = React.forwardRef(
@@ -82,11 +88,16 @@ const CommentBar = React.forwardRef(
       // of the same provider stacked on top of each other produced a
       // visible double-refraction artifact (a blotchy discolored patch).
       androidTransparentPill = false,
+      allowBroadcastMention = true,
     },
     ref
   ) => {
     const { theme, isDarkMode } = useTheme();
     const { t } = useTranslation();
+    const mentionParser = React.useMemo(
+      () => makeMentionParser(allowBroadcastMention),
+      [allowBroadcastMention]
+    );
     const iosGlass = useIOSGlassSupport();
     const useRealAndroidGlass =
       isAndroid && useAndroidGlass && LiquidGlassViewAndroid && !!providerId && !androidTransparentPill;
