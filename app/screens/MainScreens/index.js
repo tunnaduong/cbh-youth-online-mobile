@@ -13,13 +13,7 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlass } from "../../components/GlassModules";
-
-// iOS < 26 has no Liquid Glass API, so the native tab bar there renders as a
-// plain opaque bar with square corners on translucent styling — this custom
-// bar (Android-style pill + BlurView) is used instead. iOS 26+ keeps the
-// native react-navigation tab bar, which renders real UIGlassEffect.
-const useCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && !useIOSGlass);
+import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlassSupport } from "../../components/GlassModules";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -246,6 +240,14 @@ const TabWrapper = ({ children }) => {
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = useState(false);
   const insets = useSafeAreaInsets();
+  // iOS < 26 has no Liquid Glass API, so the native tab bar there renders as a
+  // plain opaque bar with square corners on translucent styling — this custom
+  // bar (Android-style pill + BlurView) is used instead. iOS 26+ keeps the
+  // native react-navigation tab bar, which renders real UIGlassEffect.
+  // Using the hook (not a module-level constant) so a delayed native-module
+  // registration on first cold start re-renders this component correctly.
+  const iosGlass = useIOSGlassSupport();
+  const isCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && !iosGlass);
   const [currentRoute, setCurrentRoute] = useState("Home");
   const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -381,7 +383,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           // provider (see CustomTabBar's comment) rather than through this
           // render prop, which would mount it *inside* the provider's own
           // subtree.
-          tabBar={useCustomTabBar ? () => null : undefined}
+          tabBar={isCustomTabBar ? () => null : undefined}
           screenOptions={{
             lazy: true,
             unmountOnBlur: false,
@@ -521,7 +523,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
       </View>
       </TabWrapper>
 
-      {useCustomTabBar && (
+      {isCustomTabBar && (
         <CustomTabBar
           activeRouteName={currentRoute}
           chatUnreadCount={chatUnreadCount}

@@ -19,7 +19,7 @@ import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
 import {
   BlurView,
   LiquidGlassView,
-  useIOSGlass,
+  useIOSGlassSupport,
   LiquidGlassViewAndroid,
   useAndroidGlass,
   isLiquidGlassSupportedAndroid,
@@ -87,6 +87,7 @@ const CommentBar = React.forwardRef(
   ) => {
     const { theme, isDarkMode } = useTheme();
     const { t } = useTranslation();
+    const iosGlass = useIOSGlassSupport();
     const useRealAndroidGlass =
       isAndroid && useAndroidGlass && LiquidGlassViewAndroid && !!providerId && !androidTransparentPill;
 
@@ -225,7 +226,7 @@ const CommentBar = React.forwardRef(
             !isIOS && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
-          {isIOS && useIOSGlass && LiquidGlassView && (
+          {isIOS && iosGlass && LiquidGlassView && (
             <LiquidGlassView
               style={StyleSheet.absoluteFill}
               effect="clear"
@@ -233,7 +234,7 @@ const CommentBar = React.forwardRef(
               interactive={false}
             />
           )}
-          {isIOS && !useIOSGlass && BlurView && (
+          {isIOS && !iosGlass && BlurView && (
             <BlurView
               blurType={isDarkMode ? "dark" : "light"}
               blurAmount={10}

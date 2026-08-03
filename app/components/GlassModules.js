@@ -1,5 +1,7 @@
 import React from "react";
-import { Animated, Platform } from "react-native";
+import { Animated, Platform, DeviceEventEmitter } from "react-native";
+
+const GLASS_READY_EVENT = '__iosGlassReady';
 
 // ---------------------------------------------------------------------------
 // iOS: @callstack/liquid-glass for the real iOS 26+ UIGlassEffect
@@ -62,6 +64,7 @@ if (Platform.OS === "ios" && shouldUseIOSGlass && !(LiquidGlassView && LiquidGla
       if (LiquidGlassView && LiquidGlassContainer) return; // already recovered
       if (loadIOSGlass()) {
         useIOSGlass = true;
+        DeviceEventEmitter.emit(GLASS_READY_EVENT);
         if (__DEV__) {
           console.log(`[GlassModules] iOS Liquid Glass recovered on retry after ${delay}ms`);
         }
@@ -139,7 +142,30 @@ if (Platform.OS === "android") {
 // what caused the square nav bar corners on iOS 18. So on iOS < 26 we report
 // useIOSGlass as false and let call sites use BlurView directly instead,
 // wrapped in a View that actually clips it.
+//
+// NOTE: this is a mutable let. Export consumers get a value snapshot at module
+// load time. Use the useIOSGlassSupport() hook inside components so they
+// re-render if the 300 ms / 1000 ms retry fires and sets this to true.
 let useIOSGlass = shouldUseIOSGlass && !!LiquidGlassView && !!LiquidGlassContainer;
+
+// Hook that returns the current iOS glass support flag and re-renders the
+// calling component when the delayed retry succeeds.
+const useIOSGlassSupport = () => {
+  const [supported, setSupported] = React.useState(useIOSGlass);
+  React.useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    // Subscribe before the synchronous check so we never miss an event that
+    // fires between render and this effect body.
+    const sub = DeviceEventEmitter.addListener(GLASS_READY_EVENT, () => {
+      setSupported(true);
+    });
+    // The retry may have already completed between the initial useState() call
+    // and when this effect ran — pick up that case now.
+    if (useIOSGlass) setSupported(true);
+    return () => sub.remove();
+  }, []);
+  return supported;
+};
 const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
 
 // Wraps `children` (the backdrop content) in a local Android LiquidGlassProvider
@@ -170,6 +196,7 @@ export {
   isLiquidGlassSupportedAndroid,
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
+  useIOSGlassSupport,
   useAndroidGlass,
   AndroidGlassBackdrop,
 };
@@ -185,6 +212,7 @@ export default {
   isLiquidGlassSupportedAndroid,
   AnimatedLiquidGlassViewAndroid,
   useIOSGlass,
+  useIOSGlassSupport,
   useAndroidGlass,
   AndroidGlassBackdrop,
 };

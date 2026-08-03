@@ -32,7 +32,6 @@ import {
   LiquidGlassView,
   LiquidGlassViewAndroid,
   isLiquidGlassSupportedAndroid,
-  useIOSGlass,
   BlurView,
   AndroidGlassBackdrop,
 } from "../../../components/GlassModules";
