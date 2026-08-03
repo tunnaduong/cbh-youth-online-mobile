@@ -1403,8 +1403,9 @@ const PostScreen = ({ route, navigation }) => {
           ListFooterComponent={
             // Combines the original 16px block spacing (after the last
             // comment/empty-state text) with the 50px spacer that used to
-            // sit below it, before the floating comment input.
-            <View style={{ height: 50, marginTop: 16, backgroundColor: "transparent" }} />
+            // sit below it, before the floating comment input, plus an extra
+            // 10px of breathing room below the last comment.
+            <View style={{ height: 60, marginTop: 16, backgroundColor: "transparent" }} />
           }
         />
         </AndroidGlassBackdrop>
