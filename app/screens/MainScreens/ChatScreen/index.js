@@ -27,6 +27,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
+import CustomLoading from "../../../components/CustomLoading";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -434,7 +435,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             zIndex: 1000,
           }}
         >
-          <ActivityIndicator size="small" color={theme.primary} />
+          <CustomLoading size={36} />
         </View>
       )}
       <AndroidGlassBackdrop providerId="Chat" style={{ flex: 1 }}>
