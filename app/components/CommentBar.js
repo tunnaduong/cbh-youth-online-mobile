@@ -258,6 +258,15 @@ const CommentBar = React.forwardRef(
               interactive={isLiquidGlassSupportedAndroid}
               blurRadius={Platform.Version >= 33 ? 14 : 10}
               tint={isDarkMode ? "rgba(18, 18, 18, 0.6)" : "rgba(255, 255, 255, 0.5)"}
+              // Without an explicit cornerRadius, this native layer defaults
+              // to a "capsule" (radius = height / 2), so it matches the
+              // pill's fixed borderRadius:30 only while the input is a
+              // single line. Once multiline text grows the pill taller, the
+              // capsule radius grows past 30 and bulges out unrounded past
+              // the outer pill and the inner tint layer (both fixed at
+              // 30/25) - lock it to the outer pill's radius so all layers
+              // stay in sync as the input grows.
+              cornerRadius={30}
               style={StyleSheet.absoluteFill}
             />
           )}
