@@ -1612,31 +1612,19 @@ const ConversationScreen = ({ navigation, route }) => {
   const chatBackgroundUrl =
     backgroundOverride !== undefined ? backgroundOverride : currentConversation?.background_url || null;
 
-  // Let the user know why they'll never see "seen" status in this chat when
-  // they've turned their own read receipts off (backend silently skips
-  // marking messages read / returns no seen participants in that case).
-  // Toast once per conversation open rather than a persistent banner, so it
-  // doesn't eat space in the already-tight header/message-list layout.
-  const readReceiptsToastShownRef = useRef(false);
+  // The "seen by" list is always empty while the user's own read receipts are
+  // off (backend silently skips marking messages read / returns no seen
+  // participants in that case) — track the setting so opening the seen-by
+  // modal can explain why, instead of just showing an empty list.
+  const [readReceiptsOff, setReadReceiptsOff] = useState(false);
   useEffect(() => {
-    const activeId = currentConversationId || conversationId;
-    readReceiptsToastShownRef.current = false;
-    if (isNewConversation || !activeId) return;
-
     getNotificationSettings()
       .then((res) => {
         const settings = res.data || res;
-        if (settings?.chat_read_receipts === false && !readReceiptsToastShownRef.current) {
-          readReceiptsToastShownRef.current = true;
-          Toast.show({
-            type: "info",
-            text1: t("chatConversation.readReceiptsOffTitle"),
-            text2: t("chatConversation.readReceiptsOffDesc"),
-          });
-        }
+        setReadReceiptsOff(settings?.chat_read_receipts === false);
       })
       .catch(() => {});
-  }, [currentConversationId, conversationId, isNewConversation]);
+  }, []);
 
   useEffect(() => {
     if (!isNewConversation) {
@@ -3353,6 +3341,15 @@ const ConversationScreen = ({ navigation, route }) => {
           reactionPicker.message?.is_myself &&
           !reactionPicker.message?.is_sending
             ? () => {
+                closeReactionPicker();
+                if (readReceiptsOff) {
+                  Toast.show({
+                    type: "info",
+                    text1: t("chatConversation.readReceiptsOffTitle"),
+                    text2: t("chatConversation.readReceiptsOffDesc"),
+                  });
+                  return;
+                }
                 const message = reactionPicker.message;
                 const createdAt = new Date(message.created_at).getTime();
                 setSeenByModalParticipants(
@@ -3360,7 +3357,6 @@ const ConversationScreen = ({ navigation, route }) => {
                     (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
                   )
                 );
-                closeReactionPicker();
               }
             : undefined
         }
