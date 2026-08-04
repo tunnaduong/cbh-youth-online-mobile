@@ -156,7 +156,12 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
         const results = res?.data?.suggestions ?? res?.suggestions ?? [];
         cacheRef.current.set(mentionQuery, results);
         setSuggestions(results);
-      } catch {
+      } catch (error) {
+        // Silently swallowing this made a real failure (auth, network,
+        // validation) indistinguishable from "no matches" - log it so a
+        // broken mention lookup shows up in adb logcat / Metro instead of
+        // just quietly doing nothing.
+        console.warn("[MentionSuggestions] fetchSuggestions failed:", error?.response?.status, error?.response?.data || error?.message);
         setSuggestions([]);
       } finally {
         setLoading(false);
