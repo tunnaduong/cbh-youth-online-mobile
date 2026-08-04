@@ -38,7 +38,6 @@ const RootView = View;
 // the text renderer itself instead.
 function makeMentionParser(allowBroadcastMention) {
   return function mentionParser(input) {
-    "worklet";
     const ranges = [];
     // \w is ASCII-only, so a mention using Vietnamese characters (diacritics
     // like "@Tuấn") never matched here either, staying uncolored while typing.
