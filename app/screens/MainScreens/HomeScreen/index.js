@@ -72,7 +72,11 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 
-const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
+const emojis = ["❤️", "😆", "😮", "😢", "😡", "👍"];
+
+// The story reply bar's "+" button opens this wider set — same reactions
+// plus a few extras that don't map to an API reaction type (fun-only).
+const extraEmojis = ["🔥", "🎉", "👏", "😍", "😱", "💯", "🙏", "😂"];
 
 // Map emojis to reaction types
 const emojiToReactionType = {
@@ -686,6 +690,7 @@ const ReplyBar = ({
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [showMoreEmojis, setShowMoreEmojis] = useState(false);
   const isOwnStory = String(userId) === String(userInfo?.id);
 
   const handleEmojiPress = async (emoji) => {
@@ -799,8 +804,23 @@ const ReplyBar = ({
           onComplete={() => handleAnimationComplete(id)}
         />
       ))}
+      {showMoreEmojis && (
+        <View style={styles.moreEmojisPanel}>
+          {extraEmojis.map((emoji) => (
+            <TouchableOpacity
+              key={emoji}
+              onPress={() => {
+                handleEmojiPress(emoji);
+                setShowMoreEmojis(false);
+              }}
+            >
+              <Text style={{ fontSize: 26 }}>{emoji}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       <View style={{ paddingBottom: insets.bottom }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6, paddingHorizontal: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 8 }}>
           {emojis.map((emoji) => (
             <TouchableOpacity
               key={emoji}
@@ -809,10 +829,16 @@ const ReplyBar = ({
               <Text style={{ fontSize: 28 }}>{emoji}</Text>
             </TouchableOpacity>
           ))}
+          <TouchableOpacity
+            onPress={() => setShowMoreEmojis((v) => !v)}
+            style={styles.moreEmojisButton}
+          >
+            <Ionicons name="add" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
         <View style={styles.replyBar}>
           <TextInput
-            placeholder={t('chat.typeMessage')}
+            placeholder={t('home.storyReplyPlaceholder', 'Chia sẻ cảm nghĩ của bạn...')}
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             style={[
               styles.input,
@@ -2583,7 +2609,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 })()}
                 {onMore && (
                   <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
+                    <Ionicons name="settings-outline" size={22} color="#c4c4c4" />
+                  </TouchableOpacity>
+                )}
+                {onClose && (
+                  <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="close" size={26} color="#fff" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -2680,6 +2711,22 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 };
 
 const styles = StyleSheet.create({
+  moreEmojisButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#22c55e",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moreEmojisPanel: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   replyBar: {
     flexDirection: "row",
     alignItems: "center",

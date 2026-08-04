@@ -116,6 +116,7 @@
     "resendVerificationEmail": "Gửi lại email xác minh",
     "yourEmail": "Email của bạn:",
     "reactionError": "Không thể thả cảm xúc. Vui lòng thử lại.",
+    "storyReplyPlaceholder": "Chia sẻ cảm nghĩ của bạn...",
     "replySent": "Đã gửi",
     "replySentBody": "Tin nhắn đã được gửi đến người dùng.",
     "replySendError": "Không thể gửi tin nhắn. Vui lòng thử lại.",

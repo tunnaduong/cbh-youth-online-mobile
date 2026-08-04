@@ -123,6 +123,7 @@
     "resendVerificationEmail": "Resend verification email",
     "yourEmail": "Your email:",
     "reactionError": "Could not react. Please try again.",
+    "storyReplyPlaceholder": "Share your thoughts...",
     "replySent": "Sent",
     "replySentBody": "Message has been sent to the user.",
     "replySendError": "Could not send message. Please try again.",

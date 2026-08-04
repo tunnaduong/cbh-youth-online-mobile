@@ -130,6 +130,7 @@
     "resendVerificationEmail": "Отправить повторно",
     "yourEmail": "Ваш email:",
     "reactionError": "Не удалось отреагировать. Попробуйте снова.",
+    "storyReplyPlaceholder": "Поделитесь своими мыслями...",
     "replySent": "Отправлено",
     "replySentBody": "Сообщение отправлено пользователю.",
     "replySendError": "Не удалось отправить сообщение. Попробуйте снова.",
