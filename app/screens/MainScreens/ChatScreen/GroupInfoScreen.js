@@ -28,6 +28,7 @@ import {
   getGroupDetails,
   renameGroupConversation,
   updateGroupAvatar,
+  updateGroupPermissions,
   removeGroupParticipant,
   leaveGroupConversation,
   deleteGroupConversation,
@@ -36,9 +37,26 @@ import {
   transferGroupOwnership,
   getGroupInviteLink,
 } from "../../../services/api/Api";
+import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
 
 const avatarUrl = (u) =>
   u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar`;
+
+const PERMISSION_FIELDS = [
+  { key: "perm_change_name", labelKey: "chatConversation.permChangeName", labelDefault: "Đổi tên nhóm", options: ["owner", "deputy", "member"] },
+  { key: "perm_change_avatar", labelKey: "chatConversation.permChangeAvatar", labelDefault: "Đổi ảnh đại diện nhóm", options: ["owner", "deputy", "member"] },
+  { key: "perm_change_background", labelKey: "chatConversation.permChangeBackground", labelDefault: "Đổi ảnh nền cuộc trò chuyện", options: ["owner", "deputy", "member"] },
+  { key: "perm_remove_members", labelKey: "chatConversation.permRemoveMembers", labelDefault: "Xóa thành viên", options: ["owner", "deputy"] },
+  { key: "perm_share_invite_link", labelKey: "chatConversation.permShareInviteLink", labelDefault: "Chia sẻ liên kết mời", options: ["owner", "deputy", "member", "none"] },
+  { key: "perm_invite_members", labelKey: "chatConversation.permInviteMembers", labelDefault: "Mời thành viên", options: ["owner", "deputy", "member"] },
+];
+
+const PERMISSION_VALUE_LABELS = {
+  owner: "Chỉ trưởng nhóm",
+  deputy: "Trưởng & phó nhóm",
+  member: "Tất cả thành viên",
+  none: "Không có ai",
+};
 
 const GroupInfoScreen = ({ navigation, route }) => {
   const { conversationId } = route.params;
@@ -57,6 +75,9 @@ const GroupInfoScreen = ({ navigation, route }) => {
   const [deleting, setDeleting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [invitingLoading, setInvitingLoading] = useState(false);
+  const [backgroundModalVisible, setBackgroundModalVisible] = useState(false);
+  const [permissionsVisible, setPermissionsVisible] = useState(false);
+  const [savingPermissionKey, setSavingPermissionKey] = useState(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const titleOpacity = scrollY.interpolate({
@@ -272,7 +293,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
       });
     }
 
-    if (group.is_owner || (group.is_deputy && participant.role === "member")) {
+    if (group.permissions?.can?.perm_remove_members) {
       options.push({
         text: t("chatConversation.removeMemberAction", "Xóa"),
         style: "destructive",
@@ -285,6 +306,33 @@ const GroupInfoScreen = ({ navigation, route }) => {
     options.push({ text: t("common.cancel"), style: "cancel" });
 
     Alert.alert(participant.profile_name || participant.username, null, options);
+  };
+
+  const handlePermissionChange = async (key, value) => {
+    setSavingPermissionKey(key);
+    try {
+      const res = await updateGroupPermissions(conversationId, { [key]: value });
+      const permissions = res?.data?.permissions;
+      setGroup((prev) => (prev ? { ...prev, permissions: permissions || prev.permissions } : prev));
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1:
+          error?.response?.data?.message ||
+          t("chatConversation.permissionUpdateError", "Không thể cập nhật cài đặt."),
+      });
+    } finally {
+      setSavingPermissionKey(null);
+    }
+  };
+
+  const openPermissionPicker = (field) => {
+    const options = field.options.map((opt) => ({
+      text: t(`chatConversation.permValue_${opt}`, PERMISSION_VALUE_LABELS[opt]),
+      onPress: () => handlePermissionChange(field.key, opt),
+    }));
+    options.push({ text: t("common.cancel"), style: "cancel" });
+    Alert.alert(t(field.labelKey, field.labelDefault), null, options);
   };
 
   const handleInvite = async () => {
@@ -412,7 +460,10 @@ const GroupInfoScreen = ({ navigation, route }) => {
         scrollEventThrottle={16}
         ListHeaderComponent={
           <View style={styles.groupHeader}>
-            <TouchableOpacity onPress={handleChangeAvatar} disabled={uploadingAvatar}>
+            <TouchableOpacity
+              onPress={group.permissions?.can?.perm_change_avatar ? handleChangeAvatar : undefined}
+              disabled={uploadingAvatar || !group.permissions?.can?.perm_change_avatar}
+            >
               {group.avatar_url ? (
                 <Image source={{ uri: group.avatar_url }} style={styles.groupAvatarImage} />
               ) : (
@@ -420,19 +471,27 @@ const GroupInfoScreen = ({ navigation, route }) => {
                   <Ionicons name="people" size={34} color={theme.subText} />
                 </View>
               )}
-              <View style={[styles.avatarEditBadge, { backgroundColor: theme.primary, borderColor: theme.background }]}>
-                {uploadingAvatar ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="camera" size={14} color="#fff" />
-                )}
-              </View>
+              {group.permissions?.can?.perm_change_avatar && (
+                <View style={[styles.avatarEditBadge, { backgroundColor: theme.primary, borderColor: theme.background }]}>
+                  {uploadingAvatar ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="camera" size={14} color="#fff" />
+                  )}
+                </View>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.groupNameRow} onPress={openRename} activeOpacity={0.6}>
+            <TouchableOpacity
+              style={styles.groupNameRow}
+              onPress={group.permissions?.can?.perm_change_name ? openRename : undefined}
+              activeOpacity={group.permissions?.can?.perm_change_name ? 0.6 : 1}
+            >
               <Text style={[styles.groupName, { color: theme.text }]} numberOfLines={2}>
                 {group.name}
               </Text>
-              <Ionicons name="pencil-outline" size={16} color={theme.subText} style={{ marginLeft: 6 }} />
+              {group.permissions?.can?.perm_change_name && (
+                <Ionicons name="pencil-outline" size={16} color={theme.subText} style={{ marginLeft: 6 }} />
+              )}
             </TouchableOpacity>
             <Text style={[styles.membersCount, { color: theme.subText }]}>
               {t("chatConversation.membersCount", "{{count}} thành viên", { count: group.participants.length })}
@@ -440,32 +499,62 @@ const GroupInfoScreen = ({ navigation, route }) => {
 
             <TouchableOpacity
               style={[styles.actionRow, { borderColor: theme.border }]}
-              onPress={() => navigation.navigate("AddGroupMembersScreen", { conversationId })}
+              onPress={() => setBackgroundModalVisible(true)}
             >
               <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
-                <Ionicons name="person-add-outline" size={16} color="#fff" />
+                <Ionicons name="image-outline" size={16} color="#fff" />
               </View>
               <Text style={[styles.actionText, { color: theme.text }]}>
-                {t("chatConversation.addMembers", "Thêm thành viên")}
+                {t("chatConversation.changeBackground", "Đổi hình nền")}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.actionRow, { borderColor: theme.border }]}
-              onPress={handleInvite}
-              disabled={invitingLoading}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
-                {invitingLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="link-outline" size={16} color="#fff" />
-                )}
-              </View>
-              <Text style={[styles.actionText, { color: theme.text }]}>
-                {t("chatConversation.inviteViaLink", "Mời qua liên kết")}
-              </Text>
-            </TouchableOpacity>
+            {group.permissions?.can?.perm_invite_members && (
+              <TouchableOpacity
+                style={[styles.actionRow, { borderColor: theme.border }]}
+                onPress={() => navigation.navigate("AddGroupMembersScreen", { conversationId })}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
+                  <Ionicons name="person-add-outline" size={16} color="#fff" />
+                </View>
+                <Text style={[styles.actionText, { color: theme.text }]}>
+                  {t("chatConversation.addMembers", "Thêm thành viên")}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {group.permissions?.can?.perm_share_invite_link && (
+              <TouchableOpacity
+                style={[styles.actionRow, { borderColor: theme.border }]}
+                onPress={handleInvite}
+                disabled={invitingLoading}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
+                  {invitingLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Ionicons name="link-outline" size={16} color="#fff" />
+                  )}
+                </View>
+                <Text style={[styles.actionText, { color: theme.text }]}>
+                  {t("chatConversation.inviteViaLink", "Mời qua liên kết")}
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            {group.is_owner && (
+              <TouchableOpacity
+                style={[styles.actionRow, { borderColor: theme.border }]}
+                onPress={() => setPermissionsVisible(true)}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
+                  <Ionicons name="shield-checkmark-outline" size={16} color="#fff" />
+                </View>
+                <Text style={[styles.actionText, { color: theme.text }]}>
+                  {t("chatConversation.manageGroup", "Quản lý nhóm")}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <Text style={[styles.sectionLabel, { color: theme.subText }]}>
               {t("chatConversation.members", "Thành viên")}
@@ -567,6 +656,57 @@ const GroupInfoScreen = ({ navigation, route }) => {
                     {t("common.save", "Lưu")}
                   </Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <ChatBackgroundModal
+        conversationId={conversationId}
+        visible={backgroundModalVisible}
+        onClose={() => setBackgroundModalVisible(false)}
+        onBackgroundChanged={() => {}}
+      />
+
+      <Modal
+        visible={permissionsVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPermissionsVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalBox, { backgroundColor: theme.background }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>
+              {t("chatConversation.manageGroup", "Quản lý nhóm")}
+            </Text>
+            {PERMISSION_FIELDS.map((field) => (
+              <TouchableOpacity
+                key={field.key}
+                style={styles.permissionRow}
+                onPress={() => openPermissionPicker(field)}
+                disabled={savingPermissionKey === field.key}
+              >
+                <Text style={[styles.permissionLabel, { color: theme.text }]}>
+                  {t(field.labelKey, field.labelDefault)}
+                </Text>
+                {savingPermissionKey === field.key ? (
+                  <ActivityIndicator size="small" color={theme.primary} />
+                ) : (
+                  <Text style={{ color: theme.subText, fontSize: 13 }}>
+                    {t(
+                      `chatConversation.permValue_${group.permissions?.settings?.[field.key] || "member"}`,
+                      PERMISSION_VALUE_LABELS[group.permissions?.settings?.[field.key] || "member"]
+                    )}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            ))}
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalButton} onPress={() => setPermissionsVisible(false)}>
+                <Text style={{ color: theme.primary, fontSize: 15, fontWeight: "600" }}>
+                  {t("common.done", "Xong")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -691,6 +831,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   modalButton: { paddingVertical: 6, paddingHorizontal: 4 },
+  permissionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+  },
+  permissionLabel: { fontSize: 14, flex: 1, marginRight: 8 },
 });
 
 export default GroupInfoScreen;

@@ -1454,10 +1454,6 @@ const ConversationScreen = ({ navigation, route }) => {
           onPress: () => navigation.navigate("GroupInfoScreen", { conversationId: targetConversationId }),
         },
         {
-          text: t("chatConversation.changeBackground", "Đổi hình nền"),
-          onPress: () => setBackgroundModalVisible(true),
-        },
-        {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),
         },

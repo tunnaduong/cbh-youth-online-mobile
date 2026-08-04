@@ -47,6 +47,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <data android:scheme="com.fatties.youth" android:host="post"/>
         <data android:scheme="com.fatties.youth" android:host="story"/>
+        <data android:scheme="com.fatties.youth" android:host="group"/>
         <data android:scheme="exp+cbh-youth-online-mobile"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>

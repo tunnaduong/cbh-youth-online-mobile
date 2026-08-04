@@ -536,6 +536,10 @@ export const renameGroupConversation = (conversationId, name) => {
   return Api.putRequest(`/v1.0/chat/groups/${conversationId}`, { name });
 };
 
+export const updateGroupPermissions = (conversationId, updates) => {
+  return Api.putRequest(`/v1.0/chat/groups/${conversationId}/permissions`, updates);
+};
+
 export const addGroupParticipants = (conversationId, participantIds) => {
   return Api.postRequest(`/v1.0/chat/groups/${conversationId}/participants`, {
     participants: participantIds,
