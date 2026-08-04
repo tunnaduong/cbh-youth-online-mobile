@@ -27,6 +27,7 @@ import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
+import { getSystemMessageText } from "../../../utils/systemMessageText";
 import CustomLoading from "../../../components/CustomLoading";
 
 const formatMessageTime = (timestamp) => {
@@ -288,6 +289,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     }
 
     const type = latestMessage.type || latestMessage.content_type;
+
+    if (type === "system") {
+      return getSystemMessageText(latestMessage, t);
+    }
 
     if (type === "image") {
       return (
