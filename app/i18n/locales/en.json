@@ -537,7 +537,12 @@
     "deleteGroupBody": "The group and all its messages will be permanently deleted for everyone.",
     "deleteGroupAction": "Delete group",
     "deleteGroupError": "Could not delete the group.",
-    "seenBy": "Seen by"
+    "seenBy": "Seen by",
+    "forward": "Forward",
+    "send": "Send",
+    "forwarded": "Message forwarded",
+    "forwardFailed": "Failed to forward message",
+    "loadConversationsFailed": "Could not load conversations"
   },
   "blockedUsers": {
     "title": "Blocked users",

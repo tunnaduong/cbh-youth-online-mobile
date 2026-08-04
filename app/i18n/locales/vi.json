@@ -526,7 +526,12 @@
     "deleteGroupBody": "Nhóm và toàn bộ tin nhắn sẽ bị xóa vĩnh viễn đối với tất cả mọi người.",
     "deleteGroupAction": "Xóa nhóm",
     "deleteGroupError": "Không thể xóa nhóm.",
-    "seenBy": "Đã xem"
+    "seenBy": "Đã xem",
+    "forward": "Chuyển tiếp",
+    "send": "Gửi",
+    "forwarded": "Đã chuyển tiếp tin nhắn",
+    "forwardFailed": "Chuyển tiếp thất bại",
+    "loadConversationsFailed": "Không thể tải danh sách trò chuyện"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
