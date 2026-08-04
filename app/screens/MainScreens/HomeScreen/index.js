@@ -2395,7 +2395,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           pointerEvents="none"
           style={{
             position: "absolute",
-            top: insets.top + 6,
+            // The header above the feed is 50 + insets.top tall (matches the
+            // FlatList's contentContainerStyle paddingTop below) - anchoring
+            // this to insets.top alone put it right under the status bar,
+            // overlapping the header instead of sitting below it.
+            top: insets.top + 50 + 6,
             left: 0,
             right: 0,
             alignItems: "center",
