@@ -715,15 +715,35 @@ const PostEditScreen = ({ navigation, route }) => {
                   marginTop: 12,
                   borderRadius: 12,
                   overflow: "hidden",
-                  aspectRatio: 16 / 9,
+                  borderWidth: 1,
+                  borderColor: theme.border,
                   backgroundColor: "#000",
                 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 8, backgroundColor: isDarkMode ? "#1a1a1a" : "#f5f5f5" }}>
+                    <Ionicons name="logo-youtube" size={18} color="#FF0000" />
+                    <Text style={{ marginLeft: 6, fontSize: 12, color: theme.text, fontWeight: "600" }}>
+                      YouTube Embed
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setPostContent("")}
+                      style={{ marginLeft: "auto" }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="close-circle" size={18} color={theme.subText} />
+                    </TouchableOpacity>
+                  </View>
                   <WebView
-                    source={{ html: buildYouTubePlayerHtml(ytId) }}
-                    style={{ flex: 1, backgroundColor: "#000" }}
+                    // The IFrame Player API validates the page's own origin against
+                    // the video's embed permissions - without baseUrl matching
+                    // youtube-nocookie.com, the WebView's HTML loads with no real
+                    // origin (file://) and the player rejects it as unauthorized
+                    // (YouTube error 153), even though CreatePostScreen's identical
+                    // markup plays fine because it sets this.
+                    source={{ html: buildYouTubePlayerHtml(ytId), baseUrl: "https://www.youtube-nocookie.com" }}
+                    style={{ width: "100%", height: 200 }}
+                    allowsFullscreenVideo
                     javaScriptEnabled
-                    allowsInlineMediaPlayback
-                    mediaPlaybackRequiresUserAction={false}
+                    domStorageEnabled
                   />
                 </View>
               );
