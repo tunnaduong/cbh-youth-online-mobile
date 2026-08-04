@@ -54,6 +54,7 @@ import ReportModal from "../../../components/ReportModal";
 import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
+import CustomLoading from "../../../components/CustomLoading";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { storage } from "../../../global/storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -292,6 +293,7 @@ const StoryOptionsModal = ({
   actionSheetRef,
   storyRef,
   setReportModalVisible,
+  setIsOptionsSheetOpen,
   currentStoryUserRef,
   currentStory,
   currentStoryRef,
@@ -328,6 +330,7 @@ const StoryOptionsModal = ({
         marginTop: 10,
       }}
       onClose={() => {
+        setIsOptionsSheetOpen(false);
         if (isOpeningReportRef.current || isOpeningDeleteRef.current) {
           isOpeningReportRef.current = false;
           isOpeningDeleteRef.current = false;
@@ -944,6 +947,14 @@ const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode })
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
+  const refreshIndicatorOpacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(refreshIndicatorOpacity, {
+      toValue: refreshing ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [refreshing]);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
   const [feedMode, setFeedMode] = React.useState("personalized");
@@ -965,6 +976,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   }, [currentStory]);
   const [currentStoryUser, setCurrentStoryUser] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isOptionsSheetOpen, setIsOptionsSheetOpen] = useState(false);
+  const [isViewersSheetOpen, setIsViewersSheetOpen] = useState(false);
   const [isStoryVisible, setIsStoryVisible] = useState(false);
   const {
     username,
@@ -1026,11 +1039,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   useEffect(() => {
     const openSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_OPENED", () => {
+      setIsViewersSheetOpen(true);
       if (isStoryVisible) {
         storyRef.current?.pause?.();
       }
     });
     const closeSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_CLOSED", () => {
+      setIsViewersSheetOpen(false);
       if (isStoryVisible) {
         storyRef.current?.resume?.();
       }
@@ -1359,6 +1374,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
 
     storyRef.current?.pause?.(); // Pause the story timer
+    setIsOptionsSheetOpen(true);
     actionSheetRef.current?.show();
   };
 
@@ -2375,6 +2391,28 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   ) : (
     <>
       <View style={{ backgroundColor: theme.background, flex: 1 }}>
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: insets.top + 6,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            zIndex: 10,
+            opacity: refreshIndicatorOpacity,
+            transform: [
+              {
+                translateY: refreshIndicatorOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-16, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <CustomLoading size={44} />
+        </Animated.View>
         <FlatList
           onScroll={handleScroll}
           onScrollBeginDrag={handleScrollBeginDrag}
@@ -2579,7 +2617,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             // gestureEnabled) grabs the responder and never releases it,
             // which is what actually caused "viewers sheet shows nothing,
             // then app is frozen after closing the story" on iOS.
-            <GestureHandlerRootView style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            //
+            // On Android, pointerEvents="box-none" does NOT stop
+            // GestureHandlerRootView from intercepting touches - its native
+            // ViewGroup always calls onInterceptTouchEvent regardless of the
+            // RN pointerEvents prop, so leaving it "box-none" for the whole
+            // story-viewing session was swallowing every tap on the story's
+            // own header/body buttons on Android. pointerEvents="none" fully
+            // skips native touch dispatch into this subtree, so we only
+            // switch to "box-none" while one of these sheets is actually
+            // open (when we DO need it to receive touches).
+            <GestureHandlerRootView
+              style={StyleSheet.absoluteFill}
+              pointerEvents={reportModalVisible || isOptionsSheetOpen || isViewersSheetOpen ? "box-none" : "none"}
+            >
               <ReportModal
                 visible={reportModalVisible}
                 onClose={() => {
@@ -2594,6 +2645,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 actionSheetRef={actionSheetRef}
                 storyRef={storyRef}
                 setReportModalVisible={setReportModalVisible}
+                setIsOptionsSheetOpen={setIsOptionsSheetOpen}
                 currentStoryUserRef={currentStoryUserRef}
                 currentStory={currentStory}
                 currentStoryRef={currentStoryRef}
