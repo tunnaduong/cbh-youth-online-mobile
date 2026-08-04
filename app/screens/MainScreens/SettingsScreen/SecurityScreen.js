@@ -44,12 +44,12 @@ const SettingItem = ({
     disabled={isSwitch}
     activeOpacity={0.7}
   >
-    <View style={[styles.settingItemLeft, { flex: 1 }]}>
-      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+    <View style={[styles.settingItemLeft, description ? { alignItems: 'flex-start' } : null, { flex: 1 }]}>
+      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground, marginTop: description ? 2 : 0 }]}>
         <Ionicons name={icon} size={20} color={color === "#FF3B30" ? color : theme.primary} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.settingItemText, { color: color || theme.text }]}>{title}</Text>
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={[styles.settingItemText, { marginLeft: 0, color: color || theme.text }]}>{title}</Text>
         {description ? <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2 }}>{description}</Text> : null}
       </View>
     </View>
