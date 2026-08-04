@@ -538,6 +538,8 @@
     "deleteGroupAction": "Delete group",
     "deleteGroupError": "Could not delete the group.",
     "seenBy": "Seen by",
+    "readReceiptsOffTitle": "Read receipts are off",
+    "readReceiptsOffDesc": "You won't see when others have read your messages here.",
     "forward": "Forward",
     "send": "Send",
     "forwarded": "Message forwarded",

@@ -527,6 +527,8 @@
     "deleteGroupAction": "Xóa nhóm",
     "deleteGroupError": "Không thể xóa nhóm.",
     "seenBy": "Đã xem",
+    "readReceiptsOffTitle": "Trạng thái đã xem đang tắt",
+    "readReceiptsOffDesc": "Bạn sẽ không thấy khi người khác đã xem tin nhắn của mình trong đoạn chat này.",
     "forward": "Chuyển tiếp",
     "send": "Gửi",
     "forwarded": "Đã chuyển tiếp tin nhắn",

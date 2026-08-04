@@ -45,6 +45,7 @@ import {
   getOnlineStatus,
   leaveGroupConversation,
   getGroupSeenReceipts,
+  getNotificationSettings,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
@@ -1583,6 +1584,32 @@ const ConversationScreen = ({ navigation, route }) => {
       clearInterval(interval);
     };
   }, [currentConversationId, conversationId, isNewConversation, isGroupConversation, messages.length]);
+
+  // Let the user know why they'll never see "seen" status in this chat when
+  // they've turned their own read receipts off (backend silently skips
+  // marking messages read / returns no seen participants in that case).
+  // Toast once per conversation open rather than a persistent banner, so it
+  // doesn't eat space in the already-tight header/message-list layout.
+  const readReceiptsToastShownRef = useRef(false);
+  useEffect(() => {
+    const activeId = currentConversationId || conversationId;
+    readReceiptsToastShownRef.current = false;
+    if (isNewConversation || !activeId) return;
+
+    getNotificationSettings()
+      .then((res) => {
+        const settings = res.data || res;
+        if (settings?.chat_read_receipts === false && !readReceiptsToastShownRef.current) {
+          readReceiptsToastShownRef.current = true;
+          Toast.show({
+            type: "info",
+            text1: t("chatConversation.readReceiptsOffTitle"),
+            text2: t("chatConversation.readReceiptsOffDesc"),
+          });
+        }
+      })
+      .catch(() => {});
+  }, [currentConversationId, conversationId, isNewConversation]);
 
   useEffect(() => {
     if (!isNewConversation) {
