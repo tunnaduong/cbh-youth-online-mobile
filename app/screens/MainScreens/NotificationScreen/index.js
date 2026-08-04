@@ -671,7 +671,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             zIndex: 1000,
           }}
         >
-          <CustomLoading size={36} />
+          <CustomLoading size={36} showBackdrop />
         </View>
       )}
       <AndroidGlassBackdrop providerId="Notifications" style={{ flex: 1 }}>

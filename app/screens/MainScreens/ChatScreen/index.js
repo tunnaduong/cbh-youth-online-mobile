@@ -435,7 +435,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             zIndex: 1000,
           }}
         >
-          <CustomLoading size={36} />
+          <CustomLoading size={36} showBackdrop />
         </View>
       )}
       <AndroidGlassBackdrop providerId="Chat" style={{ flex: 1 }}>

@@ -336,7 +336,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
             zIndex: 1000,
           }}
         >
-          <CustomLoading size={36} />
+          <CustomLoading size={36} showBackdrop />
         </View>
       )}
       <FlatList

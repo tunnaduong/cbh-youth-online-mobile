@@ -74,10 +74,6 @@ import { useIsFocused } from "@react-navigation/native";
 
 const emojis = ["❤️", "😆", "😮", "😢", "😡", "👍"];
 
-// The story reply bar's "+" button opens this wider set — same reactions
-// plus a few extras that don't map to an API reaction type (fun-only).
-const extraEmojis = ["🔥", "🎉", "👏", "😍", "😱", "💯", "🙏", "😂"];
-
 // Map emojis to reaction types
 const emojiToReactionType = {
   "👍": "like",
@@ -690,7 +686,6 @@ const ReplyBar = ({
   const [floatingEmojis, setFloatingEmojis] = useState([]);
   const [replyText, setReplyText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [showMoreEmojis, setShowMoreEmojis] = useState(false);
   const isOwnStory = String(userId) === String(userInfo?.id);
 
   const handleEmojiPress = async (emoji) => {
@@ -804,21 +799,6 @@ const ReplyBar = ({
           onComplete={() => handleAnimationComplete(id)}
         />
       ))}
-      {showMoreEmojis && (
-        <View style={styles.moreEmojisPanel}>
-          {extraEmojis.map((emoji) => (
-            <TouchableOpacity
-              key={emoji}
-              onPress={() => {
-                handleEmojiPress(emoji);
-                setShowMoreEmojis(false);
-              }}
-            >
-              <Text style={{ fontSize: 26 }}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
       <View style={{ paddingBottom: insets.bottom }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 8 }}>
           {emojis.map((emoji) => (
@@ -829,12 +809,6 @@ const ReplyBar = ({
               <Text style={{ fontSize: 28 }}>{emoji}</Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity
-            onPress={() => setShowMoreEmojis((v) => !v)}
-            style={styles.moreEmojisButton}
-          >
-            <Ionicons name="add" size={20} color="#fff" />
-          </TouchableOpacity>
         </View>
         <View style={styles.replyBar}>
           <TextInput
@@ -2441,7 +2415,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             ],
           }}
         >
-          <CustomLoading size={44} />
+          <CustomLoading size={44} showBackdrop />
         </Animated.View>
         <FlatList
           onScroll={handleScroll}
@@ -2711,22 +2685,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 };
 
 const styles = StyleSheet.create({
-  moreEmojisButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#22c55e",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  moreEmojisPanel: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    gap: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
   replyBar: {
     flexDirection: "row",
     alignItems: "center",
