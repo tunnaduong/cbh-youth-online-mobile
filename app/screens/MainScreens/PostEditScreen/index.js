@@ -32,6 +32,28 @@ import FastImage from "../../../components/FastImage";
 import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
 import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
+import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
+import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
+import { getMentionSuggestions } from "../../../services/api/Api";
+
+// Bolds @mentions live while composing, but they're not clickable here -
+// only rendered posts (with backend-resolved mentions) link to a profile.
+// Posts don't support "@all" broadcast mentions (that's a comment/chat-only
+// feature), so unlike CommentBar's parser this one never special-cases it.
+function postMentionParser(input) {
+  "worklet";
+  try {
+    const ranges = [];
+    const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
+    let match;
+    while ((match = regex.exec(input)) !== null) {
+      ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+    }
+    return ranges;
+  } catch (e) {
+    return [];
+  }
+}
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -50,6 +72,17 @@ const VIDEO_UPLOAD_TIMEOUT = 300000;
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
   const [title, setTitle] = useState("");
+  const {
+    mentionProps: contentMentionProps,
+    suggestions: contentSuggestions,
+    loading: contentSuggestionsLoading,
+    onSelectMention: onSelectContentMention,
+    hasSuggestions: hasContentSuggestions,
+  } = useMentionInput({
+    value: postContent,
+    onChange: setPostContent,
+    fetchSuggestions: getMentionSuggestions,
+  });
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
   if (!userInfo) {
@@ -652,15 +685,26 @@ const PostEditScreen = ({ navigation, route }) => {
               onChangeText={setTitle}
             />
             <View style={[styles.divider, { borderColor: theme.border }]} />
-            <TextInput
+            <MarkdownTextInput
               style={[styles.contentInput, { color: theme.text }]}
+              parser={postMentionParser}
+              markdownStyle={{
+                mentionUser: { color: "#22c55e", fontWeight: "600" },
+              }}
               placeholder={t('editPost.placeholderContent')}
               placeholderTextColor={theme.subText}
               value={postContent}
-              onChangeText={setPostContent}
+              onChangeText={contentMentionProps.onChangeText}
               multiline
               textAlignVertical="top"
             />
+            {hasContentSuggestions && (
+              <MentionSuggestions
+                suggestions={contentSuggestions}
+                loading={contentSuggestionsLoading}
+                onSelect={onSelectContentMention}
+              />
+            )}
           </View>
 
           <View style={[styles.toggleCard, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.92)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', opacity: 0.7 }]}> 

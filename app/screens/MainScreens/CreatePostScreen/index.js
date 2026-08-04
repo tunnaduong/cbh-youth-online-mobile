@@ -42,6 +42,28 @@ import {
   validateVideoAsset,
 } from "../../../utils/videoUpload";
 import { extractYouTubeId, buildYouTubePlayerHtml, autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
+import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
+import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
+import { getMentionSuggestions } from "../../../services/api/Api";
+
+// Bolds @mentions live while composing, but they're not clickable here -
+// only rendered posts (with backend-resolved mentions) link to a profile.
+// Posts don't support "@all" broadcast mentions (that's a comment/chat-only
+// feature), so unlike CommentBar's parser this one never special-cases it.
+function postMentionParser(input) {
+  "worklet";
+  try {
+    const ranges = [];
+    const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
+    let match;
+    while ((match = regex.exec(input)) !== null) {
+      ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+    }
+    return ranges;
+  } catch (e) {
+    return [];
+  }
+}
 
 // Large video uploads (up to 100MB) need more headroom than the axios
 // instance's default 10s timeout.
@@ -50,6 +72,17 @@ const VIDEO_UPLOAD_TIMEOUT = 300000;
 const CreatePostScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState(route?.params?.initialContent ?? "");
   const [title, setTitle] = useState(route?.params?.initialTitle ?? "");
+  const {
+    mentionProps: contentMentionProps,
+    suggestions: contentSuggestions,
+    loading: contentSuggestionsLoading,
+    onSelectMention: onSelectContentMention,
+    hasSuggestions: hasContentSuggestions,
+  } = useMentionInput({
+    value: postContent,
+    onChange: setPostContent,
+    fetchSuggestions: getMentionSuggestions,
+  });
   const insets = useSafeAreaInsets();
   const { username, userInfo, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
@@ -680,15 +713,26 @@ const CreatePostScreen = ({ navigation, route }) => {
               onChangeText={setTitle}
             />
             <View style={[styles.divider, { borderColor: theme.border }]} />
-            <TextInput
+            <MarkdownTextInput
               style={[styles.contentInput, { color: theme.text }]}
+              parser={postMentionParser}
+              markdownStyle={{
+                mentionUser: { color: "#22c55e", fontWeight: "600" },
+              }}
               placeholder={t("createPost.placeholderContent")}
               placeholderTextColor={theme.subText}
               value={postContent}
-              onChangeText={setPostContent}
+              onChangeText={contentMentionProps.onChangeText}
               multiline
               textAlignVertical="top"
             />
+            {hasContentSuggestions && (
+              <MentionSuggestions
+                suggestions={contentSuggestions}
+                loading={contentSuggestionsLoading}
+                onSelect={onSelectContentMention}
+              />
+            )}
             {/* YouTube embed preview — shown when content contains an iframe with a YouTube src */}
             {(() => {
               const ytId = extractYouTubeId(postContent);

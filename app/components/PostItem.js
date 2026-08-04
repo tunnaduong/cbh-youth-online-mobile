@@ -41,6 +41,7 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
+import { linkifyMentionsInHtml } from "../utils/mentionRender";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -494,9 +495,20 @@ const PostItem = ({
       ? `${item.content.substring(0, 300)}...`
       : item.content || "";
 
+  // Posts don't support "@all" broadcast mentions (that's a comment/chat-
+  // only feature) - a real "all" username can never exist since it's
+  // reserved, so this only lights up @mentions the backend actually
+  // resolved (item.mentions).
+  const validMentions = useMemo(
+    () => (Array.isArray(item.mentions) ? new Set(item.mentions.map((m) => m.username.toLowerCase())) : null),
+    [item.mentions]
+  );
+
   // Hashtag links in post content point at "/search?type=hashtag&q=tag";
-  // intercept those to navigate in-app instead of trying to open a URL,
-  // and open any other (autolinked) link in the browser.
+  // intercept those to navigate in-app instead of trying to open a URL.
+  // "/username" links come from linkifyMentionsInHtml (mention-tag class)
+  // and open the mentioned user's profile instead. Anything else (autolinked
+  // URLs) opens in the browser.
   const handleContentLinkPress = (event, href) => {
     const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
     if (hashtagMatch) {
@@ -505,6 +517,11 @@ const PostItem = ({
         initialQuery: tag,
         initialFilter: "hashtag",
       });
+      return;
+    }
+    const mentionMatch = href?.match(/^\/([\w.-]{3,21})$/);
+    if (mentionMatch) {
+      navigation?.navigate("ProfileScreen", { username: mentionMatch[1] });
       return;
     }
     Linking.openURL(href);
@@ -576,14 +593,23 @@ const PostItem = ({
             }}
             source={{
               html: appendYouTubeEmbedBelow(
-                isExpanded || !item.content || item.content.length <= 300
-                  ? item.content || ""
-                  : truncatedContent
+                linkifyMentionsInHtml(
+                  isExpanded || !item.content || item.content.length <= 300
+                    ? item.content || ""
+                    : truncatedContent,
+                  validMentions
+                )
               ),
             }}
             baseStyle={{
               fontSize: 16,
               color: theme.text,
+            }}
+            classesStyles={{
+              "mention-tag": {
+                color: "#22c55e",
+                fontWeight: "600",
+              },
             }}
             tagsStyles={{
               h1: {
