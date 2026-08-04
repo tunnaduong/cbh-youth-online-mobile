@@ -367,10 +367,10 @@ const GroupInfoScreen = ({ navigation, route }) => {
     return (
       <View style={[styles.container, styles.centerContainer, { backgroundColor: theme.background }]}>
         <View
-          style={[styles.header, { paddingTop: insets.top, height: 50 + insets.top, backgroundColor: "transparent" }]}
+          style={[styles.header, { paddingTop: insets.top, height: 58 + insets.top, backgroundColor: "transparent" }]}
           pointerEvents="box-none"
         >
-          <LiquidButton providerId="GroupInfoScreen" size={36} onPress={() => navigation.goBack()}>
+          <LiquidButton providerId="GroupInfoScreen" size={44} scrollY={scrollY} alwaysBorder onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={20} color={theme.primary} />
           </LiquidButton>
         </View>
@@ -379,7 +379,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
     );
   }
 
-  const headerHeight = 50 + insets.top;
+  const headerHeight = 58 + insets.top;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -389,7 +389,9 @@ const GroupInfoScreen = ({ navigation, route }) => {
       >
         <LiquidButton
           providerId="GroupInfoScreen"
-          size={36}
+          size={44}
+          scrollY={scrollY}
+          alwaysBorder
           onPress={() => navigation.goBack()}
         >
           <Ionicons name="arrow-back" size={20} color={theme.primary} />
