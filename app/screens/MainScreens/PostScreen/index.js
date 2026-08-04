@@ -127,6 +127,17 @@ const Comment = React.memo(React.forwardRef(
                   )}
                 </Text>
               </Pressable>
+              {comment.target_author && (
+                <Text style={{ fontSize: 12, color: theme.subText, marginBottom: 2 }}>
+                  {"↩ "}
+                  <Text
+                    style={{ fontWeight: "600", color: theme.primary }}
+                    onPress={() => navigation.navigate("ProfileScreen", { username: comment.target_author.username })}
+                  >
+                    {comment.target_author.profile_name || comment.target_author.username}
+                  </Text>
+                </Text>
+              )}
               {comment.deleted_parent_username && (
                 <View style={{ marginVertical: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.iconBackground, borderRadius: 8, borderWidth: 1, borderColor: theme.border }}>
                   <Text style={{ fontSize: 12, color: theme.subText }}>
