@@ -528,6 +528,10 @@ export const getGroupDetails = (conversationId) => {
   return Api.getRequest(`/v1.0/chat/groups/${conversationId}`);
 };
 
+export const getGroupSeenReceipts = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}/seen`);
+};
+
 export const renameGroupConversation = (conversationId, name) => {
   return Api.putRequest(`/v1.0/chat/groups/${conversationId}`, { name });
 };

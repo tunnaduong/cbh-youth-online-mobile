@@ -545,7 +545,8 @@
     "deleteGroupTitle": "Удалить группу?",
     "deleteGroupBody": "Группа и все ее сообщения будут безвозвратно удалены для всех.",
     "deleteGroupAction": "Удалить группу",
-    "deleteGroupError": "Не удалось удалить группу."
+    "deleteGroupError": "Не удалось удалить группу.",
+    "seenBy": "Просмотрено"
   },
   "blockedUsers": {
     "title": "Заблокированные пользователи",

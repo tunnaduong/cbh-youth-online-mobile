@@ -44,6 +44,7 @@ import {
   getMentionSuggestions,
   getOnlineStatus,
   leaveGroupConversation,
+  getGroupSeenReceipts,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
@@ -59,6 +60,7 @@ import ForwardMessageModal from "../../../components/ForwardMessageModal";
 import { Alert, ActionSheetIOS, KeyboardAvoidingView, Clipboard } from "react-native";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
+import formatTime from "../../../utils/formatTime";
 import "dayjs/locale/vi";
 import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
@@ -296,6 +298,7 @@ const MessagesListContent = React.memo(({
   messageLayoutOffsetsRef,
   pendingHighlightMessageIdRef,
   attemptScrollToHighlightRef,
+  seenParticipants,
 }) => {
   // Pre-compute nearest real-message neighbours for each item so
   // MessageRow doesn't have to O(n)-scan the array itself.
@@ -309,6 +312,34 @@ const MessagesListContent = React.memo(({
     }
   });
   const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
+
+  // "Seen by" read receipts (group chats only). There's no per-message read
+  // table on the backend - each participant just has a single last_read_at
+  // timestamp for the conversation - so find, per participant, the newest
+  // real message whose created_at falls at or before their last_read_at, and
+  // group participants by that message's id (same approach the web client
+  // uses, and how Messenger itself works).
+  const seenByMessageId = new Map();
+  if (isGroupChat && seenParticipants?.length > 0) {
+    seenParticipants.forEach((participant) => {
+      if (!participant.last_read_at) return;
+      const readAt = new Date(participant.last_read_at).getTime();
+      let lastSeenId = null;
+      for (const { m } of realMessages) {
+        if (new Date(m.created_at).getTime() <= readAt) {
+          lastSeenId = m.id;
+        } else {
+          break;
+        }
+      }
+      if (lastSeenId != null) {
+        seenByMessageId.set(lastSeenId, [
+          ...(seenByMessageId.get(lastSeenId) || []),
+          participant,
+        ]);
+      }
+    });
+  }
 
   return messages.map((value, index) => {
     let prev = null;
@@ -410,6 +441,7 @@ const MessagesListContent = React.memo(({
             isDownloadingThis={downloadingFileId === value.id}
             handlersRef={messageHandlersRef}
             onImageError={onImageError}
+            seenAvatars={seenByMessageId.get(value.id)}
             activeInlineVideoId={activeInlineVideoId}
             autoplayVideos={autoplayVideos}
           />
@@ -604,6 +636,7 @@ const MessageRow = React.memo(({
   onImageError,
   activeInlineVideoId,
   autoplayVideos,
+  seenAvatars,
 }) => {
   // For group chats, check if sender changed from previous message
   const senderChanged =
@@ -1033,7 +1066,7 @@ const MessageRow = React.memo(({
               </Text>
             ) : null}
           </Text>
-          {item.is_myself && (
+          {!isGroupChat && item.is_myself && (
             <View style={styles.readStatus}>
               {item.read_at ? (
                 <View style={styles.doubleCheck}>
@@ -1053,6 +1086,24 @@ const MessageRow = React.memo(({
                 <Ionicons name="checkmark" size={12} color={theme.subText} />
               )}
             </View>
+          )}
+          {isGroupChat && seenAvatars?.length > 0 && (
+            <TouchableOpacity
+              style={styles.seenByRow}
+              onPress={() => handlersRef.current.showSeenBy?.(seenAvatars)}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              {seenAvatars.slice(0, 3).map((p, i) => (
+                <Image
+                  key={p.id}
+                  source={{ uri: p.avatar_url }}
+                  style={[
+                    styles.seenAvatar,
+                    { borderColor: theme.background, marginLeft: i === 0 ? 0 : -6 },
+                  ]}
+                />
+              ))}
+            </TouchableOpacity>
           )}
         </View>
       )}
@@ -1081,7 +1132,8 @@ const MessageRow = React.memo(({
     prev.activeInlineVideoId === next.activeInlineVideoId &&
     prev.autoplayVideos === next.autoplayVideos &&
     prev.handlersRef === next.handlersRef &&
-    prev.onImageError === next.onImageError
+    prev.onImageError === next.onImageError &&
+    prev.seenAvatars === next.seenAvatars
   );
 });
 
@@ -1511,6 +1563,38 @@ const ConversationScreen = ({ navigation, route }) => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentConversationId, conversationId, isNewConversation, currentConversation?.type])
   );
+
+  // "Seen by" read receipts (group chats only, matching the web client).
+  // Refetches on: opening the conversation, whenever the message count
+  // changes (covers new messages arriving and the .message.read-triggered
+  // refresh that follows someone else opening the chat), and a light poll
+  // as a fallback for reads that happen without any message-list change.
+  const [seenParticipants, setSeenParticipants] = useState([]);
+  const [seenByModalParticipants, setSeenByModalParticipants] = useState(null);
+  const isGroupConversation = currentConversation?.type === "group";
+  useEffect(() => {
+    const activeId = currentConversationId || conversationId;
+    if (isNewConversation || !activeId || !isGroupConversation) {
+      setSeenParticipants([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const fetchSeen = () => {
+      getGroupSeenReceipts(activeId)
+        .then((res) => {
+          if (!cancelled) setSeenParticipants(res.data?.participants || []);
+        })
+        .catch(() => {});
+    };
+
+    fetchSeen();
+    const interval = setInterval(fetchSeen, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [currentConversationId, conversationId, isNewConversation, isGroupConversation, messages.length]);
 
   useEffect(() => {
     if (!isNewConversation) {
@@ -2992,6 +3076,7 @@ const ConversationScreen = ({ navigation, route }) => {
       setReactionModal,
       lastTapRef,
       focusInput: () => inputRef.current?.focus?.(),
+      showSeenBy: setSeenByModalParticipants,
     };
   });
 
@@ -3112,6 +3197,42 @@ const ConversationScreen = ({ navigation, route }) => {
         onSubmit={handleReportSubmit}
       />
 
+      <Modal
+        visible={!!seenByModalParticipants}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSeenByModalParticipants(null)}
+      >
+        <TouchableWithoutFeedback onPress={() => setSeenByModalParticipants(null)}>
+          <View style={styles.seenByBackdrop}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.seenByBox, { backgroundColor: theme.background }]}>
+                <Text style={[styles.seenByTitle, { color: theme.text }]}>
+                  {t("chatConversation.seenBy", "Đã xem")}
+                </Text>
+                <FlatList
+                  data={seenByModalParticipants || []}
+                  keyExtractor={(item) => String(item.id)}
+                  renderItem={({ item }) => (
+                    <View style={styles.seenByParticipantRow}>
+                      <Image source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
+                          {item.profile_name || item.username}
+                        </Text>
+                        <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
+                          {formatTime(item.last_read_at)}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
       <ImageView
         images={imageViewer.uri ? [{ uri: imageViewer.uri }] : []}
         imageIndex={0}
@@ -3223,6 +3344,7 @@ const ConversationScreen = ({ navigation, route }) => {
             messageLayoutOffsetsRef={messageLayoutOffsetsRef}
             pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
             attemptScrollToHighlightRef={attemptScrollToHighlightRef}
+            seenParticipants={seenParticipants}
           />
           {typingUser && (
             <Text
@@ -3728,6 +3850,17 @@ const styles = StyleSheet.create({
   checkOverlap: {
     marginRight: -6,
   },
+  seenByRow: {
+    marginLeft: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  seenAvatar: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+  },
   videoPlaceholder: {
     backgroundColor: "#000",
   },
@@ -3758,6 +3891,43 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
     justifyContent: "center",
     alignItems: "center",
+  },
+  seenByBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 32,
+  },
+  seenByBox: {
+    width: "100%",
+    maxHeight: "60%",
+    borderRadius: 16,
+    padding: 16,
+  },
+  seenByTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
+  seenByParticipantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    gap: 10,
+  },
+  seenByParticipantAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  seenByParticipantName: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  seenByParticipantTime: {
+    fontSize: 12,
+    marginTop: 1,
   },
   videoViewerClose: {
     position: "absolute",

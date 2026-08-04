@@ -525,7 +525,8 @@
     "deleteGroupTitle": "Xóa nhóm?",
     "deleteGroupBody": "Nhóm và toàn bộ tin nhắn sẽ bị xóa vĩnh viễn đối với tất cả mọi người.",
     "deleteGroupAction": "Xóa nhóm",
-    "deleteGroupError": "Không thể xóa nhóm."
+    "deleteGroupError": "Không thể xóa nhóm.",
+    "seenBy": "Đã xem"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
