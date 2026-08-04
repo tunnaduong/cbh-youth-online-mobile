@@ -51,7 +51,6 @@ import { getMentionSuggestions } from "../../../services/api/Api";
 // Posts don't support "@all" broadcast mentions (that's a comment/chat-only
 // feature), so unlike CommentBar's parser this one never special-cases it.
 function postMentionParser(input) {
-  "worklet";
   try {
     const ranges = [];
     const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
@@ -717,7 +716,11 @@ const CreatePostScreen = ({ navigation, route }) => {
               style={[styles.contentInput, { color: theme.text }]}
               parser={postMentionParser}
               markdownStyle={{
-                mentionUser: { color: "#22c55e", fontWeight: "600" },
+                // The library's mentionUser default also sets a cyan
+                // backgroundColor + borderRadius (a solid highlighted chip) -
+                // override both so a mention is just colored/bold text, not
+                // dropped in a background box.
+                mentionUser: { color: "#22c55e", fontWeight: "600", backgroundColor: "transparent", borderRadius: 0 },
               }}
               placeholder={t("createPost.placeholderContent")}
               placeholderTextColor={theme.subText}

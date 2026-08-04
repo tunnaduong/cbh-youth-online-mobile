@@ -31,7 +31,8 @@ import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
 import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
-import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
+import { autoEmbedYouTubeLinks, extractYouTubeId, buildYouTubePlayerHtml } from "../../../utils/youtubeShare";
+import { WebView } from "react-native-webview";
 import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import { getMentionSuggestions } from "../../../services/api/Api";
@@ -41,7 +42,6 @@ import { getMentionSuggestions } from "../../../services/api/Api";
 // Posts don't support "@all" broadcast mentions (that's a comment/chat-only
 // feature), so unlike CommentBar's parser this one never special-cases it.
 function postMentionParser(input) {
-  "worklet";
   try {
     const ranges = [];
     const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
@@ -689,7 +689,7 @@ const PostEditScreen = ({ navigation, route }) => {
               style={[styles.contentInput, { color: theme.text }]}
               parser={postMentionParser}
               markdownStyle={{
-                mentionUser: { color: "#22c55e", fontWeight: "600" },
+                mentionUser: { color: "#22c55e", fontWeight: "600", backgroundColor: "transparent", borderRadius: 0 },
               }}
               placeholder={t('editPost.placeholderContent')}
               placeholderTextColor={theme.subText}
@@ -705,6 +705,28 @@ const PostEditScreen = ({ navigation, route }) => {
                 onSelect={onSelectContentMention}
               />
             )}
+            {/* YouTube embed preview — shown when content contains an iframe with a YouTube src */}
+            {(() => {
+              const ytId = extractYouTubeId(postContent);
+              if (!ytId) return null;
+              return (
+                <View style={{
+                  marginTop: 12,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  aspectRatio: 16 / 9,
+                  backgroundColor: "#000",
+                }}>
+                  <WebView
+                    source={{ html: buildYouTubePlayerHtml(ytId) }}
+                    style={{ flex: 1, backgroundColor: "#000" }}
+                    javaScriptEnabled
+                    allowsInlineMediaPlayback
+                    mediaPlaybackRequiresUserAction={false}
+                  />
+                </View>
+              );
+            })()}
           </View>
 
           <View style={[styles.toggleCard, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.92)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', opacity: 0.7 }]}> 
