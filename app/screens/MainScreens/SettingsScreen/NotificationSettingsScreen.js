@@ -102,6 +102,7 @@ export default function NotificationSettingsScreen({ navigation }) {
 
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [newsEnabled, setNewsEnabled] = useState(true);
+  const [chatReadReceipts, setChatReadReceipts] = useState(true);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -137,6 +138,7 @@ export default function NotificationSettingsScreen({ navigation }) {
       setNewsEnabled(!!settings.email_marketing);
       setFollowsEnabled(!!settings.email_social);
       setMessagesEnabled(!!settings.email_social); // Sharing the same backend setting for now
+      setChatReadReceipts(settings.chat_read_receipts !== false);
 
       setLoading(false);
     } catch (error) {
@@ -176,6 +178,7 @@ export default function NotificationSettingsScreen({ navigation }) {
       email_contact: updates.hasOwnProperty('emailEnabled') ? updates.emailEnabled : emailEnabled,
       email_marketing: updates.hasOwnProperty('newsEnabled') ? updates.newsEnabled : newsEnabled,
       email_social: updates.hasOwnProperty('followsEnabled') ? updates.followsEnabled : followsEnabled,
+      chat_read_receipts: updates.hasOwnProperty('chatReadReceipts') ? updates.chatReadReceipts : chatReadReceipts,
     };
 
     // Handle shared logic for social
@@ -193,6 +196,7 @@ export default function NotificationSettingsScreen({ navigation }) {
       if (updates.hasOwnProperty('newsEnabled')) setNewsEnabled(updates.newsEnabled);
       if (updates.hasOwnProperty('followsEnabled')) setFollowsEnabled(updates.followsEnabled);
       if (updates.hasOwnProperty('messagesEnabled')) setMessagesEnabled(updates.messagesEnabled);
+      if (updates.hasOwnProperty('chatReadReceipts')) setChatReadReceipts(updates.chatReadReceipts);
 
       // Also sync linked states if necessary (e.g. if likes enabled -> mentions should probably be visible/enabled, but here we just send to backend)
       // If we turn OFF mentions, but Likes are ON, backend force 'all' which includes mentions.
@@ -359,6 +363,18 @@ export default function NotificationSettingsScreen({ navigation }) {
             isSwitch
             value={newsEnabled}
             onPress={(v) => handleToggle('newsEnabled', v)}
+            theme={theme}
+          />
+        </SettingSection>
+
+        <SettingSection title={t('notificationSettings.privacy', 'Quyền riêng tư')} theme={theme}>
+          <SettingItem
+            icon="eye-off-outline"
+            title={t('notificationSettings.chatReadReceipts', 'Trạng thái đã xem')}
+            description={t('notificationSettings.chatReadReceiptsDesc', 'Khi tắt, người khác không biết bạn đã xem tin và bạn cũng không thể xem ai đã xem tin của bạn')}
+            isSwitch
+            value={chatReadReceipts}
+            onPress={(v) => handleToggle('chatReadReceipts', v)}
             lastItem
             theme={theme}
           />
