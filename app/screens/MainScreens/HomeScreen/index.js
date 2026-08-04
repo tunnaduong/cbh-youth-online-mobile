@@ -1580,7 +1580,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         name: user.name,
         isFollowed: user.is_following,
         avatarSource: {
-          uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
+          uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
         },
         stories: user.stories.map((story) => {
           const mediaUrl = resolveStoryMediaUrl(story);

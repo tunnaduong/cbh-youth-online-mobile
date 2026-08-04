@@ -556,6 +556,8 @@
     "permValue_member": "Все участники",
     "permValue_none": "Никто",
     "permissionUpdateError": "Не удалось обновить настройку.",
+    "permissionChangedRestricted": "{{actor}} ограничил(а) {{action}} для: {{value}}",
+    "permissionChangedDisabled": "{{actor}} отключил(а) {{action}}",
     "deleteGroupTitle": "Удалить группу?",
     "deleteGroupBody": "Группа и все ее сообщения будут безвозвратно удалены для всех.",
     "deleteGroupAction": "Удалить группу",

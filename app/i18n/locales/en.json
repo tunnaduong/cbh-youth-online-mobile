@@ -547,6 +547,8 @@
     "permValue_member": "All members",
     "permValue_none": "No one",
     "permissionUpdateError": "Could not update the setting.",
+    "permissionChangedRestricted": "{{actor}} restricted {{action}} to {{value}}",
+    "permissionChangedDisabled": "{{actor}} turned off {{action}}",
     "deleteGroupTitle": "Delete group?",
     "deleteGroupBody": "The group and all its messages will be permanently deleted for everyone.",
     "deleteGroupAction": "Delete group",

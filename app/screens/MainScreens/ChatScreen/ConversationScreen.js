@@ -107,6 +107,40 @@ const resolveMediaUrl = (url) => {
 
 dayjs.locale(i18n.language || "vi");
 
+// Maps a permission key from a "permission_changed" system message to the
+// i18n key for its action label (see PERMISSION_FIELDS in GroupInfoScreen).
+const PERMISSION_ACTION_I18N_KEYS = {
+  perm_change_name: "chatConversation.permChangeName",
+  perm_change_avatar: "chatConversation.permChangeAvatar",
+  perm_change_background: "chatConversation.permChangeBackground",
+  perm_remove_members: "chatConversation.permRemoveMembers",
+  perm_share_invite_link: "chatConversation.permShareInviteLink",
+  perm_invite_members: "chatConversation.permInviteMembers",
+};
+
+const lowercaseFirst = (s) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+
+// Backend system messages are plain server-generated Vietnamese text (same
+// for every locale, like every other system message in the app) except this
+// one type, which carries structured metadata so it can be rebuilt in the
+// user's language. Falls back to the raw content for older messages or if
+// metadata is missing/unrecognized.
+const getSystemMessageText = (message, t) => {
+  if (message?.metadata?.event === "permission_changed") {
+    const { actor_name: actor, permission_key: key, permission_value: value } = message.metadata;
+    const actionKey = PERMISSION_ACTION_I18N_KEYS[key];
+    if (actor && actionKey) {
+      const action = lowercaseFirst(t(actionKey));
+      if (value === "none") {
+        return t("chatConversation.permissionChangedDisabled", { actor, action });
+      }
+      const valueLabel = lowercaseFirst(t(`chatConversation.permValue_${value}`, value));
+      return t("chatConversation.permissionChangedRestricted", { actor, action, value: valueLabel });
+    }
+  }
+  return message?.content;
+};
+
 const CONVERSATION_CACHE_KEY = "conversation_";
 const CONVERSATION_TIMESTAMP_KEY = "conversation_timestamp_";
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -412,7 +446,7 @@ const MessagesListContent = React.memo(({
                 { backgroundColor: isDarkMode ? "#262626" : "#f0f0f0", color: theme.subText },
               ]}
             >
-              {value.content}
+              {getSystemMessageText(value, t)}
             </Text>
           </View>
         ) : (

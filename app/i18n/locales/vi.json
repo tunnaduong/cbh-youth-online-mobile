@@ -536,6 +536,8 @@
     "permValue_member": "Tất cả thành viên",
     "permValue_none": "Không có ai",
     "permissionUpdateError": "Không thể cập nhật cài đặt.",
+    "permissionChangedRestricted": "{{actor}} đã giới hạn quyền {{action}} cho {{value}}",
+    "permissionChangedDisabled": "{{actor}} đã tắt tính năng {{action}}",
     "deleteGroupTitle": "Xóa nhóm?",
     "deleteGroupBody": "Nhóm và toàn bộ tin nhắn sẽ bị xóa vĩnh viễn đối với tất cả mọi người.",
     "deleteGroupAction": "Xóa nhóm",
