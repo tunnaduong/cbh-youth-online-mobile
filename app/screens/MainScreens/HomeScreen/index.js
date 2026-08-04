@@ -2618,17 +2618,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             // which is what actually caused "viewers sheet shows nothing,
             // then app is frozen after closing the story" on iOS.
             //
-            // On Android, pointerEvents="box-none" does NOT stop
-            // GestureHandlerRootView from intercepting touches - its native
-            // ViewGroup always calls onInterceptTouchEvent regardless of the
-            // RN pointerEvents prop, so leaving it "box-none" for the whole
-            // story-viewing session was swallowing every tap on the story's
-            // own header/body buttons on Android. pointerEvents="none" fully
-            // skips native touch dispatch into this subtree, so we only
-            // switch to "box-none" while one of these sheets is actually
-            // open (when we DO need it to receive touches).
+            // On Android, GestureHandlerRootView's native ViewGroup always
+            // calls onInterceptTouchEvent regardless of the RN pointerEvents
+            // prop - "none"/"box-none" are a JS-side override that its
+            // native touch dispatch ignores, so leaving this absoluteFill
+            // for the whole story-viewing session was swallowing every tap
+            // on the story's own header/body buttons on Android, even with
+            // pointerEvents="none". Android's native hit-testing IS bounds-
+            // based though, so collapsing this view to 0x0 while no sheet is
+            // open means there's no area left for it to ever intercept, and
+            // we only expand it back to absoluteFill while a sheet actually
+            // needs to render/receive touches.
             <GestureHandlerRootView
-              style={StyleSheet.absoluteFill}
+              style={
+                reportModalVisible || isOptionsSheetOpen || isViewersSheetOpen
+                  ? StyleSheet.absoluteFill
+                  : { position: "absolute", width: 0, height: 0 }
+              }
               pointerEvents={reportModalVisible || isOptionsSheetOpen || isViewersSheetOpen ? "box-none" : "none"}
             >
               <ReportModal
