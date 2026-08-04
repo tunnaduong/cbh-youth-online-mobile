@@ -1746,8 +1746,14 @@ const ConversationScreen = ({ navigation, route }) => {
       clearTimeout(typingTimeoutRef.current);
       setTypingUser(null);
 
+      const distanceFromBottom =
+        (scrollContentHeightRef.current || 0) -
+        (scrollViewHeightRef.current || 0) -
+        (scrollOffsetRef.current || 0);
+      const isNearBottom = distanceFromBottom <= 150;
+
       if (tryAppendPushedMessage(e)) {
-        scrollToLatestMessageAnimated();
+        if (isNearBottom) scrollToLatestMessageAnimated();
       }
 
       // Wait for the fetch (and the setMessages it triggers) to actually complete
@@ -1755,7 +1761,7 @@ const ConversationScreen = ({ navigation, route }) => {
       // before the new message has been added to state. Also the source of
       // truth that reconciles the optimistic append above, if any.
       fetchMessagesRef.current(true, true).then(() => {
-        scrollToLatestMessageAnimated();
+        if (isNearBottom) scrollToLatestMessageAnimated();
       });
       // The screen is already open, so this new message is immediately read too -
       // dispatch a read receipt so the sender's "seen" status keeps updating live.
