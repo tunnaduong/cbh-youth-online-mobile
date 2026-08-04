@@ -46,7 +46,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
-  const { username, profileName, blockUser: blockUserInContext } = React.useContext(AuthContext);
+  const { username, profileName, blockUser: blockUserInContext, getAvatarUrl, getCoverUrl } = React.useContext(AuthContext);
   const userId = route?.params?.username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -609,7 +609,7 @@ const ProfileScreen = ({ route, navigation }) => {
           {/* Cover photo */}
           {userData?.profile?.cover_photo_url ? (
             <FastImage
-              source={{ uri: userData.profile.cover_photo_url }}
+              source={{ uri: isCurrentUser ? getCoverUrl(userId) : userData.profile.cover_photo_url }}
               style={{
                 height: 170,
                 borderRadius: 15,
@@ -634,7 +634,7 @@ const ProfileScreen = ({ route, navigation }) => {
               <View style={{ position: "relative", backgroundColor: theme.background, borderRadius: 999 }}>
                 <FastImage
                   source={{
-                    uri: userData?.profile?.profile_picture,
+                    uri: isCurrentUser ? getAvatarUrl(userId) : userData?.profile?.profile_picture,
                   }}
                   style={[styles.avatar, { borderColor: theme.background }]}
                 />
