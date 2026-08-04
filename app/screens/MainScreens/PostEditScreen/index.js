@@ -699,13 +699,6 @@ const PostEditScreen = ({ navigation, route }) => {
               multiline
               textAlignVertical="top"
             />
-            {hasContentSuggestions && (
-              <MentionSuggestions
-                suggestions={contentSuggestions}
-                loading={contentSuggestionsLoading}
-                onSelect={onSelectContentMention}
-              />
-            )}
             {/* YouTube embed preview — shown when content contains an iframe with a YouTube src */}
             {(() => {
               const ytId = extractYouTubeId(postContent);
@@ -840,6 +833,22 @@ const PostEditScreen = ({ navigation, route }) => {
         </View>
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
+
+      {/* Rendered outside the ScrollView - a FlatList (inside MentionSuggestions)
+          nested in a ScrollView of the same orientation doesn't get a usable
+          height and never shows anything, only warns. */}
+      {hasContentSuggestions && (
+        <View
+          style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 16, zIndex: 50 }}
+          pointerEvents="box-none"
+        >
+          <MentionSuggestions
+            suggestions={contentSuggestions}
+            loading={contentSuggestionsLoading}
+            onSelect={onSelectContentMention}
+          />
+        </View>
+      )}
     </View>
   );
 };
