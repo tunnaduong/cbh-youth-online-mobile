@@ -531,7 +531,8 @@
     "send": "Gửi",
     "forwarded": "Đã chuyển tiếp tin nhắn",
     "forwardFailed": "Chuyển tiếp thất bại",
-    "loadConversationsFailed": "Không thể tải danh sách trò chuyện"
+    "loadConversationsFailed": "Không thể tải danh sách trò chuyện",
+    "viewSeenBy": "Lượt xem"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",

@@ -551,7 +551,8 @@
     "send": "Отправить",
     "forwarded": "Сообщение переслано",
     "forwardFailed": "Не удалось переслать сообщение",
-    "loadConversationsFailed": "Не удалось загрузить список бесед"
+    "loadConversationsFailed": "Не удалось загрузить список бесед",
+    "viewSeenBy": "Просмотры"
   },
   "blockedUsers": {
     "title": "Заблокированные пользователи",

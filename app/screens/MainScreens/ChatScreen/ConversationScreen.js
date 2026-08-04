@@ -315,30 +315,18 @@ const MessagesListContent = React.memo(({
 
   // "Seen by" read receipts (group chats only). There's no per-message read
   // table on the backend - each participant just has a single last_read_at
-  // timestamp for the conversation - so find, per participant, the newest
-  // real message whose created_at falls at or before their last_read_at, and
-  // group participants by that message's id (same approach the web client
-  // uses, and how Messenger itself works).
-  const seenByMessageId = new Map();
-  if (isGroupChat && seenParticipants?.length > 0) {
-    seenParticipants.forEach((participant) => {
-      if (!participant.last_read_at) return;
-      const readAt = new Date(participant.last_read_at).getTime();
-      let lastSeenId = null;
-      for (const { m } of realMessages) {
-        if (new Date(m.created_at).getTime() <= readAt) {
-          lastSeenId = m.id;
-        } else {
-          break;
-        }
-      }
-      if (lastSeenId != null) {
-        seenByMessageId.set(lastSeenId, [
-          ...(seenByMessageId.get(lastSeenId) || []),
-          participant,
-        ]);
-      }
-    });
+  // timestamp for the conversation. The inline avatar stack only ever shows
+  // under YOUR OWN truly-last message in the conversation, exactly like
+  // Messenger - never under someone else's message (if they sent the last
+  // message, nothing shows inline at all), and never scattered across
+  // earlier messages of yours (use the "Lượt xem" menu action on those).
+  const lastRealMessage = realMessages.length > 0 ? realMessages[realMessages.length - 1].m : null;
+  let inlineSeenAvatars = [];
+  if (isGroupChat && lastRealMessage?.is_myself && seenParticipants?.length > 0) {
+    const createdAt = new Date(lastRealMessage.created_at).getTime();
+    inlineSeenAvatars = seenParticipants.filter(
+      (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
+    );
   }
 
   return messages.map((value, index) => {
@@ -441,7 +429,7 @@ const MessagesListContent = React.memo(({
             isDownloadingThis={downloadingFileId === value.id}
             handlersRef={messageHandlersRef}
             onImageError={onImageError}
-            seenAvatars={seenByMessageId.get(value.id)}
+            seenAvatars={value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined}
             activeInlineVideoId={activeInlineVideoId}
             autoplayVideos={autoplayVideos}
           />
@@ -3288,6 +3276,22 @@ const ConversationScreen = ({ navigation, route }) => {
         onRecall={
           reactionPicker.message?.is_myself && !reactionPicker.message?.is_recalled
             ? handleRecallMessage
+            : undefined
+        }
+        onViewSeenBy={
+          isGroupConversation &&
+          reactionPicker.message?.is_myself &&
+          !reactionPicker.message?.is_sending
+            ? () => {
+                const message = reactionPicker.message;
+                const createdAt = new Date(message.created_at).getTime();
+                setSeenByModalParticipants(
+                  seenParticipants.filter(
+                    (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
+                  )
+                );
+                closeReactionPicker();
+              }
             : undefined
         }
         onClose={closeReactionPicker}

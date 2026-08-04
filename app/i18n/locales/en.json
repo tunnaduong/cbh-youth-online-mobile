@@ -542,7 +542,8 @@
     "send": "Send",
     "forwarded": "Message forwarded",
     "forwardFailed": "Failed to forward message",
-    "loadConversationsFailed": "Could not load conversations"
+    "loadConversationsFailed": "Could not load conversations",
+    "viewSeenBy": "Seen by"
   },
   "blockedUsers": {
     "title": "Blocked users",

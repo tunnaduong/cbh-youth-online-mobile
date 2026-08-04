@@ -40,6 +40,7 @@ const MessageReactionPicker = ({
   onCopy,
   onEdit,
   onRecall,
+  onViewSeenBy,
   onClose,
 }) => {
   const { theme, isDarkMode } = useTheme();
@@ -151,6 +152,18 @@ const MessageReactionPicker = ({
                 <Ionicons name="arrow-redo-outline" size={18} color={theme.text} />
                 <Text style={[styles.replyText, { color: theme.text }]}>
                   {t("chatConversation.forward", "Chuyển tiếp")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onViewSeenBy && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onViewSeenBy}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="eye-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.viewSeenBy", "Lượt xem")}
                 </Text>
               </TouchableOpacity>
             )}
