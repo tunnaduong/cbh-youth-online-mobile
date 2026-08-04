@@ -50,6 +50,7 @@ import {
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import ReportModal from "../../../components/ReportModal";
+import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
 import CommentBar from "../../../components/CommentBar";
 import ReplyPreviewBubble from "../../../components/ReplyPreviewBubble";
 import ReplyComposerBar from "../../../components/ReplyComposerBar";
@@ -1250,6 +1251,11 @@ const ConversationScreen = ({ navigation, route }) => {
     activeConversationId.current = currentConversationId || conversationId;
   }, [currentConversationId, conversationId]);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [backgroundModalVisible, setBackgroundModalVisible] = useState(false);
+  // Chat background (Messenger-style): defaults to the conversation's stored
+  // background_url, but a live "background_changed" system message overrides
+  // it immediately without waiting for a conversations-list refetch.
+  const [backgroundOverride, setBackgroundOverride] = useState(undefined);
   const { t } = useTranslation();
   const {
     onMessageSent,
@@ -1419,11 +1425,12 @@ const ConversationScreen = ({ navigation, route }) => {
   const showOptions = () => {
     const options = [
       t("chatConversation.report"),
+      t("chatConversation.changeBackground", "Đổi hình nền"),
       t("chatConversation.blockUser"),
       t("common.cancel"),
     ];
-    const destructiveButtonIndex = 1;
-    const cancelButtonIndex = 2;
+    const destructiveButtonIndex = 2;
+    const cancelButtonIndex = 3;
 
     if (!otherUser) {
       // Group conversation (or the singleton public chat, which has no group management).
@@ -1445,6 +1452,10 @@ const ConversationScreen = ({ navigation, route }) => {
         {
           text: t("chatConversation.groupInfo", "Thông tin nhóm"),
           onPress: () => navigation.navigate("GroupInfoScreen", { conversationId: targetConversationId }),
+        },
+        {
+          text: t("chatConversation.changeBackground", "Đổi hình nền"),
+          onPress: () => setBackgroundModalVisible(true),
         },
         {
           text: t("chatConversation.report"),
@@ -1469,7 +1480,8 @@ const ConversationScreen = ({ navigation, route }) => {
         },
         (buttonIndex) => {
           if (buttonIndex === 0) setReportModalVisible(true);
-          else if (buttonIndex === 1) confirmBlock();
+          else if (buttonIndex === 1) setBackgroundModalVisible(true);
+          else if (buttonIndex === 2) confirmBlock();
         },
       );
     } else {
@@ -1477,6 +1489,10 @@ const ConversationScreen = ({ navigation, route }) => {
         {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),
+        },
+        {
+          text: t("chatConversation.changeBackground", "Đổi hình nền"),
+          onPress: () => setBackgroundModalVisible(true),
         },
         {
           text: t("chatConversation.blockUser"),
@@ -1584,6 +1600,21 @@ const ConversationScreen = ({ navigation, route }) => {
       clearInterval(interval);
     };
   }, [currentConversationId, conversationId, isNewConversation, isGroupConversation, messages.length]);
+
+  useEffect(() => {
+    setBackgroundOverride(undefined);
+  }, [currentConversationId, conversationId]);
+  useEffect(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.content_type === "system" && m.metadata?.event === "background_changed") {
+        setBackgroundOverride(m.metadata.background_url || null);
+        break;
+      }
+    }
+  }, [messages]);
+  const chatBackgroundUrl =
+    backgroundOverride !== undefined ? backgroundOverride : currentConversation?.background_url || null;
 
   // Let the user know why they'll never see "seen" status in this chat when
   // they've turned their own read receipts off (backend silently skips
@@ -3218,6 +3249,16 @@ const ConversationScreen = ({ navigation, route }) => {
         onSubmit={handleReportSubmit}
       />
 
+      <ChatBackgroundModal
+        visible={backgroundModalVisible}
+        conversationId={currentConversationId || conversationId}
+        onClose={() => setBackgroundModalVisible(false)}
+        onBackgroundChanged={(url) => {
+          setBackgroundOverride(url);
+          setCurrentConversation((prev) => (prev ? { ...prev, background_url: url } : prev));
+        }}
+      />
+
       <Modal
         visible={!!seenByModalParticipants}
         transparent
@@ -3344,6 +3385,19 @@ const ConversationScreen = ({ navigation, route }) => {
         textInputNativeID="chat-input"
       >
         {/* Messages List */}
+        <View style={{ flex: 1 }}>
+        {chatBackgroundUrl ? (
+          <Image source={{ uri: chatBackgroundUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : null}
+        {chatBackgroundUrl ? (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              { backgroundColor: isDarkMode ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.55)" },
+            ]}
+          />
+        ) : null}
         <AndroidGlassBackdrop providerId="ConversationScreen" style={{ flex: 1 }}>
         <KeyboardChatScrollView
           ref={messagesScrollRef}
@@ -3401,6 +3455,7 @@ const ConversationScreen = ({ navigation, route }) => {
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
         </AndroidGlassBackdrop>
+        </View>
 
         {/* Input Bar - positioned above messages */}
         <KeyboardStickyView

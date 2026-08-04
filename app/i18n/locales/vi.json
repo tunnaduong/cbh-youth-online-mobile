@@ -448,6 +448,7 @@
     "reportError": "Không thể gửi báo cáo",
     "report": "Báo cáo",
     "blockUser": "Chặn người dùng",
+    "changeBackground": "Đổi hình nền",
     "optionsTitle": "Tùy chọn",
     "casualGroupName": "Tán gẫu linh tinh",
     "cannotOpen": "Không thể mở cuộc trò chuyện. Vui lòng thử lại sau.",
@@ -583,7 +584,23 @@
     "removedFromGroup": "đã xóa bạn khỏi nhóm",
     "transferredOwnership": "đã chuyển quyền trưởng nhóm cho bạn trong nhóm",
     "removedDeputyRole": "đã gỡ vai trò phó nhóm của bạn trong nhóm",
-    "madeDeputy": "đã chỉ định bạn làm phó nhóm"
+    "madeDeputy": "đã chỉ định bạn làm phó nhóm",
+    "changedBackgroundGroup": "đã đổi hình nền nhóm",
+    "changedBackgroundPrivate": "đã đổi hình nền cuộc trò chuyện"
+  },
+  "chatBackground": {
+    "title": "Hình nền đoạn chat",
+    "default": "Mặc định",
+    "upload": "Tải ảnh lên",
+    "reset": "Đặt lại",
+    "resetTitle": "Đặt lại hình nền mặc định?",
+    "resetDone": "Đã đặt lại hình nền mặc định",
+    "resetError": "Không thể đặt lại hình nền, vui lòng thử lại",
+    "changed": "Đã đổi hình nền cuộc trò chuyện",
+    "uploadError": "Không thể tải ảnh lên, vui lòng thử lại",
+    "selectError": "Không thể đổi hình nền, vui lòng thử lại",
+    "loadError": "Không thể tải hình nền cuộc trò chuyện",
+    "history": "Lịch sử hình nền"
   },
   "report": {
     "step1": "Chọn đối tượng",

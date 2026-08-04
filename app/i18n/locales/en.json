@@ -459,6 +459,7 @@
     "reportError": "Could not send report",
     "report": "Report",
     "blockUser": "Block user",
+    "changeBackground": "Change background",
     "optionsTitle": "Options",
     "casualGroupName": "Casual Chat",
     "cannotOpen": "Could not open conversation. Please try again later.",
@@ -594,7 +595,23 @@
     "removedFromGroup": "removed you from the group",
     "transferredOwnership": "transferred group ownership to you in",
     "removedDeputyRole": "removed your deputy role in",
-    "madeDeputy": "made you a deputy of"
+    "madeDeputy": "made you a deputy of",
+    "changedBackgroundGroup": "changed the background of",
+    "changedBackgroundPrivate": "changed the chat background"
+  },
+  "chatBackground": {
+    "title": "Chat background",
+    "default": "Default",
+    "upload": "Upload image",
+    "reset": "Reset",
+    "resetTitle": "Reset to the default background?",
+    "resetDone": "Background reset to default",
+    "resetError": "Couldn't reset the background, please try again",
+    "changed": "Chat background updated",
+    "uploadError": "Couldn't upload the image, please try again",
+    "selectError": "Couldn't change the background, please try again",
+    "loadError": "Couldn't load the conversation's background",
+    "history": "Background history"
   },
   "report": {
     "step1": "Select subject",

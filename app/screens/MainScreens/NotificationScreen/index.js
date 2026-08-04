@@ -112,6 +112,10 @@ const formatNotificationMessage = (notification, t) => {
         return `${t('notifications.removedDeputyRole')} "${data?.conversation_name || ""}"`;
       }
       return `${t('notifications.madeDeputy')} "${data?.conversation_name || ""}"`;
+    case "conversation_background_changed":
+      return data?.conversation_type === "group"
+        ? `${t('notifications.changedBackgroundGroup')} "${data?.conversation_name || ""}"`
+        : t('notifications.changedBackgroundPrivate');
     case "study_material_purchased":
       return `${t('notifications.purchasedMaterial')} "${data?.material_title || ""}"`;
     case "study_material_rated":

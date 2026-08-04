@@ -593,6 +593,32 @@ export const joinGroupViaInvite = (token) => {
   return Api.postRequest(`/v1.0/chat/groups/invite/${token}/join`);
 };
 
+// Chat background (private + group conversations, not the public chat)
+export const getConversationBackground = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/background`);
+};
+
+// imageUri: local file uri from expo-image-picker
+export const uploadConversationBackground = (conversationId, imageUri) => {
+  const formData = new FormData();
+  formData.append("image", {
+    uri: imageUri,
+    type: imageUri.endsWith(".png") ? "image/png" : "image/jpeg",
+    name: imageUri.endsWith(".png") ? "chat_background.png" : "chat_background.jpg",
+  });
+  return Api.postFormDataRequest(`/v1.0/chat/conversations/${conversationId}/background`, formData);
+};
+
+export const selectConversationBackground = (conversationId, userContentId) => {
+  return Api.postRequest(`/v1.0/chat/conversations/${conversationId}/background/select`, {
+    user_content_id: userContentId,
+  });
+};
+
+export const resetConversationBackground = (conversationId) => {
+  return Api.deleteRequest(`/v1.0/chat/conversations/${conversationId}/background`);
+};
+
 // Search users by partial username/display name (e.g. for "create group" / "add members" pickers)
 export const searchUserSuggestions = (query, excludeConversationId) => {
   const params = new URLSearchParams({ q: query });
