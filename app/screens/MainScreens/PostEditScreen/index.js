@@ -42,6 +42,7 @@ import { getMentionSuggestions } from "../../../services/api/Api";
 // Posts don't support "@all" broadcast mentions (that's a comment/chat-only
 // feature), so unlike CommentBar's parser this one never special-cases it.
 function postMentionParser(input) {
+  "worklet";
   try {
     const ranges = [];
     const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
