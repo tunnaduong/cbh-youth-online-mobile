@@ -118,6 +118,7 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
       // Find the last @ that is not followed by a space
       const atIndex = text.lastIndexOf("@");
       if (atIndex === -1) {
+        if (__DEV__) console.log("[useMentionInput] no @ found in text:", JSON.stringify(text));
         setMentionQuery(null);
         setSuggestions([]);
         return;
@@ -125,16 +126,19 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
       const afterAt = text.slice(atIndex + 1);
       // Stop if there's a space after the @ (mention already completed)
       if (/\s/.test(afterAt)) {
+        if (__DEV__) console.log("[useMentionInput] whitespace after @, clearing:", JSON.stringify(afterAt));
         setMentionQuery(null);
         setSuggestions([]);
         return;
       }
+      if (__DEV__) console.log("[useMentionInput] setting mentionQuery:", JSON.stringify(afterAt));
       setMentionQuery(afterAt);
     },
     [onChange]
   );
 
   useEffect(() => {
+    if (__DEV__) console.log("[useMentionInput] effect fired, mentionQuery:", JSON.stringify(mentionQuery));
     if (mentionQuery === null || mentionQuery === "") {
       setSuggestions([]);
       setLoading(false);
@@ -151,8 +155,10 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
     setLoading(true);
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
+      if (__DEV__) console.log("[useMentionInput] fetching suggestions for:", JSON.stringify(mentionQuery));
       try {
         const res = await fetchSuggestions(mentionQuery);
+        if (__DEV__) console.log("[useMentionInput] got response:", JSON.stringify(res?.data || res));
         const results = res?.data?.suggestions ?? res?.suggestions ?? [];
         cacheRef.current.set(mentionQuery, results);
         setSuggestions(results);
