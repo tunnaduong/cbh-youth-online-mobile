@@ -1148,6 +1148,33 @@ const ConversationScreen = ({ navigation, route }) => {
   // fetch. Queue reactions made against an in-flight message here, keyed by
   // its temp id, and flush them once the real server id is known.
   const pendingReactionsRef = React.useRef({});
+  // A background message refetch (triggered by the socket's onMessageSent/
+  // onMessageRead/onMessageDeleted events - which fire right around when you
+  // send a message, since that's exactly what makes the other participant's
+  // client emit a read receipt back) can land moments after a reaction is
+  // applied locally, before the server's read replica has caught up with
+  // that reaction. It then unconditionally overwrites the whole `messages`
+  // array with server data, wiping the reaction back out until the next
+  // full fetch. Remember locally-applied reactions for a short window so
+  // any background refetch during that window keeps them instead.
+  const recentlyReactedRef = React.useRef({});
+  const RECENT_REACTION_WINDOW_MS = 8000;
+
+  // Re-applies any locally-set reactions that are still "fresh" onto a
+  // freshly-fetched message list, so a background refetch can't silently
+  // clobber a reaction the server hasn't caught up with yet.
+  const preserveRecentReactions = React.useCallback((list) => {
+    const now = Date.now();
+    const recent = recentlyReactedRef.current;
+    for (const id of Object.keys(recent)) {
+      if (now - recent[id].ts > RECENT_REACTION_WINDOW_MS) delete recent[id];
+    }
+    if (Object.keys(recent).length === 0) return list;
+    return list.map((m) => {
+      const entry = m.type === "message" ? recent[m.id] : null;
+      return entry ? { ...m, reactions: entry.reactions } : m;
+    });
+  }, []);
 
   const activeConversationId = React.useRef(null);
   const fetchMessageMentionSuggestions = React.useCallback(async (q) => {
@@ -1666,7 +1693,7 @@ const ConversationScreen = ({ navigation, route }) => {
         // Cache is still valid
         const parsedData = JSON.parse(cachedData);
         const transformed = injectTimeHeaders(parsedData, t);
-        setMessages(transformed);
+        setMessages(preserveRecentReactions(transformed));
         setPage(2); // Set page to 2 since we loaded the first page from cache
 
         // Fetch fresh data in background
@@ -1712,7 +1739,7 @@ const ConversationScreen = ({ navigation, route }) => {
       if (!isBackground) {
         setMessages((prev) => {
           if (isRefresh || prev.length === 0) {
-            return transformed;
+            return preserveRecentReactions(transformed);
           }
 
           const existingMessages = prev.filter(
@@ -1724,7 +1751,7 @@ const ConversationScreen = ({ navigation, route }) => {
         setPage((prev) => (isRefresh ? 2 : prev + 1));
       } else if (JSON.stringify(newMessages) !== previousCache) {
         // Update UI only if new data is different from what was cached before this refresh
-        setMessages(transformed);
+        setMessages(preserveRecentReactions(transformed));
         setPage(2);
       }
     } catch (error) {
@@ -2714,6 +2741,7 @@ const ConversationScreen = ({ navigation, route }) => {
   // Reactions ---------------------------------------------------------------
 
   const applyReactionUpdate = (messageId, reactions) => {
+    recentlyReactedRef.current[messageId] = { reactions, ts: Date.now() };
     setMessages((prev) =>
       prev.map((m) =>
         m.type === "message" && m.id === messageId ? { ...m, reactions } : m,
