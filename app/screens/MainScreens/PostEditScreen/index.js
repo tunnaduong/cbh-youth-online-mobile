@@ -114,10 +114,12 @@ const PostEditScreen = ({ navigation, route }) => {
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  // iOS: presentation:"modal" renders as a floating card (not full-bleed
-  // like Android), which already clears the notch/status bar on its own —
-  // adding the full device insets.top double-counts the offset.
-  const headerHeight = Platform.OS === "ios" ? 52 : insets.top + 36;
+  // Was assuming iOS's presentation:"modal" self-clears the notch as a
+  // floating card, using a flat height regardless of the actual safe area -
+  // but an active call/recording banner grows the real top inset and the
+  // header rendered full-bleed under it, cramped against the status bar.
+  // Use the real inset on both platforms instead.
+  const headerHeight = insets.top + 36;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],
@@ -616,7 +618,7 @@ const PostEditScreen = ({ navigation, route }) => {
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS === "ios" ? 6 : insets.top + 2,
+            paddingTop: insets.top + 2,
             height: headerHeight,
             backgroundColor: 'transparent',
             opacity: Platform.OS === "android" ? 1 : headerOpacity,

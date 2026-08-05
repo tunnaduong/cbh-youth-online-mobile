@@ -524,13 +524,14 @@ const CreatePostScreen = ({ navigation, route }) => {
         style={[
           styles.topBar,
           {
-            // iOS: this screen is presented via presentation:"modal", which
-            // renders as a floating card (not full-bleed like Android), so
-            // it already clears the notch/status bar on its own — adding
-            // the full device insets.top on top of that double-counts the
-            // offset and pushes content too far down.
-            paddingTop: Platform.OS === "ios" ? 6 : insets.top + 2,
-            height: Platform.OS === "ios" ? 52 : insets.top + 36,
+            // Was assuming iOS's presentation:"modal" self-clears the notch
+            // as a floating card, so it used a flat 6px regardless of the
+            // device's actual safe area - but that doesn't hold up (e.g. an
+            // active call/recording banner grows the real top inset and the
+            // header rendered full-bleed under it, cramped against the
+            // status bar). Use the real inset on both platforms instead.
+            paddingTop: insets.top + 2,
+            height: insets.top + 36,
             backgroundColor: "transparent",
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
             transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
@@ -596,7 +597,7 @@ const CreatePostScreen = ({ navigation, route }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: Platform.OS === "ios" ? 52 : insets.top + 36,
+          paddingTop: insets.top + 36,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
