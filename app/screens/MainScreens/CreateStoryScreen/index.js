@@ -528,7 +528,12 @@ const CreateStoryScreen = ({ navigation }) => {
     const newId = `text_${textIdCounter.current++}`;
     setStoryTexts((prev) => [
       ...prev,
-      { id: newId, text: "", x: width / 2 - 100, y: captureDims.h / 2 - 20 },
+      // Use captureDims.w, not the raw window width - the story canvas is
+      // letterboxed/pillarboxed to a 9:16 area on devices whose screen
+      // aspect ratio isn't exactly 9:16, so the canvas is often narrower
+      // than the window itself. Centering against the window width placed
+      // new text off-center relative to the actual visible canvas.
+      { id: newId, text: "", x: captureDims.w / 2 - 100, y: captureDims.h / 2 - 20 },
     ]);
     setEditingTextId(newId);
   }, [captureDims]);

@@ -9,6 +9,7 @@ import {
   Platform,
   Switch,
   Animated,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -85,6 +86,19 @@ const PostEditScreen = ({ navigation, route }) => {
     fetchSuggestions: getMentionSuggestions,
   });
   const insets = useSafeAreaInsets();
+  // The mention-suggestions overlay is anchored to the bottom of the
+  // screen; without tracking the keyboard it stayed pinned to the safe-area
+  // bottom, which the on-screen keyboard covers as soon as the content
+  // input is focused (exactly when suggestions are shown) - hidden behind it.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const { username, userInfo, profileName } = useContext(AuthContext);
   if (!userInfo) {
     return null;
@@ -848,7 +862,14 @@ const PostEditScreen = ({ navigation, route }) => {
           height and never shows anything, only warns. */}
       {hasContentSuggestions && (
         <View
-          style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 16, zIndex: 50 }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: (keyboardHeight || insets.bottom) + 16,
+            zIndex: 50,
+            elevation: 50,
+          }}
           pointerEvents="box-none"
         >
           <MentionSuggestions
