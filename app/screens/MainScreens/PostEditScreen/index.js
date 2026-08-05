@@ -116,7 +116,7 @@ const PostEditScreen = ({ navigation, route }) => {
   // iOS: presentation:"modal" renders as a floating card (not full-bleed
   // like Android), which already clears the notch/status bar on its own —
   // adding the full device insets.top double-counts the offset.
-  const headerHeight = Platform.OS === "ios" ? 68 : insets.top + 52;
+  const headerHeight = Platform.OS === "ios" ? 52 : insets.top + 36;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],
@@ -127,13 +127,11 @@ const PostEditScreen = ({ navigation, route }) => {
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
-  // The hero card (with its own title) sits right at the top of the scroll
-  // content, directly under this header. Fade the header title IN only once
-  // the hero card has scrolled mostly out of view instead of showing both
-  // titles stacked at rest, scroll 0.
+  // Header title is visible at rest and hides as the user scrolls down into
+  // the compose area, giving a cleaner distraction-free writing view.
   const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 40, 90],
-    outputRange: [0, 0, 1],
+    inputRange: [0, 24, 48],
+    outputRange: [1, 0.5, 0],
     extrapolate: "clamp",
   });
   const headerButtonOpacity = Platform.OS === "android" ? 1 : headerOpacity;
@@ -617,7 +615,7 @@ const PostEditScreen = ({ navigation, route }) => {
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
+            paddingTop: Platform.OS === "ios" ? 6 : insets.top + 2,
             height: headerHeight,
             backgroundColor: 'transparent',
             opacity: Platform.OS === "android" ? 1 : headerOpacity,

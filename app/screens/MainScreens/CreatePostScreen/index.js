@@ -112,14 +112,11 @@ const CreatePostScreen = ({ navigation, route }) => {
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
-  // The hero card (with its own "Tạo bài viết" title) sits right at the top
-  // of the scroll content, directly under this header. Fading the header
-  // title IN only once the hero card has scrolled mostly out of view (rather
-  // than showing both titles stacked at rest, scroll 0) avoids the visual
-  // duplication/overlap.
+  // Header title is visible at rest and hides as the user scrolls down into
+  // the compose area, giving a cleaner distraction-free writing view.
   const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 40, 90],
-    outputRange: [0, 0, 1],
+    inputRange: [0, 24, 48],
+    outputRange: [1, 0.5, 0],
     extrapolate: "clamp",
   });
   const headerButtonOpacity = Platform.OS === "android" ? 1 : headerOpacity;
@@ -531,8 +528,8 @@ const CreatePostScreen = ({ navigation, route }) => {
             // it already clears the notch/status bar on its own — adding
             // the full device insets.top on top of that double-counts the
             // offset and pushes content too far down.
-            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
-            height: Platform.OS === "ios" ? 68 : insets.top + 52,
+            paddingTop: Platform.OS === "ios" ? 6 : insets.top + 2,
+            height: Platform.OS === "ios" ? 52 : insets.top + 36,
             backgroundColor: "transparent",
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
             transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
@@ -598,7 +595,7 @@ const CreatePostScreen = ({ navigation, route }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: Platform.OS === "ios" ? 68 : insets.top + 52,
+          paddingTop: Platform.OS === "ios" ? 52 : insets.top + 36,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
