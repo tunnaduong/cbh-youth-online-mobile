@@ -172,17 +172,50 @@ const Comment = React.memo(React.forwardRef(
                       "mention-tag": { color: "#22c55e", fontWeight: "600" },
                     }}
                     tagsStyles={{
+                      h1: { fontSize: 20, fontWeight: "bold", marginVertical: 8, color: theme.text },
+                      h2: { fontSize: 17, fontWeight: "bold", marginTop: 10, marginBottom: 6, color: theme.text },
+                      h3: { fontSize: 15, fontWeight: "bold", marginTop: 8, marginBottom: 4, color: theme.text },
+                      h4: { fontSize: 14, fontWeight: "600", marginTop: 6, marginBottom: 4, color: theme.text },
+                      h5: { fontSize: 13, fontWeight: "600", marginTop: 6, marginBottom: 4, color: theme.text },
+                      h6: { fontSize: 12, fontWeight: "600", marginTop: 6, marginBottom: 4, color: theme.subText },
                       p: { marginBottom: 0, marginTop: 0, color: theme.text },
                       strong: { fontWeight: "bold", color: theme.text },
                       em: { fontStyle: "italic", color: theme.text },
                       br: { marginBottom: 0 },
-                      a: { color: theme.primary },
+                      a: { color: theme.primary, textDecorationLine: "underline" },
+                      blockquote: {
+                        backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
+                        borderLeftWidth: 3,
+                        borderLeftColor: theme.primary,
+                        marginVertical: 6,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        fontStyle: "italic",
+                        borderRadius: 4,
+                      },
+                      hr: {
+                        borderTopWidth: 1,
+                        borderTopColor: theme.border,
+                        marginVertical: 10,
+                        backgroundColor: "transparent",
+                        height: 1,
+                      },
                       code: {
                         fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
                         backgroundColor: isDarkMode ? "#2C2C2C" : "#f0f0f0",
+                        color: "#d63384",
                         borderRadius: 4,
                         paddingHorizontal: 4,
                       },
+                      pre: {
+                        backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
+                        borderRadius: 6,
+                        padding: 10,
+                        marginVertical: 6,
+                      },
+                      ul: { marginVertical: 4 },
+                      ol: { marginVertical: 4 },
+                      li: { marginBottom: 2, color: theme.text },
                     }}
                   />
                 </View>
