@@ -63,7 +63,8 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsEditing: false,
+      allowsEditing: true,
+      aspect: [9, 16],
       quality: 1,
     });
     if (result.canceled) return;
