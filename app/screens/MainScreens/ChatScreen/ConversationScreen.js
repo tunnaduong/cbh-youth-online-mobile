@@ -59,6 +59,8 @@ import MessageReactionPicker, {
   REACTION_EMOJIS,
 } from "../../../components/MessageReactionPicker";
 import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
+import { showChatBubble } from "../../../../modules/dhpos-chat-bubbles";
+import { isChatBubblesEnabled } from "../../../utils/chatBubblePrefs";
 import ForwardMessageModal from "../../../components/ForwardMessageModal";
 import { Alert, ActionSheetIOS, KeyboardAvoidingView, Clipboard } from "react-native";
 import Toast from "react-native-toast-message";
@@ -1417,6 +1419,29 @@ const ConversationScreen = ({ navigation, route }) => {
   const [isOtherUserOnline, setIsOtherUserOnline] = useState(false);
   const otherUsername = otherUser?.username;
 
+  // Real Android Bubbles only exist from Android 11 (API 30) onward.
+  const supportsBubbles = Platform.OS === "android" && Platform.Version >= 30;
+  const [bubblesEnabled, setBubblesEnabled] = useState(false);
+  useEffect(() => {
+    if (supportsBubbles) {
+      isChatBubblesEnabled().then(setBubblesEnabled);
+    }
+  }, []);
+
+  const handleOpenInBubble = () => {
+    const targetConversationId = currentConversationId || conversationId;
+    if (!targetConversationId) return;
+    const title = otherUser
+      ? otherUser.profile_name || otherUser.username || t("chatConversation.title", "Tin nhắn")
+      : currentConversation?.name || t("chatConversation.title", "Tin nhắn");
+    showChatBubble({
+      conversationId: String(targetConversationId),
+      title,
+      message: t("chatConversation.openInBubbleMessage", "Mở cuộc trò chuyện"),
+      avatarUrl: getHeaderAvatar(),
+    });
+  };
+
   const refreshOtherUserOnlineStatus = React.useCallback(() => {
     if (!otherUsername) return;
     getOnlineStatus(otherUsername)
@@ -1528,6 +1553,15 @@ const ConversationScreen = ({ navigation, route }) => {
     const destructiveButtonIndex = 2;
     const cancelButtonIndex = 3;
 
+    // Android-only (bubbles don't exist on iOS) and only offered once the
+    // user has actually opted into bubbles in Notification Settings.
+    const bubbleMenuItem = supportsBubbles && bubblesEnabled
+      ? [{
+          text: t("chatConversation.openInBubble", "Mở dạng bong bóng chat"),
+          onPress: handleOpenInBubble,
+        }]
+      : [];
+
     if (!otherUser) {
       // Group conversation (or the singleton public chat, which has no group management).
       const isPublicChat = isPublicGroupChat(currentConversation);
@@ -1539,6 +1573,7 @@ const ConversationScreen = ({ navigation, route }) => {
             text: t("chatConversation.report"),
             onPress: () => setReportModalVisible(true),
           },
+          ...bubbleMenuItem,
           { text: t("common.cancel"), style: "cancel" },
         ]);
         return;
@@ -1553,6 +1588,7 @@ const ConversationScreen = ({ navigation, route }) => {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),
         },
+        ...bubbleMenuItem,
         {
           text: t("chatConversation.leaveGroupAction", "Rời nhóm"),
           style: "destructive",
@@ -1586,6 +1622,7 @@ const ConversationScreen = ({ navigation, route }) => {
           text: t("chatConversation.changeBackground", "Đổi hình nền"),
           onPress: () => setBackgroundModalVisible(true),
         },
+        ...bubbleMenuItem,
         {
           text: t("chatConversation.blockUser"),
           onPress: confirmBlock,

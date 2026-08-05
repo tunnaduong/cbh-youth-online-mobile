@@ -479,6 +479,8 @@
     "report": "Report",
     "blockUser": "Block user",
     "changeBackground": "Change background",
+    "openInBubble": "Open as chat bubble",
+    "openInBubbleMessage": "Open the conversation",
     "optionsTitle": "Options",
     "casualGroupName": "Casual Chat",
     "cannotOpen": "Could not open conversation. Please try again later.",

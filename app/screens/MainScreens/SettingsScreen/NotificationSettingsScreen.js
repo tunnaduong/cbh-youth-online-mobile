@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Animated,
   Platform,
+  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -121,9 +122,15 @@ export default function NotificationSettingsScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
+  // The real Android "Bubbles" API (floating chat heads managed by the OS
+  // notification system, not the old SYSTEM_ALERT_WINDOW-overlay style used
+  // by apps like old Messenger) only exists from Android 11 (API 30)
+  // onward - Platform.Version is the numeric API level on Android.
+  const supportsBubbles = Platform.OS === "android" && Platform.Version >= 30;
+
   useEffect(() => {
     fetchSettings();
-    if (Platform.OS === "android") {
+    if (supportsBubbles) {
       isChatBubblesEnabled().then(setBubblesEnabled);
     }
   }, []);
@@ -131,6 +138,20 @@ export default function NotificationSettingsScreen({ navigation }) {
   const handleToggleBubbles = async (value) => {
     setBubblesEnabled(value);
     await setChatBubblesEnabled(value);
+    if (value) {
+      // Our own toggle only controls whether WE post bubble-eligible
+      // notifications - Android still requires the user to separately grant
+      // the "Bubbles" permission for the app at the OS level (default off),
+      // the same way notification permission needs its own grant. Send them
+      // straight to that system screen instead of leaving it undiscoverable.
+      try {
+        await Linking.sendIntent("android.settings.APP_NOTIFICATION_BUBBLE_SETTINGS", [
+          { key: "android.provider.extra.APP_PACKAGE", value: "com.fatties.youth" },
+        ]);
+      } catch (error) {
+        console.warn("Could not open Android bubble settings:", error);
+      }
+    }
   };
 
   const fetchSettings = async () => {
@@ -300,7 +321,7 @@ export default function NotificationSettingsScreen({ navigation }) {
           />
         </SettingSection>
 
-        {Platform.OS === "android" && (
+        {supportsBubbles && (
           <SettingSection title={t('notificationSettings.chatBubbles')} theme={theme}>
             <SettingItem
               icon="chatbox-ellipses-outline"

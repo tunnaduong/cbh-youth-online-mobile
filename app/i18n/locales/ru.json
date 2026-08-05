@@ -489,6 +489,8 @@
     "report": "Пожаловаться",
     "blockUser": "Заблокировать пользователя",
     "changeBackground": "Изменить фон",
+    "openInBubble": "Открыть как всплывающий чат",
+    "openInBubbleMessage": "Открыть беседу",
     "optionsTitle": "Опции",
     "casualGroupName": "Свободное общение",
     "cannotOpen": "Не удалось открыть беседу. Попробуйте позже.",
