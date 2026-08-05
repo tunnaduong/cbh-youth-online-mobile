@@ -103,3 +103,25 @@ export function disconnectEcho() {
 export function getSocketId() {
   return echoInstance?.socketId() || null;
 }
+
+/**
+ * The OS suspends a backgrounded app's network/socket connections, so the
+ * Reverb connection silently goes stale while the app is backgrounded (e.g.
+ * screen locked, switched to another app) - pusher-js doesn't know to retry
+ * the instant the app comes back to the foreground, so a message that
+ * arrived during that window never got delivered live, only becoming
+ * visible after a full screen remount (which re-fetches from the REST API
+ * and rejoins the channel from scratch). Call this whenever the app
+ * transitions back to the foreground to force a reconnect if the
+ * connection isn't already healthy.
+ */
+export function reconnectEchoIfNeeded() {
+  const connection = echoInstance?.connector?.pusher?.connection;
+  if (!connection) return;
+
+  const state = connection.state;
+  if (state !== "connected" && state !== "connecting") {
+    console.log("[Echo] app foregrounded with connection state:", state, "- reconnecting");
+    connection.connect();
+  }
+}

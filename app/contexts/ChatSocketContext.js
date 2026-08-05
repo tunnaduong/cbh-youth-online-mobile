@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useRef, useCallback, useEffect } from "react";
-import { getEcho, disconnectEcho } from "../services/echo/echo";
+import { AppState } from "react-native";
+import { getEcho, disconnectEcho, reconnectEchoIfNeeded } from "../services/echo/echo";
 import { useAuthContext } from "./AuthContext";
 
 const ChatSocketContext = createContext(null);
@@ -161,6 +162,21 @@ export const ChatSocketProvider = ({ children }) => {
       disconnectEcho();
     }
   }, [isLoggedIn, leaveChannel]);
+
+  // The OS suspends the socket while the app is backgrounded - reconnect as
+  // soon as it's foregrounded again instead of waiting on pusher-js's own
+  // retry timing (or, previously, nothing at all short of remounting the
+  // screen), which is what made a message that arrived while backgrounded
+  // only show up after leaving and re-entering the conversation.
+  useEffect(() => {
+    if (!isLoggedIn) return undefined;
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        reconnectEchoIfNeeded();
+      }
+    });
+    return () => subscription.remove();
+  }, [isLoggedIn]);
 
   useEffect(() => {
     return () => {

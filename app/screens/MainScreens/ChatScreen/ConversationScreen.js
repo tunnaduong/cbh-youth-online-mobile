@@ -17,6 +17,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   BackHandler,
+  AppState,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -2008,6 +2009,24 @@ const ConversationScreen = ({ navigation, route }) => {
     onTyping,
     refreshOtherUserOnlineStatus,
   ]);
+
+  // Reconnecting the socket (see ChatSocketContext's AppState listener) only
+  // fixes FUTURE events - sockets don't replay whatever was sent while the
+  // app was backgrounded and fully disconnected, so a message sent during
+  // that window would still just sit missing until the screen was remounted.
+  // Catch up explicitly whenever the app comes back to the foreground while
+  // this conversation is open.
+  useEffect(() => {
+    const activeId = currentConversationId || conversationId;
+    if (isNewConversation || !activeId) return undefined;
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        fetchMessagesRef.current(true, true);
+      }
+    });
+    return () => subscription.remove();
+  }, [isNewConversation, currentConversationId, conversationId]);
 
   const scrollToLatestMessage = () => {
     requestAnimationFrame(() => {
