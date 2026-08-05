@@ -98,9 +98,14 @@ const CreatePostScreen = ({ navigation, route }) => {
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
+  // The hero card (with its own "Tạo bài viết" title) sits right at the top
+  // of the scroll content, directly under this header. Fading the header
+  // title IN only once the hero card has scrolled mostly out of view (rather
+  // than showing both titles stacked at rest, scroll 0) avoids the visual
+  // duplication/overlap.
   const headerTitleOpacity = scrollY.interpolate({
-    inputRange: [0, 24, 48],
-    outputRange: [1, 0.5, 0],
+    inputRange: [0, 40, 90],
+    outputRange: [0, 0, 1],
     extrapolate: "clamp",
   });
   const headerButtonOpacity = Platform.OS === "android" ? 1 : headerOpacity;
