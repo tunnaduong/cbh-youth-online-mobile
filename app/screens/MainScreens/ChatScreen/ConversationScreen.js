@@ -58,6 +58,7 @@ import MessageReactionPicker, {
   REACTION_EMOJI_BY_TYPE,
   REACTION_EMOJIS,
 } from "../../../components/MessageReactionPicker";
+import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
 import ForwardMessageModal from "../../../components/ForwardMessageModal";
 import { Alert, ActionSheetIOS, KeyboardAvoidingView, Clipboard } from "react-native";
 import Toast from "react-native-toast-message";
@@ -2874,6 +2875,26 @@ const ConversationScreen = ({ navigation, route }) => {
     Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
   };
 
+  const handleDownloadMessage = async () => {
+    const item = reactionPicker.message;
+    closeReactionPicker();
+    if (!item) return;
+
+    const isVideo = item.content_type === "video" || item.type === "video";
+    const url = item.file_url;
+    if (!url) return;
+
+    try {
+      await downloadMediaToLibrary(url, isVideo ? "video" : "image");
+      Toast.show({ type: "success", text1: t("chatConversation.downloadSuccess", "Đã lưu vào thư viện") });
+    } catch (error) {
+      const message = error?.message === "PERMISSION_DENIED"
+        ? t("chatConversation.downloadPermissionDenied", "Cần quyền truy cập thư viện ảnh để tải xuống")
+        : t("chatConversation.downloadError", "Không thể tải xuống, vui lòng thử lại");
+      Toast.show({ type: "error", text1: message });
+    }
+  };
+
   const handleRecallMessage = () => {
     const item = reactionPicker.message;
     closeReactionPicker();
@@ -3393,6 +3414,16 @@ const ConversationScreen = ({ navigation, route }) => {
           reactionPicker.message?.content_type !== "video" &&
           reactionPicker.message?.content_type !== "file"
             ? handleCopyMessage
+            : undefined
+        }
+        onDownload={
+          !reactionPicker.message?.is_recalled &&
+          reactionPicker.message?.file_url &&
+          (reactionPicker.message?.type === "image" ||
+            reactionPicker.message?.type === "video" ||
+            reactionPicker.message?.content_type === "image" ||
+            reactionPicker.message?.content_type === "video")
+            ? handleDownloadMessage
             : undefined
         }
         onReply={reactionPicker.message?.is_recalled ? undefined : handleReplyToMessage}

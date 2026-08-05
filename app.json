@@ -152,6 +152,14 @@
           "sounds": []
         }
       ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Cho phép CBH Youth Online lưu ảnh vào thư viện của bạn",
+          "savePhotosPermission": "Cho phép CBH Youth Online lưu ảnh vào thư viện của bạn",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
       "expo-web-browser",
       "expo-apple-authentication",
       "expo-localization",

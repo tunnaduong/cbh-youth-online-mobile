@@ -13,7 +13,7 @@ import {
   getUnreadNotificationCount,
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
-import { showChatBubble } from '../../modules/expo-chat-bubbles';
+import { showChatBubble } from '../../modules/dhpos-chat-bubbles';
 import { isChatBubblesEnabled } from '../utils/chatBubblePrefs';
 
 export const NotificationContext = createContext();

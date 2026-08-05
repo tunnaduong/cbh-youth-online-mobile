@@ -38,6 +38,7 @@ const MessageReactionPicker = ({
   onReply,
   onForward,
   onCopy,
+  onDownload,
   onEdit,
   onRecall,
   onViewSeenBy,
@@ -152,6 +153,18 @@ const MessageReactionPicker = ({
                 <Ionicons name="arrow-redo-outline" size={18} color={theme.text} />
                 <Text style={[styles.replyText, { color: theme.text }]}>
                   {t("chatConversation.forward", "Chuyển tiếp")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onDownload && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onDownload}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="download-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.download", "Tải xuống")}
                 </Text>
               </TouchableOpacity>
             )}
