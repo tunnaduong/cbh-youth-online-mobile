@@ -1,0 +1,15 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.chatbubbles'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.chatbubbles"
+}
+
+dependencies {
+  implementation "androidx.core:core-ktx:1.17.0"
+}

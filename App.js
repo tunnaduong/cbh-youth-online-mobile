@@ -142,7 +142,7 @@ const parseDeepLink = (url) => {
       const queryPart = customSchemeMatch[4] || "";
 
       if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
-        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group") {
+        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group" || firstSegment === "chat") {
           pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
           host = "";
         } else {
@@ -196,6 +196,15 @@ const parseDeepLink = (url) => {
       if (pathSegment.startsWith("group/")) {
         const token = pathSegment.slice(6).split("?")[0];
         if (token) return { screen: "GroupJoin", params: { token } };
+      }
+      if (pathSegment.startsWith("chat/")) {
+        // Used by the Android chat-bubble notification's tap/launch intent
+        // (see modules/expo-chat-bubbles) so tapping a bubble opens the
+        // right conversation instead of just the app.
+        const conversationId = pathSegment.slice(5).split("?")[0];
+        if (conversationId) {
+          return { screen: "ConversationScreen", params: { conversationId } };
+        }
       }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;

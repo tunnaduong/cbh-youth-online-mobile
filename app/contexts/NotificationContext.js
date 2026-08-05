@@ -13,6 +13,7 @@ import {
   getUnreadNotificationCount,
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
+import { showChatBubble } from '../../modules/expo-chat-bubbles';
 
 export const NotificationContext = createContext();
 
@@ -145,8 +146,25 @@ export const NotificationProvider = ({ children }) => {
     if (notification?.request?.content) {
       console.log('Notification content:', notification.request.content);
     }
-    // You can add custom logic here, like updating local state
-    // or showing an in-app notification
+
+    // Android-only: show a chat message as a floating bubble instead of (or
+    // alongside) the normal notification. This only fires while JS is alive
+    // (foreground or backgrounded-but-not-killed) - a fully killed app
+    // never runs this listener, so bubbles for that case would need a
+    // native FCM receiver override, which this doesn't attempt.
+    if (Platform.OS === 'android') {
+      const data = notification?.request?.content?.data;
+      const conversationId = data?.conversation_id ?? data?.conversationId;
+      if (conversationId) {
+        const content = notification.request.content;
+        showChatBubble({
+          conversationId: String(conversationId),
+          title: content.title || data?.actor?.profile_name || data?.actor?.username || 'Tin nhắn mới',
+          message: content.body || '',
+          avatarUrl: data?.actor?.avatar_url ?? data?.actorAvatarUrl ?? null,
+        });
+      }
+    }
   };
 
   const handleNotificationTapped = (response) => {

@@ -78,6 +78,10 @@
             {
               "scheme": "com.fatties.youth",
               "host": "group"
+            },
+            {
+              "scheme": "com.fatties.youth",
+              "host": "chat"
             }
           ],
           "category": [
@@ -173,7 +177,8 @@
             "android:launchMode": "singleTask"
           }
         }
-      ]
+      ],
+      "./plugins/withChatBubbles"
     ],
     "notification": {
       "icon": "./app/assets/notification-monochrome.png",
