@@ -1424,6 +1424,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       previousStatusBarStyle.current.barStyle,
       previousStatusBarStyle.current.backgroundColor
     );
+    // userStories is only fetched once on mount/blockedUsers change, so the
+    // view count shown on the outer story bubble stays stale even though
+    // markStoryAsViewed (and any other viewer's view, recorded server-side
+    // while you were browsing) already changed it - the in-viewer "views"
+    // count is only correct because it does its own fresh fetch. Silently
+    // resync after closing so the bubble reflects reality without needing a
+    // full pull-to-refresh.
+    fetchStories();
   };
 
   const dismissStoryModal = () => {
