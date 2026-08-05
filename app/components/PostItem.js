@@ -41,12 +41,16 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
+import { appendSoundCloudEmbedBelow } from "../utils/soundcloudShare";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
-// and given a custom renderer that plays the embed in a WebView.
-const customHTMLElementModels = {
+// and given a custom renderer that plays the embed in a WebView. Exported so
+// other RenderHTML instances (e.g. PostScreen's comment renderer) that also
+// display backend-whitelisted YouTube/SoundCloud iframes can reuse the exact
+// same setup instead of silently dropping unrecognized <iframe> tags.
+export const customHTMLElementModels = {
   iframe: HTMLElementModel.fromCustomModel({
     tagName: "iframe",
     contentModel: HTMLContentModel.block,
@@ -87,12 +91,68 @@ const YOUTUBE_ERROR_MESSAGES = {
   153: "Player error (see baseUrl/host same-origin fix)",
 };
 
-const YouTubeIframeRenderer = ({ tnode }) => {
+export const YouTubeIframeRenderer = ({ tnode }) => {
   const rawSrc = tnode?.attributes?.src;
   const src = rawSrc ? (rawSrc.startsWith("//") ? `https:${rawSrc}` : rawSrc) : null;
-  const videoId = src ? extractYouTubeId(src) : null;
+
+  // SoundCloud's widget src (https://w.soundcloud.com/player/?url=...) is
+  // already a complete, self-contained player page - unlike YouTube's embed
+  // src, it doesn't need to be routed through a custom HTML wrapper/IFrame
+  // Player API, so it's loaded directly as the WebView's `uri` source below.
+  const isSoundCloud = !!src && src.includes("w.soundcloud.com");
+
+  const videoId = src && !isSoundCloud ? extractYouTubeId(src) : null;
   const width = Dimensions.get("window").width - 30;
-  const height = (width * 9) / 16;
+  const height = isSoundCloud ? 166 : (width * 9) / 16;
+
+  // Declared before the early return below so hook order stays stable
+  // regardless of which branch (SoundCloud vs YouTube) ends up rendering.
+  const html = useMemo(
+    () => (isSoundCloud ? null : buildYouTubePlayerHtml(videoId)),
+    [isSoundCloud, videoId],
+  );
+  const source = useMemo(
+    () => (isSoundCloud ? { uri: src } : { html, baseUrl: "https://www.youtube-nocookie.com" }),
+    [isSoundCloud, src, html],
+  );
+
+  if (isSoundCloud) {
+    if (!rawSrc) return null;
+    return (
+      <View
+        style={{
+          width,
+          height,
+          marginVertical: 8,
+          borderRadius: 8,
+          overflow: Platform.OS === "ios" ? "hidden" : "visible",
+          backgroundColor: "#000",
+        }}
+        onStartShouldSetResponder={() => true}
+        onResponderTerminationRequest={() => false}
+      >
+        <WebView
+          source={source}
+          style={{ width, height }}
+          javaScriptEnabled
+          domStorageEnabled
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          originWhitelist={["*"]}
+          mixedContentMode="always"
+          thirdPartyCookiesEnabled
+          sharedCookiesEnabled
+          userAgent={MOBILE_USER_AGENT}
+          onError={(syntheticEvent) => {
+            console.log("[SoundCloudEmbed] WebView onError", syntheticEvent.nativeEvent);
+          }}
+          onHttpError={(syntheticEvent) => {
+            console.log("[SoundCloudEmbed] WebView onHttpError", syntheticEvent.nativeEvent);
+          }}
+        />
+      </View>
+    );
+  }
 
   // Load the real YouTube IFrame Player API (iframe_api) and construct the
   // player through it instead of dropping a bare <iframe> in - a bare iframe
@@ -111,12 +171,8 @@ const YouTubeIframeRenderer = ({ tnode }) => {
   // on every parent render) - otherwise a fresh {html, baseUrl} object each
   // time made the WebView think its source changed and reload the whole
   // player, which was showing up as duplicate boot/apiready log pairs.
-  const html = useMemo(() => buildYouTubePlayerHtml(videoId), [videoId]);
-
-  const source = useMemo(
-    () => ({ html, baseUrl: "https://www.youtube-nocookie.com" }),
-    [html],
-  );
+  // (`html`/`source` themselves are declared above, before the SoundCloud
+  // early return, so hook order stays stable across both branches.)
 
   if (!rawSrc || !videoId) return null;
 
@@ -592,14 +648,14 @@ const PostItem = ({
               a: { onPress: (event, href) => handleContentLinkPress(event, href) },
             }}
             source={{
-              html: appendYouTubeEmbedBelow(
+              html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
                 linkifyMentionsInHtml(
                   isExpanded || !item.content || item.content.length <= 300
                     ? item.content || ""
                     : truncatedContent,
                   validMentions
                 )
-              ),
+              )),
             }}
             baseStyle={{
               fontSize: 16,

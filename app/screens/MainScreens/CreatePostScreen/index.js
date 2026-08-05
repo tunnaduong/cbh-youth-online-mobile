@@ -43,6 +43,7 @@ import {
   validateVideoAsset,
 } from "../../../utils/videoUpload";
 import { extractYouTubeId, buildYouTubePlayerHtml, autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
+import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
 import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import { getMentionSuggestions } from "../../../services/api/Api";
@@ -445,7 +446,7 @@ const CreatePostScreen = ({ navigation, route }) => {
         // Auto-wraps a bare youtube.com/youtu.be link typed into the post
         // in the same <iframe> PostItem already knows how to render, so
         // users don't have to write the embed markup by hand.
-        description: autoEmbedYouTubeLinks(postContent),
+        description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
         cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
         cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
         cdn_video_id: videoIds.length > 0 ? videoIds.join(",") : null,

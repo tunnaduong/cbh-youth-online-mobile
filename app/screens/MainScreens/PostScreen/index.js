@@ -53,7 +53,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
-import PostItem from "../../../components/PostItem";
+import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { reportUser } from "../../../services/api/Api";
@@ -159,6 +159,8 @@ const Comment = React.memo(React.forwardRef(
                   <RenderHTML
                     contentWidth={Dimensions.get("window").width - 90 - level * 20}
                     source={{ html: linkifyMentionsInHtml(contentHtml, validMentions, { allowBroadcastMention: true }) }}
+                    customHTMLElementModels={customHTMLElementModels}
+                    renderers={{ iframe: YouTubeIframeRenderer }}
                     renderersProps={{
                       a: {
                         onPress: (event, href) => {

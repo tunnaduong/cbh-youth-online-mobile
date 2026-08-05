@@ -33,6 +33,7 @@ import FastImage from "../../../components/FastImage";
 import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
 import { autoEmbedYouTubeLinks, extractYouTubeId, buildYouTubePlayerHtml } from "../../../utils/youtubeShare";
+import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
 import { WebView } from "react-native-webview";
 import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
@@ -533,7 +534,7 @@ const PostEditScreen = ({ navigation, route }) => {
         title,
         // Auto-wraps a bare youtube.com/youtu.be link typed into the post
         // in the same <iframe> PostItem already knows how to render.
-        description: autoEmbedYouTubeLinks(postContent),
+        description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
         kept_image_ids: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         kept_document_ids: allDocIds.length > 0 ? allDocIds.join(",") : null,
