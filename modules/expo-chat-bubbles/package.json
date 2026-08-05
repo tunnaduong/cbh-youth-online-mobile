@@ -1,8 +1,0 @@
-{
-  "name": "expo-chat-bubbles",
-  "version": "1.0.0",
-  "description": "Local module: post an Android chat-bubble notification for a conversation",
-  "main": "index.ts",
-  "license": "UNLICENSED",
-  "private": true
-}
