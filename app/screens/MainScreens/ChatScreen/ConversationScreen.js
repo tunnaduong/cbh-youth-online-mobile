@@ -1750,9 +1750,27 @@ const ConversationScreen = ({ navigation, route }) => {
         setHasMore(response.data.current_page < response.data.last_page);
         setPage((prev) => (isRefresh ? 2 : prev + 1));
       } else if (JSON.stringify(newMessages) !== previousCache) {
-        // Update UI only if new data is different from what was cached before this refresh
-        setMessages(preserveRecentReactions(transformed));
-        setPage(2);
+        // Update UI only if new data is different from what was cached before this refresh.
+        // This background refresh always fetches page 1 (the newest tail of
+        // the conversation) - wholesale replacing `messages` with just that
+        // would silently discard any older pages the user had scrolled up
+        // to load via pagination. Keep everything already loaded that's
+        // older than this fresh page-1 batch, and only replace the tail.
+        setMessages((prev) => {
+          const freshIds = new Set(newMessages.map((m) => m.id));
+          const oldestFreshTime = newMessages.length > 0
+            ? new Date(newMessages[0].created_at).getTime()
+            : null;
+          const preservedOlder = prev.filter((item) => {
+            if (item.type !== "message") return false;
+            if (freshIds.has(item.id)) return false;
+            return !oldestFreshTime || new Date(item.created_at).getTime() < oldestFreshTime;
+          });
+          const merged = injectTimeHeaders([...preservedOlder, ...newMessages], t);
+          return preserveRecentReactions(merged);
+        });
+        // Don't touch page/hasMore here - this is a freshness sync for the
+        // newest page only, not a pagination action.
       }
     } catch (error) {
       console.log("Error fetching messages:", error.response?.data);
