@@ -542,20 +542,23 @@ const CreatePostScreen = ({ navigation, route }) => {
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </Animated.View>
-        <Animated.Text
+        <Animated.View
           pointerEvents="none"
-          style={[
-            styles.topTitle,
-            {
-              flex: 1,
-              opacity: headerTitleOpacity,
-              color: theme.text,
-              textAlign: "center",
-            },
-          ]}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: headerTitleOpacity,
+          }}
         >
-          {t("createPost.title")}
-        </Animated.Text>
+          <Text style={[styles.topTitle, { color: theme.text }]}>
+            {t("createPost.title")}
+          </Text>
+        </Animated.View>
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton
             size={44}

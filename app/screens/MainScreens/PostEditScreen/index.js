@@ -622,7 +622,12 @@ const PostEditScreen = ({ navigation, route }) => {
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </Animated.View>
-        <Animated.Text style={[styles.topTitle, { flex: 1, textAlign: 'center', opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', opacity: headerTitleOpacity }}
+        >
+          <Text style={[styles.topTitle, { color: theme.text }]}>{t('editPost.title')}</Text>
+        </Animated.View>
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdate} roundedOnScroll providerId="PostEditScreen" style={styles.publishButton}>
             <Text style={[styles.publishButtonText, { color: theme.primary }]}>{t('editPost.save')}</Text>
