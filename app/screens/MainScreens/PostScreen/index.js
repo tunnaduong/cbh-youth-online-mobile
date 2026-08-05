@@ -23,6 +23,7 @@ import {
   ActivityIndicator,
   Platform,
   Keyboard,
+  Dimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
@@ -44,6 +45,8 @@ import {
 import CommentBar from "../../../components/CommentBar";
 import FastImage from "../../../components/FastImage";
 import MentionText from "../../../components/MentionText";
+import RenderHTML from "react-native-render-html";
+import { linkifyMentionsInHtml } from "../../../utils/mentionRender";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -72,6 +75,10 @@ const Comment = React.memo(React.forwardRef(
     const votes = comment.votes ?? [];
     const author = comment.author ?? {};
     const content = comment.content ?? "";
+    const contentHtml = comment.comment ?? "";
+    const validMentions = Array.isArray(comment.mentions)
+      ? new Set(comment.mentions.map((m) => m.username.toLowerCase()))
+      : null;
     const replies = comment.replies ?? [];
     const isHighlighted = highlightedCommentId === comment.id;
 
@@ -147,10 +154,44 @@ const Comment = React.memo(React.forwardRef(
                   </Text>
                 </View>
               )}
-              {!!content && (
-                <MentionText style={{ flexShrink: 1, color: theme.text }} mentions={comment.mentions} onMentionPress={(u) => navigation.navigate("ProfileScreen", { username: u })}>
-                  {String(content)}
-                </MentionText>
+              {!!contentHtml ? (
+                <View style={{ flexShrink: 1 }}>
+                  <RenderHTML
+                    contentWidth={Dimensions.get("window").width - 90 - level * 20}
+                    source={{ html: linkifyMentionsInHtml(contentHtml, validMentions, { allowBroadcastMention: true }) }}
+                    renderersProps={{
+                      a: {
+                        onPress: (event, href) => {
+                          const match = /^\/([\w.-]+)$/.exec(href || "");
+                          if (match) navigation.navigate("ProfileScreen", { username: match[1] });
+                        },
+                      },
+                    }}
+                    baseStyle={{ fontSize: 14, color: theme.text }}
+                    classesStyles={{
+                      "mention-tag": { color: "#22c55e", fontWeight: "600" },
+                    }}
+                    tagsStyles={{
+                      p: { marginBottom: 0, marginTop: 0, color: theme.text },
+                      strong: { fontWeight: "bold", color: theme.text },
+                      em: { fontStyle: "italic", color: theme.text },
+                      br: { marginBottom: 0 },
+                      a: { color: theme.primary },
+                      code: {
+                        fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+                        backgroundColor: isDarkMode ? "#2C2C2C" : "#f0f0f0",
+                        borderRadius: 4,
+                        paddingHorizontal: 4,
+                      },
+                    }}
+                  />
+                </View>
+              ) : (
+                !!content && (
+                  <MentionText style={{ flexShrink: 1, color: theme.text }} mentions={comment.mentions} onMentionPress={(u) => navigation.navigate("ProfileScreen", { username: u })}>
+                    {String(content)}
+                  </MentionText>
+                )
               )}
               {comment.image_urls?.length > 0 && (
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
