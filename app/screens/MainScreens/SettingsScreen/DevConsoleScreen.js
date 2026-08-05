@@ -8,7 +8,9 @@ import {
   Animated,
   StatusBar,
   Alert,
+  Clipboard,
 } from "react-native";
+import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -53,6 +55,20 @@ export default function DevConsoleScreen({ navigation }) {
 
   const filteredLogs = filter === "all" ? logs : logs.filter((l) => l.level === filter);
 
+  const handleCopyLog = useCallback((item) => {
+    Clipboard.setString(`[${item.level.toUpperCase()}] ${new Date(item.timestamp).toLocaleString()}\n${item.message}`);
+    Toast.show({ type: "success", text1: t("devConsole.copied"), visibilityTime: 1500 });
+  }, [t]);
+
+  const handleCopyAll = useCallback(() => {
+    if (filteredLogs.length === 0) return;
+    const text = filteredLogs
+      .map((item) => `[${item.level.toUpperCase()}] ${new Date(item.timestamp).toLocaleString()}\n${item.message}`)
+      .join("\n\n");
+    Clipboard.setString(text);
+    Toast.show({ type: "success", text1: t("devConsole.copiedAll"), visibilityTime: 1500 });
+  }, [filteredLogs, t]);
+
   const handleClear = useCallback(() => {
     Alert.alert(t("devConsole.clearLogsTitle"), t("devConsole.clearLogsDesc"), [
       { text: t("profile.cancel"), style: "cancel" },
@@ -85,7 +101,10 @@ export default function DevConsoleScreen({ navigation }) {
         <Text style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center" }]} numberOfLines={1}>
           {t("devConsole.title")}
         </Text>
-        <TouchableOpacity onPress={handleClear} style={{ width: 44, alignItems: "flex-end" }}>
+        <TouchableOpacity onPress={handleCopyAll} style={{ width: 32, alignItems: "center" }}>
+          <Ionicons name="copy-outline" size={20} color={theme.text} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleClear} style={{ width: 32, alignItems: "flex-end" }}>
           <Ionicons name="trash-outline" size={22} color={theme.text} />
         </TouchableOpacity>
       </View>
@@ -129,9 +148,12 @@ export default function DevConsoleScreen({ navigation }) {
                 <View style={[styles.levelBadge, { backgroundColor: LEVEL_COLORS[item.level] || LEVEL_COLORS.log }]}>
                   <Text style={styles.levelBadgeText}>{item.level.toUpperCase()}</Text>
                 </View>
-                <Text style={[styles.logTime, { color: theme.subText }]}>
+                <Text style={[styles.logTime, { color: theme.subText, flex: 1 }]}>
                   {new Date(item.timestamp).toLocaleTimeString()}
                 </Text>
+                <TouchableOpacity onPress={() => handleCopyLog(item)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="copy-outline" size={16} color={theme.subText} />
+                </TouchableOpacity>
               </View>
               <Text style={[styles.logMessage, { color: theme.text }]} selectable>
                 {item.message}

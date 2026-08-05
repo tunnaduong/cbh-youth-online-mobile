@@ -412,7 +412,9 @@
     "turnOffDesc": "Thao tác này sẽ xóa toàn bộ log đã thu thập và ngừng ghi log mới. Bạn có thể bật lại bất cứ lúc nào.",
     "turnOff": "Tắt",
     "enabledToastTitle": "Đã bật chế độ nhà phát triển",
-    "enabledToastDesc": "Mục Bảng debug giờ đã xuất hiện trong phần Giới thiệu."
+    "enabledToastDesc": "Mục Bảng debug giờ đã xuất hiện trong phần Giới thiệu.",
+    "copied": "Đã sao chép log",
+    "copiedAll": "Đã sao chép toàn bộ log"
   },
   "about": {
     "title": "Giới thiệu",

@@ -423,7 +423,9 @@
     "turnOffDesc": "This will delete all collected logs and stop capturing new ones. You can turn it back on anytime.",
     "turnOff": "Turn off",
     "enabledToastTitle": "Developer mode enabled",
-    "enabledToastDesc": "A Debug Console item now appears under About."
+    "enabledToastDesc": "A Debug Console item now appears under About.",
+    "copied": "Log copied",
+    "copiedAll": "Logs copied"
   },
   "about": {
     "title": "About",
