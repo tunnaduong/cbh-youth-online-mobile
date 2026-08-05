@@ -439,7 +439,7 @@ const EditProfileScreen = ({ navigation }) => {
                 title={t('editProfile.selectBirthday')}
                 confirmText={t('editProfile.confirm')}
                 cancelText={t('profile.cancel')}
-                maximumDate={new Date()}
+                maximumDate={new Date(Date.now() - 24 * 60 * 60 * 1000)}
                 minimumDate={new Date(1900, 0, 1)}
                 onConfirm={(selectedDate) => {
                   setOpen(false);
