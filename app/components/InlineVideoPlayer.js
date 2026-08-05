@@ -102,6 +102,19 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen, interactive }) =
             pointerEvents="none"
           />
         ) : null}
+        {!interactive && (
+          // VideoView renders via a native SurfaceView/TextureView-style
+          // surface on Android, which can intercept touches at the native
+          // compositing layer regardless of pointerEvents="none" above (that
+          // prop only affects RN's own touch dispatch, not the underlying
+          // native surface) - swiping over the video itself never reached
+          // the ancestor PanResponder, while swiping over the (plain-View,
+          // non-native) areas around it worked fine. A plain transparent RN
+          // View layered on top gives touches a normal view to land on
+          // instead, so they participate in RN's touch/responder system and
+          // bubble up to the message bubble's swipe/long-press handling.
+          <View style={StyleSheet.absoluteFill} />
+        )}
       </Tile>
       <TouchableOpacity
         onPress={() => setMuted((m) => !m)}
