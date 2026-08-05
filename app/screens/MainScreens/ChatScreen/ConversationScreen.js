@@ -454,6 +454,13 @@ const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) =>
         Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      // Capture phase runs top-down BEFORE any nested touchable (e.g. the
+      // video tile's mute button) gets a chance to claim the responder in
+      // the bubble phase - without this, a clear horizontal swipe starting
+      // on top of a nested TouchableOpacity never reached this PanResponder
+      // at all, so swipe-to-reply silently did nothing on video messages.
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
       onPanResponderGrant: () => {
         triggeredRef.current = false;
       },
@@ -1004,6 +1011,7 @@ const MessageRow = React.memo(({
                         height={thumbHeight}
                         borderRadius={12}
                         isActive={true}
+                        interactive={false}
                       />
                     );
                   })()
@@ -2949,9 +2957,16 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const openReactionPicker = (item, evt) => {
-    // Only persisted messages (numeric backend id) can be reacted to - optimistic
-    // messages still carry a string tempId while the upload/send is in flight.
-    if (!item || typeof item.id !== "number") return;
+    // Used to also require a numeric (persisted) id here, which meant
+    // long-pressing a message you'd JUST sent did nothing at all until its
+    // temp id was replaced by the real one - the picker never opened, so
+    // there was nothing to even queue a reaction against. Reacting to a
+    // still-sending message is already handled downstream
+    // (handleSelectReaction queues it via pendingReactionsRef when
+    // message.is_sending), so only bail here if there's no message at all.
+    // Reply/forward still individually guard on a numeric id, since those
+    // genuinely need a real server id to act on.
+    if (!item) return;
 
     const pageX = evt?.nativeEvent?.pageX ?? Dimensions.get("window").width / 2;
     const pageY = evt?.nativeEvent?.pageY ?? 200;
