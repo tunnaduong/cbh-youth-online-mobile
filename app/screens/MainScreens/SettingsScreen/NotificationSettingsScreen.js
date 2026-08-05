@@ -8,12 +8,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
-  Platform,
-  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { isChatBubblesEnabled, setChatBubblesEnabled } from "../../../utils/chatBubblePrefs";
 import Toast from "react-native-toast-message";
 import {
   getNotificationSettings,
@@ -105,9 +102,6 @@ export default function NotificationSettingsScreen({ navigation }) {
 
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [newsEnabled, setNewsEnabled] = useState(true);
-  // Android-only device preference, not synced to the backend (bubbles are
-  // an Android OS feature - there's nothing for iOS/other devices to sync).
-  const [bubblesEnabled, setBubblesEnabled] = useState(true);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -122,37 +116,9 @@ export default function NotificationSettingsScreen({ navigation }) {
     extrapolate: "clamp",
   });
 
-  // The real Android "Bubbles" API (floating chat heads managed by the OS
-  // notification system, not the old SYSTEM_ALERT_WINDOW-overlay style used
-  // by apps like old Messenger) only exists from Android 11 (API 30)
-  // onward - Platform.Version is the numeric API level on Android.
-  const supportsBubbles = Platform.OS === "android" && Platform.Version >= 30;
-
   useEffect(() => {
     fetchSettings();
-    if (supportsBubbles) {
-      isChatBubblesEnabled().then(setBubblesEnabled);
-    }
   }, []);
-
-  const handleToggleBubbles = async (value) => {
-    setBubblesEnabled(value);
-    await setChatBubblesEnabled(value);
-    if (value) {
-      // Our own toggle only controls whether WE post bubble-eligible
-      // notifications - Android still requires the user to separately grant
-      // the "Bubbles" permission for the app at the OS level (default off),
-      // the same way notification permission needs its own grant. Send them
-      // straight to that system screen instead of leaving it undiscoverable.
-      try {
-        await Linking.sendIntent("android.settings.APP_NOTIFICATION_BUBBLE_SETTINGS", [
-          { key: "android.provider.extra.APP_PACKAGE", value: "com.fatties.youth" },
-        ]);
-      } catch (error) {
-        console.warn("Could not open Android bubble settings:", error);
-      }
-    }
-  };
 
   const fetchSettings = async () => {
     try {
@@ -320,21 +286,6 @@ export default function NotificationSettingsScreen({ navigation }) {
             theme={theme}
           />
         </SettingSection>
-
-        {supportsBubbles && (
-          <SettingSection title={t('notificationSettings.chatBubbles')} theme={theme}>
-            <SettingItem
-              icon="chatbox-ellipses-outline"
-              title={t('notificationSettings.chatBubblesToggle')}
-              description={t('notificationSettings.chatBubblesToggleDesc')}
-              isSwitch
-              value={bubblesEnabled}
-              onPress={handleToggleBubbles}
-              lastItem
-              theme={theme}
-            />
-          </SettingSection>
-        )}
 
         {pushEnabled && (
           <>

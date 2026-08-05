@@ -13,8 +13,6 @@ import {
   getUnreadNotificationCount,
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
-import { showChatBubble } from '../../modules/dhpos-chat-bubbles';
-import { isChatBubblesEnabled } from '../utils/chatBubblePrefs';
 
 export const NotificationContext = createContext();
 
@@ -146,28 +144,6 @@ export const NotificationProvider = ({ children }) => {
     console.log('Notification received callback fired:', notification);
     if (notification?.request?.content) {
       console.log('Notification content:', notification.request.content);
-    }
-
-    // Android-only: show a chat message as a floating bubble instead of (or
-    // alongside) the normal notification. This only fires while JS is alive
-    // (foreground or backgrounded-but-not-killed) - a fully killed app
-    // never runs this listener, so bubbles for that case would need a
-    // native FCM receiver override, which this doesn't attempt.
-    if (Platform.OS === 'android') {
-      const data = notification?.request?.content?.data;
-      const conversationId = data?.conversation_id ?? data?.conversationId;
-      if (conversationId) {
-        isChatBubblesEnabled().then((enabled) => {
-          if (!enabled) return;
-          const content = notification.request.content;
-          showChatBubble({
-            conversationId: String(conversationId),
-            title: content.title || data?.actor?.profile_name || data?.actor?.username || 'Tin nhắn mới',
-            message: content.body || '',
-            avatarUrl: data?.actor?.avatar_url ?? data?.actorAvatarUrl ?? null,
-          });
-        });
-      }
     }
   };
 
