@@ -1,4 +1,9 @@
-import * as FileSystem from "expo-file-system";
+// expo-file-system's SDK 55 default export dropped downloadAsync/
+// cacheDirectory/deleteAsync in favor of a new File/Directory API - they
+// only remain available under the /legacy subpath. Importing from the
+// default entry point silently gave us `undefined` for all three, so
+// every download failed immediately.
+import * as FileSystem from "expo-file-system/legacy";
 import * as MediaLibrary from "expo-media-library";
 import { Platform } from "react-native";
 
