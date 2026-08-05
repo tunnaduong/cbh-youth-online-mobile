@@ -1142,6 +1142,12 @@ const ConversationScreen = ({ navigation, route }) => {
   const [message, setMessage] = useState("");
   const latestMessageRef = React.useRef("");
   const [messages, setMessages] = useState([]);
+  // Reacting to a message that's still using its optimistic temp id (send
+  // API hasn't resolved yet) sent the reaction to the server keyed to an id
+  // it doesn't recognize, so it silently failed/dropped until the next full
+  // fetch. Queue reactions made against an in-flight message here, keyed by
+  // its temp id, and flush them once the real server id is known.
+  const pendingReactionsRef = React.useRef({});
 
   const activeConversationId = React.useRef(null);
   const fetchMessageMentionSuggestions = React.useCallback(async (q) => {
@@ -2474,6 +2480,7 @@ const ConversationScreen = ({ navigation, route }) => {
         created_at: now,
         created_at_human: formatMessageTime(now, t),
         is_myself: true,
+        is_sending: true,
         type: "message",
         read_at: null,
         sender: {
@@ -2654,6 +2661,20 @@ const ConversationScreen = ({ navigation, route }) => {
         messagesToAdd.push(response.data);
         return [...baseMessages, ...messagesToAdd];
       });
+
+      // Flush any reaction the user made while this message was still
+      // in-flight under its temp id - it couldn't be sent to the server
+      // then since the server doesn't know that id.
+      const queuedReactionType = pendingReactionsRef.current[tempId];
+      if (queuedReactionType) {
+        delete pendingReactionsRef.current[tempId];
+        reactToMessage(response.data.id, queuedReactionType)
+          .then((res) => applyReactionUpdate(response.data.id, res.data.reactions))
+          .catch((error) => {
+            console.error("Error flushing queued reaction:", error?.response?.data || error);
+            applyReactionUpdate(response.data.id, response.data.reactions);
+          });
+      }
 
       const cachedData = storage.getString(getCacheKey(currentConversationId));
       if (cachedData) {
@@ -2898,9 +2919,17 @@ const ConversationScreen = ({ navigation, route }) => {
     closeReactionPicker();
     if (!message) return;
 
-    const previousReactions = message.reactions;
     applyReactionUpdate(message.id, buildOptimisticReaction(message, type));
 
+    if (message.is_sending) {
+      // Message hasn't been assigned its real server id yet - queue the
+      // reaction to be sent once it has (see pendingReactionsRef above).
+      // The optimistic UI update above already makes it look instant.
+      pendingReactionsRef.current[message.id] = type;
+      return;
+    }
+
+    const previousReactions = message.reactions;
     try {
       const response = await reactToMessage(message.id, type);
       applyReactionUpdate(message.id, response.data.reactions);
@@ -3375,13 +3404,21 @@ const ConversationScreen = ({ navigation, route }) => {
 
       {/* (profile block and floating button moved into header) */}
 
-      <KeyboardGestureArea
-        interpolator="ios"
-        style={{ flex: 1 }}
-        textInputNativeID="chat-input"
-      >
-        {/* Messages List */}
-        <View style={{ flex: 1 }}>
+      {/* AndroidGlassBackdrop must be an ancestor of any live-transformed
+          content, never a descendant - KeyboardGestureArea interactively
+          transforms its subtree per-frame outside RN's normal layout pass
+          (for the iOS-style drag-to-dismiss-keyboard gesture), which
+          previously sat ABOVE the glass provider here and desynced its
+          native blur capture from what was actually being drawn, making it
+          render blank/transparent on Android. Wrapping it the other way
+          around - glass outermost, gesture area only around the scrollable
+          message list that's meant to be draggable - fixes the capture
+          while keeping the gesture. The input bar (KeyboardStickyView) stays
+          a sibling of the glass provider, not nested inside it, per
+          liquid-glass-kit's own requirement that LiquidGlassViews (used
+          inside CommentBar) be siblings of their AndroidGlassBackdrop, not
+          descendants. */}
+      <View style={{ flex: 1 }}>
         {chatBackgroundUrl ? (
           <Image source={{ uri: chatBackgroundUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
@@ -3395,6 +3432,11 @@ const ConversationScreen = ({ navigation, route }) => {
           />
         ) : null}
         <AndroidGlassBackdrop providerId="ConversationScreen" style={{ flex: 1 }}>
+        <KeyboardGestureArea
+          interpolator="ios"
+          style={{ flex: 1 }}
+          textInputNativeID="chat-input"
+        >
         <KeyboardChatScrollView
           ref={messagesScrollRef}
           style={styles.messagesList}
@@ -3450,8 +3492,9 @@ const ConversationScreen = ({ navigation, route }) => {
           )}
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
+        </KeyboardGestureArea>
         </AndroidGlassBackdrop>
-        </View>
+      </View>
 
         {/* Input Bar - positioned above messages */}
         <KeyboardStickyView
@@ -3588,7 +3631,6 @@ const ConversationScreen = ({ navigation, route }) => {
             />
           </View>
         </KeyboardStickyView>
-      </KeyboardGestureArea>
     </View>
   );
 };
