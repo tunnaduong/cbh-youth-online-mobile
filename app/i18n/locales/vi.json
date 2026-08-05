@@ -398,6 +398,22 @@
     "loginPrompt": "Vui lòng đăng nhập để xem bài viết đã thích",
     "loadError": "Không thể tải bài viết đã thích. Vui lòng thử lại sau."
   },
+  "devConsole": {
+    "title": "Bảng debug",
+    "filter_all": "Tất cả",
+    "filter_warning": "Cảnh báo",
+    "filter_error": "Lỗi",
+    "noLogs": "Chưa có log nào",
+    "clear": "Xóa",
+    "clearLogsTitle": "Xóa log?",
+    "clearLogsDesc": "Toàn bộ log đã thu thập sẽ bị xóa.",
+    "turnOffDevMode": "Tắt chế độ nhà phát triển",
+    "turnOffTitle": "Tắt chế độ nhà phát triển?",
+    "turnOffDesc": "Thao tác này sẽ xóa toàn bộ log đã thu thập và ngừng ghi log mới. Bạn có thể bật lại bất cứ lúc nào.",
+    "turnOff": "Tắt",
+    "enabledToastTitle": "Đã bật chế độ nhà phát triển",
+    "enabledToastDesc": "Mục Bảng debug giờ đã xuất hiện trong phần Giới thiệu."
+  },
   "about": {
     "title": "Giới thiệu",
     "schoolName": "Trường THPT Chuyên Biên Hòa",
@@ -818,6 +834,7 @@
     "autoplayVideos": "Tự động phát video",
     "blockedUsers": "Người dùng đã chặn",
     "about": "Giới thiệu",
+    "debugConsole": "Bảng debug",
     "terms": "Điều khoản dịch vụ",
     "privacy": "Chính sách quyền riêng tư",
     "logout": "Đăng xuất",

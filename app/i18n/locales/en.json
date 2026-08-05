@@ -409,6 +409,22 @@
     "loginPrompt": "Please sign in to view liked posts",
     "loadError": "Could not load liked posts. Please try again later."
   },
+  "devConsole": {
+    "title": "Debug Console",
+    "filter_all": "All",
+    "filter_warning": "Warning",
+    "filter_error": "Error",
+    "noLogs": "No logs yet",
+    "clear": "Clear",
+    "clearLogsTitle": "Clear logs?",
+    "clearLogsDesc": "This will delete all logs collected so far.",
+    "turnOffDevMode": "Turn off developer mode",
+    "turnOffTitle": "Turn off developer mode?",
+    "turnOffDesc": "This will delete all collected logs and stop capturing new ones. You can turn it back on anytime.",
+    "turnOff": "Turn off",
+    "enabledToastTitle": "Developer mode enabled",
+    "enabledToastDesc": "A Debug Console item now appears under About."
+  },
   "about": {
     "title": "About",
     "schoolName": "Chuyên Biên Hòa High School",
@@ -830,6 +846,7 @@
     "autoplayVideos": "Autoplay videos",
     "blockedUsers": "Blocked Users",
     "about": "About",
+    "debugConsole": "Debug Console",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "logout": "Logout",

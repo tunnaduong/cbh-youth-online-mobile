@@ -73,6 +73,13 @@ import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useShareIntent } from "expo-share-intent";
 import { parseYouTubeShare } from "./app/utils/youtubeShare";
+import { initDevConsole } from "./app/utils/devConsole";
+import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
+
+// Patches console.log/warn/error as early as possible so nothing logged
+// during app startup is missed if dev mode is already enabled from a
+// previous session.
+initDevConsole();
 
 const Stack = createStackNavigator();
 
@@ -655,6 +662,13 @@ const App = () => {
               <Stack.Screen
                 name="EasterEggScreen"
                 component={EasterEggScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="DevConsoleScreen"
+                component={DevConsoleScreen}
                 options={{
                   headerShown: false,
                 }}

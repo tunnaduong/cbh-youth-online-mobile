@@ -53,6 +53,7 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
       setBackgroundUrl(data?.background_url || null);
       setHistory(Array.isArray(data?.history) ? data.history : []);
     } catch (error) {
+      console.error("[ChatBackgroundModal] loadBackground failed:", error?.response?.status, error?.response?.data || error?.message);
       Toast.show({ type: "error", text1: t("chatBackground.loadError", "Không thể tải hình nền cuộc trò chuyện") });
     } finally {
       setLoading(false);
@@ -68,6 +69,14 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
     if (result.canceled) return;
 
     setUploading(true);
+    console.log("[ChatBackgroundModal] picked asset:", JSON.stringify({
+      uri: result.assets[0].uri,
+      fileName: result.assets[0].fileName,
+      mimeType: result.assets[0].mimeType,
+      width: result.assets[0].width,
+      height: result.assets[0].height,
+      fileSize: result.assets[0].fileSize,
+    }));
     try {
       const res = await uploadConversationBackground(conversationId, result.assets[0].uri);
       const data = res?.data || res;
@@ -76,6 +85,7 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
       await loadBackground();
       Toast.show({ type: "success", text1: t("chatBackground.changed", "Đã đổi hình nền cuộc trò chuyện") });
     } catch (error) {
+      console.error("[ChatBackgroundModal] uploadConversationBackground failed:", error?.response?.status, error?.response?.data || error?.message);
       Toast.show({ type: "error", text1: t("chatBackground.uploadError", "Không thể tải ảnh lên, vui lòng thử lại") });
     } finally {
       setUploading(false);
@@ -91,6 +101,7 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
       setBackgroundUrl(data?.background_url || null);
       onBackgroundChanged?.(data?.background_url || null);
     } catch (error) {
+      console.error("[ChatBackgroundModal] selectConversationBackground failed:", error?.response?.status, error?.response?.data || error?.message);
       Toast.show({ type: "error", text1: t("chatBackground.selectError", "Không thể đổi hình nền, vui lòng thử lại") });
     } finally {
       setApplyingId(null);
@@ -114,6 +125,7 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
               onBackgroundChanged?.(null);
               Toast.show({ type: "success", text1: t("chatBackground.resetDone", "Đã đặt lại hình nền mặc định") });
             } catch (error) {
+              console.error("[ChatBackgroundModal] resetConversationBackground failed:", error?.response?.status, error?.response?.data || error?.message);
               Toast.show({ type: "error", text1: t("chatBackground.resetError", "Không thể đặt lại hình nền, vui lòng thử lại") });
             } finally {
               setResetting(false);
