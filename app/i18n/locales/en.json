@@ -517,6 +517,8 @@
     "recordVideo": "Record video",
     "chooseFromLibrary": "Choose from library",
     "cameraPermissionDenied": "Camera permission denied.",
+    "mixedMediaTitle": "Only one file type at a time",
+    "mixedMediaMessage": "Skipped files that don't match the first item you picked.",
     "reactionCount": "{{count}} reactions",
     "reactionTimes": "{{count}} times",
     "shareUnavailable": "Sharing is not available on this device.",

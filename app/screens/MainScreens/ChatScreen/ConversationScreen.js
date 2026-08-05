@@ -599,6 +599,47 @@ const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef }) => {
   );
 });
 
+// Renders a compact grid of thumbnails for a multi-attachment message
+// (item.file_urls with 2+ entries). Images show the actual thumbnail;
+// videos don't have a per-item thumbnail from the backend so they fall back
+// to the same placeholder box used for a single video, with a play icon
+// overlay per cell. Tapping a cell hands the tapped index back to the
+// caller so it can open the right viewer (gallery-swipe for images, single
+// video viewer for videos).
+const MultiAttachmentGrid = ({ urls, isVideo, onPressItem }) => {
+  const items = urls.slice(0, 10);
+  const columns = items.length <= 4 ? 2 : 3;
+  const gap = 2;
+  const cellSize = (200 - gap * (columns - 1)) / columns;
+  return (
+    <View style={{ width: 200, flexDirection: "row", flexWrap: "wrap", gap }}>
+      {items.map((url, idx) => (
+        <TouchableOpacity
+          key={idx}
+          activeOpacity={0.85}
+          onPress={() => onPressItem(idx)}
+          style={{ width: cellSize, height: cellSize }}
+        >
+          {isVideo ? (
+            <View style={[styles.videoPlaceholder, { width: "100%", height: "100%", borderRadius: 6 }]} />
+          ) : (
+            <FastImage
+              source={{ uri: resolveMediaUrl(url) }}
+              style={{ width: "100%", height: "100%", borderRadius: 6 }}
+              resizeMode="cover"
+            />
+          )}
+          {isVideo && (
+            <View style={[styles.videoPlayOverlay, { borderRadius: 6 }]}>
+              <Ionicons name="play" size={16} color="#fff" />
+            </View>
+          )}
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+};
+
 // A single message bubble (everything renderMessage used to build inline for
 // item.type === "message"). Split into its own React.memo'd component -
 // previously this was all inline in ConversationScreen's render, so ANY
@@ -890,7 +931,27 @@ const MessageRow = React.memo(({
                 onPress={() => handlersRef.current.handleJumpToRepliedMessage(item.reply_to.id)}
               />
             )}
-            {!item.is_recalled && isImageMessage && item.file_url ? (
+            {!item.is_recalled &&
+            (isImageMessage || isVideoMessage) &&
+            Array.isArray(item.file_urls) &&
+            item.file_urls.length > 1 ? (
+              <MultiAttachmentGrid
+                urls={item.file_urls}
+                isVideo={isVideoMessage}
+                onPressItem={(idx) => {
+                  if (isImageMessage) {
+                    handlersRef.current.openImageViewerGallery(
+                      item.file_urls.map(resolveMediaUrl),
+                      idx,
+                    );
+                  } else {
+                    handlersRef.current.openVideoViewer(
+                      resolveMediaUrl(item.file_urls[idx]),
+                    );
+                  }
+                }}
+              />
+            ) : !item.is_recalled && isImageMessage && item.file_url ? (
               <>
                 {mediaLoadError ? (
                   <View style={[styles.messageImage, styles.mediaErrorFallback]}>
@@ -1306,7 +1367,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const [editingMessage, setEditingMessage] = useState(null);
   const [typingUser, setTypingUser] = useState(null);
   const typingTimeoutRef = useRef(null);
-  const [imageViewer, setImageViewer] = useState({ visible: false, uri: null });
+  const [imageViewer, setImageViewer] = useState({ visible: false, uris: [], index: 0 });
   const [videoViewer, setVideoViewer] = useState({ visible: false, uri: null });
   const [reactionPicker, setReactionPicker] = useState({
     visible: false,
@@ -2112,15 +2173,39 @@ const ConversationScreen = ({ navigation, route }) => {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ["images", "videos"],
           quality: 0.8,
+          allowsMultipleSelection: true,
+          selectionLimit: 10,
         });
       }
 
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const asset = result.assets[0];
-        if (asset.type === "video") {
-          await sendVideoMessage(asset);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        let assets = result.assets;
+        if (assets.length > 1) {
+          // The backend only accepts a single media type per multi-attachment
+          // send (all images or all videos) - take whatever the first picked
+          // asset is and silently drop any assets of the other type instead
+          // of erroring out the whole send.
+          const firstType = assets[0].type;
+          const filtered = assets.filter((asset) => asset.type === firstType);
+          if (filtered.length !== assets.length) {
+            Toast.show({
+              type: "info",
+              text1: t("chatConversation.mixedMediaTitle", "Chỉ gửi một loại tệp"),
+              text2: t(
+                "chatConversation.mixedMediaMessage",
+                "Đã bỏ qua các tệp không cùng loại với lựa chọn đầu tiên.",
+              ),
+            });
+          }
+          assets = filtered;
+        }
+
+        if (assets[0].type === "video") {
+          await sendVideoMessage(assets.length > 1 ? assets : assets[0]);
         } else {
-          await sendImageMessage(asset.uri);
+          await sendImageMessage(
+            assets.length > 1 ? assets.map((asset) => asset.uri) : assets[0].uri,
+          );
         }
       }
     } catch (error) {
@@ -2194,39 +2279,68 @@ const ConversationScreen = ({ navigation, route }) => {
     });
   };
 
-  const sendImageMessage = async (imageUri) => {
-    // The picker can hand back non-JPEG originals (HEIC on iOS, PNG, etc.)
-    // while we always declare image/jpeg - re-encode so the upload always
-    // matches what it claims to be and passes the backend's mimes validation.
-    let normalizedUri = imageUri;
-    try {
-      const result = await manipulateAsync(imageUri, [], {
-        compress: 0.85,
-        format: SaveFormat.JPEG,
+  // Accepts either a single image URI (the common case) or an array of URIs
+  // (multi-select from the library picker, up to 10) - the single-URI path
+  // is unchanged, the array path just repeats the same normalize step per
+  // asset and hands the whole batch to sendAttachmentMessage as `attachments`.
+  const sendImageMessage = async (imageUriOrUris) => {
+    const uris = Array.isArray(imageUriOrUris) ? imageUriOrUris : [imageUriOrUris];
+    const attachments = [];
+    for (let i = 0; i < uris.length; i++) {
+      // The picker can hand back non-JPEG originals (HEIC on iOS, PNG, etc.)
+      // while we always declare image/jpeg - re-encode so the upload always
+      // matches what it claims to be and passes the backend's mimes validation.
+      let normalizedUri = uris[i];
+      try {
+        const result = await manipulateAsync(uris[i], [], {
+          compress: 0.85,
+          format: SaveFormat.JPEG,
+        });
+        normalizedUri = result.uri;
+      } catch (error) {
+        console.error("Error normalizing image before upload:", error);
+      }
+      attachments.push({
+        uri: normalizedUri,
+        fileName: `${Date.now()}_${i}.jpg`,
+        fileType: "image/jpeg",
       });
-      normalizedUri = result.uri;
-    } catch (error) {
-      console.error("Error normalizing image before upload:", error);
     }
 
-    await sendAttachmentMessage({
-      uri: normalizedUri,
-      type: "image",
-      fileName: `${Date.now()}.jpg`,
-      fileType: "image/jpeg",
-    });
+    if (attachments.length > 1) {
+      await sendAttachmentMessage({ type: "image", attachments });
+    } else {
+      await sendAttachmentMessage({
+        uri: attachments[0].uri,
+        type: "image",
+        fileName: attachments[0].fileName,
+        fileType: attachments[0].fileType,
+      });
+    }
   };
 
-  const sendVideoMessage = async (asset) => {
-    const fileName =
-      asset.fileName || asset.uri.split("/").pop() || "video.mp4";
-    await sendAttachmentMessage({
+  // Accepts either a single picker asset (the common case) or an array of
+  // assets (multi-select, up to 10) - same split as sendImageMessage above.
+  const sendVideoMessage = async (assetOrAssets) => {
+    const assets = Array.isArray(assetOrAssets) ? assetOrAssets : [assetOrAssets];
+    const attachments = assets.map((asset, i) => ({
       uri: asset.uri,
-      type: "video",
-      fileName,
+      fileName: asset.fileName || asset.uri.split("/").pop() || `video_${i}.mp4`,
       fileType: asset.mimeType || "video/mp4",
       fileSize: asset.fileSize,
-    });
+    }));
+
+    if (attachments.length > 1) {
+      await sendAttachmentMessage({ type: "video", attachments });
+    } else {
+      await sendAttachmentMessage({
+        uri: attachments[0].uri,
+        type: "video",
+        fileName: attachments[0].fileName,
+        fileType: attachments[0].fileType,
+        fileSize: attachments[0].fileSize,
+      });
+    }
   };
 
   const sendAttachmentMessage = async ({
@@ -2235,7 +2349,16 @@ const ConversationScreen = ({ navigation, route }) => {
     fileName,
     fileType,
     fileSize,
+    // Optional array of { uri, fileName, fileType, fileSize } - present only
+    // when multiple assets were picked. When it has 2+ entries we send
+    // files[] instead of the singular file field; a single-entry array is
+    // treated the same as the plain uri/fileName/fileType/fileSize params.
+    attachments,
   }) => {
+    const isMulti = Array.isArray(attachments) && attachments.length > 1;
+    const primary = isMulti
+      ? attachments[0]
+      : { uri, fileName, fileType, fileSize };
     const tempId = Date.now().toString();
     // Same reasoning as handleSendMessage: declared before try/catch so the
     // catch block can restore it on failure.
@@ -2249,11 +2372,23 @@ const ConversationScreen = ({ navigation, route }) => {
 
       // Create FormData
       const formData = new FormData();
-      formData.append("file", {
-        uri,
-        type: fileType,
-        name: fileName,
-      });
+      if (isMulti) {
+        // Multiple attachments - the backend uses files[] instead of file
+        // when it's present, so don't also send the singular field.
+        attachments.forEach((att) => {
+          formData.append("files[]", {
+            uri: att.uri,
+            type: att.fileType,
+            name: att.fileName,
+          });
+        });
+      } else {
+        formData.append("file", {
+          uri: primary.uri,
+          type: primary.fileType,
+          name: primary.fileName,
+        });
+      }
       formData.append("type", type);
       // The backend's `content` column is NOT NULL, and both omitting the
       // field and sending an empty/whitespace-only string have been observed
@@ -2262,7 +2397,7 @@ const ConversationScreen = ({ navigation, route }) => {
       // that's worked reliably in testing, so reuse the same filename value
       // already used for non-image attachments - it's never shown for images
       // anyway since the bubble renders the image itself, not `content`.
-      formData.append("content", fileName);
+      formData.append("content", primary.fileName);
       if (replySnapshot?.id) {
         formData.append("reply_to_message_id", replySnapshot.id);
       }
@@ -2270,11 +2405,16 @@ const ConversationScreen = ({ navigation, route }) => {
       // Optimistic message
       const optimisticMessage = {
         id: tempId,
-        content: type === "image" ? "" : fileName,
+        content: type === "image" ? "" : primary.fileName,
         type,
-        file_url: uri, // Use local URI temporarily
-        file_name: fileName,
-        file_size: fileSize,
+        file_url: primary.uri, // Use local URI temporarily
+        // Optimistic multi-attachment preview: local file:// URIs so the
+        // sending bubble's grid shows every picked asset immediately, same
+        // as the single-attachment file_url swap below once the real
+        // response (with the server's file_urls) comes back.
+        file_urls: isMulti ? attachments.map((att) => att.uri) : null,
+        file_name: primary.fileName,
+        file_size: primary.fileSize,
         is_sending: true,
         created_at: now,
         created_at_human: formatMessageTime(now, t),
@@ -3122,7 +3262,13 @@ const ConversationScreen = ({ navigation, route }) => {
 
   // Media viewers -------------------------------------------------------------
 
-  const openImageViewer = (uri) => setImageViewer({ visible: true, uri });
+  const openImageViewer = (uri) => setImageViewer({ visible: true, uris: [uri], index: 0 });
+  // Same viewer, but opened from a multi-attachment grid - takes the full
+  // gallery of resolved URLs plus the index of the thumbnail that was
+  // tapped, so react-native-image-viewing can start there and let the user
+  // swipe through the rest.
+  const openImageViewerGallery = (uris, index = 0) =>
+    setImageViewer({ visible: true, uris, index });
   const openVideoViewer = (uri) => setVideoViewer({ visible: true, uri });
 
   // react-native-image-viewing's default header positions the close button
@@ -3133,7 +3279,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const ImageViewerHeader = () => (
     <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
       <TouchableOpacity
-        onPress={() => setImageViewer({ visible: false, uri: null })}
+        onPress={() => setImageViewer({ visible: false, uris: [], index: 0 })}
         style={styles.imageViewerCloseButton}
         hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
       >
@@ -3203,6 +3349,7 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     messageHandlersRef.current = {
       openImageViewer,
+      openImageViewerGallery,
       openVideoViewer,
       handleOpenFile,
       handleDoubleTapMessage,
@@ -3380,10 +3527,10 @@ const ConversationScreen = ({ navigation, route }) => {
       </Modal>
 
       <ImageView
-        images={imageViewer.uri ? [{ uri: imageViewer.uri }] : []}
-        imageIndex={0}
+        images={imageViewer.uris.map((u) => ({ uri: u }))}
+        imageIndex={imageViewer.index}
         visible={imageViewer.visible}
-        onRequestClose={() => setImageViewer({ visible: false, uri: null })}
+        onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}
         HeaderComponent={ImageViewerHeader}
       />
 

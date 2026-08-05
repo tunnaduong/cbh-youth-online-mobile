@@ -506,6 +506,8 @@
     "recordVideo": "Quay video",
     "chooseFromLibrary": "Chọn từ thư viện",
     "cameraPermissionDenied": "Không có quyền truy cập camera.",
+    "mixedMediaTitle": "Chỉ gửi một loại tệp",
+    "mixedMediaMessage": "Đã bỏ qua các tệp không cùng loại với lựa chọn đầu tiên.",
     "reactionCount": "{{count}} lượt thả cảm xúc",
     "reactionTimes": "{{count}} lượt",
     "shareUnavailable": "Chia sẻ không khả dụng trên thiết bị này.",

@@ -526,6 +526,8 @@
     "recordVideo": "Снять видео",
     "chooseFromLibrary": "Выбрать из галереи",
     "cameraPermissionDenied": "Нет доступа к камере.",
+    "mixedMediaTitle": "Только один тип файлов за раз",
+    "mixedMediaMessage": "Файлы, не совпадающие по типу с первым выбранным, были пропущены.",
     "reactionCount": "{{count}} реакций",
     "reactionTimes": "{{count}} раз",
     "shareUnavailable": "Общий доступ недоступен на этом устройстве.",
