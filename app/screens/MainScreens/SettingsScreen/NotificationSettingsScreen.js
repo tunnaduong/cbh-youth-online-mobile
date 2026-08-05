@@ -8,9 +8,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Animated,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { isChatBubblesEnabled, setChatBubblesEnabled } from "../../../utils/chatBubblePrefs";
 import Toast from "react-native-toast-message";
 import {
   getNotificationSettings,
@@ -102,6 +104,9 @@ export default function NotificationSettingsScreen({ navigation }) {
 
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [newsEnabled, setNewsEnabled] = useState(true);
+  // Android-only device preference, not synced to the backend (bubbles are
+  // an Android OS feature - there's nothing for iOS/other devices to sync).
+  const [bubblesEnabled, setBubblesEnabled] = useState(true);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -118,7 +123,15 @@ export default function NotificationSettingsScreen({ navigation }) {
 
   useEffect(() => {
     fetchSettings();
+    if (Platform.OS === "android") {
+      isChatBubblesEnabled().then(setBubblesEnabled);
+    }
   }, []);
+
+  const handleToggleBubbles = async (value) => {
+    setBubblesEnabled(value);
+    await setChatBubblesEnabled(value);
+  };
 
   const fetchSettings = async () => {
     try {
@@ -286,6 +299,21 @@ export default function NotificationSettingsScreen({ navigation }) {
             theme={theme}
           />
         </SettingSection>
+
+        {Platform.OS === "android" && (
+          <SettingSection title={t('notificationSettings.chatBubbles')} theme={theme}>
+            <SettingItem
+              icon="chatbox-ellipses-outline"
+              title={t('notificationSettings.chatBubblesToggle')}
+              description={t('notificationSettings.chatBubblesToggleDesc')}
+              isSwitch
+              value={bubblesEnabled}
+              onPress={handleToggleBubbles}
+              lastItem
+              theme={theme}
+            />
+          </SettingSection>
+        )}
 
         {pushEnabled && (
           <>

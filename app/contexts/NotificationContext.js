@@ -14,6 +14,7 @@ import {
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
 import { showChatBubble } from '../../modules/expo-chat-bubbles';
+import { isChatBubblesEnabled } from '../utils/chatBubblePrefs';
 
 export const NotificationContext = createContext();
 
@@ -156,12 +157,15 @@ export const NotificationProvider = ({ children }) => {
       const data = notification?.request?.content?.data;
       const conversationId = data?.conversation_id ?? data?.conversationId;
       if (conversationId) {
-        const content = notification.request.content;
-        showChatBubble({
-          conversationId: String(conversationId),
-          title: content.title || data?.actor?.profile_name || data?.actor?.username || 'Tin nhắn mới',
-          message: content.body || '',
-          avatarUrl: data?.actor?.avatar_url ?? data?.actorAvatarUrl ?? null,
+        isChatBubblesEnabled().then((enabled) => {
+          if (!enabled) return;
+          const content = notification.request.content;
+          showChatBubble({
+            conversationId: String(conversationId),
+            title: content.title || data?.actor?.profile_name || data?.actor?.username || 'Tin nhắn mới',
+            message: content.body || '',
+            avatarUrl: data?.actor?.avatar_url ?? data?.actorAvatarUrl ?? null,
+          });
         });
       }
     }
