@@ -925,7 +925,7 @@ const CreateStoryScreen = ({ navigation }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
-      aspect: [9, 16],
+      aspect: [3, 4],
       quality: 1,
     });
 
@@ -937,10 +937,10 @@ const CreateStoryScreen = ({ navigation }) => {
       // Some OS gallery pickers silently ignore the aspect/editing hint
       // above when mediaTypes includes both photos and videos (a known
       // expo-image-picker limitation), returning the raw uncropped image
-      // instead of the requested 9:16. Force it here so uploaded story
-      // images are consistently 9:16 regardless of OS picker behavior.
+      // instead of the requested 4:3. Force it here so uploaded story
+      // images are consistently 4:3 regardless of OS picker behavior.
       if (mediaType === "image" && asset.width && asset.height) {
-        const targetRatio = 9 / 16;
+        const targetRatio = 3 / 4;
         const currentRatio = asset.width / asset.height;
         if (Math.abs(currentRatio - targetRatio) > 0.02) {
           try {
@@ -961,7 +961,7 @@ const CreateStoryScreen = ({ navigation }) => {
 
             asset = { ...asset, uri: manipulated.uri, width: manipulated.width, height: manipulated.height };
           } catch (error) {
-            console.warn("Failed to force 9:16 crop on story image:", error?.message);
+            console.warn("Failed to force 4:3 crop on story image:", error?.message);
           }
         }
       }
@@ -1038,7 +1038,7 @@ const CreateStoryScreen = ({ navigation }) => {
             ? ImagePicker.MediaTypeOptions.Videos
             : ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [9, 16],
+        aspect: [3, 4],
         quality: 1,
       });
 
