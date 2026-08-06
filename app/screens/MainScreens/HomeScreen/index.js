@@ -2539,15 +2539,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             return null;
           }}
           imageOverlayView={
-            // Subtle scrims behind the header (name/close button) and footer
-            // (emoji reactions/comment bar) so they stay legible over bright
-            // story content - pointerEvents "none" so taps still reach the
-            // image/video below for story navigation.
+            // Subtle scrim behind the footer (emoji reactions/comment bar) so
+            // it stays legible over bright story content - pointerEvents
+            // "none" so taps still reach the image/video below for story
+            // navigation.
             <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-              <LinearGradient
-                colors={["rgba(0,0,0,0.45)", "rgba(0,0,0,0)"]}
-                style={{ position: "absolute", top: 0, left: 0, right: 0, height: 120 }}
-              />
               <LinearGradient
                 colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]}
                 style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 140 }}
