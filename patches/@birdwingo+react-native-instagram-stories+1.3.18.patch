@@ -442,17 +442,18 @@ index a265a10..37b7693 100644
      height: 2,
      flexDirection: 'row',
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx
-index 3d326e2..ef1a4f3 100644
+index 3d326e2..a6a3065 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx
-@@ -5,14 +5,19 @@ import { WIDTH } from '../../core/constants';
+@@ -5,24 +5,33 @@ import { WIDTH } from '../../core/constants';
  import ProgressStyles from './Progress.styles';
  import { StoryProgressProps } from '../../core/dto/componentsDTO';
  
-+// Only the current story gets a full-width animated pill - every other
-+// story collapses to a small fixed-size dot, instead of the original
-+// even-width-bar-per-story layout.
++// The current story gets a small pill, every other story a small dot -
++// both fixed-size, laid out inline and centered as a group, instead of
++// stretching to fill the full header width.
 +const DOT_SIZE = 6;
++const PILL_WIDTH = 22;
 +
  const Progress: FC<StoryProgressProps> = ( {
    progress, active, activeStory, length,
@@ -462,18 +463,24 @@ index 3d326e2..ef1a4f3 100644
 -  const width = ( (
 -    WIDTH - ProgressStyles.container.left * 2 ) - ( length - 1 )
 -    * ProgressStyles.container.gap ) / length;
-+  const totalAvailable = ( WIDTH - ProgressStyles.container.left * 2 )
-+    - ( length - 1 ) * ProgressStyles.container.gap;
-+  const pillWidth = Math.max( DOT_SIZE, totalAvailable - ( length - 1 ) * DOT_SIZE );
- 
+-
    return (
-     <View style={[ ProgressStyles.container, progressContainerStyle, { width: WIDTH } ]}>
-@@ -22,7 +27,8 @@ const Progress: FC<StoryProgressProps> = ( {
+-    <View style={[ ProgressStyles.container, progressContainerStyle, { width: WIDTH } ]}>
++    <View
++      style={[
++        ProgressStyles.container,
++        progressContainerStyle,
++        { width: WIDTH, justifyContent: 'center' },
++      ]}
++    >
+       {[ ...Array( length ).keys() ].map( ( val ) => (
+         <ProgressItem
+           active={active}
            activeStory={activeStory}
            progress={progress}
            index={val}
 -          width={width}
-+          width={pillWidth}
++          width={PILL_WIDTH}
 +          dotWidth={DOT_SIZE}
            key={val}
            progressActiveColor={progressActiveColor}
