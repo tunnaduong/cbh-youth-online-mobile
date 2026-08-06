@@ -819,6 +819,7 @@
     "points_1": "{{count}} очка",
     "points_2": "{{count}} очков",
     "emptyPosts": "Постов пока нет",
+    "loadMorePosts": "Показать ещё",
     "emptyFollowing": "Никого не читает",
     "emptyFollowers": "Нет подписчиков",
     "classFallback": "Класс не указан",

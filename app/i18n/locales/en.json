@@ -808,6 +808,7 @@
     "points": "{{count}} point",
     "points_plural": "{{count}} points",
     "emptyPosts": "No posts yet",
+    "loadMorePosts": "Load more posts",
     "emptyFollowing": "Not following anyone yet",
     "emptyFollowers": "No followers yet",
     "classFallback": "Class not updated",

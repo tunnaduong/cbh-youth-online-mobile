@@ -796,6 +796,7 @@
     "ranking": "Bảng xếp hạng",
     "points": "{{count}} điểm",
     "emptyPosts": "Chưa có bài viết nào",
+    "loadMorePosts": "Xem thêm bài viết",
     "emptyFollowing": "Chưa theo dõi ai",
     "emptyFollowers": "Chưa có người theo dõi",
     "classFallback": "Chưa cập nhật lớp",

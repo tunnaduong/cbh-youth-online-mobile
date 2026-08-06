@@ -24,6 +24,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import {
   followUser,
   getProfile,
+  getUserPosts,
   unfollowUser,
   blockUser,
   reportUser,
@@ -54,6 +55,9 @@ const ProfileScreen = ({ route, navigation }) => {
   const { recentPostsProfile, setRecentPostsProfile } = useContext(FeedContext);
   const isCurrentUser = userId === username;
   const [activeTab, setActiveTab] = useState("posts");
+  const [postsPage, setPostsPage] = useState(1);
+  const [postsHasMore, setPostsHasMore] = useState(true);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
   const [followed, setFollowed] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t } = useTranslation();
@@ -327,10 +331,6 @@ const ProfileScreen = ({ route, navigation }) => {
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
-      const visiblePosts = (response.data.recent_posts || []).filter(
-        (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
-      );
-      setRecentPostsProfile(visiblePosts);
       // Check if the current user is in the followers list
       const isFollowed = response.data.followers.some(
         (follower) => follower.username === username
@@ -340,6 +340,40 @@ const ProfileScreen = ({ route, navigation }) => {
       console.error("Error fetching user data:", error);
     } finally {
       setLoading(false);
+    }
+
+    // getProfile()'s recent_posts is capped to 5 as a preview - fetch the
+    // real, fully-paginated list separately so older posts beyond those 5
+    // actually show up on the profile's Posts tab.
+    try {
+      const postsResponse = await getUserPosts(userId, 1, 10);
+      const visiblePosts = (postsResponse.data?.data || []).filter(
+        (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
+      );
+      setRecentPostsProfile(visiblePosts);
+      setPostsPage(1);
+      setPostsHasMore(Boolean(postsResponse.data?.has_more));
+    } catch (error) {
+      console.error("Error fetching user posts:", error);
+    }
+  };
+
+  const loadMoreProfilePosts = async () => {
+    if (loadingMorePosts || !postsHasMore) return;
+    setLoadingMorePosts(true);
+    try {
+      const nextPage = postsPage + 1;
+      const postsResponse = await getUserPosts(userId, nextPage, 10);
+      const visiblePosts = (postsResponse.data?.data || []).filter(
+        (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
+      );
+      setRecentPostsProfile((prev) => [...(prev || []), ...visiblePosts]);
+      setPostsPage(nextPage);
+      setPostsHasMore(Boolean(postsResponse.data?.has_more));
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+    } finally {
+      setLoadingMorePosts(false);
     }
   };
 
@@ -438,17 +472,34 @@ const ProfileScreen = ({ route, navigation }) => {
                 </Text>
               </View>
             ) : (
-              recentPostsProfile?.map((post) => (
-                <PostItem
-                  key={`post-${post.id}`}
-                  item={isCurrentUser ? { ...post, is_owner: true } : post}
-                  navigation={navigation}
-                  onVoteUpdate={handleVoteUpdate}
-                  onSaveUpdate={handleSaveUpdate}
-                  screenName={"ProfileScreen"}
-                  isActive={autoplayVideos}
-                />
-              ))
+              <>
+                {recentPostsProfile?.map((post) => (
+                  <PostItem
+                    key={`post-${post.id}`}
+                    item={isCurrentUser ? { ...post, is_owner: true } : post}
+                    navigation={navigation}
+                    onVoteUpdate={handleVoteUpdate}
+                    onSaveUpdate={handleSaveUpdate}
+                    screenName={"ProfileScreen"}
+                    isActive={autoplayVideos}
+                  />
+                ))}
+                {postsHasMore && (
+                  <TouchableOpacity
+                    onPress={loadMoreProfilePosts}
+                    disabled={loadingMorePosts}
+                    style={{ alignItems: "center", paddingVertical: 16 }}
+                  >
+                    {loadingMorePosts ? (
+                      <ActivityIndicator color={theme.primary} />
+                    ) : (
+                      <Text style={{ color: theme.primary, fontWeight: "600" }}>
+                        {t('profile.loadMorePosts')}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </>
         );
