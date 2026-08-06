@@ -479,10 +479,10 @@ index 3d326e2..ef1a4f3 100644
            progressActiveColor={progressActiveColor}
            progressColor={progressColor}
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/item.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/item.tsx
-index 6c91946..3e51e09 100644
+index 6c91946..d250ed8 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/item.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/item.tsx
-@@ -8,10 +8,26 @@ import { PROGRESS_ACTIVE_COLOR, PROGRESS_COLOR } from '../../core/constants';
+@@ -8,10 +8,30 @@ import { PROGRESS_ACTIVE_COLOR, PROGRESS_COLOR } from '../../core/constants';
  const AnimatedView = Animated.createAnimatedComponent( View );
  
  const ProgressItem: FC<StoryProgressItemProps> = ( {
@@ -497,7 +497,11 @@ index 6c91946..3e51e09 100644
 +  // fill timing below, which is untouched.
 +  const containerAnimatedStyle = useAnimatedStyle( () => {
 +
-+    const isCurrent = active.value && activeStory.value === index;
++    // Deliberately independent of `active` (whether the story is actively
++    // auto-advancing/playing) - which segment is the "current" one (and
++    // therefore rendered as the wide pill vs a small dot) shouldn't flicker
++    // based on play/pause state, only on activeStory's index.
++    const isCurrent = activeStory.value === index;
 +    const w = isCurrent ? width : dotWidth;
 +
 +    return {
@@ -510,7 +514,7 @@ index 6c91946..3e51e09 100644
    const animatedStyle = useAnimatedStyle( () => {
  
      if ( !active.value || activeStory.value < index ) {
-@@ -22,20 +38,30 @@ const ProgressItem: FC<StoryProgressItemProps> = ( {
+@@ -22,20 +42,30 @@ const ProgressItem: FC<StoryProgressItemProps> = ( {
  
      if ( activeStory.value > index ) {
  
