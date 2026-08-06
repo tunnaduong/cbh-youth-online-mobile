@@ -24,6 +24,7 @@ import {
   isLiquidGlassSupportedAndroid,
   useIOSGlassSupport,
   useAndroidGlass,
+  androidGlassTint,
 } from "./GlassModules";
 
 const { width, height } = Dimensions.get("window");
@@ -282,14 +283,14 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
         refractionHeight: 18,
         chromaticAberration: 0.2,
         highlightAlpha: 0.25,
-        tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
+        tint: androidGlassTint(isDarkMode),
       } : {
         blurRadius: 10,
         refractionAmount: 0,
         refractionHeight: 0,
         chromaticAberration: 0,
         highlightAlpha: 0.18,
-        tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
+        tint: androidGlassTint(isDarkMode),
       };
       return (
         <Pressable style={styles.buttonContainer} onPress={handlePress}>

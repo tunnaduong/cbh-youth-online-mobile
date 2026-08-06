@@ -7,6 +7,7 @@ import {
   isLiquidGlassSupportedAndroid,
   useIOSGlassSupport,
   BlurView,
+  androidGlassTint,
 } from "./GlassModules";
 
 const LiquidHeaderBackground = ({ providerId }) => {
@@ -62,7 +63,7 @@ const LiquidHeaderBackground = ({ providerId }) => {
         blurRadius={10}
         refractionAmount={20}
         refractionHeight={12}
-        tint={isDarkMode ? "rgba(0,0,0,0.3)" : "rgba(240,240,240,0.3)"}
+        tint={androidGlassTint(isDarkMode)}
       />
     );
   }

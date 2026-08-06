@@ -13,7 +13,7 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlassSupport } from "../../components/GlassModules";
+import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlassSupport, androidGlassTint } from "../../components/GlassModules";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -85,14 +85,14 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
     refractionHeight: 18,
     chromaticAberration: 0.2,
     highlightAlpha: 0.25,
-    tint: isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)",
+    tint: androidGlassTint(isDarkMode),
   } : {
     blurRadius: 10,
     refractionAmount: 0,
     refractionHeight: 0,
     chromaticAberration: 0,
     highlightAlpha: 0.18,
-    tint: isDarkMode ? "rgba(0, 0, 0, 0.25)" : "rgba(240, 240, 240, 0.15)",
+    tint: androidGlassTint(isDarkMode),
   };
 
   const PillBackground = ({ style }) => (

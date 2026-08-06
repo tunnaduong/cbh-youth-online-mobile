@@ -23,6 +23,7 @@ import {
   LiquidGlassViewAndroid,
   useAndroidGlass,
   isLiquidGlassSupportedAndroid,
+  androidGlassTint,
 } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
@@ -267,7 +268,7 @@ const CommentBar = React.forwardRef(
               providerId={providerId}
               interactive={isLiquidGlassSupportedAndroid}
               blurRadius={Platform.Version >= 33 ? 14 : 10}
-              tint={isDarkMode ? "rgba(18, 18, 18, 0.6)" : "rgba(255, 255, 255, 0.5)"}
+              tint={androidGlassTint(isDarkMode)}
               // Without an explicit cornerRadius, this native layer defaults
               // to a "capsule" (radius = height / 2), so it matches the
               // pill's fixed borderRadius:30 only while the input is a
