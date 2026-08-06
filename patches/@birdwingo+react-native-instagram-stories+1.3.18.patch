@@ -426,10 +426,10 @@ index dd93855..9f65b27 100644
    );
  
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
-index a265a10..37b7693 100644
+index a265a10..806d4c2 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/Progress.styles.ts
-@@ -1,9 +1,9 @@
+@@ -1,16 +1,17 @@
 -import { StyleSheet } from 'react-native';
 +import { StyleSheet, Platform } from 'react-native';
  
@@ -437,12 +437,23 @@ index a265a10..37b7693 100644
    container: {
      position: 'absolute',
 -    top: 16,
+-    left: 16,
+-    height: 2,
 +    top: Platform.OS === 'ios' ? 44 : 16,
-     left: 16,
-     height: 2,
++    left: 0,
++    height: 5,
      flexDirection: 'row',
++    alignItems: 'center',
+     gap: 4,
+   },
+   item: {
+-    height: 3,
++    height: 5,
+     borderRadius: 8,
+     overflow: 'hidden',
+   },
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx
-index 3d326e2..a6a3065 100644
+index 3d326e2..5017d17 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Progress/index.tsx
 @@ -5,24 +5,33 @@ import { WIDTH } from '../../core/constants';
@@ -452,8 +463,8 @@ index 3d326e2..a6a3065 100644
 +// The current story gets a small pill, every other story a small dot -
 +// both fixed-size, laid out inline and centered as a group, instead of
 +// stretching to fill the full header width.
-+const DOT_SIZE = 6;
-+const PILL_WIDTH = 22;
++const DOT_SIZE = 8;
++const PILL_WIDTH = 26;
 +
  const Progress: FC<StoryProgressProps> = ( {
    progress, active, activeStory, length,
