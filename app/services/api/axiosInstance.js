@@ -135,13 +135,40 @@ axiosInstance.interceptors.response.use(
         (url && url.toLowerCase().includes("/v1.0/reports")) ||
         (url && url.toLowerCase().includes("report"));
 
+      // Preview the outgoing request body too - the response alone (e.g. a
+      // bare 500 with a generic message) is often not enough to tell which
+      // request actually caused it, especially for endpoints that accept a
+      // payload (send message, create post, etc).
+      let requestDataPreview = null;
+      try {
+        if (cfg.data && cfg.data._parts) {
+          // FormData: log field names only, skip binary/file blobs.
+          requestDataPreview = cfg.data._parts.map(([key, value]) => [
+            key,
+            value && typeof value === "object" && value.uri ? `<file:${value.name || value.uri}>` : value,
+          ]);
+        } else if (cfg.data) {
+          requestDataPreview =
+            typeof cfg.data === "string" ? cfg.data : JSON.stringify(cfg.data);
+          if (requestDataPreview && requestDataPreview.length > 1000) {
+            requestDataPreview = requestDataPreview.slice(0, 1000) + "...";
+          }
+        }
+      } catch (e) {
+        requestDataPreview = "<unserializable>";
+      }
+
       const logObj = {
         url,
         method: cfg.method,
         status: error?.response?.status,
         statusText: error?.response?.statusText,
         responseData: error?.response?.data,
+        requestDataPreview,
+        errorCode: error?.code,
+        errorMessage: error?.message,
         hasAuthorizationHeader: !!cfg.headers?.Authorization,
+        timestamp: new Date().toISOString(),
       };
 
       console.error("[API ERROR]", logObj);
