@@ -800,13 +800,23 @@ const ReplyBar = ({
         />
       ))}
       <View style={{ paddingBottom: insets.bottom }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", paddingHorizontal: 16, marginBottom: 4 }}>
           {emojis.map((emoji) => (
             <TouchableOpacity
               key={emoji}
               onPress={() => handleEmojiPress(emoji)}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             >
-              <Text style={{ fontSize: 28 }}>{emoji}</Text>
+              <Text
+                style={{
+                  fontSize: 30,
+                  textShadowColor: "rgba(0,0,0,0.35)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 3,
+                }}
+              >
+                {emoji}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -2528,7 +2538,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
             return null;
           }}
-          progressColor="#a4a4a4"
+          progressColor="rgba(255,255,255,0.35)"
+          progressActiveColor={theme.primary}
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
@@ -2536,7 +2547,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId }) => (
             <View style={{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Pressable
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 onPress={() => {
                   if (userId) {
                     const user = userStories.find((u) => u.id === userId || u.uid === userId);
@@ -2556,11 +2567,21 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     <Image source={avatarSource} style={{ width: 28, height: 28 }} />
                   </View>
                 )}
-                <View style={{ flexDirection: 'column', maxWidth: SCREEN_WIDTH - 140 }}>
-                  {name && <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
-                  {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12 }}>{date}</Text>}
-                </View>
               </Pressable>
+              {/* Absolutely centered across the full header width (not just
+                  the space between avatar/icons) to match the design - a
+                  flex "space-between" center column would drift off-true-
+                  center whenever the icon cluster's width differs from the
+                  avatar's (e.g. the mute button only shows for videos).
+                  pointerEvents="none" so it never blocks the avatar/icon
+                  taps it visually sits between. */}
+              <View
+                pointerEvents="none"
+                style={{ position: 'absolute', left: 44, right: 44, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
+              >
+                {name && <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#fff', fontWeight: '600', textAlign: 'center' }}>{name}</Text>}
+                {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
+              </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {(() => {
                   try {
