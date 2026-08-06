@@ -185,6 +185,16 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       }
 
       const asset = result.assets[0];
+      const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100MB, must match backend FileUploadController max:102400
+      if (asset.size && asset.size > MAX_FILE_SIZE_BYTES) {
+        Toast.show({
+          type: "error",
+          text1: t("studyMaterial.fileTooLarge"),
+          text2: t("studyMaterial.fileTooLargeDetail"),
+        });
+        return;
+      }
+
       setSelectedDocument(asset);
       Toast.show({
         type: "success",
@@ -251,10 +261,13 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
       });
       navigation.goBack();
     } catch (error) {
+      const isFileTooLarge = error?.response?.status === 422 && error?.response?.data?.errors?.file;
       Toast.show({
         type: "error",
-        text1: t("studyMaterial.publishError"),
-        text2: error?.message || t("studyMaterial.tryAgain"),
+        text1: isFileTooLarge ? t("studyMaterial.fileTooLarge") : t("studyMaterial.publishError"),
+        text2: isFileTooLarge
+          ? t("studyMaterial.fileTooLargeDetail")
+          : error?.response?.data?.message || error?.message || t("studyMaterial.tryAgain"),
       });
     } finally {
       setSubmitting(false);

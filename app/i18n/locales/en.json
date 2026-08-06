@@ -1311,6 +1311,8 @@
     "fileSelected": "Material selected",
     "readyToPublish": "Ready to publish",
     "fileSelectError": "Could not select material",
+    "fileTooLarge": "File is too large",
+    "fileTooLargeDetail": "Maximum file size is 100MB",
     "titleRequired": "Please enter a material title",
     "fileRequired": "Please select a material file",
     "priceRequired": "Please enter a valid point price",

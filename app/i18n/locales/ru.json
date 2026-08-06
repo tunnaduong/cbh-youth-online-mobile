@@ -1325,6 +1325,8 @@
     "fileSelected": "Материал выбран",
     "readyToPublish": "Готово к публикации",
     "fileSelectError": "Не удалось выбрать материал",
+    "fileTooLarge": "Файл слишком большой",
+    "fileTooLargeDetail": "Максимальный размер файла — 100МБ",
     "titleRequired": "Введите название материала",
     "fileRequired": "Выберите файл материала",
     "priceRequired": "Введите корректную цену в баллах",

@@ -1299,6 +1299,8 @@
     "fileSelected": "Đã chọn tài liệu",
     "readyToPublish": "Bạn có thể đăng ngay",
     "fileSelectError": "Không thể chọn tài liệu",
+    "fileTooLarge": "Tệp quá lớn",
+    "fileTooLargeDetail": "Kích thước tối đa là 100MB",
     "titleRequired": "Vui lòng nhập tiêu đề tài liệu",
     "fileRequired": "Vui lòng chọn một tệp tài liệu",
     "priceRequired": "Vui lòng nhập giá điểm hợp lệ",
