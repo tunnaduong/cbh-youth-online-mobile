@@ -2603,7 +2603,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                             opacity: isServerMuted ? 0.7 : 1,
                           }}
                         >
-                          <Ionicons name={isAudioMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
+                          <Ionicons name={isAudioMuted ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
                         </TouchableOpacity>
                       );
                     }
@@ -2612,7 +2612,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 })()}
                 {onMore && (
                   <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Ionicons name="settings-outline" size={22} color="#c4c4c4" />
+                    <Ionicons name="settings" size={24} color="#fff" />
                   </TouchableOpacity>
                 )}
                 {onClose && (

@@ -29,7 +29,7 @@ index 9419aa6..0e3a161 100644
    containerFlex: {
      flexDirection: 'row',
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
-index 32010ab..d04f86d 100644
+index 32010ab..c3c3ea7 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
 @@ -1,57 +1,103 @@
@@ -156,7 +156,7 @@ index 32010ab..d04f86d 100644
 +      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
 +        {onMore && (
 +          <TouchableOpacity onPress={onMore} hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}>
-+            <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
++            <Ionicons name="ellipsis-horizontal" size={24} color={closeColor} />
 +          </TouchableOpacity>
 +        )}
 +        <TouchableOpacity
