@@ -68,6 +68,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
+      - name: Clean previous build outputs (avoid stale JS bundle from cache)
+        run: |
+          cd android
+          ./gradlew clean --no-daemon
+
       - name: Tối ưu cấu hình Gradle (Tăng RAM)
         run: |
           mkdir -p ~/.gradle
