@@ -118,8 +118,10 @@ const PostEditScreen = ({ navigation, route }) => {
   // floating card, using a flat height regardless of the actual safe area -
   // but an active call/recording banner grows the real top inset and the
   // header rendered full-bleed under it, cramped against the status bar.
-  // Use the real inset on both platforms instead.
-  const headerHeight = insets.top + 36;
+  // Use the real inset on both platforms instead. Height must give the 44px
+  // back/publish buttons enough room (paddingTop + 44) or they overflow the
+  // bar's declared height, stretching it taller than intended.
+  const headerHeight = insets.top + 46;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],

@@ -530,8 +530,12 @@ const CreatePostScreen = ({ navigation, route }) => {
             // active call/recording banner grows the real top inset and the
             // header rendered full-bleed under it, cramped against the
             // status bar). Use the real inset on both platforms instead.
+            // Height must give the 44px back/publish buttons enough room
+            // (paddingTop + 44) or they overflow the bar's declared height,
+            // stretching it taller than intended - a prior height reduction
+            // shrank this below 44px and caused exactly that.
             paddingTop: insets.top + 2,
-            height: insets.top + 36,
+            height: insets.top + 46,
             backgroundColor: "transparent",
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
             transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
@@ -597,7 +601,7 @@ const CreatePostScreen = ({ navigation, route }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: insets.top + 36,
+          paddingTop: insets.top + 46,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
