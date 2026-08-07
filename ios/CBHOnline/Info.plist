@@ -23,7 +23,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>4.1.2</string>
+    <string>4.2.3</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -42,7 +42,7 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>585</string>
+    <string>680</string>
     <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
     <key>LSMinimumSystemVersion</key>
@@ -70,6 +70,8 @@
     <string>Expo Dev Launcher uses the local network to discover and connect to development servers running on your computer.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Cho phép CBH Youth Online truy cập microphone của bạn</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>Cho phép CBH Youth Online lưu ảnh vào thư viện của bạn</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>Cho phép CBH Youth Online truy cập thư viện ảnh của bạn</string>
     <key>NSUserActivityTypes</key>
