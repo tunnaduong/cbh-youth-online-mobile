@@ -23,6 +23,7 @@ import {
   ActivityIndicator,
   Platform,
   Keyboard,
+  Dimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
@@ -44,13 +45,15 @@ import {
 import CommentBar from "../../../components/CommentBar";
 import FastImage from "../../../components/FastImage";
 import MentionText from "../../../components/MentionText";
+import RenderHTML from "react-native-render-html";
+import { linkifyMentionsInHtml } from "../../../utils/mentionRender";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
-import PostItem from "../../../components/PostItem";
+import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
 import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { reportUser } from "../../../services/api/Api";
@@ -72,6 +75,10 @@ const Comment = React.memo(React.forwardRef(
     const votes = comment.votes ?? [];
     const author = comment.author ?? {};
     const content = comment.content ?? "";
+    const contentHtml = comment.comment ?? "";
+    const validMentions = Array.isArray(comment.mentions)
+      ? new Set(comment.mentions.map((m) => m.username.toLowerCase()))
+      : null;
     const replies = comment.replies ?? [];
     const isHighlighted = highlightedCommentId === comment.id;
 
@@ -127,6 +134,17 @@ const Comment = React.memo(React.forwardRef(
                   )}
                 </Text>
               </Pressable>
+              {comment.target_author && (
+                <Text style={{ fontSize: 12, color: theme.subText, marginBottom: 2 }}>
+                  {"↩ "}
+                  <Text
+                    style={{ fontWeight: "600", color: theme.primary }}
+                    onPress={() => navigation.navigate("ProfileScreen", { username: comment.target_author.username })}
+                  >
+                    {comment.target_author.profile_name || comment.target_author.username}
+                  </Text>
+                </Text>
+              )}
               {comment.deleted_parent_username && (
                 <View style={{ marginVertical: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: theme.iconBackground, borderRadius: 8, borderWidth: 1, borderColor: theme.border }}>
                   <Text style={{ fontSize: 12, color: theme.subText }}>
@@ -136,10 +154,79 @@ const Comment = React.memo(React.forwardRef(
                   </Text>
                 </View>
               )}
-              {!!content && (
-                <MentionText style={{ flexShrink: 1, color: theme.text }} mentions={comment.mentions} onMentionPress={(u) => navigation.navigate("ProfileScreen", { username: u })}>
-                  {String(content)}
-                </MentionText>
+              {!!contentHtml ? (
+                <View style={{ flexShrink: 1 }}>
+                  <RenderHTML
+                    contentWidth={Dimensions.get("window").width - 90 - level * 20}
+                    source={{ html: linkifyMentionsInHtml(contentHtml, validMentions, { allowBroadcastMention: true }) }}
+                    customHTMLElementModels={customHTMLElementModels}
+                    renderers={{ iframe: YouTubeIframeRenderer }}
+                    renderersProps={{
+                      a: {
+                        onPress: (event, href) => {
+                          const match = /^\/([\w.-]+)$/.exec(href || "");
+                          if (match) navigation.navigate("ProfileScreen", { username: match[1] });
+                        },
+                      },
+                    }}
+                    baseStyle={{ fontSize: 14, color: theme.text }}
+                    classesStyles={{
+                      "mention-tag": { color: "#22c55e", fontWeight: "600" },
+                    }}
+                    tagsStyles={{
+                      h1: { fontSize: 20, fontWeight: "bold", marginVertical: 8, color: theme.text },
+                      h2: { fontSize: 17, fontWeight: "bold", marginTop: 10, marginBottom: 6, color: theme.text },
+                      h3: { fontSize: 15, fontWeight: "bold", marginTop: 8, marginBottom: 4, color: theme.text },
+                      h4: { fontSize: 14, fontWeight: "600", marginTop: 6, marginBottom: 4, color: theme.text },
+                      h5: { fontSize: 13, fontWeight: "600", marginTop: 6, marginBottom: 4, color: theme.text },
+                      h6: { fontSize: 12, fontWeight: "600", marginTop: 6, marginBottom: 4, color: theme.subText },
+                      p: { marginBottom: 0, marginTop: 0, color: theme.text },
+                      strong: { fontWeight: "bold", color: theme.text },
+                      em: { fontStyle: "italic", color: theme.text },
+                      br: { marginBottom: 0 },
+                      a: { color: theme.primary, textDecorationLine: "underline" },
+                      blockquote: {
+                        backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
+                        borderLeftWidth: 3,
+                        borderLeftColor: theme.primary,
+                        marginVertical: 6,
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        fontStyle: "italic",
+                        borderRadius: 4,
+                      },
+                      hr: {
+                        borderTopWidth: 1,
+                        borderTopColor: theme.border,
+                        marginVertical: 10,
+                        backgroundColor: "transparent",
+                        height: 1,
+                      },
+                      code: {
+                        fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+                        backgroundColor: isDarkMode ? "#2C2C2C" : "#f0f0f0",
+                        color: "#d63384",
+                        borderRadius: 4,
+                        paddingHorizontal: 4,
+                      },
+                      pre: {
+                        backgroundColor: isDarkMode ? "#2C2C2C" : "#f7f7f8",
+                        borderRadius: 6,
+                        padding: 10,
+                        marginVertical: 6,
+                      },
+                      ul: { marginVertical: 4 },
+                      ol: { marginVertical: 4 },
+                      li: { marginBottom: 2, color: theme.text },
+                    }}
+                  />
+                </View>
+              ) : (
+                !!content && (
+                  <MentionText style={{ flexShrink: 1, color: theme.text }} mentions={comment.mentions} onMentionPress={(u) => navigation.navigate("ProfileScreen", { username: u })}>
+                    {String(content)}
+                  </MentionText>
+                )
               )}
               {comment.image_urls?.length > 0 && (
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
@@ -1403,8 +1490,9 @@ const PostScreen = ({ route, navigation }) => {
           ListFooterComponent={
             // Combines the original 16px block spacing (after the last
             // comment/empty-state text) with the 50px spacer that used to
-            // sit below it, before the floating comment input.
-            <View style={{ height: 50, marginTop: 16, backgroundColor: "transparent" }} />
+            // sit below it, before the floating comment input, plus an extra
+            // 10px of breathing room below the last comment.
+            <View style={{ height: 60, marginTop: 16, backgroundColor: "transparent" }} />
           }
         />
         </AndroidGlassBackdrop>

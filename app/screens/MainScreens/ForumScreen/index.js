@@ -336,7 +336,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
             zIndex: 1000,
           }}
         >
-          <ActivityIndicator size="small" color={theme.primary} />
+          <CustomLoading size={44} showBackdrop />
         </View>
       )}
       <FlatList

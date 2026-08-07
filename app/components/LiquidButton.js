@@ -14,6 +14,7 @@ import {
   LiquidGlassViewAndroid,
   useAndroidGlass,
   isLiquidGlassSupportedAndroid,
+  androidGlassTint,
 } from "./GlassModules";
 
 const LiquidButton = ({
@@ -121,7 +122,7 @@ const LiquidButton = ({
             },
           ]}
           blurRadius={Platform.Version >= 33 ? 12 : 10}
-          tint={backgroundColor ?? (isDarkMode ? "rgba(0, 0, 0, 0.3)" : "rgba(240, 240, 240, 0.2)")}
+          tint={backgroundColor ?? androidGlassTint(isDarkMode)}
         />
       );
     }

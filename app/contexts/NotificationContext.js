@@ -145,8 +145,6 @@ export const NotificationProvider = ({ children }) => {
     if (notification?.request?.content) {
       console.log('Notification content:', notification.request.content);
     }
-    // You can add custom logic here, like updating local state
-    // or showing an in-app notification
   };
 
   const handleNotificationTapped = (response) => {

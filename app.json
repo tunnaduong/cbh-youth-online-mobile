@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "4.0.1",
+    "version": "4.2.3",
     "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
@@ -17,7 +17,7 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "585",
+      "buildNumber": "680",
       "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
@@ -74,6 +74,10 @@
             {
               "scheme": "com.fatties.youth",
               "host": "story"
+            },
+            {
+              "scheme": "com.fatties.youth",
+              "host": "group"
             }
           ],
           "category": [
@@ -100,7 +104,7 @@
       },
       "package": "com.fatties.youth",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 585,
+      "versionCode": 680,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
@@ -142,6 +146,14 @@
           "icon": "./app/assets/notification-monochrome.png",
           "color": "#ffffff",
           "sounds": []
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
+          "savePhotosPermission": "Cho phép CBH Youth Online lưu ảnh vào thư viện của bạn",
+          "isAccessMediaLocationEnabled": false
         }
       ],
       "expo-web-browser",

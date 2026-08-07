@@ -19,7 +19,7 @@ import VideoThumbnail from "./VideoThumbnail";
 // `isActive` flips (instead of keeping one player alive and toggling
 // play/pause) mirrors VideoThumbnail/VideoPlayerModal's existing pattern in
 // this codebase of never keeping a player mounted longer than it's needed.
-const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
+const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen, interactive }) => {
   const [muted, setMuted] = useState(true);
   const isFocused = useIsFocused();
 
@@ -77,13 +77,21 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
     }
   }, [isFocused, player]);
 
+  // A TouchableOpacity covering the whole tile claims the touch responder
+  // the instant a touch starts, which blocks any ancestor gesture handling
+  // (chat's swipe-to-reply PanResponder, long-press-for-reactions) from ever
+  // seeing the touch - only the feed (PostItem) actually needs this tile's
+  // own tap-to-fullscreen, since it has no competing ancestor gestures.
+  // Chat passes interactive={false} to fall back to a plain View so touches
+  // pass through to the message bubble's own tap/long-press/swipe handling.
+  const Tile = interactive ? TouchableOpacity : View;
+  const tileProps = interactive
+    ? { activeOpacity: 1, onPress: onOpenFullscreen }
+    : {};
+
   return (
     <>
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={onOpenFullscreen}
-        style={[styles.tile, { borderRadius }]}
-      >
+      <Tile style={[styles.tile, { borderRadius }]} {...tileProps}>
         {player && typeof player === "object" ? (
           <VideoView
             key={playerKey}
@@ -94,7 +102,20 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen }) => {
             pointerEvents="none"
           />
         ) : null}
-      </TouchableOpacity>
+        {!interactive && (
+          // VideoView renders via a native SurfaceView/TextureView-style
+          // surface on Android, which can intercept touches at the native
+          // compositing layer regardless of pointerEvents="none" above (that
+          // prop only affects RN's own touch dispatch, not the underlying
+          // native surface) - swiping over the video itself never reached
+          // the ancestor PanResponder, while swiping over the (plain-View,
+          // non-native) areas around it worked fine. A plain transparent RN
+          // View layered on top gives touches a normal view to land on
+          // instead, so they participate in RN's touch/responder system and
+          // bubble up to the message bubble's swipe/long-press handling.
+          <View style={StyleSheet.absoluteFill} />
+        )}
+      </Tile>
       <TouchableOpacity
         onPress={() => setMuted((m) => !m)}
         style={styles.muteButton}
@@ -120,6 +141,12 @@ const InlineVideoPlayer = ({
   borderRadius = 0,
   isActive = false,
   style,
+  // Feed posts (PostItem) have no competing ancestor gesture, so the tile's
+  // own tap-to-fullscreen is the only way to open it - keep that on by
+  // default. Chat messages already have a bubble-level tap/long-press/swipe
+  // stack that a nested touchable here would block; pass interactive={false}
+  // there to let those handle taps instead (see ConversationScreen.js).
+  interactive = true,
 }) => {
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const isFocused = useIsFocused();
@@ -133,6 +160,7 @@ const InlineVideoPlayer = ({
           uri={uri}
           borderRadius={borderRadius}
           onOpenFullscreen={() => setFullscreenVisible(true)}
+          interactive={interactive}
         />
       ) : (
         <VideoThumbnail
@@ -142,7 +170,7 @@ const InlineVideoPlayer = ({
           borderRadius={borderRadius}
         />
       )}
-      {fullscreenVisible && (
+      {interactive && fullscreenVisible && (
         <VideoPlayerModal
           visible={fullscreenVisible}
           uri={uri}

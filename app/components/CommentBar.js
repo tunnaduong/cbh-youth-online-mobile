@@ -23,6 +23,7 @@ import {
   LiquidGlassViewAndroid,
   useAndroidGlass,
   isLiquidGlassSupportedAndroid,
+  androidGlassTint,
 } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
@@ -39,22 +40,32 @@ const RootView = View;
 function makeMentionParser(allowBroadcastMention) {
   return function mentionParser(input) {
     "worklet";
-    const ranges = [];
-    // \w is ASCII-only, so a mention using Vietnamese characters (diacritics
-    // like "@Tuấn") never matched here either, staying uncolored while typing.
-    // \p{L}/\p{N} match any Unicode letter/digit (English still matches fine,
-    // since those are Unicode letters/digits too), \p{M} covers combining
-    // diacritical marks for text still in decomposed (NFD) form.
-    const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
-    let match;
-    while ((match = regex.exec(input)) !== null) {
-      // @all only means something in a group chat - in a 1-on-1
-      // conversation there's no one to broadcast to, so it shouldn't
-      // highlight as a live mention while typing either.
-      if (!allowBroadcastMention && match[0].toLowerCase() === "@all") continue;
-      ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+    // MarkdownTextInput requires `parser` to be a worklet (it checks
+    // `__workletHash` and throws "parser is not a worklet" otherwise) - it
+    // runs on its own dedicated "LiveMarkdownRuntime", not the JS thread, so
+    // the directive above is mandatory, not optional. Guard the body in a
+    // try/catch so a bad regex match can't throw across the worklet
+    // boundary and take the runtime down with it.
+    try {
+      const ranges = [];
+      // \w is ASCII-only, so a mention using Vietnamese characters (diacritics
+      // like "@Tuấn") never matched here either, staying uncolored while typing.
+      // \p{L}/\p{N} match any Unicode letter/digit (English still matches fine,
+      // since those are Unicode letters/digits too), \p{M} covers combining
+      // diacritical marks for text still in decomposed (NFD) form.
+      const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
+      let match;
+      while ((match = regex.exec(input)) !== null) {
+        // @all only means something in a group chat - in a 1-on-1
+        // conversation there's no one to broadcast to, so it shouldn't
+        // highlight as a live mention while typing either.
+        if (!allowBroadcastMention && match[0].toLowerCase() === "@all") continue;
+        ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+      }
+      return ranges;
+    } catch (e) {
+      return [];
     }
-    return ranges;
   };
 }
 
@@ -257,7 +268,16 @@ const CommentBar = React.forwardRef(
               providerId={providerId}
               interactive={isLiquidGlassSupportedAndroid}
               blurRadius={Platform.Version >= 33 ? 14 : 10}
-              tint={isDarkMode ? "rgba(18, 18, 18, 0.6)" : "rgba(255, 255, 255, 0.5)"}
+              tint={androidGlassTint(isDarkMode)}
+              // Without an explicit cornerRadius, this native layer defaults
+              // to a "capsule" (radius = height / 2), so it matches the
+              // pill's fixed borderRadius:30 only while the input is a
+              // single line. Once multiline text grows the pill taller, the
+              // capsule radius grows past 30 and bulges out unrounded past
+              // the outer pill and the inner tint layer (both fixed at
+              // 30/25) - lock it to the outer pill's radius so all layers
+              // stay in sync as the input grows.
+              cornerRadius={30}
               style={StyleSheet.absoluteFill}
             />
           )}

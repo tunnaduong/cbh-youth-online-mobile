@@ -349,6 +349,12 @@ export const getProfile = (username) => {
   return Api.getRequest("/v1.0/users/" + username + "/profile");
 };
 
+export const getUserPosts = (username, page = 1, perPage = 10) => {
+  return Api.getRequest(
+    "/v1.0/users/" + username + "/posts?page=" + page + "&per_page=" + perPage
+  );
+};
+
 export const followUser = (username) => {
   return Api.postRequest("/v1.0/users/" + username + "/follow");
 };
@@ -507,6 +513,127 @@ export const recallMessage = (messageId) => {
 
 export const editMessage = (messageId, content) => {
   return Api.putRequest(`/v1.0/chat/messages/${messageId}`, { content });
+};
+
+export const forwardMessage = (messageId, { conversationIds, userIds } = {}) => {
+  return Api.postRequest(`/v1.0/chat/messages/${messageId}/forward`, {
+    conversation_ids: conversationIds || [],
+    user_ids: userIds || [],
+  });
+};
+
+// Group chat management
+export const createGroupConversation = (name, participantIds) => {
+  return Api.postRequest("/v1.0/chat/groups", {
+    name,
+    participants: participantIds,
+  });
+};
+
+export const getGroupDetails = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}`);
+};
+
+export const getGroupSeenReceipts = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}/seen`);
+};
+
+export const renameGroupConversation = (conversationId, name) => {
+  return Api.putRequest(`/v1.0/chat/groups/${conversationId}`, { name });
+};
+
+export const updateGroupPermissions = (conversationId, updates) => {
+  return Api.putRequest(`/v1.0/chat/groups/${conversationId}/permissions`, updates);
+};
+
+export const addGroupParticipants = (conversationId, participantIds) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/participants`, {
+    participants: participantIds,
+  });
+};
+
+export const removeGroupParticipant = (conversationId, userId) => {
+  return Api.deleteRequest(`/v1.0/chat/groups/${conversationId}/participants/${userId}`);
+};
+
+export const leaveGroupConversation = (conversationId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/leave`);
+};
+
+export const deleteGroupConversation = (conversationId) => {
+  return Api.deleteRequest(`/v1.0/chat/groups/${conversationId}`);
+};
+
+// imageUri: local file uri from expo-image-picker
+export const updateGroupAvatar = (conversationId, imageUri) => {
+  const formData = new FormData();
+  formData.append("avatar", {
+    uri: imageUri,
+    type: imageUri.endsWith(".png") ? "image/png" : "image/jpeg",
+    name: imageUri.endsWith(".png") ? "group_avatar.png" : "group_avatar.jpg",
+  });
+  return Api.postFormDataRequest(`/v1.0/chat/groups/${conversationId}/avatar`, formData);
+};
+
+export const addGroupDeputy = (conversationId, userId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/deputies`, { user_id: userId });
+};
+
+export const removeGroupDeputy = (conversationId, userId) => {
+  return Api.deleteRequest(`/v1.0/chat/groups/${conversationId}/deputies/${userId}`);
+};
+
+export const transferGroupOwnership = (conversationId, userId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/transfer-ownership`, { user_id: userId });
+};
+
+export const getGroupInviteLink = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/groups/${conversationId}/invite-link`);
+};
+
+export const regenerateGroupInviteLink = (conversationId) => {
+  return Api.postRequest(`/v1.0/chat/groups/${conversationId}/invite-link/regenerate`);
+};
+
+export const getGroupInvitePreview = (token) => {
+  return Api.getRequest(`/v1.0/chat/groups/invite/${token}`);
+};
+
+export const joinGroupViaInvite = (token) => {
+  return Api.postRequest(`/v1.0/chat/groups/invite/${token}/join`);
+};
+
+// Chat background (private + group conversations, not the public chat)
+export const getConversationBackground = (conversationId) => {
+  return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/background`);
+};
+
+// imageUri: local file uri from expo-image-picker
+export const uploadConversationBackground = (conversationId, imageUri) => {
+  const formData = new FormData();
+  formData.append("image", {
+    uri: imageUri,
+    type: imageUri.endsWith(".png") ? "image/png" : "image/jpeg",
+    name: imageUri.endsWith(".png") ? "chat_background.png" : "chat_background.jpg",
+  });
+  return Api.postFormDataRequest(`/v1.0/chat/conversations/${conversationId}/background`, formData);
+};
+
+export const selectConversationBackground = (conversationId, userContentId) => {
+  return Api.postRequest(`/v1.0/chat/conversations/${conversationId}/background/select`, {
+    user_content_id: userContentId,
+  });
+};
+
+export const resetConversationBackground = (conversationId) => {
+  return Api.deleteRequest(`/v1.0/chat/conversations/${conversationId}/background`);
+};
+
+// Search users by partial username/display name (e.g. for "create group" / "add members" pickers)
+export const searchUserSuggestions = (query, excludeConversationId) => {
+  const params = new URLSearchParams({ q: query });
+  if (excludeConversationId) params.set("exclude_conversation_id", excludeConversationId);
+  return Api.getRequest(`/v1.0/chat/search/user-suggestions?${params.toString()}`);
 };
 
 // Notifications

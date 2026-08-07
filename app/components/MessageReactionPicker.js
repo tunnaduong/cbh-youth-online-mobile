@@ -36,9 +36,12 @@ const MessageReactionPicker = ({
   onSelect,
   onRemoveAll,
   onReply,
+  onForward,
   onCopy,
+  onDownload,
   onEdit,
   onRecall,
+  onViewSeenBy,
   onClose,
 }) => {
   const { theme, isDarkMode } = useTheme();
@@ -138,6 +141,42 @@ const MessageReactionPicker = ({
                 <Ionicons name="arrow-undo-outline" size={18} color={theme.text} />
                 <Text style={[styles.replyText, { color: theme.text }]}>
                   {t("chatConversation.reply", "Trả lời")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onForward && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onForward}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="arrow-redo-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.forward", "Chuyển tiếp")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onDownload && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onDownload}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="download-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.download", "Tải xuống")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onViewSeenBy && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onViewSeenBy}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="eye-outline" size={18} color={theme.text} />
+                <Text style={[styles.replyText, { color: theme.text }]}>
+                  {t("chatConversation.viewSeenBy", "Lượt xem")}
                 </Text>
               </TouchableOpacity>
             )}

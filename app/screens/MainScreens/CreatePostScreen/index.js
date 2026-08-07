@@ -9,6 +9,7 @@ import {
   Platform,
   Switch,
   Animated,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -42,6 +43,29 @@ import {
   validateVideoAsset,
 } from "../../../utils/videoUpload";
 import { extractYouTubeId, buildYouTubePlayerHtml, autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
+import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
+import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
+import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
+import { getMentionSuggestions } from "../../../services/api/Api";
+
+// Bolds @mentions live while composing, but they're not clickable here -
+// only rendered posts (with backend-resolved mentions) link to a profile.
+// Posts don't support "@all" broadcast mentions (that's a comment/chat-only
+// feature), so unlike CommentBar's parser this one never special-cases it.
+function postMentionParser(input) {
+  "worklet";
+  try {
+    const ranges = [];
+    const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
+    let match;
+    while ((match = regex.exec(input)) !== null) {
+      ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+    }
+    return ranges;
+  } catch (e) {
+    return [];
+  }
+}
 
 // Large video uploads (up to 100MB) need more headroom than the axios
 // instance's default 10s timeout.
@@ -50,7 +74,31 @@ const VIDEO_UPLOAD_TIMEOUT = 300000;
 const CreatePostScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState(route?.params?.initialContent ?? "");
   const [title, setTitle] = useState(route?.params?.initialTitle ?? "");
+  const {
+    mentionProps: contentMentionProps,
+    suggestions: contentSuggestions,
+    loading: contentSuggestionsLoading,
+    onSelectMention: onSelectContentMention,
+    hasSuggestions: hasContentSuggestions,
+  } = useMentionInput({
+    value: postContent,
+    onChange: setPostContent,
+    fetchSuggestions: getMentionSuggestions,
+  });
   const insets = useSafeAreaInsets();
+  // The mention-suggestions overlay is anchored to the bottom of the
+  // screen; without tracking the keyboard it stayed pinned to the safe-area
+  // bottom, which the on-screen keyboard covers as soon as the content
+  // input is focused (exactly when suggestions are shown) - hidden behind it.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const { username, userInfo, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -65,6 +113,8 @@ const CreatePostScreen = ({ navigation, route }) => {
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
+  // Header title is visible at rest and hides as the user scrolls down into
+  // the compose area, giving a cleaner distraction-free writing view.
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 24, 48],
     outputRange: [1, 0.5, 0],
@@ -396,7 +446,7 @@ const CreatePostScreen = ({ navigation, route }) => {
         // Auto-wraps a bare youtube.com/youtu.be link typed into the post
         // in the same <iframe> PostItem already knows how to render, so
         // users don't have to write the embed markup by hand.
-        description: autoEmbedYouTubeLinks(postContent),
+        description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
         cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
         cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
         cdn_video_id: videoIds.length > 0 ? videoIds.join(",") : null,
@@ -474,13 +524,18 @@ const CreatePostScreen = ({ navigation, route }) => {
         style={[
           styles.topBar,
           {
-            // iOS: this screen is presented via presentation:"modal", which
-            // renders as a floating card (not full-bleed like Android), so
-            // it already clears the notch/status bar on its own — adding
-            // the full device insets.top on top of that double-counts the
-            // offset and pushes content too far down.
-            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
-            height: Platform.OS === "ios" ? 68 : insets.top + 52,
+            // Was assuming iOS's presentation:"modal" self-clears the notch
+            // as a floating card, so it used a flat 6px regardless of the
+            // device's actual safe area - but that doesn't hold up (e.g. an
+            // active call/recording banner grows the real top inset and the
+            // header rendered full-bleed under it, cramped against the
+            // status bar). Use the real inset on both platforms instead.
+            // Height must give the 44px back/publish buttons enough room
+            // (paddingTop + 44) or they overflow the bar's declared height,
+            // stretching it taller than intended - a prior height reduction
+            // shrank this below 44px and caused exactly that.
+            paddingTop: insets.top + 2,
+            height: insets.top + 46,
             backgroundColor: "transparent",
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
             transform: Platform.OS === "android" ? undefined : [{ translateY: headerTranslateY }],
@@ -509,20 +564,23 @@ const CreatePostScreen = ({ navigation, route }) => {
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </Animated.View>
-        <Animated.Text
+        <Animated.View
           pointerEvents="none"
-          style={[
-            styles.topTitle,
-            {
-              flex: 1,
-              opacity: headerTitleOpacity,
-              color: theme.text,
-              textAlign: "center",
-            },
-          ]}
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: headerTitleOpacity,
+          }}
         >
-          {t("createPost.title")}
-        </Animated.Text>
+          <Text style={[styles.topTitle, { color: theme.text }]}>
+            {t("createPost.title")}
+          </Text>
+        </Animated.View>
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton
             size={44}
@@ -543,7 +601,7 @@ const CreatePostScreen = ({ navigation, route }) => {
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={{
-          paddingTop: Platform.OS === "ios" ? 68 : insets.top + 52,
+          paddingTop: insets.top + 46,
           paddingBottom: insets.bottom + 24,
         }}
         onScroll={Animated.event(
@@ -680,12 +738,20 @@ const CreatePostScreen = ({ navigation, route }) => {
               onChangeText={setTitle}
             />
             <View style={[styles.divider, { borderColor: theme.border }]} />
-            <TextInput
+            <MarkdownTextInput
               style={[styles.contentInput, { color: theme.text }]}
+              parser={postMentionParser}
+              markdownStyle={{
+                // The library's mentionUser default also sets a cyan
+                // backgroundColor + borderRadius (a solid highlighted chip) -
+                // override both so a mention is just colored/bold text, not
+                // dropped in a background box.
+                mentionUser: { color: "#22c55e", fontWeight: "600", backgroundColor: "transparent", borderRadius: 0 },
+              }}
               placeholder={t("createPost.placeholderContent")}
               placeholderTextColor={theme.subText}
               value={postContent}
-              onChangeText={setPostContent}
+              onChangeText={contentMentionProps.onChangeText}
               multiline
               textAlignVertical="top"
             />
@@ -971,6 +1037,29 @@ const CreatePostScreen = ({ navigation, route }) => {
         </View>
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
+
+      {/* Rendered outside the ScrollView - a FlatList (inside MentionSuggestions)
+          nested in a ScrollView of the same orientation doesn't get a usable
+          height and never shows anything, only warns. */}
+      {hasContentSuggestions && (
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: (keyboardHeight || insets.bottom) + 16,
+            zIndex: 50,
+            elevation: 50,
+          }}
+          pointerEvents="box-none"
+        >
+          <MentionSuggestions
+            suggestions={contentSuggestions}
+            loading={contentSuggestionsLoading}
+            onSelect={onSelectContentMention}
+          />
+        </View>
+      )}
     </View>
   );
 };

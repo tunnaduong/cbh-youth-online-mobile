@@ -194,6 +194,9 @@ jobs:
           SHARE_PROVISIONING_PROFILE_UUID: ${{ env.SHARE_PROVISIONING_PROFILE_UUID }}
           SHARE_PROVISIONING_PROFILE_NAME: ${{ env.SHARE_PROVISIONING_PROFILE_NAME }}
 
+      - name: Clean DerivedData (avoid stale JS bundle from cache)
+        run: rm -rf ~/Library/Developer/Xcode/DerivedData
+
       # Ép các biến môi trường loại bỏ Simulator ngay tại câu lệnh build xcodebuild
       - name: Build iOS Archive
         run: |

@@ -26,6 +26,9 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { isPublicGroupChat } from "../../../utils/chatHelpers";
+import { getSystemMessageText } from "../../../utils/systemMessageText";
+import CustomLoading from "../../../components/CustomLoading";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -257,8 +260,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.profile_name || "Unknown User";
     }
-    const nameNorm = conversation.name?.trim().normalize("NFC").toLowerCase();
-    if (nameNorm === "tán gẫu linh tinh") {
+    if (isPublicGroupChat(conversation)) {
       return t("chatConversation.casualGroupName");
     }
     return conversation.name || "Unnamed Group";
@@ -268,14 +270,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (conversation.type === "private") {
       return conversation.participants[0]?.avatar_url;
     }
-    const nameNorm = conversation.name?.trim().normalize("NFC").toLowerCase();
-    if (
-      conversation.type === "group" &&
-      nameNorm === "tán gẫu linh tinh"
-    ) {
+    if (isPublicGroupChat(conversation)) {
       return "local:chat.jpg";
     }
-    return null;
+    return conversation.avatar_url || null;
   };
 
   const renderLastMessagePreview = (latestMessage) => {
@@ -291,6 +289,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     }
 
     const type = latestMessage.type || latestMessage.content_type;
+
+    if (type === "system") {
+      return getSystemMessageText(latestMessage, t);
+    }
 
     if (type === "image") {
       return (
@@ -367,7 +369,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             : ""}
         </Text>
         <View style={styles.unreadContainer}>
-          {item.type === "group" && item.name?.trim().normalize("NFC").toLowerCase() === "tán gẫu linh tinh" && (
+          {isPublicGroupChat(item) && (
             <Ionicons
               name="notifications-off"
               size={18}
@@ -402,26 +404,28 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         >
           {t('chat.title')}
         </Animated.Text>
-        <LiquidButton
-          providerId="Chat"
-          onPress={() => navigation.navigate("NewConversationScreen")}
-          scrollY={scrollY}
-          alwaysBorder
-          borderColor={theme.primary}
-          size={44}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 44, flexDirection: 'row', alignItems: 'center', backgroundColor: 'transparent' }}
-          borderRadius={22}
-        >
-          <Ionicons
-            name="add"
-            size={20}
-            color={theme.text}
-            style={{ marginRight: 4, flexShrink: 0 }}
-          />
-          <Text style={{ color: theme.text, fontWeight: "600" }} numberOfLines={1}>
-            {t('chat.newMessage')}
-          </Text>
-        </LiquidButton>
+        <View style={styles.headerActions}>
+          <LiquidButton
+            providerId="Chat"
+            onPress={() => navigation.navigate("CreateGroupScreen")}
+            scrollY={scrollY}
+            alwaysBorder
+            borderColor={theme.primary}
+            size={40}
+          >
+            <Ionicons name="people-outline" size={19} color={theme.text} />
+          </LiquidButton>
+          <LiquidButton
+            providerId="Chat"
+            onPress={() => navigation.navigate("NewConversationScreen")}
+            scrollY={scrollY}
+            alwaysBorder
+            borderColor={theme.primary}
+            size={40}
+          >
+            <Ionicons name="add" size={22} color={theme.text} />
+          </LiquidButton>
+        </View>
       </View>
 
       {refreshing && (
@@ -436,7 +440,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             zIndex: 1000,
           }}
         >
-          <ActivityIndicator size="small" color={theme.primary} />
+          <CustomLoading size={44} showBackdrop />
         </View>
       )}
       <AndroidGlassBackdrop providerId="Chat" style={{ flex: 1 }}>
@@ -527,6 +531,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   searchContainer: {
     flexDirection: "row",

@@ -528,7 +528,12 @@ const CreateStoryScreen = ({ navigation }) => {
     const newId = `text_${textIdCounter.current++}`;
     setStoryTexts((prev) => [
       ...prev,
-      { id: newId, text: "", x: width / 2 - 100, y: captureDims.h / 2 - 20 },
+      // Use captureDims.w, not the raw window width - the story canvas is
+      // letterboxed/pillarboxed to a 9:16 area on devices whose screen
+      // aspect ratio isn't exactly 9:16, so the canvas is often narrower
+      // than the window itself. Centering against the window width placed
+      // new text off-center relative to the actual visible canvas.
+      { id: newId, text: "", x: captureDims.w / 2 - 100, y: captureDims.h / 2 - 20 },
     ]);
     setEditingTextId(newId);
   }, [captureDims]);
@@ -920,14 +925,47 @@ const CreateStoryScreen = ({ navigation }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
-      aspect: [9, 16],
+      aspect: [5, 6],
       quality: 1,
     });
 
     if (!result.canceled) {
-      const asset = result.assets?.[0];
+      let asset = result.assets?.[0];
       if (!asset?.uri) return;
       const mediaType = asset?.type === "video" ? "video" : "image";
+
+      // Some OS gallery pickers silently ignore the aspect/editing hint
+      // above when mediaTypes includes both photos and videos (a known
+      // expo-image-picker limitation), returning the raw uncropped image
+      // instead of the requested 6:5. Force it here so uploaded story
+      // images are consistently 6:5 regardless of OS picker behavior.
+      if (mediaType === "image" && asset.width && asset.height) {
+        const targetRatio = 5 / 6;
+        const currentRatio = asset.width / asset.height;
+        if (Math.abs(currentRatio - targetRatio) > 0.02) {
+          try {
+            let cropWidth = asset.width;
+            let cropHeight = Math.round(asset.width / targetRatio);
+            if (cropHeight > asset.height) {
+              cropHeight = asset.height;
+              cropWidth = Math.round(asset.height * targetRatio);
+            }
+            const originX = Math.round((asset.width - cropWidth) / 2);
+            const originY = Math.round((asset.height - cropHeight) / 2);
+
+            const manipulated = await manipulateAsync(
+              asset.uri,
+              [{ crop: { originX, originY, width: cropWidth, height: cropHeight } }],
+              { compress: 1, format: SaveFormat.JPEG }
+            );
+
+            asset = { ...asset, uri: manipulated.uri, width: manipulated.width, height: manipulated.height };
+          } catch (error) {
+            console.warn("Failed to force 6:5 crop on story image:", error?.message);
+          }
+        }
+      }
+
       setSelectedMediaType(mediaType);
       setSelectedMediaAsset(asset);
       setSelectedImage(asset.uri);
@@ -1000,7 +1038,7 @@ const CreateStoryScreen = ({ navigation }) => {
             ? ImagePicker.MediaTypeOptions.Videos
             : ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [9, 16],
+        aspect: [5, 6],
         quality: 1,
       });
 

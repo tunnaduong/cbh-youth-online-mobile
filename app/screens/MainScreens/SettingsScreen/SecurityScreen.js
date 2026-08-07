@@ -14,12 +14,12 @@ import {
   Image,
   Animated,
 } from "react-native";
-import React, { useContext, useState, useRef } from "react";
+import React, { useContext, useState, useRef, useEffect } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
-import { deleteAccount, updateProfile, changePassword } from "../../../services/api/Api";
+import { deleteAccount, updateProfile, changePassword, getNotificationSettings, updateNotificationSettings } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 const SettingItem = ({
   icon,
   title,
+  description,
   onPress,
   value,
   isSwitch,
@@ -43,11 +44,14 @@ const SettingItem = ({
     disabled={isSwitch}
     activeOpacity={0.7}
   >
-    <View style={styles.settingItemLeft}>
-      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
+    <View style={[styles.settingItemLeft, description ? { alignItems: 'flex-start' } : null, { flex: 1 }]}>
+      <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground, marginTop: description ? 2 : 0 }]}>
         <Ionicons name={icon} size={20} color={color === "#FF3B30" ? color : theme.primary} />
       </View>
-      <Text style={[styles.settingItemText, { color: color || theme.text }]}>{title}</Text>
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text style={[styles.settingItemText, { marginLeft: 0, color: color || theme.text }]}>{title}</Text>
+        {description ? <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2 }}>{description}</Text> : null}
+      </View>
     </View>
     {isSwitch ? (
       <Switch
@@ -115,6 +119,25 @@ export default function SecurityScreen({ navigation }) {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [chatReadReceipts, setChatReadReceipts] = useState(true);
+
+  useEffect(() => {
+    getNotificationSettings()
+      .then((res) => {
+        const s = res.data || res;
+        setChatReadReceipts(s.chat_read_receipts !== false);
+      })
+      .catch(() => {});
+  }, []);
+
+  const toggleChatReadReceipts = async (value) => {
+    setChatReadReceipts(value);
+    try {
+      await updateNotificationSettings({ chat_read_receipts: value });
+    } catch {
+      setChatReadReceipts(!value);
+    }
+  };
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -390,6 +413,19 @@ export default function SecurityScreen({ navigation }) {
                 text1: t('security.featureUnderDevelopment'),
               });
             }}
+            theme={theme}
+          />
+        </SettingSection>
+
+        <SettingSection title={t('security.privacy')} theme={theme}>
+          <SettingItem
+            icon="eye-off-outline"
+            title={t('security.chatReadReceipts')}
+            description={t('security.chatReadReceiptsDesc')}
+            isSwitch
+            value={chatReadReceipts}
+            onPress={toggleChatReadReceipts}
+            lastItem
             theme={theme}
           />
         </SettingSection>

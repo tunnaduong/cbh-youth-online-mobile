@@ -168,6 +168,15 @@ const useIOSGlassSupport = () => {
 };
 const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
 
+// Shared black/white tint for every Android liquid-glass surface, so the
+// glass shader always reads a dark tint in dark mode / light tint in light
+// mode instead of rendering untinted (which looks washed-out/glassy with no
+// grounding against busy content behind it). Centralized here instead of
+// each call site hand-picking its own rgba value, which had drifted to
+// visibly different opacities (0.15 to 0.6) across the app.
+const androidGlassTint = (isDarkMode) =>
+  isDarkMode ? "rgba(0, 0, 0, 0.74)" : "rgba(255, 255, 255, 0.74)";
+
 // Wraps `children` (the backdrop content) in a local Android LiquidGlassProvider
 // keyed by `providerId`, on Android when glass is available; plain passthrough
 // otherwise. Callers still need to render their own LiquidGlassView(Android)
@@ -199,6 +208,7 @@ export {
   useIOSGlassSupport,
   useAndroidGlass,
   AndroidGlassBackdrop,
+  androidGlassTint,
 };
 
 export default {
@@ -215,4 +225,5 @@ export default {
   useIOSGlassSupport,
   useAndroidGlass,
   AndroidGlassBackdrop,
+  androidGlassTint,
 };

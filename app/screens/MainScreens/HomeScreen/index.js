@@ -54,6 +54,7 @@ import ReportModal from "../../../components/ReportModal";
 import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
 import PostItem from "../../../components/PostItem";
+import CustomLoading from "../../../components/CustomLoading";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { storage } from "../../../global/storage";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -71,7 +72,7 @@ import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
 
-const emojis = ["👍", "❤️", "🔥", "😆", "😮", "😢", "😡"];
+const emojis = ["❤️", "😆", "😮", "😢", "😡", "👍"];
 
 // Map emojis to reaction types
 const emojiToReactionType = {
@@ -292,6 +293,7 @@ const StoryOptionsModal = ({
   actionSheetRef,
   storyRef,
   setReportModalVisible,
+  setIsOptionsSheetOpen,
   currentStoryUserRef,
   currentStory,
   currentStoryRef,
@@ -328,6 +330,7 @@ const StoryOptionsModal = ({
         marginTop: 10,
       }}
       onClose={() => {
+        setIsOptionsSheetOpen(false);
         if (isOpeningReportRef.current || isOpeningDeleteRef.current) {
           isOpeningReportRef.current = false;
           isOpeningDeleteRef.current = false;
@@ -797,19 +800,29 @@ const ReplyBar = ({
         />
       ))}
       <View style={{ paddingBottom: insets.bottom }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6, paddingHorizontal: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-evenly", paddingHorizontal: 16, marginBottom: 4 }}>
           {emojis.map((emoji) => (
             <TouchableOpacity
               key={emoji}
               onPress={() => handleEmojiPress(emoji)}
+              hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
             >
-              <Text style={{ fontSize: 28 }}>{emoji}</Text>
+              <Text
+                style={{
+                  fontSize: 30,
+                  textShadowColor: "rgba(0,0,0,0.35)",
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 3,
+                }}
+              >
+                {emoji}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
         <View style={styles.replyBar}>
           <TextInput
-            placeholder={t('chat.typeMessage')}
+            placeholder={t('home.storyReplyPlaceholder', 'Chia sẻ cảm nghĩ của bạn...')}
             placeholderTextColor="rgba(255, 255, 255, 0.6)"
             style={[
               styles.input,
@@ -944,6 +957,14 @@ const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode })
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
+  const refreshIndicatorOpacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(refreshIndicatorOpacity, {
+      toValue: refreshing ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  }, [refreshing]);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
   const [feedMode, setFeedMode] = React.useState("personalized");
@@ -965,6 +986,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   }, [currentStory]);
   const [currentStoryUser, setCurrentStoryUser] = useState(null);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isOptionsSheetOpen, setIsOptionsSheetOpen] = useState(false);
+  const [isViewersSheetOpen, setIsViewersSheetOpen] = useState(false);
   const [isStoryVisible, setIsStoryVisible] = useState(false);
   const {
     username,
@@ -1026,11 +1049,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   useEffect(() => {
     const openSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_OPENED", () => {
+      setIsViewersSheetOpen(true);
       if (isStoryVisible) {
         storyRef.current?.pause?.();
       }
     });
     const closeSub = DeviceEventEmitter.addListener("STORY_VIEWERS_SHEET_CLOSED", () => {
+      setIsViewersSheetOpen(false);
       if (isStoryVisible) {
         storyRef.current?.resume?.();
       }
@@ -1359,6 +1384,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
 
     storyRef.current?.pause?.(); // Pause the story timer
+    setIsOptionsSheetOpen(true);
     actionSheetRef.current?.show();
   };
 
@@ -1408,6 +1434,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       previousStatusBarStyle.current.barStyle,
       previousStatusBarStyle.current.backgroundColor
     );
+    // userStories is only fetched once on mount/blockedUsers change, so the
+    // view count shown on the outer story bubble stays stale even though
+    // markStoryAsViewed (and any other viewer's view, recorded server-side
+    // while you were browsing) already changed it - the in-viewer "views"
+    // count is only correct because it does its own fresh fetch. Silently
+    // resync after closing so the bubble reflects reality without needing a
+    // full pull-to-refresh.
+    fetchStories();
   };
 
   const dismissStoryModal = () => {
@@ -1564,7 +1598,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         name: user.name,
         isFollowed: user.is_following,
         avatarSource: {
-          uri: `https://api.chuyenbienhoa.com/users/${user.username}/avatar`,
+          uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
         },
         stories: user.stories.map((story) => {
           const mediaUrl = resolveStoryMediaUrl(story);
@@ -1900,7 +1934,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     }}
                   />
                   <Text
-                    numberOfLines={2}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                     className="text-[13px] font-semibold text-white p-1.5"
                     style={{
                       textShadowColor: "rgba(0, 0, 0, 0.8)",
@@ -2374,6 +2409,32 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   ) : (
     <>
       <View style={{ backgroundColor: theme.background, flex: 1 }}>
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            // The header above the feed is 50 + insets.top tall (matches the
+            // FlatList's contentContainerStyle paddingTop below) - anchoring
+            // this to insets.top alone put it right under the status bar,
+            // overlapping the header instead of sitting below it.
+            top: insets.top + 50 + 6,
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            zIndex: 10,
+            opacity: refreshIndicatorOpacity,
+            transform: [
+              {
+                translateY: refreshIndicatorOpacity.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-16, 0],
+                }),
+              },
+            ],
+          }}
+        >
+          <CustomLoading size={44} showBackdrop />
+        </Animated.View>
         <FlatList
           onScroll={handleScroll}
           onScrollBeginDrag={handleScrollBeginDrag}
@@ -2477,7 +2538,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
             return null;
           }}
-          progressColor="#a4a4a4"
+          imageOverlayView={
+            // Subtle scrim behind the footer (emoji reactions/comment bar) so
+            // it stays legible over bright story content - pointerEvents
+            // "none" so taps still reach the image/video below for story
+            // navigation.
+            <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+              <LinearGradient
+                colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.45)"]}
+                style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 140 }}
+              />
+            </View>
+          }
+          progressColor="rgba(255,255,255,0.35)"
+          progressActiveColor={theme.primary}
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
@@ -2485,7 +2559,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId }) => (
             <View style={{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Pressable
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 onPress={() => {
                   if (userId) {
                     const user = userStories.find((u) => u.id === userId || u.uid === userId);
@@ -2505,11 +2579,21 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     <Image source={avatarSource} style={{ width: 28, height: 28 }} />
                   </View>
                 )}
-                <View style={{ flexDirection: 'column' }}>
-                  {name && <Text style={{ color: '#fff', fontWeight: '600' }}>{name}</Text>}
-                  {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12 }}>{date}</Text>}
-                </View>
               </Pressable>
+              {/* Absolutely centered across the full header width (not just
+                  the space between avatar/icons) to match the design - a
+                  flex "space-between" center column would drift off-true-
+                  center whenever the icon cluster's width differs from the
+                  avatar's (e.g. the mute button only shows for videos).
+                  pointerEvents="none" so it never blocks the avatar/icon
+                  taps it visually sits between. */}
+              <View
+                pointerEvents="none"
+                style={{ position: 'absolute', left: 44, right: 44, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
+              >
+                {name && <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#fff', fontWeight: '600', textAlign: 'center' }}>{name}</Text>}
+                {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
+              </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 {(() => {
                   try {
@@ -2531,7 +2615,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                             opacity: isServerMuted ? 0.7 : 1,
                           }}
                         >
-                          <Ionicons name={isAudioMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={18} color="#fff" />
+                          <Ionicons name={isAudioMuted ? 'volume-mute' : 'volume-high'} size={20} color="#fff" />
                         </TouchableOpacity>
                       );
                     }
@@ -2540,7 +2624,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 })()}
                 {onMore && (
                   <TouchableOpacity onPress={onMore} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                    <Ionicons name="ellipsis-horizontal" size={24} color="#c4c4c4" />
+                    <Ionicons name="settings" size={24} color="#fff" />
+                  </TouchableOpacity>
+                )}
+                {onClose && (
+                  <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                    <Ionicons name="close" size={26} color="#fff" />
                   </TouchableOpacity>
                 )}
               </View>
@@ -2578,7 +2667,26 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             // gestureEnabled) grabs the responder and never releases it,
             // which is what actually caused "viewers sheet shows nothing,
             // then app is frozen after closing the story" on iOS.
-            <GestureHandlerRootView style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            //
+            // On Android, GestureHandlerRootView's native ViewGroup always
+            // calls onInterceptTouchEvent regardless of the RN pointerEvents
+            // prop - "none"/"box-none" are a JS-side override that its
+            // native touch dispatch ignores, so leaving this absoluteFill
+            // for the whole story-viewing session was swallowing every tap
+            // on the story's own header/body buttons on Android, even with
+            // pointerEvents="none". Android's native hit-testing IS bounds-
+            // based though, so collapsing this view to 0x0 while no sheet is
+            // open means there's no area left for it to ever intercept, and
+            // we only expand it back to absoluteFill while a sheet actually
+            // needs to render/receive touches.
+            <GestureHandlerRootView
+              style={
+                reportModalVisible || isOptionsSheetOpen || isViewersSheetOpen
+                  ? StyleSheet.absoluteFill
+                  : { position: "absolute", width: 0, height: 0 }
+              }
+              pointerEvents={reportModalVisible || isOptionsSheetOpen || isViewersSheetOpen ? "box-none" : "none"}
+            >
               <ReportModal
                 visible={reportModalVisible}
                 onClose={() => {
@@ -2593,6 +2701,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 actionSheetRef={actionSheetRef}
                 storyRef={storyRef}
                 setReportModalVisible={setReportModalVisible}
+                setIsOptionsSheetOpen={setIsOptionsSheetOpen}
                 currentStoryUserRef={currentStoryUserRef}
                 currentStory={currentStory}
                 currentStoryRef={currentStoryRef}

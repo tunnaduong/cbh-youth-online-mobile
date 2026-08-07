@@ -138,6 +138,7 @@ export default function NotificationSettingsScreen({ navigation }) {
       setFollowsEnabled(!!settings.email_social);
       setMessagesEnabled(!!settings.email_social); // Sharing the same backend setting for now
 
+
       setLoading(false);
     } catch (error) {
       console.error("Failed to fetch notification settings:", error);
@@ -176,6 +177,7 @@ export default function NotificationSettingsScreen({ navigation }) {
       email_contact: updates.hasOwnProperty('emailEnabled') ? updates.emailEnabled : emailEnabled,
       email_marketing: updates.hasOwnProperty('newsEnabled') ? updates.newsEnabled : newsEnabled,
       email_social: updates.hasOwnProperty('followsEnabled') ? updates.followsEnabled : followsEnabled,
+      chat_read_receipts: true,
     };
 
     // Handle shared logic for social
@@ -359,10 +361,10 @@ export default function NotificationSettingsScreen({ navigation }) {
             isSwitch
             value={newsEnabled}
             onPress={(v) => handleToggle('newsEnabled', v)}
-            lastItem
             theme={theme}
           />
         </SettingSection>
+
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
     </View>

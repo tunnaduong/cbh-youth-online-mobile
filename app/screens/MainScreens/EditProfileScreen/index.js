@@ -68,6 +68,7 @@ const EditProfileScreen = ({ navigation }) => {
 
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(new Date());
+  const [birthdayChanged, setBirthdayChanged] = useState(false);
   const [selectedId, setSelectedId] = useState();
 
   const radioButtons = [
@@ -108,7 +109,12 @@ const EditProfileScreen = ({ navigation }) => {
         birthday: profile.birthday_raw || "",
         gender: profile.gender || "",
       });
-      setDate(new Date(profile.birthday_raw));
+      // profile.birthday_raw is null when the user never set a birthday -
+      // new Date(null) coerces to new Date(0) (1970-01-01) instead of an
+      // "unset" state, which then got silently resubmitted on every save.
+      if (profile.birthday_raw) {
+        setDate(new Date(profile.birthday_raw));
+      }
       setSelectedId(profile.gender == "Male" ? "1" : "2");
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -168,9 +174,15 @@ const EditProfileScreen = ({ navigation }) => {
       const updatedProfileData = {
         ...profileData,
         gender: selectedId === "1" ? "Male" : "Female",
-        birthday: date.toISOString().split("T")[0],
         profile_picture: cdnId,
       };
+      // Only send a birthday if the user actually has one set or just picked
+      // one - otherwise this always resubmitted `date`'s default (1970-01-01
+      // when no birthday existed) on every profile save, including plain
+      // avatar-only updates.
+      if (birthdayChanged || profileData.birthday) {
+        updatedProfileData.birthday = date.toISOString().split("T")[0];
+      }
 
       // Then create formData with the updated data
       const formData = new FormData();
@@ -427,11 +439,12 @@ const EditProfileScreen = ({ navigation }) => {
                 title={t('editProfile.selectBirthday')}
                 confirmText={t('editProfile.confirm')}
                 cancelText={t('profile.cancel')}
-                maximumDate={new Date()}
+                maximumDate={new Date(Date.now() - 24 * 60 * 60 * 1000)}
                 minimumDate={new Date(1900, 0, 1)}
                 onConfirm={(selectedDate) => {
                   setOpen(false);
                   setDate(selectedDate);
+                  setBirthdayChanged(true);
                   setProfileData((prev) => ({
                     ...prev,
                     birthday: formatDateToLocale(selectedDate),

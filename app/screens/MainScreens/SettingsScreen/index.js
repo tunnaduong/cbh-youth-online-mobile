@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { changeLanguage } from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
 
 const SettingItem = ({
   icon,
@@ -95,6 +96,43 @@ export default function SettingsScreen({ navigation }) {
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
+
+  // Tapping the version text 5 times within 3s toggles on the hidden
+  // developer debug console (persistent - re-checked whenever this screen
+  // gains focus, since it can also be turned off from inside that screen).
+  const [devMode, setDevMode] = React.useState(false);
+  const versionTapCountRef = useRef(0);
+  const versionTapTimerRef = useRef(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setDevMode(isDevModeEnabled());
+    }, [])
+  );
+
+  const handleVersionTap = () => {
+    versionTapCountRef.current += 1;
+    clearTimeout(versionTapTimerRef.current);
+    versionTapTimerRef.current = setTimeout(() => {
+      versionTapCountRef.current = 0;
+    }, 3000);
+
+    if (versionTapCountRef.current >= 5) {
+      versionTapCountRef.current = 0;
+      clearTimeout(versionTapTimerRef.current);
+      if (!isDevModeEnabled()) {
+        setDevModeEnabled(true).then(() => {
+          setDevMode(true);
+          Toast.show({
+            type: "success",
+            text1: t("devConsole.enabledToastTitle"),
+            text2: t("devConsole.enabledToastDesc"),
+            visibilityTime: 3000,
+          });
+        });
+      }
+    }
+  };
 
   useFocusEffect(
     React.useCallback(() => {
@@ -291,12 +329,21 @@ export default function SettingsScreen({ navigation }) {
             onLongPress={() => navigation.navigate("EasterEggScreen")}
             delayLongPress={500}
           />
+          {devMode && (
+            <SettingItem
+              icon="terminal-outline"
+              title={t("settings.debugConsole")}
+              onPress={() => navigation.navigate("DevConsoleScreen")}
+              lastItem
+            />
+          )}
         </SettingSection>
 
         {/* Version & Social */}
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
+            handleVersionTap();
             const lines = [
               "Diễn đàn hs Chuyên Biên Hòa là sân chơi của chuyên Nga :)))",
               "1 trong 2 người tạo ra là chuyên Nga K60",

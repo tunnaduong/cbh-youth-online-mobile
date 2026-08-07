@@ -34,6 +34,7 @@ import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import PostEditScreen from "./app/screens/MainScreens/PostEditScreen";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { joinGroupViaInvite } from "./app/services/api/Api";
 import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
@@ -50,6 +51,9 @@ import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
 import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen";
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
+import CreateGroupScreen from "./app/screens/MainScreens/ChatScreen/CreateGroupScreen";
+import GroupInfoScreen from "./app/screens/MainScreens/ChatScreen/GroupInfoScreen";
+import AddGroupMembersScreen from "./app/screens/MainScreens/ChatScreen/AddGroupMembersScreen";
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
 import StudyMaterialDetailScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialDetailScreen";
@@ -69,6 +73,13 @@ import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useShareIntent } from "expo-share-intent";
 import { parseYouTubeShare } from "./app/utils/youtubeShare";
+import { initDevConsole } from "./app/utils/devConsole";
+import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
+
+// Patches console.log/warn/error as early as possible so nothing logged
+// during app startup is missed if dev mode is already enabled from a
+// previous session.
+initDevConsole();
 
 const Stack = createStackNavigator();
 
@@ -131,7 +142,7 @@ const parseDeepLink = (url) => {
       const queryPart = customSchemeMatch[4] || "";
 
       if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
-        if (firstSegment === "post" || firstSegment === "story") {
+        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group") {
           pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
           host = "";
         } else {
@@ -182,6 +193,10 @@ const parseDeepLink = (url) => {
         const storyId = pathSegment.slice(6).split("?")[0];
         return routeToStory(storyId);
       }
+      if (pathSegment.startsWith("group/")) {
+        const token = pathSegment.slice(6).split("?")[0];
+        if (token) return { screen: "GroupJoin", params: { token } };
+      }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;
         return routeToStory(storyId);
@@ -196,6 +211,13 @@ const parseDeepLink = (url) => {
       if (pathSegment.startsWith("story/")) {
         const storyId = pathSegment.slice(6).split("?")[0];
         return routeToStory(storyId);
+      }
+      // Universal-link redirect target used by the web "open in app" button
+      // (see src/app/open/[type]/[value]/route.js) as well as a bare /group/
+      // path in case that's ever shared directly.
+      if (pathSegment.startsWith("open/group/") || pathSegment.startsWith("group/")) {
+        const token = pathSegment.replace(/^open\//, "").slice(6).split("?")[0];
+        if (token) return { screen: "GroupJoin", params: { token } };
       }
     }
   } catch (e) {
@@ -248,6 +270,31 @@ const App = () => {
 
   const navigateToDeepLinkTarget = (target) => {
     if (!target || !navigationRef.current) return;
+
+    // Group invite links aren't a real registered screen - joining is an async API
+    // call, so resolve the conversation id first and only then push the thread.
+    if (target.screen === "GroupJoin") {
+      const { token } = target.params || {};
+      if (!token) return;
+      joinGroupViaInvite(token)
+        .then((res) => {
+          const joinedConversationId = res?.data?.conversation_id;
+          if (!joinedConversationId || !navigationRef.current) return;
+          navigationRef.current.dispatch({
+            type: "PUSH",
+            payload: { name: "ConversationScreen", params: { conversationId: joinedConversationId } },
+          });
+        })
+        .catch((error) => {
+          console.warn("[DeepLink] failed to join group via invite", error?.response?.data || error?.message);
+          Toast.show({
+            type: "error",
+            text1: i18n.t("chatConversation.inviteLinkError", "Không thể tham gia nhóm qua lời mời."),
+          });
+        });
+      return;
+    }
+
     // The container ref only implements the base NavigationHelpers surface
     // (navigate/goBack/reset/dispatch, no `.push`) - `.push` only exists on
     // the `navigation` prop a stack screen receives, which is why calling
@@ -620,6 +667,13 @@ const App = () => {
                 }}
               />
               <Stack.Screen
+                name="DevConsoleScreen"
+                component={DevConsoleScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="TermsOfServiceScreen"
                 component={TermsOfServiceScreen}
                 options={{
@@ -724,6 +778,29 @@ const App = () => {
                   gestureEnabled: false,
                 }}
                 component={NewConversationScreen}
+              />
+              <Stack.Screen
+                name="CreateGroupScreen"
+                options={{
+                  headerShown: false,
+                  presentation: "transparentModal",
+                  animation: "slide_from_bottom",
+                  gestureEnabled: false,
+                }}
+                component={CreateGroupScreen}
+              />
+              <Stack.Screen
+                name="GroupInfoScreen"
+                component={GroupInfoScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="AddGroupMembersScreen"
+                options={{
+                  headerShown: false,
+                  presentation: "modal",
+                }}
+                component={AddGroupMembersScreen}
               />
               <Stack.Screen
                 name="ExploreScreen"

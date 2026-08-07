@@ -9,6 +9,7 @@ import {
   Platform,
   Switch,
   Animated,
+  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -31,7 +32,31 @@ import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
 import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
-import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
+import { autoEmbedYouTubeLinks, extractYouTubeId, buildYouTubePlayerHtml } from "../../../utils/youtubeShare";
+import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
+import { WebView } from "react-native-webview";
+import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
+import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
+import { getMentionSuggestions } from "../../../services/api/Api";
+
+// Bolds @mentions live while composing, but they're not clickable here -
+// only rendered posts (with backend-resolved mentions) link to a profile.
+// Posts don't support "@all" broadcast mentions (that's a comment/chat-only
+// feature), so unlike CommentBar's parser this one never special-cases it.
+function postMentionParser(input) {
+  "worklet";
+  try {
+    const ranges = [];
+    const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
+    let match;
+    while ((match = regex.exec(input)) !== null) {
+      ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
+    }
+    return ranges;
+  } catch (e) {
+    return [];
+  }
+}
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -50,7 +75,31 @@ const VIDEO_UPLOAD_TIMEOUT = 300000;
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
   const [title, setTitle] = useState("");
+  const {
+    mentionProps: contentMentionProps,
+    suggestions: contentSuggestions,
+    loading: contentSuggestionsLoading,
+    onSelectMention: onSelectContentMention,
+    hasSuggestions: hasContentSuggestions,
+  } = useMentionInput({
+    value: postContent,
+    onChange: setPostContent,
+    fetchSuggestions: getMentionSuggestions,
+  });
   const insets = useSafeAreaInsets();
+  // The mention-suggestions overlay is anchored to the bottom of the
+  // screen; without tracking the keyboard it stayed pinned to the safe-area
+  // bottom, which the on-screen keyboard covers as soon as the content
+  // input is focused (exactly when suggestions are shown) - hidden behind it.
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const { username, userInfo, profileName } = useContext(AuthContext);
   if (!userInfo) {
     return null;
@@ -65,10 +114,14 @@ const PostEditScreen = ({ navigation, route }) => {
   const [subforums, setSubforums] = useState([]);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
-  // iOS: presentation:"modal" renders as a floating card (not full-bleed
-  // like Android), which already clears the notch/status bar on its own —
-  // adding the full device insets.top double-counts the offset.
-  const headerHeight = Platform.OS === "ios" ? 68 : insets.top + 52;
+  // Was assuming iOS's presentation:"modal" self-clears the notch as a
+  // floating card, using a flat height regardless of the actual safe area -
+  // but an active call/recording banner grows the real top inset and the
+  // header rendered full-bleed under it, cramped against the status bar.
+  // Use the real inset on both platforms instead. Height must give the 44px
+  // back/publish buttons enough room (paddingTop + 44) or they overflow the
+  // bar's declared height, stretching it taller than intended.
+  const headerHeight = insets.top + 46;
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, 140],
     outputRange: [0, -12],
@@ -79,6 +132,8 @@ const PostEditScreen = ({ navigation, route }) => {
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
+  // Header title is visible at rest and hides as the user scrolls down into
+  // the compose area, giving a cleaner distraction-free writing view.
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 24, 48],
     outputRange: [1, 0.5, 0],
@@ -483,7 +538,7 @@ const PostEditScreen = ({ navigation, route }) => {
         title,
         // Auto-wraps a bare youtube.com/youtu.be link typed into the post
         // in the same <iframe> PostItem already knows how to render.
-        description: autoEmbedYouTubeLinks(postContent),
+        description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
         kept_image_ids: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
         kept_document_ids: allDocIds.length > 0 ? allDocIds.join(",") : null,
@@ -565,7 +620,7 @@ const PostEditScreen = ({ navigation, route }) => {
         style={[
           styles.topBar,
           {
-            paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8,
+            paddingTop: insets.top + 2,
             height: headerHeight,
             backgroundColor: 'transparent',
             opacity: Platform.OS === "android" ? 1 : headerOpacity,
@@ -588,7 +643,12 @@ const PostEditScreen = ({ navigation, route }) => {
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </Animated.View>
-        <Animated.Text style={[styles.topTitle, { flex: 1, textAlign: 'center', opacity: headerTitleOpacity, color: theme.text }]}>{t('editPost.title')}</Animated.Text>
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', opacity: headerTitleOpacity }}
+        >
+          <Text style={[styles.topTitle, { color: theme.text }]}>{t('editPost.title')}</Text>
+        </Animated.View>
         <Animated.View style={{ opacity: headerButtonOpacity }}>
           <LiquidButton size={44} scrollY={scrollY} onPress={handleUpdate} roundedOnScroll providerId="PostEditScreen" style={styles.publishButton}>
             <Text style={[styles.publishButtonText, { color: theme.primary }]}>{t('editPost.save')}</Text>
@@ -652,15 +712,61 @@ const PostEditScreen = ({ navigation, route }) => {
               onChangeText={setTitle}
             />
             <View style={[styles.divider, { borderColor: theme.border }]} />
-            <TextInput
+            <MarkdownTextInput
               style={[styles.contentInput, { color: theme.text }]}
+              parser={postMentionParser}
+              markdownStyle={{
+                mentionUser: { color: "#22c55e", fontWeight: "600", backgroundColor: "transparent", borderRadius: 0 },
+              }}
               placeholder={t('editPost.placeholderContent')}
               placeholderTextColor={theme.subText}
               value={postContent}
-              onChangeText={setPostContent}
+              onChangeText={contentMentionProps.onChangeText}
               multiline
               textAlignVertical="top"
             />
+            {/* YouTube embed preview — shown when content contains an iframe with a YouTube src */}
+            {(() => {
+              const ytId = extractYouTubeId(postContent);
+              if (!ytId) return null;
+              return (
+                <View style={{
+                  marginTop: 12,
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  backgroundColor: "#000",
+                }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 8, backgroundColor: isDarkMode ? "#1a1a1a" : "#f5f5f5" }}>
+                    <Ionicons name="logo-youtube" size={18} color="#FF0000" />
+                    <Text style={{ marginLeft: 6, fontSize: 12, color: theme.text, fontWeight: "600" }}>
+                      YouTube Embed
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setPostContent("")}
+                      style={{ marginLeft: "auto" }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="close-circle" size={18} color={theme.subText} />
+                    </TouchableOpacity>
+                  </View>
+                  <WebView
+                    // The IFrame Player API validates the page's own origin against
+                    // the video's embed permissions - without baseUrl matching
+                    // youtube-nocookie.com, the WebView's HTML loads with no real
+                    // origin (file://) and the player rejects it as unauthorized
+                    // (YouTube error 153), even though CreatePostScreen's identical
+                    // markup plays fine because it sets this.
+                    source={{ html: buildYouTubePlayerHtml(ytId), baseUrl: "https://www.youtube-nocookie.com" }}
+                    style={{ width: "100%", height: 200 }}
+                    allowsFullscreenVideo
+                    javaScriptEnabled
+                    domStorageEnabled
+                  />
+                </View>
+              );
+            })()}
           </View>
 
           <View style={[styles.toggleCard, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.92)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', opacity: 0.7 }]}> 
@@ -753,6 +859,29 @@ const PostEditScreen = ({ navigation, route }) => {
         </View>
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
+
+      {/* Rendered outside the ScrollView - a FlatList (inside MentionSuggestions)
+          nested in a ScrollView of the same orientation doesn't get a usable
+          height and never shows anything, only warns. */}
+      {hasContentSuggestions && (
+        <View
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: (keyboardHeight || insets.bottom) + 16,
+            zIndex: 50,
+            elevation: 50,
+          }}
+          pointerEvents="box-none"
+        >
+          <MentionSuggestions
+            suggestions={contentSuggestions}
+            loading={contentSuggestionsLoading}
+            onSelect={onSelectContentMention}
+          />
+        </View>
+      )}
     </View>
   );
 };

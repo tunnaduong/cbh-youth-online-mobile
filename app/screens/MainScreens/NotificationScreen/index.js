@@ -100,6 +100,22 @@ const formatNotificationMessage = (notification, t) => {
       return `${t('notifications.reactedMessage')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourMessage')}`;
     case "message_replied":
       return t('notifications.repliedMessage');
+    case "added_to_group":
+      return `${t('notifications.addedToGroup')} "${data?.conversation_name || ""}"`;
+    case "removed_from_group":
+      return `${t('notifications.removedFromGroup')} "${data?.conversation_name || ""}"`;
+    case "group_role_changed":
+      if ((data?.role || "") === "owner") {
+        return `${t('notifications.transferredOwnership')} "${data?.conversation_name || ""}"`;
+      }
+      if ((data?.role || "") === "member") {
+        return `${t('notifications.removedDeputyRole')} "${data?.conversation_name || ""}"`;
+      }
+      return `${t('notifications.madeDeputy')} "${data?.conversation_name || ""}"`;
+    case "conversation_background_changed":
+      return data?.conversation_type === "group"
+        ? `${t('notifications.changedBackgroundGroup')} "${data?.conversation_name || ""}"`
+        : t('notifications.changedBackgroundPrivate');
     case "study_material_purchased":
       return `${t('notifications.purchasedMaterial')} "${data?.material_title || ""}"`;
     case "study_material_rated":
@@ -655,7 +671,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             zIndex: 1000,
           }}
         >
-          <ActivityIndicator size="small" color={theme.primary} />
+          <CustomLoading size={44} showBackdrop />
         </View>
       )}
       <AndroidGlassBackdrop providerId="Notifications" style={{ flex: 1 }}>
