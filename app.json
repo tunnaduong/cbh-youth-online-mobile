@@ -153,7 +153,8 @@
         {
           "photosPermission": "Cho phép CBH Youth Online truy cập thư viện ảnh của bạn",
           "savePhotosPermission": "Cho phép CBH Youth Online lưu ảnh vào thư viện của bạn",
-          "isAccessMediaLocationEnabled": false
+          "isAccessMediaLocationEnabled": false,
+          "granularPermissions": []
         }
       ],
       "expo-web-browser",
