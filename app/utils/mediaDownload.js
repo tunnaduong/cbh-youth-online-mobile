@@ -14,7 +14,12 @@ import { Platform } from "react-native";
 export async function downloadMediaToLibrary(url, type = "image") {
   if (!url) throw new Error("No URL to download");
 
-  const { status } = await MediaLibrary.requestPermissionsAsync();
+  // Write-only: we're saving a downloaded file to the library, never
+  // reading the user's existing photos/videos, so avoid requesting the
+  // broad READ_MEDIA_IMAGES/READ_MEDIA_VIDEO permissions Google Play
+  // policy disallows for apps that could instead use the system picker
+  // (we don't even need a picker here - just MediaStore write access).
+  const { status } = await MediaLibrary.requestPermissionsAsync(true);
   if (status !== "granted") {
     throw new Error("PERMISSION_DENIED");
   }
