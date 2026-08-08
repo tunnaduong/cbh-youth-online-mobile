@@ -68,9 +68,10 @@ import {
   validateVideoAsset,
 } from "../../../utils/videoUpload";
 
-// Large video uploads (up to 100MB) need more headroom than the axios
-// instance's default 10s timeout.
+// Large video/image/document uploads (up to 100MB) need more headroom than
+// the default upload timeout.
 const VIDEO_UPLOAD_TIMEOUT = 300000;
+const HEAVY_UPLOAD_TIMEOUT = 300000;
 
 const PostEditScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState("");
@@ -460,7 +461,9 @@ const PostEditScreen = ({ navigation, route }) => {
           type: mimeType,
         });
 
-        const uploadResponse = await uploadFile(formData);
+        const uploadResponse = await uploadFile(formData, {
+          timeout: HEAVY_UPLOAD_TIMEOUT,
+        });
         newCdnIds.push(uploadResponse.data.id);
       }
 
@@ -476,7 +479,9 @@ const PostEditScreen = ({ navigation, route }) => {
           type: dock.mimeType || "application/octet-stream",
         });
 
-        const uploadResponse = await uploadFile(formData);
+        const uploadResponse = await uploadFile(formData, {
+          timeout: HEAVY_UPLOAD_TIMEOUT,
+        });
         newDocIds.push(uploadResponse.data.id);
       }
 

@@ -27,6 +27,10 @@ import {
   uploadFile,
 } from "../../../../services/api/Api";
 
+// Study materials can be up to 100MB - the default upload timeout isn't
+// enough headroom for a file that size on a normal mobile connection.
+const MATERIAL_UPLOAD_TIMEOUT = 300000;
+
 const UploadStudyMaterialScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
@@ -236,7 +240,9 @@ const UploadStudyMaterialScreen = ({ navigation }) => {
         type: selectedDocument.mimeType || "application/octet-stream",
       });
 
-      const uploadResponse = await uploadFile(formData);
+      const uploadResponse = await uploadFile(formData, {
+        timeout: MATERIAL_UPLOAD_TIMEOUT,
+      });
       const fileId = uploadResponse?.data?.id;
 
       if (!fileId) {
