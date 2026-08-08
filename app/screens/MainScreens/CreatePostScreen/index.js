@@ -67,9 +67,10 @@ function postMentionParser(input) {
   }
 }
 
-// Large video uploads (up to 100MB) need more headroom than the axios
-// instance's default 10s timeout.
+// Large video/image/document uploads (up to 100MB) need more headroom than
+// the default upload timeout.
 const VIDEO_UPLOAD_TIMEOUT = 300000;
+const HEAVY_UPLOAD_TIMEOUT = 300000;
 
 const CreatePostScreen = ({ navigation, route }) => {
   const [postContent, setPostContent] = useState(route?.params?.initialContent ?? "");
@@ -377,7 +378,9 @@ const CreatePostScreen = ({ navigation, route }) => {
             type: mimeType,
           });
 
-          const uploadResponse = await uploadFile(formData);
+          const uploadResponse = await uploadFile(formData, {
+            timeout: HEAVY_UPLOAD_TIMEOUT,
+          });
           cdnIds.push(uploadResponse.data.id);
         }
       }
@@ -394,7 +397,9 @@ const CreatePostScreen = ({ navigation, route }) => {
             type: dock.mimeType || "application/octet-stream",
           });
 
-          const uploadResponse = await uploadFile(formData);
+          const uploadResponse = await uploadFile(formData, {
+            timeout: HEAVY_UPLOAD_TIMEOUT,
+          });
           docIds.push(uploadResponse.data.id);
         }
       }
