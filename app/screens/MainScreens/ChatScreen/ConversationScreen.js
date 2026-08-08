@@ -114,9 +114,27 @@ const CONVERSATION_CACHE_KEY = "conversation_";
 const CONVERSATION_TIMESTAMP_KEY = "conversation_timestamp_";
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 // axiosInstance's default timeout (10s) is tuned for regular API calls and is
-// far too short for multi-MB attachment uploads (video allows up to 100MB on
-// the backend), which was surfacing as a generic axios "Network Error".
-const ATTACHMENT_UPLOAD_CONFIG = { timeout: 120000 };
+// far too short for multi-MB attachment uploads (video/file allow up to
+// 100MB on the backend). 120s was still too short on slower mobile uplinks -
+// a ~90MB video comfortably takes several minutes on 3G/weak wifi, and the
+// old timeout made those uploads fail with no clear explanation partway
+// through instead of either succeeding or failing fast. Matches the 10-minute
+// budget used on web.
+const ATTACHMENT_UPLOAD_TIMEOUT_MS = 10 * 60 * 1000;
+const ATTACHMENT_UPLOAD_CONFIG = { timeout: ATTACHMENT_UPLOAD_TIMEOUT_MS };
+
+// Mirrors the backend's per-type validation (ChatController::sendMessage) so
+// we can reject an attachment that's guaranteed to fail instantly, with a
+// clear reason, instead of letting the user watch a spinner for minutes only
+// to hit a generic error once the upload finally reaches the server (or
+// times out before it even gets there).
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100MB
+const MAX_FILE_BYTES = 100 * 1024 * 1024; // 100MB
+
+function formatBytesForToast(bytes) {
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
 
 const formatMessageTime = (timestamp, t) => {
   const messageTime = dayjs(timestamp);
@@ -994,6 +1012,11 @@ const MessageRow = React.memo(({
                 {item.is_sending && (
                   <View style={styles.imageLoadingOverlay}>
                     <ActivityIndicator size="small" color="#fff" />
+                    {typeof item.upload_progress === "number" && (
+                      <Text style={styles.uploadProgressText}>
+                        {item.upload_progress}%
+                      </Text>
+                    )}
                   </View>
                 )}
               </>
@@ -1040,6 +1063,11 @@ const MessageRow = React.memo(({
                 {item.is_sending && (
                   <View style={styles.imageLoadingOverlay}>
                     <ActivityIndicator size="small" color="#fff" />
+                    {typeof item.upload_progress === "number" && (
+                      <Text style={styles.uploadProgressText}>
+                        {item.upload_progress}%
+                      </Text>
+                    )}
                   </View>
                 )}
               </>
@@ -1075,7 +1103,11 @@ const MessageRow = React.memo(({
                   </Text>
                   <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
                     {item.is_sending
-                      ? t("chatConversation.sending", "Đang gửi...")
+                      ? typeof item.upload_progress === "number"
+                        ? t("chatConversation.sendingPercent", "Đang gửi... {{percent}}%", {
+                            percent: item.upload_progress,
+                          })
+                        : t("chatConversation.sending", "Đang gửi...")
                       : isDownloadingThis
                         ? t("chatConversation.downloading", "Đang tải...")
                         : t("chatConversation.tapToOpen", "Nhấn để mở")}
@@ -2227,6 +2259,27 @@ const ConversationScreen = ({ navigation, route }) => {
           assets = filtered;
         }
 
+        // Android's system Photo Picker can hand back an asset for a
+        // cloud-only item (e.g. backed up to Google Photos, not present on
+        // the device) with no usable local uri, surfacing its own "Không tải
+        // được một số ảnh" dialog first. If the user dismisses that and the
+        // asset still comes through without a uri, catch it here instead of
+        // silently trying (and failing/hanging on) an upload with garbage
+        // data - tell the user plainly instead.
+        const unusable = assets.filter((asset) => !asset.uri);
+        if (unusable.length > 0) {
+          assets = assets.filter((asset) => !!asset.uri);
+          Toast.show({
+            type: "error",
+            text1: t("common.error"),
+            text2: t(
+              "chatConversation.cloudOnlyMediaError",
+              "Một số tệp chỉ có trên Google Photos/iCloud và chưa tải về máy nên không thể gửi. Hãy tải tệp về máy trước rồi thử lại.",
+            ),
+          });
+        }
+        if (assets.length === 0) return;
+
         if (assets[0].type === "video") {
           await sendVideoMessage(assets.length > 1 ? assets : assets[0]);
         } else {
@@ -2386,6 +2439,30 @@ const ConversationScreen = ({ navigation, route }) => {
     const primary = isMulti
       ? attachments[0]
       : { uri, fileName, fileType, fileSize };
+
+    // Reject up front anything guaranteed to fail server-side validation -
+    // otherwise the user waits through a full (possibly minutes-long) upload
+    // attempt just to get a generic error at the end, which is exactly what
+    // testers reported for large videos/files with no progress indication.
+    const allAttachments = isMulti ? attachments : [primary];
+    const maxBytes = type === "video" ? MAX_VIDEO_BYTES : type === "image" ? MAX_IMAGE_BYTES : MAX_FILE_BYTES;
+    const oversized = allAttachments.find((att) => typeof att.fileSize === "number" && att.fileSize > maxBytes);
+    if (oversized) {
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: t(
+          "chatConversation.attachmentTooLarge",
+          "Tệp quá lớn ({{size}}), giới hạn {{limit}}MB",
+          {
+            size: formatBytesForToast(oversized.fileSize),
+            limit: Math.round(maxBytes / (1024 * 1024)),
+          },
+        ),
+      });
+      return;
+    }
+
     const tempId = Date.now().toString();
     // Same reasoning as handleSendMessage: declared before try/catch so the
     // catch block can restore it on failure.
@@ -2443,6 +2520,7 @@ const ConversationScreen = ({ navigation, route }) => {
         file_name: primary.fileName,
         file_size: primary.fileSize,
         is_sending: true,
+        upload_progress: 0,
         created_at: now,
         created_at_human: formatMessageTime(now, t),
         is_myself: true,
@@ -2517,6 +2595,26 @@ const ConversationScreen = ({ navigation, route }) => {
       let response;
       const targetConversationId = currentConversationId || conversationId;
 
+      // Large uploads on mobile networks can take a while; without this the
+      // bubble just shows a bare spinner for minutes with no indication
+      // anything is actually happening, which is what testers reported as
+      // "looks stuck" on big videos.
+      const uploadConfig = {
+        ...ATTACHMENT_UPLOAD_CONFIG,
+        onUploadProgress: (progressEvent) => {
+          const total = progressEvent.total;
+          if (!total) return;
+          const percent = Math.round((progressEvent.loaded * 100) / total);
+          setMessages((prev) =>
+            prev.map((m) =>
+              typeof m.id === "string" && m.id.includes(tempId)
+                ? { ...m, upload_progress: percent }
+                : m,
+            ),
+          );
+        },
+      };
+
       if (isNewConversation && selectedUser) {
         // Create conversation first
         const createResponse = await createConversation(selectedUser.id);
@@ -2540,7 +2638,7 @@ const ConversationScreen = ({ navigation, route }) => {
         response = await Api.postFormDataRequest(
           `/v1.0/chat/conversations/${newConversationId}/messages`,
           formData,
-          ATTACHMENT_UPLOAD_CONFIG,
+          uploadConfig,
         );
 
         navigation.setParams({
@@ -2566,7 +2664,7 @@ const ConversationScreen = ({ navigation, route }) => {
         response = await Api.postFormDataRequest(
           `/v1.0/chat/conversations/${targetConversationId}/messages`,
           formData,
-          ATTACHMENT_UPLOAD_CONFIG,
+          uploadConfig,
         );
       }
 
@@ -4093,6 +4191,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
+  },
+  uploadProgressText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#fff",
   },
   messageText: {
     fontSize: 16,
