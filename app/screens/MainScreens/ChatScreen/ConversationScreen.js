@@ -897,7 +897,12 @@ const MessageRow = React.memo(({
               isImageMessage || isVideoMessage
                 ? styles.imageMessageBubble
                 : isFileMessage
-                  ? styles.fileMessageBubble
+                  ? [
+                      styles.fileMessageBubble,
+                      item.is_myself
+                        ? [styles.myMessageBubble, { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" }]
+                        : [styles.theirMessageBubble, { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" }],
+                    ]
                   : item.type === "chat" || item.type === "part"
                   ? [
                       item.is_myself
