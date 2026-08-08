@@ -31,8 +31,26 @@ export const AuthProvider = ({ children }) => {
   // Incremented when current user updates their cover photo → busts expo-image cache
   const [coverVersion, setCoverVersion] = useState(1);
 
-  const bumpAvatarVersion = () => setAvatarVersion((v) => v + 1);
-  const bumpCoverVersion = () => setCoverVersion((v) => v + 1);
+  // Persisted so the cache-bust survives an app restart - without this, a
+  // fresh cold start resets the in-memory version to 1, the avatar/cover
+  // image component requests the bare (un-versioned) URL again, and its own
+  // disk cache happily serves back the stale image it fetched the very
+  // first time that bare URL was ever requested (before the update), even
+  // though the server and the web client both already have the new image.
+  const bumpAvatarVersion = () => {
+    setAvatarVersion((v) => {
+      const next = v + 1;
+      storage.set("avatar_version", next);
+      return next;
+    });
+  };
+  const bumpCoverVersion = () => {
+    setCoverVersion((v) => {
+      const next = v + 1;
+      storage.set("cover_version", next);
+      return next;
+    });
+  };
 
   // Helper to build an avatar URL with cache-busting for the current user
   const getAvatarUrl = (uname) => {
@@ -57,6 +75,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUserData = async () => {
       try {
+        const storedAvatarVersion = storage.getNumber("avatar_version");
+        if (storedAvatarVersion) setAvatarVersion(storedAvatarVersion);
+        const storedCoverVersion = storage.getNumber("cover_version");
+        if (storedCoverVersion) setCoverVersion(storedCoverVersion);
+
         const token = await AsyncStorage.getItem("auth_token");
         const storedUserInfo = await AsyncStorage.getItem("user_info");
         // const storedBlockedUsers = await AsyncStorage.getItem("blocked_users"); // Legacy

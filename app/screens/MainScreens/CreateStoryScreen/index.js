@@ -444,16 +444,22 @@ const TrashZone = memo(({ visible, isOver, t }) => {
   );
 });
 
-const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, selectedMediaType, isMuted, toggleMute, t }) => {
+const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, onFinishText, selectedMediaType, isMuted, toggleMute, t }) => {
   const handleTextPress = () => {
-    if (onAddText) {
-      onAddText();
-    } else {
-      if (!isEditing) {
-        setIsEditing(true);
+    // A text box is already open for editing - pressing the same "Aa" icon
+    // again should finish/commit that one, not silently stack a brand new
+    // empty text box on top of it (which visually hid the just-typed text
+    // and looked like the input had been discarded).
+    if (isEditing) {
+      if (onFinishText) {
+        onFinishText();
       } else {
         setIsEditing(false);
       }
+    } else if (onAddText) {
+      onAddText();
+    } else {
+      setIsEditing(true);
     }
   };
 
@@ -581,6 +587,22 @@ const CreateStoryScreen = ({ navigation }) => {
     () => storyTexts.find((item) => item.id === editingTextId),
     [storyTexts, editingTextId]
   );
+
+  const finishStoryTextEdit = useCallback(() => {
+    Keyboard.dismiss();
+    setEditingTextId((prevId) => {
+      if (prevId) {
+        setStoryTexts((prev) => {
+          const current = prev.find((item) => item.id === prevId);
+          if (current && !current.text) {
+            return prev.filter((item) => item.id !== prevId);
+          }
+          return prev;
+        });
+      }
+      return null;
+    });
+  }, []);
 
   const drawingRef = useRef(null);
   const insets = useSafeAreaInsets();
@@ -1283,6 +1305,7 @@ const CreateStoryScreen = ({ navigation }) => {
                     setIsDrawing={setIsDrawing}
                     pickImage={pickImage}
                     onAddText={addStoryText}
+                    onFinishText={finishStoryTextEdit}
                     selectedMediaType={selectedMediaType}
                     isMuted={isMuted}
                     toggleMute={() => setIsMuted((p) => !p)}
@@ -1294,13 +1317,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       setText={(newText) => updateStoryText(editingTextId, newText)}
                       isTextOnly={false}
                       placeholder={t("story.drawingPlaceholder")}
-                      onFinish={() => {
-                        Keyboard.dismiss();
-                        if (!editingTextItem.text) {
-                          deleteStoryText(editingTextId);
-                        }
-                        setEditingTextId(null);
-                      }}
+                      onFinish={finishStoryTextEdit}
                     />
                   )}
                   <TrashZone visible={isDraggingText} isOver={isOverTrash} t={t} />
