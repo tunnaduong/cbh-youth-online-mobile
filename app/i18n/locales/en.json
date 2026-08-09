@@ -1212,6 +1212,27 @@
     "greeting": "Hello, what do you want to ",
     "question": "do today...?"
   },
+  "games": {
+    "title": "Games",
+    "subtitle": "Play games right in the app - Free, no download needed!",
+    "random": "Random game",
+    "randomError": "Couldn't find a suitable game",
+    "mostPlayed": "Most played games",
+    "newest": "Newly added games",
+    "newBadge": "NEW",
+    "byCategory": "Games by category",
+    "searchPlaceholder": "Search games...",
+    "empty": "No games found.",
+    "loadError": "Couldn't load the games list",
+    "category_all": "All",
+    "category_arcade": "Arcade",
+    "category_puzzle": "Puzzle",
+    "category_racing": "Racing",
+    "category_adventure": "Adventure",
+    "category_shooting": "Shooting",
+    "category_sports": "Sports",
+    "category_other": "Other"
+  },
   "studyMaterial": {
     "all": "All",
     "free": "Free",

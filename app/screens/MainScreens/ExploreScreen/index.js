@@ -66,6 +66,10 @@ const ExploreScreen = ({ navigation }) => {
       navigation.navigate("StudyMaterialScreen");
       return;
     }
+    if (card.key === "game") {
+      navigation.navigate("GamesScreen");
+      return;
+    }
 
     Toast.show({
       type: "info",

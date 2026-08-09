@@ -58,6 +58,8 @@ import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
 import StudyMaterialDetailScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialDetailScreen";
 import UploadStudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/UploadStudyMaterialScreen";
+import GamesScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen";
+import GamePlayScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen/GamePlayScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
@@ -805,6 +807,16 @@ const App = () => {
               <Stack.Screen
                 name="ExploreScreen"
                 component={ExploreScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GamesScreen"
+                component={GamesScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GamePlayScreen"
+                component={GamePlayScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

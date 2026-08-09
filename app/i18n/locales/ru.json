@@ -1226,6 +1226,27 @@
     "greeting": "Привет, что ты хочешь ",
     "question": "делать сегодня...?"
   },
+  "games": {
+    "title": "Игры",
+    "subtitle": "Играйте прямо в приложении - бесплатно, без скачивания!",
+    "random": "Случайная игра",
+    "randomError": "Не удалось найти подходящую игру",
+    "mostPlayed": "Самые популярные игры",
+    "newest": "Новые игры",
+    "newBadge": "НОВОЕ",
+    "byCategory": "Игры по категориям",
+    "searchPlaceholder": "Поиск игр...",
+    "empty": "Игры не найдены.",
+    "loadError": "Не удалось загрузить список игр",
+    "category_all": "Все",
+    "category_arcade": "Аркады",
+    "category_puzzle": "Головоломки",
+    "category_racing": "Гонки",
+    "category_adventure": "Приключения",
+    "category_shooting": "Стрелялки",
+    "category_sports": "Спорт",
+    "category_other": "Другое"
+  },
   "studyMaterial": {
     "all": "Все",
     "free": "Бесплатные",

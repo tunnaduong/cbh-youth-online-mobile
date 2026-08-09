@@ -1200,6 +1200,27 @@
     "greeting": "Chào bạn, hôm nay bạn muốn ",
     "question": "làm gì...?"
   },
+  "games": {
+    "title": "Game",
+    "subtitle": "Chơi game trực tiếp trên ứng dụng - Miễn phí, không cần tải về!",
+    "random": "Game ngẫu nhiên",
+    "randomError": "Không tìm được game phù hợp",
+    "mostPlayed": "Game được chơi nhiều nhất",
+    "newest": "Game mới cập nhật",
+    "newBadge": "MỚI",
+    "byCategory": "Game theo thể loại",
+    "searchPlaceholder": "Tìm kiếm game...",
+    "empty": "Không tìm thấy game nào.",
+    "loadError": "Không thể tải danh sách game",
+    "category_all": "Tất cả",
+    "category_arcade": "Hành động",
+    "category_puzzle": "Giải đố",
+    "category_racing": "Đua xe",
+    "category_adventure": "Phiêu lưu",
+    "category_shooting": "Bắn súng",
+    "category_sports": "Thể thao",
+    "category_other": "Khác"
+  },
   "studyMaterial": {
     "all": "Tất cả",
     "free": "Miễn phí",

@@ -702,3 +702,21 @@ export const getMentionSuggestions = (q) => {
 export const getConversationMentionSuggestions = (conversationId, q) => {
   return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/mention-suggestions?q=${encodeURIComponent(q)}`);
 };
+
+// Games
+export const getGames = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return Api.getRequest(`/v1.0/games${query ? `?${query}` : ""}`);
+};
+
+export const getGame = (slug) => {
+  return Api.getRequest(`/v1.0/games/${slug}`);
+};
+
+export const getRandomGame = (platform) => {
+  return Api.getRequest(`/v1.0/games/random${platform ? `?platform=${platform}` : ""}`);
+};
+
+export const getGameLeaderboard = (period = "week") => {
+  return Api.getRequest(`/v1.0/games/leaderboard?period=${period}`);
+};
