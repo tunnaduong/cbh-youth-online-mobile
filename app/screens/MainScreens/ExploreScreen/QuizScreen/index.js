@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Share,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +24,7 @@ import {
   answerQuizQuestion,
   getQuizLeaderboard,
   getQuizTopics,
+  joinQuiz,
 } from "../../../../services/api/Api";
 
 const COUNT_PRESETS = [5, 10, 20, 50];
@@ -35,13 +37,15 @@ const GRADES = ["10", "11", "12"];
 const RANDOM_TOPIC = "Ngẫu nhiên";
 const OTHER_TOPIC = "Khác";
 
-const QuizScreen = ({ navigation }) => {
+const QuizScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const sharedQuizId = route?.params?.sharedQuizId;
 
   // phase: "setup" -> "taking" -> "result"
   const [phase, setPhase] = useState("setup");
+  const [joiningShared, setJoiningShared] = useState(!!sharedQuizId);
   const [count, setCount] = useState(10);
   const [customCount, setCustomCount] = useState("");
   const [useCustomCount, setUseCustomCount] = useState(false);
@@ -75,6 +79,59 @@ const QuizScreen = ({ navigation }) => {
       })
       .catch(() => {});
   }, []);
+
+  // Opened via a shared quiz link - join that exact set instead of showing
+  // the setup screen, so both people answer the same questions.
+  React.useEffect(() => {
+    if (!sharedQuizId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await joinQuiz(sharedQuizId);
+        const data = res?.data || res;
+        if (cancelled) return;
+
+        if (data.status === "completed") {
+          setQuiz(data);
+          setResult(data.result);
+          setPhase("result");
+        } else {
+          setQuiz(data);
+          setAnswers(data.answered || {});
+          setFeedback({});
+          setCurrentIndex(0);
+          setResult(null);
+          setPendingResult(null);
+          setPhase("taking");
+        }
+      } catch (error) {
+        Toast.show({
+          type: "error",
+          text1:
+            error?.response?.data?.message ||
+            t("quiz.joinError", "Không thể tham gia bài đố vui này."),
+        });
+      } finally {
+        if (!cancelled) setJoiningShared(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sharedQuizId]);
+
+  const handleShare = async (quizSetId) => {
+    if (!quizSetId) return;
+    try {
+      await Share.share({
+        message: t("quiz.shareMessage", "Cùng thử sức với bài đố vui này nhé! {{link}}", {
+          link: `https://chuyenbienhoa.com/explore/quiz?shared=${quizSetId}`,
+        }),
+      });
+    } catch (error) {
+      // Silent - sharing is best-effort.
+    }
+  };
 
   // Backend topics are StudyMaterialCategory names (see QuizController::topics)
   // - the exact same subjects shown on the study material screen, so reuse
@@ -255,10 +312,26 @@ const QuizScreen = ({ navigation }) => {
         <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]} numberOfLines={1}>
           {t("quiz.title", "Đố vui")}
         </Animated.Text>
-        <View style={{ width: 44 }} />
+        {quiz?.quiz_set_id && (phase === "taking" || phase === "result") ? (
+          <LiquidButton
+            providerId="QuizScreen"
+            size={44}
+            scrollY={scrollY}
+            onPress={() => handleShare(quiz.quiz_set_id)}
+          >
+            <Ionicons name="share-outline" size={20} color={theme.primary} />
+          </LiquidButton>
+        ) : (
+          <View style={{ width: 44 }} />
+        )}
       </View>
 
       <AndroidGlassBackdrop providerId="QuizScreen" style={{ flex: 1 }}>
+        {joiningShared ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingTop: headerHeight }}>
+            <ActivityIndicator size="large" color={theme.primary} />
+          </View>
+        ) : (
         <ScrollView
           contentContainerStyle={{ paddingTop: headerHeight + 12, paddingHorizontal: 16, paddingBottom: 40 + insets.bottom }}
           showsVerticalScrollIndicator={false}
@@ -290,7 +363,7 @@ const QuizScreen = ({ navigation }) => {
                           { backgroundColor: active ? theme.primary : theme.iconBackground },
                         ]}
                       >
-                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
                           {c} {t("quiz.questionsUnit", "câu")}
                         </Text>
                       </TouchableOpacity>
@@ -303,7 +376,7 @@ const QuizScreen = ({ navigation }) => {
                       { backgroundColor: useCustomCount ? theme.primary : theme.iconBackground },
                     ]}
                   >
-                    <Text style={{ color: useCustomCount ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                    <Text style={{ color: useCustomCount ? "#fff" : theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
                       {t("quiz.custom", "Tùy chỉnh")}
                     </Text>
                   </TouchableOpacity>
@@ -334,7 +407,7 @@ const QuizScreen = ({ navigation }) => {
                           { backgroundColor: active ? theme.primary : theme.iconBackground },
                         ]}
                       >
-                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
                           {getTopicLabel(tp)}
                         </Text>
                       </TouchableOpacity>
@@ -370,7 +443,7 @@ const QuizScreen = ({ navigation }) => {
                           { backgroundColor: active ? theme.primary : theme.iconBackground },
                         ]}
                       >
-                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
                           {t(`quiz.grade_${g}`, `Lớp ${g}`)}
                         </Text>
                       </TouchableOpacity>
@@ -393,7 +466,7 @@ const QuizScreen = ({ navigation }) => {
                           { backgroundColor: active ? theme.primary : theme.iconBackground },
                         ]}
                       >
-                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
                           {t(`quiz.difficulty_${d}`, d === "easy" ? "Dễ" : d === "medium" ? "Trung bình" : "Khó")}
                         </Text>
                       </TouchableOpacity>
@@ -534,7 +607,7 @@ const QuizScreen = ({ navigation }) => {
                   disabled={currentIndex === 0}
                   style={[styles.navButton, { borderColor: theme.border, opacity: currentIndex === 0 ? 0.4 : 1 }]}
                 >
-                  <Text style={{ color: theme.text, fontWeight: "600", fontSize: 13 }}>
+                  <Text style={{ color: theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
                     {t("quiz.prevQuestion", "Câu trước")}
                   </Text>
                 </TouchableOpacity>
@@ -668,6 +741,7 @@ const QuizScreen = ({ navigation }) => {
             </View>
           )}
         </ScrollView>
+        )}
       </AndroidGlassBackdrop>
     </View>
   );
