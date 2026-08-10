@@ -18,10 +18,22 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
-import { startQuiz, answerQuizQuestion, getQuizLeaderboard } from "../../../../services/api/Api";
+import {
+  startQuiz,
+  answerQuizQuestion,
+  getQuizLeaderboard,
+  getQuizTopics,
+} from "../../../../services/api/Api";
 
-const COUNT_PRESETS = [5, 10, 20, 50, 100];
+const COUNT_PRESETS = [5, 10, 20, 50];
+const MAX_COUNT = 50;
 const DIFFICULTIES = ["easy", "medium", "hard"];
+const GRADES = ["10", "11", "12"];
+// Matches QuizController::RANDOM_TOPIC / OTHER_TOPIC on the backend exactly -
+// these are sent back as the literal "topic" value, never translated, same
+// as the subject names themselves (they're content, not UI chrome).
+const RANDOM_TOPIC = "Ngẫu nhiên";
+const OTHER_TOPIC = "Khác";
 
 const QuizScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -34,6 +46,10 @@ const QuizScreen = ({ navigation }) => {
   const [customCount, setCustomCount] = useState("");
   const [useCustomCount, setUseCustomCount] = useState(false);
   const [difficulty, setDifficulty] = useState("medium");
+  const [grade, setGrade] = useState("10");
+  const [topics, setTopics] = useState([]);
+  const [topic, setTopic] = useState(RANDOM_TOPIC);
+  const [customTopic, setCustomTopic] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [quiz, setQuiz] = useState(null); // { quiz_set_id, topic, difficulty, question_count, questions }
@@ -44,8 +60,21 @@ const QuizScreen = ({ navigation }) => {
   const [feedback, setFeedback] = useState({});
   const [answering, setAnswering] = useState(false);
   const [result, setResult] = useState(null); // { score, total, points, results }
+  // Computed the instant the last question is answered, but held back until
+  // the user explicitly moves on - see handleSelect/handleViewResult - so
+  // they get to see the ✓/✗ feedback on that last question first.
+  const [pendingResult, setPendingResult] = useState(null);
 
   const [leaderboard, setLeaderboard] = useState([]);
+
+  React.useEffect(() => {
+    getQuizTopics()
+      .then((res) => {
+        const data = res?.data || res;
+        setTopics(data?.topics || []);
+      })
+      .catch(() => {});
+  }, []);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const titleOpacity = scrollY.interpolate({
@@ -72,27 +101,43 @@ const QuizScreen = ({ navigation }) => {
   );
 
   const resolvedCount = useCustomCount
-    ? Math.max(1, Math.min(100, parseInt(customCount, 10) || 0))
+    ? Math.max(1, Math.min(MAX_COUNT, parseInt(customCount, 10) || 0))
     : count;
 
   const handleStart = async () => {
     if (useCustomCount && (!customCount || resolvedCount < 1)) {
       Toast.show({
         type: "error",
-        text1: t("quiz.invalidCount", "Vui lòng nhập số câu hỏi hợp lệ (1-100)"),
+        text1: t("quiz.invalidCount", "Vui lòng nhập số câu hỏi hợp lệ (1-{{max}})", {
+          max: MAX_COUNT,
+        }),
+      });
+      return;
+    }
+    if (topic === OTHER_TOPIC && !customTopic.trim()) {
+      Toast.show({
+        type: "error",
+        text1: t("quiz.invalidCustomTopic", "Vui lòng nhập chủ đề bạn muốn"),
       });
       return;
     }
 
     setLoading(true);
     try {
-      const res = await startQuiz(resolvedCount, difficulty);
+      const res = await startQuiz(
+        resolvedCount,
+        difficulty,
+        topic,
+        grade,
+        topic === OTHER_TOPIC ? customTopic.trim() : undefined
+      );
       const data = res?.data || res;
       setQuiz(data);
       setAnswers({});
       setFeedback({});
       setCurrentIndex(0);
       setResult(null);
+      setPendingResult(null);
       setPhase("taking");
     } catch (error) {
       Toast.show({
@@ -108,8 +153,10 @@ const QuizScreen = ({ navigation }) => {
 
   // Grades the question the instant it's answered - no separate "submit"
   // step. Once the last question in the set is answered, the API finalizes
-  // the play and returns the final score/points, so the result screen is
-  // built right here from the accumulated per-question feedback.
+  // the play and returns the final score/points - but we hold off switching
+  // to the result screen until the user taps "Xem kết quả" (see
+  // handleViewResult) so they get to see the ✓/✗ feedback on that last
+  // question first instead of jumping straight to the summary.
   const handleSelect = async (questionId, letter) => {
     if (!quiz || feedback[questionId] || answering) return; // already answered / a request in flight
     setAnswering(true);
@@ -122,7 +169,7 @@ const QuizScreen = ({ navigation }) => {
       setFeedback(nextFeedback);
 
       if (data.finished) {
-        setResult({
+        setPendingResult({
           score: data.score,
           total: data.total,
           points: data.points,
@@ -134,7 +181,6 @@ const QuizScreen = ({ navigation }) => {
             explanation: nextFeedback[q.id]?.explanation,
           })),
         });
-        setPhase("result");
       }
     } catch (error) {
       Toast.show({
@@ -148,10 +194,17 @@ const QuizScreen = ({ navigation }) => {
     }
   };
 
+  const handleViewResult = () => {
+    if (!pendingResult) return;
+    setResult(pendingResult);
+    setPhase("result");
+  };
+
   const handleRestart = () => {
     setPhase("setup");
     setQuiz(null);
     setResult(null);
+    setPendingResult(null);
     setAnswers({});
     setFeedback({});
     setCurrentIndex(0);
@@ -238,11 +291,70 @@ const QuizScreen = ({ navigation }) => {
                     value={customCount}
                     onChangeText={setCustomCount}
                     keyboardType="number-pad"
-                    placeholder={t("quiz.customPlaceholder", "Nhập số câu (1-100)")}
+                    placeholder={t("quiz.customPlaceholder", "Nhập số câu (1-{{max}})", { max: MAX_COUNT })}
                     placeholderTextColor={theme.subText}
                     style={[styles.input, { color: theme.text, borderColor: theme.border }]}
                   />
                 )}
+
+                <Text style={[styles.cardLabel, { color: theme.text, marginTop: 16 }]}>
+                  {t("quiz.topicLabel", "Chủ đề")}
+                </Text>
+                <View style={styles.chipRow}>
+                  {[RANDOM_TOPIC, ...topics, OTHER_TOPIC].map((tp) => {
+                    const active = topic === tp;
+                    return (
+                      <TouchableOpacity
+                        key={tp}
+                        onPress={() => setTopic(tp)}
+                        style={[
+                          styles.chip,
+                          { backgroundColor: active ? theme.primary : theme.iconBackground },
+                        ]}
+                      >
+                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                          {tp}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {topic === OTHER_TOPIC && (
+                  <TextInput
+                    value={customTopic}
+                    onChangeText={setCustomTopic}
+                    placeholder={t(
+                      "quiz.customTopicPlaceholder",
+                      "Nhập chủ đề bạn muốn (VD: Bóng đá, Âm nhạc...)"
+                    )}
+                    placeholderTextColor={theme.subText}
+                    maxLength={100}
+                    style={[styles.input, { color: theme.text, borderColor: theme.border }]}
+                  />
+                )}
+
+                <Text style={[styles.cardLabel, { color: theme.text, marginTop: 16 }]}>
+                  {t("quiz.gradeLabel", "Lớp")}
+                </Text>
+                <View style={styles.chipRow}>
+                  {GRADES.map((g) => {
+                    const active = grade === g;
+                    return (
+                      <TouchableOpacity
+                        key={g}
+                        onPress={() => setGrade(g)}
+                        style={[
+                          styles.chip,
+                          { backgroundColor: active ? theme.primary : theme.iconBackground },
+                        ]}
+                      >
+                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                          {t(`quiz.grade_${g}`, `Lớp ${g}`)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
 
                 <Text style={[styles.cardLabel, { color: theme.text, marginTop: 16 }]}>
                   {t("quiz.difficulty", "Độ khó")}
@@ -404,7 +516,7 @@ const QuizScreen = ({ navigation }) => {
                     {t("quiz.prevQuestion", "Câu trước")}
                   </Text>
                 </TouchableOpacity>
-                {currentIndex < quiz.question_count - 1 && (
+                {currentIndex < quiz.question_count - 1 ? (
                   <TouchableOpacity
                     onPress={() => setCurrentIndex((i) => Math.min(quiz.question_count - 1, i + 1))}
                     disabled={!feedback[currentQuestion.id]}
@@ -415,6 +527,19 @@ const QuizScreen = ({ navigation }) => {
                   >
                     <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
                       {t("quiz.nextQuestion", "Câu tiếp theo")}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    onPress={handleViewResult}
+                    disabled={!pendingResult}
+                    style={[
+                      styles.navButtonPrimary,
+                      { backgroundColor: theme.primary, opacity: !pendingResult ? 0.4 : 1 },
+                    ]}
+                  >
+                    <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
+                      {t("quiz.viewResult", "Xem kết quả")}
                     </Text>
                   </TouchableOpacity>
                 )}

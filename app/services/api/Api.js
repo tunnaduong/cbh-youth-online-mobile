@@ -726,8 +726,18 @@ export const getGameNowPlaying = () => {
 };
 
 // Quiz
-export const startQuiz = (count, difficulty) => {
-  return Api.postRequest("/v1.0/quiz/start", { count, difficulty });
+export const getQuizTopics = () => {
+  return Api.getRequest("/v1.0/quiz/topics");
+};
+
+export const startQuiz = (count, difficulty, topic, grade, customTopic) => {
+  return Api.postRequest("/v1.0/quiz/start", {
+    count,
+    difficulty,
+    topic,
+    grade,
+    custom_topic: customTopic,
+  });
 };
 
 export const submitQuiz = (quizSetId, answers) => {
