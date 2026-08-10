@@ -30,8 +30,8 @@ const MAX_COUNT = 50;
 const DIFFICULTIES = ["easy", "medium", "hard"];
 const GRADES = ["10", "11", "12"];
 // Matches QuizController::RANDOM_TOPIC / OTHER_TOPIC on the backend exactly -
-// these are sent back as the literal "topic" value, never translated, same
-// as the subject names themselves (they're content, not UI chrome).
+// this raw value is what gets sent/compared against the API. Display text is
+// translated separately via getTopicLabel below.
 const RANDOM_TOPIC = "Ngẫu nhiên";
 const OTHER_TOPIC = "Khác";
 
@@ -75,6 +75,29 @@ const QuizScreen = ({ navigation }) => {
       })
       .catch(() => {});
   }, []);
+
+  // Backend topics are StudyMaterialCategory names (see QuizController::topics)
+  // - the exact same subjects shown on the study material screen, so reuse
+  // those translations instead of duplicating them.
+  const TOPIC_TRANSLATION_KEYS = {
+    "Toán học": "mathematics",
+    "Vật lý": "physics",
+    "Hóa học": "chemistry",
+    "Sinh học": "biology",
+    "Ngữ văn": "literature",
+    "Lịch sử": "history",
+    "Địa lý": "geography",
+    "Tiếng Anh": "english",
+    "Tiếng Nga": "foreign-language",
+    "Tin học": "computer-science",
+  };
+  const getTopicLabel = (tp) => {
+    if (tp === RANDOM_TOPIC) return t("quiz.randomTopic", RANDOM_TOPIC);
+    if (tp === OTHER_TOPIC) return t("quiz.otherTopic", OTHER_TOPIC);
+    if (tp === "Tổng hợp nhiều chủ đề") return t("quiz.mixedTopics", tp);
+    const key = TOPIC_TRANSLATION_KEYS[tp];
+    return key ? t(`studyMaterial.categoriesList.${key}`) : tp;
+  };
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const titleOpacity = scrollY.interpolate({
@@ -312,7 +335,7 @@ const QuizScreen = ({ navigation }) => {
                         ]}
                       >
                         <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
-                          {tp}
+                          {getTopicLabel(tp)}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -429,7 +452,7 @@ const QuizScreen = ({ navigation }) => {
                   <Text style={[styles.topicLabel, { color: theme.subText }]}>
                     {t("quiz.topic", "Chủ đề")}
                   </Text>
-                  <Text style={[styles.topicValue, { color: theme.text }]}>{quiz.topic}</Text>
+                  <Text style={[styles.topicValue, { color: theme.text }]}>{getTopicLabel(quiz.topic)}</Text>
                 </View>
                 <Text style={[styles.answeredCount, { color: theme.subText }]}>
                   {t("quiz.answeredCount", "Đã trả lời {{answered}}/{{total}}", {
@@ -587,7 +610,7 @@ const QuizScreen = ({ navigation }) => {
                   </Text>
                 )}
                 <Text style={[styles.resultTopic, { color: theme.subText }]}>
-                  {t("quiz.topicResult", "Chủ đề: {{topic}}", { topic: quiz.topic })}
+                  {t("quiz.topicResult", "Chủ đề: {{topic}}", { topic: getTopicLabel(quiz.topic) })}
                 </Text>
                 <TouchableOpacity
                   style={[styles.restartButton, { backgroundColor: theme.primary }]}
