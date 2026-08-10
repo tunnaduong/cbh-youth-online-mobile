@@ -1273,7 +1273,9 @@
     "invalidCount": "Please enter a valid question count (1-{{max}})",
     "invalidCustomTopic": "Please enter your topic",
     "startError": "Couldn't generate questions right now, please try again.",
-    "answerError": "Couldn't record your answer, please try again."
+    "answerError": "Couldn't record your answer, please try again.",
+    "joinError": "Couldn't join this quiz.",
+    "shareMessage": "Try this quiz with me! {{link}}"
   },
   "studyMaterial": {
     "all": "All",

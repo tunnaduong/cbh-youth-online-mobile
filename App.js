@@ -145,7 +145,7 @@ const parseDeepLink = (url) => {
       const queryPart = customSchemeMatch[4] || "";
 
       if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
-        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group") {
+        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group" || firstSegment === "quiz") {
           pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
           host = "";
         } else {
@@ -182,6 +182,10 @@ const parseDeepLink = (url) => {
     const params = parseSearchParams(query);
     const storyIdFromQuery = params.storyId || params.story_id;
     if (storyIdFromQuery) return routeToStory(storyIdFromQuery);
+    const sharedQuizId = params.shared || params.quizSetId;
+    if (sharedQuizId && (pathSegment === "explore/quiz" || pathSegment === "quiz")) {
+      return { screen: "QuizScreen", params: { sharedQuizId } };
+    }
 
     if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
       if (pathSegment.startsWith("post/")) {
@@ -200,6 +204,10 @@ const parseDeepLink = (url) => {
         const token = pathSegment.slice(6).split("?")[0];
         if (token) return { screen: "GroupJoin", params: { token } };
       }
+      if (pathSegment.startsWith("quiz/")) {
+        const quizSetId = pathSegment.slice(5).split("?")[0];
+        if (quizSetId) return { screen: "QuizScreen", params: { sharedQuizId: quizSetId } };
+      }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;
         return routeToStory(storyId);
@@ -214,6 +222,9 @@ const parseDeepLink = (url) => {
       if (pathSegment.startsWith("story/")) {
         const storyId = pathSegment.slice(6).split("?")[0];
         return routeToStory(storyId);
+      }
+      if (pathSegment.startsWith("explore/quiz") && sharedQuizId) {
+        return { screen: "QuizScreen", params: { sharedQuizId } };
       }
       // Universal-link redirect target used by the web "open in app" button
       // (see src/app/open/[type]/[value]/route.js) as well as a bare /group/

@@ -751,3 +751,7 @@ export const answerQuizQuestion = (quizSetId, id, answer) => {
 export const getQuizLeaderboard = (period = "week") => {
   return Api.getRequest(`/v1.0/quiz/leaderboard?period=${period}`);
 };
+
+export const joinQuiz = (quizSetId) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/join`, {});
+};

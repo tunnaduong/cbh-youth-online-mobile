@@ -1261,7 +1261,9 @@
     "invalidCount": "Vui lòng nhập số câu hỏi hợp lệ (1-{{max}})",
     "invalidCustomTopic": "Vui lòng nhập chủ đề bạn muốn",
     "startError": "Không thể tạo câu hỏi lúc này, vui lòng thử lại.",
-    "answerError": "Không thể ghi nhận câu trả lời, vui lòng thử lại."
+    "answerError": "Không thể ghi nhận câu trả lời, vui lòng thử lại.",
+    "joinError": "Không thể tham gia bài đố vui này.",
+    "shareMessage": "Cùng thử sức với bài đố vui này nhé! {{link}}"
   },
   "studyMaterial": {
     "all": "Tất cả",
