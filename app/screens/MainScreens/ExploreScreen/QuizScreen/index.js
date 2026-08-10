@@ -350,7 +350,7 @@ const QuizScreen = ({ navigation }) => {
                       "Nhập chủ đề bạn muốn (VD: Bóng đá, Âm nhạc...)"
                     )}
                     placeholderTextColor={theme.subText}
-                    maxLength={100}
+                    maxLength={256}
                     style={[styles.input, { color: theme.text, borderColor: theme.border }]}
                   />
                 )}
