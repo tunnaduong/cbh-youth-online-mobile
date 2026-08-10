@@ -324,7 +324,7 @@ const GamesScreen = ({ navigation }) => {
                       },
                     ]}
                   >
-                    <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
+                    <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
                       {t(`games.category_${cat}`, cat === "all" ? "Tất cả" : cat)}
                     </Text>
                   </TouchableOpacity>
@@ -429,11 +429,14 @@ const styles = StyleSheet.create({
   categoryPill: {
     alignSelf: "flex-start",
     borderRadius: 999,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 2,
     marginTop: 4,
   },
-  categoryPillText: { fontSize: 11, fontWeight: "600" },
+  // lineHeight explicitly set - without it Android sometimes clips the
+  // trailing glyph of bold Cyrillic text (e.g. "Спорт" rendering as "Спор")
+  // because it under-measures the text box for the font's actual metrics.
+  categoryPillText: { fontSize: 11, fontWeight: "600", lineHeight: 15 },
   emptyText: { textAlign: "center", width: "100%", marginTop: 30 },
   playingRow: {
     flexDirection: "row",
