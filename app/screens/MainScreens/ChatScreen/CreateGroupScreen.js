@@ -69,7 +69,7 @@ const CreateGroupScreen = ({ navigation }) => {
         style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
         pointerEvents="box-none"
       >
-        <LiquidButton providerId="CreateGroupScreen" size={44} scrollY={scrollY} alwaysBorder onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="CreateGroupScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={20} color={theme.primary} />
         </LiquidButton>
         <Animated.Text
