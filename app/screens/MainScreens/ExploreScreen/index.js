@@ -70,6 +70,10 @@ const ExploreScreen = ({ navigation }) => {
       navigation.navigate("GamesScreen");
       return;
     }
+    if (card.key === "trivia") {
+      navigation.navigate("QuizScreen");
+      return;
+    }
 
     Toast.show({
       type: "info",

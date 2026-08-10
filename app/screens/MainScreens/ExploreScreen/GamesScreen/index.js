@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,7 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
-import { getGames, getRandomGame } from "../../../../services/api/Api";
+import { getGames, getRandomGame, getGameNowPlaying, getGameLeaderboard } from "../../../../services/api/Api";
 
 // Category values are backend-defined (English) - only these get translated;
 // game names/descriptions are never translated.
@@ -75,6 +76,18 @@ const GamesScreen = ({ navigation }) => {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [rolling, setRolling] = useState(false);
+  const [nowPlaying, setNowPlaying] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const handleScroll = (e) => {
+    scrollY.setValue(Math.max(0, e.nativeEvent.contentOffset.y));
+  };
 
   const cardWidth = 150;
 
@@ -107,6 +120,27 @@ const GamesScreen = ({ navigation }) => {
     return () => clearTimeout(timeout);
   }, [load]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getGameNowPlaying();
+        const data = res?.data || res;
+        setNowPlaying(data?.playing || []);
+      } catch (error) {
+        // Silent - this is a nice-to-have section, not worth blocking the screen for.
+      }
+    })();
+    (async () => {
+      try {
+        const res = await getGameLeaderboard("week");
+        const data = res?.data || res;
+        setLeaderboard((data?.leaderboard || []).slice(0, 8));
+      } catch (error) {
+        // Silent - same as above.
+      }
+    })();
+  }, []);
+
   const handleRandom = async () => {
     setRolling(true);
     try {
@@ -132,12 +166,12 @@ const GamesScreen = ({ navigation }) => {
         style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
         pointerEvents="box-none"
       >
-        <LiquidButton providerId="GamesScreen" size={44} alwaysBorder onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="GamesScreen" size={44} scrollY={scrollY} alwaysBorder onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color={theme.primary} />
         </LiquidButton>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]} numberOfLines={1}>
           {t("games.title", "Game")}
-        </Text>
+        </Animated.Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -145,6 +179,8 @@ const GamesScreen = ({ navigation }) => {
         <ScrollView
           contentContainerStyle={{ paddingTop: headerHeight + 12, paddingHorizontal: 16, paddingBottom: 40 + insets.bottom }}
           showsVerticalScrollIndicator={false}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         >
           <Text style={[styles.subtitle, { color: theme.subText }]}>
             {t("games.subtitle", "Chơi game trực tiếp trên ứng dụng - Miễn phí, không cần tải về!")}
@@ -162,6 +198,58 @@ const GamesScreen = ({ navigation }) => {
             )}
             <Text style={styles.randomButtonText}>{t("games.random", "Game ngẫu nhiên")}</Text>
           </TouchableOpacity>
+
+          {nowPlaying.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="radio" size={16} color={theme.primary} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                  {t("games.nowPlaying", "Đang chơi")}
+                </Text>
+              </View>
+              {nowPlaying.slice(0, 8).map((p, i) => (
+                <View key={`${p.user_id}-${i}`} style={styles.playingRow}>
+                  <Image
+                    source={{ uri: p.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${p.username}/avatar` }}
+                    style={styles.playingAvatar}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.playingName, { color: theme.text }]} numberOfLines={1}>
+                      {p.profile_name || p.username}
+                    </Text>
+                    <Text style={[styles.playingGame, { color: theme.subText }]} numberOfLines={1}>
+                      {t("games.isPlaying", "đang chơi")} {p.game_name}
+                    </Text>
+                  </View>
+                  <View style={[styles.liveDot, { backgroundColor: theme.primary }]} />
+                </View>
+              ))}
+            </View>
+          )}
+
+          {leaderboard.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="trophy" size={16} color={theme.primary} />
+                <Text style={[styles.sectionTitle, { color: theme.text }]}>
+                  {t("games.leaderboard", "Bảng xếp hạng XP")}
+                </Text>
+              </View>
+              {leaderboard.map((u, i) => (
+                <View key={u.id} style={styles.playingRow}>
+                  <Text style={[styles.leaderboardRank, { color: theme.subText }]}>{i + 1}</Text>
+                  <Image
+                    source={{ uri: u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar` }}
+                    style={styles.playingAvatar}
+                  />
+                  <Text style={[styles.playingName, { color: theme.text, flex: 1 }]} numberOfLines={1}>
+                    {u.profile_name || u.username}
+                  </Text>
+                  <Text style={[styles.leaderboardXp, { color: theme.primary }]}>{u.xp} XP</Text>
+                </View>
+              ))}
+            </View>
+          )}
 
           {mostPlayed.length > 0 && (
             <View style={styles.section}>
@@ -347,6 +435,17 @@ const styles = StyleSheet.create({
   },
   categoryPillText: { fontSize: 11, fontWeight: "600" },
   emptyText: { textAlign: "center", width: "100%", marginTop: 30 },
+  playingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  playingAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10 },
+  playingName: { fontSize: 14, fontWeight: "600" },
+  playingGame: { fontSize: 12, marginTop: 1 },
+  liveDot: { width: 8, height: 8, borderRadius: 4, marginLeft: 8 },
+  leaderboardRank: { width: 20, fontSize: 13, fontWeight: "700", textAlign: "center", marginRight: 6 },
+  leaderboardXp: { fontSize: 13, fontWeight: "700", marginLeft: 8 },
 });
 
 export default GamesScreen;
