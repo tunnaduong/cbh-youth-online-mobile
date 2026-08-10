@@ -18,7 +18,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
-import { startQuiz, submitQuiz, getQuizLeaderboard } from "../../../../services/api/Api";
+import { startQuiz, answerQuizQuestion, getQuizLeaderboard } from "../../../../services/api/Api";
 
 const COUNT_PRESETS = [5, 10, 20, 50, 100];
 const DIFFICULTIES = ["easy", "medium", "hard"];
@@ -39,8 +39,11 @@ const QuizScreen = ({ navigation }) => {
   const [quiz, setQuiz] = useState(null); // { quiz_set_id, topic, difficulty, question_count, questions }
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { [questionId]: "A" }
+  // { [questionId]: { is_correct, correct_answer, explanation } } - filled in
+  // the instant each question is answered, see handleSelect.
+  const [feedback, setFeedback] = useState({});
+  const [answering, setAnswering] = useState(false);
   const [result, setResult] = useState(null); // { score, total, points, results }
-  const [submitting, setSubmitting] = useState(false);
 
   const [leaderboard, setLeaderboard] = useState([]);
 
@@ -87,6 +90,7 @@ const QuizScreen = ({ navigation }) => {
       const data = res?.data || res;
       setQuiz(data);
       setAnswers({});
+      setFeedback({});
       setCurrentIndex(0);
       setResult(null);
       setPhase("taking");
@@ -102,29 +106,45 @@ const QuizScreen = ({ navigation }) => {
     }
   };
 
-  const handleSelect = (questionId, letter) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: letter }));
-  };
-
-  const handleSubmit = async () => {
-    if (!quiz || submitting) return;
-    setSubmitting(true);
+  // Grades the question the instant it's answered - no separate "submit"
+  // step. Once the last question in the set is answered, the API finalizes
+  // the play and returns the final score/points, so the result screen is
+  // built right here from the accumulated per-question feedback.
+  const handleSelect = async (questionId, letter) => {
+    if (!quiz || feedback[questionId] || answering) return; // already answered / a request in flight
+    setAnswering(true);
     try {
-      const payload = quiz.questions.map((q) => ({
-        id: q.id,
-        answer: answers[q.id] || null,
-      }));
-      const res = await submitQuiz(quiz.quiz_set_id, payload);
+      const res = await answerQuizQuestion(quiz.quiz_set_id, questionId, letter);
       const data = res?.data || res;
-      setResult(data);
-      setPhase("result");
+      const nextAnswers = { ...answers, [questionId]: letter };
+      const nextFeedback = { ...feedback, [questionId]: data };
+      setAnswers(nextAnswers);
+      setFeedback(nextFeedback);
+
+      if (data.finished) {
+        setResult({
+          score: data.score,
+          total: data.total,
+          points: data.points,
+          results: quiz.questions.map((q) => ({
+            id: q.id,
+            your_answer: nextAnswers[q.id] ?? null,
+            correct_answer: nextFeedback[q.id]?.correct_answer,
+            is_correct: nextFeedback[q.id]?.is_correct,
+            explanation: nextFeedback[q.id]?.explanation,
+          })),
+        });
+        setPhase("result");
+      }
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: error?.response?.data?.message || t("quiz.submitError", "Không thể nộp bài, vui lòng thử lại."),
+        text1:
+          error?.response?.data?.message ||
+          t("quiz.answerError", "Không thể ghi nhận câu trả lời, vui lòng thử lại."),
       });
     } finally {
-      setSubmitting(false);
+      setAnswering(false);
     }
   };
 
@@ -133,6 +153,7 @@ const QuizScreen = ({ navigation }) => {
     setQuiz(null);
     setResult(null);
     setAnswers({});
+    setFeedback({});
     setCurrentIndex(0);
   };
 
@@ -328,31 +349,49 @@ const QuizScreen = ({ navigation }) => {
                   {currentQuestion.options.map((opt) => {
                     const letter = opt.trim().charAt(0);
                     const selected = answers[currentQuestion.id] === letter;
+                    const currentFeedback = feedback[currentQuestion.id];
+                    const isCorrectOption = currentFeedback && letter === currentFeedback.correct_answer;
+                    const isWrongSelected = currentFeedback && selected && !currentFeedback.is_correct;
+
+                    let bg = selected ? `${theme.primary}1A` : theme.iconBackground;
+                    let border = selected ? theme.primary : "transparent";
+                    let textColor = selected ? theme.primary : theme.text;
+                    if (currentFeedback) {
+                      if (isCorrectOption) {
+                        bg = `${theme.primary}1A`;
+                        border = theme.primary;
+                        textColor = theme.primary;
+                      } else if (isWrongSelected) {
+                        bg = "#e5393520";
+                        border = "#e53935";
+                        textColor = "#e53935";
+                      } else {
+                        bg = theme.iconBackground;
+                        border = "transparent";
+                        textColor = theme.subText;
+                      }
+                    }
+
                     return (
                       <TouchableOpacity
                         key={opt}
                         onPress={() => handleSelect(currentQuestion.id, letter)}
-                        style={[
-                          styles.optionRow,
-                          {
-                            backgroundColor: selected ? `${theme.primary}1A` : theme.iconBackground,
-                            borderColor: selected ? theme.primary : "transparent",
-                          },
-                        ]}
+                        disabled={!!currentFeedback || answering}
+                        style={[styles.optionRow, { backgroundColor: bg, borderColor: border }]}
                       >
-                        <Text
-                          style={{
-                            color: selected ? theme.primary : theme.text,
-                            fontWeight: selected ? "700" : "500",
-                            fontSize: 14,
-                          }}
-                        >
+                        <Text style={{ color: textColor, fontWeight: selected || isCorrectOption ? "700" : "500", fontSize: 14 }}>
                           {opt}
+                          {isCorrectOption ? " ✓" : isWrongSelected ? " ✗" : ""}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
+                {feedback[currentQuestion.id]?.explanation && (
+                  <Text style={[styles.resultExplanation, { color: theme.subText, marginTop: 10 }]}>
+                    {feedback[currentQuestion.id].explanation}
+                  </Text>
+                )}
               </View>
 
               <View style={styles.navRow}>
@@ -365,28 +404,18 @@ const QuizScreen = ({ navigation }) => {
                     {t("quiz.prevQuestion", "Câu trước")}
                   </Text>
                 </TouchableOpacity>
-                {currentIndex < quiz.question_count - 1 ? (
+                {currentIndex < quiz.question_count - 1 && (
                   <TouchableOpacity
                     onPress={() => setCurrentIndex((i) => Math.min(quiz.question_count - 1, i + 1))}
-                    style={[styles.navButtonPrimary, { backgroundColor: theme.primary }]}
+                    disabled={!feedback[currentQuestion.id]}
+                    style={[
+                      styles.navButtonPrimary,
+                      { backgroundColor: theme.primary, opacity: !feedback[currentQuestion.id] ? 0.4 : 1 },
+                    ]}
                   >
                     <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
                       {t("quiz.nextQuestion", "Câu tiếp theo")}
                     </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity
-                    onPress={handleSubmit}
-                    disabled={submitting}
-                    style={[styles.navButtonPrimary, { backgroundColor: theme.primary }]}
-                  >
-                    {submitting ? (
-                      <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                      <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>
-                        {t("quiz.submit", "Nộp bài")}
-                      </Text>
-                    )}
                   </TouchableOpacity>
                 )}
               </View>
@@ -394,28 +423,26 @@ const QuizScreen = ({ navigation }) => {
               <View style={styles.dotsRow}>
                 {quiz.questions.map((q, i) => {
                   const isCurrent = i === currentIndex;
-                  const isAnswered = !!answers[q.id];
+                  const qFeedback = feedback[q.id];
+                  let dotBg = theme.iconBackground;
+                  let dotBorder = "transparent";
+                  let dotTextColor = theme.subText;
+                  if (isCurrent) {
+                    dotBg = theme.primary;
+                    dotBorder = theme.primary;
+                    dotTextColor = "#fff";
+                  } else if (qFeedback) {
+                    dotBg = qFeedback.is_correct ? `${theme.primary}1A` : "#e5393520";
+                    dotBorder = qFeedback.is_correct ? theme.primary : "#e53935";
+                    dotTextColor = qFeedback.is_correct ? theme.primary : "#e53935";
+                  }
                   return (
                     <TouchableOpacity
                       key={q.id}
                       onPress={() => setCurrentIndex(i)}
-                      style={[
-                        styles.dot,
-                        {
-                          backgroundColor: isCurrent ? theme.primary : isAnswered ? `${theme.primary}1A` : theme.iconBackground,
-                          borderColor: isCurrent || isAnswered ? theme.primary : "transparent",
-                        },
-                      ]}
+                      style={[styles.dot, { backgroundColor: dotBg, borderColor: dotBorder }]}
                     >
-                      <Text
-                        style={{
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: isCurrent ? "#fff" : isAnswered ? theme.primary : theme.subText,
-                        }}
-                      >
-                        {i + 1}
-                      </Text>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: dotTextColor }}>{i + 1}</Text>
                     </TouchableOpacity>
                   );
                 })}

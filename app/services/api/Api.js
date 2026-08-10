@@ -734,6 +734,10 @@ export const submitQuiz = (quizSetId, answers) => {
   return Api.postRequest(`/v1.0/quiz/${quizSetId}/submit`, { answers });
 };
 
+export const answerQuizQuestion = (quizSetId, id, answer) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/answer`, { id, answer });
+};
+
 export const getQuizLeaderboard = (period = "week") => {
   return Api.getRequest(`/v1.0/quiz/leaderboard?period=${period}`);
 };
