@@ -145,7 +145,7 @@ const parseDeepLink = (url) => {
       const queryPart = customSchemeMatch[4] || "";
 
       if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
-        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group" || firstSegment === "quiz") {
+        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group" || firstSegment === "quiz" || firstSegment === "game") {
           pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
           host = "";
         } else {
@@ -208,6 +208,10 @@ const parseDeepLink = (url) => {
         const quizSetId = pathSegment.slice(5).split("?")[0];
         if (quizSetId) return { screen: "QuizScreen", params: { sharedQuizId: quizSetId } };
       }
+      if (pathSegment.startsWith("game/")) {
+        const slug = pathSegment.slice(5).split("?")[0];
+        if (slug) return { screen: "GamePlayScreen", params: { slug } };
+      }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;
         return routeToStory(storyId);
@@ -232,6 +236,14 @@ const parseDeepLink = (url) => {
       if (pathSegment.startsWith("open/group/") || pathSegment.startsWith("group/")) {
         const token = pathSegment.replace(/^open\//, "").slice(6).split("?")[0];
         if (token) return { screen: "GroupJoin", params: { token } };
+      }
+      if (pathSegment.startsWith("open/quiz/")) {
+        const quizSetId = pathSegment.slice(10).split("?")[0];
+        if (quizSetId) return { screen: "QuizScreen", params: { sharedQuizId: quizSetId } };
+      }
+      if (pathSegment.startsWith("open/game/")) {
+        const slug = pathSegment.slice(10).split("?")[0];
+        if (slug) return { screen: "GamePlayScreen", params: { slug } };
       }
     }
   } catch (e) {
