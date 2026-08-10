@@ -225,7 +225,6 @@ const QuizScreen = ({ navigation }) => {
           providerId="QuizScreen"
           size={44}
           scrollY={scrollY}
-          alwaysBorder
           onPress={() => (phase === "setup" ? navigation.goBack() : handleRestart())}
         >
           <Ionicons name={phase === "setup" ? "chevron-back" : "close"} size={22} color={theme.primary} />

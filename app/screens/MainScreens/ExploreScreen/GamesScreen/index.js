@@ -166,7 +166,7 @@ const GamesScreen = ({ navigation }) => {
         style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}
         pointerEvents="box-none"
       >
-        <LiquidButton providerId="GamesScreen" size={44} scrollY={scrollY} alwaysBorder onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="GamesScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={22} color={theme.primary} />
         </LiquidButton>
         <Animated.Text style={[styles.headerTitle, { color: theme.text, opacity: titleOpacity }]} numberOfLines={1}>
