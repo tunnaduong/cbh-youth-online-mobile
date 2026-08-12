@@ -58,6 +58,9 @@ import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
 import StudyMaterialDetailScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialDetailScreen";
 import UploadStudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/UploadStudyMaterialScreen";
+import GamesScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen";
+import GamePlayScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen/GamePlayScreen";
+import QuizScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
@@ -142,7 +145,7 @@ const parseDeepLink = (url) => {
       const queryPart = customSchemeMatch[4] || "";
 
       if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
-        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group") {
+        if (firstSegment === "post" || firstSegment === "story" || firstSegment === "group" || firstSegment === "quiz" || firstSegment === "game") {
           pathSegment = `${firstSegment}/${restPath}`.replace(/^\//, "");
           host = "";
         } else {
@@ -179,6 +182,10 @@ const parseDeepLink = (url) => {
     const params = parseSearchParams(query);
     const storyIdFromQuery = params.storyId || params.story_id;
     if (storyIdFromQuery) return routeToStory(storyIdFromQuery);
+    const sharedQuizId = params.shared || params.quizSetId;
+    if (sharedQuizId && (pathSegment === "explore/quiz" || pathSegment === "quiz")) {
+      return { screen: "QuizScreen", params: { sharedQuizId } };
+    }
 
     if (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") {
       if (pathSegment.startsWith("post/")) {
@@ -197,6 +204,14 @@ const parseDeepLink = (url) => {
         const token = pathSegment.slice(6).split("?")[0];
         if (token) return { screen: "GroupJoin", params: { token } };
       }
+      if (pathSegment.startsWith("quiz/")) {
+        const quizSetId = pathSegment.slice(5).split("?")[0];
+        if (quizSetId) return { screen: "QuizScreen", params: { sharedQuizId: quizSetId } };
+      }
+      if (pathSegment.startsWith("game/")) {
+        const slug = pathSegment.slice(5).split("?")[0];
+        if (slug) return { screen: "GamePlayScreen", params: { slug } };
+      }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;
         return routeToStory(storyId);
@@ -212,12 +227,23 @@ const parseDeepLink = (url) => {
         const storyId = pathSegment.slice(6).split("?")[0];
         return routeToStory(storyId);
       }
+      if (pathSegment.startsWith("explore/quiz") && sharedQuizId) {
+        return { screen: "QuizScreen", params: { sharedQuizId } };
+      }
       // Universal-link redirect target used by the web "open in app" button
       // (see src/app/open/[type]/[value]/route.js) as well as a bare /group/
       // path in case that's ever shared directly.
       if (pathSegment.startsWith("open/group/") || pathSegment.startsWith("group/")) {
         const token = pathSegment.replace(/^open\//, "").slice(6).split("?")[0];
         if (token) return { screen: "GroupJoin", params: { token } };
+      }
+      if (pathSegment.startsWith("open/quiz/")) {
+        const quizSetId = pathSegment.slice(10).split("?")[0];
+        if (quizSetId) return { screen: "QuizScreen", params: { sharedQuizId: quizSetId } };
+      }
+      if (pathSegment.startsWith("open/game/")) {
+        const slug = pathSegment.slice(10).split("?")[0];
+        if (slug) return { screen: "GamePlayScreen", params: { slug } };
       }
     }
   } catch (e) {
@@ -805,6 +831,21 @@ const App = () => {
               <Stack.Screen
                 name="ExploreScreen"
                 component={ExploreScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GamesScreen"
+                component={GamesScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GamePlayScreen"
+                component={GamePlayScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="QuizScreen"
+                component={QuizScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

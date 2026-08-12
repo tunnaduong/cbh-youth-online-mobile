@@ -236,18 +236,30 @@ export default function BlockedUsersScreen({ navigation }) {
         >
           {blockedUsers.map((user) => (
             <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: 12 }}>
                 <Image
                   source={{ uri: user.profile?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar` }}
                   style={[styles.avatar, { backgroundColor: isDarkMode ? "#374151" : "#eee" }]}
                 />
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={[styles.userName, { color: theme.text }]}>{user.profile?.profile_name || user.username}</Text>
-                  <Text style={[styles.userUsername, { color: theme.subText }]}>@{user.username}</Text>
+                <View style={{ marginLeft: 12, flex: 1, minWidth: 0 }}>
+                  <Text
+                    style={[styles.userName, { color: theme.text }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    {user.profile?.profile_name || user.username}
+                  </Text>
+                  <Text
+                    style={[styles.userUsername, { color: theme.subText }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
+                    @{user.username}
+                  </Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={[styles.unblockButton, { borderColor: theme.primary }]}
+                style={[styles.unblockButton, { borderColor: theme.primary, flexShrink: 0 }]}
                 onPress={() => handleUnblock(user.id, user.username)}
               >
                 <Text style={[styles.unblockText, { color: theme.primary }]}>{t('blockedUsers.unblockAction')}</Text>

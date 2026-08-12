@@ -702,3 +702,56 @@ export const getMentionSuggestions = (q) => {
 export const getConversationMentionSuggestions = (conversationId, q) => {
   return Api.getRequest(`/v1.0/chat/conversations/${conversationId}/mention-suggestions?q=${encodeURIComponent(q)}`);
 };
+
+// Games
+export const getGames = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return Api.getRequest(`/v1.0/games${query ? `?${query}` : ""}`);
+};
+
+export const getGame = (slug) => {
+  return Api.getRequest(`/v1.0/games/${slug}`);
+};
+
+export const getRandomGame = (platform) => {
+  return Api.getRequest(`/v1.0/games/random${platform ? `?platform=${platform}` : ""}`);
+};
+
+export const getGameLeaderboard = (period = "week") => {
+  return Api.getRequest(`/v1.0/games/leaderboard?period=${period}`);
+};
+
+export const getGameNowPlaying = () => {
+  return Api.getRequest("/v1.0/games/now-playing");
+};
+
+// Quiz
+export const getQuizTopics = () => {
+  return Api.getRequest("/v1.0/quiz/topics");
+};
+
+export const startQuiz = (count, difficulty, topic, grade, customTopic) => {
+  return Api.postRequest("/v1.0/quiz/start", {
+    count,
+    difficulty,
+    topic,
+    grade,
+    custom_topic: customTopic,
+  });
+};
+
+export const submitQuiz = (quizSetId, answers) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/submit`, { answers });
+};
+
+export const answerQuizQuestion = (quizSetId, id, answer) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/answer`, { id, answer });
+};
+
+export const getQuizLeaderboard = (period = "week") => {
+  return Api.getRequest(`/v1.0/quiz/leaderboard?period=${period}`);
+};
+
+export const joinQuiz = (quizSetId) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/join`, {});
+};
