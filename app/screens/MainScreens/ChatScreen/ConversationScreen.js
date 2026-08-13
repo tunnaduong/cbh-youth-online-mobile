@@ -1506,36 +1506,38 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const handleReportSubmit = async (reason) => {
-    try {
-      // If we have an otherUser, report them directly.
-      // If generic (Group), maybe report conversation?
-      // Since Api expects reported_user_id, we need a user.
-      // Assuming for now report functionality targets the other user in private chat.
-      // For group, we might need a different flow or select a member.
-      // I'll fallback to alerting if no user.
-      if (!otherUser && !isNewConversation) {
-        // Maybe report the group? But API needs reported_user_id (currently).
-        // We'll report the conversation ID in 'reason' or separate field if extended (not asking to extend generic report).
-        alert(t("chatConversation.groupReportUnavailable"));
-        return;
-      }
+    // If we have an otherUser, report them directly.
+    // If generic (Group), maybe report conversation?
+    // Since Api expects reported_user_id, we need a user.
+    // Assuming for now report functionality targets the other user in private chat.
+    // For group, we might need a different flow or select a member.
+    // I'll fallback to alerting if no user.
+    if (!otherUser && !isNewConversation) {
+      // Maybe report the group? But API needs reported_user_id (currently).
+      // We'll report the conversation ID in 'reason' or separate field if extended (not asking to extend generic report).
+      alert(t("chatConversation.groupReportUnavailable"));
+      return;
+    }
 
-      const targetId = otherUser?.id || selectedUser?.id;
-      if (targetId) {
-        await reportUser({ reported_user_id: targetId, reason });
-        Alert.alert(
-          t("chatConversation.thanksTitle"),
-          t("chatConversation.reportSent"),
-        );
-      } else {
-        Alert.alert(t("common.error"), t("chatConversation.reportTargetError"));
-      }
+    const targetId = otherUser?.id || selectedUser?.id;
+    if (!targetId) {
+      Alert.alert(t("common.error"), t("chatConversation.reportTargetError"));
+      throw new Error(t("chatConversation.reportTargetError"));
+    }
+
+    try {
+      await reportUser({ reported_user_id: targetId, reason });
+      Alert.alert(
+        t("chatConversation.thanksTitle"),
+        t("chatConversation.reportSent"),
+      );
     } catch (e) {
       const errorMessage =
         e.response?.data?.message ||
         e.message ||
         t("chatConversation.reportError");
       Alert.alert(t("common.error"), errorMessage);
+      throw e;
     }
   };
 
