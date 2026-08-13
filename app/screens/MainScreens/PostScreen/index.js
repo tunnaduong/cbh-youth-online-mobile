@@ -869,6 +869,7 @@ const PostScreen = ({ route, navigation }) => {
         t("profile.errorTitle"),
         e.response?.data?.message || e.message || t("post.reportError"),
       );
+      throw e;
     }
   };
 

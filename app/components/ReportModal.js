@@ -1,17 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, TouchableWithoutFeedback, Keyboard, Modal, ActivityIndicator } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 const ReportModal = ({ visible, onClose, onSubmit }) => {
   const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  const handleSubmit = () => {
-    if (!reason.trim()) return;
-    onSubmit(reason);
-    setReason('');
+  const handleSubmit = async () => {
+    if (!reason.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      await onSubmit(reason);
+      setReason('');
+      onClose();
+    } catch (e) {
+      // Keep the modal open on failure so the user can see the error
+      // (surfaced via the caller's own Alert/Toast) and retry.
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (submitting) return;
     onClose();
   };
 
@@ -20,10 +34,10 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
       transparent={true}
       visible={visible}
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <TouchableWithoutFeedback onPress={onClose}>
+        <TouchableWithoutFeedback onPress={handleClose}>
           <View style={styles.overlay}>
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={styles.container}>
@@ -42,17 +56,22 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
                       value={reason}
                       onChangeText={setReason}
                       autoFocus
+                      editable={!submitting}
                     />
                     <View style={styles.buttons}>
-                      <TouchableOpacity onPress={onClose} style={styles.cancelButton}>
+                      <TouchableOpacity onPress={handleClose} style={styles.cancelButton} disabled={submitting}>
                         <Text style={[styles.cancelText, { color: theme.subText }]}>{t('report.cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={handleSubmit}
-                        style={[styles.submitButton, { backgroundColor: theme.primary }, !reason.trim() && styles.disabled]}
-                        disabled={!reason.trim()}
+                        style={[styles.submitButton, { backgroundColor: theme.primary }, (!reason.trim() || submitting) && styles.disabled]}
+                        disabled={!reason.trim() || submitting}
                       >
-                        <Text style={styles.submitText}>{t('report.submit')}</Text>
+                        {submitting ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text style={styles.submitText}>{t('report.submit')}</Text>
+                        )}
                       </TouchableOpacity>
                     </View>
                   </View>

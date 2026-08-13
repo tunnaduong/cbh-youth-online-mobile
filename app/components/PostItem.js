@@ -351,6 +351,7 @@ const PostItem = ({
       Alert.alert(t('post.reportSuccessTitle'), t('post.reportSuccessBody'));
     } catch (e) {
       Alert.alert(t('profile.errorTitle'), e.response?.data?.message || e.message || t('post.reportError'));
+      throw e;
     }
   };
 
