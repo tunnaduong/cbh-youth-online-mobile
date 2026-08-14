@@ -490,6 +490,24 @@ const QuizScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               </View>
 
+              <TouchableOpacity
+                style={[styles.customQuizCard, { backgroundColor: theme.cardBackground || theme.iconBackground }]}
+                onPress={() => navigation.navigate("CustomQuizCreateScreen")}
+              >
+                <View style={[styles.customQuizIcon, { backgroundColor: `${theme.primary}1A` }]}>
+                  <Ionicons name="create-outline" size={20} color={theme.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.customQuizTitle, { color: theme.text }]}>
+                    {t("customQuiz.entryTitle", "Tạo bộ đề tùy chỉnh")}
+                  </Text>
+                  <Text style={[styles.customQuizSubtitle, { color: theme.subText }]}>
+                    {t("customQuiz.entrySubtitle", "Tự soạn câu hỏi từ văn bản hoặc file .docx/.txt/.pdf")}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.subText} />
+              </TouchableOpacity>
+
               {leaderboard.length > 0 && (
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
@@ -784,6 +802,23 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   startButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  customQuizCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+  },
+  customQuizIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  customQuizTitle: { fontSize: 14, fontWeight: "700" },
+  customQuizSubtitle: { fontSize: 12, marginTop: 2 },
   section: { marginBottom: 22 },
   sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 10 },
   sectionTitle: { fontSize: 15, fontWeight: "700" },

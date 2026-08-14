@@ -61,6 +61,7 @@ import UploadStudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/U
 import GamesScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen";
 import GamePlayScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen/GamePlayScreen";
 import QuizScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen";
+import CustomQuizCreateScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen/CustomQuizCreateScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
@@ -846,6 +847,11 @@ const App = () => {
               <Stack.Screen
                 name="QuizScreen"
                 component={QuizScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="CustomQuizCreateScreen"
+                component={CustomQuizCreateScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

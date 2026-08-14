@@ -755,3 +755,10 @@ export const getQuizLeaderboard = (period = "week") => {
 export const joinQuiz = (quizSetId) => {
   return Api.postRequest(`/v1.0/quiz/${quizSetId}/join`, {});
 };
+
+// Custom quiz sets - built from user-supplied text/HTML or an uploaded
+// document (.docx/.txt/.pdf) instead of AI generation from a topic. Backend
+// requires exactly one of content_html or file - see QuizController::custom.
+export const createCustomQuiz = (formData) => {
+  return Api.postFormDataRequest("/v1.0/quiz/custom", formData);
+};
