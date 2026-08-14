@@ -184,7 +184,24 @@ const androidGlassTint = (isDarkMode) =>
 // glass view inside the provider it samples recurses the native RenderNode
 // capture into itself, which is what crashes the app.
 const AndroidGlassBackdrop = ({ providerId, style, children }) => {
-  if (Platform.OS === "android" && useAndroidGlass && LiquidGlassProviderAndroid) {
+  const isGlassProvider = Platform.OS === "android" && useAndroidGlass && !!LiquidGlassProviderAndroid;
+
+  // Mount/unmount tracing for the dev console - lets us confirm each tab's
+  // glass provider actually (un)mounts when navigating away/back instead of
+  // silently staying alive (stale render) or never mounting at all.
+  React.useEffect(() => {
+    if (__DEV__) {
+      console.log(`[GlassModules] AndroidGlassBackdrop MOUNT   providerId="${providerId}" (glass=${isGlassProvider})`);
+    }
+    return () => {
+      if (__DEV__) {
+        console.log(`[GlassModules] AndroidGlassBackdrop UNMOUNT providerId="${providerId}" (glass=${isGlassProvider})`);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [providerId]);
+
+  if (isGlassProvider) {
     return (
       <LiquidGlassProviderAndroid providerId={providerId} style={style}>
         {children}

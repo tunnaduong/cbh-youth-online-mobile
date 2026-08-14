@@ -25,7 +25,7 @@ import {
   setDevModeEnabled,
 } from "../../../utils/devConsole";
 
-const FILTERS = ["all", "warning", "error"];
+const FILTERS = ["all", "warning", "error", "glass"];
 
 const LEVEL_COLORS = {
   log: "#6b7280",
@@ -53,7 +53,15 @@ export default function DevConsoleScreen({ navigation }) {
     }, [isDarkMode, theme.background])
   );
 
-  const filteredLogs = filter === "all" ? logs : logs.filter((l) => l.level === filter);
+  const filteredLogs =
+    filter === "all"
+      ? logs
+      : filter === "glass"
+      // "glass" isn't a log level - it's a message-prefix filter for the
+      // [GlassModules] mount/unmount/support traces, so they're easy to
+      // isolate from the rest of the app's console noise.
+      ? logs.filter((l) => l.message.startsWith("[GlassModules]"))
+      : logs.filter((l) => l.level === filter);
 
   const handleCopyLog = useCallback((item) => {
     Clipboard.setString(`[${item.level.toUpperCase()}] ${new Date(item.timestamp).toLocaleString()}\n${item.message}`);

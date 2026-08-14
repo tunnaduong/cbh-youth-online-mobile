@@ -424,6 +424,7 @@
     "filter_all": "Все",
     "filter_warning": "Предупреждения",
     "filter_error": "Ошибки",
+    "filter_glass": "Glass",
     "noLogs": "Пока нет логов",
     "clear": "Очистить",
     "clearLogsTitle": "Очистить логи?",
