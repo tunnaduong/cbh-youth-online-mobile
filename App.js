@@ -176,6 +176,24 @@ const parseDeepLink = (url) => {
       if (intentMatch) {
         scheme = intentMatch[1];
       }
+
+      // An Android "intent://" URI puts our own first path segment (post/
+      // story/group/quiz/game) where a real URL would put the host, e.g.
+      // "intent://quiz/56#Intent;scheme=com.fatties.youth;...;end" parses
+      // above as host="quiz", pathSegment="56" - the customSchemeMatch
+      // branch above never runs for these since they don't match a plain
+      // "scheme://host/path" shape. Re-fold host back into pathSegment the
+      // same way that branch does, or every check below that expects
+      // pathSegment to start with "quiz/" etc. misses and this silently
+      // falls through to the bare-ID story-link branch instead (e.g. a
+      // shared quiz link opening the wrong content).
+      if (
+        (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") &&
+        (host === "post" || host === "story" || host === "group" || host === "quiz" || host === "game")
+      ) {
+        pathSegment = `${host}/${pathSegment}`;
+        host = "";
+      }
     }
 
     console.log("[DeepLink] parsed fields", { scheme, host, pathSegment, query, original: url });
