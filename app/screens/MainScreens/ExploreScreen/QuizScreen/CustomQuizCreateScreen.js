@@ -9,15 +9,14 @@ import {
   ActivityIndicator,
   Animated,
   Share,
-  KeyboardAvoidingView,
-  Platform,
 } from "react-native";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { RichEditor, RichToolbar, actions } from "react-native-pell-rich-editor";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
@@ -27,28 +26,61 @@ const DIFFICULTIES = ["easy", "medium", "hard"];
 const MAX_TITLE_LENGTH = 150;
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB, must match backend QuizController::custom max:10240
 const ALLOWED_EXTENSIONS = ["docx", "txt", "pdf"];
-const COLOR_SWATCHES = ["#e53935", "#1e88e5", "#43a047", "#fb8c00", "#8e24aa"];
 
 const getExtension = (name = "") => {
   const parts = name.toLowerCase().split(".");
   return parts.length > 1 ? parts[parts.length - 1] : "";
 };
 
+// Highlights **text** live as the user types, matching the exact marker
+// LocalQuizContentParser/CustomQuizController::htmlToMarkup already look for
+// server-side to detect the correct option - so what's bold on screen is
+// always what the backend will parse as the answer.
+function quizAnswerMarkParser(input) {
+  "worklet";
+  const ranges = [];
+  const regexp = /\*\*([^\n*]+?)\*\*/g;
+  let match;
+  while ((match = regexp.exec(input)) !== null) {
+    ranges.push({ start: match.index, length: 2, type: "syntax" });
+    ranges.push({ start: match.index + 2, length: match[1].length, type: "bold" });
+    ranges.push({ start: match.index + 2 + match[1].length, length: 2, type: "syntax" });
+  }
+  return ranges;
+}
+
 const CustomQuizCreateScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const { t } = useTranslation();
-  const richText = useRef(null);
+  const contentInputRef = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // step: "form" -> "success"
   const [step, setStep] = useState("form");
   const [mode, setMode] = useState("text"); // "text" | "file"
   const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [contentSelection, setContentSelection] = useState({ start: 0, end: 0 });
   const [difficulty, setDifficulty] = useState("medium");
   const [selectedFile, setSelectedFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdQuiz, setCreatedQuiz] = useState(null); // { quiz_set_id, topic, difficulty, question_count }
+
+  // Wraps the currently selected text in the "**correct answer**" marker
+  // (or inserts an empty pair at the cursor if nothing is selected, so the
+  // user can just start typing the option there).
+  const markSelectionAsCorrect = () => {
+    const { start, end } = contentSelection;
+    const before = content.slice(0, start);
+    const selected = content.slice(start, end);
+    const after = content.slice(end);
+    const next = `${before}**${selected}**${after}`;
+    setContent(next);
+    const cursor = selected ? start + selected.length + 4 : start + 2;
+    setContentSelection({ start: cursor, end: cursor });
+    contentInputRef.current?.focus();
+  };
 
   const titleOpacity = scrollY.interpolate({
     inputRange: [0, 40],
@@ -129,8 +161,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
       formData.append("difficulty", difficulty);
 
       if (mode === "text") {
-        const html = await richText.current?.getContentHtml();
-        formData.append("content_html", html || "");
+        formData.append("content_text", content);
       } else {
         formData.append("file", {
           uri: selectedFile.uri,
@@ -192,8 +223,8 @@ const CustomQuizCreateScreen = ({ navigation }) => {
       <AndroidGlassBackdrop providerId="CustomQuizCreateScreen" style={{ flex: 1 }}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
+          behavior="padding"
+          keyboardVerticalOffset={headerHeight}
         >
           <ScrollView
             contentContainerStyle={{
@@ -209,10 +240,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
             {step === "form" && (
               <>
                 <Text style={[styles.subtitle, { color: theme.subText }]}>
-                  {t(
-                    "customQuiz.subtitle",
-                    "Tự soạn bộ câu hỏi trắc nghiệm của riêng bạn từ văn bản hoặc file có sẵn."
-                  )}
+                  {t("customQuiz.subtitle")}
                 </Text>
 
                 <View style={styles.chipRow}>
@@ -307,41 +335,34 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                         {t("customQuiz.contentLabel", "Nội dung câu hỏi")}
                       </Text>
                       <Text style={[styles.helpText, { color: theme.subText }]}>
-                        {t(
-                          "customQuiz.textHelp",
-                          "Đánh số câu hỏi (Câu 1:, Câu 2:...), các phương án A/B/C/D, và đánh dấu ĐÚNG DUY NHẤT một phương án đúng bằng in đậm, gạch chân hoặc tô màu. Có thể thêm dòng \"Giải thích:\" sau mỗi câu. Bộ phân tích AI khá linh hoạt với định dạng chưa chuẩn, nhưng mỗi câu cần đúng một đáp án được đánh dấu rõ ràng, nếu không câu đó sẽ bị bỏ qua. Chỉ hỗ trợ trắc nghiệm (không hỗ trợ tự luận/điền khuyết). Tối thiểu 2 phương án mỗi câu, các phương án còn thiếu sẽ được tự động bổ sung."
-                        )}
+                        {t("customQuiz.textHelp")}
                       </Text>
 
                       <View style={[styles.editorWrapper, { borderColor: theme.border }]}>
-                        <RichToolbar
-                          editor={richText}
-                          selectedIconTint={theme.primary}
-                          iconTint={theme.text}
-                          style={[styles.toolbar, { backgroundColor: theme.iconBackground }]}
-                          actions={[actions.setBold, actions.setUnderline, actions.undo, actions.redo]}
-                        />
-                        <View style={styles.colorRow}>
-                          {COLOR_SWATCHES.map((color) => (
-                            <TouchableOpacity
-                              key={color}
-                              onPress={() => richText.current?.setForeColor(color)}
-                              style={[styles.colorSwatch, { backgroundColor: color }]}
-                            />
-                          ))}
+                        <View style={[styles.toolbar, { backgroundColor: theme.iconBackground }]}>
+                          <TouchableOpacity
+                            onPress={markSelectionAsCorrect}
+                            style={styles.markCorrectButton}
+                          >
+                            <Ionicons name="checkmark-circle-outline" size={16} color={theme.primary} />
+                            <Text style={{ color: theme.primary, fontWeight: "600", fontSize: 13 }}>
+                              {t("customQuiz.markCorrect", "Đánh dấu đáp án đúng")}
+                            </Text>
+                          </TouchableOpacity>
                         </View>
-                        <RichEditor
-                          ref={richText}
-                          placeholder={t(
-                            "customQuiz.editorPlaceholder",
-                            "Câu 1: Thủ đô của Việt Nam là gì?\nA. Hà Nội\nB. Hồ Chí Minh\nC. Đà Nẵng\nD. Huế\nGiải thích: Hà Nội là thủ đô..."
-                          )}
-                          initialHeight={220}
-                          editorStyle={{
-                            backgroundColor: theme.background,
-                            color: theme.text,
-                            placeholderColor: theme.subText,
-                          }}
+                        <MarkdownTextInput
+                          ref={contentInputRef}
+                          value={content}
+                          onChangeText={setContent}
+                          selection={contentSelection}
+                          onSelectionChange={(e) => setContentSelection(e.nativeEvent.selection)}
+                          parser={quizAnswerMarkParser}
+                          markdownStyle={{ syntax: { color: theme.subText } }}
+                          placeholder={t("customQuiz.editorPlaceholder")}
+                          placeholderTextColor={theme.subText}
+                          multiline
+                          textAlignVertical="top"
+                          style={[styles.editorInput, { color: theme.text }]}
                         />
                       </View>
                     </>
@@ -364,10 +385,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                         </Text>
                       </TouchableOpacity>
                       <Text style={[styles.helpText, { color: theme.subText }]}>
-                        {t(
-                          "customQuiz.fileHelp",
-                          "• .docx giữ nguyên định dạng in đậm/gạch chân/màu chữ.\n• .txt cần tự đánh dấu đáp án đúng bằng **in đậm** hoặc <u>gạch chân</u> vì văn bản thuần không có định dạng thật.\n• .pdf sẽ mất định dạng khi trích xuất, nên cần ghi rõ đáp án bằng chữ, ví dụ \"Đáp án: B\" cho mỗi câu."
-                        )}
+                        {t("customQuiz.fileHelp")}
                       </Text>
                     </>
                   )}
@@ -474,9 +492,9 @@ const styles = StyleSheet.create({
   },
   helpText: { fontSize: 12, lineHeight: 18, marginTop: 8, marginBottom: 12 },
   editorWrapper: { borderWidth: 1, borderRadius: 12, overflow: "hidden" },
-  toolbar: { borderTopLeftRadius: 12, borderTopRightRadius: 12 },
-  colorRow: { flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  colorSwatch: { width: 24, height: 24, borderRadius: 12 },
+  toolbar: { borderTopLeftRadius: 12, borderTopRightRadius: 12, paddingHorizontal: 12, paddingVertical: 8 },
+  markCorrectButton: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
+  editorInput: { minHeight: 220, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14 },
   uploadBox: {
     flexDirection: "row",
     alignItems: "center",
