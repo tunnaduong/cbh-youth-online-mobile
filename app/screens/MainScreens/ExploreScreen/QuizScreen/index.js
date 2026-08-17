@@ -25,6 +25,7 @@ import {
   getQuizLeaderboard,
   getQuizTopics,
   joinQuiz,
+  restartQuiz,
 } from "../../../../services/api/Api";
 
 const COUNT_PRESETS = [5, 10, 20, 50];
@@ -253,7 +254,7 @@ const QuizScreen = ({ navigation, route }) => {
           score: data.score,
           total: data.total,
           points: data.points,
-          results: quiz.questions.map((q) => ({
+          results: (quiz.questions || []).map((q) => ({
             id: q.id,
             your_answer: nextAnswers[q.id] ?? null,
             correct_answer: nextFeedback[q.id]?.correct_answer,
@@ -288,6 +289,36 @@ const QuizScreen = ({ navigation, route }) => {
     setAnswers({});
     setFeedback({});
     setCurrentIndex(0);
+  };
+
+  // Replays the exact same quiz set (shared or self-created) instead of
+  // generating/joining a different one - see the same function in the web
+  // QuizClient for the full reasoning. Points are only ever awarded for a
+  // user's first completion of a given set (see the API's
+  // points_awarded_at) - a replay is still scored for feedback, but earns
+  // nothing more.
+  const [retrying, setRetrying] = useState(false);
+  const handleRetrySame = async () => {
+    if (!quiz?.quiz_set_id || retrying) return;
+    setRetrying(true);
+    try {
+      const res = await restartQuiz(quiz.quiz_set_id);
+      const data = res?.data || res;
+      setQuiz(data);
+      setAnswers({});
+      setFeedback({});
+      setCurrentIndex(0);
+      setResult(null);
+      setPendingResult(null);
+      setPhase("taking");
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: error?.response?.data?.message || t("quiz.restartError", "Không thể làm lại bài đố vui này."),
+      });
+    } finally {
+      setRetrying(false);
+    }
   };
 
   const answeredCount = quiz ? Object.keys(answers).length : 0;
@@ -659,7 +690,7 @@ const QuizScreen = ({ navigation, route }) => {
               </View>
 
               <View style={styles.dotsRow}>
-                {quiz.questions.map((q, i) => {
+                {(quiz.questions || []).map((q, i) => {
                   const isCurrent = i === currentIndex;
                   const qFeedback = feedback[q.id];
                   let dotBg = theme.iconBackground;
@@ -703,16 +734,35 @@ const QuizScreen = ({ navigation, route }) => {
                 <Text style={[styles.resultTopic, { color: theme.subText }]}>
                   {t("quiz.topicResult", "Chủ đề: {{topic}}", { topic: getTopicLabel(quiz.topic) })}
                 </Text>
-                <TouchableOpacity
-                  style={[styles.restartButton, { backgroundColor: theme.primary }]}
-                  onPress={handleRestart}
-                >
-                  <Ionicons name="refresh" size={16} color="#fff" />
-                  <Text style={styles.restartButtonText}>{t("quiz.restart", "Làm bài mới")}</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <TouchableOpacity
+                    style={[
+                      styles.restartButton,
+                      { backgroundColor: "transparent", borderWidth: 1, borderColor: theme.border || theme.subText, opacity: retrying ? 0.6 : 1 },
+                    ]}
+                    onPress={handleRetrySame}
+                    disabled={retrying}
+                  >
+                    {retrying ? (
+                      <ActivityIndicator size="small" color={theme.text} />
+                    ) : (
+                      <Ionicons name="refresh" size={16} color={theme.text} />
+                    )}
+                    <Text style={[styles.restartButtonText, { color: theme.text }]}>
+                      {t("quiz.retrySame", "Làm lại bài này")}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.restartButton, { backgroundColor: theme.primary }]}
+                    onPress={handleRestart}
+                  >
+                    <Ionicons name="sparkles" size={16} color="#fff" />
+                    <Text style={styles.restartButtonText}>{t("quiz.restart", "Làm bài mới")}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {quiz.questions.map((q) => {
+              {(quiz.questions || []).map((q) => {
                 const r = result.results?.find((item) => item.id === q.id);
                 if (!r) return null;
                 return (

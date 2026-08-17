@@ -756,6 +756,10 @@ export const joinQuiz = (quizSetId) => {
   return Api.postRequest(`/v1.0/quiz/${quizSetId}/join`, {});
 };
 
+export const restartQuiz = (quizSetId) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/restart`, {});
+};
+
 // Custom quiz sets - built from user-supplied text/HTML or an uploaded
 // document (.docx/.txt/.pdf) instead of AI generation from a topic. Backend
 // requires exactly one of content_html or file - see QuizController::custom.
