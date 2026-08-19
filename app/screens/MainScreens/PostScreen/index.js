@@ -1383,7 +1383,7 @@ const PostScreen = ({ route, navigation }) => {
               zIndex: 1000,
             }}
           >
-            <ActivityIndicator size="small" color={theme.primary} />
+            <CustomLoading size={44} showBackdrop />
           </View>
         )}
         <AndroidGlassBackdrop providerId="PostScreen" style={{ flex: 1 }}>

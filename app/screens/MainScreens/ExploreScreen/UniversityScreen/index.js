@@ -25,17 +25,17 @@ import {
 } from "../../../../services/api/Api";
 
 const SCORE_OPTIONS = [
-  { label: "Dưới 15", value: "0,15" },
-  { label: "15 – 18", value: "15,18" },
-  { label: "18 – 20", value: "18,20" },
-  { label: "20 – 22", value: "20,22" },
-  { label: "22 – 24", value: "22,24" },
-  { label: "Trên 24", value: "24,30" },
+  { labelKey: "scoreBelow15", fallback: "Dưới 15", value: "0,15" },
+  { labelKey: "score15to18", fallback: "15 – 18", value: "15,18" },
+  { labelKey: "score18to20", fallback: "18 – 20", value: "18,20" },
+  { labelKey: "score20to22", fallback: "20 – 22", value: "20,22" },
+  { labelKey: "score22to24", fallback: "22 – 24", value: "22,24" },
+  { labelKey: "scoreAbove24", fallback: "Trên 24", value: "24,30" },
 ];
 
 // Searchable picker modal - reused for city/major/type/subjectComposition,
 // all of which are flat string lists returned by the backend.
-const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose, theme, isDarkMode }) => {
+const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose, theme, isDarkMode, t }) => {
   const [query, setQuery] = useState("");
   const filtered = options
     .map((label, index) => ({ label, index }))
@@ -55,7 +55,7 @@ const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Tìm kiếm..."
+              placeholder={t("universities.pickerSearchPlaceholder", "Tìm kiếm...")}
               placeholderTextColor={theme.subText}
               style={[styles.pickerSearchInput, { color: theme.text }]}
             />
@@ -69,7 +69,7 @@ const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose
               }}
             >
               <Ionicons name="close-circle" size={16} color={theme.primary} />
-              <Text style={[styles.pickerClearText, { color: theme.primary }]}>Bỏ chọn</Text>
+              <Text style={[styles.pickerClearText, { color: theme.primary }]}>{t("universities.clearSelection", "Bỏ chọn")}</Text>
             </TouchableOpacity>
           )}
           <FlatList
@@ -78,7 +78,7 @@ const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose
             style={{ maxHeight: 320 }}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
-              <Text style={[styles.pickerEmpty, { color: theme.subText }]}>Không tìm thấy kết quả</Text>
+              <Text style={[styles.pickerEmpty, { color: theme.subText }]}>{t("universities.pickerNoResults", "Không tìm thấy kết quả")}</Text>
             }
             renderItem={({ item }) => {
               const active = item.index === selectedIndex;
@@ -128,7 +128,7 @@ const TypeTag = ({ type, theme }) => {
   );
 };
 
-function UniversityCard({ uni, theme, isDarkMode }) {
+function UniversityCard({ uni, theme, isDarkMode, t }) {
   const [expanded, setExpanded] = useState(false);
   const majors = uni.universityMajors || [];
   const visibleMajors = expanded ? majors : majors.slice(0, 4);
@@ -147,7 +147,7 @@ function UniversityCard({ uni, theme, isDarkMode }) {
           <View style={styles.tagRow}>
             {uni.universityCode && (
               <View style={[styles.tag, { backgroundColor: "#F59E0B1A" }]}>
-                <Text style={[styles.tagText, { color: "#B45309" }]}>Mã: {uni.universityCode}</Text>
+                <Text style={[styles.tagText, { color: "#B45309" }]}>{t("universities.code", "Mã")}: {uni.universityCode}</Text>
               </View>
             )}
             {uni.type && <TypeTag type={uni.type} theme={theme} />}
@@ -186,7 +186,7 @@ function UniversityCard({ uni, theme, isDarkMode }) {
 
       {majors.length > 0 && (
         <View style={{ marginTop: 10 }}>
-          <Text style={[styles.majorsLabel, { color: theme.subText }]}>NGÀNH ĐÀO TẠO</Text>
+          <Text style={[styles.majorsLabel, { color: theme.subText }]}>{t("universities.majorsLabel", "NGÀNH ĐÀO TẠO")}</Text>
           {visibleMajors.map((m, i) => {
             const years = Object.entries(m.scores || {}).sort(([a], [b]) => Number(b) - Number(a));
             return (
@@ -207,7 +207,9 @@ function UniversityCard({ uni, theme, isDarkMode }) {
           {majors.length > 4 && (
             <TouchableOpacity style={styles.expandBtn} onPress={() => setExpanded(!expanded)}>
               <Text style={[styles.expandBtnText, { color: theme.primary }]}>
-                {expanded ? "Thu gọn" : `Xem thêm ${majors.length - 4} ngành`}
+                {expanded
+                  ? t("universities.collapse", "Thu gọn")
+                  : `${t("universities.showMore", "Xem thêm")} ${majors.length - 4} ${t("universities.moreMajorsSuffix", "ngành")}`}
               </Text>
               <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={13} color={theme.primary} />
             </TouchableOpacity>
@@ -220,7 +222,9 @@ function UniversityCard({ uni, theme, isDarkMode }) {
           {uni.urls.map((u, i) => (
             <TouchableOpacity key={i} onPress={() => Linking.openURL(u)}>
               <Text style={[styles.urlLink, { color: theme.primary }]} numberOfLines={1}>
-                {i === 0 ? "Xem trang tuyển sinh →" : `Trang tuyển sinh ${i + 1} →`}
+                {i === 0
+                  ? t("universities.admissionLink", "Xem trang tuyển sinh →")
+                  : t("universities.admissionLinkN", "Trang tuyển sinh {{n}} →", { n: i + 1 })}
               </Text>
             </TouchableOpacity>
           ))}
@@ -355,10 +359,10 @@ const UniversityScreen = ({ navigation }) => {
   const headerHeight = 58 + insets.top;
 
   const pickerConfig = {
-    city: { title: "TP / Tỉnh", options: options.city, selected: cityIdx, onSelect: setCityIdx },
-    type: { title: "Loại hình", options: options.type, selected: typeIdx, onSelect: setTypeIdx },
-    major: { title: "Ngành học", options: options.major, selected: majorIdx, onSelect: setMajorIdx },
-    subject: { title: "Khối thi", options: options.subjectComposition, selected: subjectIdx, onSelect: setSubjectIdx },
+    city: { title: t("universities.cityPlaceholder", "TP / Tỉnh"), options: options.city, selected: cityIdx, onSelect: setCityIdx },
+    type: { title: t("universities.typePlaceholder", "Loại hình"), options: options.type, selected: typeIdx, onSelect: setTypeIdx },
+    major: { title: t("universities.majorPlaceholder", "Ngành học"), options: options.major, selected: majorIdx, onSelect: setMajorIdx },
+    subject: { title: t("universities.subjectPlaceholder", "Khối thi"), options: options.subjectComposition, selected: subjectIdx, onSelect: setSubjectIdx },
   }[activePicker];
 
   return (
@@ -382,14 +386,14 @@ const UniversityScreen = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.subtitle, { color: theme.subText }]}>
-            Tra cứu thông tin trường và điểm chuẩn tuyển sinh.
+            {t("universities.subtitle", "Tra cứu thông tin trường và điểm chuẩn tuyển sinh.")}
           </Text>
 
           {/* Tabs */}
           <View style={[styles.tabRow, { borderBottomColor: theme.border }]}>
             {[
-              { key: "filter", icon: "options-outline", label: "Bộ lọc" },
-              { key: "search", icon: "search-outline", label: "Tìm theo tên" },
+              { key: "filter", icon: "options-outline", label: t("universities.tabFilter", "Bộ lọc") },
+              { key: "search", icon: "search-outline", label: t("universities.tabSearch", "Tìm theo tên") },
             ].map((tItem) => {
               const active = tab === tItem.key;
               return (
@@ -416,31 +420,31 @@ const UniversityScreen = ({ navigation }) => {
                   <View style={styles.filterGrid}>
                     <FilterField
                       label={cityIdx != null ? options.city[cityIdx] : null}
-                      placeholder="TP / Tỉnh"
+                      placeholder={t("universities.cityPlaceholder", "TP / Tỉnh")}
                       theme={theme}
                       onPress={() => setActivePicker("city")}
                     />
                     <FilterField
                       label={typeIdx != null ? options.type[typeIdx] : null}
-                      placeholder="Loại hình"
+                      placeholder={t("universities.typePlaceholder", "Loại hình")}
                       theme={theme}
                       onPress={() => setActivePicker("type")}
                     />
                     <FilterField
                       label={majorIdx != null ? options.major[majorIdx] : null}
-                      placeholder="Ngành học"
+                      placeholder={t("universities.majorPlaceholder", "Ngành học")}
                       theme={theme}
                       onPress={() => setActivePicker("major")}
                     />
                     <FilterField
                       label={subjectIdx != null ? options.subjectComposition[subjectIdx] : null}
-                      placeholder="Khối thi"
+                      placeholder={t("universities.subjectPlaceholder", "Khối thi")}
                       theme={theme}
                       onPress={() => setActivePicker("subject")}
                     />
                   </View>
 
-                  <Text style={[styles.scoreLabel, { color: theme.text }]}>Điểm chuẩn</Text>
+                  <Text style={[styles.scoreLabel, { color: theme.text }]}>{t("universities.scoreLabel", "Điểm chuẩn")}</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                     {SCORE_OPTIONS.map((o) => {
                       const active = scoreValue === o.value;
@@ -454,7 +458,7 @@ const UniversityScreen = ({ navigation }) => {
                           ]}
                         >
                           <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13 }}>
-                            {o.label}
+                            {t(`universities.${o.labelKey}`, o.fallback)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -466,7 +470,7 @@ const UniversityScreen = ({ navigation }) => {
                     onPress={handleFilterSearch}
                   >
                     <Ionicons name="search" size={16} color="#fff" />
-                    <Text style={styles.searchButtonText}>Tìm kiếm</Text>
+                    <Text style={styles.searchButtonText}>{t("universities.searchButton", "Tìm kiếm")}</Text>
                   </TouchableOpacity>
                 </>
               )}
@@ -475,14 +479,14 @@ const UniversityScreen = ({ navigation }) => {
                 {loading ? (
                   <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
                 ) : searched && universities.length === 0 ? (
-                  <Text style={[styles.emptyText, { color: theme.subText }]}>Không tìm thấy trường nào phù hợp</Text>
+                  <Text style={[styles.emptyText, { color: theme.subText }]}>{t("universities.resultsEmpty", "Không tìm thấy trường nào phù hợp")}</Text>
                 ) : universities.length > 0 ? (
                   <>
                     <Text style={[styles.resultCount, { color: theme.subText }]}>
-                      Tìm thấy <Text style={{ fontWeight: "700", color: theme.text }}>{universities.length}</Text> trường · Trang {currentPage}/{maxPage}
+                      {t("universities.resultsFound", "Tìm thấy")} <Text style={{ fontWeight: "700", color: theme.text }}>{universities.length}</Text> {t("universities.schoolsUnit", "trường")} · {t("universities.pageLabel", "Trang")} {currentPage}/{maxPage}
                     </Text>
                     {universities.map((uni, i) => (
-                      <UniversityCard key={uni.universityCode ?? i} uni={uni} theme={theme} isDarkMode={isDarkMode} />
+                      <UniversityCard key={uni.universityCode ?? i} uni={uni} theme={theme} isDarkMode={isDarkMode} t={t} />
                     ))}
                     {maxPage > 1 && (
                       <View style={styles.pagination}>
@@ -494,7 +498,7 @@ const UniversityScreen = ({ navigation }) => {
                           <Ionicons name="chevron-back" size={16} color={theme.text} />
                         </TouchableOpacity>
                         <Text style={[styles.pageIndicator, { color: theme.text }]}>
-                          Trang {currentPage} / {maxPage}
+                          {t("universities.pageLabel", "Trang")} {currentPage} / {maxPage}
                         </Text>
                         <TouchableOpacity
                           disabled={currentPage >= maxPage}
@@ -511,7 +515,7 @@ const UniversityScreen = ({ navigation }) => {
                     <View style={styles.placeholderBox}>
                       <Ionicons name="school-outline" size={44} color={theme.subText} />
                       <Text style={[styles.placeholderText, { color: theme.subText }]}>
-                        Chọn bộ lọc rồi nhấn Tìm kiếm
+                        {t("universities.filterPlaceholder", "Chọn bộ lọc rồi nhấn Tìm kiếm")}
                       </Text>
                     </View>
                   )
@@ -527,7 +531,7 @@ const UniversityScreen = ({ navigation }) => {
                     value={nameQuery}
                     onChangeText={handleNameInput}
                     onSubmitEditing={() => handleNameSearch()}
-                    placeholder="Nhập tên hoặc mã trường..."
+                    placeholder={t("universities.namePlaceholder", "Nhập tên hoặc mã trường...")}
                     placeholderTextColor={theme.subText}
                     style={[styles.searchInput, { color: theme.text }]}
                   />
@@ -561,21 +565,21 @@ const UniversityScreen = ({ navigation }) => {
                 onPress={() => handleNameSearch()}
               >
                 <Ionicons name="search" size={16} color="#fff" />
-                <Text style={styles.searchButtonText}>Tìm</Text>
+                <Text style={styles.searchButtonText}>{t("universities.find", "Tìm")}</Text>
               </TouchableOpacity>
 
               <View style={{ marginTop: 20 }}>
                 {nameLoading ? (
                   <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />
                 ) : nameSearched && nameResults.length === 0 ? (
-                  <Text style={[styles.emptyText, { color: theme.subText }]}>Không tìm thấy trường nào</Text>
+                  <Text style={[styles.emptyText, { color: theme.subText }]}>{t("universities.nameResultsEmpty", "Không tìm thấy trường nào")}</Text>
                 ) : nameResults.length > 0 ? (
                   <>
                     <Text style={[styles.resultCount, { color: theme.subText }]}>
-                      Tìm thấy <Text style={{ fontWeight: "700", color: theme.text }}>{nameResults.length}</Text> trường
+                      {t("universities.resultsFound", "Tìm thấy")} <Text style={{ fontWeight: "700", color: theme.text }}>{nameResults.length}</Text> {t("universities.schoolsUnit", "trường")}
                     </Text>
                     {nameResults.map((uni, i) => (
-                      <UniversityCard key={uni.universityCode ?? i} uni={uni} theme={theme} isDarkMode={isDarkMode} />
+                      <UniversityCard key={uni.universityCode ?? i} uni={uni} theme={theme} isDarkMode={isDarkMode} t={t} />
                     ))}
                   </>
                 ) : (
@@ -583,7 +587,7 @@ const UniversityScreen = ({ navigation }) => {
                     <View style={styles.placeholderBox}>
                       <Ionicons name="search-outline" size={44} color={theme.subText} />
                       <Text style={[styles.placeholderText, { color: theme.subText }]}>
-                        Nhập tên hoặc mã trường để tìm kiếm
+                        {t("universities.namePlaceholderEmpty", "Nhập tên hoặc mã trường để tìm kiếm")}
                       </Text>
                     </View>
                   )
@@ -594,7 +598,7 @@ const UniversityScreen = ({ navigation }) => {
 
           {generalInfo.length > 0 && (
             <View style={{ marginTop: 28 }}>
-              <Text style={[styles.generalInfoTitle, { color: theme.text }]}>Quy chế tuyển sinh đại học</Text>
+              <Text style={[styles.generalInfoTitle, { color: theme.text }]}>{t("universities.generalInfoTitle", "Quy chế tuyển sinh đại học")}</Text>
               <View style={[styles.generalInfoBox, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
                 {generalInfo.map((item, i) => (
                   <TouchableOpacity
@@ -629,6 +633,7 @@ const UniversityScreen = ({ navigation }) => {
           onClose={() => setActivePicker(null)}
           theme={theme}
           isDarkMode={isDarkMode}
+          t={t}
         />
       )}
     </View>
