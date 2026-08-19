@@ -409,8 +409,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             providerId="Chat"
             onPress={() => navigation.navigate("CreateGroupScreen")}
             scrollY={scrollY}
-            alwaysBorder
-            borderColor={theme.primary}
             size={40}
           >
             <Ionicons name="people-outline" size={19} color={theme.text} />
@@ -419,8 +417,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             providerId="Chat"
             onPress={() => navigation.navigate("NewConversationScreen")}
             scrollY={scrollY}
-            alwaysBorder
-            borderColor={theme.primary}
             size={40}
           >
             <Ionicons name="add" size={22} color={theme.text} />

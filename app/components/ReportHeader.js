@@ -35,7 +35,6 @@ export default function ReportHeader({ navigation, title, rightButton }) {
       </Text>
       {rightButton && (
         <LiquidButton
-          alwaysBorder
           size={44}
           style={{ width: "auto", paddingHorizontal: 16, height: 44, borderWidth: 1, borderColor: theme.primary, backgroundColor: "transparent" }}
           borderRadius={22}
