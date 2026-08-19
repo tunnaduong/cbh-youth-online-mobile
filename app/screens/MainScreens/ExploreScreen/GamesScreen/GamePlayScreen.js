@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
@@ -15,6 +16,29 @@ export default function GamePlayScreen({ navigation, route }) {
   const { slug } = route.params || {};
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
+
+  // The website reads its auth token from a cookie (auth_token, see
+  // utils/cookies.js on web), completely separate from the app's own
+  // AsyncStorage-based auth. Without this, the WebView always loads the
+  // game page as a guest, so session tracking (startSession/heartbeat -
+  // what populates "Đang chơi"/leaderboard) silently never fires for
+  // anyone playing through the app. Read the app's token once up front and
+  // set the matching cookie before the page's own scripts run.
+  const [tokenReady, setTokenReady] = useState(false);
+  const [authScript, setAuthScript] = useState("");
+
+  useEffect(() => {
+    AsyncStorage.getItem("auth_token")
+      .then((token) => {
+        setAuthScript(
+          token
+            ? `document.cookie = "auth_token=${token}; path=/"; true;`
+            : "true;"
+        );
+      })
+      .catch(() => setAuthScript("true;"))
+      .finally(() => setTokenReady(true));
+  }, []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -41,27 +65,36 @@ export default function GamePlayScreen({ navigation, route }) {
         </LiquidButton>
       </View>
 
-      <WebView
-        source={{ uri: `https://www.chuyenbienhoa.com/explore/games/${slug}?app=true` }}
-        style={styles.webview}
-        containerStyle={styles.webviewContainer}
-        javaScriptEnabled
-        domStorageEnabled
-        // Not incognito, plus these two on - cookies (game state, session,
-        // web login if the user signs in inside the WebView) persist across
-        // app launches instead of resetting every time.
-        incognito={false}
-        sharedCookiesEnabled
-        thirdPartyCookiesEnabled
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        startInLoadingState
-        renderLoading={() => (
-          <View style={[styles.loading, { backgroundColor: theme.background }]}>
-            <ActivityIndicator size="large" color={theme.primary} />
-          </View>
-        )}
-      />
+      {tokenReady ? (
+        <WebView
+          source={{ uri: `https://www.chuyenbienhoa.com/explore/games/${slug}?app=true` }}
+          style={styles.webview}
+          containerStyle={styles.webviewContainer}
+          javaScriptEnabled
+          domStorageEnabled
+          // Not incognito, plus these two on - cookies (game state, session,
+          // web login if the user signs in inside the WebView) persist across
+          // app launches instead of resetting every time.
+          incognito={false}
+          sharedCookiesEnabled
+          thirdPartyCookiesEnabled
+          // Signs the WebView into the same account as the app before the
+          // page's own scripts run, so session tracking works from the app.
+          injectedJavaScriptBeforeContentLoaded={authScript}
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          startInLoadingState
+          renderLoading={() => (
+            <View style={[styles.loading, { backgroundColor: theme.background }]}>
+              <ActivityIndicator size="large" color={theme.primary} />
+            </View>
+          )}
+        />
+      ) : (
+        <View style={[styles.loading, { backgroundColor: theme.background }]}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      )}
     </View>
   );
 }

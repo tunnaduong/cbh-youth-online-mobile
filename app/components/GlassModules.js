@@ -40,18 +40,14 @@ const loadIOSGlass = () => {
       AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
     }
     const ok = !!LiquidGlassView && !!LiquidGlassContainer;
-    if (__DEV__) {
-      console.log(
-        `[GlassModules] iOS Liquid Glass: ${ok ? "SUPPORTED" : "NOT supported"} ` +
-        `(iOS ${iosMajorVersion}, requires 26+; @callstack/liquid-glass isLiquidGlassSupported: ${!!Lib.isLiquidGlassSupported})`
-      );
-    }
+    console.log(
+      `[GlassModules] iOS Liquid Glass: ${ok ? "SUPPORTED" : "NOT supported"} ` +
+      `(iOS ${iosMajorVersion}, requires 26+; @callstack/liquid-glass isLiquidGlassSupported: ${!!Lib.isLiquidGlassSupported})`
+    );
     return ok;
   } catch (error) {
     console.warn("Failed to load @callstack/liquid-glass:", error);
-    if (__DEV__) {
-      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @callstack/liquid-glass failed to load)`);
-    }
+    console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @callstack/liquid-glass failed to load)`);
     return false;
   }
 };
@@ -65,9 +61,7 @@ if (Platform.OS === "ios" && shouldUseIOSGlass && !(LiquidGlassView && LiquidGla
       if (loadIOSGlass()) {
         useIOSGlass = true;
         DeviceEventEmitter.emit(GLASS_READY_EVENT);
-        if (__DEV__) {
-          console.log(`[GlassModules] iOS Liquid Glass recovered on retry after ${delay}ms`);
-        }
+        console.log(`[GlassModules] iOS Liquid Glass recovered on retry after ${delay}ms`);
       }
     }, delay);
   });
@@ -80,16 +74,12 @@ if (Platform.OS === "ios") {
     if (BlurView) {
       AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
     }
-    if (__DEV__) {
-      console.log(
-        `[GlassModules] iOS BlurView fallback (< 26): loaded: ${!!BlurView}`
-      );
-    }
+    console.log(
+      `[GlassModules] iOS BlurView fallback (< 26): loaded: ${!!BlurView}`
+    );
   } catch (error) {
     console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
-    if (__DEV__) {
-      console.log(`[GlassModules] iOS BlurView fallback (< 26): @sbaiahmed1/react-native-blur failed to load`);
-    }
+    console.log(`[GlassModules] iOS BlurView fallback (< 26): @sbaiahmed1/react-native-blur failed to load`);
   }
 }
 
@@ -121,17 +111,13 @@ if (Platform.OS === "android") {
     if (LiquidGlassViewAndroid) {
       AnimatedLiquidGlassViewAndroid = Animated.createAnimatedComponent(LiquidGlassViewAndroid);
     }
-    if (__DEV__) {
-      console.log(
-        `[GlassModules] Android Liquid Glass: ${isLiquidGlassSupportedAndroid ? "SUPPORTED" : "NOT supported"} ` +
-        `(API ${androidApiLevel}, requires 31+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
-      );
-    }
+    console.log(
+      `[GlassModules] Android Liquid Glass: ${isLiquidGlassSupportedAndroid ? "SUPPORTED" : "NOT supported"} ` +
+      `(API ${androidApiLevel}, requires 31+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
+    );
   } catch (error) {
     console.warn("Failed to load liquid-glass-kit:", error);
-    if (__DEV__) {
-      console.log(`[GlassModules] Android Liquid Glass: NOT supported (API ${androidApiLevel}, liquid-glass-kit failed to load)`);
-    }
+    console.log(`[GlassModules] Android Liquid Glass: NOT supported (API ${androidApiLevel}, liquid-glass-kit failed to load)`);
   }
 }
 
@@ -190,13 +176,9 @@ const AndroidGlassBackdrop = ({ providerId, style, children }) => {
   // glass provider actually (un)mounts when navigating away/back instead of
   // silently staying alive (stale render) or never mounting at all.
   React.useEffect(() => {
-    if (__DEV__) {
-      console.log(`[GlassModules] AndroidGlassBackdrop MOUNT   providerId="${providerId}" (glass=${isGlassProvider})`);
-    }
+    console.log(`[GlassModules] AndroidGlassBackdrop MOUNT   providerId="${providerId}" (glass=${isGlassProvider})`);
     return () => {
-      if (__DEV__) {
-        console.log(`[GlassModules] AndroidGlassBackdrop UNMOUNT providerId="${providerId}" (glass=${isGlassProvider})`);
-      }
+      console.log(`[GlassModules] AndroidGlassBackdrop UNMOUNT providerId="${providerId}" (glass=${isGlassProvider})`);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerId]);
