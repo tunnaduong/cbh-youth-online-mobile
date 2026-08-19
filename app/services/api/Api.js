@@ -725,6 +725,21 @@ export const getGameNowPlaying = () => {
   return Api.getRequest("/v1.0/games/now-playing");
 };
 
+// Universities
+export const getUniversityOptions = () => {
+  return Api.getRequest("/v1.0/universities/options");
+};
+
+export const getUniversities = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return Api.getRequest(`/v1.0/universities${query ? `?${query}` : ""}`);
+};
+
+export const searchUniversities = (q, autocomplete = false) => {
+  const query = new URLSearchParams({ q, ...(autocomplete ? { autocomplete: "1" } : {}) }).toString();
+  return Api.getRequest(`/v1.0/universities/search?${query}`);
+};
+
 // Quiz
 export const getQuizTopics = () => {
   return Api.getRequest("/v1.0/quiz/topics");

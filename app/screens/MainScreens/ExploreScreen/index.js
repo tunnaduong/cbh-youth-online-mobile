@@ -74,6 +74,10 @@ const ExploreScreen = ({ navigation }) => {
       navigation.navigate("QuizScreen");
       return;
     }
+    if (card.key === "findUniversities") {
+      navigation.navigate("UniversityScreen");
+      return;
+    }
 
     Toast.show({
       type: "info",
