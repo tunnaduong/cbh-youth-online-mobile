@@ -152,7 +152,25 @@ const useIOSGlassSupport = () => {
   }, []);
   return supported;
 };
-const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
+// Real device capability - whether this Android device can actually render
+// liquid-glass-kit's shader/blur tiers at all. Kept distinct from the
+// general-purpose `useAndroidGlass` flag below because the bottom tab bar
+// and its floating "+" create button (MainScreens/index.js's CustomTabBar)
+// are the one place Android glass stays on; everywhere else was turned off
+// (flat tint only) per product decision, without touching iOS at all.
+const androidGlassCapable = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
+
+// General-purpose flag consumed by LiquidButton, AndroidGlassBackdrop,
+// CommentBar, LiquidHeaderBackground, and NotificationScreen's own glass
+// view - forced off on Android so all of those fall back to their plain
+// tinted background branch. iOS is untouched (this constant is Android-only
+// by name; iOS glass is gated by its own useIOSGlassSupport()/useIOSGlass).
+const useAndroidGlass = false;
+
+// Used only by MainScreens/index.js's CustomTabBar (bottom navbar pill +
+// floating create button) - the sole place that should keep real Android
+// glass exactly as before.
+const useAndroidGlassTabBar = androidGlassCapable;
 
 // Shared black/white tint for every Android liquid-glass surface, so the
 // glass shader always reads a dark tint in dark mode / light tint in light
@@ -206,6 +224,7 @@ export {
   useIOSGlass,
   useIOSGlassSupport,
   useAndroidGlass,
+  useAndroidGlassTabBar,
   AndroidGlassBackdrop,
   androidGlassTint,
 };
@@ -223,6 +242,7 @@ export default {
   useIOSGlass,
   useIOSGlassSupport,
   useAndroidGlass,
+  useAndroidGlassTabBar,
   AndroidGlassBackdrop,
   androidGlassTint,
 };

@@ -13,7 +13,7 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlassSupport, androidGlassTint } from "../../components/GlassModules";
+import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlassTabBar, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlassSupport, androidGlassTint } from "../../components/GlassModules";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -98,10 +98,10 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
   const PillBackground = ({ style }) => (
     <View style={[StyleSheet.absoluteFill, {
       borderRadius: 24.5, overflow: "hidden",
-      backgroundColor: (useAndroidGlass || (Platform.OS === "ios" && BlurView)) ? "transparent" : surface,
+      backgroundColor: (useAndroidGlassTabBar || (Platform.OS === "ios" && BlurView)) ? "transparent" : surface,
       borderWidth: 1, borderColor: border,
     }, style]}>
-      {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && (
+      {Platform.OS === "android" && useAndroidGlassTabBar && LiquidGlassViewAndroid && (
         <LiquidGlassViewAndroid
           providerId="main"
           interactive={isLiquidGlassSupportedAndroid}
