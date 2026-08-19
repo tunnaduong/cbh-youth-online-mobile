@@ -69,7 +69,7 @@ const extractYouTubeId = (url) => {
 // gracefully, which is what actually surfaced as the numbered player error.
 // Pixel 9 Pro XL, Android 15 QPR1 stable (AP4A.241205.013).
 const MOBILE_USER_AGENT =
-  "Mozilla/5.0 (Linux; Android 15; Pixel 9 Pro XL Build/AP4A.241205.013) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36";
+  "Mozilla/5.0 (Linux; Android 15; Pixel 9 Pro XL Build/AP4A.241205.013) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/174.10.5.6 Mobile Safari/537.36";
 
 // Numeric codes the YouTube IFrame Player API's onError event actually
 // documents - a bare <iframe> with no JS API attached can't report *any* of
