@@ -17,15 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import {
-  LiquidGlassView,
-  LiquidGlassContainer,
-  LiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
-  useIOSGlassSupport,
-  useAndroidGlass,
-  androidGlassTint,
-} from "./GlassModules";
+import { LiquidGlassView } from "./GlassModules";
 
 const { width, height } = Dimensions.get("window");
 
@@ -48,7 +40,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
-  const isRealGlass = useIOSGlassSupport();
+  const isRealGlass = !!LiquidGlassView;
 
   // Drive the open animation from a mount effect so the menu view is actually
   // mounted before we animate it in (starting the animation in the same tick
@@ -179,18 +171,17 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
   ];
 
   const renderMenu = () => {
-    if (Platform.OS === "ios" && isRealGlass) {
+    if (isRealGlass) {
+      // The old @callstack/liquid-glass LiquidGlassContainer let iOS rows
+      // "morph" together as one connected glass shape; the new cross-platform
+      // library has no such container - each row just renders its own
+      // independent glass view, which works identically on iOS and Android.
       return (
-        <LiquidGlassContainer
-          spacing={BTN_GAP}
-          style={styles.glassContainer}
-        >
+        <View style={styles.glassContainer}>
           {menuButtons.map((btn, i) => (
             <LiquidGlassView
               key={i}
-              effect="regular"
-              tintColor={isDarkMode ? "#1E1E1E73" : "#FFFFFF66"}
-              interactive={false}
+              variant="regular"
               style={[
                 styles.glassRow,
                 {
@@ -208,7 +199,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
               {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}
             </LiquidGlassView>
           ))}
-        </LiquidGlassContainer>
+        </View>
       );
     }
 
@@ -252,64 +243,21 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
       />
     );
 
-    if (Platform.OS === "ios" && isRealGlass) {
+    if (isRealGlass) {
       // This button now floats independently above the native system tab bar
       // (no more custom iosRightPill wrapper), so it needs its own glass
       // background rather than relying on a parent glass pill.
       return (
         <Pressable style={styles.buttonContainer} onPress={handlePress}>
           <LiquidGlassView
-            effect="regular"
-            tintColor={isDarkMode ? "#1E1E1E59" : "#FFFFFF40"}
-            interactive={true}
+            variant="regular"
+            interactive
             style={styles.iconCircle}
           >
             <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
               {circleContent}
             </Animated.View>
           </LiquidGlassView>
-        </Pressable>
-      );
-    }
-
-    if (Platform.OS === "android" && useAndroidGlass) {
-      // This button now floats independently above the native system tab bar
-      // (no more custom iosRightPill wrapper), so it needs its own glass
-      // background rather than relying on a parent glass pill.
-      const isAndroid33 = Platform.Version >= 33;
-      const btnGlassProps = isAndroid33 ? {
-        blurRadius: 12,
-        refractionAmount: 40,
-        refractionHeight: 18,
-        chromaticAberration: 0.2,
-        highlightAlpha: 0.25,
-        tint: androidGlassTint(isDarkMode),
-      } : {
-        blurRadius: 10,
-        refractionAmount: 0,
-        refractionHeight: 0,
-        chromaticAberration: 0,
-        highlightAlpha: 0.18,
-        tint: androidGlassTint(isDarkMode),
-      };
-      return (
-        <Pressable style={styles.buttonContainer} onPress={handlePress}>
-          <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
-            <LiquidGlassViewAndroid
-              providerId="main"
-              interactive={isLiquidGlassSupportedAndroid}
-              {...btnGlassProps}
-              style={[
-                styles.iconCircle,
-                {
-                  borderWidth: 1.0,
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
-                }
-              ]}
-            >
-              {circleContent}
-            </LiquidGlassViewAndroid>
-          </Animated.View>
         </Pressable>
       );
     }
@@ -444,7 +392,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   icon: {},
-  // Real glass: LiquidGlassContainerView wraps all rows (connected morphing)
   glassContainer: {
     width: 160,
     flexDirection: 'column',

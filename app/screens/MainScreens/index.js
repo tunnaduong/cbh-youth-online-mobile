@@ -13,7 +13,7 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlassTabBar, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlassSupport, androidGlassTint } from "../../components/GlassModules";
+import { LiquidGlassView, AndroidGlassBackdrop } from "../../components/GlassModules";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -34,17 +34,9 @@ const ANDROID_ICON_MAP = {
   Notifications: { focused: "notifications", outline: "notifications-outline" },
 };
 
-// Rendered as a true JSX sibling of TabWrapper's `providerId="main"`
-// LiquidGlassProviderAndroid (see MainScreens' return below) — NOT via
-// Tab.Navigator's `tabBar` render prop, which would mount it *inside* that
-// provider's own captured subtree. A glass view can never be a descendant of
-// the provider it samples: the provider's RenderNode capture would have to
-// draw the glass view, which samples the RenderNode being captured,
-// recursing forever and blowing the native stack (confirmed on-device via a
-// SIGSEGV tombstone in android::uirenderer::RenderNode::prepareTreeImpl).
-// Driven directly by MainScreens' own `currentRoute` state and navigation
-// instead of react-navigation's tabBar props, since it's no longer mounted
-// through that render prop.
+// Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
+// render prop) and driven directly by MainScreens' own `currentRoute` state
+// and navigation.
 const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
@@ -79,41 +71,16 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
   const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
   const opacity = activeRouteName === "Create" ? 0 : 1;
 
-  const glassProps = Platform.Version >= 33 ? {
-    blurRadius: 12,
-    refractionAmount: 40,
-    refractionHeight: 18,
-    chromaticAberration: 0.2,
-    highlightAlpha: 0.25,
-    tint: androidGlassTint(isDarkMode),
-  } : {
-    blurRadius: 10,
-    refractionAmount: 0,
-    refractionHeight: 0,
-    chromaticAberration: 0,
-    highlightAlpha: 0.18,
-    tint: androidGlassTint(isDarkMode),
-  };
-
   const PillBackground = ({ style }) => (
     <View style={[StyleSheet.absoluteFill, {
       borderRadius: 24.5, overflow: "hidden",
-      backgroundColor: (useAndroidGlassTabBar || (Platform.OS === "ios" && BlurView)) ? "transparent" : surface,
+      backgroundColor: LiquidGlassView ? "transparent" : surface,
       borderWidth: 1, borderColor: border,
     }, style]}>
-      {Platform.OS === "android" && useAndroidGlassTabBar && LiquidGlassViewAndroid && (
-        <LiquidGlassViewAndroid
-          providerId="main"
-          interactive={isLiquidGlassSupportedAndroid}
-          {...glassProps}
+      {LiquidGlassView && (
+        <LiquidGlassView
+          variant="clear"
           style={StyleSheet.absoluteFill}
-        />
-      )}
-      {Platform.OS === "ios" && BlurView && (
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType={isDarkMode ? "dark" : "light"}
-          blurAmount={20}
         />
       )}
     </View>
@@ -226,28 +193,18 @@ const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
 
 // Defined outside MainScreens so its identity is stable across re-renders.
 // Re-mounting it would remount the entire Tab.Navigator, causing tab-switch lag.
-const TabWrapper = ({ children }) => {
-  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-    return (
-      <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
-        {children}
-      </LiquidGlassProviderAndroid>
-    );
-  }
-  return children;
-};
+// react-native-liquid-glassmorphism needs no ancestor provider (each
+// LiquidGlassView captures its own backdrop), so this is now a passthrough.
+const TabWrapper = ({ children }) => children;
 
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = useState(false);
   const insets = useSafeAreaInsets();
-  // iOS < 26 has no Liquid Glass API, so the native tab bar there renders as a
-  // plain opaque bar with square corners on translucent styling — this custom
-  // bar (Android-style pill + BlurView) is used instead. iOS 26+ keeps the
-  // native react-navigation tab bar, which renders real UIGlassEffect.
-  // Using the hook (not a module-level constant) so a delayed native-module
-  // registration on first cold start re-renders this component correctly.
-  const iosGlass = useIOSGlassSupport();
-  const isCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && !iosGlass);
+  // react-native-liquid-glassmorphism has no built-in navbar scroll-collapse
+  // behavior (unlike iOS 26's native system tab bar), so both platforms use
+  // this app's own custom pill-style bar with the library's glass rendering,
+  // instead of react-navigation's native tab bar on iOS 26+.
+  const isCustomTabBar = true;
   const [currentRoute, setCurrentRoute] = useState("Home");
   const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;

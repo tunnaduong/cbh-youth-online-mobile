@@ -2,20 +2,11 @@ import React from "react";
 import {
   TouchableOpacity,
   View,
-  Platform,
   StyleSheet,
   Animated,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import {
-  LiquidGlassView,
-  useIOSGlassSupport,
-  BlurView,
-  LiquidGlassViewAndroid,
-  useAndroidGlass,
-  isLiquidGlassSupportedAndroid,
-  androidGlassTint,
-} from "./GlassModules";
+import { LiquidGlassView } from "./GlassModules";
 
 const LiquidButton = ({
   onPress,
@@ -25,12 +16,10 @@ const LiquidButton = ({
   borderRadius,
   disabled = false,
   containerStyle,
-  providerId,
   scrollY,
   backgroundColor,
 }) => {
   const { isDarkMode } = useTheme();
-  const iosGlass = useIOSGlassSupport();
   const defaultRadius = borderRadius ?? size / 2;
 
   // When scrollY is provided, background fades in as user scrolls (0→40px).
@@ -42,75 +31,22 @@ const LiquidButton = ({
       })
     : 1;
 
+  // react-native-liquid-glassmorphism handles iOS/Android and every OS-version
+  // tier internally (real glass, blur fallback, or plain tint - whichever the
+  // device supports), so there's no more platform branching here at all.
   const renderGlassBackground = () => {
-    if (Platform.OS === "ios") {
-      if (iosGlass) {
-        return (
-          <LiquidGlassView
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                borderRadius: defaultRadius,
-                overflow: "hidden",
-              },
-            ]}
-            effect="clear"
-            tintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
-            interactive={false}
-          />
-        );
-      }
-      if (BlurView) {
-        // iOS < 26 has no real Liquid Glass, so the plain blur reads as too
-        // transparent/washed out on its own - stack a theme tint on top to
-        // match the tinted look Android and iOS 26+ glass already have.
-        return (
-          <View style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={10}
-            />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: isDarkMode ? "rgba(17,17,17,0.55)" : "rgba(248,248,248,0.55)" },
-              ]}
-            />
-          </View>
-        );
-      }
-    }
-
-    // No implicit fallback providerId: most LiquidButton call sites in the
-    // app don't pass one, and defaulting them to "main" silently nested a
-    // "main"-id glass view inside the "main" LiquidGlassProviderAndroid
-    // (e.g. ForumScreen's header button, which lives inside MainScreens'
-    // "main" backdrop) — a glass view can never share its provider's own id
-    // while living inside that provider's subtree; the provider's RenderNode
-    // capture ends up drawing itself, recursing until the native stack
-    // overflows (confirmed via on-device SIGSEGV tombstone). Only render
-    // real glass when the caller explicitly opts a screen in with a
-    // matching local provider.
-    if (Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && providerId) {
+    if (LiquidGlassView) {
       return (
-        <LiquidGlassViewAndroid
-          providerId={providerId}
-          interactive={isLiquidGlassSupportedAndroid}
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: defaultRadius,
-              overflow: "hidden",
-            },
-          ]}
-          blurRadius={Platform.Version >= 33 ? 12 : 10}
-          tint={backgroundColor ?? androidGlassTint(isDarkMode)}
+        <LiquidGlassView
+          variant="clear"
+          tintColor={backgroundColor}
+          borderRadius={defaultRadius}
+          style={StyleSheet.absoluteFill}
         />
       );
     }
 
-    // Android & fallbacks: OneUI-style tinted transparent button background
+    // Library failed to load: OneUI-style tinted transparent fallback.
     return (
       <View
         style={[

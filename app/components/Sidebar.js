@@ -22,7 +22,7 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView, useIOSGlassSupport, BlurView } from "./GlassModules";
+import { LiquidGlassView } from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -82,7 +82,6 @@ const Sidebar = ({ providerId, isOpen }) => {
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
-  const iosGlass = useIOSGlassSupport();
   // stronger tint for glass/background depending on theme (more contrast)
   const sidebarTint = isDarkMode
     ? "rgba(0,0,0,0.72)"
@@ -217,9 +216,10 @@ const Sidebar = ({ providerId, isOpen }) => {
   return (
     <View style={{ flex: 1 }}>
       {Platform.OS === "ios" ? (
-        iosGlass ? (
+        LiquidGlassView ? (
           <>
             <LiquidGlassView
+              variant="clear"
               style={{
                 position: "absolute",
                 top: 0,
@@ -229,43 +229,8 @@ const Sidebar = ({ providerId, isOpen }) => {
                 borderTopRightRadius: 24,
                 borderBottomRightRadius: 24,
               }}
-              effect="clear"
-              tintColor={sidebarTint}
             />
             {/* Overlay to guarantee readable contrast over liquid glass */}
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-                backgroundColor: sidebarTint,
-              }}
-            />
-          </>
-        ) : BlurView ? (
-          <>
-            <BlurView
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-              }}
-              blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={22}
-              reducedTransparencyFallbackColor={
-                isDarkMode ? "#050505" : "#FFFFFF"
-              }
-            />
-            {/* Overlay to guarantee readable contrast over blur */}
             <View
               pointerEvents="none"
               style={{
