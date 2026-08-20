@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from "react";
+import React, { useState, useRef, useEffect, useContext, useMemo } from "react";
 import {
   View,
   Text,
@@ -1373,6 +1373,26 @@ const ConversationScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  // Caps how many of the loaded `messages` actually get rendered/mounted at
+  // once. "Load more" pagination keeps prepending older pages to `messages`
+  // as the user scrolls back through history, but every one of those rows
+  // stayed mounted forever in the plain (non-virtualized) ScrollView below -
+  // for a conversation with a lot of scroll-back, that's hundreds of message
+  // bubbles (some with images/videos) all live at once. RENDER_WINDOW_CHUNK
+  // is comfortably above a typical page size so ordinary conversations never
+  // even reach the cap; it only kicks in once someone's scrolled back far
+  // enough that keeping everything mounted would actually hurt.
+  const RENDER_WINDOW_CHUNK = 80;
+  const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
+  // Only the most recent `renderLimit` items actually get mounted; older
+  // ones stay in `messages` state (so pagination/scroll math is unaffected)
+  // but aren't rendered until the user scrolls back far enough to reveal
+  // them (see handleMessagesScroll) or a reply-jump explicitly needs one
+  // (see handleJumpToRepliedMessage).
+  const visibleMessages = useMemo(
+    () => (messages.length > renderLimit ? messages.slice(-renderLimit) : messages),
+    [messages, renderLimit]
+  );
   const inputRef = useRef(null);
   const messagesScrollRef = useRef(null);
   const lastTapRef = useRef({});
@@ -1846,6 +1866,7 @@ const ConversationScreen = ({ navigation, route }) => {
       if (isRefresh && !isBackground) {
         setPage(1);
         setHasMore(true);
+        setRenderLimit(RENDER_WINDOW_CHUNK);
       }
 
       if (!hasMore && !isRefresh) return;
@@ -2148,6 +2169,25 @@ const ConversationScreen = ({ navigation, route }) => {
     if (replyToId == null) return;
     if (scrollToMessageAndHighlight(replyToId)) return;
 
+    // The target might already be loaded in `messages` but simply outside
+    // the current render window (see renderLimit/visibleMessages) - expand
+    // to cover everything already fetched before falling back to actually
+    // fetching more from the server below.
+    if (messages.some((m) => String(m.id) === String(replyToId))) {
+      setRenderLimit(messages.length);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      if (scrollToMessageAndHighlight(replyToId)) return;
+    }
+
+    // About to fetch more pages looking for the target - each fetch's fresh
+    // message count isn't visible in this closure (state updates are async
+    // and this function's `messages` snapshot is already stale by the next
+    // line), so there's no reliable count to grow renderLimit to match.
+    // Just render everything for the rest of this jump; it's a rare,
+    // deliberate action, not the common scrolling path renderLimit exists
+    // for.
+    setRenderLimit(Infinity);
+
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (!hasMore) break;
@@ -2210,6 +2250,13 @@ const ConversationScreen = ({ navigation, route }) => {
     if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
       fetchMessages(false);
+    }
+    // Reveal more of what's already loaded as the user scrolls back into
+    // history, independent of whether there's anything left to fetch from
+    // the server - this is a separate, purely local render cap (see
+    // renderLimit above), not the "load more" pagination trigger above it.
+    if (isNearTop) {
+      setRenderLimit((prev) => (messages.length > prev ? prev + RENDER_WINDOW_CHUNK : prev));
     }
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
@@ -3844,7 +3891,7 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
         >
           <MessagesListContent
-            messages={messages}
+            messages={visibleMessages}
             isGroupChat={currentConversation?.type === "group"}
             theme={theme}
             isDarkMode={isDarkMode}
