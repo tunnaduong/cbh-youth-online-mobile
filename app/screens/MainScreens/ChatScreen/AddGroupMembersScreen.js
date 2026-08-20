@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Animated, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -55,7 +55,7 @@ const AddGroupMembersScreen = ({ navigation, route }) => {
         style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
         pointerEvents="box-none"
       >
-        <LiquidButton providerId="AddGroupMembersScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+        <LiquidButton providerId="AddGroupMembersScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()} forceNoGlass={Platform.OS === "android"}>
           <Ionicons name="arrow-back" size={20} color={theme.primary} />
         </LiquidButton>
         <Animated.Text

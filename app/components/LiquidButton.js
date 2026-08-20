@@ -20,6 +20,13 @@ const LiquidButton = ({
   containerStyle,
   scrollY,
   backgroundColor,
+  // Real glass on Android runs a full per-frame AGSL shader per view - cheap
+  // enough for a couple of nav-bar surfaces, too expensive stacked across a
+  // whole screen. Conversation screens can have several LiquidButtons live
+  // on screen at once (header back/options, per-row actions, etc.), so on
+  // Android they force the plain tinted fallback instead; iOS is untouched
+  // since its glass is a cheap OS compositor effect, not a per-frame shader.
+  forceNoGlass = false,
 }) => {
   const { isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
@@ -80,7 +87,7 @@ const LiquidButton = ({
   // it from the capture and gets the library's real crisp-children-on-top
   // compositing.
   const renderContent = () => {
-    if (LiquidGlassView && showGlass) {
+    if (LiquidGlassView && showGlass && !forceNoGlass) {
       return (
         <LiquidGlassView
           variant="clear"
@@ -101,7 +108,7 @@ const LiquidButton = ({
         style={[
           contentStyle,
           {
-            backgroundColor: !LiquidGlassView
+            backgroundColor: !LiquidGlassView || forceNoGlass
               ? backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)")
               : "transparent",
           },

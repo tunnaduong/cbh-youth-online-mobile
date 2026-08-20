@@ -418,7 +418,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
           style={[styles.header, { paddingTop: insets.top, height: 58 + insets.top, backgroundColor: "transparent" }]}
           pointerEvents="box-none"
         >
-          <LiquidButton providerId="GroupInfoScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+          <LiquidButton providerId="GroupInfoScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()} forceNoGlass={Platform.OS === "android"}>
             <Ionicons name="arrow-back" size={20} color={theme.primary} />
           </LiquidButton>
         </View>
@@ -440,6 +440,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
           size={44}
           scrollY={scrollY}
           onPress={() => navigation.goBack()}
+          forceNoGlass={Platform.OS === "android"}
         >
           <Ionicons name="arrow-back" size={20} color={theme.primary} />
         </LiquidButton>

@@ -89,6 +89,11 @@ const CommentBar = React.forwardRef(
       // its own glass on top of that.
       androidTransparentPill = false,
       allowBroadcastMention = true,
+      // See LiquidButton's forceNoGlass for why: real glass on Android runs
+      // a full per-frame shader, too expensive to keep running behind an
+      // always-mounted composer. Falls back to the same opaque tinted pill
+      // Android used before the glass migration; iOS is untouched.
+      forceNoGlass = false,
     },
     ref
   ) => {
@@ -98,7 +103,8 @@ const CommentBar = React.forwardRef(
       () => makeMentionParser(allowBroadcastMention),
       [allowBroadcastMention]
     );
-    const useGlass = !!LiquidGlassView && !(isAndroid && androidTransparentPill);
+    const useGlass =
+      !!LiquidGlassView && !(isAndroid && androidTransparentPill) && !(isAndroid && forceNoGlass);
     // The pill's content must be real React children of <LiquidGlassView> for
     // the library to capture the backdrop correctly and composite them
     // crisply on top - not a sibling drawn over an absoluteFill glass layer
