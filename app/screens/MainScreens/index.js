@@ -71,25 +71,19 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
   const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
   const opacity = activeRouteName === "Create" ? 0 : 1;
 
-  const PillBackground = ({ style }) => (
-    <View style={[StyleSheet.absoluteFill, {
-      borderRadius: 24.5, overflow: "hidden",
-      backgroundColor: LiquidGlassView ? "transparent" : surface,
-      borderWidth: 1, borderColor: border,
-    }, style]}>
-      {LiquidGlassView && (
-        <LiquidGlassView
-          variant="clear"
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-    </View>
-  );
+  // The pill's real content (sliding indicator + tab buttons, or the "+"
+  // icon) must be actual React children of <LiquidGlassView> - not siblings
+  // drawn over an absoluteFill glass layer - both so the library composites
+  // them crisply on top instead of also sweeping them into its captured-and-
+  // blurred backdrop, and so `interactive` (the touch-following specular
+  // "dynamic" glass look) has real touches to react to.
+  const NavGlassWrapper = LiquidGlassView ?? View;
 
   return (
     <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
       {/* Left pill: main tabs */}
-      <View
+      <NavGlassWrapper
+        {...(LiquidGlassView ? { variant: "clear", interactive: true } : {})}
         renderToHardwareTextureAndroid
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
@@ -97,7 +91,8 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
         }}
         style={[{
           flex: 1, height: 49, borderRadius: 24.5, marginRight: 12,
-          backgroundColor: "transparent",
+          backgroundColor: LiquidGlassView ? "transparent" : surface,
+          borderWidth: 1, borderColor: border,
           flexDirection: "row", alignItems: "center",
           elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
           shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
@@ -108,7 +103,6 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
         // rounded edge against the dark theme background.
         isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
-        <PillBackground />
         <Animated.View
           renderToHardwareTextureAndroid
           style={{
@@ -154,7 +148,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
             </TouchableOpacity>
           );
         })}
-      </View>
+      </NavGlassWrapper>
 
       {/* Right pill: create button */}
       <TouchableOpacity
@@ -162,16 +156,23 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
         activeOpacity={0.8}
         style={[{
           width: 53, height: 53, borderRadius: 26.5,
-          backgroundColor: "transparent",
-          elevation: 8, alignItems: "center", justifyContent: "center",
-          shadowColor: "#000", shadowOpacity: 0.12,
-          shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
           overflow: "hidden",
         },
         isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
-        <PillBackground style={{ borderRadius: 26.5 }} />
-        <Ionicons name="add" size={28} color={activeColor} />
+        <NavGlassWrapper
+          {...(LiquidGlassView ? { variant: "clear", interactive: true } : {})}
+          style={{
+            width: 53, height: 53, borderRadius: 26.5,
+            backgroundColor: LiquidGlassView ? "transparent" : surface,
+            borderWidth: 1, borderColor: border,
+            alignItems: "center", justifyContent: "center",
+            elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
+            shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+          }}
+        >
+          <Ionicons name="add" size={28} color={activeColor} />
+        </NavGlassWrapper>
       </TouchableOpacity>
     </View>
   );

@@ -34,6 +34,15 @@ const LiquidButton = ({
   // react-native-liquid-glassmorphism handles iOS/Android and every OS-version
   // tier internally (real glass, blur fallback, or plain tint - whichever the
   // device supports), so there's no more platform branching here at all.
+  //
+  // The icon must be a real React child of <LiquidGlassView>, not a sibling
+  // drawn over an absoluteFill glass layer: the native view captures "the
+  // hierarchy behind it" by walking the whole app tree and skipping only its
+  // own subtree - content outside that subtree (a sibling) still gets swept
+  // into the captured backdrop and rendered blurred underneath, in addition
+  // to being drawn crisply on top as a normal sibling. That produced a
+  // doubled/ghosted icon. Nesting it as an actual child excludes it from the
+  // capture and gets the library's real crisp-children-on-top compositing.
   const renderGlassBackground = () => {
     if (LiquidGlassView) {
       return (
@@ -42,7 +51,9 @@ const LiquidButton = ({
           tintColor={backgroundColor}
           borderRadius={defaultRadius}
           style={StyleSheet.absoluteFill}
-        />
+        >
+          {children}
+        </LiquidGlassView>
       );
     }
 
@@ -54,9 +65,13 @@ const LiquidButton = ({
           {
             backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
             borderRadius: defaultRadius,
+            alignItems: "center",
+            justifyContent: "center",
           }
         ]}
-      />
+      >
+        {children}
+      </View>
     );
   };
 
@@ -98,17 +113,15 @@ const LiquidButton = ({
         disabled={disabled}
         style={buttonStyle}
       >
-        {/* Background fades in based on scrollY */}
+        {/* Background + icon fade in together based on scrollY */}
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
-            { borderRadius: defaultRadius, overflow: "hidden", opacity: bgOpacity },
+            { borderRadius: defaultRadius, overflow: "hidden", opacity: bgOpacity, alignItems: "center", justifyContent: "center" },
           ]}
-          pointerEvents="none"
         >
           {renderGlassBackground()}
         </Animated.View>
-        {children}
       </TouchableOpacity>
     </Animated.View>
   );

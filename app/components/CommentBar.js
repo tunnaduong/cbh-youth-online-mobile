@@ -99,6 +99,12 @@ const CommentBar = React.forwardRef(
       [allowBroadcastMention]
     );
     const useGlass = !!LiquidGlassView && !(isAndroid && androidTransparentPill);
+    // The pill's content must be real React children of <LiquidGlassView> for
+    // the library to capture the backdrop correctly and composite them
+    // crisply on top - not a sibling drawn over an absoluteFill glass layer
+    // (that let the input/buttons get swept into the captured-and-blurred
+    // backdrop too, in addition to rendering normally).
+    const PillWrapper = useGlass ? LiquidGlassView : View;
 
     const inputTextStyle = {
       fontSize: 14,
@@ -203,7 +209,8 @@ const CommentBar = React.forwardRef(
             ) : null}
           </View>
         ) : null}
-        <View
+        <PillWrapper
+          {...(useGlass ? { variant: "clear", borderRadius: 30 } : {})}
           style={[
             {
               flexDirection: "row",
@@ -235,14 +242,6 @@ const CommentBar = React.forwardRef(
             !isIOS && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
-          {useGlass && (
-            <LiquidGlassView
-              variant="clear"
-              borderRadius={30}
-              style={StyleSheet.absoluteFill}
-            />
-          )}
-
           <View
             style={{
               backgroundColor: isIOS
@@ -376,7 +375,7 @@ const CommentBar = React.forwardRef(
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </PillWrapper>
       </RootView>
     );
   }
