@@ -58,7 +58,7 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const [autoplayVideos, setAutoplayVideosState] = useState(() => {
-    return storage.getBoolean("autoplayVideos") ?? true;
+    return storage.getBoolean("autoplayVideos") ?? false;
   });
 
   useEffect(() => {

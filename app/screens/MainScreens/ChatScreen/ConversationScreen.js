@@ -322,6 +322,7 @@ function renderMessageRow(value, ctx) {
     downloadingFileId,
     messageHandlersRef,
     onImageError,
+    onImageRetry,
     activeInlineVideoId,
     autoplayVideos,
     highlightedMessageId,
@@ -397,6 +398,7 @@ function renderMessageRow(value, ctx) {
           isDownloadingThis={downloadingFileId === value.id}
           handlersRef={messageHandlersRef}
           onImageError={onImageError}
+          onImageRetry={onImageRetry}
           seenAvatars={value._seenAvatars}
           activeInlineVideoId={activeInlineVideoId}
           autoplayVideos={autoplayVideos}
@@ -664,10 +666,21 @@ const MessageRow = React.memo(({
   isDownloadingThis,
   handlersRef,
   onImageError,
+  onImageRetry,
   activeInlineVideoId,
   autoplayVideos,
   seenAvatars,
 }) => {
+  // Under virtualization this component mounts fresh every time its row
+  // scrolls back into view, so a load failure from a past mount (transient
+  // network hiccup, mid-scroll cancel, etc.) must not keep blocking the
+  // image forever - clear any stale error for this id so the fresh mount
+  // gets its own real attempt at loading it.
+  const itemIdForRetry = item.id;
+  React.useEffect(() => {
+    onImageRetry?.(itemIdForRetry);
+  }, [itemIdForRetry, onImageRetry]);
+
   // For group chats, check if sender changed from previous message
   const senderChanged =
     isGroupChat &&
@@ -1214,6 +1227,7 @@ const MessageRow = React.memo(({
     prev.autoplayVideos === next.autoplayVideos &&
     prev.handlersRef === next.handlersRef &&
     prev.onImageError === next.onImageError &&
+    prev.onImageRetry === next.onImageRetry &&
     prev.seenAvatars === next.seenAvatars
   );
 });
@@ -2227,17 +2241,22 @@ const ConversationScreen = ({ navigation, route }) => {
   // what onViewableItemsChanged already reports.
   const handleViewableItemsChanged = useRef(({ viewableItems }) => {
     if (!autoplayVideosRef.current || !isFocusedRef.current) return;
+    // ViewToken only ever carries {item, key, index, isViewable} - no
+    // percent/position field - so "closest to center" is approximated by
+    // how close each video is to the middle of the currently-viewable
+    // window, which FlatList already reports in visual order.
+    const midpoint = (viewableItems.length - 1) / 2;
     let closest = null;
     let closestDist = Infinity;
-    for (const v of viewableItems) {
+    viewableItems.forEach((v, i) => {
       const msg = v.item;
-      if (!msg || (msg.type !== "video" && msg.content_type !== "video")) continue;
-      const dist = Math.abs((v.percent ?? 50) - 50);
+      if (!msg || (msg.type !== "video" && msg.content_type !== "video")) return;
+      const dist = Math.abs(i - midpoint);
       if (dist < closestDist) {
         closestDist = dist;
         closest = String(msg.id);
       }
-    }
+    });
     if (closest !== activeInlineVideoIdRef.current) {
       activeInlineVideoIdRef.current = closest;
       setActiveInlineVideoId(closest);
@@ -3555,6 +3574,23 @@ const ConversationScreen = ({ navigation, route }) => {
     setMediaLoadErrors((prev) => ({ ...prev, [id]: reason }));
   }, []);
 
+  // A failed image load used to be permanent for the rest of the session -
+  // fine when every row stayed mounted forever (one load attempt, ever),
+  // but under real virtualization a row mounts fresh every time it scrolls
+  // back into view. Without this, a single transient network hiccup on any
+  // one of those mounts marked the image broken forever, and virtualization
+  // made that far more likely to happen at least once per image just from
+  // normal scrolling. MessageRow clears its own entry on mount so every
+  // fresh mount gets its own real retry.
+  const clearImageLoadError = React.useCallback((id) => {
+    setMediaLoadErrors((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
   // FlatList renderItem wiring - kept together and down here since it closes
   // over messageHandlersRef/handleImageLoadError, both declared above.
   const renderItemCtx = {
@@ -3568,6 +3604,7 @@ const ConversationScreen = ({ navigation, route }) => {
     downloadingFileId,
     messageHandlersRef,
     onImageError: handleImageLoadError,
+    onImageRetry: clearImageLoadError,
     activeInlineVideoId,
     autoplayVideos,
     highlightedMessageId,
