@@ -22,7 +22,7 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView } from "./GlassModules";
+import { LiquidGlassView, glassTint } from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -220,6 +220,7 @@ const Sidebar = ({ providerId, isOpen }) => {
           <>
             <LiquidGlassView
               variant="regular"
+              tintColor={glassTint(isDarkMode)}
               style={{
                 position: "absolute",
                 top: 0,

@@ -17,7 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView } from "./GlassModules";
+import { LiquidGlassView, glassTint } from "./GlassModules";
 
 const { width, height } = Dimensions.get("window");
 
@@ -182,6 +182,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
             <LiquidGlassView
               key={i}
               variant="regular"
+              tintColor={glassTint(isDarkMode)}
               style={[
                 styles.glassRow,
                 {
@@ -251,6 +252,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
         <Pressable style={styles.buttonContainer} onPress={handlePress}>
           <LiquidGlassView
             variant="regular"
+            tintColor={glassTint(isDarkMode)}
             interactive
             style={styles.iconCircle}
           >

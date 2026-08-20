@@ -42,6 +42,13 @@ const AndroidGlassBackdrop = ({ style, children }) => (
   <View style={style}>{children}</View>
 );
 
-export { LiquidGlassView, isGlassAvailable, AndroidGlassBackdrop };
+// "regular" glass with no explicit tintColor renders with the library's own
+// default hue, which reads too light/washed-out in dark mode. Every call
+// site should pass this so the glass tints dark in dark mode and light in
+// light mode instead of always trending white.
+const glassTint = (isDarkMode) =>
+  isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
 
-export default { LiquidGlassView, isGlassAvailable, AndroidGlassBackdrop };
+export { LiquidGlassView, isGlassAvailable, AndroidGlassBackdrop, glassTint };
+
+export default { LiquidGlassView, isGlassAvailable, AndroidGlassBackdrop, glassTint };

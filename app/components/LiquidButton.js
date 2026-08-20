@@ -6,7 +6,7 @@ import {
   Animated,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import { LiquidGlassView } from "./GlassModules";
+import { LiquidGlassView, glassTint } from "./GlassModules";
 
 const LiquidButton = ({
   onPress,
@@ -34,18 +34,39 @@ const LiquidButton = ({
       })
     : 1;
 
+  // All sizing (width/height/borderRadius/the caller's own `style`, e.g.
+  // width:"auto" + paddingHorizontal for a text button) lives on the actual
+  // glass/fallback view, not on the outer TouchableOpacity. It used to live
+  // on the TouchableOpacity while the glass content was pinned there via
+  // StyleSheet.absoluteFill - but an absolutely-positioned child is removed
+  // from layout entirely, so it contributes nothing to a parent sized as
+  // width:"auto". That collapsed the TouchableOpacity (and everything
+  // inside it) to zero width for any button with auto/content-based sizing,
+  // e.g. the "read all" text button. Now the TouchableOpacity is unstyled
+  // and just wraps its one sized child.
+  const contentStyle = [
+    styles.content,
+    {
+      width: size,
+      height: size,
+      borderRadius: defaultRadius,
+    },
+    style,
+  ];
+
   // react-native-liquid-glassmorphism handles iOS/Android and every OS-version
   // tier internally (real glass, blur fallback, or plain tint - whichever the
   // device supports), so there's no more platform branching here at all.
   //
-  // The icon must be a real React child of <LiquidGlassView>, not a sibling
-  // drawn over an absoluteFill glass layer: the native view captures "the
-  // hierarchy behind it" by walking the whole app tree and skipping only its
-  // own subtree - content outside that subtree (a sibling) still gets swept
-  // into the captured backdrop and rendered blurred underneath, in addition
-  // to being drawn crisply on top as a normal sibling. That produced a
-  // doubled/ghosted icon. Nesting it as an actual child excludes it from the
-  // capture and gets the library's real crisp-children-on-top compositing.
+  // The icon/text must be a real React child of <LiquidGlassView>, not a
+  // sibling drawn over an absoluteFill glass layer: the native view captures
+  // "the hierarchy behind it" by walking the whole app tree and skipping
+  // only its own subtree - content outside that subtree (a sibling) still
+  // gets swept into the captured backdrop and rendered blurred underneath,
+  // in addition to being drawn crisply on top as a normal sibling. That
+  // produced a doubled/ghosted icon. Nesting it as an actual child excludes
+  // it from the capture and gets the library's real crisp-children-on-top
+  // compositing.
   //
   // The glass view itself is always mounted at full opacity now (so the icon
   // inside it is never hidden) - the scroll-triggered "background appears"
@@ -55,9 +76,9 @@ const LiquidButton = ({
       return (
         <LiquidGlassView
           variant="regular"
-          tintColor={backgroundColor}
+          tintColor={backgroundColor ?? glassTint(isDarkMode)}
           borderRadius={defaultRadius}
-          style={[StyleSheet.absoluteFill, { flexDirection: "row", alignItems: "center", justifyContent: "center" }]}
+          style={contentStyle}
         >
           {scrollY && (
             <Animated.View
@@ -81,14 +102,10 @@ const LiquidButton = ({
     return (
       <View
         style={[
-          StyleSheet.absoluteFill,
+          contentStyle,
           {
             backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
-            borderRadius: defaultRadius,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-          }
+          },
         ]}
       >
         {children}
@@ -112,18 +129,6 @@ const LiquidButton = ({
     }).start();
   };
 
-  const buttonStyle = [
-    styles.button,
-    {
-      width: size,
-      height: size,
-      borderRadius: defaultRadius,
-      borderWidth: 0,
-      borderColor: "transparent",
-    },
-    style,
-  ];
-
   return (
     <Animated.View style={[{ transform: [{ scale: scaleValue }] }, containerStyle]}>
       <TouchableOpacity
@@ -132,7 +137,6 @@ const LiquidButton = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
-        style={buttonStyle}
       >
         {renderContent()}
       </TouchableOpacity>
@@ -141,10 +145,13 @@ const LiquidButton = ({
 };
 
 const styles = StyleSheet.create({
-  button: {
+  content: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
+    borderWidth: 0,
+    borderColor: "transparent",
   },
 });
 
