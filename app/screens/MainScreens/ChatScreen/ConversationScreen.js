@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext, useMemo } from "react";
+import React, { useState, useRef, useEffect, useContext, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -303,170 +303,127 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
 // when `message`/composer text changes, so React.memo now makes typing a
 // no-op for this subtree - it only re-renders when the messages themselves
 // (or the few other props below) actually change.
-const MessagesListContent = React.memo(({
-  messages,
-  isGroupChat,
-  theme,
-  isDarkMode,
-  t,
-  username,
-  navigation,
-  mediaLoadErrors,
-  downloadingFileId,
-  messageHandlersRef,
-  onImageError,
-  activeInlineVideoId,
-  autoplayVideos,
-  highlightedMessageId,
-  messageLayoutOffsetsRef,
-  pendingHighlightMessageIdRef,
-  attemptScrollToHighlightRef,
-  seenParticipants,
-}) => {
-  // Pre-compute nearest real-message neighbours for each item so
-  // MessageRow doesn't have to O(n)-scan the array itself.
-  const realMessages = [];
-  messages.forEach((m, i) => {
-    // System messages ("X added Y to the group") render as a centered pill, not a
-    // bubble - exclude them here too so they don't get counted as a neighbour when
-    // deciding whether consecutive real messages should visually group together.
-    if (m.type !== "date" && m.type !== "time" && m.content_type !== "system") {
-      realMessages.push({ m, i });
-    }
-  });
-  const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
+// Renders one row (date/time/system header, or a MessageRow bubble) for the
+// message FlatList's renderItem. All the per-item data this needs (prev/next
+// neighbour, inline seen-avatars) is precomputed once per `messages` change
+// (see `preparedMessages` inside ConversationScreen) and attached directly
+// to the item as _prev/_next/_seenAvatars, so this stays a cheap, allocation-
+// free function instead of re-deriving neighbours on every call the way the
+// old inline .map() did.
+function renderMessageRow(value, ctx) {
+  const {
+    isGroupChat,
+    theme,
+    isDarkMode,
+    t,
+    username,
+    navigation,
+    mediaLoadErrors,
+    downloadingFileId,
+    messageHandlersRef,
+    onImageError,
+    activeInlineVideoId,
+    autoplayVideos,
+    highlightedMessageId,
+  } = ctx;
 
-  // "Seen by" read receipts (group chats only). There's no per-message read
-  // table on the backend - each participant just has a single last_read_at
-  // timestamp for the conversation. The inline avatar stack only ever shows
-  // under YOUR OWN truly-last message in the conversation, exactly like
-  // Messenger - never under someone else's message (if they sent the last
-  // message, nothing shows inline at all), and never scattered across
-  // earlier messages of yours (use the "Lượt xem" menu action on those).
-  const lastRealMessage = realMessages.length > 0 ? realMessages[realMessages.length - 1].m : null;
-  let inlineSeenAvatars = [];
-  if (isGroupChat && lastRealMessage?.is_myself && seenParticipants?.length > 0) {
-    const createdAt = new Date(lastRealMessage.created_at).getTime();
-    inlineSeenAvatars = seenParticipants.filter(
-      (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
-    );
-  }
-
-  return messages.map((value, index) => {
-    let prev = null;
-    let next = null;
-    const ri = realIdxOf.get(index);
-    if (ri != null) {
-      prev = ri > 0 ? realMessages[ri - 1].m : null;
-      next = ri < realMessages.length - 1 ? realMessages[ri + 1].m : null;
-    } else {
-      // date/time header — walk to find adjacent real messages
-      for (let i = index - 1; i >= 0; i--) {
-        if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { prev = messages[i]; break; }
-      }
-      for (let i = index + 1; i < messages.length; i++) {
-        if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { next = messages[i]; break; }
-      }
-    }
-
-    return (
-      // type+id alone (no index) - "load more" pagination prepends older
-      // messages, shifting every index. A key that includes index made React
-      // treat every already-rendered row as brand new on each scroll-up load,
-      // remounting (not just re-rendering) the entire message list every
-      // time - by far the biggest source of chat lag once a conversation had
-      // any scroll-back history loaded.
-      <View
-        key={`${value.type}-${value.id}`}
-        onLayout={(e) => {
-          if (value.type === "message" && value.id != null) {
-            messageLayoutOffsetsRef.current[value.id] = {
-              y: e.nativeEvent.layout.y,
-              height: e.nativeEvent.layout.height,
-            };
-            if (pendingHighlightMessageIdRef.current === value.id) {
-              attemptScrollToHighlightRef.current();
+  return (
+    <View
+      style={
+        value.id === highlightedMessageId
+          ? {
+              backgroundColor: isDarkMode
+                ? "rgba(250,204,21,0.15)"
+                : "rgba(250,204,21,0.25)",
+              borderRadius: 12,
             }
-          }
-        }}
-        style={
-          value.id === highlightedMessageId
-            ? {
-                backgroundColor: isDarkMode
-                  ? "rgba(250,204,21,0.15)"
-                  : "rgba(250,204,21,0.25)",
-                borderRadius: 12,
-              }
-            : undefined
-        }
-      >
-        {value.type === "date" ? (
-          <View
-            style={styles.dateHeaderContainer}
-            key={value.is_myself ? "my" + value.id : "their" + value.id}
+          : undefined
+      }
+    >
+      {value.type === "date" ? (
+        <View
+          style={styles.dateHeaderContainer}
+          key={value.is_myself ? "my" + value.id : "their" + value.id}
+        >
+          <Text
+            style={[
+              styles.dateHeaderText,
+              {
+                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                color: theme.subText,
+              },
+            ]}
           >
-            <Text
-              style={[
-                styles.dateHeaderText,
-                {
-                  backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                  color: theme.subText,
-                },
-              ]}
-            >
-              {value.date}
-            </Text>
-          </View>
-        ) : value.type === "time" ? (
-          <View style={styles.timeHeaderContainer}>
-            <Text
-              style={[
-                styles.timeHeaderText,
-                {
-                  backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                  color: theme.subText,
-                },
-              ]}
-            >
-              {value.time}
-            </Text>
-          </View>
-        ) : value.content_type === "system" ? (
-          <View style={styles.systemMessageContainer}>
-            <Text
-              style={[
-                styles.systemMessageText,
-                { backgroundColor: isDarkMode ? "#262626" : "#f0f0f0", color: theme.subText },
-              ]}
-            >
-              {getSystemMessageText(value, t)}
-            </Text>
-          </View>
-        ) : (
-          <MessageRow
-            item={value}
-            prevMessage={prev}
-            nextMessage={next}
-            index={index}
-            isGroupChat={isGroupChat}
-            theme={theme}
-            isDarkMode={isDarkMode}
-            t={t}
-            username={username}
-            navigation={navigation}
-            mediaLoadError={mediaLoadErrors[value.id]}
-            isDownloadingThis={downloadingFileId === value.id}
-            handlersRef={messageHandlersRef}
-            onImageError={onImageError}
-            seenAvatars={value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined}
-            activeInlineVideoId={activeInlineVideoId}
-            autoplayVideos={autoplayVideos}
-          />
-        )}
-      </View>
-    );
-  });
-});
+            {value.date}
+          </Text>
+        </View>
+      ) : value.type === "time" ? (
+        <View style={styles.timeHeaderContainer}>
+          <Text
+            style={[
+              styles.timeHeaderText,
+              {
+                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
+                color: theme.subText,
+              },
+            ]}
+          >
+            {value.time}
+          </Text>
+        </View>
+      ) : value.content_type === "system" ? (
+        <View style={styles.systemMessageContainer}>
+          <Text
+            style={[
+              styles.systemMessageText,
+              { backgroundColor: isDarkMode ? "#262626" : "#f0f0f0", color: theme.subText },
+            ]}
+          >
+            {getSystemMessageText(value, t)}
+          </Text>
+        </View>
+      ) : (
+        <MessageRow
+          item={value}
+          prevMessage={value._prev}
+          nextMessage={value._next}
+          isGroupChat={isGroupChat}
+          theme={theme}
+          isDarkMode={isDarkMode}
+          t={t}
+          username={username}
+          navigation={navigation}
+          mediaLoadError={mediaLoadErrors[value.id]}
+          isDownloadingThis={downloadingFileId === value.id}
+          handlersRef={messageHandlersRef}
+          onImageError={onImageError}
+          seenAvatars={value._seenAvatars}
+          activeInlineVideoId={activeInlineVideoId}
+          autoplayVideos={autoplayVideos}
+        />
+      )}
+    </View>
+  );
+}
+
+// react-native-keyboard-controller's own documented pattern for pairing
+// KeyboardChatScrollView with a virtualized list: FlatList stays the outer
+// component (so it actually virtualizes), and swaps in KeyboardChatScrollView
+// as its internal scroll primitive via `renderScrollComponent` instead of
+// KeyboardChatScrollView wrapping a plain .map() of *every* message as
+// `children` (the old approach - every message stayed permanently mounted,
+// which is what made long conversations laggy no matter how well the
+// individual rows were memoized).
+// automaticallyAdjustContentInsets/contentInsetAdjustmentBehavior are
+// required here per the library's own docs for the virtualized-list pairing.
+const ChatScrollViewWrapper = React.forwardRef((props, ref) => (
+  <KeyboardChatScrollView
+    ref={ref}
+    automaticallyAdjustContentInsets={false}
+    contentInsetAdjustmentBehavior="never"
+    {...props}
+  />
+));
 
 const SWIPE_THRESHOLD = 55;
 const SWIPE_ICON_OFFSET = 44;
@@ -1373,26 +1330,6 @@ const ConversationScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  // Caps how many of the loaded `messages` actually get rendered/mounted at
-  // once. "Load more" pagination keeps prepending older pages to `messages`
-  // as the user scrolls back through history, but every one of those rows
-  // stayed mounted forever in the plain (non-virtualized) ScrollView below -
-  // for a conversation with a lot of scroll-back, that's hundreds of message
-  // bubbles (some with images/videos) all live at once. RENDER_WINDOW_CHUNK
-  // is comfortably above a typical page size so ordinary conversations never
-  // even reach the cap; it only kicks in once someone's scrolled back far
-  // enough that keeping everything mounted would actually hurt.
-  const RENDER_WINDOW_CHUNK = 80;
-  const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
-  // Only the most recent `renderLimit` items actually get mounted; older
-  // ones stay in `messages` state (so pagination/scroll math is unaffected)
-  // but aren't rendered until the user scrolls back far enough to reveal
-  // them (see handleMessagesScroll) or a reply-jump explicitly needs one
-  // (see handleJumpToRepliedMessage).
-  const visibleMessages = useMemo(
-    () => (messages.length > renderLimit ? messages.slice(-renderLimit) : messages),
-    [messages, renderLimit]
-  );
   const inputRef = useRef(null);
   const messagesScrollRef = useRef(null);
   const lastTapRef = useRef({});
@@ -1405,7 +1342,6 @@ const ConversationScreen = ({ navigation, route }) => {
     isNewConversation,
     highlightMessageId,
   } = route.params;
-  const messageLayoutOffsetsRef = useRef({});
   const activeInlineVideoIdRef = useRef(null);
   const [activeInlineVideoId, setActiveInlineVideoId] = useState(null);
   const scrollOffsetRef = useRef(0);
@@ -1430,6 +1366,15 @@ const ConversationScreen = ({ navigation, route }) => {
     usernameRef.current = username;
   }, [username]);
   const { theme, isDarkMode, autoplayVideos } = useTheme();
+  // handleViewableItemsChanged below is wrapped in useRef to keep a stable
+  // identity across renders (FlatList/VirtualizedList warns if
+  // onViewableItemsChanged's identity changes), so it can't just close over
+  // autoplayVideos/isFocused directly - those would be frozen at whatever
+  // they were on first render. Refs kept in sync every render instead.
+  const autoplayVideosRef = useRef(autoplayVideos);
+  autoplayVideosRef.current = autoplayVideos;
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
   const [currentConversation, setCurrentConversation] = useState(conversation);
   const [currentConversationId, setCurrentConversationId] =
     useState(conversationId);
@@ -1866,7 +1811,6 @@ const ConversationScreen = ({ navigation, route }) => {
       if (isRefresh && !isBackground) {
         setPage(1);
         setHasMore(true);
-        setRenderLimit(RENDER_WINDOW_CHUNK);
       }
 
       if (!hasMore && !isRefresh) return;
@@ -1999,11 +1943,10 @@ const ConversationScreen = ({ navigation, route }) => {
       clearTimeout(typingTimeoutRef.current);
       setTypingUser(null);
 
-      const distanceFromBottom =
-        (scrollContentHeightRef.current || 0) -
-        (scrollViewHeightRef.current || 0) -
-        (scrollOffsetRef.current || 0);
-      const isNearBottom = distanceFromBottom <= 150;
+      // Inverted list: offset 0 = at the newest message, so the scroll
+      // offset itself already *is* the distance scrolled away from it (see
+      // the identical shouldShow calc in handleMessagesScroll).
+      const isNearBottom = (scrollOffsetRef.current || 0) <= 150;
 
       if (tryAppendPushedMessage(e)) {
         if (isNearBottom) scrollToLatestMessageAnimated();
@@ -2113,35 +2056,121 @@ const ConversationScreen = ({ navigation, route }) => {
     return () => subscription.remove();
   }, [isNewConversation, currentConversationId, conversationId]);
 
+  // Precompute nearest real-message neighbours + inline seen-avatars once per
+  // `messages` change (not per row render - see renderMessageRow above), then
+  // reverse for the inverted FlatList below (index 0 = newest = bottom of
+  // screen, matching how every standard chat FlatList is built - see
+  // https://kirillzyusko.github.io/react-native-keyboard-controller docs on
+  // pairing KeyboardChatScrollView with a virtualized list).
+  const preparedMessages = useMemo(() => {
+    const realMessages = [];
+    messages.forEach((m, i) => {
+      // System messages ("X added Y to the group") render as a centered pill, not a
+      // bubble - exclude them here too so they don't get counted as a neighbour when
+      // deciding whether consecutive real messages should visually group together.
+      if (m.type !== "date" && m.type !== "time" && m.content_type !== "system") {
+        realMessages.push({ m, i });
+      }
+    });
+    const realIdxOf = new Map(realMessages.map(({ i }, ri) => [i, ri]));
+
+    // "Seen by" read receipts (group chats only). There's no per-message read
+    // table on the backend - each participant just has a single last_read_at
+    // timestamp for the conversation. The inline avatar stack only ever shows
+    // under YOUR OWN truly-last message in the conversation, exactly like
+    // Messenger - never under someone else's message, and never scattered
+    // across earlier messages of yours (use the "Lượt xem" menu action there).
+    const lastRealMessage = realMessages.length > 0 ? realMessages[realMessages.length - 1].m : null;
+    let inlineSeenAvatars = [];
+    if (isGroupConversation && lastRealMessage?.is_myself && seenParticipants?.length > 0) {
+      const createdAt = new Date(lastRealMessage.created_at).getTime();
+      inlineSeenAvatars = seenParticipants.filter(
+        (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
+      );
+    }
+
+    return messages.map((value, index) => {
+      let prev = null;
+      let next = null;
+      const ri = realIdxOf.get(index);
+      if (ri != null) {
+        prev = ri > 0 ? realMessages[ri - 1].m : null;
+        next = ri < realMessages.length - 1 ? realMessages[ri + 1].m : null;
+      } else {
+        // date/time header — walk to find adjacent real messages
+        for (let i = index - 1; i >= 0; i--) {
+          if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { prev = messages[i]; break; }
+        }
+        for (let i = index + 1; i < messages.length; i++) {
+          if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { next = messages[i]; break; }
+        }
+      }
+      return {
+        ...value,
+        _prev: prev,
+        _next: next,
+        _seenAvatars: value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined,
+      };
+    });
+  }, [messages, isGroupConversation, seenParticipants]);
+
+  // FlatList `inverted`: index 0 renders at the bottom of the screen, so the
+  // newest message needs to be first.
+  const invertedMessages = useMemo(() => [...preparedMessages].reverse(), [preparedMessages]);
+
+  // renderItemCtx/renderItemCtxRef/renderMessageItem/messageKeyExtractor/
+  // renderScrollComponent are defined further below (after
+  // messageHandlersRef/handleImageLoadError, which they close over, are
+  // themselves declared) - see "FlatList renderItem wiring" near the JSX.
+
+  // Inverted list's natural rest position (offset 0) already *is* "scrolled
+  // to the newest message" - no scrollToEnd juggling needed like the old
+  // plain ScrollView required.
   const scrollToLatestMessage = () => {
     requestAnimationFrame(() => {
-      messagesScrollRef.current?.scrollToEnd({ animated: false });
+      messagesScrollRef.current?.scrollToOffset({ offset: 0, animated: false });
     });
   };
 
   const scrollToLatestMessageAnimated = () => {
     requestAnimationFrame(() => {
-      messagesScrollRef.current?.scrollToEnd({ animated: true });
+      messagesScrollRef.current?.scrollToOffset({ offset: 0, animated: true });
     });
   };
 
-  // Scrolls to and briefly highlights a message already present in the
-  // currently loaded list, if it's laid out yet. Returns false (without
-  // side effects) if it isn't loaded/laid out, so callers can fall back to
-  // fetching more messages first (see handleJumpToRepliedMessage).
+  // Scrolls to and briefly highlights a message, if it's in the currently
+  // loaded list. Returns false (without side effects) if it isn't loaded, so
+  // callers can fall back to fetching more messages first (see
+  // handleJumpToRepliedMessage). Unlike the old y-offset approach, this
+  // works for a message FlatList hasn't mounted/measured yet - scrollToIndex
+  // triggers virtualization to bring it in, with onScrollToIndexFailed below
+  // as the documented fallback for the (rare, variable-row-height) case
+  // where the jump target is too far from the current viewport to measure.
   const scrollToMessageAndHighlight = (targetId) => {
     if (targetId == null) return false;
-    const layout = messageLayoutOffsetsRef.current[targetId];
-    if (!layout || typeof layout.y !== "number") return false;
+    const index = invertedMessages.findIndex((m) => String(m.id) === String(targetId));
+    if (index === -1) return false;
     requestAnimationFrame(() => {
-      messagesScrollRef.current?.scrollTo({
-        y: Math.max(layout.y - 120, 0),
-        animated: true,
-      });
+      try {
+        messagesScrollRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+      } catch {
+        // onScrollToIndexFailed handles the retry.
+      }
     });
     setHighlightedMessageId(targetId);
     setTimeout(() => setHighlightedMessageId(null), 2500);
     return true;
+  };
+
+  const handleScrollToIndexFailed = (info) => {
+    // Standard documented FlatList workaround for variable-height rows with
+    // no getItemLayout: jump to a rough estimated offset first so the target
+    // area actually gets measured, then retry the precise scrollToIndex.
+    const estimatedOffset = info.averageItemLength * info.index;
+    messagesScrollRef.current?.scrollToOffset({ offset: estimatedOffset, animated: false });
+    setTimeout(() => {
+      messagesScrollRef.current?.scrollToIndex({ index: info.index, animated: true, viewPosition: 0.5 });
+    }, 100);
   };
 
   const attemptScrollToHighlight = () => {
@@ -2151,49 +2180,21 @@ const ConversationScreen = ({ navigation, route }) => {
     if (didScroll) pendingHighlightMessageIdRef.current = null;
     return didScroll;
   };
-  // attemptScrollToHighlight is redefined every render (plain closure, not
-  // useCallback). It gets passed down into MessagesListContent below, and if
-  // passed directly it would be a new prop identity on every keystroke,
-  // defeating that component's React.memo. Keep a ref to the latest version
-  // instead (same pattern as fetchMessagesRef above) so the prop we hand to
-  // MessagesListContent stays referentially stable.
-  const attemptScrollToHighlightRef = useRef(attemptScrollToHighlight);
-  useEffect(() => {
-    attemptScrollToHighlightRef.current = attemptScrollToHighlight;
-  });
 
   // Tapping a ReplyPreviewBubble jumps to the original message. If it's not
   // in the currently loaded page (an older message), keep loading older
-  // pages until it turns up or we run out.
+  // pages until it turns up or we run out. No render-window juggling needed
+  // here anymore - FlatList virtualizes the whole `messages` array on its
+  // own, so a message already in `messages` is always reachable by index
+  // regardless of how far back it is.
   const handleJumpToRepliedMessage = async (replyToId) => {
     if (replyToId == null) return;
     if (scrollToMessageAndHighlight(replyToId)) return;
-
-    // The target might already be loaded in `messages` but simply outside
-    // the current render window (see renderLimit/visibleMessages) - expand
-    // to cover everything already fetched before falling back to actually
-    // fetching more from the server below.
-    if (messages.some((m) => String(m.id) === String(replyToId))) {
-      setRenderLimit(messages.length);
-      await new Promise((resolve) => setTimeout(resolve, 80));
-      if (scrollToMessageAndHighlight(replyToId)) return;
-    }
-
-    // About to fetch more pages looking for the target - each fetch's fresh
-    // message count isn't visible in this closure (state updates are async
-    // and this function's `messages` snapshot is already stale by the next
-    // line), so there's no reliable count to grow renderLimit to match.
-    // Just render everything for the rest of this jump; it's a rare,
-    // deliberate action, not the common scrolling path renderLimit exists
-    // for.
-    setRenderLimit(Infinity);
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (!hasMore) break;
       await fetchMessages(false);
-      // Let onLayout populate messageLayoutOffsetsRef for the newly
-      // prepended messages before checking again.
       await new Promise((resolve) => setTimeout(resolve, 80));
       if (scrollToMessageAndHighlight(replyToId)) return;
     }
@@ -2207,9 +2208,10 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleMessagesContentSizeChange = () => {
     if (!initialScrollDoneRef.current && messages.length > 0) {
       initialScrollDoneRef.current = true;
-      if (!attemptScrollToHighlight()) {
-        scrollToLatestMessage();
-      }
+      attemptScrollToHighlight();
+      // No explicit scrollToLatestMessage() needed - offset 0 on an inverted
+      // list already *is* the newest message, which is where it naturally
+      // mounts.
       return;
     }
     if (pendingHighlightMessageIdRef.current != null) {
@@ -2217,80 +2219,55 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
-  useEffect(() => {
-    if (!autoplayVideos || !isFocused) return;
-    if (activeInlineVideoIdRef.current) return;
-    // Initialize active inline video when the screen first appears or messages change.
-    const centerY = scrollOffsetRef.current + (scrollViewHeightRef.current || 0) / 2;
-    let found = null;
-    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
-    for (let i = 0; i < entries.length; i++) {
-      const [key, layout] = entries[i];
-      if (!layout || typeof layout.y !== "number") continue;
-      const top = layout.y;
-      const h = layout.height || 0;
-      if (centerY >= top && centerY <= top + h) {
-        const msg = messages.find((m) => String(m.id) === String(key));
-        if (msg && (msg.type === "video" || msg.content_type === "video")) {
-          found = key;
-        }
-        break;
+  // Which message (if any) is closest to the center of the viewport right
+  // now, from FlatList's own viewability tracking - replaces the old manual
+  // centerY + messageLayoutOffsetsRef math, which only worked because every
+  // message stayed permanently mounted. Under real virtualization only
+  // *currently rendered* items have a knowable position, which is exactly
+  // what onViewableItemsChanged already reports.
+  const handleViewableItemsChanged = useRef(({ viewableItems }) => {
+    if (!autoplayVideosRef.current || !isFocusedRef.current) return;
+    let closest = null;
+    let closestDist = Infinity;
+    for (const v of viewableItems) {
+      const msg = v.item;
+      if (!msg || (msg.type !== "video" && msg.content_type !== "video")) continue;
+      const dist = Math.abs((v.percent ?? 50) - 50);
+      if (dist < closestDist) {
+        closestDist = dist;
+        closest = String(msg.id);
       }
     }
-    if (found && found !== activeInlineVideoIdRef.current) {
-      activeInlineVideoIdRef.current = found;
-      setActiveInlineVideoId(found);
+    if (closest !== activeInlineVideoIdRef.current) {
+      activeInlineVideoIdRef.current = closest;
+      setActiveInlineVideoId(closest);
     }
-  }, [messages, autoplayVideos, isFocused]);
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const handleMessagesScroll = ({ nativeEvent }) => {
     const offsetY = nativeEvent.contentOffset.y;
     scrollY.setValue(offsetY);
-    const isNearTop = offsetY <= 40;
-    if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
-      loadingMoreRef.current = true;
-      fetchMessages(false);
-    }
-    // Reveal more of what's already loaded as the user scrolls back into
-    // history, independent of whether there's anything left to fetch from
-    // the server - this is a separate, purely local render cap (see
-    // renderLimit above), not the "load more" pagination trigger above it.
-    if (isNearTop) {
-      setRenderLimit((prev) => (messages.length > prev ? prev + RENDER_WINDOW_CHUNK : prev));
-    }
-    const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
-    const shouldShow = distanceFromBottom > 150;
+    // Inverted list: offset 0 = at the newest message: "distance scrolled
+    // away from the latest message" is just the offset itself.
+    const shouldShow = offsetY > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
-
     scrollOffsetRef.current = offsetY;
     if (!autoplayVideos || !isFocused) {
       if (activeInlineVideoId) {
         activeInlineVideoIdRef.current = null;
         setActiveInlineVideoId(null);
       }
-      return;
     }
+  };
 
-    const centerY = offsetY + (scrollViewHeightRef.current || 0) / 2;
-    let found = null;
-    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
-    for (let i = 0; i < entries.length; i++) {
-      const [key, layout] = entries[i];
-      if (!layout || typeof layout.y !== "number") continue;
-      const top = layout.y;
-      const h = layout.height || 0;
-      if (centerY >= top && centerY <= top + h) {
-        const id = key;
-        const msg = messages.find((m) => String(m.id) === String(id));
-        if (msg && (msg.type === "video" || msg.content_type === "video")) {
-          found = id;
-        }
-        break;
-      }
-    }
-    if (found !== activeInlineVideoIdRef.current) {
-      activeInlineVideoIdRef.current = found;
-      setActiveInlineVideoId(found);
+  // onEndReached fires as the user nears the end of `data` - on an inverted
+  // list that's the *oldest* loaded message, exactly when "load more"
+  // history should kick in. Replaces the old manual offsetY<=40 check.
+  const handleEndReached = () => {
+    if (hasMore && !refreshing && !loadingMoreRef.current) {
+      loadingMoreRef.current = true;
+      fetchMessages(false);
     }
   };
 
@@ -3578,6 +3555,32 @@ const ConversationScreen = ({ navigation, route }) => {
     setMediaLoadErrors((prev) => ({ ...prev, [id]: reason }));
   }, []);
 
+  // FlatList renderItem wiring - kept together and down here since it closes
+  // over messageHandlersRef/handleImageLoadError, both declared above.
+  const renderItemCtx = {
+    isGroupChat: isGroupConversation,
+    theme,
+    isDarkMode,
+    t,
+    username,
+    navigation,
+    mediaLoadErrors,
+    downloadingFileId,
+    messageHandlersRef,
+    onImageError: handleImageLoadError,
+    activeInlineVideoId,
+    autoplayVideos,
+    highlightedMessageId,
+  };
+  const renderItemCtxRef = useRef(renderItemCtx);
+  renderItemCtxRef.current = renderItemCtx;
+  const renderMessageItem = useCallback(
+    ({ item }) => renderMessageRow(item, renderItemCtxRef.current),
+    []
+  );
+  const messageKeyExtractor = useCallback((item) => `${item.type}-${item.id}`, []);
+  // FlatList requires a stable renderScrollComponent identity.
+  const renderScrollComponent = useCallback((props) => <ChatScrollViewWrapper {...props} />, []);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -3872,13 +3875,15 @@ const ConversationScreen = ({ navigation, route }) => {
           style={{ flex: 1 }}
           textInputNativeID="chat-input"
         >
-        <KeyboardChatScrollView
+        <FlatList
           ref={messagesScrollRef}
+          data={invertedMessages}
+          renderItem={renderMessageItem}
+          keyExtractor={messageKeyExtractor}
+          inverted
+          renderScrollComponent={renderScrollComponent}
           style={styles.messagesList}
-          contentContainerStyle={[
-            styles.messagesContent,
-            { paddingTop: HEADER_HEIGHT + 12, paddingBottom: 100 },
-          ]}
+          contentContainerStyle={styles.messagesContent}
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
@@ -3889,44 +3894,38 @@ const ConversationScreen = ({ navigation, route }) => {
           onLayout={(e) => {
             scrollViewHeightRef.current = e.nativeEvent.layout.height;
           }}
-        >
-          <MessagesListContent
-            messages={visibleMessages}
-            isGroupChat={currentConversation?.type === "group"}
-            theme={theme}
-            isDarkMode={isDarkMode}
-            t={t}
-            username={username}
-            navigation={navigation}
-            mediaLoadErrors={mediaLoadErrors}
-            downloadingFileId={downloadingFileId}
-            messageHandlersRef={messageHandlersRef}
-            onImageError={handleImageLoadError}
-            activeInlineVideoId={activeInlineVideoId}
-            autoplayVideos={autoplayVideos}
-            highlightedMessageId={highlightedMessageId}
-            messageLayoutOffsetsRef={messageLayoutOffsetsRef}
-            pendingHighlightMessageIdRef={pendingHighlightMessageIdRef}
-            attemptScrollToHighlightRef={attemptScrollToHighlightRef}
-            seenParticipants={seenParticipants}
-          />
-          {typingUser && (
-            <Text
-              style={{
-                fontSize: 12,
-                fontStyle: "italic",
-                color: theme.subText,
-                paddingHorizontal: 12,
-                paddingTop: 4,
-              }}
-            >
-              {currentConversation?.type === "group" && typingUser.name
-                ? `${typingUser.name} ${t("chatConversation.isTyping", "đang nhập...")}`
-                : t("chatConversation.typing", "Đang nhập...")}
-            </Text>
-          )}
-          <View style={{ height: isAndroid ? 82 : 24 }} />
-        </KeyboardChatScrollView>
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.3}
+          onScrollToIndexFailed={handleScrollToIndexFailed}
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          // Inverted: renders at the *bottom* of the screen (nearest the
+          // composer) - this is where the old trailing typing-indicator +
+          // spacer used to sit at the end of a non-inverted .map().
+          ListHeaderComponent={
+            <>
+              {typingUser && (
+                <Text
+                  style={{
+                    fontSize: 12,
+                    fontStyle: "italic",
+                    color: theme.subText,
+                    paddingHorizontal: 12,
+                    paddingTop: 4,
+                  }}
+                >
+                  {currentConversation?.type === "group" && typingUser.name
+                    ? `${typingUser.name} ${t("chatConversation.isTyping", "đang nhập...")}`
+                    : t("chatConversation.typing", "Đang nhập...")}
+                </Text>
+              )}
+              <View style={{ height: isAndroid ? 82 : 24 }} />
+            </>
+          }
+          // Inverted: renders at the *top* of the screen (nearest the
+          // floating header) - matches the old paddingTop: HEADER_HEIGHT+12.
+          ListFooterComponent={<View style={{ height: HEADER_HEIGHT + 12 }} />}
+        />
         </KeyboardGestureArea>
         </AndroidGlassBackdrop>
       </View>
