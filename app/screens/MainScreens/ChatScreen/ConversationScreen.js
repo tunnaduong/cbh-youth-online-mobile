@@ -678,6 +678,7 @@ const MessageRow = React.memo(({
   // gets its own real attempt at loading it.
   const itemIdForRetry = item.id;
   React.useEffect(() => {
+    console.log("[ChatMedia] row mounted, clearing stale error for id", itemIdForRetry);
     onImageRetry?.(itemIdForRetry);
   }, [itemIdForRetry, onImageRetry]);
 
@@ -2240,7 +2241,13 @@ const ConversationScreen = ({ navigation, route }) => {
   // *currently rendered* items have a knowable position, which is exactly
   // what onViewableItemsChanged already reports.
   const handleViewableItemsChanged = useRef(({ viewableItems }) => {
-    if (!autoplayVideosRef.current || !isFocusedRef.current) return;
+    if (!autoplayVideosRef.current || !isFocusedRef.current) {
+      console.log("[ChatAutoplay] skipped viewable-items check", {
+        autoplayVideos: autoplayVideosRef.current,
+        isFocused: isFocusedRef.current,
+      });
+      return;
+    }
     // ViewToken only ever carries {item, key, index, isViewable} - no
     // percent/position field - so "closest to center" is approximated by
     // how close each video is to the middle of the currently-viewable
@@ -2256,6 +2263,12 @@ const ConversationScreen = ({ navigation, route }) => {
         closestDist = dist;
         closest = String(msg.id);
       }
+    });
+    console.log("[ChatAutoplay] viewable items changed", {
+      viewableCount: viewableItems.length,
+      viewableIds: viewableItems.map((v) => v.item?.id),
+      closestVideoId: closest,
+      previousActiveId: activeInlineVideoIdRef.current,
     });
     if (closest !== activeInlineVideoIdRef.current) {
       activeInlineVideoIdRef.current = closest;
