@@ -3931,6 +3931,15 @@ const ConversationScreen = ({ navigation, route }) => {
           renderItem={renderMessageItem}
           keyExtractor={messageKeyExtractor}
           inverted
+          // Android defaults this to true, which clips each row to the
+          // layout size FlatList *last knew about*. A message image's real
+          // height only arrives asynchronously (Image.getSize resolving
+          // after mount, see imageAspectRatioCache above), so a row can get
+          // clipped to a stale/smaller box as it scrolls - the row (and its
+          // press handler) is still there, the pixels just get clipped
+          // away. That's exactly "still pressable but invisible once it
+          // scrolls closer to center."
+          removeClippedSubviews={false}
           renderScrollComponent={renderScrollComponent}
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
