@@ -451,213 +451,142 @@ const ProfileScreen = ({ route, navigation }) => {
   );
 
   // Render content based on active tab
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "posts":
-        return (
-          <>
-            {recentPostsProfile?.length === 0 ? (
-              <View>
-                <Image
-                  source={require("../../../assets/sad_frog.png")}
-                  style={{
-                    height: 90,
-                    width: 90,
-                    alignSelf: "center",
-                    marginTop: 20,
-                  }}
-                />
-                <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
-                  {t('profile.emptyPosts')}
-                </Text>
-              </View>
-            ) : (
-              <>
-                {recentPostsProfile?.map((post) => (
-                  <PostItem
-                    key={`post-${post.id}`}
-                    item={isCurrentUser ? { ...post, is_owner: true } : post}
-                    navigation={navigation}
-                    onVoteUpdate={handleVoteUpdate}
-                    onSaveUpdate={handleSaveUpdate}
-                    screenName={"ProfileScreen"}
-                    isActive={autoplayVideos}
-                  />
-                ))}
-                {postsHasMore && (
-                  <TouchableOpacity
-                    onPress={loadMoreProfilePosts}
-                    disabled={loadingMorePosts}
-                    style={{ alignItems: "center", paddingVertical: 16 }}
-                  >
-                    {loadingMorePosts ? (
-                      <ActivityIndicator color={theme.primary} />
-                    ) : (
-                      <Text style={{ color: theme.primary, fontWeight: "600" }}>
-                        {t('profile.loadMorePosts')}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-              </>
-            )}
-          </>
-        );
+  // The Posts/Following/Followers tabs used to render as one giant .map()
+  // inside a single always-mounted ScrollView - every post (images, videos,
+  // vote/comment UI) stayed mounted at once with nothing ever unmounted or
+  // virtualized, which is the "profile screen is too laggy" root cause for
+  // any profile with more than a handful of posts. Below drives a real
+  // FlatList instead: whichever tab is active supplies `data`/`renderItem`/
+  // `ListEmptyComponent`, and everything above the list (cover, avatar, bio,
+  // tab switcher) moves into `ListHeaderComponent` so it scrolls together
+  // with virtualized rows instead of the old flat list of JSX children.
+  const listData =
+    activeTab === "posts"
+      ? recentPostsProfile || []
+      : activeTab === "following"
+      ? userData?.following || []
+      : userData?.followers || [];
 
-      case "following":
-        return (
-          <View style={styles.connectionsList}>
-            {userData?.following?.length === 0 ? (
-              <View>
-                <Image
-                  source={require("../../../assets/sad_frog.png")}
-                  style={{
-                    height: 90,
-                    width: 90,
-                    alignSelf: "center",
-                    marginTop: 20,
-                  }}
-                />
-                <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
-                  {t('profile.emptyFollowing')}
-                </Text>
-              </View>
-            ) : (
-              userData.following.map((user) => renderUserItem(user))
-            )}
-          </View>
-        );
+  const listKeyExtractor = (item) =>
+    activeTab === "posts" ? `post-${item.id}` : `user-${item.id}`;
 
-      case "followers":
-        return (
-          <View style={styles.connectionsList}>
-            {userData?.followers?.length === 0 ? (
-              <View>
-                <Image
-                  source={require("../../../assets/sad_frog.png")}
-                  style={{
-                    height: 90,
-                    width: 90,
-                    alignSelf: "center",
-                    marginTop: 20,
-                  }}
-                />
-                <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
-                  {t('profile.emptyFollowers')}
-                </Text>
-              </View>
-            ) : (
-              userData.followers.map((user) => renderUserItem(user))
-            )}
-          </View>
-        );
-
-      default:
-        return null;
+  const renderListItem = ({ item }) => {
+    if (activeTab === "posts") {
+      return (
+        <PostItem
+          item={isCurrentUser ? { ...item, is_owner: true } : item}
+          navigation={navigation}
+          onVoteUpdate={handleVoteUpdate}
+          onSaveUpdate={handleSaveUpdate}
+          screenName={"ProfileScreen"}
+          isActive={autoplayVideos}
+        />
+      );
     }
+    return renderUserItem(item);
   };
 
-  return (
+  const emptyStateTextKey =
+    activeTab === "posts"
+      ? "profile.emptyPosts"
+      : activeTab === "following"
+      ? "profile.emptyFollowing"
+      : "profile.emptyFollowers";
+
+  const renderListEmpty = () => (
+    <View>
+      <Image
+        source={require("../../../assets/sad_frog.png")}
+        style={{ height: 90, width: 90, alignSelf: "center", marginTop: 20 }}
+      />
+      <Text style={{ textAlign: "center", fontWeight: "300", color: theme.subText, marginTop: 8 }}>
+        {t(emptyStateTextKey)}
+      </Text>
+    </View>
+  );
+
+  const renderListFooter = () => (
     <>
-      <View style={[styles.container, { backgroundColor: theme.background }]}>
-        
-        {/* Floating header - always shows buttons, fades in bg + title on scroll */}
-        <View
-          pointerEvents="box-none"
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-          }}
-          onLayout={(event) => {
-            const { height } = event.nativeEvent.layout;
-            setHeaderHeight(height);
-          }}
+      {activeTab === "posts" && postsHasMore && (
+        <TouchableOpacity
+          onPress={loadMoreProfilePosts}
+          disabled={loadingMorePosts}
+          style={{ alignItems: "center", paddingVertical: 16 }}
         >
-          {/* Animated background layer */}
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: theme.background,
-              opacity: headerBgOpacity,
-            }}
-          />
-
-          {/* Header content */}
-          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
-            {/* Left: Back button */}
-            <View style={{ width: 44 }}>
-              <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
-                <Ionicons name="chevron-back" size={24} color={theme.text} />
-              </LiquidButton>
-            </View>
-
-            {/* Center: animated title */}
-            <Animated.Text
-              style={[styles.headerTitle, {
-                color: theme.text,
-                flex: 1,
-                textAlign: 'center',
-                opacity: headerTitleOpacity,
-              }]}
-              numberOfLines={1}
-            >
-              {isCurrentUser ? t('profile.title') : userData?.profile?.profile_name}
-            </Animated.Text>
-
-            {/* Right: Settings or options button */}
-            <View style={{ width: 44, alignItems: 'flex-end' }}>
-              {isCurrentUser ? (
-                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
-                  <Ionicons name="settings-outline" size={22} color={theme.text} />
-                </LiquidButton>
-              ) : (
-                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={showOptions}>
-                  <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
-                </LiquidButton>
-              )}
-            </View>
-          </View>
-        </View>
-
-        <ReportModal
-          visible={reportModalVisible}
-          onClose={() => setReportModalVisible(false)}
-          onSubmit={handleReportSubmit}
-        />
-        <CustomLoading
-          size={50}
-          style={{
-            position: "absolute",
-            zIndex: -1,
-            alignSelf: "center",
-            top: headerHeight + 10,
-          }}
-        />
-        <AndroidGlassBackdrop providerId="ProfileScreen" style={{ flex: 1 }}>
-        <Animated.ScrollView
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: false }
+          {loadingMorePosts ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <Text style={{ color: theme.primary, fontWeight: "600" }}>
+              {t('profile.loadMorePosts')}
+            </Text>
           )}
-          contentContainerStyle={{ 
-            paddingTop: headerHeight > 0 ? headerHeight : 56 + insets.top,
-            paddingBottom: insets.bottom + 16 
-          }}
-          refreshControl={
-            <RefreshControl
-              tintColor="transparent"
-              colors={["transparent"]}
-              progressBackgroundColor="transparent"
-              style={{ backgroundColor: "transparent" }}
-              progressViewOffset={headerHeight > 0 ? headerHeight : 56 + insets.top}
-              refreshing={refreshing}
-              onRefresh={handleRefresh}
+        </TouchableOpacity>
+      )}
+
+      {isCurrentUser && (
+        <View style={[styles.section, { borderTopColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('profile.yourActivity')}</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("SavedPostsScreen")}
+            style={[styles.option, { borderBottomColor: theme.border }]}
+          >
+            <Ionicons name="bookmark-outline" size={22} color={theme.text} />
+            <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.savedPosts')}</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color={theme.subText}
+              style={styles.optionArrow}
             />
-          }
-        >
-          {/* Cover photo */}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("LikedPostsScreen")}
+            style={[styles.option, { borderBottomColor: theme.border }]}
+          >
+            <Ionicons name="heart-outline" size={22} color={theme.text} />
+            <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.likedPosts')}</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color={theme.subText}
+              style={styles.optionArrow}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ActivityScreen")}
+            style={[styles.option, { borderBottomColor: theme.border }]}
+          >
+            <Ionicons name="time-outline" size={22} color={theme.text} />
+            <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.activityHistory')}</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color={theme.subText}
+              style={styles.optionArrow}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate("ArchiveScreen", { username: username })
+            }
+            style={[styles.option, { borderBottomColor: theme.border }]}
+          >
+            <Ionicons name="archive-outline" size={22} color={theme.text} />
+            <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.archive')}</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={22}
+              color={theme.subText}
+              style={styles.optionArrow}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+    </>
+  );
+
+  const renderListHeader = () => (
+    <>
           {userData?.profile?.cover_photo_url ? (
             <FastImage
               source={{ uri: isCurrentUser ? getCoverUrl(userId) : userData.profile.cover_photo_url }}
@@ -896,70 +825,115 @@ const ProfileScreen = ({ route, navigation }) => {
               marginTop: 20,
             }}
           />
+    </>
+  );
 
-          {/* Tab content */}
-          {renderTabContent()}
+  return (
+    <>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        
+        {/* Floating header - always shows buttons, fades in bg + title on scroll */}
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+          }}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            setHeaderHeight(height);
+          }}
+        >
+          {/* Animated background layer */}
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: theme.background,
+              opacity: headerBgOpacity,
+            }}
+          />
 
-          {isCurrentUser && (
-            <View style={[styles.section, { borderTopColor: theme.border }]}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('profile.yourActivity')}</Text>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("SavedPostsScreen")}
-                style={[styles.option, { borderBottomColor: theme.border }]}
-              >
-                <Ionicons name="bookmark-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.savedPosts')}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={22}
-                  color={theme.subText}
-                  style={styles.optionArrow}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("LikedPostsScreen")}
-                style={[styles.option, { borderBottomColor: theme.border }]}
-              >
-                <Ionicons name="heart-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.likedPosts')}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={22}
-                  color={theme.subText}
-                  style={styles.optionArrow}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => navigation.navigate("ActivityScreen")}
-                style={[styles.option, { borderBottomColor: theme.border }]}
-              >
-                <Ionicons name="time-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.activityHistory')}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={22}
-                  color={theme.subText}
-                  style={styles.optionArrow}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() =>
-                  navigation.navigate("ArchiveScreen", { username: username })
-                }
-                style={[styles.option, { borderBottomColor: theme.border }]}
-              >
-                <Ionicons name="archive-outline" size={22} color={theme.text} />
-                <Text style={[styles.optionText, { color: theme.text }]}>{t('profile.archive')}</Text>
-                <Ionicons
-                  name="chevron-forward"
-                  size={22}
-                  color={theme.subText}
-                  style={styles.optionArrow}
-                />
-              </TouchableOpacity>
+          {/* Header content */}
+          <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
+            {/* Left: Back button */}
+            <View style={{ width: 44 }}>
+              <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.goBack()}>
+                <Ionicons name="chevron-back" size={24} color={theme.text} />
+              </LiquidButton>
             </View>
+
+            {/* Center: animated title */}
+            <Animated.Text
+              style={[styles.headerTitle, {
+                color: theme.text,
+                flex: 1,
+                textAlign: 'center',
+                opacity: headerTitleOpacity,
+              }]}
+              numberOfLines={1}
+            >
+              {isCurrentUser ? t('profile.title') : userData?.profile?.profile_name}
+            </Animated.Text>
+
+            {/* Right: Settings or options button */}
+            <View style={{ width: 44, alignItems: 'flex-end' }}>
+              {isCurrentUser ? (
+                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={() => navigation.navigate("Settings")}>
+                  <Ionicons name="settings-outline" size={22} color={theme.text} />
+                </LiquidButton>
+              ) : (
+                <LiquidButton size={44} scrollY={scrollY} providerId="ProfileScreen" onPress={showOptions}>
+                  <Ionicons name="ellipsis-vertical" size={22} color={theme.text} />
+                </LiquidButton>
+              )}
+            </View>
+          </View>
+        </View>
+
+        <ReportModal
+          visible={reportModalVisible}
+          onClose={() => setReportModalVisible(false)}
+          onSubmit={handleReportSubmit}
+        />
+        <CustomLoading
+          size={50}
+          style={{
+            position: "absolute",
+            zIndex: -1,
+            alignSelf: "center",
+            top: headerHeight + 10,
+          }}
+        />
+        <AndroidGlassBackdrop providerId="ProfileScreen" style={{ flex: 1 }}>
+        <Animated.FlatList
+          data={listData}
+          keyExtractor={listKeyExtractor}
+          renderItem={renderListItem}
+          ListEmptyComponent={renderListEmpty}
+          ListFooterComponent={renderListFooter}
+          ListHeaderComponent={renderListHeader}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
           )}
-        </Animated.ScrollView>
+          contentContainerStyle={{
+            paddingTop: headerHeight > 0 ? headerHeight : 56 + insets.top,
+            paddingBottom: insets.bottom + 16
+          }}
+          refreshControl={
+            <RefreshControl
+              tintColor="transparent"
+              colors={["transparent"]}
+              progressBackgroundColor="transparent"
+              style={{ backgroundColor: "transparent" }}
+              progressViewOffset={headerHeight > 0 ? headerHeight : 56 + insets.top}
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+            />
+          }
+        />
         </AndroidGlassBackdrop>
       </View>
     </>

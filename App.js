@@ -1,6 +1,18 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
+import { enableFreeze } from "react-native-screens";
+
+// react-native-screens already detaches inactive stack screens' native
+// views by default, but their React trees stay live underneath - effects,
+// timers, and re-renders on a backgrounded screen (e.g. ProfileScreen or
+// ConversationScreen sitting behind a screen pushed on top of it) keep
+// running and competing for JS-thread time with whatever's on top, which is
+// exactly the "old screen still mounted" lag being reported. enableFreeze
+// pauses (freezes, not unmounts) any screen once it's no longer focused, so
+// its state/scroll position survives coming back to it but it stops costing
+// anything while backgrounded.
+enableFreeze(true);
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
