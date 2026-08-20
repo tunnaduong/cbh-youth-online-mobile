@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   TouchableOpacity,
   View,
@@ -7,6 +7,8 @@ import {
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
 import { LiquidGlassView, glassTint } from "./GlassModules";
+
+const SCROLL_GLASS_THRESHOLD = 20;
 
 const LiquidButton = ({
   onPress,
@@ -22,17 +24,27 @@ const LiquidButton = ({
   const { isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
 
-  // When scrollY is provided, only the tint scrim behind the icon fades in
-  // as the user scrolls (0→40px) - the icon itself must stay at opacity 1
-  // always, otherwise it disappears along with the background at the top of
-  // the screen.
-  const bgOpacity = scrollY
-    ? scrollY.interpolate({
-        inputRange: [0, 40],
-        outputRange: [0, 1],
-        extrapolate: "clamp",
-      })
-    : 1;
+  // At the very top of the screen (can't scroll up any further) the button
+  // should blend into the transparent top bar with no glass surface at all,
+  // not just a faded/tinted one - only once scrolled past the threshold
+  // does the glass actually render. A continuous opacity fade doesn't work
+  // for this: fading the glass view's own opacity also fades its nested
+  // icon (icon must be a real child of the glass view, see below), so the
+  // icon would disappear at the top along with the background. Toggling
+  // between "no glass" and "glass" as a hard state switch keeps the icon at
+  // opacity 1 always while still hiding the glass surface itself at top.
+  const [showGlass, setShowGlass] = useState(
+    !scrollY || scrollY.__getValue?.() > SCROLL_GLASS_THRESHOLD
+  );
+
+  useEffect(() => {
+    if (!scrollY) return undefined;
+    const id = scrollY.addListener(({ value }) => {
+      const next = value > SCROLL_GLASS_THRESHOLD;
+      setShowGlass((prev) => (prev === next ? prev : next));
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY]);
 
   // All sizing (width/height/borderRadius/the caller's own `style`, e.g.
   // width:"auto" + paddingHorizontal for a text button) lives on the actual
@@ -67,44 +79,30 @@ const LiquidButton = ({
   // produced a doubled/ghosted icon. Nesting it as an actual child excludes
   // it from the capture and gets the library's real crisp-children-on-top
   // compositing.
-  //
-  // The glass view itself is always mounted at full opacity now (so the icon
-  // inside it is never hidden) - the scroll-triggered "background appears"
-  // effect is a separate animated tint scrim drawn behind the icon instead.
   const renderContent = () => {
-    if (LiquidGlassView) {
+    if (LiquidGlassView && showGlass) {
       return (
         <LiquidGlassView
-          variant="regular"
+          variant="clear"
           tintColor={backgroundColor ?? glassTint(isDarkMode)}
           borderRadius={defaultRadius}
           style={contentStyle}
         >
-          {scrollY && (
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  borderRadius: defaultRadius,
-                  opacity: bgOpacity,
-                  backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.35)" : "rgba(255, 255, 255, 0.35)"),
-                },
-              ]}
-            />
-          )}
           {children}
         </LiquidGlassView>
       );
     }
 
-    // Library failed to load: OneUI-style tinted transparent fallback.
+    // No glass at top of scroll (blends with the transparent top bar), or
+    // the library failed to load: plain transparent/tinted fallback.
     return (
       <View
         style={[
           contentStyle,
           {
-            backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
+            backgroundColor: !LiquidGlassView
+              ? backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)")
+              : "transparent",
           },
         ]}
       >

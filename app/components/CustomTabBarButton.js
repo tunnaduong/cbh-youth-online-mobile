@@ -181,7 +181,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
           {menuButtons.map((btn, i) => (
             <LiquidGlassView
               key={i}
-              variant="regular"
+              variant="clear"
               tintColor={glassTint(isDarkMode)}
               style={[
                 styles.glassRow,
@@ -251,7 +251,7 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
       return (
         <Pressable style={styles.buttonContainer} onPress={handlePress}>
           <LiquidGlassView
-            variant="regular"
+            variant="clear"
             tintColor={glassTint(isDarkMode)}
             interactive
             style={styles.iconCircle}

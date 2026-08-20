@@ -210,7 +210,7 @@ const CommentBar = React.forwardRef(
           </View>
         ) : null}
         <PillWrapper
-          {...(useGlass ? { variant: "regular", tintColor: glassTint(isDarkMode), borderRadius: 30 } : {})}
+          {...(useGlass ? { variant: "clear", tintColor: glassTint(isDarkMode), borderRadius: 30 } : {})}
           style={[
             {
               flexDirection: "row",

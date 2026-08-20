@@ -219,7 +219,7 @@ const Sidebar = ({ providerId, isOpen }) => {
         LiquidGlassView ? (
           <>
             <LiquidGlassView
-              variant="regular"
+              variant="clear"
               tintColor={glassTint(isDarkMode)}
               style={{
                 position: "absolute",

@@ -8,7 +8,7 @@ const LiquidHeaderBackground = () => {
 
   if (LiquidGlassView) {
     return (
-      <LiquidGlassView variant="regular" tintColor={glassTint(isDarkMode)} style={StyleSheet.absoluteFill} />
+      <LiquidGlassView variant="clear" tintColor={glassTint(isDarkMode)} style={StyleSheet.absoluteFill} />
     );
   }
 
