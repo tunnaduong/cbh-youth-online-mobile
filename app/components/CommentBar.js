@@ -210,7 +210,7 @@ const CommentBar = React.forwardRef(
           </View>
         ) : null}
         <PillWrapper
-          {...(useGlass ? { variant: "clear", borderRadius: 30 } : {})}
+          {...(useGlass ? { variant: "regular", borderRadius: 30 } : {})}
           style={[
             {
               flexDirection: "row",

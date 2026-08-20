@@ -22,7 +22,10 @@ const LiquidButton = ({
   const { isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
 
-  // When scrollY is provided, background fades in as user scrolls (0→40px).
+  // When scrollY is provided, only the tint scrim behind the icon fades in
+  // as the user scrolls (0→40px) - the icon itself must stay at opacity 1
+  // always, otherwise it disappears along with the background at the top of
+  // the screen.
   const bgOpacity = scrollY
     ? scrollY.interpolate({
         inputRange: [0, 40],
@@ -43,15 +46,32 @@ const LiquidButton = ({
   // to being drawn crisply on top as a normal sibling. That produced a
   // doubled/ghosted icon. Nesting it as an actual child excludes it from the
   // capture and gets the library's real crisp-children-on-top compositing.
-  const renderGlassBackground = () => {
+  //
+  // The glass view itself is always mounted at full opacity now (so the icon
+  // inside it is never hidden) - the scroll-triggered "background appears"
+  // effect is a separate animated tint scrim drawn behind the icon instead.
+  const renderContent = () => {
     if (LiquidGlassView) {
       return (
         <LiquidGlassView
-          variant="clear"
+          variant="regular"
           tintColor={backgroundColor}
           borderRadius={defaultRadius}
-          style={StyleSheet.absoluteFill}
+          style={[StyleSheet.absoluteFill, { flexDirection: "row", alignItems: "center", justifyContent: "center" }]}
         >
+          {scrollY && (
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                StyleSheet.absoluteFill,
+                {
+                  borderRadius: defaultRadius,
+                  opacity: bgOpacity,
+                  backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.35)" : "rgba(255, 255, 255, 0.35)"),
+                },
+              ]}
+            />
+          )}
           {children}
         </LiquidGlassView>
       );
@@ -65,6 +85,7 @@ const LiquidButton = ({
           {
             backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
             borderRadius: defaultRadius,
+            flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
           }
@@ -113,15 +134,7 @@ const LiquidButton = ({
         disabled={disabled}
         style={buttonStyle}
       >
-        {/* Background + icon fade in together based on scrollY */}
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { borderRadius: defaultRadius, overflow: "hidden", opacity: bgOpacity, alignItems: "center", justifyContent: "center" },
-          ]}
-        >
-          {renderGlassBackground()}
-        </Animated.View>
+        {renderContent()}
       </TouchableOpacity>
     </Animated.View>
   );

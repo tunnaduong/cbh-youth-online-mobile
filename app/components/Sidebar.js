@@ -219,7 +219,7 @@ const Sidebar = ({ providerId, isOpen }) => {
         LiquidGlassView ? (
           <>
             <LiquidGlassView
-              variant="clear"
+              variant="regular"
               style={{
                 position: "absolute",
                 top: 0,

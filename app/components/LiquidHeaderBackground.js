@@ -8,7 +8,7 @@ const LiquidHeaderBackground = () => {
 
   if (LiquidGlassView) {
     return (
-      <LiquidGlassView variant="clear" style={StyleSheet.absoluteFill} />
+      <LiquidGlassView variant="regular" style={StyleSheet.absoluteFill} />
     );
   }
 
