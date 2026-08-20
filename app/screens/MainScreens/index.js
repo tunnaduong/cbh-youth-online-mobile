@@ -201,11 +201,11 @@ const TabWrapper = ({ children }) => children;
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = useState(false);
   const insets = useSafeAreaInsets();
-  // react-native-liquid-glassmorphism has no built-in navbar scroll-collapse
-  // behavior (unlike iOS 26's native system tab bar), so both platforms use
-  // this app's own custom pill-style bar with the library's glass rendering,
-  // instead of react-navigation's native tab bar on iOS 26+.
-  const isCustomTabBar = true;
+  // iOS 26+ keeps react-navigation's native system tab bar (real native
+  // UIGlassEffect with the OS's own scroll-collapse behavior, which
+  // react-native-liquid-glassmorphism has no equivalent for). Android and
+  // iOS < 26 use this app's own custom pill-style bar instead.
+  const isCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
   const [currentRoute, setCurrentRoute] = useState("Home");
   const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -337,10 +337,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           // The custom tab bar chrome (Android, and iOS < 26) is rendered
-          // separately below, as a true JSX sibling of TabWrapper's glass
-          // provider (see CustomTabBar's comment) rather than through this
-          // render prop, which would mount it *inside* the provider's own
-          // subtree.
+          // separately below as CustomTabBar, a plain sibling in this same
+          // return - not through this render prop. iOS 26+ leaves tabBar
+          // undefined so react-navigation renders its own native system tab
+          // bar (real UIGlassEffect + native scroll-collapse).
           tabBar={isCustomTabBar ? () => null : undefined}
           screenOptions={{
             lazy: true,
