@@ -2239,9 +2239,16 @@ const ConversationScreen = ({ navigation, route }) => {
       // mounts.
       return;
     }
-    if (pendingHighlightMessageIdRef.current != null) {
-      attemptScrollToHighlight();
-    }
+    // A retry for any *still-pending* highlight target used to live here too
+    // (re-checked on every content size change), but content size changes
+    // constantly during normal use - every message image resolving its
+    // aspect ratio async fires one. If the target had since become loadable
+    // (e.g. the user scrolled up and pagination happened to pull it in),
+    // this fired an unrequested animated scrollToIndex in the middle of the
+    // user's own scroll gesture, which read exactly like "scrolling for a
+    // bit just auto-scrolls". The only real trigger for "the target might
+    // be loadable now" is pagination actually completing - see
+    // handleEndReached - so the retry lives only there now.
   };
 
   // Which message (if any) is closest to the center of the viewport right
@@ -2309,7 +2316,15 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleEndReached = () => {
     if (hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
-      fetchMessages(false);
+      fetchMessages(false).then(() => {
+        // Pagination is the only real trigger for "the pending highlight
+        // target might be loadable now" - see the comment in
+        // handleMessagesContentSizeChange for why this no longer runs on
+        // every content size change.
+        if (pendingHighlightMessageIdRef.current != null) {
+          attemptScrollToHighlight();
+        }
+      });
     }
   };
 
@@ -3950,6 +3965,15 @@ const ConversationScreen = ({ navigation, route }) => {
           // away. That's exactly "still pressable but invisible once it
           // scrolls closer to center."
           removeClippedSubviews={false}
+          // Defaults render fairly large batches per pass, which competes
+          // with the rest of the JS thread's work (state updates, glass
+          // views elsewhere on screen, etc.) for frame budget during a fast
+          // scroll and shows up as dropped/janky frames. Smaller, more
+          // frequent batches keep any single pass cheap.
+          initialNumToRender={12}
+          maxToRenderPerBatch={8}
+          updateCellsBatchingPeriod={50}
+          windowSize={9}
           renderScrollComponent={renderScrollComponent}
           style={styles.messagesList}
           contentContainerStyle={styles.messagesContent}
