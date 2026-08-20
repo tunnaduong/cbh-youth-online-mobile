@@ -370,8 +370,14 @@ const MessagesListContent = React.memo(({
     }
 
     return (
+      // type+id alone (no index) - "load more" pagination prepends older
+      // messages, shifting every index. A key that includes index made React
+      // treat every already-rendered row as brand new on each scroll-up load,
+      // remounting (not just re-rendering) the entire message list every
+      // time - by far the biggest source of chat lag once a conversation had
+      // any scroll-back history loaded.
       <View
-        key={`${value.type}-${value.id}-${index}`}
+        key={`${value.type}-${value.id}`}
         onLayout={(e) => {
           if (value.type === "message" && value.id != null) {
             messageLayoutOffsetsRef.current[value.id] = {
@@ -678,6 +684,14 @@ const MultiAttachmentGrid = ({ urls, isVideo, onPressItem }) => {
 // component's props stay referentially stable across unrelated re-renders
 // and React.memo can actually skip re-rendering a bubble whose own message
 // didn't change.
+// Image.getSize() is a native/network round-trip (fetches remote image
+// headers to learn intrinsic dimensions) - without caching, every mount of
+// an image/video MessageRow re-issued it, so opening or scrolling through a
+// conversation with lots of media fired potentially hundreds of redundant
+// native calls at once. Keyed by URL and shared across all MessageRow
+// instances/remounts for the lifetime of the app.
+const imageAspectRatioCache = new Map();
+
 const MessageRow = React.memo(({
   item,
   prevMessage,
@@ -738,14 +752,25 @@ const MessageRow = React.memo(({
   const [imageAspectRatio, setImageAspectRatio] = useState(null);
 
   useEffect(() => {
+    const url = isImageMessage ? resolvedFileUrl : isVideoMessage ? resolvedThumbnailUrl : null;
+    if (!url) {
+      setImageAspectRatio(null);
+      return undefined;
+    }
+
+    const cached = imageAspectRatioCache.get(url);
+    if (cached != null) {
+      setImageAspectRatio(cached);
+      return undefined;
+    }
+
     let cancelled = false;
     setImageAspectRatio(null);
-    const url = isImageMessage ? resolvedFileUrl : isVideoMessage ? resolvedThumbnailUrl : null;
-    if (!url) return undefined;
     // Try to get intrinsic size so we can preserve original ratio instead of 1:1 crop
     Image.getSize(
       url,
       (w, h) => {
+        if (w > 0 && h > 0) imageAspectRatioCache.set(url, w / h);
         if (!cancelled && w > 0) setImageAspectRatio(w / h);
       },
       () => {
