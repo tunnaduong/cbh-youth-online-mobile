@@ -400,8 +400,9 @@ function renderMessageRow(value, ctx) {
           onImageError={onImageError}
           onImageRetry={onImageRetry}
           seenAvatars={value._seenAvatars}
-          activeInlineVideoId={activeInlineVideoId}
-          autoplayVideos={autoplayVideos}
+          isActiveVideo={
+            autoplayVideos && String(value.id) === String(activeInlineVideoId)
+          }
         />
       )}
     </View>
@@ -667,8 +668,7 @@ const MessageRow = React.memo(({
   handlersRef,
   onImageError,
   onImageRetry,
-  activeInlineVideoId,
-  autoplayVideos,
+  isActiveVideo,
   seenAvatars,
 }) => {
   // Under virtualization this component mounts fresh every time its row
@@ -721,6 +721,25 @@ const MessageRow = React.memo(({
   const resolvedFileUrl = resolveMediaUrl(item.file_url);
   const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
   const [imageAspectRatio, setImageAspectRatio] = useState(null);
+
+  // A brand-new style array/object every render (the ternary below used to
+  // build one inline) makes FastImage treat the image as "changed" on
+  // Android even when nothing actually did, which reads as a flicker -
+  // most visibly right when a scroll settles and the row re-renders for an
+  // unrelated reason (viewability tracking, etc). Keep the same array
+  // identity across renders unless the aspect ratio itself changes.
+  const messageImageStyle = React.useMemo(
+    () =>
+      imageAspectRatio
+        ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
+        : styles.messageImage,
+    [imageAspectRatio]
+  );
+  const fileUrlSource = React.useMemo(() => ({ uri: resolvedFileUrl }), [resolvedFileUrl]);
+  const thumbnailUrlSource = React.useMemo(
+    () => ({ uri: resolvedThumbnailUrl }),
+    [resolvedThumbnailUrl]
+  );
 
   useEffect(() => {
     const url = isImageMessage ? resolvedFileUrl : isVideoMessage ? resolvedThumbnailUrl : null;
@@ -991,12 +1010,8 @@ const MessageRow = React.memo(({
                   </View>
                 ) : (
                   <FastImage
-                    source={{ uri: resolvedFileUrl }}
-                    style={
-                      imageAspectRatio
-                        ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
-                        : styles.messageImage
-                    }
+                    source={fileUrlSource}
+                    style={messageImageStyle}
                     resizeMode={"cover"}
                     onError={(e) => {
                       const reason = e?.nativeEvent?.error || "unknown error";
@@ -1023,7 +1038,7 @@ const MessageRow = React.memo(({
               </>
             ) : !item.is_recalled && isVideoMessage ? (
               <>
-                {autoplayVideos && String(item.id) === String(activeInlineVideoId) ? (
+                {isActiveVideo ? (
                   (() => {
                     const thumbWidth = 200;
                     const thumbHeight = imageAspectRatio
@@ -1043,12 +1058,8 @@ const MessageRow = React.memo(({
                 ) : (
                   resolvedThumbnailUrl ? (
                     <FastImage
-                      source={{ uri: resolvedThumbnailUrl }}
-                      style={
-                        imageAspectRatio
-                          ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
-                          : styles.messageImage
-                      }
+                      source={thumbnailUrlSource}
+                      style={messageImageStyle}
                       resizeMode={"cover"}
                       onError={undefined}
                     />
@@ -1056,7 +1067,7 @@ const MessageRow = React.memo(({
                     <View style={[styles.messageImage, styles.videoPlaceholder]} />
                   )
                 )}
-                {!(autoplayVideos && String(item.id) === String(activeInlineVideoId)) && (
+                {!isActiveVideo && (
                   <View style={styles.videoPlayOverlay}>
                     <Ionicons name="play" size={22} color="#fff" />
                   </View>
@@ -1224,8 +1235,7 @@ const MessageRow = React.memo(({
     prev.navigation === next.navigation &&
     prev.mediaLoadError === next.mediaLoadError &&
     prev.isDownloadingThis === next.isDownloadingThis &&
-    prev.activeInlineVideoId === next.activeInlineVideoId &&
-    prev.autoplayVideos === next.autoplayVideos &&
+    prev.isActiveVideo === next.isActiveVideo &&
     prev.handlersRef === next.handlersRef &&
     prev.onImageError === next.onImageError &&
     prev.onImageRetry === next.onImageRetry &&

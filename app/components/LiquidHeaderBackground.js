@@ -1,14 +1,19 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import { LiquidGlassView, glassTint } from "./GlassModules";
+import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 const LiquidHeaderBackground = () => {
   const { isDarkMode } = useTheme();
 
   if (LiquidGlassView) {
     return (
-      <LiquidGlassView variant="clear" tintColor={glassTint(isDarkMode)} style={StyleSheet.absoluteFill} />
+      <LiquidGlassView
+        variant="clear"
+        tintColor={glassTint(isDarkMode)}
+        {...androidGlassPerfProps}
+        style={StyleSheet.absoluteFill}
+      />
     );
   }
 

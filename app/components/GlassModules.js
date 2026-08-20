@@ -49,6 +49,31 @@ const AndroidGlassBackdrop = ({ style, children }) => (
 const glassTint = (isDarkMode) =>
   isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
 
-export { LiquidGlassView, isGlassAvailable, AndroidGlassBackdrop, glassTint };
+// On Android 13+ the library renders its full AGSL refraction shader every
+// single frame for every mounted <LiquidGlassView> - capture backdrop -> GPU
+// blur -> refraction, regardless of whether anyone is touching it. With
+// `intensity`/`thickness` left at their defaults (60 / 1) everywhere, the nav
+// pill + FAB alone run two full live shader passes at once, which is the
+// main source of the reported Android lag. `intensity` scales the blur
+// radius and `thickness` scales the refraction lens depth on Android only
+// (both are no-ops on iOS, where the OS manages the real glass material), so
+// dialing both down keeps the glass look while cutting the per-frame GPU
+// cost. iOS is untouched since its cost is owned by the OS compositor, not us.
+const androidGlassPerfProps =
+  Platform.OS === "android" ? { intensity: 35, thickness: 0.4 } : {};
 
-export default { LiquidGlassView, isGlassAvailable, AndroidGlassBackdrop, glassTint };
+export {
+  LiquidGlassView,
+  isGlassAvailable,
+  AndroidGlassBackdrop,
+  glassTint,
+  androidGlassPerfProps,
+};
+
+export default {
+  LiquidGlassView,
+  isGlassAvailable,
+  AndroidGlassBackdrop,
+  glassTint,
+  androidGlassPerfProps,
+};

@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
-import { LiquidGlassView, glassTint } from "./GlassModules";
+import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
 const isAndroid = Platform.OS === "android";
@@ -210,7 +210,7 @@ const CommentBar = React.forwardRef(
           </View>
         ) : null}
         <PillWrapper
-          {...(useGlass ? { variant: "clear", tintColor: glassTint(isDarkMode), borderRadius: 30 } : {})}
+          {...(useGlass ? { variant: "clear", tintColor: glassTint(isDarkMode), borderRadius: 30, ...androidGlassPerfProps } : {})}
           style={[
             {
               flexDirection: "row",

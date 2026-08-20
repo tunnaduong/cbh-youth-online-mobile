@@ -6,7 +6,7 @@ import {
   Animated,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import { LiquidGlassView, glassTint } from "./GlassModules";
+import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 const SCROLL_GLASS_THRESHOLD = 20;
 
@@ -87,6 +87,7 @@ const LiquidButton = ({
           tintColor={backgroundColor ?? glassTint(isDarkMode)}
           borderRadius={defaultRadius}
           style={contentStyle}
+          {...androidGlassPerfProps}
         >
           {children}
         </LiquidGlassView>
