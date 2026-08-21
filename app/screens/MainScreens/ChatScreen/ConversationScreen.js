@@ -1383,6 +1383,14 @@ const ConversationScreen = ({ navigation, route }) => {
   // even reach the cap; it only kicks in once someone's scrolled back far
   // enough that keeping everything mounted would actually hurt.
   const RENDER_WINDOW_CHUNK = 80;
+  // Scrolling near the top keeps growing the window by RENDER_WINDOW_CHUNK
+  // with no ceiling, so a long enough scroll-back session would eventually
+  // reach "render everything anyway" and quietly bring back the exact
+  // mounted-bubble-count problem this cap exists to avoid. Past this many,
+  // further scroll-up still fetches more history (see handleMessagesScroll)
+  // but stops mounting it - a deliberate, rare tradeoff over letting a
+  // single very-long session snowball back into the original perf problem.
+  const MAX_RENDER_LIMIT = 400;
   const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
   // Only the most recent `renderLimit` items actually get mounted; older
   // ones stay in `messages` state (so pagination/scroll math is unaffected)
@@ -2140,7 +2148,15 @@ const ConversationScreen = ({ navigation, route }) => {
       });
     });
     setHighlightedMessageId(targetId);
-    setTimeout(() => setHighlightedMessageId(null), 2500);
+    setTimeout(() => {
+      setHighlightedMessageId(null);
+      // handleJumpToRepliedMessage may have blown renderLimit open
+      // (messages.length or Infinity) to guarantee the jump target was
+      // mounted - once the highlight itself fades there's no reason to keep
+      // rendering everything for the rest of the session, so drop back to
+      // the normal windowed cap. Harmless no-op if it was never widened.
+      setRenderLimit((prev) => Math.min(prev, RENDER_WINDOW_CHUNK));
+    }, 2500);
     return true;
   };
 
@@ -2256,7 +2272,11 @@ const ConversationScreen = ({ navigation, route }) => {
     // the server - this is a separate, purely local render cap (see
     // renderLimit above), not the "load more" pagination trigger above it.
     if (isNearTop) {
-      setRenderLimit((prev) => (messages.length > prev ? prev + RENDER_WINDOW_CHUNK : prev));
+      setRenderLimit((prev) =>
+        messages.length > prev && prev < MAX_RENDER_LIMIT
+          ? Math.min(prev + RENDER_WINDOW_CHUNK, MAX_RENDER_LIMIT)
+          : prev
+      );
     }
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
