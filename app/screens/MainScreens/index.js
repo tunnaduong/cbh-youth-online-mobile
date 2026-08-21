@@ -236,6 +236,22 @@ export default function MainScreens({ navigation: stackNavigation }) {
     }).start();
   }, [setting, drawerTranslateX, backdropOpacity]);
 
+  // None of the sidebar's ~9 menu items (Profile, Settings, etc.) ever
+  // closed the drawer themselves before navigating - each just called
+  // navigation.navigate() directly. The drawer stayed fully open/mounted
+  // (including its own LiquidGlassView, if glass is on) behind whatever
+  // screen you navigated to, indefinitely, until manually dismissed - not
+  // just a visual glitch, a real extra glass surface + mounted subtree
+  // still costing GPU/JS time the entire time you're on that screen. Fixed
+  // centrally here instead of touching every menu item: close the drawer
+  // automatically on any navigation state change while it's open.
+  useEffect(() => {
+    const unsubscribe = stackNavigation.addListener("state", () => {
+      setSetting((prev) => (prev ? false : prev));
+    });
+    return unsubscribe;
+  }, [stackNavigation]);
+
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const createMenuRef = useRef(null);
   const homeScreenScrollTriggerRef = useRef(null);
