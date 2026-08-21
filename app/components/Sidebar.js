@@ -77,6 +77,14 @@ const CollapsibleMenuItem = ({
   );
 };
 
+// Content must be a real child of LiquidGlassView, not a sibling drawn over
+// an absoluteFill glass layer - the native view captures "the hierarchy
+// behind it" and skips only its own subtree, so a sibling still gets swept
+// into the captured-and-blurred backdrop *in addition to* being drawn
+// normally on top, ghosting/reflecting the sidebar's own rows back into its
+// glass background. Same fix as LiquidButton's.
+const SidebarGlassWrapper = LiquidGlassView ?? View;
+
 const Sidebar = ({ providerId, isOpen }) => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
@@ -217,59 +225,28 @@ const Sidebar = ({ providerId, isOpen }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      {LiquidGlassView ? (
-        <>
-          <LiquidGlassView
-            variant="clear"
-            tintColor={glassTint(isDarkMode)}
-            {...androidGlassPerfProps}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              borderTopRightRadius: 24,
-              borderBottomRightRadius: 24,
-            }}
-          />
-          {/* Overlay to guarantee readable contrast over liquid glass */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              borderTopRightRadius: 24,
-              borderBottomRightRadius: 24,
-              backgroundColor: sidebarTint,
-            }}
-          />
-        </>
-      ) : (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+      <SidebarGlassWrapper
+        {...(LiquidGlassView
+          ? { variant: "clear", tintColor: glassTint(isDarkMode), ...androidGlassPerfProps }
+          : {})}
+        style={[
+          { flex: 1, borderTopRightRadius: 24, borderBottomRightRadius: 24 },
+          !LiquidGlassView && {
             backgroundColor: sidebarTint,
-            borderTopRightRadius: 24,
-            borderBottomRightRadius: 24,
             borderRightWidth: Platform.OS === "android" ? 1 : 0,
             borderColor: isDarkMode
               ? "rgba(255,255,255,0.08)"
               : "rgba(0,0,0,0.06)",
-          }}
-        />
-      )}
+          },
+        ]}
+      >
       <View
         style={{
           flex: 1,
-          backgroundColor: "transparent",
+          // Same sidebarTint that used to be a separate absoluteFill overlay
+          // sibling over the glass - now just this content wrapper's own
+          // background, which composites correctly since it's a real child.
+          backgroundColor: LiquidGlassView ? sidebarTint : "transparent",
           paddingTop: insets.top,
         }}
       >
@@ -588,6 +565,7 @@ const Sidebar = ({ providerId, isOpen }) => {
           </List.Section>
         </ScrollView>
       </View>
+      </SidebarGlassWrapper>
     </View>
   );
 };
