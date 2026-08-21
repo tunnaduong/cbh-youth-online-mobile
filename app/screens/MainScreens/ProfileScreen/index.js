@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useIsFocused } from "@react-navigation/native";
 import CustomLoading from "../../../components/CustomLoading";
 import { AuthContext } from "../../../contexts/AuthContext";
 import {
@@ -44,6 +44,20 @@ import { useTranslation } from "react-i18next";
 
 const ProfileScreen = ({ route, navigation }) => {
   const { theme, isDarkMode, autoplayVideos } = useTheme();
+  const isFocused = useIsFocused();
+  // Facebook-style autoplay: only one post's video should ever be playing
+  // at once. This used to just pass the raw autoplayVideos boolean as
+  // isActive to *every* post, so with more than one video post loaded they
+  // all tried to autoplay (and grab audio) simultaneously - multiple
+  // concurrent expo-video players contending for the same audio session,
+  // which is exactly the kind of thing that leaves one of them silent.
+  // Mirrors HomeScreen's activePostId/viewability tracking.
+  const [activePostId, setActivePostId] = useState(null);
+  const handleViewableItemsChanged = useRef(({ viewableItems }) => {
+    const activeItem = viewableItems?.find((v) => v?.item && v.item.id != null)?.item;
+    setActivePostId(activeItem ? activeItem.id : null);
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
   const [loading, setLoading] = useState(true);
   const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -479,7 +493,7 @@ const ProfileScreen = ({ route, navigation }) => {
           onVoteUpdate={handleVoteUpdate}
           onSaveUpdate={handleSaveUpdate}
           screenName={"ProfileScreen"}
-          isActive={autoplayVideos}
+          isActive={autoplayVideos && isFocused && item.id === activePostId}
         />
       );
     }
@@ -933,6 +947,9 @@ const ProfileScreen = ({ route, navigation }) => {
               onRefresh={handleRefresh}
             />
           }
+          onViewableItemsChanged={handleViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          extraData={{ activePostId, isFocused, autoplayVideos }}
         />
         </AndroidGlassBackdrop>
       </View>
