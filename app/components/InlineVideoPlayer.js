@@ -179,8 +179,15 @@ const InlineVideoPlayer = ({
         <VideoThumbnail
           uri={uri}
           serverThumbnailUri={thumbnailUri}
-          width={width}
-          height={height}
+          // VideoThumbnail defaults to a fixed 130x130 when width/height are
+          // undefined - callers that size this tile purely via `style` (e.g.
+          // ConversationScreen, which sizes the OUTER wrapper by aspect
+          // ratio and expects this inner tile to just fill it) never pass
+          // numeric width/height, so without this fallback the inner poster
+          // silently reverted to a fixed square regardless of how big the
+          // wrapper around it actually was.
+          width={width ?? "100%"}
+          height={height ?? "100%"}
           borderRadius={borderRadius}
           onLoad={onLoad}
         />

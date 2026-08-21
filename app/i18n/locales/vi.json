@@ -519,6 +519,7 @@
     "cloudOnlyMediaError": "Một số tệp chỉ có trên Google Photos/iCloud và chưa tải về máy nên không thể gửi. Hãy tải tệp về máy trước rồi thử lại.",
     "downloading": "Đang tải...",
     "tapToOpen": "Nhấn để mở",
+    "tapToRetry": "Chạm để thử lại",
     "attachment": "Tệp đính kèm",
     "createGroup": "Tạo nhóm",
     "create": "Tạo",

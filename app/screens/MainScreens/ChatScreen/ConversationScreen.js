@@ -396,6 +396,25 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
 // own virtualization, so none of the manual render-windowing
 // (renderLimit/renderEndOffset/pageBoundaryIdsRef) or scroll-position
 // bookkeeping this file used to carry is needed anymore.
+// KeyboardChatScrollView (react-native-keyboard-controller) explicitly
+// re-passes its own `inverted` prop down to ScrollViewWithBottomPadding,
+// but ScrollViewWithBottomPadding destructures `inverted` out for its own
+// internal inset math and never adds it back into the `...rest` it spreads
+// onto `ScrollViewComponent` - so the real underlying FlatList never
+// actually receives `inverted`, even though the JSX below clearly passes
+// it. `data` is pre-reversed to newest-first (see invertedMessages)
+// expecting real inverted-list semantics, so without this the list quietly
+// rendered top-to-bottom, putting the newest message at the visual TOP
+// instead of the bottom. Forcing `inverted` directly on the real FlatList
+// here - independent of whatever the wrapper library does or doesn't
+// forward - fixes this without patching node_modules or touching any of
+// the inverted-list assumptions already built elsewhere in this file
+// (scrollToOffset/scrollToIndex math, maintainVisibleContentPosition,
+// isNearBottomRef, viewability tracking).
+const InvertedChatFlatList = React.forwardRef((props, ref) => (
+  <Reanimated.FlatList ref={ref} {...props} inverted />
+));
+
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const BUTTON_SIZE = 47;
@@ -521,6 +540,21 @@ const ConversationScreen = ({ navigation, route }) => {
   // where they are while reading history. Starts true (a fresh screen opens
   // at the bottom).
   const isNearBottomRef = useRef(true);
+  // Guards jumpToMessageId's multi-await retry loop (each `await` is a
+  // point where the screen could have been navigated away from in the
+  // meantime) - without this, a continuation firing after unmount could
+  // call scrollToIndex/setState against a FlatList ref whose underlying
+  // Reanimated-wrapped native view has already been released, which is a
+  // known crash class for this exact ref/list combo (see InlineVideoPlayer's
+  // ActiveVideoTile cleanup comment for the same class of bug elsewhere in
+  // this screen).
+  const isMountedRef = useRef(true);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
   // Mirrors HomeScreen/ProfileScreen's single-active-video viewability
   // pattern, so chat video bubbles respect the same autoplayVideos setting.
   const [activeVideoMessageId, setActiveVideoMessageId] = useState(null);
@@ -1298,7 +1332,9 @@ const ConversationScreen = ({ navigation, route }) => {
       }
     });
     setHighlightedMessageId(targetId);
-    setTimeout(() => setHighlightedMessageId(null), 2500);
+    setTimeout(() => {
+      if (isMountedRef.current) setHighlightedMessageId(null);
+    }, 2500);
     return true;
   };
 
@@ -1333,16 +1369,20 @@ const ConversationScreen = ({ navigation, route }) => {
     // `messages`, so there's no manual render-window to widen here anymore
     // (unlike the old plain ScrollView). Just retry the scroll shortly.
     await new Promise((resolve) => setTimeout(resolve, 80));
+    if (!isMountedRef.current) return;
     if (scrollToMessageAndHighlight(targetId)) return;
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (!hasMore) break;
       await fetchMessages(false);
+      if (!isMountedRef.current) return;
       await new Promise((resolve) => setTimeout(resolve, 80));
+      if (!isMountedRef.current) return;
       if (scrollToMessageAndHighlight(targetId)) return;
     }
 
+    if (!isMountedRef.current) return;
     Toast.show({
       type: "error",
       text1: t("chatConversation.repliedMessageNotFound", "Không tìm thấy tin nhắn gốc"),
@@ -2659,6 +2699,20 @@ const ConversationScreen = ({ navigation, route }) => {
     setMediaLoadErrors((prev) => ({ ...prev, [id]: reason }));
   }, []);
 
+  // Clears a failed-load flag so the tile re-renders its <FastImage>/
+  // <InlineVideoPlayer> and gets a fresh network attempt - a load failure
+  // was being treated as permanent (no way back from the "failed to load"
+  // fallback), which turns a transient blip (cold cache, momentary network
+  // drop) into a dead tile for the rest of the session.
+  const retryMediaLoad = React.useCallback((id) => {
+    setMediaLoadErrors((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
   // <Chat>'s FlatList is inverted (newest first); `messages` (incl. injected
   // date/time headers) is stored oldest-first, so mirror it once per render
   // instead of maintaining a second copy of state.
@@ -2725,7 +2779,7 @@ const ConversationScreen = ({ navigation, route }) => {
     if (item.is_recalled) {
       return (
         <Text style={[styles.recalledText, { color: theme.subText }]}>
-          {t("chatConversation.messageRecalled", "Tin nhắn đã được thu hồi")}
+          {t("chatConversation.recalled", "Tin nhắn đã bị thu hồi")}
         </Text>
       );
     }
@@ -2738,33 +2792,49 @@ const ConversationScreen = ({ navigation, route }) => {
         : [item.file_url]
       ).filter(Boolean).map(resolveMediaUrl);
       if (urls.length === 0) return null;
-      // A single image gets its own real aspect ratio (Messenger/Telegram
-      // style); multiple attachments keep the fixed square grid tiles -
-      // cropping several small previews to squares is standard/expected
-      // there, and per-tile aspect ratio would make the grid layout itself
-      // unpredictable.
       const isSingle = urls.length === 1;
+      // Multi-image tiles get their own proportional size too (derived from
+      // their real aspect ratio, same mechanism as the single-image case),
+      // just capped to a smaller per-tile bound so a grid of several
+      // attachments doesn't blow up to full-bubble-width each - a fixed
+      // square crop for every tile regardless of the source image's shape
+      // was the reported bug.
+      const getTileSize = (key) => {
+        if (isSingle) return getMediaDisplaySize(key);
+        const natural = mediaNaturalSizes[key];
+        if (!natural?.width || !natural?.height) return { width: 100, height: 100 };
+        const ratio = natural.width / natural.height;
+        let width = Math.min(110, natural.width);
+        let height = width / ratio;
+        if (height > 150) {
+          height = 150;
+          width = height * ratio;
+        }
+        if (height < 60) height = 60;
+        if (width < 60) width = 60;
+        return { width: Math.round(width), height: Math.round(height) };
+      };
       return (
         <View style={styles.imageGrid}>
           {urls.map((uri, idx) => {
             const errorKey = `${item.id}-${idx}`;
             const hasError = !!mediaLoadErrors[errorKey];
-            const singleSize = isSingle ? getMediaDisplaySize(errorKey) : null;
+            const tileSize = getTileSize(errorKey);
             return (
               <TouchableOpacity
                 key={errorKey}
-                onPress={() => (hasError ? null : openImageViewerGallery(urls, idx))}
-                disabled={hasError}
+                onPress={() => (hasError ? retryMediaLoad(errorKey) : openImageViewerGallery(urls, idx))}
                 style={[
-                  isSingle ? [styles.singleImageItem, singleSize] : styles.imageGridItem,
+                  isSingle ? styles.singleImageItem : styles.imageGridItem,
+                  tileSize,
                   hasError && styles.mediaErrorFallback,
                 ]}
               >
                 {hasError ? (
                   <>
-                    <Ionicons name="image-outline" size={22} color="#fff" />
+                    <Ionicons name="refresh" size={22} color="#fff" />
                     <Text style={styles.mediaErrorText}>
-                      {t("chatConversation.imageLoadFailed", "Không thể tải ảnh")}
+                      {t("chatConversation.tapToRetry", "Chạm để thử lại")}
                     </Text>
                   </>
                 ) : (
@@ -2774,7 +2844,7 @@ const ConversationScreen = ({ navigation, route }) => {
                     resizeMode="cover"
                     onLoad={(e) => {
                       const size = e?.source;
-                      if (isSingle && size?.width && size?.height) {
+                      if (size?.width && size?.height) {
                         setMediaNaturalSizes((prev) =>
                           prev[errorKey]?.width === size.width
                             ? prev
@@ -2806,12 +2876,15 @@ const ConversationScreen = ({ navigation, route }) => {
       const videoSize = getMediaDisplaySize(item.id);
       if (hasError) {
         return (
-          <View style={[styles.videoBubble, videoSize, styles.mediaErrorFallback]}>
-            <Ionicons name="videocam-off-outline" size={22} color="#fff" />
+          <TouchableOpacity
+            onPress={() => retryMediaLoad(item.id)}
+            style={[styles.videoBubble, videoSize, styles.mediaErrorFallback]}
+          >
+            <Ionicons name="refresh" size={22} color="#fff" />
             <Text style={styles.mediaErrorText}>
-              {t("chatConversation.videoLoadFailed", "Không thể tải video")}
+              {t("chatConversation.tapToRetry", "Chạm để thử lại")}
             </Text>
-          </View>
+          </TouchableOpacity>
         );
       }
       return (
@@ -2851,11 +2924,31 @@ const ConversationScreen = ({ navigation, route }) => {
           disabled={isDownloading || item.is_sending}
           style={styles.fileMessageContent}
         >
-          <View style={styles.fileIconWrapper}>
+          <View
+            style={[
+              styles.fileIconWrapper,
+              // A green-tinted circle + green icon (theme.primary) is
+              // exactly the same contrast failure as the mention-color bug -
+              // near-invisible on the sender's own green bubble. A neutral
+              // semi-transparent circle reads clearly on both the green
+              // "mine" bubble and the grey/light "theirs" bubble.
+              {
+                backgroundColor: item.is_myself
+                  ? "rgba(255,255,255,0.22)"
+                  : isDarkMode
+                    ? "rgba(255,255,255,0.12)"
+                    : "rgba(0,0,0,0.06)",
+              },
+            ]}
+          >
             {isDownloading ? (
-              <ActivityIndicator size="small" color={theme.primary} />
+              <ActivityIndicator size="small" color={item.is_myself ? "#fff" : theme.primary} />
             ) : (
-              <Ionicons name="document-text-outline" size={22} color={theme.primary} />
+              <Ionicons
+                name="document-text-outline"
+                size={22}
+                color={item.is_myself ? "#fff" : theme.primary}
+              />
             )}
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -3351,7 +3444,7 @@ const ConversationScreen = ({ navigation, route }) => {
           textInputNativeID="chat-input"
         >
           <KeyboardChatScrollView
-            ScrollViewComponent={Reanimated.FlatList}
+            ScrollViewComponent={InvertedChatFlatList}
             ref={messagesScrollRef}
             style={styles.messagesList}
             data={invertedMessages}
@@ -3579,8 +3672,9 @@ const styles = StyleSheet.create({
     // paddingHorizontal already provides the outer edge margin, so adding
     // marginHorizontal here double-padded the left edge vs. the (avatar-less)
     // right/"mine" side, making other people's bubbles start visibly further
-    // in than the user's own.
-    marginRight: 8,
+    // in than the user's own. Trimmed further per feedback that it was
+    // still ~7px too wide.
+    marginRight: 1,
     backgroundColor: "#ccc",
   },
   messageSenderName: {

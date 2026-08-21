@@ -530,6 +530,7 @@
     "cloudOnlyMediaError": "Some files are only on Google Photos/iCloud and haven't been downloaded to this device, so they can't be sent. Download them to this device first and try again.",
     "downloading": "Downloading...",
     "tapToOpen": "Tap to open",
+    "tapToRetry": "Tap to retry",
     "attachment": "Attachment",
     "createGroup": "Create group",
     "create": "Create",
