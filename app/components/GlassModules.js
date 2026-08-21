@@ -59,36 +59,15 @@ const glassTint = (isDarkMode) =>
 // (both are no-ops on iOS, where the OS manages the real glass material), so
 // dialing both down keeps the glass look while cutting the per-frame GPU
 // cost. iOS is untouched since its cost is owned by the OS compositor, not us.
-// blurRadius (dp) overrides whatever `intensity` would otherwise derive for
-// the blur pass specifically - explicit 0 on Android means no blur pass at
-// all. Left unset on iOS (the `{}` in androidGlassPerfProps below), so iOS
-// keeps deriving its blur from `intensity` as before - there's no separate
-// "default" blurRadius to set it back to, unset IS the default.
 //
-// rim/specular both default to true as of 1.1.0+ (they didn't exist as
-// controllable props in 1.0.0, so upgrading turned them on for free) - each
-// is its own extra optical stage the AGSL shader computes per pixel, every
-// frame, on top of refraction/tint/blur: `rim` is the bright Fresnel glass
-// edge, `specular` is the moving sheen + specular hotspot. Neither is
-// optional extra draw calls, they're more math inside the same per-frame
-// pass, so turning both off is a real, direct reduction in per-frame GPU
-// cost - dropped for the same reason intensity/thickness/blurRadius are
-// already tuned down here.
-//
-// refraction={false} was tried here too (docs describe it as just dialing
-// the lens ~1.35x weaker, not off) but in practice on-device it reads as
-// losing the glass look entirely, not just a subtler lens - left at its
-// default (true).
-// edgeReflectionStrength (default 1) is a separate per-frame shader stage
-// too - the mirrored "echo" band reflected back at the top/bottom rim -
-// independent of thickness/refraction, so zeroing it drops that stage's
-// per-pixel cost without touching the actual lens depth or the glass look
-// itself (the library's own docs frame 0 as "calm the reflection while
-// keeping a deep lens," not "turn off glass").
+// Pinned back to 1.0.0 (from 1.2.1) - even after tuning every new-in-1.1.0+
+// knob (blurRadius, rim, specular, edgeReflectionStrength all dropped/off),
+// 1.2.1 still ran more per-frame shader work than the plain 1.0.0 build did
+// at its own defaults. Only intensity/thickness exist as props on 1.0.0 -
+// blurRadius/rim/specular/edgeReflectionStrength don't exist on this version
+// at all, so they're removed here rather than passed as dead props.
 const androidGlassPerfProps =
-  Platform.OS === "android"
-    ? { intensity: 17, thickness: 0.4, blurRadius: 0, rim: false, specular: false, edgeReflectionStrength: 0 }
-    : {};
+  Platform.OS === "android" ? { intensity: 7, thickness: 0.4 } : {};
 
 export {
   LiquidGlassView,
