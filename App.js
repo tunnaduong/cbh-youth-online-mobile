@@ -1,18 +1,16 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { enableFreeze } from "react-native-screens";
-
-// react-native-screens already detaches inactive stack screens' native
-// views by default, but their React trees stay live underneath - effects,
-// timers, and re-renders on a backgrounded screen (e.g. ProfileScreen or
-// ConversationScreen sitting behind a screen pushed on top of it) keep
-// running and competing for JS-thread time with whatever's on top, which is
-// exactly the "old screen still mounted" lag being reported. enableFreeze
-// pauses (freezes, not unmounts) any screen once it's no longer focused, so
-// its state/scroll position survives coming back to it but it stops costing
-// anything while backgrounded.
-enableFreeze(true);
+// react-native-screens' enableFreeze(true) used to be on here - it pauses a
+// backgrounded screen's whole React tree (via react-freeze/Suspense) so it
+// stops costing anything while another screen is on top. Reverted: if a
+// screen's data-fetch resolves while it's frozen (e.g. navigating away right
+// as it started loading), the resulting setState can get dropped since the
+// fiber is suspended - leaving that screen stuck on its loading state
+// forever, only fixed by a full app restart. Intermittent and timing-
+// dependent, which matches "sometimes, not always" freeze-on-entry reports.
+// Screens still get their native view detached when backgrounded (that part
+// is automatic, not from this call) - just not their React tree frozen too.
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
