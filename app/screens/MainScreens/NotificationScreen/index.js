@@ -636,18 +636,20 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           disabled={unreadCount === 0}
           scrollY={scrollY}
           size={44}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 44, backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
+          style={{ backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
           borderRadius={22}
         >
-          <Text
-            style={[
-              styles.readAllText,
-              { color: unreadCount > 0 ? theme.primary : theme.text },
-              unreadCount === 0 && (isDarkMode ? { color: "#666" } : styles.readAllTextDisabled),
-            ]}
-          >
-            {t('notifications.readAll')} ({unreadCount})
-          </Text>
+          <Ionicons
+            name="checkmark-done"
+            size={22}
+            color={
+              unreadCount > 0
+                ? theme.primary
+                : isDarkMode
+                  ? "#666"
+                  : "#888"
+            }
+          />
         </LiquidButton>
       </View>
 
