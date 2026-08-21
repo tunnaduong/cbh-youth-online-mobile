@@ -1392,15 +1392,32 @@ const ConversationScreen = ({ navigation, route }) => {
   // single very-long session snowball back into the original perf problem.
   const MAX_RENDER_LIMIT = 400;
   const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
-  // Only the most recent `renderLimit` items actually get mounted; older
-  // ones stay in `messages` state (so pagination/scroll math is unaffected)
-  // but aren't rendered until the user scrolls back far enough to reveal
-  // them (see handleMessagesScroll) or a reply-jump explicitly needs one
-  // (see handleJumpToRepliedMessage).
-  const visibleMessages = useMemo(
-    () => (messages.length > renderLimit ? messages.slice(-renderLimit) : messages),
-    [messages, renderLimit]
-  );
+  // Companion to renderLimit, but for the *other* end: renderLimit caps how
+  // far back (toward the oldest) mounted content reaches; this caps how far
+  // forward (toward the newest) it reaches once the user has scrolled well
+  // away from the bottom. Count of newest messages currently left unmounted
+  // - 0 means "render all the way to the newest" (the common case: reading
+  // recent messages, or nobody's scrolled away from the bottom yet).
+  // handleMessagesScroll keeps this in sync with scroll position: scroll up
+  // into history and whatever's now off-screen below unmounts: scroll back
+  // down and it remounts, exactly mirroring what renderLimit already does
+  // at the other end - and safely, since unmounting content that's already
+  // below the viewport never shifts what's currently on screen (unlike
+  // trimming from above, which would need scroll-offset compensation this
+  // doesn't attempt).
+  const [renderEndOffset, setRenderEndOffset] = useState(0);
+  // Only messages within [start, end) actually get mounted; everything
+  // outside that window stays in `messages` state (so pagination/scroll
+  // math is unaffected) but isn't rendered until scrolling brings it back
+  // into range (see handleMessagesScroll) or a reply-jump explicitly needs
+  // it (see handleJumpToRepliedMessage).
+  const visibleMessages = useMemo(() => {
+    const start = messages.length > renderLimit ? messages.length - renderLimit : 0;
+    const end = renderEndOffset > 0
+      ? Math.max(start + 1, messages.length - renderEndOffset)
+      : messages.length;
+    return messages.slice(start, end);
+  }, [messages, renderLimit, renderEndOffset]);
   const inputRef = useRef(null);
   const messagesScrollRef = useRef(null);
   const lastTapRef = useRef({});
@@ -2281,6 +2298,23 @@ const ConversationScreen = ({ navigation, route }) => {
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
+
+    // Bottom half of the render window (see renderEndOffset above): once
+    // scrolled more than a few screens away from the newest message, unmount
+    // whatever's that far below the current view - it's off-screen either
+    // way, so dropping it doesn't shift anything currently visible. Coming
+    // back within reach (including landing exactly at the bottom, where
+    // this evaluates to 0) remounts it. Within the keep-zone - "reading in
+    // the middle" - nothing here changes.
+    const BOTTOM_KEEP_PX = (scrollViewHeightRef.current || 800) * 3;
+    if (distanceFromBottom <= BOTTOM_KEEP_PX) {
+      setRenderEndOffset((prev) => (prev === 0 ? prev : 0));
+    } else {
+      const renderedCount = visibleMessages.length || 1;
+      const avgHeight = (scrollContentHeightRef.current || 1) / renderedCount;
+      const hiddenCount = Math.max(0, Math.floor((distanceFromBottom - BOTTOM_KEEP_PX) / avgHeight));
+      setRenderEndOffset((prev) => (prev === hiddenCount ? prev : hiddenCount));
+    }
 
     scrollOffsetRef.current = offsetY;
     if (!autoplayVideos || !isFocused) {
