@@ -59,8 +59,13 @@ const glassTint = (isDarkMode) =>
 // (both are no-ops on iOS, where the OS manages the real glass material), so
 // dialing both down keeps the glass look while cutting the per-frame GPU
 // cost. iOS is untouched since its cost is owned by the OS compositor, not us.
+// blurRadius (dp) overrides whatever `intensity` would otherwise derive for
+// the blur pass specifically - explicit 0 on Android means no blur at all,
+// just tint/refraction/rim. Left unset on iOS (the `{}` in androidGlassPerfProps
+// below), so iOS keeps deriving its blur from `intensity` as before - there's
+// no separate "default" blurRadius to set it back to, unset IS the default.
 const androidGlassPerfProps =
-  Platform.OS === "android" ? { intensity: 17, thickness: 0.4 } : {};
+  Platform.OS === "android" ? { intensity: 17, thickness: 0.4, blurRadius: 0 } : {};
 
 export {
   LiquidGlassView,
