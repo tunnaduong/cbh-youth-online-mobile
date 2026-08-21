@@ -232,7 +232,6 @@ export default function SearchScreen({ navigation, route }) {
           <LiquidButton
             providerId="SearchScreen"
             onPress={() => navigation.goBack()}
-            scrollY={scrollY}
             size={40}
             style={{ marginLeft: 8 }}
             borderRadius={20}
@@ -280,7 +279,6 @@ export default function SearchScreen({ navigation, route }) {
             <LiquidButton
               providerId="SearchScreen"
               onPress={() => setShowFilterMenu((prev) => !prev)}
-              scrollY={scrollY}
               size={40}
               borderRadius={20}
             >
