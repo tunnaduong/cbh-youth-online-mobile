@@ -157,6 +157,9 @@ const InlineVideoPlayer = ({
   // stack that a nested touchable here would block; pass interactive={false}
   // there to let those handle taps instead (see ConversationScreen.js).
   interactive = true,
+  // Forwarded to VideoThumbnail's own onLoad (only fires in the poster/
+  // thumbnail branch below, not while the real player is active).
+  onLoad,
 }) => {
   const [fullscreenVisible, setFullscreenVisible] = useState(false);
   const isFocused = useIsFocused();
@@ -179,6 +182,7 @@ const InlineVideoPlayer = ({
           width={width}
           height={height}
           borderRadius={borderRadius}
+          onLoad={onLoad}
         />
       )}
       {interactive && fullscreenVisible && (

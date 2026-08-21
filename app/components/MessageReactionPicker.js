@@ -55,7 +55,29 @@ const MessageReactionPicker = ({
   }
   left = Math.max(8, Math.min(left, SCREEN_WIDTH - PICKER_WIDTH - 8));
 
-  const top = Math.max(insetsSafeTop, anchor.y);
+  // Estimate the picker's rendered height from which optional action rows
+  // are actually present, so a long-press near the bottom of the screen
+  // (e.g. the last message in the list) can flip the menu to open upward
+  // instead of rendering it partly/fully off-screen below the fold.
+  const rowCount = [onCopy, onReply, onForward, onDownload, onViewSeenBy, onEdit, onRecall]
+    .filter(Boolean).length;
+  const EMOJI_ROW_HEIGHT = 54;
+  const ACTION_ROW_HEIGHT = 40;
+  const CONTAINER_VERTICAL_PADDING = 16;
+  const estimatedHeight =
+    CONTAINER_VERTICAL_PADDING + EMOJI_ROW_HEIGHT + rowCount * ACTION_ROW_HEIGHT;
+
+  const screenHeight = Dimensions.get("window").height;
+  const bottomSafeMargin = 24;
+  let top = Math.max(insetsSafeTop, anchor.y);
+  if (top + estimatedHeight > screenHeight - bottomSafeMargin) {
+    // Open upward, anchored so the bottom of the menu sits just above the
+    // touch point instead of below it.
+    top = Math.max(insetsSafeTop, anchor.y - estimatedHeight);
+    // Still clamp against the bottom in case the menu is taller than the
+    // available space even fully flipped up.
+    top = Math.min(top, screenHeight - estimatedHeight - bottomSafeMargin);
+  }
 
   // Count per type in my reactions
   const myReactionCounts = (myReactions || []).reduce((acc, type) => {

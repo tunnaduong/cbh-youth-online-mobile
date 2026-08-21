@@ -27,6 +27,11 @@ const VideoThumbnail = ({
   borderRadius = 16,
   onRemove,
   style,
+  // Fires once the poster image reports its natural pixel size - lets a
+  // caller size the tile to the video's real aspect ratio instead of
+  // forcing a fixed box (which either crops or letterboxes it). No-op by
+  // default so existing callers are unaffected.
+  onLoad = () => {},
 }) => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [extractedThumbnailUri, setExtractedThumbnailUri] = useState(null);
@@ -65,6 +70,10 @@ const VideoThumbnail = ({
             source={{ uri: thumbnailUri }}
             style={StyleSheet.absoluteFill}
             resizeMode="cover"
+            onLoad={(e) => {
+              const size = e?.nativeEvent?.source;
+              if (size?.width && size?.height) onLoad({ width: size.width, height: size.height });
+            }}
           />
         ) : thumbnailFailed ? (
           <Ionicons name="videocam" size={28} color="rgba(255,255,255,0.85)" />

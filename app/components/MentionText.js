@@ -87,7 +87,12 @@ const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcast
           return (
             <Text
               key={i}
-              style={{ color: "#22c55e", fontWeight: "600" }}
+              // Inherits the surrounding text color instead of a fixed
+              // green - a fixed color reads fine on a light/white
+              // background but is nearly invisible on a green "my message"
+              // chat bubble (theme.primary). Bold + underline keeps it
+              // visually distinct regardless of background.
+              style={{ fontWeight: "700", textDecorationLine: "underline" }}
               onPress={isBroadcast ? undefined : () => onMentionPress?.(part.username)}
             >
               {part.value}

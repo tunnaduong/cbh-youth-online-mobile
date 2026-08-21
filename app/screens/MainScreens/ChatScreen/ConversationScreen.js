@@ -84,9 +84,11 @@ import i18n from "../../../i18n";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 import {
+  KeyboardChatScrollView,
   KeyboardStickyView,
   KeyboardGestureArea,
 } from "react-native-keyboard-controller";
+import Reanimated from "react-native-reanimated";
 
 // Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
 // local optimistic messages use file:// or content:// URIs, and http(s) may
@@ -209,6 +211,104 @@ const injectTimeHeaders = (messages, t) => {
   });
 
   return result;
+};
+
+const SWIPE_THRESHOLD = 55;
+const SWIPE_ICON_OFFSET = 44;
+
+// Swipe left/right on a message bubble to reply to it (Telegram/Messenger
+// style). Restored after the chat-lib migration dropped it along with the
+// deleted MessageRow component it used to live in.
+const SwipeableMessage = ({ children, onSwipe }) => {
+  const translateX = useRef(new Animated.Value(0)).current;
+  const triggeredRef = useRef(false);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      // Capture phase runs top-down BEFORE any nested touchable (e.g. the
+      // video tile's mute button) gets a chance to claim the responder in
+      // the bubble phase - without this, a clear horizontal swipe starting
+      // on top of a nested TouchableOpacity never reached this PanResponder
+      // at all, so swipe-to-reply silently did nothing on video messages.
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderGrant: () => {
+        triggeredRef.current = false;
+      },
+      onPanResponderMove: (_, g) => {
+        const clamped = g.dx > 0
+          ? Math.min(SWIPE_THRESHOLD + 10, g.dx)
+          : Math.max(-(SWIPE_THRESHOLD + 10), g.dx);
+        translateX.setValue(clamped);
+        if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
+          triggeredRef.current = true;
+          onSwipe?.();
+        }
+      },
+      onPanResponderRelease: () => {
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 120, friction: 10 }).start();
+      },
+    })
+  ).current;
+
+  const leftIconOpacity = translateX.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const leftIconTranslateX = translateX.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD + 10],
+    outputRange: [0, SWIPE_ICON_OFFSET + 10],
+    extrapolate: "clamp",
+  });
+  const rightIconOpacity = translateX.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, 0],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const rightIconTranslateX = translateX.interpolate({
+    inputRange: [-(SWIPE_THRESHOLD + 10), 0],
+    outputRange: [-(SWIPE_ICON_OFFSET + 10), 0],
+    extrapolate: "clamp",
+  });
+
+  const iconStyle = {
+    position: "absolute",
+    top: "50%",
+    marginTop: -14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(0,0,0,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1,
+  };
+
+  return (
+    <View style={{ overflow: "visible" }}>
+      <Animated.View
+        style={[iconStyle, { left: 4, opacity: leftIconOpacity, transform: [{ translateX: leftIconTranslateX }] }]}
+        pointerEvents="none"
+      >
+        <Ionicons name="arrow-undo" size={16} color="#fff" />
+      </Animated.View>
+      <Animated.View
+        style={[iconStyle, { right: 4, opacity: rightIconOpacity, transform: [{ translateX: rightIconTranslateX }] }]}
+        pointerEvents="none"
+      >
+        <Ionicons name="arrow-undo" size={16} color="#fff" />
+      </Animated.View>
+      <Animated.View
+        style={{ transform: [{ translateX }] }}
+        {...panResponder.panHandlers}
+      >
+        {children}
+      </Animated.View>
+    </View>
+  );
 };
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
@@ -415,6 +515,20 @@ const ConversationScreen = ({ navigation, route }) => {
   const messagesScrollRef = useRef(null);
   const lastTapRef = useRef({});
   const loadingMoreRef = useRef(false);
+  // Tracks whether the user is currently resting at/near the newest message
+  // (inverted list offset ~0) - used to decide whether an incoming message
+  // from someone else should auto-follow to the bottom, or leave the user
+  // where they are while reading history. Starts true (a fresh screen opens
+  // at the bottom).
+  const isNearBottomRef = useRef(true);
+  // Mirrors HomeScreen/ProfileScreen's single-active-video viewability
+  // pattern, so chat video bubbles respect the same autoplayVideos setting.
+  const [activeVideoMessageId, setActiveVideoMessageId] = useState(null);
+  const handleViewableItemsChanged = useRef(({ viewableItems }) => {
+    const activeItem = viewableItems?.find((v) => v?.item && v.item.id != null)?.item;
+    setActiveVideoMessageId(activeItem ? activeItem.id : null);
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
   const {
     conversation,
     conversationId,
@@ -490,6 +604,34 @@ const ConversationScreen = ({ navigation, route }) => {
   // failed to load directly in the bubble instead of just going blank.
   const [mediaLoadErrors, setMediaLoadErrors] = useState({});
   const [downloadingFileId, setDownloadingFileId] = useState(null);
+  // Natural pixel size of single-image/video attachments, keyed by the same
+  // id used for mediaLoadErrors - populated once the media actually loads,
+  // used to size the bubble to the real aspect ratio instead of a fixed box
+  // (which either crops via "cover" or, worse, leaves a visible gap when the
+  // poster/thumbnail component silently falls back to ITS OWN fixed default
+  // size). Multi-image grids intentionally keep their fixed square tiles.
+  const [mediaNaturalSizes, setMediaNaturalSizes] = useState({});
+  const MEDIA_MAX_WIDTH = 240;
+  const MEDIA_MAX_HEIGHT = 320;
+  const MEDIA_MIN_SIZE = 120;
+  const getMediaDisplaySize = (key) => {
+    const natural = mediaNaturalSizes[key];
+    if (!natural?.width || !natural?.height) {
+      // Unknown yet - fall back to the old fixed box so there's no flash of
+      // nothing/zero-size while the real dimensions are still loading.
+      return { width: 200, height: 140 };
+    }
+    const ratio = natural.width / natural.height;
+    let width = Math.min(MEDIA_MAX_WIDTH, natural.width);
+    let height = width / ratio;
+    if (height > MEDIA_MAX_HEIGHT) {
+      height = MEDIA_MAX_HEIGHT;
+      width = height * ratio;
+    }
+    if (height < MEDIA_MIN_SIZE) height = MEDIA_MIN_SIZE;
+    if (width < MEDIA_MIN_SIZE) width = MEDIA_MIN_SIZE;
+    return { width: Math.round(width), height: Math.round(height) };
+  };
 
   // Keep the header visually light until the user scrolls enough.
   // This mirrors the other screens: the back button stays visible, while the
@@ -1178,26 +1320,27 @@ const ConversationScreen = ({ navigation, route }) => {
     attemptScrollToHighlightRef.current = attemptScrollToHighlight;
   });
 
-  // Tapping a ReplyPreviewBubble jumps to the original message. If it's not
-  // in the currently loaded page (an older message), keep loading older
-  // pages until it turns up or we run out.
-  const handleJumpToRepliedMessage = async (replyToId) => {
-    if (replyToId == null) return;
-    if (scrollToMessageAndHighlight(replyToId)) return;
+  // Shared by "jump to replied message" (tapping a ReplyPreviewBubble) and
+  // "jump to a message a notification deep-linked to" (see the mount effect
+  // below) - if the target isn't in what's currently loaded, keep loading
+  // older pages until it turns up or we run out.
+  const jumpToMessageId = async (targetId) => {
+    if (targetId == null) return;
+    if (scrollToMessageAndHighlight(targetId)) return;
 
     // The target might already be loaded in `messages` just not measured by
     // the list yet - <Chat>'s own FlatList virtualizes everything already in
     // `messages`, so there's no manual render-window to widen here anymore
     // (unlike the old plain ScrollView). Just retry the scroll shortly.
     await new Promise((resolve) => setTimeout(resolve, 80));
-    if (scrollToMessageAndHighlight(replyToId)) return;
+    if (scrollToMessageAndHighlight(targetId)) return;
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       if (!hasMore) break;
       await fetchMessages(false);
       await new Promise((resolve) => setTimeout(resolve, 80));
-      if (scrollToMessageAndHighlight(replyToId)) return;
+      if (scrollToMessageAndHighlight(targetId)) return;
     }
 
     Toast.show({
@@ -1205,6 +1348,26 @@ const ConversationScreen = ({ navigation, route }) => {
       text1: t("chatConversation.repliedMessageNotFound", "Không tìm thấy tin nhắn gốc"),
     });
   };
+
+  const handleJumpToRepliedMessage = (replyToId) => jumpToMessageId(replyToId);
+
+  // Jump to & highlight a specific message when this screen was opened from
+  // a notification deep link (route.params.highlightMessageId, seeded into
+  // pendingHighlightMessageIdRef above) - dropped during the windowing
+  // removal cleanup (it used to fire from the deleted
+  // handleMessagesContentSizeChange initial-mount handler) and never
+  // reconnected, so notification taps silently landed on the newest message
+  // instead of the one that was tapped.
+  useEffect(() => {
+    if (messages.length === 0) return;
+    if (pendingHighlightMessageIdRef.current == null) return;
+    const targetId = pendingHighlightMessageIdRef.current;
+    pendingHighlightMessageIdRef.current = null;
+    jumpToMessageId(targetId);
+    // Only ever meant to run once, for the initial deep link - messages.length
+    // is enough of a trigger to wait for the first page to actually load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length > 0]);
 
   const launchMediaPicker = async (source) => {
     try {
@@ -2094,9 +2257,7 @@ const ConversationScreen = ({ navigation, route }) => {
     setReactionPicker((prev) => ({ ...prev, visible: false }));
   };
 
-  const handleReplyToMessage = () => {
-    const item = reactionPicker.message;
-    closeReactionPicker();
+  const startReplyingTo = (item) => {
     if (!item || typeof item.id !== "number") return;
 
     const contentType =
@@ -2115,6 +2276,14 @@ const ConversationScreen = ({ navigation, route }) => {
     });
     inputRef.current?.focus?.();
   };
+
+  const handleReplyToMessage = () => {
+    const item = reactionPicker.message;
+    closeReactionPicker();
+    startReplyingTo(item);
+  };
+
+  const handleSwipeReply = (item) => () => startReplyingTo(item);
 
   const cancelReply = () => setReplyingTo(null);
 
@@ -2495,6 +2664,22 @@ const ConversationScreen = ({ navigation, route }) => {
   // instead of maintaining a second copy of state.
   const invertedMessages = React.useMemo(() => [...messages].reverse(), [messages]);
 
+  // Newest real message (skips injected date/time headers) - read-receipt
+  // checkmarks only ever make sense on this one, otherwise every one of the
+  // user's own messages would show them, which is just noise.
+  const lastRealMessageId = React.useMemo(
+    () => invertedMessages.find((m) => m.type !== "date" && m.type !== "time")?.id,
+    [invertedMessages]
+  );
+
+  // Newest message the current user themselves sent - read-receipt
+  // checkmarks (1-on-1) and the inline seen-by avatar row (group) only ever
+  // show on this one.
+  const lastOwnMessageId = React.useMemo(
+    () => invertedMessages.find((m) => m.type === "message" && m.is_myself)?.id,
+    [invertedMessages]
+  );
+
   const handleMessageLongPress = (item, evt) => {
     if (item.is_recalled) return;
     openReactionPicker(item, evt);
@@ -2513,11 +2698,17 @@ const ConversationScreen = ({ navigation, route }) => {
     const total = item.reactions?.total || 0;
     if (!total) return null;
     const topType = item.reactions?.summary?.[0]?.type;
+    // Anchored to the outer edge (away from the tail) on whichever side the
+    // bubble itself is on, matching the pre-migration convention - a fixed
+    // `right` regardless of is_myself put it on the wrong/far side of
+    // left-aligned ("their") bubbles.
+    const sideStyle = item.is_myself ? { left: -6 } : { right: -6 };
     return (
       <TouchableOpacity
         onPress={() => setReactionModal({ visible: true, reactions: item.reactions })}
         style={[
           styles.reactionBadge,
+          sideStyle,
           { backgroundColor: isDarkMode ? "#2c2c2e" : "#fff", borderColor: theme.border },
         ]}
         hitSlop={6}
@@ -2547,17 +2738,27 @@ const ConversationScreen = ({ navigation, route }) => {
         : [item.file_url]
       ).filter(Boolean).map(resolveMediaUrl);
       if (urls.length === 0) return null;
+      // A single image gets its own real aspect ratio (Messenger/Telegram
+      // style); multiple attachments keep the fixed square grid tiles -
+      // cropping several small previews to squares is standard/expected
+      // there, and per-tile aspect ratio would make the grid layout itself
+      // unpredictable.
+      const isSingle = urls.length === 1;
       return (
         <View style={styles.imageGrid}>
           {urls.map((uri, idx) => {
             const errorKey = `${item.id}-${idx}`;
             const hasError = !!mediaLoadErrors[errorKey];
+            const singleSize = isSingle ? getMediaDisplaySize(errorKey) : null;
             return (
               <TouchableOpacity
                 key={errorKey}
                 onPress={() => (hasError ? null : openImageViewerGallery(urls, idx))}
                 disabled={hasError}
-                style={[styles.imageGridItem, hasError && styles.mediaErrorFallback]}
+                style={[
+                  isSingle ? [styles.singleImageItem, singleSize] : styles.imageGridItem,
+                  hasError && styles.mediaErrorFallback,
+                ]}
               >
                 {hasError ? (
                   <>
@@ -2571,12 +2772,25 @@ const ConversationScreen = ({ navigation, route }) => {
                     source={{ uri }}
                     style={styles.imageGridImage}
                     resizeMode="cover"
+                    onLoad={(e) => {
+                      const size = e?.source;
+                      if (isSingle && size?.width && size?.height) {
+                        setMediaNaturalSizes((prev) =>
+                          prev[errorKey]?.width === size.width
+                            ? prev
+                            : { ...prev, [errorKey]: { width: size.width, height: size.height } }
+                        );
+                      }
+                    }}
                     onError={() => handleImageLoadError(errorKey, "load_error")}
                   />
                 )}
                 {item.is_sending && !hasError && (
                   <View style={styles.imageUploadOverlay}>
                     <ActivityIndicator color="#fff" />
+                    {typeof item.upload_progress === "number" && (
+                      <Text style={styles.uploadProgressText}>{item.upload_progress}%</Text>
+                    )}
                   </View>
                 )}
               </TouchableOpacity>
@@ -2589,9 +2803,10 @@ const ConversationScreen = ({ navigation, route }) => {
     if (contentType === "video") {
       const uri = resolveMediaUrl(item.file_url);
       const hasError = !!mediaLoadErrors[item.id];
+      const videoSize = getMediaDisplaySize(item.id);
       if (hasError) {
         return (
-          <View style={[styles.videoBubble, styles.mediaErrorFallback]}>
+          <View style={[styles.videoBubble, videoSize, styles.mediaErrorFallback]}>
             <Ionicons name="videocam-off-outline" size={22} color="#fff" />
             <Text style={styles.mediaErrorText}>
               {t("chatConversation.videoLoadFailed", "Không thể tải video")}
@@ -2600,12 +2815,18 @@ const ConversationScreen = ({ navigation, route }) => {
         );
       }
       return (
-        <TouchableOpacity onPress={() => uri && openVideoViewer(uri)} style={styles.videoBubble}>
+        <TouchableOpacity onPress={() => uri && openVideoViewer(uri)} style={[styles.videoBubble, videoSize]}>
           <InlineVideoPlayer
             uri={uri}
-            isActive={false}
+            isActive={autoplayVideos && isFocused && item.id === activeVideoMessageId}
             autoplay={false}
             style={styles.videoBubbleInner}
+            onLoad={(size) => {
+              if (!size?.width || !size?.height) return;
+              setMediaNaturalSizes((prev) =>
+                prev[item.id]?.width === size.width ? prev : { ...prev, [item.id]: size }
+              );
+            }}
           />
           <View style={styles.videoPlayOverlay}>
             <Ionicons name="play" size={28} color="#fff" />
@@ -2613,6 +2834,9 @@ const ConversationScreen = ({ navigation, route }) => {
           {item.is_sending && (
             <View style={styles.imageUploadOverlay}>
               <ActivityIndicator color="#fff" />
+              {typeof item.upload_progress === "number" && (
+                <Text style={styles.uploadProgressText}>{item.upload_progress}%</Text>
+              )}
             </View>
           )}
         </TouchableOpacity>
@@ -2624,14 +2848,44 @@ const ConversationScreen = ({ navigation, route }) => {
       return (
         <TouchableOpacity
           onPress={() => handleOpenFile(item)}
-          disabled={isDownloading}
-          style={[styles.fileBubble, { borderColor: theme.border }]}
+          disabled={isDownloading || item.is_sending}
+          style={styles.fileMessageContent}
         >
-          <Ionicons name="document-outline" size={22} color={theme.primary} />
-          <Text style={[styles.fileBubbleName, { color: item.is_myself ? "#fff" : theme.text }]} numberOfLines={1}>
-            {item.file_name || item.content || "file"}
-          </Text>
-          {isDownloading && <ActivityIndicator size="small" color={theme.primary} />}
+          <View style={styles.fileIconWrapper}>
+            {isDownloading ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <Ionicons name="document-text-outline" size={22} color={theme.primary} />
+            )}
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              style={[
+                styles.fileMessageName,
+                { color: item.is_myself ? "#fff" : theme.text },
+              ]}
+              numberOfLines={1}
+              ellipsizeMode="middle"
+            >
+              {item.content || item.file_name || t("chatConversation.attachment", "Tệp đính kèm")}
+            </Text>
+            <Text
+              style={[
+                styles.fileMessageSub,
+                { color: item.is_myself ? "rgba(255,255,255,0.75)" : theme.subText },
+              ]}
+            >
+              {item.is_sending
+                ? typeof item.upload_progress === "number"
+                  ? t("chatConversation.sendingPercent", "Đang gửi... {{percent}}%", {
+                      percent: item.upload_progress,
+                    })
+                  : t("chatConversation.sending", "Đang gửi...")
+                : isDownloading
+                  ? t("chatConversation.downloading", "Đang tải...")
+                  : t("chatConversation.tapToOpen", "Nhấn để mở")}
+            </Text>
+          </View>
         </TouchableOpacity>
       );
     }
@@ -2685,6 +2939,17 @@ const ConversationScreen = ({ navigation, route }) => {
     const isMine = !!item.is_myself;
     const isHighlighted = highlightedMessageId === item.id;
     const isGroupChat = currentConversation?.type === "group";
+    const isLastOwnMessage = isMine && item.id === lastOwnMessageId;
+
+    // Inline "seen by" avatars (group chats) - only on the user's own
+    // newest message, filtered the same way the seen-by modal is.
+    let inlineSeenAvatars = null;
+    if (isLastOwnMessage && isGroupChat && !readReceiptsOff) {
+      const createdAt = new Date(item.created_at).getTime();
+      inlineSeenAvatars = seenParticipants.filter(
+        (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
+      );
+    }
 
     return (
       <View
@@ -2705,36 +2970,88 @@ const ConversationScreen = ({ navigation, route }) => {
               {item.sender?.profile_name || item.sender?.username}
             </Text>
           )}
-          <Pressable
-            onPress={() => handleMessageTap(item)}
-            onLongPress={(evt) => handleMessageLongPress(item, evt)}
-            style={({ pressed }) => [
-              styles.messageBubble,
-              {
-                backgroundColor: item.is_recalled
-                  ? "transparent"
-                  : isMine
-                    ? theme.primary
-                    : isDarkMode
-                      ? "#2c2c2e"
-                      : "#f0f0f0",
-                alignSelf: isMine ? "flex-end" : "flex-start",
-                opacity: pressed ? 0.85 : 1,
-                borderWidth: isHighlighted ? 2 : 0,
-                borderColor: theme.primary,
-              },
-            ]}
-          >
-            {item.reply_to && (
-              <ReplyPreviewBubble
-                replyTo={item.reply_to}
-                currentUsername={username}
-                onPress={() => handleJumpToRepliedMessage(item.reply_to.id)}
-              />
-            )}
-            {renderMessageBubbleContent(item)}
-          </Pressable>
-          {renderReactionBadge(item)}
+          <SwipeableMessage onSwipe={handleSwipeReply(item)}>
+            {/* Its own position:relative box, separate from the sender-name
+                row above - the reaction badge below is absolutely
+                positioned against THIS box, so it always hugs the bubble's
+                own edge regardless of whether a sender name/reply preview
+                adds height above it. */}
+            <View style={{ position: "relative" }}>
+              <Pressable
+                onPress={() => handleMessageTap(item)}
+                onLongPress={(evt) => handleMessageLongPress(item, evt)}
+                style={({ pressed }) => [
+                  styles.messageBubble,
+                  {
+                    backgroundColor: item.is_recalled
+                      ? "transparent"
+                      : isMine
+                        ? theme.primary
+                        : isDarkMode
+                          ? "#2c2c2e"
+                          : "#f0f0f0",
+                    alignSelf: isMine ? "flex-end" : "flex-start",
+                    opacity: pressed ? 0.85 : 1,
+                    borderWidth: isHighlighted ? 2 : 0,
+                    borderColor: theme.primary,
+                  },
+                ]}
+              >
+                {item.reply_to && (
+                  <ReplyPreviewBubble
+                    item={item}
+                    currentUsername={username}
+                    onPress={() => handleJumpToRepliedMessage(item.reply_to.id)}
+                  />
+                )}
+                {renderMessageBubbleContent(item)}
+              </Pressable>
+              {renderReactionBadge(item)}
+            </View>
+          </SwipeableMessage>
+          {!item.is_recalled && (
+            <View
+              style={[
+                styles.messageFooter,
+                isMine ? styles.myMessageFooter : styles.theirMessageFooter,
+              ]}
+            >
+              <Text style={[styles.messageTime, { color: theme.subText }]}>
+                {formatMessageTime(item.created_at, t)}
+                {item.is_edited ? (
+                  <Text style={{ fontSize: 11, fontStyle: "italic", color: theme.subText }}>
+                    {" "}{t("chatConversation.edited", "(Đã sửa)")}
+                  </Text>
+                ) : null}
+              </Text>
+              {!isGroupChat && isLastOwnMessage && (
+                <View style={styles.readStatus}>
+                  <Ionicons
+                    name="checkmark-done"
+                    size={13}
+                    color={item.read_at ? theme.primary : theme.subText}
+                  />
+                </View>
+              )}
+            </View>
+          )}
+          {inlineSeenAvatars && inlineSeenAvatars.length > 0 && (
+            <TouchableOpacity
+              style={[styles.seenByRow, isMine ? { justifyContent: "flex-end" } : null]}
+              onPress={() => setSeenByModalParticipants(inlineSeenAvatars)}
+            >
+              {inlineSeenAvatars.slice(0, 3).map((p, idx) => (
+                <Image
+                  key={p.id ?? p.username ?? idx}
+                  source={{ uri: resolveMediaUrl(p.avatar_url) || p.avatar_url }}
+                  style={[
+                    styles.seenAvatar,
+                    { borderColor: theme.background, marginLeft: idx === 0 ? 0 : -6 },
+                  ]}
+                />
+              ))}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     );
@@ -3033,7 +3350,8 @@ const ConversationScreen = ({ navigation, route }) => {
           style={{ flex: 1 }}
           textInputNativeID="chat-input"
         >
-          <FlatList
+          <KeyboardChatScrollView
+            ScrollViewComponent={Reanimated.FlatList}
             ref={messagesScrollRef}
             style={styles.messagesList}
             data={invertedMessages}
@@ -3053,8 +3371,20 @@ const ConversationScreen = ({ navigation, route }) => {
                 paddingTop: insets.bottom + (isAndroid ? 96 : 88),
               },
             ]}
-            onScroll={(e) => scrollY.setValue(e.nativeEvent.contentOffset.y)}
+            onScroll={(e) => {
+              const offsetY = e.nativeEvent.contentOffset.y;
+              scrollY.setValue(offsetY);
+              // Inverted list: offset ~0 means resting at the newest message.
+              isNearBottomRef.current = offsetY < 80;
+              const shouldShow = offsetY > 150;
+              setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
+            }}
             scrollEventThrottle={16}
+            // Inverted list: prepending older history at the tail (via
+            // onEndReached below) shouldn't visually yank the screen - this
+            // keeps whatever's currently on screen anchored in place as
+            // older content is measured in behind it.
+            maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
             onEndReached={() => {
               if (hasMore && !refreshing && !loadingMoreRef.current) {
                 loadingMoreRef.current = true;
@@ -3062,6 +3392,9 @@ const ConversationScreen = ({ navigation, route }) => {
               }
             }}
             onEndReachedThreshold={0.4}
+            onViewableItemsChanged={handleViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            extraData={{ activeVideoMessageId, isFocused, autoplayVideos, mediaLoadErrors, highlightedMessageId }}
             ListFooterComponent={
               typingUser ? (
                 <Text
@@ -3242,7 +3575,12 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    marginHorizontal: 6,
+    // Only a right-side gap (to the bubble) - messageRow's own
+    // paddingHorizontal already provides the outer edge margin, so adding
+    // marginHorizontal here double-padded the left edge vs. the (avatar-less)
+    // right/"mine" side, making other people's bubbles start visibly further
+    // in than the user's own.
+    marginRight: 8,
     backgroundColor: "#ccc",
   },
   messageSenderName: {
@@ -3257,10 +3595,43 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   recalledText: { fontStyle: "italic", fontSize: 14 },
+  messageFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 3,
+  },
+  myMessageFooter: {
+    justifyContent: "flex-end",
+    marginRight: 4,
+  },
+  theirMessageFooter: {
+    justifyContent: "flex-start",
+    marginLeft: 4,
+  },
+  messageTime: {
+    fontSize: 11,
+  },
+  readStatus: {
+    marginLeft: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  seenByRow: {
+    marginTop: 3,
+    marginLeft: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  seenAvatar: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+  },
   reactionBadge: {
     position: "absolute",
     bottom: -10,
-    right: 6,
+    // left/right comes from the per-message sideStyle in renderReactionBadge
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 10,
@@ -3272,12 +3643,21 @@ const styles = StyleSheet.create({
   reactionBadgeCount: { fontSize: 10, marginLeft: 2 },
   imageGrid: { flexDirection: "row", flexWrap: "wrap", maxWidth: 220 },
   imageGridItem: { width: 100, height: 100, margin: 1, borderRadius: 10, overflow: "hidden" },
+  // Width/height come from getMediaDisplaySize (real aspect ratio), not a
+  // fixed value here.
+  singleImageItem: { borderRadius: 10, overflow: "hidden" },
   imageGridImage: { width: "100%", height: "100%" },
   imageUploadOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.35)",
     alignItems: "center",
     justifyContent: "center",
+  },
+  uploadProgressText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#fff",
   },
   videoBubble: { width: 200, height: 140, borderRadius: 12, overflow: "hidden", backgroundColor: "#000" },
   videoBubbleInner: { width: "100%", height: "100%" },
@@ -3298,16 +3678,29 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-  fileBubble: {
+  fileMessageContent: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    minWidth: 160,
+    minWidth: 180,
+    maxWidth: 220,
   },
-  fileBubbleName: { flex: 1, marginHorizontal: 8, fontSize: 14 },
+  fileIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(49,149,39,0.12)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  fileMessageName: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  fileMessageSub: {
+    fontSize: 11,
+    marginTop: 2,
+  },
   headerOverlay: {
     position: "absolute",
     top: 0,
