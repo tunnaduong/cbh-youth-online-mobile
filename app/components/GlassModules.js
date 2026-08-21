@@ -60,12 +60,24 @@ const glassTint = (isDarkMode) =>
 // dialing both down keeps the glass look while cutting the per-frame GPU
 // cost. iOS is untouched since its cost is owned by the OS compositor, not us.
 // blurRadius (dp) overrides whatever `intensity` would otherwise derive for
-// the blur pass specifically - explicit 0 on Android means no blur at all,
-// just tint/refraction/rim. Left unset on iOS (the `{}` in androidGlassPerfProps
-// below), so iOS keeps deriving its blur from `intensity` as before - there's
-// no separate "default" blurRadius to set it back to, unset IS the default.
+// the blur pass specifically - explicit 0 on Android means no blur pass at
+// all. Left unset on iOS (the `{}` in androidGlassPerfProps below), so iOS
+// keeps deriving its blur from `intensity` as before - there's no separate
+// "default" blurRadius to set it back to, unset IS the default.
+//
+// rim/specular both default to true as of 1.1.0+ (they didn't exist as
+// controllable props in 1.0.0, so upgrading turned them on for free) - each
+// is its own extra optical stage the AGSL shader computes per pixel, every
+// frame, on top of refraction/tint/blur: `rim` is the bright Fresnel glass
+// edge, `specular` is the moving sheen + specular hotspot. Neither is
+// optional extra draw calls, they're more math inside the same per-frame
+// pass, so turning both off is a real, direct reduction in per-frame GPU
+// cost - dropped for the same reason intensity/thickness/blurRadius are
+// already tuned down here.
 const androidGlassPerfProps =
-  Platform.OS === "android" ? { intensity: 17, thickness: 0.4, blurRadius: 0 } : {};
+  Platform.OS === "android"
+    ? { intensity: 17, thickness: 0.4, blurRadius: 0, rim: false, specular: false }
+    : {};
 
 export {
   LiquidGlassView,
