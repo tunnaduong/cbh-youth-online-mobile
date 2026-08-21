@@ -749,10 +749,21 @@ const MessageRow = React.memo(({
   const isFileMessage = item.type === "file" || item.content_type === "file";
   const resolvedFileUrl = resolveMediaUrl(item.file_url);
   const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
+  // Small (480px) muted preview clip for autoplay - see
+  // MediaThumbnailService::videoPreview on the backend. Decoding a full
+  // compressed video (up to 1920x1080) inline in a ~200px bubble burns far
+  // more CPU than that tiny player needs; falls back to the full file for
+  // older messages sent before this existed.
+  const resolvedPreviewUrl = resolveMediaUrl(item.metadata?.preview_url);
+  // Same idea for the static image bubble - a full-resolution original is
+  // wasted decode/network cost at bubble size. Backend generates this
+  // synchronously at send time, but falls back to the full file if it's
+  // ever missing rather than showing nothing.
+  const displayImageUrl = isImageMessage ? (resolvedThumbnailUrl || resolvedFileUrl) : null;
   const [imageAspectRatio, setImageAspectRatio] = useState(null);
 
   useEffect(() => {
-    const url = isImageMessage ? resolvedFileUrl : isVideoMessage ? resolvedThumbnailUrl : null;
+    const url = isImageMessage ? displayImageUrl : isVideoMessage ? resolvedThumbnailUrl : null;
     if (!url) {
       setImageAspectRatio(null);
       return undefined;
@@ -780,7 +791,7 @@ const MessageRow = React.memo(({
     return () => {
       cancelled = true;
     };
-  }, [resolvedFileUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
+  }, [displayImageUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
 
   const handleSwipeReply = () => {
     const contentType =
@@ -1020,7 +1031,7 @@ const MessageRow = React.memo(({
                   </View>
                 ) : (
                   <FastImage
-                    source={{ uri: resolvedFileUrl }}
+                    source={{ uri: displayImageUrl }}
                     style={
                       imageAspectRatio
                         ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
@@ -1032,7 +1043,7 @@ const MessageRow = React.memo(({
                       console.error("[ChatMedia] image FAILED to load", {
                         id: item.id,
                         raw_file_url: item.file_url,
-                        resolved: resolvedFileUrl,
+                        resolved: displayImageUrl,
                         reason,
                       });
                       onImageError(item.id, reason);
@@ -1060,7 +1071,7 @@ const MessageRow = React.memo(({
                       : 200;
                     return (
                       <InlineVideoPlayer
-                        uri={resolvedFileUrl}
+                        uri={resolvedPreviewUrl || resolvedFileUrl}
                         width={thumbWidth}
                         height={thumbHeight}
                         borderRadius={12}
