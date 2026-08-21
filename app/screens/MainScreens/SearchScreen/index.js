@@ -17,10 +17,12 @@ import { searchQuery } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import CustomLoading from "../../../components/CustomLoading";
 import LiquidButton from "../../../components/LiquidButton";
-import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { AndroidGlassBackdrop, LiquidGlassView, glassTint, androidGlassPerfProps } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+
+const SearchPillWrapper = LiquidGlassView ?? View;
 
 export default function SearchScreen({ navigation, route }) {
   const inset = useSafeAreaInsets();
@@ -238,13 +240,23 @@ export default function SearchScreen({ navigation, route }) {
             <Ionicons name="chevron-back-outline" color={theme.text} size={21} />
           </LiquidButton>
           <View style={styles.searchControls}>
-            <View
+            {/* Content must be real children of LiquidGlassView, not a
+                sibling drawn over an absoluteFill glass layer - see
+                LiquidButton's comment on why - so the icon/input/clear
+                button below live inside it directly rather than the old
+                plain View. */}
+            <SearchPillWrapper
+              {...(LiquidGlassView
+                ? { variant: "clear", tintColor: glassTint(isDarkMode), borderRadius: 14, ...androidGlassPerfProps }
+                : {})}
               style={[
                 styles.searchInputContainer,
-                {
-                  backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
-                  borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
-                },
+                LiquidGlassView
+                  ? { borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)" }
+                  : {
+                      backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.95)",
+                      borderColor: isDarkMode ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.12)",
+                    },
               ]}
             >
               <Ionicons name="search" size={17} color={theme.subText} />
@@ -264,7 +276,7 @@ export default function SearchScreen({ navigation, route }) {
                   <Ionicons name="close-circle" size={17} color={theme.subText} />
                 </TouchableOpacity>
               )}
-            </View>
+            </SearchPillWrapper>
             <LiquidButton
               providerId="SearchScreen"
               onPress={() => setShowFilterMenu((prev) => !prev)}

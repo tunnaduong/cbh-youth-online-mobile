@@ -16,7 +16,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import {
   getLogs,
@@ -102,9 +101,13 @@ export default function DevConsoleScreen({ navigation }) {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 64 + insets.top }}>
         <View style={{ width: 44 }}>
-          <LiquidButton size={44} providerId="DevConsoleScreen" onPress={() => navigation.goBack()}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
+            hitSlop={8}
+          >
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
+          </TouchableOpacity>
         </View>
         <Text style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center" }]} numberOfLines={1}>
           {t("devConsole.title")}
