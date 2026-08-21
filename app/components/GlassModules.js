@@ -79,9 +79,15 @@ const glassTint = (isDarkMode) =>
 // the lens ~1.35x weaker, not off) but in practice on-device it reads as
 // losing the glass look entirely, not just a subtler lens - left at its
 // default (true).
+// edgeReflectionStrength (default 1) is a separate per-frame shader stage
+// too - the mirrored "echo" band reflected back at the top/bottom rim -
+// independent of thickness/refraction, so zeroing it drops that stage's
+// per-pixel cost without touching the actual lens depth or the glass look
+// itself (the library's own docs frame 0 as "calm the reflection while
+// keeping a deep lens," not "turn off glass").
 const androidGlassPerfProps =
   Platform.OS === "android"
-    ? { intensity: 17, thickness: 0.4, blurRadius: 0, rim: false, specular: false }
+    ? { intensity: 17, thickness: 0.4, blurRadius: 0, rim: false, specular: false, edgeReflectionStrength: 0 }
     : {};
 
 export {
