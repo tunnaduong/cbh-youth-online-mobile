@@ -209,13 +209,25 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const [currentRoute, setCurrentRoute] = useState("Home");
   const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  // Sidebar used to stay mounted permanently (just slid off-screen via
+  // transform), which on Android means its LiquidGlassView keeps running a
+  // full-screen-height AGSL shader pass every frame the whole time the app
+  // is open, not just while the drawer is actually visible - real, sustained
+  // GPU/perf cost for a screen most sessions never open. Mount it only while
+  // opening/open, and keep it mounted through the close animation so it
+  // doesn't just vanish mid-slide - unmount once that finishes.
+  const [shouldRenderSidebar, setShouldRenderSidebar] = useState(false);
 
   useEffect(() => {
+    if (setting) setShouldRenderSidebar(true);
+
     Animated.timing(drawerTranslateX, {
       toValue: setting ? 0 : -Dimensions.get('window').width,
       duration: 300,
       useNativeDriver: true,
-    }).start();
+    }).start(({ finished }) => {
+      if (!setting && finished) setShouldRenderSidebar(false);
+    });
 
     Animated.timing(backdropOpacity, {
       toValue: setting ? 1 : 0,
@@ -513,7 +525,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
         zIndex: 101,
         transform: [{ translateX: drawerTranslateX }]
       }}>
-        <Sidebar providerId={currentRoute} isOpen={setting} />
+        {shouldRenderSidebar && <Sidebar providerId={currentRoute} isOpen={setting} />}
       </Animated.View>
     </View>
   );
