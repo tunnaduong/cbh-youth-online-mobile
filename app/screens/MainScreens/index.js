@@ -509,16 +509,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
       </View>
       </TabWrapper>
 
-      {isCustomTabBar && (
-        <CustomTabBar
-          activeRouteName={currentRoute}
-          chatUnreadCount={chatUnreadCount}
-          notificationUnreadCount={notificationUnreadCount}
-          onTabPress={handleAndroidTabPress}
-          onCreatePress={() => stackNavigation.navigate("CreatePostScreen")}
-        />
-      )}
-
       {/* Create menu. The "+" lives in the native center tab ("Tạo"); tapping
           it opens this glass menu via the ref instead of navigating. */}
       <CustomTabBarButton
@@ -543,6 +533,23 @@ export default function MainScreens({ navigation: stackNavigation }) {
       }}>
         {shouldRenderSidebar && <Sidebar providerId={currentRoute} isOpen={setting} />}
       </Animated.View>
+
+      {/* CustomTabBar is rendered LAST (after the create-menu popover, the
+          backdrop, and the Sidebar) so nothing else in this sibling stack
+          paints after it. Its liquid-glass surface only needs to reflect the
+          actual screen content underneath it - when it used to render first,
+          the popover/backdrop/Sidebar above it in z-order could still get
+          swept into its native backdrop capture, making the navbar
+          incorrectly "reflect" the sidebar/menu instead of just the page. */}
+      {isCustomTabBar && (
+        <CustomTabBar
+          activeRouteName={currentRoute}
+          chatUnreadCount={chatUnreadCount}
+          notificationUnreadCount={notificationUnreadCount}
+          onTabPress={handleAndroidTabPress}
+          onCreatePress={() => stackNavigation.navigate("CreatePostScreen")}
+        />
+      )}
     </View>
   );
 }

@@ -171,6 +171,7 @@
         }
       ],
       "expo-video",
+      "expo-audio",
       "react-native-liquid-glassmorphism",
       [
         "expo-share-intent",
