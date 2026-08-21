@@ -3677,13 +3677,12 @@ const ConversationScreen = ({ navigation, route }) => {
         ]}
       >
         <View style={styles.headerContent}>
-          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={safeGoBack} forceNoGlass={isAndroid}>
+          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={safeGoBack}>
             <Ionicons name="chevron-back" size={22} color={theme.primary} />
           </LiquidButton>
 
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} pointerEvents="box-none">
             <LiquidButton
-              forceNoGlass={isAndroid}
               onPress={() => {
                 if (currentConversation?.type === "group") {
                   if (!isPublicGroupChat(currentConversation)) {
@@ -3746,7 +3745,7 @@ const ConversationScreen = ({ navigation, route }) => {
             </LiquidButton>
           </View>
 
-          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={showOptions} forceNoGlass={isAndroid}>
+          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={showOptions}>
             <Ionicons name="ellipsis-vertical" size={22} color={theme.primary} />
           </LiquidButton>
         </View>
@@ -4095,7 +4094,6 @@ const ConversationScreen = ({ navigation, route }) => {
               disabled={!message.trim() || sending}
               isSubmitting={sending}
               allowBroadcastMention={currentConversation?.type === "group"}
-              forceNoGlass={isAndroid}
               style={{
                 paddingHorizontal: 12,
                 paddingBottom: isAndroid ? 14 : 0,
