@@ -1402,6 +1402,17 @@ const ConversationScreen = ({ navigation, route }) => {
   // but stops mounting it - a deliberate, rare tradeoff over letting a
   // single very-long session snowball back into the original perf problem.
   const MAX_RENDER_LIMIT = 400;
+  // The backend already delivers history in real pages (getConversationMessages'
+  // `page` param, `current_page`/`last_page`) - this just remembers each
+  // loaded older page's boundary (the id of its oldest message) so the
+  // near-top growth step below can snap renderLimit to reveal one whole
+  // fetched page at a time, instead of an arbitrary RENDER_WINDOW_CHUNK-sized
+  // guess that might land mid-page. Oldest-page-first, matching how pages
+  // get prepended to `messages`. Message ids rather than indices/counts
+  // because `messages` also has date/time headers interspersed
+  // (injectTimeHeaders) whose count per page isn't fixed - an id survives
+  // that; a raw count wouldn't line up.
+  const pageBoundaryIdsRef = useRef([]);
   const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
   // Companion to renderLimit, but for the *other* end: renderLimit caps how
   // far back (toward the oldest) mounted content reaches; this caps how far
@@ -1913,6 +1924,7 @@ const ConversationScreen = ({ navigation, route }) => {
         setPage(1);
         setHasMore(true);
         setRenderLimit(RENDER_WINDOW_CHUNK);
+        pageBoundaryIdsRef.current = [];
       }
 
       if (!hasMore && !isRefresh) return;
@@ -1939,6 +1951,9 @@ const ConversationScreen = ({ navigation, route }) => {
       const transformed = injectTimeHeaders(newMessages, t);
 
       if (!isBackground) {
+        if (!isRefresh && newMessages.length > 0) {
+          pageBoundaryIdsRef.current = [newMessages[0].id, ...pageBoundaryIdsRef.current];
+        }
         setMessages((prev) => {
           if (isRefresh || prev.length === 0) {
             return preserveRecentReactions(transformed);
@@ -2314,11 +2329,31 @@ const ConversationScreen = ({ navigation, route }) => {
     // the server - this is a separate, purely local render cap (see
     // renderLimit above), not the "load more" pagination trigger above it.
     if (isNearTop) {
-      setRenderLimit((prev) =>
-        messages.length > prev && prev < MAX_RENDER_LIMIT
-          ? Math.min(prev + RENDER_WINDOW_CHUNK, MAX_RENDER_LIMIT)
-          : prev
-      );
+      setRenderLimit((prev) => {
+        if (messages.length <= prev || prev >= MAX_RENDER_LIMIT) return prev;
+
+        // Snap to the next real fetched-page boundary (see
+        // pageBoundaryIdsRef) instead of a flat RENDER_WINDOW_CHUNK guess,
+        // so a mount/unmount always lines up with an actual page the
+        // server sent rather than an arbitrary message count that might
+        // land mid-page. Walked oldest-first; the first boundary not yet
+        // inside the current window is the next one to reveal.
+        for (let i = 0; i < pageBoundaryIdsRef.current.length; i++) {
+          const idx = messages.findIndex(
+            (m) => String(m.id) === String(pageBoundaryIdsRef.current[i])
+          );
+          if (idx === -1) continue;
+          const countFromEnd = messages.length - idx;
+          if (countFromEnd > prev) {
+            return Math.min(countFromEnd, MAX_RENDER_LIMIT);
+          }
+        }
+
+        // No tracked boundary beyond the current window yet (e.g. right
+        // after a page just landed, before its id is findable) - fall back
+        // to the old flat increment so growth never stalls.
+        return Math.min(prev + RENDER_WINDOW_CHUNK, MAX_RENDER_LIMIT);
+      });
     }
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
