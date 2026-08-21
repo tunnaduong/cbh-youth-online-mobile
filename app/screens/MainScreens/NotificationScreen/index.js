@@ -640,7 +640,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           borderRadius={22}
         >
           <Ionicons
-            name="checkmark-done-outline"
+            name="checkmark-done"
             size={22}
             color={
               unreadCount > 0
