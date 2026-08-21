@@ -1445,6 +1445,16 @@ const ConversationScreen = ({ navigation, route }) => {
   const activeInlineVideoIdRef = useRef(null);
   const [activeInlineVideoId, setActiveInlineVideoId] = useState(null);
   const scrollOffsetRef = useRef(0);
+  // Prepending older messages at the top grows content ABOVE the current
+  // viewport - a plain (non-inverted) ScrollView doesn't compensate for
+  // that on its own, so the same messages the user was reading jump
+  // downward by however tall the newly-added page is, and offsetY stays
+  // pinned near 0 ("isNearTop") the whole time, re-triggering another
+  // "load more" immediately. Set right before fetchMessages(false) fires
+  // from pagination; consumed once in onContentSizeChange to scroll by
+  // the height actually added, landing the user back where they were
+  // instead of still sitting at the very top edge.
+  const pendingLoadMoreAdjustRef = useRef(null);
   const isFocused = useIsFocused();
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
@@ -2293,6 +2303,10 @@ const ConversationScreen = ({ navigation, route }) => {
     const isNearTop = offsetY <= 40;
     if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
+      pendingLoadMoreAdjustRef.current = {
+        prevHeight: scrollContentHeightRef.current,
+        prevOffsetY: offsetY,
+      };
       fetchMessages(false);
     }
     // Reveal more of what's already loaded as the user scrolls back into
@@ -2317,13 +2331,20 @@ const ConversationScreen = ({ navigation, route }) => {
     // back within reach (including landing exactly at the bottom, where
     // this evaluates to 0) remounts it. Within the keep-zone - "reading in
     // the middle" - nothing here changes.
-    const BOTTOM_KEEP_PX = (scrollViewHeightRef.current || 800) * 3;
+    const BOTTOM_KEEP_PX = (scrollViewHeightRef.current || 800) * 1.5;
     if (distanceFromBottom <= BOTTOM_KEEP_PX) {
       setRenderEndOffset((prev) => (prev === 0 ? prev : 0));
     } else {
       const renderedCount = visibleMessages.length || 1;
       const avgHeight = (scrollContentHeightRef.current || 1) / renderedCount;
       const hiddenCount = Math.max(0, Math.floor((distanceFromBottom - BOTTOM_KEEP_PX) / avgHeight));
+      console.log("[ChatWindow] bottom-trim check", {
+        distanceFromBottom: Math.round(distanceFromBottom),
+        BOTTOM_KEEP_PX: Math.round(BOTTOM_KEEP_PX),
+        renderedCount,
+        avgHeight: Math.round(avgHeight),
+        hiddenCount,
+      });
       setRenderEndOffset((prev) => (prev === hiddenCount ? prev : hiddenCount));
     }
 
@@ -3948,6 +3969,19 @@ const ConversationScreen = ({ navigation, route }) => {
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
           onContentSizeChange={(w, h) => {
+            const pending = pendingLoadMoreAdjustRef.current;
+            if (pending && h > pending.prevHeight) {
+              pendingLoadMoreAdjustRef.current = null;
+              const grownBy = h - pending.prevHeight;
+              const targetY = pending.prevOffsetY + grownBy;
+              requestAnimationFrame(() => {
+                messagesScrollRef.current?.scrollTo({ y: targetY, animated: false });
+              });
+              console.log("[ChatWindow] compensated scroll after load-more", {
+                grownBy: Math.round(grownBy),
+                targetY: Math.round(targetY),
+              });
+            }
             scrollContentHeightRef.current = h;
             handleMessagesContentSizeChange(w, h);
           }}

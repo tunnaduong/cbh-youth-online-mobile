@@ -74,6 +74,11 @@ const glassTint = (isDarkMode) =>
 // pass, so turning both off is a real, direct reduction in per-frame GPU
 // cost - dropped for the same reason intensity/thickness/blurRadius are
 // already tuned down here.
+//
+// refraction={false} was tried here too (docs describe it as just dialing
+// the lens ~1.35x weaker, not off) but in practice on-device it reads as
+// losing the glass look entirely, not just a subtler lens - left at its
+// default (true).
 const androidGlassPerfProps =
   Platform.OS === "android"
     ? { intensity: 17, thickness: 0.4, blurRadius: 0, rim: false, specular: false }
