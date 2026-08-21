@@ -2695,7 +2695,23 @@ const ConversationScreen = ({ navigation, route }) => {
     };
   });
 
+  // A chat-bubble thumbnail can spuriously fail to decode (seen intermittently,
+  // never on every image) while the exact same URL opens fine a moment later
+  // in the full-screen viewer - most likely a transient decode/race condition
+  // around the tile resizing itself once the real aspect ratio loads in (see
+  // getMediaDisplaySize/getTileSize above), not an actual dead URL. Retry a
+  // couple of times silently (forcing FastImage to remount via a cache-busting
+  // key bump) before giving up and showing the permanent "tap to retry" state.
+  const mediaLoadRetryCountRef = useRef({});
+  const [mediaLoadRetryKey, setMediaLoadRetryKey] = useState({});
+  const IMAGE_LOAD_AUTO_RETRIES = 2;
   const handleImageLoadError = React.useCallback((id, reason) => {
+    const attempts = (mediaLoadRetryCountRef.current[id] || 0) + 1;
+    mediaLoadRetryCountRef.current[id] = attempts;
+    if (attempts <= IMAGE_LOAD_AUTO_RETRIES) {
+      setMediaLoadRetryKey((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+      return;
+    }
     setMediaLoadErrors((prev) => ({ ...prev, [id]: reason }));
   }, []);
 
@@ -2705,12 +2721,14 @@ const ConversationScreen = ({ navigation, route }) => {
   // fallback), which turns a transient blip (cold cache, momentary network
   // drop) into a dead tile for the rest of the session.
   const retryMediaLoad = React.useCallback((id) => {
+    mediaLoadRetryCountRef.current[id] = 0;
     setMediaLoadErrors((prev) => {
       if (!(id in prev)) return prev;
       const next = { ...prev };
       delete next[id];
       return next;
     });
+    setMediaLoadRetryKey((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
   }, []);
 
   // <Chat>'s FlatList is inverted (newest first); `messages` (incl. injected
@@ -2839,6 +2857,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   </>
                 ) : (
                   <FastImage
+                    key={mediaLoadRetryKey[errorKey] || 0}
                     source={{ uri }}
                     style={styles.imageGridImage}
                     resizeMode="cover"
