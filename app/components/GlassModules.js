@@ -1,5 +1,6 @@
 import React from "react";
 import { Platform, View } from "react-native";
+import { useTheme } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
 // react-native-liquid-glassmorphism - single cross-platform glass component.
@@ -20,18 +21,64 @@ import { Platform, View } from "react-native";
 // as a passthrough for the ~30 existing call sites that still wrap screen
 // content in it.
 // ---------------------------------------------------------------------------
-let LiquidGlassView = null;
+let RealLiquidGlassView = null;
 let isGlassAvailable = false;
 
 try {
   const Lib = require("react-native-liquid-glassmorphism");
-  LiquidGlassView = Lib.LiquidGlassView;
-  isGlassAvailable = !!LiquidGlassView;
+  RealLiquidGlassView = Lib.LiquidGlassView;
+  isGlassAvailable = !!RealLiquidGlassView;
   console.log(`[GlassModules] react-native-liquid-glassmorphism loaded: ${isGlassAvailable} (platform=${Platform.OS})`);
 } catch (error) {
   console.warn("Failed to load react-native-liquid-glassmorphism:", error);
   console.log("[GlassModules] react-native-liquid-glassmorphism: NOT available");
 }
+
+// Settings' "Liquid glass effect" toggle (default on) reads/writes here, so
+// this one component is the only place that needs to know about it - every
+// call site across the app just keeps rendering <LiquidGlassView ...> with
+// whatever tintColor/style/borderRadius/children it already passes, and
+// gets the flat tinted look (the same style Android used before this
+// library existed) instead of real glass when the user turns it off,
+// without any of those call sites branching on the setting themselves.
+// Every call site already passes tintColor as the intended surface color,
+// so reusing it as a flat backgroundColor here is a faithful "glass off"
+// look, not an approximation cobbled together separately per screen.
+const GatedLiquidGlassView = ({
+  tintColor,
+  style,
+  borderRadius,
+  children,
+  ...rest
+}) => {
+  const { liquidGlassEnabled } = useTheme();
+
+  if (liquidGlassEnabled) {
+    return (
+      <RealLiquidGlassView
+        tintColor={tintColor}
+        style={style}
+        borderRadius={borderRadius}
+        {...rest}
+      >
+        {children}
+      </RealLiquidGlassView>
+    );
+  }
+
+  return (
+    <View style={[style, { borderRadius, backgroundColor: tintColor }]}>
+      {children}
+    </View>
+  );
+};
+
+// Only wrap when the native module actually loaded - staying `null`
+// otherwise preserves every call site's own existing fallback branch for
+// "library unavailable on this device," which is a different case from
+// "available but the user turned it off" (handled inside the wrapper
+// above) and already has its own bespoke fallback styling per call site.
+const LiquidGlassView = isGlassAvailable ? GatedLiquidGlassView : null;
 
 // Passthrough - the new library needs no ancestor provider. Kept so existing
 // <AndroidGlassBackdrop providerId="X" style={{flex:1}}> call sites across

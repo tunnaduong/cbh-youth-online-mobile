@@ -61,6 +61,14 @@ export const ThemeProvider = ({ children }) => {
     return storage.getBoolean("autoplayVideos") ?? false;
   });
 
+  // Liquid glass is on by default - this is the "turn it off" escape hatch
+  // for whoever wants the flatter, cheaper tinted look everywhere instead
+  // (same tint style Android used before the glass migration), on both
+  // platforms.
+  const [liquidGlassEnabled, setLiquidGlassEnabledState] = useState(() => {
+    return storage.getBoolean("liquidGlassEnabled") ?? true;
+  });
+
   useEffect(() => {
     if (useSystemTheme) {
       setIsDarkMode(systemColorScheme === "dark");
@@ -88,6 +96,11 @@ export const ThemeProvider = ({ children }) => {
     storage.set("autoplayVideos", value);
   };
 
+  const setLiquidGlassEnabled = (value) => {
+    setLiquidGlassEnabledState(value);
+    storage.set("liquidGlassEnabled", value);
+  };
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   return (
@@ -102,6 +115,8 @@ export const ThemeProvider = ({ children }) => {
         setHideTabLabels,
         autoplayVideos,
         setAutoplayVideos,
+        liquidGlassEnabled,
+        setLiquidGlassEnabled,
       }}
     >
       {children}
