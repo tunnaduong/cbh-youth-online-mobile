@@ -60,7 +60,7 @@ const glassTint = (isDarkMode) =>
 // dialing both down keeps the glass look while cutting the per-frame GPU
 // cost. iOS is untouched since its cost is owned by the OS compositor, not us.
 const androidGlassPerfProps =
-  Platform.OS === "android" ? { intensity: 35, thickness: 0.4 } : {};
+  Platform.OS === "android" ? { intensity: 17, thickness: 0.4 } : {};
 
 export {
   LiquidGlassView,
