@@ -272,23 +272,6 @@ const PostItem = ({
         : item.video
           ? [item.video]
           : [];
-  // Small muted low-bitrate copies for feed autoplay (see
-  // MediaThumbnailService/video_preview_urls on the backend) - decode cost
-  // scales with source resolution regardless of card size, so autoplaying
-  // the full original in a feed card burns far more CPU than needed.
-  // Index-paired with videoUrls; falls back to the full video wherever a
-  // preview hasn't been generated yet (older posts, or the async job just
-  // hasn't finished).
-  const videoPreviewUrls = Array.isArray(item.video_preview_urls) ? item.video_preview_urls : [];
-  const videoThumbnailUrls = Array.isArray(item.video_thumbnail_urls) ? item.video_thumbnail_urls : [];
-  // Same idea for the feed grid - a full-resolution original is wasted
-  // decode/network cost at collage-thumbnail size. Falls back to the full
-  // image wherever no thumbnail exists. The full-screen ImageView viewer
-  // below still uses the real image_urls, untouched.
-  const imageThumbnailUrls = Array.isArray(item.image_thumbnail_urls) ? item.image_thumbnail_urls : [];
-  const displayImageUrls = Array.isArray(item.image_urls)
-    ? item.image_urls.map((url, i) => imageThumbnailUrls[i] || url)
-    : item.image_urls;
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
   const insets = useSafeAreaInsets();
   const { username, userInfo } = useContext(AuthContext);
@@ -779,7 +762,7 @@ const PostItem = ({
           {item.image_urls && item.image_urls.length > 0 && (
             <>
               <FBCollage
-                images={displayImageUrls}
+                images={item.image_urls}
                 imageOnPress={(index) => {
                   setIsVisible(index);
                 }}
@@ -830,9 +813,7 @@ const PostItem = ({
                   {videoUrls.map((url, index) => (
                     <InlineVideoPlayer
                       key={`${url}-${index}`}
-                      uri={videoPreviewUrls[index] || url}
-                      fullscreenUri={url}
-                      thumbnailUri={videoThumbnailUrls[index]}
+                      uri={url}
                       width={videoW}
                       height={videoH}
                       borderRadius={0}
@@ -852,9 +833,7 @@ const PostItem = ({
                 {videoUrls.map((url, index) => (
                   <InlineVideoPlayer
                     key={`${url}-${index}`}
-                    uri={videoPreviewUrls[index] || url}
-                    fullscreenUri={url}
-                    thumbnailUri={videoThumbnailUrls[index]}
+                    uri={url}
                     width={single ? 260 : 220}
                     height={single ? 180 : 150}
                     borderRadius={12}
