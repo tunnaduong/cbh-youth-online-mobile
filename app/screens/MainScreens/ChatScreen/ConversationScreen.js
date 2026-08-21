@@ -2647,10 +2647,12 @@ const ConversationScreen = ({ navigation, route }) => {
     // text
     return (
       <MentionText
-        text={item.content || ""}
         style={{ color: item.is_myself ? "#fff" : theme.text, fontSize: 16 }}
+        mentions={item.mentions}
         onMentionPress={(username) => navigation.navigate("ProfileScreen", { username })}
-      />
+      >
+        {item.content || ""}
+      </MentionText>
     );
   };
 
