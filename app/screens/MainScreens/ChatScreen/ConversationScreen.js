@@ -2549,31 +2549,56 @@ const ConversationScreen = ({ navigation, route }) => {
       if (urls.length === 0) return null;
       return (
         <View style={styles.imageGrid}>
-          {urls.map((uri, idx) => (
-            <TouchableOpacity
-              key={`${item.id}-${idx}`}
-              onPress={() => openImageViewerGallery(urls, idx)}
-              style={styles.imageGridItem}
-            >
-              <FastImage
-                source={{ uri }}
-                style={styles.imageGridImage}
-                resizeMode="cover"
-                onError={() => handleImageLoadError(item.id, "load_error")}
-              />
-              {item.is_sending && (
-                <View style={styles.imageUploadOverlay}>
-                  <ActivityIndicator color="#fff" />
-                </View>
-              )}
-            </TouchableOpacity>
-          ))}
+          {urls.map((uri, idx) => {
+            const errorKey = `${item.id}-${idx}`;
+            const hasError = !!mediaLoadErrors[errorKey];
+            return (
+              <TouchableOpacity
+                key={errorKey}
+                onPress={() => (hasError ? null : openImageViewerGallery(urls, idx))}
+                disabled={hasError}
+                style={[styles.imageGridItem, hasError && styles.mediaErrorFallback]}
+              >
+                {hasError ? (
+                  <>
+                    <Ionicons name="image-outline" size={22} color="#fff" />
+                    <Text style={styles.mediaErrorText}>
+                      {t("chatConversation.imageLoadFailed", "Không thể tải ảnh")}
+                    </Text>
+                  </>
+                ) : (
+                  <FastImage
+                    source={{ uri }}
+                    style={styles.imageGridImage}
+                    resizeMode="cover"
+                    onError={() => handleImageLoadError(errorKey, "load_error")}
+                  />
+                )}
+                {item.is_sending && !hasError && (
+                  <View style={styles.imageUploadOverlay}>
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       );
     }
 
     if (contentType === "video") {
       const uri = resolveMediaUrl(item.file_url);
+      const hasError = !!mediaLoadErrors[item.id];
+      if (hasError) {
+        return (
+          <View style={[styles.videoBubble, styles.mediaErrorFallback]}>
+            <Ionicons name="videocam-off-outline" size={22} color="#fff" />
+            <Text style={styles.mediaErrorText}>
+              {t("chatConversation.videoLoadFailed", "Không thể tải video")}
+            </Text>
+          </View>
+        );
+      }
       return (
         <TouchableOpacity onPress={() => uri && openVideoViewer(uri)} style={styles.videoBubble}>
           <InlineVideoPlayer
@@ -3016,7 +3041,15 @@ const ConversationScreen = ({ navigation, route }) => {
             keyboardDismissMode="interactive"
             contentContainerStyle={[
               styles.messagesContent,
-              { paddingBottom: HEADER_HEIGHT + 12, paddingTop: isAndroid ? 82 : 24 },
+              {
+                paddingBottom: HEADER_HEIGHT + 12,
+                // List is inverted, so this paddingTop is the visual gap
+                // above the composer bar (KeyboardStickyView), which is
+                // absolutely positioned and not accounted for in the list's
+                // own layout - too small a value here left the last message
+                // tucked right under/behind the composer.
+                paddingTop: insets.bottom + (isAndroid ? 96 : 88),
+              },
             ]}
             onScroll={(e) => scrollY.setValue(e.nativeEvent.contentOffset.y)}
             scrollEventThrottle={16}
@@ -3250,6 +3283,18 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
+  },
+  mediaErrorFallback: {
+    backgroundColor: "#3a1a1a",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+  },
+  mediaErrorText: {
+    color: "#fff",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 4,
   },
   fileBubble: {
     flexDirection: "row",
