@@ -22,7 +22,7 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView, glassTint } from "./GlassModules";
+import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -215,53 +215,38 @@ const Sidebar = ({ providerId, isOpen }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      {Platform.OS === "ios" ? (
-        LiquidGlassView ? (
-          <>
-            <LiquidGlassView
-              variant="clear"
-              tintColor={glassTint(isDarkMode)}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-              }}
-            />
-            {/* Overlay to guarantee readable contrast over liquid glass */}
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-                backgroundColor: sidebarTint,
-              }}
-            />
-          </>
-        ) : (
-          <View
+      {LiquidGlassView ? (
+        <>
+          <LiquidGlassView
+            variant="clear"
+            tintColor={glassTint(isDarkMode)}
+            {...androidGlassPerfProps}
             style={{
               position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: sidebarTint,
               borderTopRightRadius: 24,
               borderBottomRightRadius: 24,
             }}
           />
-        )
+          {/* Overlay to guarantee readable contrast over liquid glass */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderTopRightRadius: 24,
+              borderBottomRightRadius: 24,
+              backgroundColor: sidebarTint,
+            }}
+          />
+        </>
       ) : (
-        // Android: OneUI-style transparent tint (no liquid glass for sidebar)
         <View
           style={{
             position: "absolute",
@@ -269,10 +254,10 @@ const Sidebar = ({ providerId, isOpen }) => {
             left: 0,
             right: 0,
             bottom: 0,
+            backgroundColor: sidebarTint,
             borderTopRightRadius: 24,
             borderBottomRightRadius: 24,
-            backgroundColor: sidebarTint,
-            borderRightWidth: 1,
+            borderRightWidth: Platform.OS === "android" ? 1 : 0,
             borderColor: isDarkMode
               ? "rgba(255,255,255,0.08)"
               : "rgba(0,0,0,0.06)",
