@@ -232,7 +232,7 @@ const Comment = React.memo(React.forwardRef(
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: content ? 6 : 0 }}>
                   {comment.image_urls.map((url, idx) => (
                     <TouchableOpacity key={idx} activeOpacity={0.85} onPress={() => setImageViewer({ visible: true, images: comment.image_urls.map((u) => ({ uri: u })), index: idx })}>
-                      <FastImage source={{ uri: comment.image_thumbnail_urls?.[idx] || url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
+                      <FastImage source={{ uri: url }} style={{ width: comment.image_urls.length === 1 ? 200 : 96, height: comment.image_urls.length === 1 ? 200 : 96, borderRadius: 8 }} resizeMode="cover" />
                     </TouchableOpacity>
                   ))}
                 </View>
