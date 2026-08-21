@@ -82,10 +82,12 @@ const Sidebar = ({ providerId, isOpen }) => {
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
-  // stronger tint for glass/background depending on theme (more contrast)
+  // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
+  // entirely, reading as a flat tinted panel instead of glass. Matches
+  // glassTint's ratio (see GlassModules.js) used everywhere else in the app.
   const sidebarTint = isDarkMode
-    ? "rgba(0,0,0,0.72)"
-    : "rgba(255,255,255,0.92)";
+    ? "rgba(0,0,0,0.4)"
+    : "rgba(255,255,255,0.4)";
   const iosMajorVersion =
     Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
   const [collapsedSections, setCollapsedSections] = useState({
