@@ -13,7 +13,6 @@ import {
   StatusBar,
   Dimensions,
   Modal,
-  PanResponder,
   TouchableWithoutFeedback,
   Keyboard,
   BackHandler,
@@ -88,7 +87,15 @@ import {
   KeyboardStickyView,
   KeyboardGestureArea,
 } from "react-native-keyboard-controller";
-import Reanimated from "react-native-reanimated";
+import Reanimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  runOnJS,
+  interpolate,
+  Extrapolation,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 // Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
 // local optimistic messages use file:// or content:// URIs, and http(s) may
@@ -219,60 +226,83 @@ const SWIPE_ICON_OFFSET = 44;
 // Swipe left/right on a message bubble to reply to it (Telegram/Messenger
 // style). Restored after the chat-lib migration dropped it along with the
 // deleted MessageRow component it used to live in.
+//
+// Rewritten from PanResponder (JS-thread responder system) to
+// react-native-gesture-handler's Gesture.Pan (native-thread recognizer) -
+// KeyboardGestureArea (wrapping the whole message list, for the interactive
+// drag-to-dismiss-keyboard gesture) also uses RNGH natively under the hood,
+// and RNGH's own native recognizers generally win responder-ship over a
+// PanResponder's JS-thread one once armed (e.g. while the keyboard is
+// visible), which made this swipe silently stop working with the keyboard
+// open. Both now live on the same gesture system, and
+// activeOffsetX/failOffsetY below make this gesture immediately cede to any
+// vertical drag (list scroll, keyboard dismiss) instead of contesting it.
 const SwipeableMessage = ({ children, onSwipe }) => {
-  const translateX = useRef(new Animated.Value(0)).current;
+  const translateX = useSharedValue(0);
   const triggeredRef = useRef(false);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
-      // Capture phase runs top-down BEFORE any nested touchable (e.g. the
-      // video tile's mute button) gets a chance to claim the responder in
-      // the bubble phase - without this, a clear horizontal swipe starting
-      // on top of a nested TouchableOpacity never reached this PanResponder
-      // at all, so swipe-to-reply silently did nothing on video messages.
-      onMoveShouldSetPanResponderCapture: (_, g) =>
-        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
-      onPanResponderGrant: () => {
-        triggeredRef.current = false;
-      },
-      onPanResponderMove: (_, g) => {
-        const clamped = g.dx > 0
-          ? Math.min(SWIPE_THRESHOLD + 10, g.dx)
-          : Math.max(-(SWIPE_THRESHOLD + 10), g.dx);
-        translateX.setValue(clamped);
-        if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
-          triggeredRef.current = true;
-          onSwipe?.();
-        }
-      },
-      onPanResponderRelease: () => {
-        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 120, friction: 10 }).start();
-      },
-    })
-  ).current;
+  const fireSwipe = () => onSwipe?.();
 
-  const leftIconOpacity = translateX.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-  const leftIconTranslateX = translateX.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD + 10],
-    outputRange: [0, SWIPE_ICON_OFFSET + 10],
-    extrapolate: "clamp",
-  });
-  const rightIconOpacity = translateX.interpolate({
-    inputRange: [-SWIPE_THRESHOLD, 0],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-  const rightIconTranslateX = translateX.interpolate({
-    inputRange: [-(SWIPE_THRESHOLD + 10), 0],
-    outputRange: [-(SWIPE_ICON_OFFSET + 10), 0],
-    extrapolate: "clamp",
-  });
+  const panGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        // Only claim the gesture for a clearly horizontal drag - mirrors
+        // the old PanResponder's dx>6 && dx>dy*1.5 threshold.
+        .activeOffsetX([-10, 10])
+        // Cede immediately to any vertical movement past this threshold,
+        // so this never fights the FlatList's own scroll or
+        // KeyboardGestureArea's interactive keyboard dismiss.
+        .failOffsetY([-10, 10])
+        .onBegin(() => {
+          triggeredRef.current = false;
+        })
+        .onUpdate((e) => {
+          const clamped =
+            e.translationX > 0
+              ? Math.min(SWIPE_THRESHOLD + 10, e.translationX)
+              : Math.max(-(SWIPE_THRESHOLD + 10), e.translationX);
+          translateX.value = clamped;
+          if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
+            triggeredRef.current = true;
+            runOnJS(fireSwipe)();
+          }
+        })
+        .onFinalize(() => {
+          translateX.value = withSpring(0, { damping: 14, stiffness: 180 });
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+  const leftIconAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
+    transform: [
+      {
+        translateX: interpolate(
+          translateX.value,
+          [0, SWIPE_THRESHOLD + 10],
+          [0, SWIPE_ICON_OFFSET + 10],
+          Extrapolation.CLAMP
+        ),
+      },
+    ],
+  }));
+  const rightIconAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [-SWIPE_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP),
+    transform: [
+      {
+        translateX: interpolate(
+          translateX.value,
+          [-(SWIPE_THRESHOLD + 10), 0],
+          [-(SWIPE_ICON_OFFSET + 10), 0],
+          Extrapolation.CLAMP
+        ),
+      },
+    ],
+  }));
 
   const iconStyle = {
     position: "absolute",
@@ -289,24 +319,23 @@ const SwipeableMessage = ({ children, onSwipe }) => {
 
   return (
     <View style={{ overflow: "visible" }}>
-      <Animated.View
-        style={[iconStyle, { left: 4, opacity: leftIconOpacity, transform: [{ translateX: leftIconTranslateX }] }]}
+      <Reanimated.View
+        style={[iconStyle, { left: 4 }, leftIconAnimatedStyle]}
         pointerEvents="none"
       >
         <Ionicons name="arrow-undo" size={16} color="#fff" />
-      </Animated.View>
-      <Animated.View
-        style={[iconStyle, { right: 4, opacity: rightIconOpacity, transform: [{ translateX: rightIconTranslateX }] }]}
+      </Reanimated.View>
+      <Reanimated.View
+        style={[iconStyle, { right: 4 }, rightIconAnimatedStyle]}
         pointerEvents="none"
       >
         <Ionicons name="arrow-undo" size={16} color="#fff" />
-      </Animated.View>
-      <Animated.View
-        style={{ transform: [{ translateX }] }}
-        {...panResponder.panHandlers}
-      >
-        {children}
-      </Animated.View>
+      </Reanimated.View>
+      <GestureDetector gesture={panGesture}>
+        <Reanimated.View style={bubbleAnimatedStyle}>
+          {children}
+        </Reanimated.View>
+      </GestureDetector>
     </View>
   );
 };
@@ -3076,6 +3105,13 @@ const ConversationScreen = ({ navigation, route }) => {
         style={[
           styles.messageRow,
           { flexDirection: isMine ? "row-reverse" : "row" },
+          // Matches the pre-migration highlight treatment exactly - a
+          // yellow-tinted flash across the whole row (not just a border on
+          // the bubble, which read as too weak/easy to miss).
+          isHighlighted && {
+            backgroundColor: isDarkMode ? "rgba(250,204,21,0.15)" : "rgba(250,204,21,0.25)",
+            borderRadius: 12,
+          },
         ]}
       >
         {!isMine && isGroupChat && (
@@ -3112,8 +3148,6 @@ const ConversationScreen = ({ navigation, route }) => {
                           : "#f0f0f0",
                     alignSelf: isMine ? "flex-end" : "flex-start",
                     opacity: pressed ? 0.85 : 1,
-                    borderWidth: isHighlighted ? 2 : 0,
-                    borderColor: theme.primary,
                   },
                 ]}
               >
@@ -3464,6 +3498,22 @@ const ConversationScreen = ({ navigation, route }) => {
             ]}
           />
         ) : null}
+        {/* Crashed ("Unable to find node on an unmounted component", thrown
+            from a passive-effect-unmount inside this KeyboardGestureArea
+            subtree - almost certainly Reanimated's useAnimatedRef/measure
+            calls inside KeyboardChatScrollView trying to resolve a native
+            view handle) when the whole screen got yanked off the navigator
+            stack and this entire native-gesture-heavy subtree was force
+            torn down in the SAME commit as the screen itself. React
+            Navigation keeps the outgoing screen mounted through the exit
+            transition, flipping `isFocused` false before the screen is
+            actually removed - swapping this subtree for an inert
+            placeholder right then lets KeyboardGestureArea/
+            KeyboardChatScrollView unmount cleanly on their own schedule,
+            one render ahead of the forced removal, instead of racing it.
+            The user can't see this content mid-exit-transition anyway, so
+            there's no visible flash. */}
+        {isFocused ? (
         <AndroidGlassBackdrop providerId="ConversationScreen" style={{ flex: 1 }}>
         <KeyboardGestureArea
           interpolator="ios"
@@ -3479,6 +3529,14 @@ const ConversationScreen = ({ navigation, route }) => {
             keyExtractor={(item) => String(item.id)}
             renderItem={renderMessageItem}
             keyboardDismissMode="interactive"
+            // Android's FlatList clipping optimization can glitch when a
+            // recycled row scrolls back into view - the image/video tile
+            // renders blank (data/tap-to-open still fine, just the native
+            // view content doesn't repaint) until something else forces a
+            // redraw. Disabling it trades a little extra native view memory
+            // for correctness, which matters far more here than the perf
+            // win for a normal-length chat history.
+            removeClippedSubviews={false}
             contentContainerStyle={[
               styles.messagesContent,
               {
@@ -3512,6 +3570,34 @@ const ConversationScreen = ({ navigation, route }) => {
               }
             }}
             onEndReachedThreshold={0.4}
+            // scrollToIndex silently no-ops/throws for a row FlatList hasn't
+            // measured yet (no getItemLayout here, so every row is measured
+            // lazily) - without this, a jump to an old message that's far
+            // outside the currently-rendered window (typical for a
+            // notification deep link opening the screen fresh) could fail
+            // with no visible retry. Estimate an offset from the average
+            // measured row height and land close enough for the real row to
+            // mount, then retry the exact scrollToIndex.
+            onScrollToIndexFailed={(info) => {
+              const avgItemHeight = info.averageItemLength || 80;
+              messagesScrollRef.current?.scrollToOffset({
+                offset: avgItemHeight * info.index,
+                animated: false,
+              });
+              setTimeout(() => {
+                if (!isMountedRef.current) return;
+                try {
+                  messagesScrollRef.current?.scrollToIndex({
+                    index: info.index,
+                    animated: true,
+                    viewPosition: 0.5,
+                  });
+                } catch (e) {
+                  // Still not measured - the retry loop in jumpToMessageId
+                  // will eventually give up and show the "not found" toast.
+                }
+              }, 150);
+            }}
             onViewableItemsChanged={handleViewableItemsChanged}
             viewabilityConfig={viewabilityConfig}
             extraData={{ activeVideoMessageId, isFocused, autoplayVideos, mediaLoadErrors, highlightedMessageId }}
@@ -3535,6 +3621,9 @@ const ConversationScreen = ({ navigation, route }) => {
           />
         </KeyboardGestureArea>
         </AndroidGlassBackdrop>
+        ) : (
+          <View style={{ flex: 1 }} />
+        )}
       </View>
 
         {/* Input Bar - positioned above messages */}
@@ -3698,10 +3787,16 @@ const styles = StyleSheet.create({
     // Only a right-side gap (to the bubble) - messageRow's own
     // paddingHorizontal already provides the outer edge margin, so adding
     // marginHorizontal here double-padded the left edge vs. the (avatar-less)
-    // right/"mine" side, making other people's bubbles start visibly further
-    // in than the user's own. Trimmed further per feedback that it was
-    // still ~7px too wide.
-    marginRight: 1,
+    // right/"mine" side. Settled between the two rounds of feedback (6 was
+    // too tight against the bubble, 1 was too tight; 4 splits the
+    // difference).
+    marginRight: 4,
+    // Explicit, rather than relying solely on messageRow's own
+    // alignItems:"flex-end" cascading down - anchors the avatar to the
+    // bottom of the bubble/text content (Messenger/Telegram convention)
+    // regardless of anything above it in the row (e.g. a multi-line sender
+    // name) affecting the row's own cross-axis sizing.
+    alignSelf: "flex-end",
     backgroundColor: "#ccc",
   },
   messageSenderName: {

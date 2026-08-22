@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useColorScheme } from "react-native";
+import { useColorScheme, Platform } from "react-native";
 import { storage } from "../global/storage";
+
+// react-native-liquid-glassmorphism itself falls back to a plain translucent
+// view (no real blur) below Android 12/API 31 - there's no working glass
+// effect to opt into there, just a worse-looking imitation of one, so the
+// toggle is forced off and locked rather than letting the user turn on
+// something that won't actually render as glass.
+export const isLiquidGlassUnsupportedAndroid =
+  Platform.OS === "android" && Platform.Version < 31;
 
 const ThemeContext = createContext();
 
@@ -66,6 +74,7 @@ export const ThemeProvider = ({ children }) => {
   // (same tint style Android used before the glass migration), on both
   // platforms.
   const [liquidGlassEnabled, setLiquidGlassEnabledState] = useState(() => {
+    if (isLiquidGlassUnsupportedAndroid) return false;
     return storage.getBoolean("liquidGlassEnabled") ?? true;
   });
 
@@ -97,6 +106,7 @@ export const ThemeProvider = ({ children }) => {
   };
 
   const setLiquidGlassEnabled = (value) => {
+    if (isLiquidGlassUnsupportedAndroid) return;
     setLiquidGlassEnabledState(value);
     storage.set("liquidGlassEnabled", value);
   };

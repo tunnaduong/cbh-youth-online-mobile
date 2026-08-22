@@ -37,10 +37,18 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
   const menuAnim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
   const navigation = useNavigation();
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
   const { t } = useTranslation();
 
-  const isRealGlass = !!LiquidGlassView;
+  // `LiquidGlassView` (from GlassModules) is only ever null when the native
+  // module genuinely failed to load - it stays truthy even when the user has
+  // toggled glass off in Settings, since that toggle is handled INSIDE it by
+  // silently falling back to a plain tinted View. The branches below need to
+  // know whether a real glass surface is actually being rendered right now
+  // (so they can apply the same Android elevation/shadow-corner-poke
+  // workaround the plain-View fallback already needs), not just whether the
+  // module is available.
+  const isRealGlass = !!LiquidGlassView && liquidGlassEnabled;
 
   // Drive the open animation from a mount effect so the menu view is actually
   // mounted before we animate it in (starting the animation in the same tick
@@ -224,8 +232,11 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
               },
               // Android's `elevation` shadow always renders dark/black and
               // ignores borderRadius clipping, poking a square corner out
-              // past this pill's rounded edge against the dark background.
-              isDarkMode && { elevation: 0, shadowOpacity: 0 },
+              // past this pill's rounded edge - happens in both themes (not
+              // just against a dark background, it's just more visible
+              // there), so disable it unconditionally on Android rather than
+              // only in dark mode.
+              Platform.OS === "android" && { elevation: 0, shadowOpacity: 0 },
             ]}
           >
             {renderButtonContent(btn.icon, btn.labelKey, btn.onPress)}

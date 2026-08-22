@@ -14,7 +14,7 @@ import { Ionicons, FontAwesome6 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
-import { useTheme } from "../../../contexts/ThemeContext";
+import { useTheme, isLiquidGlassUnsupportedAndroid } from "../../../contexts/ThemeContext";
 import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
 import Dropdown from "../../../components/Dropdown";
@@ -30,11 +30,13 @@ import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
 const SettingItem = ({
   icon,
   title,
+  subtitle,
   onPress,
   onLongPress,
   delayLongPress,
   value,
   isSwitch,
+  switchDisabled = false,
   chevron = true,
   lastItem = false,
   theme,
@@ -55,13 +57,21 @@ const SettingItem = ({
       <View style={[styles.settingItemIcon, { backgroundColor: theme.iconBackground }]}>
         <Ionicons name={icon} size={20} color={theme.primary} />
       </View>
-      <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+      <View>
+        <Text style={[styles.settingItemText, { color: theme.text }]}>{title}</Text>
+        {subtitle && (
+          <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2, maxWidth: 240 }}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
     </View>
     {isSwitch ? (
       <Switch
         value={value}
         onValueChange={onPress}
         trackColor={{ true: theme.primary }}
+        disabled={switchDisabled}
       />
     ) : value ? (
       <View style={styles.settingItemRight}>
@@ -320,7 +330,16 @@ export default function SettingsScreen({ navigation }) {
           <SettingItem
             icon="sparkles-outline"
             title={t("settings.liquidGlassEffect")}
+            subtitle={
+              isLiquidGlassUnsupportedAndroid
+                ? t(
+                    "settings.liquidGlassUnsupportedAndroid",
+                    "Không khả dụng trên phiên bản Android này"
+                  )
+                : undefined
+            }
             isSwitch
+            switchDisabled={isLiquidGlassUnsupportedAndroid}
             value={liquidGlassEnabled}
             onPress={setLiquidGlassEnabled}
           />

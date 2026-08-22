@@ -870,6 +870,7 @@
     "notifications": "Уведомления",
     "autoplayVideos": "Автовоспроизведение видео",
     "liquidGlassEffect": "Эффект жидкого стекла",
+    "liquidGlassUnsupportedAndroid": "Недоступно на этой версии Android",
     "blockedUsers": "Заблокированные пользователи",
     "about": "О приложении",
     "debugConsole": "Консоль отладки",

@@ -847,6 +847,7 @@
     "notifications": "Thông báo",
     "autoplayVideos": "Tự động phát video",
     "liquidGlassEffect": "Hiệu ứng kính lỏng",
+    "liquidGlassUnsupportedAndroid": "Không khả dụng trên phiên bản Android này",
     "blockedUsers": "Người dùng đã chặn",
     "about": "Giới thiệu",
     "debugConsole": "Bảng debug",

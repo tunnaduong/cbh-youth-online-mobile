@@ -859,6 +859,7 @@
     "notifications": "Notifications",
     "autoplayVideos": "Autoplay videos",
     "liquidGlassEffect": "Liquid glass effect",
+    "liquidGlassUnsupportedAndroid": "Not available on this Android version",
     "blockedUsers": "Blocked Users",
     "about": "About",
     "debugConsole": "Debug Console",
