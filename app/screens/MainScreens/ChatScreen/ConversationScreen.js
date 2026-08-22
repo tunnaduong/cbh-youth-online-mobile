@@ -13,6 +13,7 @@ import {
   StatusBar,
   Dimensions,
   Modal,
+  PanResponder,
   TouchableWithoutFeedback,
   Keyboard,
   BackHandler,
@@ -87,15 +88,7 @@ import {
   KeyboardStickyView,
   KeyboardGestureArea,
 } from "react-native-keyboard-controller";
-import Reanimated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  runOnJS,
-  interpolate,
-  Extrapolation,
-} from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Reanimated from "react-native-reanimated";
 
 // Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
 // local optimistic messages use file:// or content:// URIs, and http(s) may
@@ -227,82 +220,77 @@ const SWIPE_ICON_OFFSET = 44;
 // style). Restored after the chat-lib migration dropped it along with the
 // deleted MessageRow component it used to live in.
 //
-// Rewritten from PanResponder (JS-thread responder system) to
-// react-native-gesture-handler's Gesture.Pan (native-thread recognizer) -
-// KeyboardGestureArea (wrapping the whole message list, for the interactive
-// drag-to-dismiss-keyboard gesture) also uses RNGH natively under the hood,
-// and RNGH's own native recognizers generally win responder-ship over a
-// PanResponder's JS-thread one once armed (e.g. while the keyboard is
-// visible), which made this swipe silently stop working with the keyboard
-// open. Both now live on the same gesture system, and
-// activeOffsetX/failOffsetY below make this gesture immediately cede to any
-// vertical drag (list scroll, keyboard dismiss) instead of contesting it.
+// Uses PanResponder (JS-thread responder), not
+// react-native-gesture-handler's Gesture.Pan/GestureDetector - a
+// GestureDetector-based version was tried and reverted: it broke the
+// header's back button (LiquidButton/TouchableOpacity) app-wide, tracked
+// down to KeyboardGestureArea's Android implementation
+// (KeyboardGestureAreaReactViewGroup.kt) being a hand-rolled
+// dispatchTouchEvent override with its own isHandling state machine, NOT
+// itself RNGH-based - introducing a native GestureDetector as its
+// descendant (inside FlatList rows) was the first time two independent
+// native touch-interception systems were nested this way in this screen,
+// and something in that interaction left touch delivery for the rest of
+// the screen stuck. PanResponder is pure JS-thread and never touches
+// Android's native dispatchTouchEvent chain, so it doesn't interact with
+// KeyboardGestureArea's custom interceptor at all. This does mean the
+// swipe can lose responder-ship to KeyboardGestureArea's own gesture while
+// the keyboard is up in some cases - a real but much smaller tradeoff than
+// breaking navigation.
 const SwipeableMessage = ({ children, onSwipe }) => {
-  const translateX = useSharedValue(0);
+  const translateX = useRef(new Animated.Value(0)).current;
   const triggeredRef = useRef(false);
 
-  const fireSwipe = () => onSwipe?.();
-
-  const panGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        // Only claim the gesture for a clearly horizontal drag - mirrors
-        // the old PanResponder's dx>6 && dx>dy*1.5 threshold.
-        .activeOffsetX([-10, 10])
-        // Cede immediately to any vertical movement past this threshold,
-        // so this never fights the FlatList's own scroll or
-        // KeyboardGestureArea's interactive keyboard dismiss.
-        .failOffsetY([-10, 10])
-        .onBegin(() => {
-          triggeredRef.current = false;
-        })
-        .onUpdate((e) => {
-          const clamped =
-            e.translationX > 0
-              ? Math.min(SWIPE_THRESHOLD + 10, e.translationX)
-              : Math.max(-(SWIPE_THRESHOLD + 10), e.translationX);
-          translateX.value = clamped;
-          if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
-            triggeredRef.current = true;
-            runOnJS(fireSwipe)();
-          }
-        })
-        .onFinalize(() => {
-          translateX.value = withSpring(0, { damping: 14, stiffness: 180 });
-        }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  const bubbleAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-  const leftIconAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [0, SWIPE_THRESHOLD], [0, 1], Extrapolation.CLAMP),
-    transform: [
-      {
-        translateX: interpolate(
-          translateX.value,
-          [0, SWIPE_THRESHOLD + 10],
-          [0, SWIPE_ICON_OFFSET + 10],
-          Extrapolation.CLAMP
-        ),
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, g) =>
+        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      // Capture phase runs top-down BEFORE any nested touchable (e.g. the
+      // video tile's mute button) gets a chance to claim the responder in
+      // the bubble phase - without this, a clear horizontal swipe starting
+      // on top of a nested TouchableOpacity never reached this PanResponder
+      // at all, so swipe-to-reply silently did nothing on video messages.
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderGrant: () => {
+        triggeredRef.current = false;
       },
-    ],
-  }));
-  const rightIconAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(translateX.value, [-SWIPE_THRESHOLD, 0], [1, 0], Extrapolation.CLAMP),
-    transform: [
-      {
-        translateX: interpolate(
-          translateX.value,
-          [-(SWIPE_THRESHOLD + 10), 0],
-          [-(SWIPE_ICON_OFFSET + 10), 0],
-          Extrapolation.CLAMP
-        ),
+      onPanResponderMove: (_, g) => {
+        const clamped = g.dx > 0
+          ? Math.min(SWIPE_THRESHOLD + 10, g.dx)
+          : Math.max(-(SWIPE_THRESHOLD + 10), g.dx);
+        translateX.setValue(clamped);
+        if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
+          triggeredRef.current = true;
+          onSwipe?.();
+        }
       },
-    ],
-  }));
+      onPanResponderRelease: () => {
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 120, friction: 10 }).start();
+      },
+    })
+  ).current;
+
+  const leftIconOpacity = translateX.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+  const leftIconTranslateX = translateX.interpolate({
+    inputRange: [0, SWIPE_THRESHOLD + 10],
+    outputRange: [0, SWIPE_ICON_OFFSET + 10],
+    extrapolate: "clamp",
+  });
+  const rightIconOpacity = translateX.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, 0],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+  const rightIconTranslateX = translateX.interpolate({
+    inputRange: [-(SWIPE_THRESHOLD + 10), 0],
+    outputRange: [-(SWIPE_ICON_OFFSET + 10), 0],
+    extrapolate: "clamp",
+  });
 
   const iconStyle = {
     position: "absolute",
@@ -319,23 +307,24 @@ const SwipeableMessage = ({ children, onSwipe }) => {
 
   return (
     <View style={{ overflow: "visible" }}>
-      <Reanimated.View
-        style={[iconStyle, { left: 4 }, leftIconAnimatedStyle]}
+      <Animated.View
+        style={[iconStyle, { left: 4, opacity: leftIconOpacity, transform: [{ translateX: leftIconTranslateX }] }]}
         pointerEvents="none"
       >
         <Ionicons name="arrow-undo" size={16} color="#fff" />
-      </Reanimated.View>
-      <Reanimated.View
-        style={[iconStyle, { right: 4 }, rightIconAnimatedStyle]}
+      </Animated.View>
+      <Animated.View
+        style={[iconStyle, { right: 4, opacity: rightIconOpacity, transform: [{ translateX: rightIconTranslateX }] }]}
         pointerEvents="none"
       >
         <Ionicons name="arrow-undo" size={16} color="#fff" />
-      </Reanimated.View>
-      <GestureDetector gesture={panGesture}>
-        <Reanimated.View style={bubbleAnimatedStyle}>
-          {children}
-        </Reanimated.View>
-      </GestureDetector>
+      </Animated.View>
+      <Animated.View
+        style={{ transform: [{ translateX }] }}
+        {...panResponder.panHandlers}
+      >
+        {children}
+      </Animated.View>
     </View>
   );
 };
