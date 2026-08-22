@@ -83,7 +83,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
     <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
       {/* Left pill: main tabs */}
       <NavGlassWrapper
-        {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 24.5, ...androidGlassPerfProps } : {})}
+        {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 24.5, ...androidGlassPerfProps, edgeReflectionStrength: 0 } : {})}
         renderToHardwareTextureAndroid
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
@@ -161,7 +161,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
         isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
         <NavGlassWrapper
-          {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 26.5, ...androidGlassPerfProps } : {})}
+          {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 26.5, ...androidGlassPerfProps, edgeReflectionStrength: 0 } : {})}
           style={{
             width: 53, height: 53, borderRadius: 26.5,
             backgroundColor: LiquidGlassView ? "transparent" : surface,
