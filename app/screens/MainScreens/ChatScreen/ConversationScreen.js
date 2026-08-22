@@ -648,6 +648,32 @@ const ConversationScreen = ({ navigation, route }) => {
   const MEDIA_MAX_WIDTH = 240;
   const MEDIA_MAX_HEIGHT = 320;
   const MEDIA_MIN_SIZE = 120;
+  // Fits `natural` inside [maxWidth,maxHeight] preserving aspect ratio, then
+  // grows it back up to at least minSize on its smaller side (also preserving
+  // ratio) so a tiny/sliver image doesn't render as a near-invisible speck.
+  // The previous version only re-checked the max-HEIGHT bound after clamping
+  // width first, so a very tall/long-scale source (e.g. a portrait video)
+  // could recompute a width that blew back past maxWidth with nothing left
+  // to re-clamp it - this does a proper scale-to-fit in one pass instead of
+  // clamping each axis independently.
+  const fitMediaSize = (natural, maxWidth, maxHeight, minSize) => {
+    let width = natural.width;
+    let height = natural.height;
+    const shrink = Math.min(1, maxWidth / width, maxHeight / height);
+    width *= shrink;
+    height *= shrink;
+    const grow = Math.max(1, minSize / width, minSize / height);
+    width *= grow;
+    height *= grow;
+    // Growing to the min size can push the larger side back past its max
+    // (only possible for extreme aspect ratios where min > max on one axis) -
+    // re-shrink once more, accepting the smaller side may end up under
+    // minSize in that edge case rather than distorting the ratio.
+    const reshrink = Math.min(1, maxWidth / width, maxHeight / height);
+    width *= reshrink;
+    height *= reshrink;
+    return { width: Math.round(width), height: Math.round(height) };
+  };
   const getMediaDisplaySize = (key) => {
     const natural = mediaNaturalSizes[key];
     if (!natural?.width || !natural?.height) {
@@ -655,16 +681,7 @@ const ConversationScreen = ({ navigation, route }) => {
       // nothing/zero-size while the real dimensions are still loading.
       return { width: 200, height: 140 };
     }
-    const ratio = natural.width / natural.height;
-    let width = Math.min(MEDIA_MAX_WIDTH, natural.width);
-    let height = width / ratio;
-    if (height > MEDIA_MAX_HEIGHT) {
-      height = MEDIA_MAX_HEIGHT;
-      width = height * ratio;
-    }
-    if (height < MEDIA_MIN_SIZE) height = MEDIA_MIN_SIZE;
-    if (width < MEDIA_MIN_SIZE) width = MEDIA_MIN_SIZE;
-    return { width: Math.round(width), height: Math.round(height) };
+    return fitMediaSize(natural, MEDIA_MAX_WIDTH, MEDIA_MAX_HEIGHT, MEDIA_MIN_SIZE);
   };
 
   // Keep the header visually light until the user scrolls enough.
@@ -2821,16 +2838,7 @@ const ConversationScreen = ({ navigation, route }) => {
         if (isSingle) return getMediaDisplaySize(key);
         const natural = mediaNaturalSizes[key];
         if (!natural?.width || !natural?.height) return { width: 100, height: 100 };
-        const ratio = natural.width / natural.height;
-        let width = Math.min(110, natural.width);
-        let height = width / ratio;
-        if (height > 150) {
-          height = 150;
-          width = height * ratio;
-        }
-        if (height < 60) height = 60;
-        if (width < 60) width = 60;
-        return { width: Math.round(width), height: Math.round(height) };
+        return fitMediaSize(natural, 110, 150, 60);
       };
       return (
         <View style={styles.imageGrid}>
