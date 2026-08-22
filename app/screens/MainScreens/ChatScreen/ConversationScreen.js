@@ -663,7 +663,14 @@ const ConversationScreen = ({ navigation, route }) => {
   // poster/thumbnail component silently falls back to ITS OWN fixed default
   // size). Multi-image grids intentionally keep their fixed square tiles.
   const [mediaNaturalSizes, setMediaNaturalSizes] = useState({});
-  const MEDIA_MAX_WIDTH = 240;
+  // 240 is only safe on wide-enough screens - the bubble column itself caps
+  // out at 78% of the screen width (see the `maxWidth: "78%"` wrapper below)
+  // minus the bubble's own horizontal padding (14*2) and, in group chats,
+  // the other person's avatar (~38px). On narrower phones 240 could exceed
+  // that available width, and since the bubble clips overflow, the image
+  // just got cut off instead of shrinking to fit - cap it to whichever is
+  // smaller.
+  const MEDIA_MAX_WIDTH = Math.min(240, Dimensions.get("window").width * 0.78 - 28 - 38);
   const MEDIA_MAX_HEIGHT = 320;
   const MEDIA_MIN_SIZE = 120;
   // Fits `natural` inside [maxWidth,maxHeight] preserving aspect ratio, then
@@ -2859,7 +2866,7 @@ const ConversationScreen = ({ navigation, route }) => {
         return fitMediaSize(natural, 110, 150, 60);
       };
       return (
-        <View style={styles.imageGrid}>
+        <View style={[styles.imageGrid, { maxWidth: Math.min(220, MEDIA_MAX_WIDTH) }]}>
           {urls.map((uri, idx) => {
             const errorKey = `${item.id}-${idx}`;
             const hasError = !!mediaLoadErrors[errorKey];
@@ -3120,8 +3127,16 @@ const ConversationScreen = ({ navigation, route }) => {
                 row above - the reaction badge below is absolutely
                 positioned against THIS box, so it always hugs the bubble's
                 own edge regardless of whether a sender name/reply preview
-                adds height above it. */}
-            <View style={{ position: "relative" }}>
+                adds height above it. alignSelf is required here, not just
+                cosmetic: without it this View defaults to stretching to the
+                full width of its column parent (maxWidth:"78%") instead of
+                shrink-wrapping to the bubble's actual rendered width, so the
+                badge's left/right offset was measured against the WIDE
+                parent's edge instead of the (often much narrower) bubble's
+                real edge - visibly wrong for short text bubbles and for
+                landscape image/video tiles narrower than the max column
+                width. */}
+            <View style={{ position: "relative", alignSelf: isMine ? "flex-end" : "flex-start" }}>
               <Pressable
                 onPress={() => handleMessageTap(item)}
                 onLongPress={(evt) => handleMessageLongPress(item, evt)}
@@ -3518,14 +3533,6 @@ const ConversationScreen = ({ navigation, route }) => {
             keyExtractor={(item) => String(item.id)}
             renderItem={renderMessageItem}
             keyboardDismissMode="interactive"
-            // Android's FlatList clipping optimization can glitch when a
-            // recycled row scrolls back into view - the image/video tile
-            // renders blank (data/tap-to-open still fine, just the native
-            // view content doesn't repaint) until something else forces a
-            // redraw. Disabling it trades a little extra native view memory
-            // for correctness, which matters far more here than the perf
-            // win for a normal-length chat history.
-            removeClippedSubviews={false}
             contentContainerStyle={[
               styles.messagesContent,
               {
