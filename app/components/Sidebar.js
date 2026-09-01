@@ -22,7 +22,7 @@ import FastImage from "./FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView, useIOSGlassSupport, BlurView } from "./GlassModules";
+import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -77,16 +77,25 @@ const CollapsibleMenuItem = ({
   );
 };
 
+// Content must be a real child of LiquidGlassView, not a sibling drawn over
+// an absoluteFill glass layer - the native view captures "the hierarchy
+// behind it" and skips only its own subtree, so a sibling still gets swept
+// into the captured-and-blurred backdrop *in addition to* being drawn
+// normally on top, ghosting/reflecting the sidebar's own rows back into its
+// glass background. Same fix as LiquidButton's.
+const SidebarGlassWrapper = LiquidGlassView ?? View;
+
 const Sidebar = ({ providerId, isOpen }) => {
   const [username, setUsername] = useState("");
   const [profileName, setProfileName] = useState("");
   const { signOut } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
-  const iosGlass = useIOSGlassSupport();
-  // stronger tint for glass/background depending on theme (more contrast)
+  // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
+  // entirely, reading as a flat tinted panel instead of glass. Matches
+  // glassTint's ratio (see GlassModules.js) used everywhere else in the app.
   const sidebarTint = isDarkMode
-    ? "rgba(0,0,0,0.72)"
-    : "rgba(255,255,255,0.92)";
+    ? "rgba(0,0,0,0.4)"
+    : "rgba(255,255,255,0.4)";
   const iosMajorVersion =
     Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
   const [collapsedSections, setCollapsedSections] = useState({
@@ -216,107 +225,28 @@ const Sidebar = ({ providerId, isOpen }) => {
 
   return (
     <View style={{ flex: 1 }}>
-      {Platform.OS === "ios" ? (
-        iosGlass ? (
-          <>
-            <LiquidGlassView
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-              }}
-              effect="clear"
-              tintColor={sidebarTint}
-            />
-            {/* Overlay to guarantee readable contrast over liquid glass */}
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-                backgroundColor: sidebarTint,
-              }}
-            />
-          </>
-        ) : BlurView ? (
-          <>
-            <BlurView
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-              }}
-              blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={22}
-              reducedTransparencyFallbackColor={
-                isDarkMode ? "#050505" : "#FFFFFF"
-              }
-            />
-            {/* Overlay to guarantee readable contrast over blur */}
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                borderTopRightRadius: 24,
-                borderBottomRightRadius: 24,
-                backgroundColor: sidebarTint,
-              }}
-            />
-          </>
-        ) : (
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: sidebarTint,
-              borderTopRightRadius: 24,
-              borderBottomRightRadius: 24,
-            }}
-          />
-        )
-      ) : (
-        // Android: OneUI-style transparent tint (no liquid glass for sidebar)
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            borderTopRightRadius: 24,
-            borderBottomRightRadius: 24,
+      <SidebarGlassWrapper
+        {...(LiquidGlassView
+          ? { variant: "clear", tintColor: glassTint(isDarkMode), ...androidGlassPerfProps }
+          : {})}
+        style={[
+          { flex: 1, borderTopRightRadius: 24, borderBottomRightRadius: 24 },
+          !LiquidGlassView && {
             backgroundColor: sidebarTint,
-            borderRightWidth: 1,
+            borderRightWidth: Platform.OS === "android" ? 1 : 0,
             borderColor: isDarkMode
               ? "rgba(255,255,255,0.08)"
               : "rgba(0,0,0,0.06)",
-          }}
-        />
-      )}
+          },
+        ]}
+      >
       <View
         style={{
           flex: 1,
-          backgroundColor: "transparent",
+          // Same sidebarTint that used to be a separate absoluteFill overlay
+          // sibling over the glass - now just this content wrapper's own
+          // background, which composites correctly since it's a real child.
+          backgroundColor: LiquidGlassView ? sidebarTint : "transparent",
           paddingTop: insets.top,
         }}
       >
@@ -635,6 +565,7 @@ const Sidebar = ({ providerId, isOpen }) => {
           </List.Section>
         </ScrollView>
       </View>
+      </SidebarGlassWrapper>
     </View>
   );
 };

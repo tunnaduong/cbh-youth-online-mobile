@@ -13,6 +13,15 @@ import VideoPlayerModal from "./VideoPlayerModal";
 // so there's one video-attachment tile implementation instead of three.
 const VideoThumbnail = ({
   uri,
+  // A server-generated first-frame JPG (see MediaThumbnailService on the
+  // backend), when there is one - used directly instead of extracting a
+  // frame client-side. That extraction downloads and decodes the *whole*
+  // video via the native decoder just to grab one frame, which is exactly
+  // the kind of CPU/bandwidth cost this prop exists to skip for anything
+  // already uploaded (posts feed/detail). Local picker/edit previews (a
+  // file:// URI with no server thumbnail yet) still need the extraction, so
+  // it stays as the fallback.
+  serverThumbnailUri,
   width = 130,
   height = 130,
   borderRadius = 16,
@@ -20,18 +29,18 @@ const VideoThumbnail = ({
   style,
 }) => {
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [thumbnailUri, setThumbnailUri] = useState(null);
+  const [extractedThumbnailUri, setExtractedThumbnailUri] = useState(null);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setThumbnailUri(null);
+    setExtractedThumbnailUri(null);
     setThumbnailFailed(false);
-    if (!uri) return undefined;
+    if (!uri || serverThumbnailUri) return undefined;
 
     VideoThumbnails.getThumbnailAsync(uri, { time: 0 })
       .then((result) => {
-        if (!cancelled) setThumbnailUri(result.uri);
+        if (!cancelled) setExtractedThumbnailUri(result.uri);
       })
       .catch(() => {
         if (!cancelled) setThumbnailFailed(true);
@@ -40,7 +49,9 @@ const VideoThumbnail = ({
     return () => {
       cancelled = true;
     };
-  }, [uri]);
+  }, [uri, serverThumbnailUri]);
+
+  const thumbnailUri = serverThumbnailUri || extractedThumbnailUri;
 
   return (
     <View style={[{ width, height, borderRadius }, styles.wrapper, style]}>

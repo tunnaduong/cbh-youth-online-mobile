@@ -1,21 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   TouchableOpacity,
   View,
-  Platform,
   StyleSheet,
   Animated,
 } from "react-native";
 import { useTheme } from "../contexts/ThemeContext";
-import {
-  LiquidGlassView,
-  useIOSGlassSupport,
-  BlurView,
-  LiquidGlassViewAndroid,
-  useAndroidGlass,
-  isLiquidGlassSupportedAndroid,
-  androidGlassTint,
-} from "./GlassModules";
+import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
+
+const SCROLL_GLASS_THRESHOLD = 20;
 
 const LiquidButton = ({
   onPress,
@@ -25,119 +18,104 @@ const LiquidButton = ({
   borderRadius,
   disabled = false,
   containerStyle,
-  providerId,
   scrollY,
-  alwaysBorder = false,
   backgroundColor,
-  borderColor,
+  // Real glass on Android runs a full per-frame AGSL shader per view - cheap
+  // enough for a couple of nav-bar surfaces, too expensive stacked across a
+  // whole screen. Conversation screens can have several LiquidButtons live
+  // on screen at once (header back/options, per-row actions, etc.), so on
+  // Android they force the plain tinted fallback instead; iOS is untouched
+  // since its glass is a cheap OS compositor effect, not a per-frame shader.
+  forceNoGlass = false,
 }) => {
-  const { theme, isDarkMode } = useTheme();
-  const iosGlass = useIOSGlassSupport();
+  const { isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
 
-  // When scrollY is provided, background fades in as user scrolls (0→40px).
-  // At the top, buttons with alwaysBorder still keep a subtle translucent pill.
-  const startOpacity = alwaysBorder ? 0.22 : 0;
-  const bgOpacity = scrollY
-    ? scrollY.interpolate({
-        inputRange: [0, 40],
-        outputRange: [startOpacity, 1],
-        extrapolate: "clamp",
-      })
-    : 1;
+  // At the very top of the screen (can't scroll up any further) the button
+  // should blend into the transparent top bar with no glass surface at all,
+  // not just a faded/tinted one - only once scrolled past the threshold
+  // does the glass actually render. A continuous opacity fade doesn't work
+  // for this: fading the glass view's own opacity also fades its nested
+  // icon (icon must be a real child of the glass view, see below), so the
+  // icon would disappear at the top along with the background. Toggling
+  // between "no glass" and "glass" as a hard state switch keeps the icon at
+  // opacity 1 always while still hiding the glass surface itself at top.
+  const [showGlass, setShowGlass] = useState(
+    !scrollY || scrollY.__getValue?.() > SCROLL_GLASS_THRESHOLD
+  );
 
-  // The outline is only useful while the background is still translucent (top
-  // of the scroll) so the pill reads as a button against the content behind
-  // it. Once bgOpacity fades in to a solid pill, the outline just doubles up
-  // as a redundant ring around an already-solid shape, so fade it out too.
-  const borderOpacity =
-    alwaysBorder && scrollY
-      ? scrollY.interpolate({
-          inputRange: [0, 40],
-          outputRange: [1, 0],
-          extrapolate: "clamp",
-        })
-      : 1;
+  useEffect(() => {
+    if (!scrollY) return undefined;
+    const id = scrollY.addListener(({ value }) => {
+      const next = value > SCROLL_GLASS_THRESHOLD;
+      setShowGlass((prev) => (prev === next ? prev : next));
+    });
+    return () => scrollY.removeListener(id);
+  }, [scrollY]);
 
-  const renderGlassBackground = () => {
-    if (Platform.OS === "ios") {
-      if (iosGlass) {
-        return (
-          <LiquidGlassView
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                borderRadius: defaultRadius,
-                overflow: "hidden",
-              },
-            ]}
-            effect="clear"
-            tintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
-            interactive={false}
-          />
-        );
-      }
-      if (BlurView) {
-        // iOS < 26 has no real Liquid Glass, so the plain blur reads as too
-        // transparent/washed out on its own - stack a theme tint on top to
-        // match the tinted look Android and iOS 26+ glass already have.
-        return (
-          <View style={[StyleSheet.absoluteFill, { borderRadius: defaultRadius, overflow: "hidden" }]}>
-            <BlurView
-              style={StyleSheet.absoluteFill}
-              blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={10}
-            />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: isDarkMode ? "rgba(17,17,17,0.55)" : "rgba(248,248,248,0.55)" },
-              ]}
-            />
-          </View>
-        );
-      }
-    }
+  // All sizing (width/height/borderRadius/the caller's own `style`, e.g.
+  // width:"auto" + paddingHorizontal for a text button) lives on the actual
+  // glass/fallback view, not on the outer TouchableOpacity. It used to live
+  // on the TouchableOpacity while the glass content was pinned there via
+  // StyleSheet.absoluteFill - but an absolutely-positioned child is removed
+  // from layout entirely, so it contributes nothing to a parent sized as
+  // width:"auto". That collapsed the TouchableOpacity (and everything
+  // inside it) to zero width for any button with auto/content-based sizing,
+  // e.g. the "read all" text button. Now the TouchableOpacity is unstyled
+  // and just wraps its one sized child.
+  const contentStyle = [
+    styles.content,
+    {
+      width: size,
+      height: size,
+      borderRadius: defaultRadius,
+    },
+    style,
+  ];
 
-    // No implicit fallback providerId: most LiquidButton call sites in the
-    // app don't pass one, and defaulting them to "main" silently nested a
-    // "main"-id glass view inside the "main" LiquidGlassProviderAndroid
-    // (e.g. ForumScreen's header button, which lives inside MainScreens'
-    // "main" backdrop) — a glass view can never share its provider's own id
-    // while living inside that provider's subtree; the provider's RenderNode
-    // capture ends up drawing itself, recursing until the native stack
-    // overflows (confirmed via on-device SIGSEGV tombstone). Only render
-    // real glass when the caller explicitly opts a screen in with a
-    // matching local provider.
-    if (Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && providerId) {
+  // react-native-liquid-glassmorphism handles iOS/Android and every OS-version
+  // tier internally (real glass, blur fallback, or plain tint - whichever the
+  // device supports), so there's no more platform branching here at all.
+  //
+  // The icon/text must be a real React child of <LiquidGlassView>, not a
+  // sibling drawn over an absoluteFill glass layer: the native view captures
+  // "the hierarchy behind it" by walking the whole app tree and skipping
+  // only its own subtree - content outside that subtree (a sibling) still
+  // gets swept into the captured backdrop and rendered blurred underneath,
+  // in addition to being drawn crisply on top as a normal sibling. That
+  // produced a doubled/ghosted icon. Nesting it as an actual child excludes
+  // it from the capture and gets the library's real crisp-children-on-top
+  // compositing.
+  const renderContent = () => {
+    if (LiquidGlassView && showGlass && !forceNoGlass) {
       return (
-        <LiquidGlassViewAndroid
-          providerId={providerId}
-          interactive={isLiquidGlassSupportedAndroid}
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              borderRadius: defaultRadius,
-              overflow: "hidden",
-            },
-          ]}
-          blurRadius={Platform.Version >= 33 ? 12 : 10}
-          tint={backgroundColor ?? androidGlassTint(isDarkMode)}
-        />
+        <LiquidGlassView
+          variant="clear"
+          tintColor={backgroundColor ?? glassTint(isDarkMode)}
+          borderRadius={defaultRadius}
+          style={contentStyle}
+          {...androidGlassPerfProps}
+        >
+          {children}
+        </LiquidGlassView>
       );
     }
 
-    // Android & fallbacks: OneUI-style tinted transparent button background
+    // No glass at top of scroll (blends with the transparent top bar), or
+    // the library failed to load: plain transparent/tinted fallback.
     return (
       <View
         style={[
-          StyleSheet.absoluteFill,
+          contentStyle,
           {
-            backgroundColor: backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)"),
-            borderRadius: defaultRadius,
-          }
+            backgroundColor: !LiquidGlassView || forceNoGlass
+              ? backgroundColor ?? (isDarkMode ? "rgba(18, 18, 18, 0.85)" : "rgba(255, 255, 255, 0.75)")
+              : "transparent",
+          },
         ]}
-      />
+      >
+        {children}
+      </View>
     );
   };
 
@@ -157,18 +135,6 @@ const LiquidButton = ({
     }).start();
   };
 
-  const buttonStyle = [
-    styles.button,
-    {
-      width: size,
-      height: size,
-      borderRadius: defaultRadius,
-      borderWidth: 0,
-      borderColor: "transparent",
-    },
-    style,
-  ];
-
   return (
     <Animated.View style={[{ transform: [{ scale: scaleValue }] }, containerStyle]}>
       <TouchableOpacity
@@ -177,43 +143,21 @@ const LiquidButton = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
-        style={buttonStyle}
       >
-        {/* Background fades in based on scrollY */}
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { borderRadius: defaultRadius, overflow: "hidden", opacity: bgOpacity },
-          ]}
-          pointerEvents="none"
-        >
-          {renderGlassBackground()}
-        </Animated.View>
-        {alwaysBorder && (
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                borderRadius: defaultRadius,
-                borderWidth: 1,
-                borderColor: borderColor ?? theme.primary,
-                opacity: borderOpacity,
-              },
-            ]}
-          />
-        )}
-        {children}
+        {renderContent()}
       </TouchableOpacity>
     </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
-  button: {
+  content: {
+    flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
+    borderWidth: 0,
+    borderColor: "transparent",
   },
 });
 

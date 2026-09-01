@@ -1,229 +1,133 @@
 import React from "react";
-import { Animated, Platform, DeviceEventEmitter } from "react-native";
-
-const GLASS_READY_EVENT = '__iosGlassReady';
-
-// ---------------------------------------------------------------------------
-// iOS: @callstack/liquid-glass for the real iOS 26+ UIGlassEffect
-// (LiquidGlassView / LiquidGlassContainerView), @sbaiahmed1/react-native-blur
-// for the plain BlurView fallback used on iOS < 26 where there is no glass
-// effect to render at all.
-// ---------------------------------------------------------------------------
-let BlurView = null;
-let LiquidGlassView = null;
-let LiquidGlassContainer = null;
-let AnimatedLiquidGlassView = null;
-let AnimatedBlurView = null;
-
-const iosMajorVersion = Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
-const shouldUseIOSGlass = Platform.OS === "ios" && iosMajorVersion >= 26;
-
-console.log(iosMajorVersion)
-
-// On a genuinely fresh cold start (first launch right after install) on
-// iOS 26+, this require() can run before the @callstack/liquid-glass
-// native/Fabric component has finished registering, so LiquidGlassView
-// comes back undefined and useIOSGlass below gets stuck at false for the
-// rest of this process's lifetime - the nav bar then renders through the
-// plain/opaque fallback until the app is fully restarted (a new process
-// re-runs this module from scratch and the native module is warm by
-// then). Wrapping the attempt in a function that can be re-run lets a
-// couple of short delayed retries recover from that race within the SAME
-// launch, instead of only self-correcting on a manual restart.
-const loadIOSGlass = () => {
-  if (!(Platform.OS === "ios" && shouldUseIOSGlass)) return false;
-  try {
-    const Lib = require("@callstack/liquid-glass");
-    LiquidGlassView = Lib.LiquidGlassView;
-    LiquidGlassContainer = Lib.LiquidGlassContainerView;
-    if (LiquidGlassView) {
-      AnimatedLiquidGlassView = Animated.createAnimatedComponent(LiquidGlassView);
-    }
-    const ok = !!LiquidGlassView && !!LiquidGlassContainer;
-    if (__DEV__) {
-      console.log(
-        `[GlassModules] iOS Liquid Glass: ${ok ? "SUPPORTED" : "NOT supported"} ` +
-        `(iOS ${iosMajorVersion}, requires 26+; @callstack/liquid-glass isLiquidGlassSupported: ${!!Lib.isLiquidGlassSupported})`
-      );
-    }
-    return ok;
-  } catch (error) {
-    console.warn("Failed to load @callstack/liquid-glass:", error);
-    if (__DEV__) {
-      console.log(`[GlassModules] iOS Liquid Glass: NOT supported (iOS ${iosMajorVersion}, @callstack/liquid-glass failed to load)`);
-    }
-    return false;
-  }
-};
-
-loadIOSGlass();
-
-if (Platform.OS === "ios" && shouldUseIOSGlass && !(LiquidGlassView && LiquidGlassContainer)) {
-  [300, 1000].forEach((delay) => {
-    setTimeout(() => {
-      if (LiquidGlassView && LiquidGlassContainer) return; // already recovered
-      if (loadIOSGlass()) {
-        useIOSGlass = true;
-        DeviceEventEmitter.emit(GLASS_READY_EVENT);
-        if (__DEV__) {
-          console.log(`[GlassModules] iOS Liquid Glass recovered on retry after ${delay}ms`);
-        }
-      }
-    }, delay);
-  });
-}
-
-if (Platform.OS === "ios") {
-  try {
-    const BlurLib = require("@sbaiahmed1/react-native-blur");
-    BlurView = BlurLib.BlurView;
-    if (BlurView) {
-      AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-    }
-    if (__DEV__) {
-      console.log(
-        `[GlassModules] iOS BlurView fallback (< 26): loaded: ${!!BlurView}`
-      );
-    }
-  } catch (error) {
-    console.warn("Failed to load @sbaiahmed1/react-native-blur:", error);
-    if (__DEV__) {
-      console.log(`[GlassModules] iOS BlurView fallback (< 26): @sbaiahmed1/react-native-blur failed to load`);
-    }
-  }
-}
+import { Platform, View } from "react-native";
+import { useTheme } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
-// Android: liquid-glass-kit (unchanged)
-// ---------------------------------------------------------------------------
-let LiquidGlassProviderAndroid = null;
-let LiquidGlassViewAndroid = null;
-let isLiquidGlassSupportedAndroid = false;
-let AnimatedLiquidGlassViewAndroid = null;
-
-const androidApiLevel = Platform.OS === "android" ? Platform.Version : 0;
-// This app only wants liquid-glass-kit's real SHADER (API 33+) and BLUR
-// (API 31-32) tiers. The library's own isLiquidGlassSupported() reports
-// "supported" all the way down to API 21 via its SCRIM tier — a deliberately
-// subtle translucent scrim, not a real glass render — which was silently
-// routing API 30 and below (including Android 9) into the "glass supported"
-// branch with only that weak scrim/fallback tint showing, instead of our own
-// fallback UI. BLUR (API 31-32) uses a real RenderEffect blur + saturation
-// with a clipped shape, so it's a legitimate glass render worth enabling.
-const shouldUseAndroidGlass = Platform.OS === "android" && androidApiLevel >= 31;
-
-if (Platform.OS === "android") {
-  try {
-    const LiquidGlassKit = require("liquid-glass-kit");
-    LiquidGlassProviderAndroid = LiquidGlassKit.LiquidGlassProvider;
-    LiquidGlassViewAndroid = LiquidGlassKit.LiquidGlassView;
-    isLiquidGlassSupportedAndroid = shouldUseAndroidGlass;
-    if (LiquidGlassViewAndroid) {
-      AnimatedLiquidGlassViewAndroid = Animated.createAnimatedComponent(LiquidGlassViewAndroid);
-    }
-    if (__DEV__) {
-      console.log(
-        `[GlassModules] Android Liquid Glass: ${isLiquidGlassSupportedAndroid ? "SUPPORTED" : "NOT supported"} ` +
-        `(API ${androidApiLevel}, requires 31+; liquid-glass-kit loaded: ${!!LiquidGlassViewAndroid})`
-      );
-    }
-  } catch (error) {
-    console.warn("Failed to load liquid-glass-kit:", error);
-    if (__DEV__) {
-      console.log(`[GlassModules] Android Liquid Glass: NOT supported (API ${androidApiLevel}, liquid-glass-kit failed to load)`);
-    }
-  }
-}
-
-// True when the iOS glass components are available (iOS build linked correctly)
-// AND the OS actually supports real Liquid Glass (iOS 26+). Below that, the
-// library's LiquidGlassView silently falls back to a plain BlurView subview
-// that does NOT respect the parent's borderRadius/overflow clipping — that's
-// what caused the square nav bar corners on iOS 18. So on iOS < 26 we report
-// useIOSGlass as false and let call sites use BlurView directly instead,
-// wrapped in a View that actually clips it.
+// react-native-liquid-glassmorphism - single cross-platform glass component.
+// Replaces the old per-platform stack (@callstack/liquid-glass +
+// @sbaiahmed1/react-native-blur on iOS, liquid-glass-kit on Android). The
+// library handles OS-version tiering internally:
+//   iOS 26+   -> native UIGlassEffect
+//   iOS 15-25 -> UIBlurEffect frosted fallback (no separate BlurView needed)
+//   Android 33+ -> AGSL refraction shader
+//   Android 31-32 -> blur + tint (no refraction)
+//   Android <31 -> translucent tint only
+// so there is no more JS-side OS-version branching for the glass itself -
+// every call site just renders <LiquidGlassView>.
 //
-// NOTE: this is a mutable let. Export consumers get a value snapshot at module
-// load time. Use the useIOSGlassSupport() hook inside components so they
-// re-render if the 300 ms / 1000 ms retry fires and sets this to true.
-let useIOSGlass = shouldUseIOSGlass && !!LiquidGlassView && !!LiquidGlassContainer;
+// It also has no "provider" concept (unlike liquid-glass-kit's
+// LiquidGlassProvider/providerId pairing) - each <LiquidGlassView> captures
+// its own backdrop independently, so AndroidGlassBackdrop below is kept only
+// as a passthrough for the ~30 existing call sites that still wrap screen
+// content in it.
+// ---------------------------------------------------------------------------
+let RealLiquidGlassView = null;
+let isGlassAvailable = false;
 
-// Hook that returns the current iOS glass support flag and re-renders the
-// calling component when the delayed retry succeeds.
-const useIOSGlassSupport = () => {
-  const [supported, setSupported] = React.useState(useIOSGlass);
-  React.useEffect(() => {
-    if (Platform.OS !== 'ios') return;
-    // Subscribe before the synchronous check so we never miss an event that
-    // fires between render and this effect body.
-    const sub = DeviceEventEmitter.addListener(GLASS_READY_EVENT, () => {
-      setSupported(true);
-    });
-    // The retry may have already completed between the initial useState() call
-    // and when this effect ran — pick up that case now.
-    if (useIOSGlass) setSupported(true);
-    return () => sub.remove();
-  }, []);
-  return supported;
-};
-const useAndroidGlass = Platform.OS === "android" && !!LiquidGlassViewAndroid && !!isLiquidGlassSupportedAndroid;
+try {
+  const Lib = require("react-native-liquid-glassmorphism");
+  RealLiquidGlassView = Lib.LiquidGlassView;
+  isGlassAvailable = !!RealLiquidGlassView;
+  console.log(`[GlassModules] react-native-liquid-glassmorphism loaded: ${isGlassAvailable} (platform=${Platform.OS})`);
+} catch (error) {
+  console.warn("Failed to load react-native-liquid-glassmorphism:", error);
+  console.log("[GlassModules] react-native-liquid-glassmorphism: NOT available");
+}
 
-// Shared black/white tint for every Android liquid-glass surface, so the
-// glass shader always reads a dark tint in dark mode / light tint in light
-// mode instead of rendering untinted (which looks washed-out/glassy with no
-// grounding against busy content behind it). Centralized here instead of
-// each call site hand-picking its own rgba value, which had drifted to
-// visibly different opacities (0.15 to 0.6) across the app.
-const androidGlassTint = (isDarkMode) =>
-  isDarkMode ? "rgba(0, 0, 0, 0.74)" : "rgba(255, 255, 255, 0.74)";
+// Settings' "Liquid glass effect" toggle (default on) reads/writes here, so
+// this one component is the only place that needs to know about it - every
+// call site across the app just keeps rendering <LiquidGlassView ...> with
+// whatever tintColor/style/borderRadius/children it already passes, and
+// gets the flat tinted look (the same style Android used before this
+// library existed) instead of real glass when the user turns it off,
+// without any of those call sites branching on the setting themselves.
+// Every call site already passes tintColor as the intended surface color,
+// so reusing it as a flat backgroundColor here is a faithful "glass off"
+// look, not an approximation cobbled together separately per screen.
+const GatedLiquidGlassView = ({
+  tintColor,
+  style,
+  borderRadius,
+  children,
+  ...rest
+}) => {
+  const { liquidGlassEnabled } = useTheme();
 
-// Wraps `children` (the backdrop content) in a local Android LiquidGlassProvider
-// keyed by `providerId`, on Android when glass is available; plain passthrough
-// otherwise. Callers still need to render their own LiquidGlassView(Android)
-// glass elements as JSX SIBLINGS of this wrapper (never inside it) — nesting a
-// glass view inside the provider it samples recurses the native RenderNode
-// capture into itself, which is what crashes the app.
-const AndroidGlassBackdrop = ({ providerId, style, children }) => {
-  if (Platform.OS === "android" && useAndroidGlass && LiquidGlassProviderAndroid) {
+  if (liquidGlassEnabled) {
     return (
-      <LiquidGlassProviderAndroid providerId={providerId} style={style}>
+      <RealLiquidGlassView
+        tintColor={tintColor}
+        style={style}
+        borderRadius={borderRadius}
+        {...rest}
+      >
         {children}
-      </LiquidGlassProviderAndroid>
+      </RealLiquidGlassView>
     );
   }
-  return children;
+
+  return (
+    <View style={[style, { borderRadius, backgroundColor: tintColor }]}>
+      {children}
+    </View>
+  );
 };
 
+// Only wrap when the native module actually loaded - staying `null`
+// otherwise preserves every call site's own existing fallback branch for
+// "library unavailable on this device," which is a different case from
+// "available but the user turned it off" (handled inside the wrapper
+// above) and already has its own bespoke fallback styling per call site.
+const LiquidGlassView = isGlassAvailable ? GatedLiquidGlassView : null;
+
+// Passthrough - the new library needs no ancestor provider. Kept so existing
+// <AndroidGlassBackdrop providerId="X" style={{flex:1}}> call sites across
+// the app keep compiling unchanged; `style` still needs to land on a real
+// View (most callers rely on it for flex:1 layout), `providerId` is simply
+// unused now.
+const AndroidGlassBackdrop = ({ style, children }) => (
+  <View style={style}>{children}</View>
+);
+
+// "regular" glass with no explicit tintColor renders with the library's own
+// default hue, which reads too light/washed-out in dark mode. Every call
+// site should pass this so the glass tints dark in dark mode and light in
+// light mode instead of always trending white.
+const glassTint = (isDarkMode) =>
+  isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
+
+// On Android 13+ the library renders its full AGSL refraction shader every
+// single frame for every mounted <LiquidGlassView> - capture backdrop -> GPU
+// blur -> refraction, regardless of whether anyone is touching it. With
+// `intensity`/`thickness` left at their defaults (60 / 1) everywhere, the nav
+// pill + FAB alone run two full live shader passes at once, which is the
+// main source of the reported Android lag. `intensity` scales the blur
+// radius and `thickness` scales the refraction lens depth on Android only
+// (both are no-ops on iOS, where the OS manages the real glass material), so
+// dialing both down keeps the glass look while cutting the per-frame GPU
+// cost. iOS is untouched since its cost is owned by the OS compositor, not us.
+//
+// Pinned back to 1.0.0 (from 1.2.1) - even after tuning every new-in-1.1.0+
+// knob (blurRadius, rim, specular, edgeReflectionStrength all dropped/off),
+// 1.2.1 still ran more per-frame shader work than the plain 1.0.0 build did
+// at its own defaults. Only intensity/thickness exist as props on 1.0.0 -
+// blurRadius/rim/specular/edgeReflectionStrength don't exist on this version
+// at all, so they're removed here rather than passed as dead props.
+const androidGlassPerfProps =
+  Platform.OS === "android" ? { intensity: 7, thickness: 0.4 } : {};
+
 export {
-  BlurView,
   LiquidGlassView,
-  LiquidGlassContainer,
-  AnimatedLiquidGlassView,
-  AnimatedBlurView,
-  LiquidGlassProviderAndroid,
-  LiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
-  AnimatedLiquidGlassViewAndroid,
-  useIOSGlass,
-  useIOSGlassSupport,
-  useAndroidGlass,
+  isGlassAvailable,
   AndroidGlassBackdrop,
-  androidGlassTint,
+  glassTint,
+  androidGlassPerfProps,
 };
 
 export default {
-  BlurView,
   LiquidGlassView,
-  LiquidGlassContainer,
-  AnimatedLiquidGlassView,
-  AnimatedBlurView,
-  LiquidGlassProviderAndroid,
-  LiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
-  AnimatedLiquidGlassViewAndroid,
-  useIOSGlass,
-  useIOSGlassSupport,
-  useAndroidGlass,
+  isGlassAvailable,
   AndroidGlassBackdrop,
-  androidGlassTint,
+  glassTint,
+  androidGlassPerfProps,
 };

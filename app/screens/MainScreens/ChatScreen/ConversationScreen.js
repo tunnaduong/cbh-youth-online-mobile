@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from "react";
+import React, { useState, useRef, useEffect, useContext, useMemo } from "react";
 import {
   View,
   Text,
@@ -370,8 +370,14 @@ const MessagesListContent = React.memo(({
     }
 
     return (
+      // type+id alone (no index) - "load more" pagination prepends older
+      // messages, shifting every index. A key that includes index made React
+      // treat every already-rendered row as brand new on each scroll-up load,
+      // remounting (not just re-rendering) the entire message list every
+      // time - by far the biggest source of chat lag once a conversation had
+      // any scroll-back history loaded.
       <View
-        key={`${value.type}-${value.id}-${index}`}
+        key={`${value.type}-${value.id}`}
         onLayout={(e) => {
           if (value.type === "message" && value.id != null) {
             messageLayoutOffsetsRef.current[value.id] = {
@@ -678,6 +684,14 @@ const MultiAttachmentGrid = ({ urls, isVideo, onPressItem }) => {
 // component's props stay referentially stable across unrelated re-renders
 // and React.memo can actually skip re-rendering a bubble whose own message
 // didn't change.
+// Image.getSize() is a native/network round-trip (fetches remote image
+// headers to learn intrinsic dimensions) - without caching, every mount of
+// an image/video MessageRow re-issued it, so opening or scrolling through a
+// conversation with lots of media fired potentially hundreds of redundant
+// native calls at once. Keyed by URL and shared across all MessageRow
+// instances/remounts for the lifetime of the app.
+const imageAspectRatioCache = new Map();
+
 const MessageRow = React.memo(({
   item,
   prevMessage,
@@ -735,17 +749,39 @@ const MessageRow = React.memo(({
   const isFileMessage = item.type === "file" || item.content_type === "file";
   const resolvedFileUrl = resolveMediaUrl(item.file_url);
   const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
+  // Small (480px) muted preview clip for autoplay - see
+  // MediaThumbnailService::videoPreview on the backend. Decoding a full
+  // compressed video (up to 1920x1080) inline in a ~200px bubble burns far
+  // more CPU than that tiny player needs; falls back to the full file for
+  // older messages sent before this existed.
+  const resolvedPreviewUrl = resolveMediaUrl(item.metadata?.preview_url);
+  // Same idea for the static image bubble - a full-resolution original is
+  // wasted decode/network cost at bubble size. Backend generates this
+  // synchronously at send time, but falls back to the full file if it's
+  // ever missing rather than showing nothing.
+  const displayImageUrl = isImageMessage ? (resolvedThumbnailUrl || resolvedFileUrl) : null;
   const [imageAspectRatio, setImageAspectRatio] = useState(null);
 
   useEffect(() => {
+    const url = isImageMessage ? displayImageUrl : isVideoMessage ? resolvedThumbnailUrl : null;
+    if (!url) {
+      setImageAspectRatio(null);
+      return undefined;
+    }
+
+    const cached = imageAspectRatioCache.get(url);
+    if (cached != null) {
+      setImageAspectRatio(cached);
+      return undefined;
+    }
+
     let cancelled = false;
     setImageAspectRatio(null);
-    const url = isImageMessage ? resolvedFileUrl : isVideoMessage ? resolvedThumbnailUrl : null;
-    if (!url) return undefined;
     // Try to get intrinsic size so we can preserve original ratio instead of 1:1 crop
     Image.getSize(
       url,
       (w, h) => {
+        if (w > 0 && h > 0) imageAspectRatioCache.set(url, w / h);
         if (!cancelled && w > 0) setImageAspectRatio(w / h);
       },
       () => {
@@ -755,7 +791,7 @@ const MessageRow = React.memo(({
     return () => {
       cancelled = true;
     };
-  }, [resolvedFileUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
+  }, [displayImageUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
 
   const handleSwipeReply = () => {
     const contentType =
@@ -995,7 +1031,7 @@ const MessageRow = React.memo(({
                   </View>
                 ) : (
                   <FastImage
-                    source={{ uri: resolvedFileUrl }}
+                    source={{ uri: displayImageUrl }}
                     style={
                       imageAspectRatio
                         ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
@@ -1007,7 +1043,7 @@ const MessageRow = React.memo(({
                       console.error("[ChatMedia] image FAILED to load", {
                         id: item.id,
                         raw_file_url: item.file_url,
-                        resolved: resolvedFileUrl,
+                        resolved: displayImageUrl,
                         reason,
                       });
                       onImageError(item.id, reason);
@@ -1035,7 +1071,7 @@ const MessageRow = React.memo(({
                       : 200;
                     return (
                       <InlineVideoPlayer
-                        uri={resolvedFileUrl}
+                        uri={resolvedPreviewUrl || resolvedFileUrl}
                         width={thumbWidth}
                         height={thumbHeight}
                         borderRadius={12}
@@ -1348,6 +1384,62 @@ const ConversationScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  // Caps how many of the loaded `messages` actually get rendered/mounted at
+  // once. "Load more" pagination keeps prepending older pages to `messages`
+  // as the user scrolls back through history, but every one of those rows
+  // stayed mounted forever in the plain (non-virtualized) ScrollView below -
+  // for a conversation with a lot of scroll-back, that's hundreds of message
+  // bubbles (some with images/videos) all live at once. RENDER_WINDOW_CHUNK
+  // is comfortably above a typical page size so ordinary conversations never
+  // even reach the cap; it only kicks in once someone's scrolled back far
+  // enough that keeping everything mounted would actually hurt.
+  const RENDER_WINDOW_CHUNK = 80;
+  // Scrolling near the top keeps growing the window by RENDER_WINDOW_CHUNK
+  // with no ceiling, so a long enough scroll-back session would eventually
+  // reach "render everything anyway" and quietly bring back the exact
+  // mounted-bubble-count problem this cap exists to avoid. Past this many,
+  // further scroll-up still fetches more history (see handleMessagesScroll)
+  // but stops mounting it - a deliberate, rare tradeoff over letting a
+  // single very-long session snowball back into the original perf problem.
+  const MAX_RENDER_LIMIT = 400;
+  // The backend already delivers history in real pages (getConversationMessages'
+  // `page` param, `current_page`/`last_page`) - this just remembers each
+  // loaded older page's boundary (the id of its oldest message) so the
+  // near-top growth step below can snap renderLimit to reveal one whole
+  // fetched page at a time, instead of an arbitrary RENDER_WINDOW_CHUNK-sized
+  // guess that might land mid-page. Oldest-page-first, matching how pages
+  // get prepended to `messages`. Message ids rather than indices/counts
+  // because `messages` also has date/time headers interspersed
+  // (injectTimeHeaders) whose count per page isn't fixed - an id survives
+  // that; a raw count wouldn't line up.
+  const pageBoundaryIdsRef = useRef([]);
+  const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
+  // Companion to renderLimit, but for the *other* end: renderLimit caps how
+  // far back (toward the oldest) mounted content reaches; this caps how far
+  // forward (toward the newest) it reaches once the user has scrolled well
+  // away from the bottom. Count of newest messages currently left unmounted
+  // - 0 means "render all the way to the newest" (the common case: reading
+  // recent messages, or nobody's scrolled away from the bottom yet).
+  // handleMessagesScroll keeps this in sync with scroll position: scroll up
+  // into history and whatever's now off-screen below unmounts: scroll back
+  // down and it remounts, exactly mirroring what renderLimit already does
+  // at the other end - and safely, since unmounting content that's already
+  // below the viewport never shifts what's currently on screen (unlike
+  // trimming from above, which would need scroll-offset compensation this
+  // doesn't attempt).
+  const [renderEndOffset, setRenderEndOffset] = useState(0);
+  // Only messages within [start, end) actually get mounted; everything
+  // outside that window stays in `messages` state (so pagination/scroll
+  // math is unaffected) but isn't rendered until scrolling brings it back
+  // into range (see handleMessagesScroll) or a reply-jump explicitly needs
+  // it (see handleJumpToRepliedMessage).
+  const visibleMessages = useMemo(() => {
+    const start = messages.length > renderLimit ? messages.length - renderLimit : 0;
+    const end = renderEndOffset > 0
+      ? Math.max(start + 1, messages.length - renderEndOffset)
+      : messages.length;
+    return messages.slice(start, end);
+  }, [messages, renderLimit, renderEndOffset]);
   const inputRef = useRef(null);
   const messagesScrollRef = useRef(null);
   const lastTapRef = useRef({});
@@ -1364,6 +1456,16 @@ const ConversationScreen = ({ navigation, route }) => {
   const activeInlineVideoIdRef = useRef(null);
   const [activeInlineVideoId, setActiveInlineVideoId] = useState(null);
   const scrollOffsetRef = useRef(0);
+  // Prepending older messages at the top grows content ABOVE the current
+  // viewport - a plain (non-inverted) ScrollView doesn't compensate for
+  // that on its own, so the same messages the user was reading jump
+  // downward by however tall the newly-added page is, and offsetY stays
+  // pinned near 0 ("isNearTop") the whole time, re-triggering another
+  // "load more" immediately. Set right before fetchMessages(false) fires
+  // from pagination; consumed once in onContentSizeChange to scroll by
+  // the height actually added, landing the user back where they were
+  // instead of still sitting at the very top edge.
+  const pendingLoadMoreAdjustRef = useRef(null);
   const isFocused = useIsFocused();
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
@@ -1821,6 +1923,8 @@ const ConversationScreen = ({ navigation, route }) => {
       if (isRefresh && !isBackground) {
         setPage(1);
         setHasMore(true);
+        setRenderLimit(RENDER_WINDOW_CHUNK);
+        pageBoundaryIdsRef.current = [];
       }
 
       if (!hasMore && !isRefresh) return;
@@ -1847,6 +1951,9 @@ const ConversationScreen = ({ navigation, route }) => {
       const transformed = injectTimeHeaders(newMessages, t);
 
       if (!isBackground) {
+        if (!isRefresh && newMessages.length > 0) {
+          pageBoundaryIdsRef.current = [newMessages[0].id, ...pageBoundaryIdsRef.current];
+        }
         setMessages((prev) => {
           if (isRefresh || prev.length === 0) {
             return preserveRecentReactions(transformed);
@@ -2094,7 +2201,15 @@ const ConversationScreen = ({ navigation, route }) => {
       });
     });
     setHighlightedMessageId(targetId);
-    setTimeout(() => setHighlightedMessageId(null), 2500);
+    setTimeout(() => {
+      setHighlightedMessageId(null);
+      // handleJumpToRepliedMessage may have blown renderLimit open
+      // (messages.length or Infinity) to guarantee the jump target was
+      // mounted - once the highlight itself fades there's no reason to keep
+      // rendering everything for the rest of the session, so drop back to
+      // the normal windowed cap. Harmless no-op if it was never widened.
+      setRenderLimit((prev) => Math.min(prev, RENDER_WINDOW_CHUNK));
+    }, 2500);
     return true;
   };
 
@@ -2122,6 +2237,25 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleJumpToRepliedMessage = async (replyToId) => {
     if (replyToId == null) return;
     if (scrollToMessageAndHighlight(replyToId)) return;
+
+    // The target might already be loaded in `messages` but simply outside
+    // the current render window (see renderLimit/visibleMessages) - expand
+    // to cover everything already fetched before falling back to actually
+    // fetching more from the server below.
+    if (messages.some((m) => String(m.id) === String(replyToId))) {
+      setRenderLimit(messages.length);
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      if (scrollToMessageAndHighlight(replyToId)) return;
+    }
+
+    // About to fetch more pages looking for the target - each fetch's fresh
+    // message count isn't visible in this closure (state updates are async
+    // and this function's `messages` snapshot is already stale by the next
+    // line), so there's no reliable count to grow renderLimit to match.
+    // Just render everything for the rest of this jump; it's a rare,
+    // deliberate action, not the common scrolling path renderLimit exists
+    // for.
+    setRenderLimit(Infinity);
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -2184,11 +2318,70 @@ const ConversationScreen = ({ navigation, route }) => {
     const isNearTop = offsetY <= 40;
     if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
+      pendingLoadMoreAdjustRef.current = {
+        prevHeight: scrollContentHeightRef.current,
+        prevOffsetY: offsetY,
+      };
       fetchMessages(false);
+    }
+    // Reveal more of what's already loaded as the user scrolls back into
+    // history, independent of whether there's anything left to fetch from
+    // the server - this is a separate, purely local render cap (see
+    // renderLimit above), not the "load more" pagination trigger above it.
+    if (isNearTop) {
+      setRenderLimit((prev) => {
+        if (messages.length <= prev || prev >= MAX_RENDER_LIMIT) return prev;
+
+        // Snap to the next real fetched-page boundary (see
+        // pageBoundaryIdsRef) instead of a flat RENDER_WINDOW_CHUNK guess,
+        // so a mount/unmount always lines up with an actual page the
+        // server sent rather than an arbitrary message count that might
+        // land mid-page. Walked oldest-first; the first boundary not yet
+        // inside the current window is the next one to reveal.
+        for (let i = 0; i < pageBoundaryIdsRef.current.length; i++) {
+          const idx = messages.findIndex(
+            (m) => String(m.id) === String(pageBoundaryIdsRef.current[i])
+          );
+          if (idx === -1) continue;
+          const countFromEnd = messages.length - idx;
+          if (countFromEnd > prev) {
+            return Math.min(countFromEnd, MAX_RENDER_LIMIT);
+          }
+        }
+
+        // No tracked boundary beyond the current window yet (e.g. right
+        // after a page just landed, before its id is findable) - fall back
+        // to the old flat increment so growth never stalls.
+        return Math.min(prev + RENDER_WINDOW_CHUNK, MAX_RENDER_LIMIT);
+      });
     }
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
+
+    // Bottom half of the render window (see renderEndOffset above): once
+    // scrolled more than a few screens away from the newest message, unmount
+    // whatever's that far below the current view - it's off-screen either
+    // way, so dropping it doesn't shift anything currently visible. Coming
+    // back within reach (including landing exactly at the bottom, where
+    // this evaluates to 0) remounts it. Within the keep-zone - "reading in
+    // the middle" - nothing here changes.
+    const BOTTOM_KEEP_PX = (scrollViewHeightRef.current || 800) * 1.5;
+    if (distanceFromBottom <= BOTTOM_KEEP_PX) {
+      setRenderEndOffset((prev) => (prev === 0 ? prev : 0));
+    } else {
+      const renderedCount = visibleMessages.length || 1;
+      const avgHeight = (scrollContentHeightRef.current || 1) / renderedCount;
+      const hiddenCount = Math.max(0, Math.floor((distanceFromBottom - BOTTOM_KEEP_PX) / avgHeight));
+      console.log("[ChatWindow] bottom-trim check", {
+        distanceFromBottom: Math.round(distanceFromBottom),
+        BOTTOM_KEEP_PX: Math.round(BOTTOM_KEEP_PX),
+        renderedCount,
+        avgHeight: Math.round(avgHeight),
+        hiddenCount,
+      });
+      setRenderEndOffset((prev) => (prev === hiddenCount ? prev : hiddenCount));
+    }
 
     scrollOffsetRef.current = offsetY;
     if (!autoplayVideos || !isFocused) {
@@ -3811,6 +4004,19 @@ const ConversationScreen = ({ navigation, route }) => {
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
           onContentSizeChange={(w, h) => {
+            const pending = pendingLoadMoreAdjustRef.current;
+            if (pending && h > pending.prevHeight) {
+              pendingLoadMoreAdjustRef.current = null;
+              const grownBy = h - pending.prevHeight;
+              const targetY = pending.prevOffsetY + grownBy;
+              requestAnimationFrame(() => {
+                messagesScrollRef.current?.scrollTo({ y: targetY, animated: false });
+              });
+              console.log("[ChatWindow] compensated scroll after load-more", {
+                grownBy: Math.round(grownBy),
+                targetY: Math.round(targetY),
+              });
+            }
             scrollContentHeightRef.current = h;
             handleMessagesContentSizeChange(w, h);
           }}
@@ -3819,7 +4025,7 @@ const ConversationScreen = ({ navigation, route }) => {
           }}
         >
           <MessagesListContent
-            messages={messages}
+            messages={visibleMessages}
             isGroupChat={currentConversation?.type === "group"}
             theme={theme}
             isDarkMode={isDarkMode}

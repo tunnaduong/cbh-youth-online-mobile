@@ -1,6 +1,16 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
+// react-native-screens' enableFreeze(true) used to be on here - it pauses a
+// backgrounded screen's whole React tree (via react-freeze/Suspense) so it
+// stops costing anything while another screen is on top. Reverted: if a
+// screen's data-fetch resolves while it's frozen (e.g. navigating away right
+// as it started loading), the resulting setState can get dropped since the
+// fiber is suspended - leaving that screen stuck on its loading state
+// forever, only fixed by a full app restart. Intermittent and timing-
+// dependent, which matches "sometimes, not always" freeze-on-entry reports.
+// Screens still get their native view detached when backgrounded (that part
+// is automatic, not from this call) - just not their React tree frozen too.
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
@@ -61,6 +71,8 @@ import UploadStudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/U
 import GamesScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen";
 import GamePlayScreen from "./app/screens/MainScreens/ExploreScreen/GamesScreen/GamePlayScreen";
 import QuizScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen";
+import UniversityScreen from "./app/screens/MainScreens/ExploreScreen/UniversityScreen";
+import CustomQuizCreateScreen from "./app/screens/MainScreens/ExploreScreen/QuizScreen/CustomQuizCreateScreen";
 import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
@@ -174,6 +186,24 @@ const parseDeepLink = (url) => {
       const intentMatch = url.match(/scheme=([^;]+)/);
       if (intentMatch) {
         scheme = intentMatch[1];
+      }
+
+      // An Android "intent://" URI puts our own first path segment (post/
+      // story/group/quiz/game) where a real URL would put the host, e.g.
+      // "intent://quiz/56#Intent;scheme=com.fatties.youth;...;end" parses
+      // above as host="quiz", pathSegment="56" - the customSchemeMatch
+      // branch above never runs for these since they don't match a plain
+      // "scheme://host/path" shape. Re-fold host back into pathSegment the
+      // same way that branch does, or every check below that expects
+      // pathSegment to start with "quiz/" etc. misses and this silently
+      // falls through to the bare-ID story-link branch instead (e.g. a
+      // shared quiz link opening the wrong content).
+      if (
+        (scheme === "com.fatties.youth" || scheme === "exp+cbh-youth-online-mobile") &&
+        (host === "post" || host === "story" || host === "group" || host === "quiz" || host === "game")
+      ) {
+        pathSegment = `${host}/${pathSegment}`;
+        host = "";
       }
     }
 
@@ -846,6 +876,16 @@ const App = () => {
               <Stack.Screen
                 name="QuizScreen"
                 component={QuizScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="CustomQuizCreateScreen"
+                component={CustomQuizCreateScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="UniversityScreen"
+                component={UniversityScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

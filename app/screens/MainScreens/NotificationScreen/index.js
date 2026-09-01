@@ -28,13 +28,7 @@ import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
-import {
-  LiquidGlassView,
-  LiquidGlassViewAndroid,
-  isLiquidGlassSupportedAndroid,
-  BlurView,
-  AndroidGlassBackdrop,
-} from "../../../components/GlassModules";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 
 
@@ -641,21 +635,21 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           onPress={handleMarkAllAsRead}
           disabled={unreadCount === 0}
           scrollY={scrollY}
-          alwaysBorder
-          borderColor={unreadCount > 0 ? theme.primary : theme.border}
           size={44}
-          style={{ width: 'auto', paddingHorizontal: 16, height: 44, backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
+          style={{ backgroundColor: unreadCount > 0 ? (isDarkMode ? "rgba(49,149,39,0.16)" : "rgba(49,149,39,0.18)") : 'transparent' }}
           borderRadius={22}
         >
-          <Text
-            style={[
-              styles.readAllText,
-              { color: unreadCount > 0 ? theme.primary : theme.text },
-              unreadCount === 0 && (isDarkMode ? { color: "#666" } : styles.readAllTextDisabled),
-            ]}
-          >
-            {t('notifications.readAll')} ({unreadCount})
-          </Text>
+          <Ionicons
+            name="checkmark-done"
+            size={22}
+            color={
+              unreadCount > 0
+                ? theme.primary
+                : isDarkMode
+                  ? "#666"
+                  : "#888"
+            }
+          />
         </LiquidButton>
       </View>
 

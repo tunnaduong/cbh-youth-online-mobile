@@ -136,6 +136,16 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen, interactive }) =
 // accordingly. Tapping opens a full-screen player with sound + controls.
 const InlineVideoPlayer = ({
   uri,
+  // Full-quality source for the tap-to-fullscreen modal, when it differs
+  // from `uri` - callers autoplaying a small compressed preview (see
+  // MediaThumbnailService::videoPreview on the backend) still want the real
+  // original once the user actually opens it full-screen. Defaults to
+  // `uri` for callers that only ever have one quality.
+  fullscreenUri,
+  // Server-generated first-frame JPG, if there is one - see VideoThumbnail's
+  // serverThumbnailUri for why this skips a much more expensive client-side
+  // extraction from the full video.
+  thumbnailUri,
   width,
   height,
   borderRadius = 0,
@@ -165,6 +175,7 @@ const InlineVideoPlayer = ({
       ) : (
         <VideoThumbnail
           uri={uri}
+          serverThumbnailUri={thumbnailUri}
           width={width}
           height={height}
           borderRadius={borderRadius}
@@ -173,7 +184,7 @@ const InlineVideoPlayer = ({
       {interactive && fullscreenVisible && (
         <VideoPlayerModal
           visible={fullscreenVisible}
-          uri={uri}
+          uri={fullscreenUri || uri}
           onClose={() => setFullscreenVisible(false)}
         />
       )}

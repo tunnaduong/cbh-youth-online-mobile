@@ -13,7 +13,7 @@ import NotificationScreen from "./NotificationScreen";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassProviderAndroid, LiquidGlassViewAndroid, useAndroidGlass, isLiquidGlassSupportedAndroid, AndroidGlassBackdrop, BlurView, useIOSGlassSupport, androidGlassTint } from "../../components/GlassModules";
+import { LiquidGlassView, AndroidGlassBackdrop, glassTint, androidGlassPerfProps } from "../../components/GlassModules";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -34,17 +34,9 @@ const ANDROID_ICON_MAP = {
   Notifications: { focused: "notifications", outline: "notifications-outline" },
 };
 
-// Rendered as a true JSX sibling of TabWrapper's `providerId="main"`
-// LiquidGlassProviderAndroid (see MainScreens' return below) — NOT via
-// Tab.Navigator's `tabBar` render prop, which would mount it *inside* that
-// provider's own captured subtree. A glass view can never be a descendant of
-// the provider it samples: the provider's RenderNode capture would have to
-// draw the glass view, which samples the RenderNode being captured,
-// recursing forever and blowing the native stack (confirmed on-device via a
-// SIGSEGV tombstone in android::uirenderer::RenderNode::prepareTreeImpl).
-// Driven directly by MainScreens' own `currentRoute` state and navigation
-// instead of react-navigation's tabBar props, since it's no longer mounted
-// through that render prop.
+// Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
+// render prop) and driven directly by MainScreens' own `currentRoute` state
+// and navigation.
 const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
@@ -79,50 +71,19 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
   const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
   const opacity = activeRouteName === "Create" ? 0 : 1;
 
-  const glassProps = Platform.Version >= 33 ? {
-    blurRadius: 12,
-    refractionAmount: 40,
-    refractionHeight: 18,
-    chromaticAberration: 0.2,
-    highlightAlpha: 0.25,
-    tint: androidGlassTint(isDarkMode),
-  } : {
-    blurRadius: 10,
-    refractionAmount: 0,
-    refractionHeight: 0,
-    chromaticAberration: 0,
-    highlightAlpha: 0.18,
-    tint: androidGlassTint(isDarkMode),
-  };
-
-  const PillBackground = ({ style }) => (
-    <View style={[StyleSheet.absoluteFill, {
-      borderRadius: 24.5, overflow: "hidden",
-      backgroundColor: (useAndroidGlass || (Platform.OS === "ios" && BlurView)) ? "transparent" : surface,
-      borderWidth: 1, borderColor: border,
-    }, style]}>
-      {Platform.OS === "android" && useAndroidGlass && LiquidGlassViewAndroid && (
-        <LiquidGlassViewAndroid
-          providerId="main"
-          interactive={isLiquidGlassSupportedAndroid}
-          {...glassProps}
-          style={StyleSheet.absoluteFill}
-        />
-      )}
-      {Platform.OS === "ios" && BlurView && (
-        <BlurView
-          style={StyleSheet.absoluteFill}
-          blurType={isDarkMode ? "dark" : "light"}
-          blurAmount={20}
-        />
-      )}
-    </View>
-  );
+  // The pill's real content (sliding indicator + tab buttons, or the "+"
+  // icon) must be actual React children of <LiquidGlassView> - not siblings
+  // drawn over an absoluteFill glass layer - both so the library composites
+  // them crisply on top instead of also sweeping them into its captured-and-
+  // blurred backdrop, and so `interactive` (the touch-following specular
+  // "dynamic" glass look) has real touches to react to.
+  const NavGlassWrapper = LiquidGlassView ?? View;
 
   return (
     <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
       {/* Left pill: main tabs */}
-      <View
+      <NavGlassWrapper
+        {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 24.5, ...androidGlassPerfProps } : {})}
         renderToHardwareTextureAndroid
         onLayout={(e) => {
           const w = e.nativeEvent.layout.width;
@@ -130,7 +91,8 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
         }}
         style={[{
           flex: 1, height: 49, borderRadius: 24.5, marginRight: 12,
-          backgroundColor: "transparent",
+          backgroundColor: LiquidGlassView ? "transparent" : surface,
+          borderWidth: 1, borderColor: border,
           flexDirection: "row", alignItems: "center",
           elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
           shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
@@ -141,7 +103,6 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
         // rounded edge against the dark theme background.
         isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
-        <PillBackground />
         <Animated.View
           renderToHardwareTextureAndroid
           style={{
@@ -187,7 +148,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
             </TouchableOpacity>
           );
         })}
-      </View>
+      </NavGlassWrapper>
 
       {/* Right pill: create button */}
       <TouchableOpacity
@@ -195,16 +156,23 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
         activeOpacity={0.8}
         style={[{
           width: 53, height: 53, borderRadius: 26.5,
-          backgroundColor: "transparent",
-          elevation: 8, alignItems: "center", justifyContent: "center",
-          shadowColor: "#000", shadowOpacity: 0.12,
-          shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
           overflow: "hidden",
         },
         isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
-        <PillBackground style={{ borderRadius: 26.5 }} />
-        <Ionicons name="add" size={28} color={activeColor} />
+        <NavGlassWrapper
+          {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 26.5, ...androidGlassPerfProps } : {})}
+          style={{
+            width: 53, height: 53, borderRadius: 26.5,
+            backgroundColor: LiquidGlassView ? "transparent" : surface,
+            borderWidth: 1, borderColor: border,
+            alignItems: "center", justifyContent: "center",
+            elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
+            shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+          }}
+        >
+          <Ionicons name="add" size={28} color={activeColor} />
+        </NavGlassWrapper>
       </TouchableOpacity>
     </View>
   );
@@ -226,38 +194,40 @@ const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
 
 // Defined outside MainScreens so its identity is stable across re-renders.
 // Re-mounting it would remount the entire Tab.Navigator, causing tab-switch lag.
-const TabWrapper = ({ children }) => {
-  if (Platform.OS === 'android' && LiquidGlassProviderAndroid) {
-    return (
-      <LiquidGlassProviderAndroid providerId="main" style={{ flex: 1 }}>
-        {children}
-      </LiquidGlassProviderAndroid>
-    );
-  }
-  return children;
-};
+// react-native-liquid-glassmorphism needs no ancestor provider (each
+// LiquidGlassView captures its own backdrop), so this is now a passthrough.
+const TabWrapper = ({ children }) => children;
 
 export default function MainScreens({ navigation: stackNavigation }) {
   const [setting, setSetting] = useState(false);
   const insets = useSafeAreaInsets();
-  // iOS < 26 has no Liquid Glass API, so the native tab bar there renders as a
-  // plain opaque bar with square corners on translucent styling — this custom
-  // bar (Android-style pill + BlurView) is used instead. iOS 26+ keeps the
-  // native react-navigation tab bar, which renders real UIGlassEffect.
-  // Using the hook (not a module-level constant) so a delayed native-module
-  // registration on first cold start re-renders this component correctly.
-  const iosGlass = useIOSGlassSupport();
-  const isCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && !iosGlass);
+  // iOS 26+ keeps react-navigation's native system tab bar (real native
+  // UIGlassEffect with the OS's own scroll-collapse behavior, which
+  // react-native-liquid-glassmorphism has no equivalent for). Android and
+  // iOS < 26 use this app's own custom pill-style bar instead.
+  const isCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
   const [currentRoute, setCurrentRoute] = useState("Home");
   const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+  // Sidebar used to stay mounted permanently (just slid off-screen via
+  // transform), which on Android means its LiquidGlassView keeps running a
+  // full-screen-height AGSL shader pass every frame the whole time the app
+  // is open, not just while the drawer is actually visible - real, sustained
+  // GPU/perf cost for a screen most sessions never open. Mount it only while
+  // opening/open, and keep it mounted through the close animation so it
+  // doesn't just vanish mid-slide - unmount once that finishes.
+  const [shouldRenderSidebar, setShouldRenderSidebar] = useState(false);
 
   useEffect(() => {
+    if (setting) setShouldRenderSidebar(true);
+
     Animated.timing(drawerTranslateX, {
       toValue: setting ? 0 : -Dimensions.get('window').width,
       duration: 300,
       useNativeDriver: true,
-    }).start();
+    }).start(({ finished }) => {
+      if (!setting && finished) setShouldRenderSidebar(false);
+    });
 
     Animated.timing(backdropOpacity, {
       toValue: setting ? 1 : 0,
@@ -265,6 +235,22 @@ export default function MainScreens({ navigation: stackNavigation }) {
       useNativeDriver: true,
     }).start();
   }, [setting, drawerTranslateX, backdropOpacity]);
+
+  // None of the sidebar's ~9 menu items (Profile, Settings, etc.) ever
+  // closed the drawer themselves before navigating - each just called
+  // navigation.navigate() directly. The drawer stayed fully open/mounted
+  // (including its own LiquidGlassView, if glass is on) behind whatever
+  // screen you navigated to, indefinitely, until manually dismissed - not
+  // just a visual glitch, a real extra glass surface + mounted subtree
+  // still costing GPU/JS time the entire time you're on that screen. Fixed
+  // centrally here instead of touching every menu item: close the drawer
+  // automatically on any navigation state change while it's open.
+  useEffect(() => {
+    const unsubscribe = stackNavigation.addListener("state", () => {
+      setSetting((prev) => (prev ? false : prev));
+    });
+    return unsubscribe;
+  }, [stackNavigation]);
 
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
   const createMenuRef = useRef(null);
@@ -379,10 +365,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <Tab.Navigator
           // The custom tab bar chrome (Android, and iOS < 26) is rendered
-          // separately below, as a true JSX sibling of TabWrapper's glass
-          // provider (see CustomTabBar's comment) rather than through this
-          // render prop, which would mount it *inside* the provider's own
-          // subtree.
+          // separately below as CustomTabBar, a plain sibling in this same
+          // return - not through this render prop. iOS 26+ leaves tabBar
+          // undefined so react-navigation renders its own native system tab
+          // bar (real UIGlassEffect + native scroll-collapse).
           tabBar={isCustomTabBar ? () => null : undefined}
           screenOptions={{
             lazy: true,
@@ -555,7 +541,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
         zIndex: 101,
         transform: [{ translateX: drawerTranslateX }]
       }}>
-        <Sidebar providerId={currentRoute} isOpen={setting} />
+        {shouldRenderSidebar && <Sidebar providerId={currentRoute} isOpen={setting} />}
       </Animated.View>
     </View>
   );

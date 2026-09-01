@@ -725,6 +725,21 @@ export const getGameNowPlaying = () => {
   return Api.getRequest("/v1.0/games/now-playing");
 };
 
+// Universities
+export const getUniversityOptions = () => {
+  return Api.getRequest("/v1.0/universities/options");
+};
+
+export const getUniversities = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return Api.getRequest(`/v1.0/universities${query ? `?${query}` : ""}`);
+};
+
+export const searchUniversities = (q, autocomplete = false) => {
+  const query = new URLSearchParams({ q, ...(autocomplete ? { autocomplete: "1" } : {}) }).toString();
+  return Api.getRequest(`/v1.0/universities/search?${query}`);
+};
+
 // Quiz
 export const getQuizTopics = () => {
   return Api.getRequest("/v1.0/quiz/topics");
@@ -754,4 +769,15 @@ export const getQuizLeaderboard = (period = "week") => {
 
 export const joinQuiz = (quizSetId) => {
   return Api.postRequest(`/v1.0/quiz/${quizSetId}/join`, {});
+};
+
+export const restartQuiz = (quizSetId) => {
+  return Api.postRequest(`/v1.0/quiz/${quizSetId}/restart`, {});
+};
+
+// Custom quiz sets - built from user-supplied text/HTML or an uploaded
+// document (.docx/.txt/.pdf) instead of AI generation from a topic. Backend
+// requires exactly one of content_html or file - see QuizController::custom.
+export const createCustomQuiz = (formData) => {
+  return Api.postFormDataRequest("/v1.0/quiz/custom", formData);
 };

@@ -27,7 +27,6 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
 import { storage } from "../../../global/storage";
-import LiquidButton from "../../../components/LiquidButton";
 
 const { width } = Dimensions.get("window");
 
@@ -254,14 +253,17 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
           <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("ProfileScreen", { username })} style={{ padding: 2 }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ProfileScreen", { username })}
+            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", padding: 2 }}
+          >
             <FastImage
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}
               style={styles.avatar}
             />
-          </LiquidButton>
+          </TouchableOpacity>
         </View>
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background, paddingTop: headerHeight }}
@@ -279,17 +281,23 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent", backgroundColor: "transparent" }]} pointerEvents="box-none">
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <View style={styles.headerActions}>
-          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("MemberRankingScreen")}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("MemberRankingScreen")}
+            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+          >
             <Ionicons name="trophy-outline" size={22} color={theme.primary} />
-          </LiquidButton>
-          <LiquidButton size={40} scrollY={scrollY} onPress={() => navigation.navigate("ProfileScreen", { username })} style={{ padding: 2 }}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ProfileScreen", { username })}
+            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", padding: 2 }}
+          >
             <FastImage
               source={{
                 uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
               }}
               style={styles.avatar}
             />
-          </LiquidButton>
+          </TouchableOpacity>
         </View>
       </View>
 

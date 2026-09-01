@@ -93,7 +93,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos } = useTheme();
+  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
 
@@ -316,6 +316,13 @@ export default function SettingsScreen({ navigation }) {
             isSwitch
             value={autoplayVideos}
             onPress={setAutoplayVideos}
+          />
+          <SettingItem
+            icon="sparkles-outline"
+            title={t("settings.liquidGlassEffect")}
+            isSwitch
+            value={liquidGlassEnabled}
+            onPress={setLiquidGlassEnabled}
           />
           <SettingItem
             icon="ban-outline"

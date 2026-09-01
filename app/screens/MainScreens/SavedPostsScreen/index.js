@@ -264,7 +264,6 @@ const SavedPostsScreen = ({ navigation }) => {
             providerId="SavedPostsScreenScrollTop"
             size={44}
             scrollY={scrollY}
-            alwaysBorder
             onPress={() => flatListRef.current?.scrollToOffset({ offset: 0, animated: true })}
           >
             <Ionicons name="chevron-up" size={22} color={theme.primary} />

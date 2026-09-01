@@ -16,15 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
-import {
-  BlurView,
-  LiquidGlassView,
-  useIOSGlassSupport,
-  LiquidGlassViewAndroid,
-  useAndroidGlass,
-  isLiquidGlassSupportedAndroid,
-  androidGlassTint,
-} from "./GlassModules";
+import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
 const isAndroid = Platform.OS === "android";
@@ -91,15 +83,17 @@ const CommentBar = React.forwardRef(
       selectedImages,
       onClearImage,
       nativeID,
-      providerId,
-      // Android only: when the parent already renders its own single glass
-      // layer behind this whole bar (e.g. ConversationScreen's floating
-      // input block), the pill itself should stay fully transparent instead
-      // of also sampling the backdrop — two independent real-glass renders
-      // of the same provider stacked on top of each other produced a
-      // visible double-refraction artifact (a blotchy discolored patch).
+      // When the parent already renders its own single glass layer behind
+      // this whole bar (e.g. ConversationScreen's floating input block), the
+      // pill itself should stay fully transparent instead of also rendering
+      // its own glass on top of that.
       androidTransparentPill = false,
       allowBroadcastMention = true,
+      // See LiquidButton's forceNoGlass for why: real glass on Android runs
+      // a full per-frame shader, too expensive to keep running behind an
+      // always-mounted composer. Falls back to the same opaque tinted pill
+      // Android used before the glass migration; iOS is untouched.
+      forceNoGlass = false,
     },
     ref
   ) => {
@@ -109,9 +103,14 @@ const CommentBar = React.forwardRef(
       () => makeMentionParser(allowBroadcastMention),
       [allowBroadcastMention]
     );
-    const iosGlass = useIOSGlassSupport();
-    const useRealAndroidGlass =
-      isAndroid && useAndroidGlass && LiquidGlassViewAndroid && !!providerId && !androidTransparentPill;
+    const useGlass =
+      !!LiquidGlassView && !(isAndroid && androidTransparentPill) && !(isAndroid && forceNoGlass);
+    // The pill's content must be real React children of <LiquidGlassView> for
+    // the library to capture the backdrop correctly and composite them
+    // crisply on top - not a sibling drawn over an absoluteFill glass layer
+    // (that let the input/buttons get swept into the captured-and-blurred
+    // backdrop too, in addition to rendering normally).
+    const PillWrapper = useGlass ? LiquidGlassView : View;
 
     const inputTextStyle = {
       fontSize: 14,
@@ -216,12 +215,13 @@ const CommentBar = React.forwardRef(
             ) : null}
           </View>
         ) : null}
-        <View
+        <PillWrapper
+          {...(useGlass ? { variant: "clear", tintColor: glassTint(isDarkMode), borderRadius: 30, ...androidGlassPerfProps } : {})}
           style={[
             {
               flexDirection: "row",
               alignItems: "center",
-              backgroundColor: isIOS || useRealAndroidGlass || (isAndroid && androidTransparentPill)
+              backgroundColor: useGlass || (isAndroid && androidTransparentPill)
                 ? "transparent"
                 : isDarkMode
                 ? "rgba(18, 18, 18, 0.85)"
@@ -248,40 +248,6 @@ const CommentBar = React.forwardRef(
             !isIOS && { elevation: 0, shadowOpacity: 0 },
           ]}
         >
-          {isIOS && iosGlass && LiquidGlassView && (
-            <LiquidGlassView
-              style={StyleSheet.absoluteFill}
-              effect="clear"
-              tintColor={isDarkMode ? "#111111CC" : "#F8F8F8CC"}
-              interactive={false}
-            />
-          )}
-          {isIOS && !iosGlass && BlurView && (
-            <BlurView
-              blurType={isDarkMode ? "dark" : "light"}
-              blurAmount={10}
-              style={StyleSheet.absoluteFill}
-            />
-          )}
-          {useRealAndroidGlass && (
-            <LiquidGlassViewAndroid
-              providerId={providerId}
-              interactive={isLiquidGlassSupportedAndroid}
-              blurRadius={Platform.Version >= 33 ? 14 : 10}
-              tint={androidGlassTint(isDarkMode)}
-              // Without an explicit cornerRadius, this native layer defaults
-              // to a "capsule" (radius = height / 2), so it matches the
-              // pill's fixed borderRadius:30 only while the input is a
-              // single line. Once multiline text grows the pill taller, the
-              // capsule radius grows past 30 and bulges out unrounded past
-              // the outer pill and the inner tint layer (both fixed at
-              // 30/25) - lock it to the outer pill's radius so all layers
-              // stay in sync as the input grows.
-              cornerRadius={30}
-              style={StyleSheet.absoluteFill}
-            />
-          )}
-
           <View
             style={{
               backgroundColor: isIOS
@@ -415,7 +381,7 @@ const CommentBar = React.forwardRef(
               )}
             </TouchableOpacity>
           </View>
-        </View>
+        </PillWrapper>
       </RootView>
     );
   }
