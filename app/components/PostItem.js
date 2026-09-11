@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from "react";
+import React, { useContext, useMemo, useRef, useState } from "react";
 import {
   View,
   Pressable,
@@ -16,6 +16,7 @@ import FastImage from "./FastImage";
 import RenderHTML, {
   HTMLElementModel,
   HTMLContentModel,
+  getNativePropsForTNode,
 } from "react-native-render-html";
 import { WebView } from "react-native-webview";
 import Verified from "../assets/Verified";
@@ -601,6 +602,35 @@ const PostItem = ({
     Linking.openURL(href);
   };
 
+  // The post body sits inside the collapse/expand Pressable (onPress =
+  // handleExpandPost below). A plain Text-in-Text onPress on a link
+  // (mention/hashtag/URL) loses the touch to that ancestor before its own
+  // onPress fires - the same class of bug the YouTube embed above already
+  // had to work around - so tagged users never actually navigated to their
+  // profile. Claiming the responder here for any touch starting on a link,
+  // and refusing to hand it back, keeps link taps local instead of also
+  // triggering handleExpandPost.
+  const handleContentLinkPressRef = useRef(handleContentLinkPress);
+  handleContentLinkPressRef.current = handleContentLinkPress;
+  const AnchorRenderer = useMemo(
+    () =>
+      function AnchorRenderer(props) {
+        const nativeProps = getNativePropsForTNode(props);
+        const href = props.tnode?.attributes?.href;
+        return (
+          <Text
+            {...nativeProps}
+            onStartShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
+            onResponderRelease={(event) =>
+              handleContentLinkPressRef.current(event, href)
+            }
+          />
+        );
+      },
+    []
+  );
+
   return (
     <View
       style={{
@@ -661,7 +691,7 @@ const PostItem = ({
           <RenderHTML
             contentWidth={Dimensions.get("window").width - 30}
             customHTMLElementModels={customHTMLElementModels}
-            renderers={{ iframe: YouTubeIframeRenderer }}
+            renderers={{ iframe: YouTubeIframeRenderer, a: AnchorRenderer }}
             renderersProps={{
               a: { onPress: (event, href) => handleContentLinkPress(event, href) },
             }}
