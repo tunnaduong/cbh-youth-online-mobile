@@ -1461,6 +1461,27 @@ const ConversationScreen = ({ navigation, route }) => {
       : messages.length;
     return messages.slice(start, end);
   }, [messages, renderLimit, renderEndOffset]);
+  // Autoplay's "which video is centered" check (handleMessagesScroll below)
+  // used to scan messageLayoutOffsetsRef - which keeps a layout entry for
+  // every message ever mounted, growing unbounded as history is scrolled -
+  // on every single onScroll frame (throttled to 16ms, i.e. up to 60x/sec).
+  // For an all-text conversation that's a full ref scan every frame for
+  // zero benefit, and it gets slower the longer someone scrolls back -
+  // exactly the "scrolling gets janky the further you go" symptom. Narrow
+  // the scan to just the (usually empty, always small) set of video message
+  // ids so there's nothing to do at all in the common no-video case.
+  const videoMessageIdsKey = useMemo(
+    () =>
+      messages
+        .filter((m) => m.type === "video" || m.content_type === "video")
+        .map((m) => String(m.id))
+        .join(","),
+    [messages],
+  );
+  const videoMessageIds = useMemo(
+    () => (videoMessageIdsKey ? videoMessageIdsKey.split(",") : []),
+    [videoMessageIdsKey],
+  );
   const inputRef = useRef(null);
   const messagesScrollRef = useRef(null);
   const lastTapRef = useRef({});
@@ -2310,20 +2331,18 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (!autoplayVideos || !isFocused) return;
     if (activeInlineVideoIdRef.current) return;
+    if (videoMessageIds.length === 0) return;
     // Initialize active inline video when the screen first appears or messages change.
     const centerY = scrollOffsetRef.current + (scrollViewHeightRef.current || 0) / 2;
     let found = null;
-    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
-    for (let i = 0; i < entries.length; i++) {
-      const [key, layout] = entries[i];
+    for (let i = 0; i < videoMessageIds.length; i++) {
+      const key = videoMessageIds[i];
+      const layout = messageLayoutOffsetsRef.current[key];
       if (!layout || typeof layout.y !== "number") continue;
       const top = layout.y;
       const h = layout.height || 0;
       if (centerY >= top && centerY <= top + h) {
-        const msg = messages.find((m) => String(m.id) === String(key));
-        if (msg && (msg.type === "video" || msg.content_type === "video")) {
-          found = key;
-        }
+        found = key;
         break;
       }
     }
@@ -2331,7 +2350,7 @@ const ConversationScreen = ({ navigation, route }) => {
       activeInlineVideoIdRef.current = found;
       setActiveInlineVideoId(found);
     }
-  }, [messages, autoplayVideos, isFocused]);
+  }, [messages, autoplayVideos, isFocused, videoMessageIds]);
 
   const handleMessagesScroll = ({ nativeEvent }) => {
     const offsetY = nativeEvent.contentOffset.y;
@@ -2420,20 +2439,24 @@ const ConversationScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (videoMessageIds.length === 0) {
+      if (activeInlineVideoIdRef.current) {
+        activeInlineVideoIdRef.current = null;
+        setActiveInlineVideoId(null);
+      }
+      return;
+    }
+
     const centerY = offsetY + (scrollViewHeightRef.current || 0) / 2;
     let found = null;
-    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
-    for (let i = 0; i < entries.length; i++) {
-      const [key, layout] = entries[i];
+    for (let i = 0; i < videoMessageIds.length; i++) {
+      const key = videoMessageIds[i];
+      const layout = messageLayoutOffsetsRef.current[key];
       if (!layout || typeof layout.y !== "number") continue;
       const top = layout.y;
       const h = layout.height || 0;
       if (centerY >= top && centerY <= top + h) {
-        const id = key;
-        const msg = messages.find((m) => String(m.id) === String(id));
-        if (msg && (msg.type === "video" || msg.content_type === "video")) {
-          found = id;
-        }
+        found = key;
         break;
       }
     }
