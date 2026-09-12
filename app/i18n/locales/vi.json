@@ -477,7 +477,7 @@
     "sendFileError": "Không thể gửi tệp. Vui lòng thử lại.",
     "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
     "aiCommands": {
-      "ai": "Hỏi CYO AI về tin nhắn này",
+      "ai": "Hỏi Yoyo AI về tin nhắn này",
       "summary": "Tóm tắt cuộc trò chuyện gần đây"
     },
     "storyReply": {

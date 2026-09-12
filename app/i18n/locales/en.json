@@ -488,7 +488,7 @@
     "sendFileError": "Could not send file. Please try again.",
     "sendMessageError": "Could not send message. Please try again later.",
     "aiCommands": {
-      "ai": "Ask CYO AI about this message",
+      "ai": "Ask Yoyo AI about this message",
       "summary": "Summarize the recent conversation"
     },
     "storyReply": {

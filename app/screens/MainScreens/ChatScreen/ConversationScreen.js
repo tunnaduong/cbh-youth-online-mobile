@@ -885,7 +885,7 @@ const MessageRow = React.memo(({
           </View>
         </TouchableOpacity>
       )}
-      {/* Show sender name for group chats when sender changes, and always for CYO AI */}
+      {/* Show sender name for group chats when sender changes, and always for Yoyo AI */}
       {(isGroupChat || item.sender?.is_ai) && !item.is_myself && senderChanged && (
         <Text style={[styles.senderName, { color: theme.subText }]}>
           {item.sender?.profile_name ||

@@ -45,10 +45,16 @@ function makeMentionParser(allowBroadcastMention, enableAiCommands) {
       // the very first thing typed (matches the backend's leading-prefix
       // check) - only highlighted in chat (enableAiCommands), never in forum
       // comments/posts which also use this same input component.
+      //
+      // MarkdownType (the native highlighter's range type) is a closed union
+      // of specific strings - an arbitrary "ai-command" type is silently
+      // ignored (never colored). "mention-report" is a real type this app
+      // never otherwise uses, so it's repurposed here and restyled blue via
+      // markdownStyle.mentionReport below instead of its red/pink default.
       if (enableAiCommands) {
         const commandMatch = input.match(/^\/(ai|summary)\b/i);
         if (commandMatch) {
-          ranges.push({ start: 0, length: commandMatch[0].length, type: "ai-command" });
+          ranges.push({ start: 0, length: commandMatch[0].length, type: "mention-report" });
         }
       }
 
@@ -288,7 +294,7 @@ const CommentBar = React.forwardRef(
                 mentionUser: { color: "#22c55e", backgroundColor: "transparent" },
                 // Blue, distinct from the green @mention color, so the AI
                 // trigger reads as a different kind of thing while typing.
-                aiCommand: { color: isDarkMode ? "#93c5fd" : "#1d4ed8", backgroundColor: "transparent" },
+                mentionReport: { color: isDarkMode ? "#93c5fd" : "#1d4ed8", backgroundColor: "transparent", borderRadius: 0 },
               }}
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}
