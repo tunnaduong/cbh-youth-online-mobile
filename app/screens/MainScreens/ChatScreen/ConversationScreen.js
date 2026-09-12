@@ -49,7 +49,9 @@ import {
   getNotificationSettings,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
+import Markdown from "react-native-markdown-display";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
+import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
 import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
 import CommentBar from "../../../components/CommentBar";
@@ -884,8 +886,8 @@ const MessageRow = React.memo(({
           </View>
         </TouchableOpacity>
       )}
-      {/* Show sender name for group chats when sender changes */}
-      {isGroupChat && !item.is_myself && senderChanged && (
+      {/* Show sender name for group chats when sender changes, and always for CYO AI */}
+      {(isGroupChat || item.sender?.is_ai) && !item.is_myself && senderChanged && (
         <Text style={[styles.senderName, { color: theme.subText }]}>
           {item.sender?.profile_name ||
             item.sender?.username ||
@@ -1155,6 +1157,14 @@ const MessageRow = React.memo(({
                   </Text>
                 </View>
               </View>
+            ) : !item.is_recalled && item.sender?.is_ai ? (
+              <Markdown
+                style={{
+                  body: { color: theme.text, fontSize: styles.messageText.fontSize },
+                }}
+              >
+                {item.content || ""}
+              </Markdown>
             ) : !item.is_recalled ? (
               <MentionText
                 style={[
@@ -1348,6 +1358,14 @@ const ConversationScreen = ({ navigation, route }) => {
       setMessage(text);
     },
     fetchSuggestions: fetchMessageMentionSuggestions,
+  });
+
+  const { slashProps: messageSlashProps, suggestions: slashSuggestions, onSelectCommand: onSelectSlashCommand } = useSlashCommandInput({
+    value: message,
+    onChange: (text) => {
+      latestMessageRef.current = text;
+      setMessage(text);
+    },
   });
 
   const [chatKeyboardHeight, setChatKeyboardHeight] = useState(0);
@@ -3720,6 +3738,23 @@ const ConversationScreen = ({ navigation, route }) => {
           />
         </View>
       )}
+      {slashSuggestions.length > 0 && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: (chatKeyboardHeight || insets.bottom) + 72,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+          }}
+          pointerEvents="box-none"
+        >
+          <SlashCommandSuggestions
+            suggestions={slashSuggestions}
+            onSelect={onSelectSlashCommand}
+          />
+        </View>
+      )}
       {/* Header */}
       <View
         pointerEvents="box-none"
@@ -4157,6 +4192,7 @@ const ConversationScreen = ({ navigation, route }) => {
               onChangeText={(text) => {
                 latestMessageRef.current = text;
                 messageMentionProps.onChangeText(text);
+                messageSlashProps.onChangeText(text);
                 sendTyping(currentConversationId || conversationId);
               }}
               value={message}
