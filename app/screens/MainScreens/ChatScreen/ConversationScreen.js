@@ -712,9 +712,12 @@ const MessageRow = React.memo(({
   autoplayVideos,
   seenAvatars,
 }) => {
-  // For group chats, check if sender changed from previous message
+  // For group chats, check if sender changed from previous message. Also
+  // true for the AI in a private chat (isGroupChat is false there, but its
+  // name should still show above its bubble like it does everywhere else -
+  // see the (isGroupChat || item.sender?.is_ai) check that reads this below).
   const senderChanged =
-    isGroupChat &&
+    (isGroupChat || item.sender?.is_ai) &&
     !item.is_myself &&
     (!prevMessage ||
       prevMessage.is_myself !== item.is_myself ||
