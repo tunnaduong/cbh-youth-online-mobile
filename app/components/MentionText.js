@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, Linking } from "react-native";
+import { useTheme } from "../contexts/ThemeContext";
 
 // Matches http/https URLs. Deliberately simple — no bare www. to avoid
 // false-positives on usernames/filenames that start with "www".
@@ -68,7 +69,13 @@ export function buildParts(text) {
  *                              plain text instead.
  */
 const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcastMention = true, enableAiCommands = false, ...rest }) => {
+  const { isDarkMode } = useTheme();
   const text = typeof children === "string" ? children : String(children ?? "");
+  // Message bubbles range from near-white to near-black across own/other
+  // and light/dark theme - a single blue can't have good contrast on all of
+  // them, so pick a lighter blue against the darker bubble backgrounds and a
+  // darker, more saturated blue against the lighter ones.
+  const aiCommandColor = isDarkMode ? "#93c5fd" : "#1d4ed8";
 
   const validSet = React.useMemo(() => {
     const s = new Set();
@@ -107,7 +114,7 @@ const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcast
         }
         if (part.type === "aicommand") {
           return (
-            <Text key={i} style={{ color: "#3b82f6", fontWeight: "600" }}>
+            <Text key={i} style={{ color: aiCommandColor, fontWeight: "700" }}>
               {part.value}
             </Text>
           );

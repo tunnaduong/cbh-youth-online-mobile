@@ -288,7 +288,7 @@ const CommentBar = React.forwardRef(
                 mentionUser: { color: "#22c55e", backgroundColor: "transparent" },
                 // Blue, distinct from the green @mention color, so the AI
                 // trigger reads as a different kind of thing while typing.
-                aiCommand: { color: "#3b82f6", backgroundColor: "transparent" },
+                aiCommand: { color: isDarkMode ? "#93c5fd" : "#1d4ed8", backgroundColor: "transparent" },
               }}
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}

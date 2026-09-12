@@ -53,7 +53,7 @@ const SlashCommandSuggestions = ({ suggestions, onSelect }) => {
             }}
           >
             {/* Blue (not theme.primary green) so it reads as visually distinct from the @mention picker */}
-            <Text style={{ fontWeight: "700", color: "#3b82f6", fontSize: 14 }}>
+            <Text style={{ fontWeight: "700", color: isDarkMode ? "#93c5fd" : "#1d4ed8", fontSize: 14 }}>
               {item.label}
             </Text>
             <Text style={{ color: theme.subText, fontSize: 12 }}>
