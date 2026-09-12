@@ -2376,22 +2376,29 @@ const ConversationScreen = ({ navigation, route }) => {
     // back within reach (including landing exactly at the bottom, where
     // this evaluates to 0) remounts it. Within the keep-zone - "reading in
     // the middle" - nothing here changes.
-    const BOTTOM_KEEP_PX = (scrollViewHeightRef.current || 800) * 1.5;
-    if (distanceFromBottom <= BOTTOM_KEEP_PX) {
-      setRenderEndOffset((prev) => (prev === 0 ? prev : 0));
-    } else {
+    //
+    // Two different thresholds (hysteresis) instead of one: without this, a
+    // scroll gesture that hovers right around a single boundary can flip
+    // content in and out on every frame (hiddenCount is only an *estimate*
+    // from an average message height, so it's naturally noisy near the
+    // edge), which changes the ScrollView's content height mid-gesture and
+    // can make it feel like scrolling suddenly stops responding. Trimming
+    // only kicks in much farther away than where it releases, so a single
+    // gesture can't cross both.
+    const viewportHeight = scrollViewHeightRef.current || 800;
+    const KEEP_PX_SHOW = viewportHeight * 1.5;  // remount once back within this range
+    const KEEP_PX_HIDE = viewportHeight * 3.5;  // only start trimming once this far away
+
+    setRenderEndOffset((prev) => {
+      const threshold = prev > 0 ? KEEP_PX_SHOW : KEEP_PX_HIDE;
+      if (distanceFromBottom <= threshold) {
+        return prev === 0 ? prev : 0;
+      }
       const renderedCount = visibleMessages.length || 1;
       const avgHeight = (scrollContentHeightRef.current || 1) / renderedCount;
-      const hiddenCount = Math.max(0, Math.floor((distanceFromBottom - BOTTOM_KEEP_PX) / avgHeight));
-      console.log("[ChatWindow] bottom-trim check", {
-        distanceFromBottom: Math.round(distanceFromBottom),
-        BOTTOM_KEEP_PX: Math.round(BOTTOM_KEEP_PX),
-        renderedCount,
-        avgHeight: Math.round(avgHeight),
-        hiddenCount,
-      });
-      setRenderEndOffset((prev) => (prev === hiddenCount ? prev : hiddenCount));
-    }
+      const hiddenCount = Math.max(0, Math.floor((distanceFromBottom - KEEP_PX_SHOW) / avgHeight));
+      return prev === hiddenCount ? prev : hiddenCount;
+    });
 
     scrollOffsetRef.current = offsetY;
     if (!autoplayVideos || !isFocused) {
