@@ -1173,6 +1173,7 @@ const MessageRow = React.memo(({
                 // @all has no meaning there, so it must render as plain
                 // text instead of a highlighted/tappable mention.
                 allowBroadcastMention={isGroupChat}
+                enableAiCommands
                 onMentionPress={(username) =>
                   navigation.navigate("ProfileScreen", { username })
                 }
@@ -4190,6 +4191,7 @@ const ConversationScreen = ({ navigation, route }) => {
               disabled={!message.trim() || sending}
               isSubmitting={sending}
               allowBroadcastMention={currentConversation?.type === "group"}
+              enableAiCommands
               style={{
                 paddingHorizontal: 12,
                 paddingBottom: isAndroid ? 14 : 0,

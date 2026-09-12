@@ -476,6 +476,10 @@
     "sendImageError": "Không thể chọn ảnh. Vui lòng thử lại.",
     "sendFileError": "Không thể gửi tệp. Vui lòng thử lại.",
     "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
+    "aiCommands": {
+      "ai": "Hỏi CYO AI về tin nhắn này",
+      "summary": "Tóm tắt cuộc trò chuyện gần đây"
+    },
     "storyReply": {
       "you": "Bạn đã bình luận về tin của {{owner}}",
       "other": "{{sender}} đã bình luận về tin của bạn"

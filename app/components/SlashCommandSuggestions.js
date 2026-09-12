@@ -1,12 +1,17 @@
 import React, { useCallback, useState } from "react";
 import { FlatList, Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
 
 // Local, static command list — no server round-trip needed like @mentions.
-export const AI_COMMANDS = [
-  { command: "/ai", label: "/ai", description: "Hỏi CYO AI về tin nhắn này" },
-  { command: "/summary", label: "/summary", description: "Tóm tắt cuộc trò chuyện gần đây" },
-];
+// Descriptions come from app strings (chatConversation.aiCommands.*) so they
+// localize like the rest of the app instead of being hardcoded Vietnamese.
+export function getAiCommands(t) {
+  return [
+    { command: "/ai", label: "/ai", description: t("chatConversation.aiCommands.ai") },
+    { command: "/summary", label: "/summary", description: t("chatConversation.aiCommands.summary") },
+  ];
+}
 
 // Inline command palette rendered above the input bar, mirroring
 // MentionSuggestions' layout/positioning conventions.
@@ -41,8 +46,6 @@ const SlashCommandSuggestions = ({ suggestions, onSelect }) => {
           <TouchableOpacity
             onPress={() => onSelect(item)}
             style={{
-              flexDirection: "row",
-              alignItems: "center",
               paddingHorizontal: 14,
               paddingVertical: 10,
               borderBottomWidth: 1,
@@ -50,10 +53,10 @@ const SlashCommandSuggestions = ({ suggestions, onSelect }) => {
             }}
           >
             {/* Blue (not theme.primary green) so it reads as visually distinct from the @mention picker */}
-            <Text style={{ fontWeight: "700", color: "#3b82f6", fontSize: 14, marginRight: 8 }}>
+            <Text style={{ fontWeight: "700", color: "#3b82f6", fontSize: 14 }}>
               {item.label}
             </Text>
-            <Text style={{ color: theme.subText, fontSize: 13, flexShrink: 1 }}>
+            <Text style={{ color: theme.subText, fontSize: 12 }}>
               {item.description}
             </Text>
           </TouchableOpacity>
@@ -67,6 +70,7 @@ const SlashCommandSuggestions = ({ suggestions, onSelect }) => {
 // starts with "/" (and nothing else yet distinguishes a full command),
 // and lets a selection replace the leading token with "<command> ".
 export const useSlashCommandInput = ({ value, onChange }) => {
+  const { t } = useTranslation();
   const [suggestions, setSuggestions] = useState([]);
 
   const handleChangeText = useCallback(
@@ -79,10 +83,10 @@ export const useSlashCommandInput = ({ value, onChange }) => {
       }
 
       const query = text.slice(1).toLowerCase();
-      const matches = AI_COMMANDS.filter((c) => c.command.slice(1).startsWith(query));
+      const matches = getAiCommands(t).filter((c) => c.command.slice(1).startsWith(query));
       setSuggestions(matches);
     },
-    [onChange]
+    [onChange, t]
   );
 
   const handleSelect = useCallback(

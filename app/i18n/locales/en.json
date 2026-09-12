@@ -487,6 +487,10 @@
     "sendImageError": "Could not pick image. Please try again.",
     "sendFileError": "Could not send file. Please try again.",
     "sendMessageError": "Could not send message. Please try again later.",
+    "aiCommands": {
+      "ai": "Ask CYO AI about this message",
+      "summary": "Summarize the recent conversation"
+    },
     "storyReply": {
       "you": "You commented on {{owner}}'s story",
       "other": "{{sender}} commented on your story"
