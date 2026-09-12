@@ -49,7 +49,6 @@ import {
   getNotificationSettings,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
-import Markdown from "react-native-markdown-display";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
@@ -1157,14 +1156,6 @@ const MessageRow = React.memo(({
                   </Text>
                 </View>
               </View>
-            ) : !item.is_recalled && item.sender?.is_ai ? (
-              <Markdown
-                style={{
-                  body: { color: theme.text, fontSize: styles.messageText.fontSize },
-                }}
-              >
-                {item.content || ""}
-              </Markdown>
             ) : !item.is_recalled ? (
               <MentionText
                 style={[
