@@ -726,13 +726,21 @@ const MessageRow = React.memo(({
         !prevMessage.sender?.id &&
         !item.sender?.id));
 
-  // Check if this is the last message in a group (same sender and same alignment)
-  // For group chats, also check if the next message is from a different sender
+  // Check if this is the last message in a group (same sender and same alignment).
+  // This used to only compare actual sender identity when isGroupChat - fine
+  // as long as a private (non-group) conversation could only ever have ONE
+  // possible "not me" sender. That stopped being true once Yoyo AI can also
+  // post into any conversation (e.g. someone replies to a message with /ai
+  // inside a normal 1-on-1 chat): two consecutive "not me" messages from two
+  // actually-different senders (the other human, then the AI) both have
+  // is_myself === false, so without this check they were treated as one
+  // group and only the last one got an avatar - making it look like a
+  // single shared avatar for two different people. Now checks real sender
+  // identity regardless of conversation type.
   const isLastInGroup =
     !nextMessage ||
     nextMessage.is_myself !== item.is_myself ||
-    (isGroupChat &&
-      !item.is_myself &&
+    (!item.is_myself &&
       // Different sender IDs (for authenticated users)
       ((nextMessage.sender?.id &&
         item.sender?.id &&
