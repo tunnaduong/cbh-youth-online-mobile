@@ -197,7 +197,22 @@ const LoginScreen = ({ navigation }) => {
               style={styles.scroll}
               contentContainerStyle={[
                 styles.content,
-                { paddingBottom: insets.bottom + 32, paddingTop: insets.top + 60 },
+                {
+                  // flexGrow + centering (instead of a fixed top offset) keeps
+                  // the form vertically balanced across very different screen
+                  // heights - a fixed offset either crowded it near the top
+                  // on tall screens or sat too close to the back button on
+                  // short ones. minHeight guarantees it can still center
+                  // against the full screen even before layout measures the
+                  // scroll view itself; a minimum top padding still clears
+                  // the floating back button, and it stays scrollable when
+                  // the keyboard shrinks the visible area.
+                  flexGrow: 1,
+                  justifyContent: "center",
+                  minHeight: "100%",
+                  paddingBottom: insets.bottom + 32,
+                  paddingTop: Math.max(insets.top + 60, 96),
+                },
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
