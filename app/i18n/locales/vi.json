@@ -478,7 +478,8 @@
     "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
     "aiCommands": {
       "ai": "Hỏi Yoyo AI về tin nhắn này",
-      "summary": "Tóm tắt cuộc trò chuyện gần đây"
+      "summary": "Tóm tắt cuộc trò chuyện gần đây",
+      "help": "Xem hướng dẫn sử dụng Yoyo AI"
     },
     "storyReply": {
       "you": "Bạn đã bình luận về tin của {{owner}}",

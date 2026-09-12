@@ -52,7 +52,7 @@ function makeMentionParser(allowBroadcastMention, enableAiCommands) {
       // never otherwise uses, so it's repurposed here and restyled blue via
       // markdownStyle.mentionReport below instead of its red/pink default.
       if (enableAiCommands) {
-        const commandMatch = input.match(/^\/(ai|summary)\b/i);
+        const commandMatch = input.match(/^\/(ai|summary|help)\b/i);
         if (commandMatch) {
           ranges.push({ start: 0, length: commandMatch[0].length, type: "mention-report" });
         }

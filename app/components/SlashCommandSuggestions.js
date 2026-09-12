@@ -10,6 +10,7 @@ export function getAiCommands(t) {
   return [
     { command: "/ai", label: "/ai", description: t("chatConversation.aiCommands.ai") },
     { command: "/summary", label: "/summary", description: t("chatConversation.aiCommands.summary") },
+    { command: "/help", label: "/help", description: t("chatConversation.aiCommands.help") },
   ];
 }
 

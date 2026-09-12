@@ -489,7 +489,8 @@
     "sendMessageError": "Could not send message. Please try again later.",
     "aiCommands": {
       "ai": "Ask Yoyo AI about this message",
-      "summary": "Summarize the recent conversation"
+      "summary": "Summarize the recent conversation",
+      "help": "View the Yoyo AI usage guide"
     },
     "storyReply": {
       "you": "You commented on {{owner}}'s story",

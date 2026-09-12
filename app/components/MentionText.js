@@ -11,7 +11,7 @@ const MENTION_REGEX = /@([\p{L}\p{N}\p{M}_.-]+)/gu;
 
 // Only counts as the Chat with AI trigger when it's the very first thing in
 // the message (matches the backend's leading-prefix check in ChatController).
-const AI_COMMAND_REGEX = /^\/(ai|summary)\b/i;
+const AI_COMMAND_REGEX = /^\/(ai|summary|help)\b/i;
 
 export function buildParts(text) {
   // Collect all token matches (mentions + URLs) with their positions.
