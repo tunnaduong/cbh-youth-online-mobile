@@ -558,13 +558,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
               onPress={group.permissions?.can?.perm_change_name ? openRename : undefined}
               activeOpacity={group.permissions?.can?.perm_change_name ? 0.6 : 1}
             >
-              <Text
-                style={[styles.groupName, { color: theme.text }]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-              >
+              <Text style={[styles.groupName, { color: theme.text }]} numberOfLines={2}>
                 {group.name}
               </Text>
               {group.permissions?.can?.perm_change_name && (
@@ -651,22 +645,10 @@ const GroupInfoScreen = ({ navigation, route }) => {
                 <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
               </TouchableOpacity>
               <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
-                <Text
-                  style={[styles.participantName, { color: theme.text }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.85}
-                >
+                <Text style={[styles.participantName, { color: theme.text }]} numberOfLines={1}>
                   {item.profile_name || item.username}
                 </Text>
-                <Text
-                  style={[styles.participantHandle, { color: theme.subText }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.85}
-                >
+                <Text style={[styles.participantHandle, { color: theme.subText }]} numberOfLines={1}>
                   @{item.username}
                 </Text>
               </TouchableOpacity>

@@ -26,13 +26,7 @@ const ReplyComposerBar = ({ replyingTo, currentUsername, onCancel }) => {
       ]}
     >
       <View style={{ flex: 1 }}>
-        <Text
-          style={[styles.title, { color: theme.primary }]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}
-        >
+        <Text style={[styles.title, { color: theme.primary }]} numberOfLines={1}>
           {t("chatConversation.replyingTo", "Đang trả lời tin nhắn của {{name}}", {
             name: targetName,
           })}
@@ -43,13 +37,7 @@ const ReplyComposerBar = ({ replyingTo, currentUsername, onCancel }) => {
           ) : (
             icon && <Ionicons name={icon} size={13} color={theme.subText} style={styles.icon} />
           )}
-          <Text
-            style={[styles.content, { color: theme.subText }]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            adjustsFontSizeToFit
-            minimumFontScale={0.85}
-          >
+          <Text style={[styles.content, { color: theme.subText }]} numberOfLines={1}>
             {label}
           </Text>
         </View>
@@ -77,7 +65,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 2,
-    flexShrink: 1,
   },
   icon: {
     marginRight: 4,

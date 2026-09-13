@@ -99,9 +99,6 @@ const ReplyPreviewBubble = ({ item, currentUsername, onPress }) => {
     >
       <Text
         numberOfLines={1}
-        ellipsizeMode="tail"
-        adjustsFontSizeToFit
-        minimumFontScale={0.85}
         style={[
           styles.replyLabel,
           { color: isMyself ? (isDarkMode ? "#a7f3d0" : "#4b5563") : theme.subText },
@@ -117,9 +114,6 @@ const ReplyPreviewBubble = ({ item, currentUsername, onPress }) => {
         )}
         <Text
           numberOfLines={1}
-          ellipsizeMode="tail"
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}
           style={[
             styles.contentText,
             { color: isMyself ? (isDarkMode ? "#ecfdf5" : "#111") : theme.text },
@@ -148,7 +142,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 2,
-    flexShrink: 1,
   },
   icon: {
     marginRight: 4,

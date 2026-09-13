@@ -94,13 +94,7 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
                 }}
                 style={styles.chipAvatar}
               />
-              <Text
-                style={[styles.chipText, { color: theme.text }]}
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-              >
+              <Text style={[styles.chipText, { color: theme.text }]} numberOfLines={1}>
                 {u.profile_name || u.username}
               </Text>
               <TouchableOpacity
@@ -151,22 +145,10 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
                       style={styles.rowAvatar}
                     />
                     <View style={{ flex: 1 }}>
-                      <Text
-                        style={[styles.rowName, { color: theme.text }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.85}
-                      >
+                      <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={1}>
                         {item.profile_name || item.username}
                       </Text>
-                      <Text
-                        style={[styles.rowHandle, { color: theme.subText }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.85}
-                      >
+                      <Text style={[styles.rowHandle, { color: theme.subText }]} numberOfLines={1}>
                         @{item.username}
                       </Text>
                     </View>

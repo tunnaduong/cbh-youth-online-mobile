@@ -382,22 +382,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         ) : null}
       </View>
       <View style={styles.info}>
-        <Text
-          style={[styles.name, { color: theme.text }]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}
-        >
+        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
           {getChatName(item)}
         </Text>
-        <Text
-          style={[styles.lastMessage, { color: theme.subText }]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          adjustsFontSizeToFit
-          minimumFontScale={0.85}
-        >
+        <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
           {item.latest_message?.is_myself ? t('chat.you') : ""}
           {renderLastMessagePreview(item.latest_message)}
         </Text>
