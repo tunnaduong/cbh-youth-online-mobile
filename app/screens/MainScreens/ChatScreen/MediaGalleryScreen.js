@@ -207,12 +207,13 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["top"]}>
       <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10} style={{ marginRight: 12 }}>
-          <Ionicons name="arrow-back" size={22} color={theme.text} />
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10} style={styles.headerSideButton}>
+          <Ionicons name="arrow-back" size={20} color={theme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
+        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
           {t("chatConversation.gallery", "Bộ sưu tập")}
         </Text>
+        <View style={styles.headerSideButton} />
       </View>
       <View style={[styles.tabBar, { borderBottomColor: theme.border }]}>
         {TABS.map((tab) => (
@@ -235,6 +236,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
 
       {activeTab === "image" ? (
         <FlatList
+          key="image-grid"
           data={currentItems}
           keyExtractor={(item, index) => `${item.message_id}-${index}`}
           renderItem={renderPhotoVideoItem}
@@ -247,6 +249,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         />
       ) : (
         <FlatList
+          key="single-column-list"
           data={currentItems}
           keyExtractor={(item, index) => `${item.message_id}-${index}`}
           renderItem={activeTab === "file" ? renderFileItem : renderLinkItem}
@@ -290,11 +293,13 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    height: 52,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitle: { fontSize: 17, fontWeight: "700" },
+  headerSideButton: { width: 36, alignItems: "flex-start", justifyContent: "center" },
+  headerTitle: { flex: 1, fontSize: 17, fontWeight: "600", textAlign: "center" },
   tabBar: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
   tabButton: { flex: 1, alignItems: "center", paddingVertical: 12 },
   tabLabel: { fontSize: 14, fontWeight: "600" },
