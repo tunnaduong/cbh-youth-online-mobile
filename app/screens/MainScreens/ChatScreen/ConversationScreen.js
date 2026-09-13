@@ -1405,62 +1405,17 @@ const ConversationScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  // Caps how many of the loaded `messages` actually get rendered/mounted at
-  // once. "Load more" pagination keeps prepending older pages to `messages`
-  // as the user scrolls back through history, but every one of those rows
-  // stayed mounted forever in the plain (non-virtualized) ScrollView below -
-  // for a conversation with a lot of scroll-back, that's hundreds of message
-  // bubbles (some with images/videos) all live at once. RENDER_WINDOW_CHUNK
-  // is comfortably above a typical page size so ordinary conversations never
-  // even reach the cap; it only kicks in once someone's scrolled back far
-  // enough that keeping everything mounted would actually hurt.
-  const RENDER_WINDOW_CHUNK = 80;
-  // Scrolling near the top keeps growing the window by RENDER_WINDOW_CHUNK
-  // with no ceiling, so a long enough scroll-back session would eventually
-  // reach "render everything anyway" and quietly bring back the exact
-  // mounted-bubble-count problem this cap exists to avoid. Past this many,
-  // further scroll-up still fetches more history (see handleMessagesScroll)
-  // but stops mounting it - a deliberate, rare tradeoff over letting a
-  // single very-long session snowball back into the original perf problem.
-  const MAX_RENDER_LIMIT = 400;
-  // The backend already delivers history in real pages (getConversationMessages'
-  // `page` param, `current_page`/`last_page`) - this just remembers each
-  // loaded older page's boundary (the id of its oldest message) so the
-  // near-top growth step below can snap renderLimit to reveal one whole
-  // fetched page at a time, instead of an arbitrary RENDER_WINDOW_CHUNK-sized
-  // guess that might land mid-page. Oldest-page-first, matching how pages
-  // get prepended to `messages`. Message ids rather than indices/counts
-  // because `messages` also has date/time headers interspersed
-  // (injectTimeHeaders) whose count per page isn't fixed - an id survives
-  // that; a raw count wouldn't line up.
-  const pageBoundaryIdsRef = useRef([]);
-  const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
-  // Companion to renderLimit, but for the *other* end: renderLimit caps how
-  // far back (toward the oldest) mounted content reaches; this caps how far
-  // forward (toward the newest) it reaches once the user has scrolled well
-  // away from the bottom. Count of newest messages currently left unmounted
-  // - 0 means "render all the way to the newest" (the common case: reading
-  // recent messages, or nobody's scrolled away from the bottom yet).
-  // handleMessagesScroll keeps this in sync with scroll position: scroll up
-  // into history and whatever's now off-screen below unmounts: scroll back
-  // down and it remounts, exactly mirroring what renderLimit already does
-  // at the other end - and safely, since unmounting content that's already
-  // below the viewport never shifts what's currently on screen (unlike
-  // trimming from above, which would need scroll-offset compensation this
-  // doesn't attempt).
-  const [renderEndOffset, setRenderEndOffset] = useState(0);
-  // Only messages within [start, end) actually get mounted; everything
-  // outside that window stays in `messages` state (so pagination/scroll
-  // math is unaffected) but isn't rendered until scrolling brings it back
-  // into range (see handleMessagesScroll) or a reply-jump explicitly needs
-  // it (see handleJumpToRepliedMessage).
-  const visibleMessages = useMemo(() => {
-    const start = messages.length > renderLimit ? messages.length - renderLimit : 0;
-    const end = renderEndOffset > 0
-      ? Math.max(start + 1, messages.length - renderEndOffset)
-      : messages.length;
-    return messages.slice(start, end);
-  }, [messages, renderLimit, renderEndOffset]);
+  // Every loaded message is always rendered - unlike the old approach here
+  // (manually slicing `messages` to a JS-estimated "window" based on scroll
+  // position, unmounting/remounting rows as that estimate crossed
+  // thresholds), which caused visible stutter: the estimate was only ever
+  // an average height guess, so it frequently mounted/unmounted rows mid-
+  // gesture, changing the ScrollView's content height while a scroll was in
+  // progress. `removeClippedSubviews` below does the equivalent job at the
+  // native view layer instead - real, measured clipping, no JS-estimated
+  // thresholds, no data-array slicing, so there's nothing to desync from
+  // the actual scroll position.
+  const visibleMessages = messages;
   // Autoplay's "which video is centered" check (handleMessagesScroll below)
   // used to scan messageLayoutOffsetsRef - which keeps a layout entry for
   // every message ever mounted, growing unbounded as history is scrolled -
@@ -1978,8 +1933,6 @@ const ConversationScreen = ({ navigation, route }) => {
       if (isRefresh && !isBackground) {
         setPage(1);
         setHasMore(true);
-        setRenderLimit(RENDER_WINDOW_CHUNK);
-        pageBoundaryIdsRef.current = [];
       }
 
       if (!hasMore && !isRefresh) return;
@@ -2006,9 +1959,6 @@ const ConversationScreen = ({ navigation, route }) => {
       const transformed = injectTimeHeaders(newMessages, t);
 
       if (!isBackground) {
-        if (!isRefresh && newMessages.length > 0) {
-          pageBoundaryIdsRef.current = [newMessages[0].id, ...pageBoundaryIdsRef.current];
-        }
         setMessages((prev) => {
           if (isRefresh || prev.length === 0) {
             return preserveRecentReactions(transformed);
@@ -2272,12 +2222,6 @@ const ConversationScreen = ({ navigation, route }) => {
     setHighlightedMessageId(targetId);
     setTimeout(() => {
       setHighlightedMessageId(null);
-      // handleJumpToRepliedMessage may have blown renderLimit open
-      // (messages.length or Infinity) to guarantee the jump target was
-      // mounted - once the highlight itself fades there's no reason to keep
-      // rendering everything for the rest of the session, so drop back to
-      // the normal windowed cap. Harmless no-op if it was never widened.
-      setRenderLimit((prev) => Math.min(prev, RENDER_WINDOW_CHUNK));
     }, 2500);
     return true;
   };
@@ -2307,24 +2251,15 @@ const ConversationScreen = ({ navigation, route }) => {
     if (replyToId == null) return;
     if (scrollToMessageAndHighlight(replyToId)) return;
 
-    // The target might already be loaded in `messages` but simply outside
-    // the current render window (see renderLimit/visibleMessages) - expand
-    // to cover everything already fetched before falling back to actually
-    // fetching more from the server below.
+    // Every loaded message is always rendered (see the removeClippedSubviews
+    // comment near visibleMessages), so if the target is already in
+    // `messages` it's already mounted - the only reason scrollToMessageAndHighlight
+    // just failed is that its layout hasn't been measured yet. Otherwise, it
+    // isn't loaded at all yet and needs fetching further below.
     if (messages.some((m) => String(m.id) === String(replyToId))) {
-      setRenderLimit(messages.length);
       await new Promise((resolve) => setTimeout(resolve, 80));
       if (scrollToMessageAndHighlight(replyToId)) return;
     }
-
-    // About to fetch more pages looking for the target - each fetch's fresh
-    // message count isn't visible in this closure (state updates are async
-    // and this function's `messages` snapshot is already stale by the next
-    // line), so there's no reliable count to grow renderLimit to match.
-    // Just render everything for the rest of this jump; it's a rare,
-    // deliberate action, not the common scrolling path renderLimit exists
-    // for.
-    setRenderLimit(Infinity);
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -2391,71 +2326,9 @@ const ConversationScreen = ({ navigation, route }) => {
       };
       fetchMessages(false);
     }
-    // Reveal more of what's already loaded as the user scrolls back into
-    // history, independent of whether there's anything left to fetch from
-    // the server - this is a separate, purely local render cap (see
-    // renderLimit above), not the "load more" pagination trigger above it.
-    if (isNearTop) {
-      setRenderLimit((prev) => {
-        if (messages.length <= prev || prev >= MAX_RENDER_LIMIT) return prev;
-
-        // Snap to the next real fetched-page boundary (see
-        // pageBoundaryIdsRef) instead of a flat RENDER_WINDOW_CHUNK guess,
-        // so a mount/unmount always lines up with an actual page the
-        // server sent rather than an arbitrary message count that might
-        // land mid-page. Walked oldest-first; the first boundary not yet
-        // inside the current window is the next one to reveal.
-        for (let i = 0; i < pageBoundaryIdsRef.current.length; i++) {
-          const idx = messages.findIndex(
-            (m) => String(m.id) === String(pageBoundaryIdsRef.current[i])
-          );
-          if (idx === -1) continue;
-          const countFromEnd = messages.length - idx;
-          if (countFromEnd > prev) {
-            return Math.min(countFromEnd, MAX_RENDER_LIMIT);
-          }
-        }
-
-        // No tracked boundary beyond the current window yet (e.g. right
-        // after a page just landed, before its id is findable) - fall back
-        // to the old flat increment so growth never stalls.
-        return Math.min(prev + RENDER_WINDOW_CHUNK, MAX_RENDER_LIMIT);
-      });
-    }
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
-
-    // Bottom half of the render window (see renderEndOffset above): once
-    // scrolled more than a few screens away from the newest message, unmount
-    // whatever's that far below the current view - it's off-screen either
-    // way, so dropping it doesn't shift anything currently visible. Coming
-    // back within reach (including landing exactly at the bottom, where
-    // this evaluates to 0) remounts it. Within the keep-zone - "reading in
-    // the middle" - nothing here changes.
-    //
-    // Two different thresholds (hysteresis) instead of one: without this, a
-    // scroll gesture that hovers right around a single boundary can flip
-    // content in and out on every frame (hiddenCount is only an *estimate*
-    // from an average message height, so it's naturally noisy near the
-    // edge), which changes the ScrollView's content height mid-gesture and
-    // can make it feel like scrolling suddenly stops responding. Trimming
-    // only kicks in much farther away than where it releases, so a single
-    // gesture can't cross both.
-    const viewportHeight = scrollViewHeightRef.current || 800;
-    const KEEP_PX_SHOW = viewportHeight * 1.5;  // remount once back within this range
-    const KEEP_PX_HIDE = viewportHeight * 3.5;  // only start trimming once this far away
-
-    setRenderEndOffset((prev) => {
-      const threshold = prev > 0 ? KEEP_PX_SHOW : KEEP_PX_HIDE;
-      if (distanceFromBottom <= threshold) {
-        return prev === 0 ? prev : 0;
-      }
-      const renderedCount = visibleMessages.length || 1;
-      const avgHeight = (scrollContentHeightRef.current || 1) / renderedCount;
-      const hiddenCount = Math.max(0, Math.floor((distanceFromBottom - KEEP_PX_SHOW) / avgHeight));
-      return prev === hiddenCount ? prev : hiddenCount;
-    });
 
     scrollOffsetRef.current = offsetY;
     if (!autoplayVideos || !isFocused) {
@@ -4098,6 +3971,10 @@ const ConversationScreen = ({ navigation, route }) => {
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
+          // Native-level view recycling (real measured clipping, done by the
+          // platform) instead of the old JS-estimated mount/unmount windowing
+          // this replaces - see the visibleMessages comment above.
+          removeClippedSubviews={Platform.OS === "android"}
           onContentSizeChange={(w, h) => {
             const pending = pendingLoadMoreAdjustRef.current;
             if (pending && h > pending.prevHeight) {
