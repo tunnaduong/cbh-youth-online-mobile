@@ -351,7 +351,74 @@ const GroupInfoScreen = ({ navigation, route }) => {
     }
   };
 
+  // Owners can't just vanish - the group always needs one, and letting the
+  // backend pick randomly (see handlePostParticipantRemoval) is a fine
+  // fallback for removal-by-someone-else, but a voluntary leave is a good
+  // moment to let the owner actually choose their successor instead.
+  const openOwnerMustTransferPicker = () => {
+    const otherParticipants = (group.participants || []).filter((p) => p.id !== userInfo?.id);
+    const options = otherParticipants.map((p) => ({
+      text: p.profile_name || p.username,
+      onPress: () => transferOwnershipThenLeave(p),
+    }));
+    // Transferring is offered, not forced - skipping just leaves normally,
+    // and the backend's existing random-succession fallback
+    // (handlePostParticipantRemoval) picks a new owner exactly as it
+    // already does when an owner is removed by someone else.
+    options.push({
+      text: t("chatConversation.skipTransferOwnership", "Bỏ qua (chọn ngẫu nhiên)"),
+      onPress: () => leaveGroupDirectly(),
+    });
+    options.push({ text: t("common.cancel"), style: "cancel" });
+
+    Alert.alert(
+      t("chatConversation.mustTransferOwnershipTitle", "Chọn trưởng nhóm mới"),
+      t("chatConversation.mustTransferOwnershipBody", "Bạn là trưởng nhóm - hãy chọn một thành viên để chuyển quyền trưởng nhóm trước khi rời nhóm."),
+      options
+    );
+  };
+
+  const leaveGroupDirectly = async () => {
+    setLeaving(true);
+    try {
+      await leaveGroupConversation(conversationId);
+      navigation.pop(2);
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1:
+          error?.response?.data?.message ||
+          t("chatConversation.leaveGroupError", "Không thể rời nhóm."),
+      });
+    } finally {
+      setLeaving(false);
+    }
+  };
+
+  const transferOwnershipThenLeave = async (newOwner) => {
+    setLeaving(true);
+    try {
+      await transferGroupOwnership(conversationId, newOwner.id);
+      await leaveGroupConversation(conversationId);
+      navigation.pop(2);
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1:
+          error?.response?.data?.message ||
+          t("chatConversation.leaveGroupError", "Không thể rời nhóm."),
+      });
+    } finally {
+      setLeaving(false);
+    }
+  };
+
   const confirmLeaveGroup = () => {
+    if (group.is_owner && (group.participants || []).some((p) => p.id !== userInfo?.id)) {
+      openOwnerMustTransferPicker();
+      return;
+    }
+
     Alert.alert(
       t("chatConversation.leaveGroupTitle", "Rời nhóm?"),
       t("chatConversation.leaveGroupBody", "Bạn sẽ không nhận được tin nhắn từ nhóm này nữa."),
