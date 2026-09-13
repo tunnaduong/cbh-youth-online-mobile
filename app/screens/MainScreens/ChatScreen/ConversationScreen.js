@@ -3907,19 +3907,27 @@ const ConversationScreen = ({ navigation, route }) => {
                 <FlatList
                   data={seenByModalParticipants || []}
                   keyExtractor={(item) => String(item.id)}
-                  renderItem={({ item }) => (
-                    <View style={styles.seenByParticipantRow}>
-                      <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
-                          {item.profile_name || item.username}
-                        </Text>
-                        <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
-                          {formatTime(item.last_read_at)}
-                        </Text>
+                  renderItem={({ item }) => {
+                    const goToProfile = () => {
+                      setSeenByModalParticipants(null);
+                      navigation.push("ProfileScreen", { username: item.username });
+                    };
+                    return (
+                      <View style={styles.seenByParticipantRow}>
+                        <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
+                          <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
+                          <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
+                            {item.profile_name || item.username}
+                          </Text>
+                          <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
+                            {formatTime(item.last_read_at)}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
-                    </View>
-                  )}
+                    );
+                  }}
                 />
               </View>
             </TouchableWithoutFeedback>
