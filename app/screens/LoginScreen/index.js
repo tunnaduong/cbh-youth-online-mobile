@@ -210,12 +210,12 @@ const LoginScreen = ({ navigation }) => {
                   flexGrow: 1,
                   justifyContent: "center",
                   minHeight: "100%",
-                  // Shifts the vertically-centered form up ~15px (more
+                  // Shifts the vertically-centered form up ~18px (more
                   // paddingBottom than paddingTop moves the centered content
                   // up within the same minHeight) without disturbing the
                   // centering behavior itself.
-                  paddingBottom: insets.bottom + 32 + 15,
-                  paddingTop: Math.max(insets.top + 60, 96) - 15,
+                  paddingBottom: insets.bottom + 32 + 18,
+                  paddingTop: Math.max(insets.top + 60, 96) - 18,
                 },
               ]}
               keyboardShouldPersistTaps="handled"
