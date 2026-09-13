@@ -313,7 +313,7 @@ const SignupScreen = ({ navigation }) => {
               >
                 {/* Username */}
                 <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
-                  <Ionicons name="at-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <Ionicons name="at-outline" size={21} color={theme.primary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="john_doe"
@@ -326,7 +326,7 @@ const SignupScreen = ({ navigation }) => {
 
                 {/* Full Name */}
                 <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
-                  <Ionicons name="person-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <Ionicons name="person-outline" size={21} color={theme.primary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="John Doe"
@@ -339,7 +339,7 @@ const SignupScreen = ({ navigation }) => {
 
                 {/* Email */}
                 <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
-                  <Ionicons name="mail-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <Ionicons name="mail-outline" size={21} color={theme.primary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="hello@example.com"
@@ -353,7 +353,7 @@ const SignupScreen = ({ navigation }) => {
 
                 {/* Password */}
                 <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <Ionicons name="lock-closed-outline" size={21} color={theme.primary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="••••••••••••"
@@ -377,7 +377,7 @@ const SignupScreen = ({ navigation }) => {
 
                 {/* Confirm Password */}
                 <View style={styles.inputRow}>
-                  <Ionicons name="lock-closed-outline" size={20} color={theme.primary} style={styles.inputIcon} />
+                  <Ionicons name="lock-closed-outline" size={21} color={theme.primary} style={styles.inputIcon} />
                   <TextInput
                     style={[styles.input, { color: theme.text }]}
                     placeholder="••••••••••••"
@@ -520,15 +520,15 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    height: 52,
+    paddingHorizontal: 18,
+    height: 60,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
   },
   checkboxContainer: {
     flexDirection: "row",
