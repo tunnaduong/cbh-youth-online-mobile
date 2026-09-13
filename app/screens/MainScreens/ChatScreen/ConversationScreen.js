@@ -1557,6 +1557,19 @@ const ConversationScreen = ({ navigation, route }) => {
   const [editingMessage, setEditingMessage] = useState(null);
   const [typingUser, setTypingUser] = useState(null);
   const typingTimeoutRef = useRef(null);
+  // A busy conversation can fire onMessageSent/onMessageRead/onMessageDeleted
+  // several times within milliseconds of each other (a burst of replies, or
+  // a group where everyone's "read" receipt lands at once) - each one used
+  // to trigger its own full fetchMessages(true, true) round trip (network
+  // request + JSON.stringify diff + injectTimeHeaders over the whole list),
+  // all synchronous JS-thread work. A burst of those overlapping was enough
+  // to visibly stall the UI thread - including eating scroll gesture frames,
+  // which is what made scrolling feel like it "stuck" - right as new
+  // messages were coming in. Coalescing a burst into one trailing fetch
+  // keeps the eventual-consistency behavior (nothing here skips reconciling
+  // with the server) while cutting that repeated work down to once per lull.
+  const backgroundRefreshTimerRef = useRef(null);
+  const backgroundRefreshWantsScrollRef = useRef(false);
   const [imageViewer, setImageViewer] = useState({ visible: false, uris: [], index: 0 });
   const [videoViewer, setVideoViewer] = useState({ visible: false, uri: null });
   const [reactionPicker, setReactionPicker] = useState({
@@ -2056,7 +2069,23 @@ const ConversationScreen = ({ navigation, route }) => {
     const activeId = currentConversationId || conversationId;
     if (isNewConversation || !activeId) return undefined;
 
-    const refresh = () => fetchMessagesRef.current(true, true);
+    // Trailing-debounced background refresh - see backgroundRefreshTimerRef
+    // above. `wantsScroll` from any call within the debounce window wins
+    // (OR'd together), so a burst that includes a "scroll to latest" request
+    // still scrolls once the coalesced fetch actually lands.
+    const scheduleBackgroundRefresh = (wantsScroll) => {
+      backgroundRefreshWantsScrollRef.current = backgroundRefreshWantsScrollRef.current || wantsScroll;
+      clearTimeout(backgroundRefreshTimerRef.current);
+      backgroundRefreshTimerRef.current = setTimeout(() => {
+        const shouldScroll = backgroundRefreshWantsScrollRef.current;
+        backgroundRefreshWantsScrollRef.current = false;
+        fetchMessagesRef.current(true, true).then(() => {
+          if (shouldScroll) scrollToLatestMessageAnimated();
+        });
+      }, 400);
+    };
+
+    const refresh = () => scheduleBackgroundRefresh(false);
 
     // Optimistically append the just-pushed message straight from the socket
     // payload, instead of waiting on the REST refetch below - that fetch is a
@@ -2112,13 +2141,10 @@ const ConversationScreen = ({ navigation, route }) => {
         if (isNearBottom) scrollToLatestMessageAnimated();
       }
 
-      // Wait for the fetch (and the setMessages it triggers) to actually complete
-      // before scrolling - otherwise this scrolls to the end of the *old* list,
-      // before the new message has been added to state. Also the source of
-      // truth that reconciles the optimistic append above, if any.
-      fetchMessagesRef.current(true, true).then(() => {
-        if (isNearBottom) scrollToLatestMessageAnimated();
-      });
+      // Reconciles the optimistic append above with the server's copy -
+      // debounced (see scheduleBackgroundRefresh) so a burst of messages
+      // coalesces into one fetch instead of one each.
+      scheduleBackgroundRefresh(isNearBottom);
       // The screen is already open, so this new message is immediately read too -
       // dispatch a read receipt so the sender's "seen" status keeps updating live.
       markConversationAsRead(activeId).catch((error) => {
@@ -2179,6 +2205,7 @@ const ConversationScreen = ({ navigation, route }) => {
       unsubscribeRecalled();
       unsubscribeEdited();
       clearTimeout(typingTimeoutRef.current);
+      clearTimeout(backgroundRefreshTimerRef.current);
       // NOTE: Do NOT call setTypingUser(null) here.
       // Calling setState inside a useEffect cleanup causes React to schedule
       // another render → cleanup → setState → infinite "Maximum update depth"
