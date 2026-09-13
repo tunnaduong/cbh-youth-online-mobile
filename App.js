@@ -14,12 +14,13 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
-import i18n from "./app/i18n";
+import i18n, { hasChosenLanguage } from "./app/i18n";
 
 if (Platform.OS === "android") {
   Alert.alert = CustomAlert.alert;
 }
 import { useStatusBar } from "./app/contexts/StatusBarContext";
+import LanguageSelectScreen from "./app/screens/LanguageSelectScreen";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
 import ForgotPasswordScreen from "./app/screens/ForgotPasswordScreen";
@@ -307,6 +308,12 @@ const App = () => {
     i18n.on("initialized", handleInitialized);
     return () => i18n.off("initialized", handleInitialized);
   }, []);
+  // null while unknown, then true/false - decides whether a signed-out user
+  // lands on LanguageSelectScreen (never picked one) or straight on Welcome.
+  const [languageChosen, setLanguageChosen] = useState(null);
+  useEffect(() => {
+    hasChosenLanguage().then(setLanguageChosen);
+  }, []);
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
@@ -553,7 +560,7 @@ const App = () => {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (isLoading) {
+  if (isLoading || languageChosen === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
         <LottieView
@@ -584,6 +591,7 @@ const App = () => {
         onStateChange={handleNavigationStateChange}
       >
         <Stack.Navigator
+          initialRouteName={!isLoggedIn && !languageChosen ? "LanguageSelect" : undefined}
           screenOptions={{
             headerStyle: {
               backgroundColor: theme.headerBackground,
@@ -920,6 +928,15 @@ const App = () => {
             </>
           ) : (
             <>
+              <Stack.Screen
+                name="LanguageSelect"
+                options={{
+                  title: "Chọn ngôn ngữ",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={LanguageSelectScreen}
+              />
               <Stack.Screen
                 name="Welcome"
                 options={{
