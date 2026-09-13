@@ -104,12 +104,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     fetchTab(activeTab, pageByTab[activeTab] + 1);
   };
 
-  const handleJumpToMessage = (messageId) => {
-    setImageViewer({ visible: false, items: [], index: 0 });
-    setVideoViewer({ visible: false, item: null });
-    navigation.navigate("ConversationScreen", { conversationId, highlightMessageId: messageId });
-  };
-
   // Downloads to a scratch cache file and hands it to the OS share sheet -
   // used for both "Share" (any file type) and, for files specifically, is
   // the same flow the row's tap already did (the share sheet itself offers
@@ -163,23 +157,17 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   };
 
   const showFileOptions = (item) => {
-    const options = [
-      t("chatConversation.share", "Chia sẻ"),
-      t("chatConversation.viewOriginalMessage", "Xem tin nhắn gốc"),
-      t("common.cancel"),
-    ];
-    const cancelButtonIndex = 2;
+    const options = [t("chatConversation.share", "Chia sẻ"), t("common.cancel")];
+    const cancelButtonIndex = 1;
     const run = (index) => {
       if (index === 0) handleOpenFile(item);
-      else if (index === 1) handleJumpToMessage(item.message_id);
     };
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex }, run);
     } else {
       Alert.alert(item.content || t("chatConversation.attachment", "Tệp đính kèm"), null, [
         { text: options[0], onPress: () => run(0) },
-        { text: options[1], onPress: () => run(1) },
-        { text: options[2], style: "cancel" },
+        { text: options[1], style: "cancel" },
       ]);
     }
   };
@@ -189,10 +177,9 @@ const MediaGalleryScreen = ({ route, navigation }) => {
       t("chatConversation.openLink", "Mở liên kết"),
       t("chatConversation.copyLink", "Sao chép liên kết"),
       t("chatConversation.share", "Chia sẻ"),
-      t("chatConversation.viewOriginalMessage", "Xem tin nhắn gốc"),
       t("common.cancel"),
     ];
-    const cancelButtonIndex = 4;
+    const cancelButtonIndex = 3;
     const run = (index) => {
       if (index === 0) {
         Linking.openURL(item.url).catch(() => {});
@@ -210,8 +197,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
             .then(() => Sharing.shareAsync(fileUri, { mimeType: "text/plain", UTI: "public.plain-text" }))
             .catch(() => {});
         });
-      } else if (index === 3) {
-        handleJumpToMessage(item.message_id);
       }
     };
     if (Platform.OS === "ios") {
@@ -221,8 +206,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         { text: options[0], onPress: () => run(0) },
         { text: options[1], onPress: () => run(1) },
         { text: options[2], onPress: () => run(2) },
-        { text: options[3], onPress: () => run(3) },
-        { text: options[4], style: "cancel" },
+        { text: options[3], style: "cancel" },
       ]);
     }
   };
@@ -304,8 +288,8 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   const currentItems = itemsByTab[activeTab];
 
   // Footer for the image lightbox: sender/time for whichever image is
-  // currently showing, plus share/save/jump-to-message - closes over
-  // imageViewer.items since react-native-image-viewing only gives us the index.
+  // currently showing, plus share/save - closes over imageViewer.items
+  // since react-native-image-viewing only gives us the index.
   const ImageViewerFooter = ({ imageIndex }) => {
     const item = imageViewer.items[imageIndex];
     if (!item) return null;
@@ -316,7 +300,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         insetsBottom={insets.bottom}
         onShare={() => handleShareMedia(item)}
         onSave={() => handleSaveMedia(item)}
-        onJump={() => handleJumpToMessage(item.message_id)}
       />
     );
   };
@@ -398,7 +381,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
               insetsBottom={insets.bottom}
               onShare={() => handleShareMedia(videoViewer.item)}
               onSave={() => handleSaveMedia(videoViewer.item)}
-              onJump={() => handleJumpToMessage(videoViewer.item.message_id)}
             />
           }
         />
@@ -407,9 +389,8 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   );
 };
 
-// Sender/time + share/save/jump-to-message bar shown at the bottom of the
-// photo/video viewer. Only the Gallery uses this today.
-const MediaActionBar = ({ item, theme, insetsBottom, onShare, onSave, onJump }) => (
+// Sender/time + share/save bar shown at the bottom of the photo/video viewer.
+const MediaActionBar = ({ item, theme, insetsBottom, onShare, onSave }) => (
   <View style={[styles.mediaActionBar, { paddingBottom: insetsBottom + 12 }]}>
     <View style={styles.mediaActionBarInfo}>
       <Text style={styles.mediaActionBarSender} numberOfLines={1}>
@@ -418,9 +399,6 @@ const MediaActionBar = ({ item, theme, insetsBottom, onShare, onSave, onJump }) 
       <Text style={styles.mediaActionBarTime}>{formatTime(item.created_at)}</Text>
     </View>
     <View style={styles.mediaActionBarButtons}>
-      <TouchableOpacity onPress={onJump} style={styles.mediaActionBarButton} hitSlop={8}>
-        <Ionicons name="arrow-redo-outline" size={20} color="#fff" />
-      </TouchableOpacity>
       <TouchableOpacity onPress={onSave} style={styles.mediaActionBarButton} hitSlop={8}>
         <Ionicons name="download-outline" size={20} color="#fff" />
       </TouchableOpacity>
