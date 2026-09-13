@@ -511,7 +511,7 @@
     "typing": "Typing...",
     "storyNotAvailable": "This story is no longer available.",
     "recall": "Unsend",
-    "recalled": "This message was unsent",
+    "recalled": "Message unsent",
     "recallTitle": "Unsend message",
     "recallConfirm": "This message will be unsent for everyone.",
     "editMessage": "Edit",

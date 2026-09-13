@@ -2193,21 +2193,36 @@ const ConversationScreen = ({ navigation, route }) => {
     const handleRecalled = (data) => {
       if (!data?.message_id) return;
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === data.message_id
-            ? { ...m, is_recalled: true, content: null, file_url: null, metadata: null }
-            : m
-        )
+        prev.map((m) => {
+          if (m.id === data.message_id) {
+            return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
+          }
+          // Any OTHER message quoting this one in its reply preview carries
+          // its own denormalized snapshot of it (m.reply_to) that never gets
+          // touched by the update above - without this it would keep
+          // showing the pre-recall content forever.
+          if (m.reply_to?.id === data.message_id) {
+            return {
+              ...m,
+              reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },
+            };
+          }
+          return m;
+        })
       );
     };
     const handleEdited = (data) => {
       if (!data?.message_id) return;
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === data.message_id
-            ? { ...m, content: data.content, is_edited: true }
-            : m
-        )
+        prev.map((m) => {
+          if (m.id === data.message_id) {
+            return { ...m, content: data.content, is_edited: true };
+          }
+          if (m.reply_to?.id === data.message_id) {
+            return { ...m, reply_to: { ...m.reply_to, content: data.content } };
+          }
+          return m;
+        })
       );
     };
 
@@ -3405,13 +3420,23 @@ const ConversationScreen = ({ navigation, route }) => {
           text: t("chatConversation.recall", "Thu hồi"),
           style: "destructive",
           onPress: async () => {
-            // Optimistic update
+            // Optimistic update - also patches any other message's reply_to
+            // snapshot of this one, same as the realtime handleRecalled
+            // handler does for everyone else's clients (recall broadcasts
+            // via ->toOthers(), so the sender never gets their own here).
             setMessages((prev) =>
-              prev.map((m) =>
-                m.id === item.id
-                  ? { ...m, is_recalled: true, content: null, file_url: null, metadata: null }
-                  : m
-              )
+              prev.map((m) => {
+                if (m.id === item.id) {
+                  return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
+                }
+                if (m.reply_to?.id === item.id) {
+                  return {
+                    ...m,
+                    reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },
+                  };
+                }
+                return m;
+              })
             );
             try {
               await recallMessage(item.id);
@@ -3457,11 +3482,14 @@ const ConversationScreen = ({ navigation, route }) => {
 
     setEditingMessage(null);
     setMessage("");
-    // Optimistic update
+    // Optimistic update - also patches any other message's reply_to
+    // snapshot of this one (see handleRecallMessage's comment above for why).
     setMessages((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, content: trimmed, is_edited: true } : m
-      )
+      prev.map((m) => {
+        if (m.id === id) return { ...m, content: trimmed, is_edited: true };
+        if (m.reply_to?.id === id) return { ...m, reply_to: { ...m.reply_to, content: trimmed } };
+        return m;
+      })
     );
 
     try {
