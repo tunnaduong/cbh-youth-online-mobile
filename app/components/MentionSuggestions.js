@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import FastImage from "./FastImage";
 import {
   ActivityIndicator,
   FlatList,
@@ -63,7 +64,7 @@ const MentionSuggestions = ({ suggestions, onSelect, loading }) => {
               borderBottomColor: theme.border,
             }}
           >
-            <Image
+            <FastImage
               source={{
                 uri:
                   item.avatar_url ||

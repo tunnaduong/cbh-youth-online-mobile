@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useContext, useEffect, useRef } from "react";
+import FastImage from "../../../components/FastImage";
 import {
   View,
   Text,
@@ -531,7 +532,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
               disabled={uploadingAvatar || !group.permissions?.can?.perm_change_avatar}
             >
               {group.avatar_url ? (
-                <Image source={{ uri: group.avatar_url }} style={styles.groupAvatarImage} />
+                <FastImage source={{ uri: group.avatar_url }} style={styles.groupAvatarImage} />
               ) : (
                 // Matches the web app's fallback (AvatarFallback): a plain
                 // circle with the group name's first letter, instead of a
@@ -649,7 +650,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
               activeOpacity={canAct ? 0.6 : 1}
               onPress={canAct ? () => openParticipantActions(item) : undefined}
             >
-              <Image source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
+              <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
               <View style={{ flex: 1 }}>
                 <Text
                   style={[styles.participantName, { color: theme.text }]}

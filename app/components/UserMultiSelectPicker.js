@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { searchUserSuggestions } from "../services/api/Api";
+import FastImage from "./FastImage";
 
 // Controlled multi-select user picker with debounced name/username search,
 // used for "create group" and "add members" flows.
@@ -87,7 +88,7 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
               key={u.id}
               style={[styles.chip, { backgroundColor: theme.surface, borderColor: theme.border }]}
             >
-              <Image
+              <FastImage
                 source={{
                   uri: u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar`,
                 }}
@@ -141,7 +142,7 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
                 const picked = isSelected(item.id);
                 return (
                   <TouchableOpacity style={styles.row} activeOpacity={0.6} onPress={() => toggleUser(item)}>
-                    <Image
+                    <FastImage
                       source={{
                         uri:
                           item.avatar_url ||

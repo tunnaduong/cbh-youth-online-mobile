@@ -1242,7 +1242,7 @@ const MessageRow = React.memo(({
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
               {seenAvatars.slice(0, 3).map((p, i) => (
-                <Image
+                <FastImage
                   key={p.id}
                   source={{ uri: p.avatar_url }}
                   style={[
@@ -3819,7 +3819,7 @@ const ConversationScreen = ({ navigation, route }) => {
                   keyExtractor={(item) => String(item.id)}
                   renderItem={({ item }) => (
                     <View style={styles.seenByParticipantRow}>
-                      <Image source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                      <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
                           {item.profile_name || item.username}

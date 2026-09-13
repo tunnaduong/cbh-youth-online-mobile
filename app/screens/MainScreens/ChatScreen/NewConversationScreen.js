@@ -1,4 +1,5 @@
 import React, { useState, useContext } from "react";
+import FastImage from "../../../components/FastImage";
 import {
   View,
   Text,
@@ -108,7 +109,7 @@ const NewConversationScreen = ({ navigation }) => {
           )
         }
       >
-        <Image
+        <FastImage
           source={{ uri: searchResult.user.avatar_url }}
           style={styles.avatar}
         />

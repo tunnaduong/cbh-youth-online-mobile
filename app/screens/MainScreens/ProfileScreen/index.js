@@ -434,7 +434,7 @@ const ProfileScreen = ({ route, navigation }) => {
         });
       }}
     >
-      <Image source={{ uri: user.profile_picture }} style={styles.userAvatar} />
+      <FastImage source={{ uri: user.profile_picture }} style={styles.userAvatar} />
       <View style={styles.userInfo}>
         <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
           {user.profile_name}

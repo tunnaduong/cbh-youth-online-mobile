@@ -29,6 +29,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import CustomLoading from "../../../components/CustomLoading";
+import FastImage from "../../../components/FastImage";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -363,7 +364,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             </Text>
           </View>
         ) : (
-          <Image
+          <FastImage
             source={
               getAvatar(item) === "local:chat.jpg"
                 ? require("../../../assets/chat.jpg")

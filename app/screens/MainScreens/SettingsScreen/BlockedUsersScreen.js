@@ -1,3 +1,4 @@
+import FastImage from "../../../components/FastImage";
 import {
   View,
   Text,
@@ -237,7 +238,7 @@ export default function BlockedUsersScreen({ navigation }) {
           {blockedUsers.map((user) => (
             <View key={user.id} style={[styles.userItem, { borderBottomColor: theme.border }]}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0, marginRight: 12 }}>
-                <Image
+                <FastImage
                   source={{ uri: user.profile?.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar` }}
                   style={[styles.avatar, { backgroundColor: isDarkMode ? "#374151" : "#eee" }]}
                 />
