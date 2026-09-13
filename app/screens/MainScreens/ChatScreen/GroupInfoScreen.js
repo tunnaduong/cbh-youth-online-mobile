@@ -644,14 +644,13 @@ const GroupInfoScreen = ({ navigation, route }) => {
             item.id !== userInfo?.id &&
             item.role !== "owner" &&
             (group.is_owner || (group.is_deputy && item.role === "member"));
+          const goToProfile = () => navigation.push("ProfileScreen", { username: item.username });
           return (
-            <TouchableOpacity
-              style={styles.participantRow}
-              activeOpacity={canAct ? 0.6 : 1}
-              onPress={canAct ? () => openParticipantActions(item) : undefined}
-            >
-              <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
-              <View style={{ flex: 1 }}>
+            <View style={styles.participantRow}>
+              <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
+                <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
                 <Text
                   style={[styles.participantName, { color: theme.text }]}
                   numberOfLines={1}
@@ -670,7 +669,7 @@ const GroupInfoScreen = ({ navigation, route }) => {
                 >
                   @{item.username}
                 </Text>
-              </View>
+              </TouchableOpacity>
               {item.role === "owner" && (
                 <View style={[styles.roleBadge, { backgroundColor: theme.iconBackground }]}>
                   <Text style={[styles.roleBadgeText, { color: theme.primary }]}>
@@ -686,9 +685,14 @@ const GroupInfoScreen = ({ navigation, route }) => {
                 </View>
               )}
               {canAct && (
-                <Ionicons name="chevron-forward" size={18} color={theme.subText} style={{ marginLeft: 6 }} />
+                <TouchableOpacity
+                  onPress={() => openParticipantActions(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="chevron-forward" size={18} color={theme.subText} style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
           );
         }}
         ListFooterComponent={
