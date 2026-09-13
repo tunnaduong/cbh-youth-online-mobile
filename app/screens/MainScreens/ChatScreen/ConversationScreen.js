@@ -2033,7 +2033,14 @@ const ConversationScreen = ({ navigation, route }) => {
           const existingMessages = prev.filter(
             (item) => item.type === "message",
           );
-          return injectTimeHeaders([...newMessages, ...existingMessages], t);
+          // The API's pagination is offset-from-the-end (computed off the
+          // conversation's current total message count), so if new messages
+          // arrive between page fetches, that offset shifts and an "older
+          // page" request can come back overlapping what's already loaded -
+          // dedupe by id or the same message renders twice.
+          const existingIds = new Set(existingMessages.map((m) => m.id));
+          const dedupedOlder = newMessages.filter((m) => !existingIds.has(m.id));
+          return injectTimeHeaders([...dedupedOlder, ...existingMessages], t);
         });
         setHasMore(response.data.current_page < response.data.last_page);
         setPage((prev) => (isRefresh ? 2 : prev + 1));
