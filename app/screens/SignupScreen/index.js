@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     marginBottom: 16,

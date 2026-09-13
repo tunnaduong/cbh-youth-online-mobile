@@ -25,6 +25,17 @@ const LANGUAGES = [
   { code: "ru", flag: "🇷🇺", label: "Русский" },
 ];
 
+// The rest of this screen's copy (title + continue button), one per
+// language, shown live as soon as a language is tapped - instead of
+// stacking every language's translation on screen at once ("Choose your
+// language · Выберите язык" / "Tiếp tục · Continue"), which read as
+// cluttered and only got more so as more languages were added.
+const SCREEN_TEXT = {
+  vi: { title: "Chọn ngôn ngữ", continueText: "Tiếp tục" },
+  en: { title: "Choose your language", continueText: "Continue" },
+  ru: { title: "Выберите язык", continueText: "Продолжить" },
+};
+
 // Best-effort guess from the device's own locale list, falling back to
 // Vietnamese (the app's own fallbackLng) if none of the device's
 // preferred languages are supported.
@@ -42,10 +53,11 @@ const LanguageSelectScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const [selected, setSelected] = useState(guessInitialLanguage());
+  const screenText = SCREEN_TEXT[selected] || SCREEN_TEXT.vi;
 
   const handleContinue = async () => {
     await changeLanguage(selected);
-    navigation.replace("Welcome");
+    navigation.replace("FirstLaunchSettings");
   };
 
   return (
@@ -69,10 +81,7 @@ const LanguageSelectScreen = ({ navigation }) => {
               <Ionicons name="globe-outline" size={30} color={theme.primary} />
             </View>
             <Text style={[styles.title, { color: theme.text }]}>
-              Chọn ngôn ngữ
-            </Text>
-            <Text style={[styles.subtitle, { color: theme.subText }]}>
-              Choose your language · Выберите язык
+              {screenText.title}
             </Text>
           </View>
 
@@ -131,7 +140,7 @@ const LanguageSelectScreen = ({ navigation }) => {
             style={styles.continueButtonContent}
             containerStyle={{ width: "100%" }}
           >
-            <Text style={styles.continueButtonText}>Tiếp tục · Continue</Text>
+            <Text style={styles.continueButtonText}>{screenText.continueText}</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
           </LiquidButton>
         </View>
@@ -161,10 +170,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "700",
     letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 14,
-    marginTop: 8,
     textAlign: "center",
   },
   card: {

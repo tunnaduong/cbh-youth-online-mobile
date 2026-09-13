@@ -21,6 +21,7 @@ if (Platform.OS === "android") {
 }
 import { useStatusBar } from "./app/contexts/StatusBarContext";
 import LanguageSelectScreen from "./app/screens/LanguageSelectScreen";
+import FirstLaunchSettingsScreen from "./app/screens/FirstLaunchSettingsScreen";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
 import ForgotPasswordScreen from "./app/screens/ForgotPasswordScreen";
@@ -936,6 +937,15 @@ const App = () => {
                   animation: "fade",
                 }}
                 component={LanguageSelectScreen}
+              />
+              <Stack.Screen
+                name="FirstLaunchSettings"
+                options={{
+                  title: "Tuỳ chỉnh trải nghiệm",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={FirstLaunchSettingsScreen}
               />
               <Stack.Screen
                 name="Welcome"

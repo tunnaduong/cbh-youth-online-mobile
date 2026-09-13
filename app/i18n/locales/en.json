@@ -855,6 +855,13 @@
     "errorUpdate": "Could not update profile",
     "birthdayFormat": "{{month}}/{{day}}/{{year}}"
   },
+  "firstLaunchSettings": {
+    "title": "Customize your experience",
+    "subtitle": "You can change these anytime in Settings.",
+    "autoplayDescription": "Automatically play videos as you scroll through chat, without needing to tap them first.",
+    "liquidGlassDescription": "A modern frosted-glass look for the interface. May lag on lower-end devices - turn it off if the app doesn't feel smooth.",
+    "continue": "Continue"
+  },
   "settings": {
     "title": "Settings",
     "account": "Account",

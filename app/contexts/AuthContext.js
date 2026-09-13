@@ -194,7 +194,24 @@ export const AuthProvider = ({ children }) => {
     setEmailVerifiedAt(null);
     setBlockedUsers([]);
 
+    // clearAll() wipes every MMKV key, but theme/autoplay/liquid-glass/tab-
+    // label/language are per-DEVICE display preferences, not per-account
+    // session data - they should survive a sign-out exactly like they
+    // survive an app update, so whoever logs in next (or the same person
+    // again) doesn't have them silently reset back to defaults. Only
+    // per-account/session caches (chat message cache, feed cache, etc.)
+    // are meant to be wiped here.
+    const preserved = {};
+    if (storage.contains("theme")) preserved.theme = storage.getString("theme");
+    if (storage.contains("hideTabLabels")) preserved.hideTabLabels = storage.getBoolean("hideTabLabels");
+    if (storage.contains("autoplayVideos")) preserved.autoplayVideos = storage.getBoolean("autoplayVideos");
+    if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
+
     storage.clearAll();
+
+    for (const [key, value] of Object.entries(preserved)) {
+      if (value !== undefined) storage.set(key, value);
+    }
   };
 
   const blockUser = async (userToBlock) => {

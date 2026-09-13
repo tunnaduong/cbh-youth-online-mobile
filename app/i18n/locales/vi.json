@@ -843,6 +843,13 @@
     "errorUpdate": "Không thể cập nhật thông tin",
     "birthdayFormat": "{{day}} Tháng {{month}} {{year}}"
   },
+  "firstLaunchSettings": {
+    "title": "Tuỳ chỉnh trải nghiệm",
+    "subtitle": "Bạn có thể đổi lại các cài đặt này bất cứ lúc nào trong phần Cài đặt.",
+    "autoplayDescription": "Tự động phát video khi cuộn qua trong khung chat, không cần nhấn để phát.",
+    "liquidGlassDescription": "Hiệu ứng kính mờ hiện đại cho giao diện. Có thể gây giật/lag trên các thiết bị cấu hình thấp - có thể tắt nếu ứng dụng chạy không mượt.",
+    "continue": "Tiếp tục"
+  },
   "settings": {
     "title": "Cài đặt",
     "account": "Tài khoản",
