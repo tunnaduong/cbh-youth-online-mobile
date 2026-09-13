@@ -548,6 +548,7 @@
     "galleryLinks": "Links",
     "galleryEmpty": "Nothing here yet",
     "share": "Share",
+    "openFile": "Open file",
     "openLink": "Open link",
     "copyLink": "Copy link",
     "loadGroupError": "Could not load group info.",

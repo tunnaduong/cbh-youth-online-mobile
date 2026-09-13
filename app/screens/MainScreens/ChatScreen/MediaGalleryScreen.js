@@ -25,6 +25,7 @@ import formatTime from "../../../utils/formatTime";
 import { getConversationMedia } from "../../../services/api/Api";
 import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
 import { VideoViewerModal } from "./ConversationScreen";
+import ForwardMessageModal from "../../../components/ForwardMessageModal";
 
 // Messenger-style "Gallery": every photo/video, file, or link ever shared in
 // this conversation, grouped into tabs. Mirrors the file-bubble rendering
@@ -50,6 +51,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   const [downloadingId, setDownloadingId] = useState(null);
   const [imageViewer, setImageViewer] = useState({ visible: false, items: [], index: 0 });
   const [videoViewer, setVideoViewer] = useState({ visible: false, item: null });
+  const [forwardModal, setForwardModal] = useState({ visible: false, message: null });
 
   // "image" tab actually fetches both images and videos (the API's `type`
   // filter is per-request) - request both and merge, sorted by recency,
@@ -134,13 +136,12 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleShareMedia = async (item) => {
-    if (!item?.file_url) return;
-    try {
-      await shareRemoteFile(item.file_url, `media.${item.type === "video" ? "mp4" : "jpg"}`);
-    } catch (error) {
-      Toast.show({ type: "error", text1: t("common.error"), text2: error?.message });
-    }
+  // "Share" here means forwarding within the app (like a message's own
+  // Forward action), not the OS share sheet - Save above already covers
+  // getting the file out to another app.
+  const handleShareMedia = (item) => {
+    if (!item?.message_id) return;
+    setForwardModal({ visible: true, message: { id: item.message_id } });
   };
 
   const handleSaveMedia = async (item) => {
@@ -157,17 +158,23 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   };
 
   const showFileOptions = (item) => {
-    const options = [t("chatConversation.share", "Chia sẻ"), t("common.cancel")];
-    const cancelButtonIndex = 1;
+    const options = [
+      t("chatConversation.openFile", "Mở tệp"),
+      t("chatConversation.share", "Chia sẻ"),
+      t("common.cancel"),
+    ];
+    const cancelButtonIndex = 2;
     const run = (index) => {
       if (index === 0) handleOpenFile(item);
+      else if (index === 1) setForwardModal({ visible: true, message: { id: item.message_id } });
     };
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex }, run);
     } else {
       Alert.alert(item.content || t("chatConversation.attachment", "Tệp đính kèm"), null, [
         { text: options[0], onPress: () => run(0) },
-        { text: options[1], style: "cancel" },
+        { text: options[1], onPress: () => run(1) },
+        { text: options[2], style: "cancel" },
       ]);
     }
   };
@@ -187,16 +194,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         Clipboard.setString(item.url);
         Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
       } else if (index === 2) {
-        Sharing.isAvailableAsync().then((available) => {
-          // Links have no file to download - share the URL text itself via
-          // the native share sheet by writing it to a throwaway .txt file
-          // (expo-sharing has no "share plain text" API of its own).
-          if (!available) return;
-          const fileUri = `${FileSystem.cacheDirectory}link-${Date.now()}.txt`;
-          FileSystem.writeAsStringAsync(fileUri, item.url)
-            .then(() => Sharing.shareAsync(fileUri, { mimeType: "text/plain", UTI: "public.plain-text" }))
-            .catch(() => {});
-        });
+        setForwardModal({ visible: true, message: { id: item.message_id } });
       }
     };
     if (Platform.OS === "ios") {
@@ -385,6 +383,12 @@ const MediaGalleryScreen = ({ route, navigation }) => {
           }
         />
       )}
+
+      <ForwardMessageModal
+        visible={forwardModal.visible}
+        message={forwardModal.message}
+        onClose={() => setForwardModal({ visible: false, message: null })}
+      />
     </SafeAreaView>
   );
 };
