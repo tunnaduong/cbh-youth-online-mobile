@@ -209,6 +209,30 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     }
   };
 
+  // Long-press on a grid tile - same Share (forward)/Save actions as the
+  // viewer's own action bar, without needing to open it first.
+  const showMediaOptions = (item) => {
+    const options = [
+      t("chatConversation.share", "Chia sẻ"),
+      t("chatConversation.download", "Tải xuống"),
+      t("common.cancel"),
+    ];
+    const cancelButtonIndex = 2;
+    const run = (index) => {
+      if (index === 0) handleShareMedia(item);
+      else if (index === 1) handleSaveMedia(item);
+    };
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex }, run);
+    } else {
+      Alert.alert(null, null, [
+        { text: options[0], onPress: () => run(0) },
+        { text: options[1], onPress: () => run(1) },
+        { text: options[2], style: "cancel" },
+      ]);
+    }
+  };
+
   const renderPhotoVideoItem = ({ item }) => {
     const isVideo = item.type === "video";
     const thumbUri = item.thumbnail_url || item.file_url;
@@ -225,6 +249,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
             setImageViewer({ visible: true, items: images, index: Math.max(0, imageIndex) });
           }
         }}
+        onLongPress={() => showMediaOptions(item)}
       >
         <Image source={{ uri: thumbUri }} style={styles.gridImage} />
         {isVideo && (
@@ -284,6 +309,22 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   );
 
   const currentItems = itemsByTab[activeTab];
+
+  // react-native-image-viewing's default header positions its close button
+  // with RN's own <SafeAreaView>, which is an iOS-only no-op - on Android it
+  // applies no top inset at all, so the button sits right under (behind) the
+  // status bar. Same fix ConversationScreen.js's own image viewer already uses.
+  const ImageViewerHeader = () => (
+    <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
+      <TouchableOpacity
+        onPress={() => setImageViewer({ visible: false, items: [], index: 0 })}
+        style={styles.imageViewerCloseButton}
+        hitSlop={{ top: 16, left: 16, bottom: 16, right: 16 }}
+      >
+        <Ionicons name="close" size={22} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  );
 
   // Footer for the image lightbox: sender/time for whichever image is
   // currently showing, plus share/save - closes over imageViewer.items
@@ -364,6 +405,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         imageIndex={imageViewer.index}
         visible={imageViewer.visible}
         onRequestClose={() => setImageViewer({ visible: false, items: [], index: 0 })}
+        HeaderComponent={ImageViewerHeader}
         FooterComponent={ImageViewerFooter}
       />
       {videoViewer.item && (
@@ -483,6 +525,14 @@ const styles = StyleSheet.create({
   mediaActionBarTime: { color: "rgba(255,255,255,0.75)", fontSize: 11, marginTop: 2 },
   mediaActionBarButtons: { flexDirection: "row", gap: 20 },
   mediaActionBarButton: { padding: 4 },
+  imageViewerCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
 export default MediaGalleryScreen;

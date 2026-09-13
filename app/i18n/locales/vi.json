@@ -604,6 +604,7 @@
     "readReceiptsOffTitle": "Trạng thái đã xem đang tắt",
     "readReceiptsOffDesc": "Bạn sẽ không thấy khi người khác đã xem tin nhắn của mình trong đoạn chat này.",
     "forward": "Chuyển tiếp",
+    "searchToForward": "Tìm người để chuyển tiếp...",
     "send": "Gửi",
     "forwarded": "Đã chuyển tiếp tin nhắn",
     "forwardFailed": "Chuyển tiếp thất bại",

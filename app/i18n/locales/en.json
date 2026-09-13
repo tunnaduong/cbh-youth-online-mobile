@@ -615,6 +615,7 @@
     "readReceiptsOffTitle": "Read receipts are off",
     "readReceiptsOffDesc": "You won't see when others have read your messages here.",
     "forward": "Forward",
+    "searchToForward": "Search someone to forward to...",
     "send": "Send",
     "forwarded": "Message forwarded",
     "forwardFailed": "Failed to forward message",
