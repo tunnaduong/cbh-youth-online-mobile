@@ -483,6 +483,12 @@ export const sendMessage = (id, params) => {
   );
 };
 
+export const getConversationMedia = (id, type, page = 1) => {
+  return Api.getRequest(
+    `/v1.0/chat/conversations/${id}/media?type=${type}&page=${page}`
+  );
+};
+
 export const searchChatUsername = (query) => {
   return Api.getRequest("/v1.0/chat/search/users?username=" + query);
 };

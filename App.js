@@ -65,6 +65,7 @@ import ConversationScreen from "./app/screens/MainScreens/ChatScreen/Conversatio
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
 import CreateGroupScreen from "./app/screens/MainScreens/ChatScreen/CreateGroupScreen";
 import GroupInfoScreen from "./app/screens/MainScreens/ChatScreen/GroupInfoScreen";
+import MediaGalleryScreen from "./app/screens/MainScreens/ChatScreen/MediaGalleryScreen";
 import AddGroupMembersScreen from "./app/screens/MainScreens/ChatScreen/AddGroupMembersScreen";
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
@@ -857,6 +858,11 @@ const App = () => {
               <Stack.Screen
                 name="GroupInfoScreen"
                 component={GroupInfoScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="MediaGalleryScreen"
+                component={MediaGalleryScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

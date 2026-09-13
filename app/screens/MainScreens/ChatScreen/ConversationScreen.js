@@ -215,7 +215,7 @@ const injectTimeHeaders = (messages, t) => {
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
-const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
+export const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
   const { autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   const player = useVideoPlayer(uri || null, (p) => {
@@ -1723,14 +1723,19 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const showOptions = () => {
+    const privateConversationId = currentConversationId || conversationId;
+    const openGallery = () =>
+      navigation.navigate("MediaGalleryScreen", { conversationId: privateConversationId });
+
     const options = [
+      t("chatConversation.gallery", "Bộ sưu tập"),
       t("chatConversation.report"),
       t("chatConversation.changeBackground", "Đổi hình nền"),
       t("chatConversation.blockUser"),
       t("common.cancel"),
     ];
-    const destructiveButtonIndex = 2;
-    const cancelButtonIndex = 3;
+    const destructiveButtonIndex = 3;
+    const cancelButtonIndex = 4;
 
     if (!otherUser) {
       // Group conversation (or the singleton public chat, which has no group management).
@@ -1739,6 +1744,10 @@ const ConversationScreen = ({ navigation, route }) => {
 
       if (isPublicChat) {
         Alert.alert(t("chatConversation.optionsTitle"), null, [
+          {
+            text: t("chatConversation.gallery", "Bộ sưu tập"),
+            onPress: () => navigation.navigate("MediaGalleryScreen", { conversationId: targetConversationId }),
+          },
           {
             text: t("chatConversation.report"),
             onPress: () => setReportModalVisible(true),
@@ -1752,6 +1761,10 @@ const ConversationScreen = ({ navigation, route }) => {
         {
           text: t("chatConversation.groupInfo", "Thông tin nhóm"),
           onPress: () => navigation.navigate("GroupInfoScreen", { conversationId: targetConversationId }),
+        },
+        {
+          text: t("chatConversation.gallery", "Bộ sưu tập"),
+          onPress: () => navigation.navigate("MediaGalleryScreen", { conversationId: targetConversationId }),
         },
         {
           text: t("chatConversation.report"),
@@ -1775,13 +1788,18 @@ const ConversationScreen = ({ navigation, route }) => {
           destructiveButtonIndex,
         },
         (buttonIndex) => {
-          if (buttonIndex === 0) setReportModalVisible(true);
-          else if (buttonIndex === 1) setBackgroundModalVisible(true);
-          else if (buttonIndex === 2) confirmBlock();
+          if (buttonIndex === 0) openGallery();
+          else if (buttonIndex === 1) setReportModalVisible(true);
+          else if (buttonIndex === 2) setBackgroundModalVisible(true);
+          else if (buttonIndex === 3) confirmBlock();
         },
       );
     } else {
       Alert.alert(t("chatConversation.optionsTitle"), null, [
+        {
+          text: t("chatConversation.gallery", "Bộ sưu tập"),
+          onPress: openGallery,
+        },
         {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),
