@@ -210,8 +210,12 @@ const LoginScreen = ({ navigation }) => {
                   flexGrow: 1,
                   justifyContent: "center",
                   minHeight: "100%",
-                  paddingBottom: insets.bottom + 32,
-                  paddingTop: Math.max(insets.top + 60, 96),
+                  // Shifts the vertically-centered form up ~15px (more
+                  // paddingBottom than paddingTop moves the centered content
+                  // up within the same minHeight) without disturbing the
+                  // centering behavior itself.
+                  paddingBottom: insets.bottom + 32 + 15,
+                  paddingTop: Math.max(insets.top + 60, 96) - 15,
                 },
               ]}
               keyboardShouldPersistTaps="handled"
@@ -243,7 +247,7 @@ const LoginScreen = ({ navigation }) => {
                 <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
                   <Ionicons
                     name="person-outline"
-                    size={20}
+                    size={21}
                     color={theme.primary}
                     style={styles.inputIcon}
                   />
@@ -265,7 +269,7 @@ const LoginScreen = ({ navigation }) => {
                 <View style={styles.inputRow}>
                   <Ionicons
                     name="lock-closed-outline"
-                    size={20}
+                    size={21}
                     color={theme.primary}
                     style={styles.inputIcon}
                   />
@@ -429,15 +433,15 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    height: 52,
+    paddingHorizontal: 18,
+    height: 60,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
   },
   forgotPassword: {
     alignSelf: "flex-end",

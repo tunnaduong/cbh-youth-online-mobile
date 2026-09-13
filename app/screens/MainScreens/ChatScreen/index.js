@@ -39,6 +39,16 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const [conversations, setConversations] = useState([]);
   const [onlineStatuses, setOnlineStatuses] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  // `refreshing` also drives the custom CustomLoading overlay and gets set
+  // true for every reload, gesture or not (mount, focus, re-tapping the
+  // active tab). RefreshControl's own `refreshing` prop needs to stay
+  // separate: on iOS, setting it true from something other than an actual
+  // pull gesture makes UIKit reserve the native control's layout space
+  // immediately (no pull distance to size it from), pushing the list down -
+  // exactly the "big empty gap under the search bar" seen only on iOS.
+  // Android doesn't have this quirk. Keeping this true only while a real
+  // pull-to-refresh is in flight avoids it entirely.
+  const [pullRefreshing, setPullRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -105,9 +115,14 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   }, []);
 
   const onRefresh = React.useCallback(() => {
+    // The only place `pullRefreshing` is ever set - this is the actual
+    // native pull-to-refresh gesture, so it's safe for RefreshControl to
+    // reserve/animate its space here.
+    setPullRefreshing(true);
     setRefreshing(true);
     fetchConversations().finally(() => {
       setTimeout(() => {
+        setPullRefreshing(false);
         setRefreshing(false);
       }, 1000);
     });
@@ -450,7 +465,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={pullRefreshing}
             onRefresh={onRefresh}
             tintColor="transparent"
             colors={["transparent"]}
