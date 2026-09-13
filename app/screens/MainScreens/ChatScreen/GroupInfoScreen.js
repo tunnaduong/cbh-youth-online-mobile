@@ -533,8 +533,13 @@ const GroupInfoScreen = ({ navigation, route }) => {
               {group.avatar_url ? (
                 <Image source={{ uri: group.avatar_url }} style={styles.groupAvatarImage} />
               ) : (
+                // Matches the web app's fallback (AvatarFallback): a plain
+                // circle with the group name's first letter, instead of a
+                // generic people icon with no way to tell groups apart.
                 <View style={[styles.groupAvatar, { backgroundColor: theme.iconBackground }]}>
-                  <Ionicons name="people" size={34} color={theme.subText} />
+                  <Text style={[styles.groupAvatarInitial, { color: theme.primary }]}>
+                    {group.name?.trim()?.[0]?.toUpperCase() || "?"}
+                  </Text>
                 </View>
               )}
               {group.permissions?.can?.perm_change_avatar && (
@@ -829,6 +834,10 @@ const styles = StyleSheet.create({
     height: 84,
     borderRadius: 42,
     marginBottom: 12,
+  },
+  groupAvatarInitial: {
+    fontSize: 34,
+    fontWeight: "700",
   },
   avatarEditBadge: {
     position: "absolute",

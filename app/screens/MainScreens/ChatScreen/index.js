@@ -352,18 +352,30 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       }}
     >
       <View style={styles.avatarWrapper}>
-        <Image
-          source={
-            getAvatar(item) === "local:chat.jpg"
-              ? require("../../../assets/chat.jpg")
-              : {
-                uri:
-                  getAvatar(item) ||
-                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-              }
-          }
-          style={[styles.avatar, { backgroundColor: theme.border }]}
-        />
+        {item.type === "group" && getAvatar(item) !== "local:chat.jpg" && !getAvatar(item) ? (
+          // Matches the web app's fallback: a plain circle with the group
+          // name's first letter, instead of the generic person-silhouette
+          // placeholder image (which reads as "no avatar for a person", not
+          // "this group has no avatar").
+          <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.iconBackground }]}>
+            <Text style={[styles.avatarFallbackInitial, { color: theme.primary }]}>
+              {getChatName(item)?.trim()?.[0]?.toUpperCase() || "?"}
+            </Text>
+          </View>
+        ) : (
+          <Image
+            source={
+              getAvatar(item) === "local:chat.jpg"
+                ? require("../../../assets/chat.jpg")
+                : {
+                  uri:
+                    getAvatar(item) ||
+                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+                }
+            }
+            style={[styles.avatar, { backgroundColor: theme.border }]}
+          />
+        )}
         {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
           <View style={styles.onlineDot} />
         ) : null}
@@ -588,6 +600,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+  },
+  avatarFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarFallbackInitial: {
+    fontSize: 20,
+    fontWeight: "700",
   },
   onlineDot: {
     position: "absolute",

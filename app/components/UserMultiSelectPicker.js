@@ -68,9 +68,11 @@ const UserMultiSelectPicker = ({ selected, onChange, excludeConversationId, plac
     if (isSelected(user.id)) {
       onChange(selected.filter((u) => u.id !== user.id));
     } else {
+      // Don't clear the search query/suggestions after picking someone
+      // (matches the web app) - clearing it made adding several people in a
+      // row annoying, since every pick threw away what you'd just typed and
+      // forced you to retype a new search from scratch.
       onChange([...selected, user]);
-      setQuery("");
-      setSuggestions([]);
     }
   };
 
