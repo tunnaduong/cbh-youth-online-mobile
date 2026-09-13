@@ -537,7 +537,13 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
             )}
           </Text>
           {item.type === "story_replied" && item.data?.message_excerpt && (
-            <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={2}>
+            <Text
+              style={[styles.excerpt, { color: theme.subText }]}
+              numberOfLines={2}
+              ellipsizeMode="tail"
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+            >
               {item.data.message_excerpt}
             </Text>
           )}

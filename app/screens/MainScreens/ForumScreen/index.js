@@ -79,8 +79,14 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
                   {section.latest_post.created_at ? formatTime(section.latest_post.created_at) : ""}
                 </Text>
               </View>
-              <Text style={[styles.latestContent, { color: theme.text }]} numberOfLines={2}> 
-                <Text style={[styles.latestAuthor, { color: theme.primary }]}> 
+              <Text
+                style={[styles.latestContent, { color: theme.text }]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
+                <Text style={[styles.latestAuthor, { color: theme.primary }]}>
                   {section.latest_post.user.name}:
                 </Text>{" "}
                 {section.latest_post.title}

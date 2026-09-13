@@ -3517,6 +3517,9 @@ const ConversationScreen = ({ navigation, route }) => {
                           <Text
                             style={[styles.reactionModalUser, { color: theme.text, flex: 1 }]}
                             numberOfLines={1}
+                            ellipsizeMode="tail"
+                            adjustsFontSizeToFit
+                            minimumFontScale={0.85}
                           >
                             {u.profile_name || u.username}
                           </Text>
@@ -3751,6 +3754,8 @@ const ConversationScreen = ({ navigation, route }) => {
                   style={[styles.headerName, { color: theme.text }]}
                   numberOfLines={1}
                   ellipsizeMode="tail"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
                 >
                   {isNewConversation
                     ? selectedUser.profile_name
@@ -3760,7 +3765,13 @@ const ConversationScreen = ({ navigation, route }) => {
                         : currentConversation?.name || t("chatConversation.casualGroupName")
                       : currentConversation?.participants[0]?.profile_name}
                 </Text>
-                <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
+                <Text
+                  style={[styles.headerSubtitle, { color: theme.subText }]}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   {currentConversation?.type === "group"
                     ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
                     : otherUser?.username ? "@" + otherUser.username : ""}
@@ -4095,11 +4106,23 @@ const ConversationScreen = ({ navigation, route }) => {
               }}
             >
               <Ionicons name="pencil-outline" size={16} color={theme.primary} style={{ marginRight: 8 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: "600", color: theme.primary }} numberOfLines={1}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text
+                  style={{ fontSize: 12, fontWeight: "600", color: theme.primary }}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   {t("chatConversation.editingMessage", "Đang chỉnh sửa tin nhắn")}
                 </Text>
-                <Text style={{ fontSize: 13, color: theme.subText }} numberOfLines={1}>
+                <Text
+                  style={{ fontSize: 13, color: theme.subText }}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   {editingMessage.originalContent}
                 </Text>
               </View>
