@@ -11,7 +11,6 @@ import {
   Linking,
 } from "react-native";
 import React, { useEffect, useState, useContext, useRef } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { List } from "react-native-paper";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
@@ -86,9 +85,7 @@ const CollapsibleMenuItem = ({
 const SidebarGlassWrapper = LiquidGlassView ?? View;
 
 const Sidebar = ({ providerId, isOpen }) => {
-  const [username, setUsername] = useState("");
-  const [profileName, setProfileName] = useState("");
-  const { signOut } = useContext(AuthContext);
+  const { signOut, username, profileName } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
   // entirely, reading as a flat tinted panel instead of glass. Matches
@@ -164,11 +161,6 @@ const Sidebar = ({ providerId, isOpen }) => {
     });
   };
 
-  const getData = async (key) => {
-    const result = await AsyncStorage.getItem(key);
-    return result;
-  };
-
   const goToScreen = () => {
     signOut();
   };
@@ -209,19 +201,6 @@ const Sidebar = ({ providerId, isOpen }) => {
       ],
       { cancelable: true },
     );
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const userInfo = await getData("user_info");
-      if (userInfo) {
-        const parsedUserInfo = JSON.parse(userInfo);
-        setProfileName(parsedUserInfo.profile_name);
-        setUsername(parsedUserInfo.username);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   return (
     <View style={{ flex: 1 }}>
