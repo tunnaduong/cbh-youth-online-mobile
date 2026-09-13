@@ -215,7 +215,7 @@ const injectTimeHeaders = (messages, t) => {
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
-export const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
+export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) => {
   const { autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   const player = useVideoPlayer(uri || null, (p) => {
@@ -286,6 +286,10 @@ export const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
             nativeControls
           />
         ) : null}
+        {/* Optional overlay (currently just the Gallery's sender/time +
+            share/save/jump-to-message bar) - undefined everywhere else, so
+            existing callers are unaffected. */}
+        {footer}
       </View>
     </Modal>
   );

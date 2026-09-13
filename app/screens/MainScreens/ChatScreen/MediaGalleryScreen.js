@@ -8,9 +8,13 @@ import {
   Image,
   Linking,
   ActivityIndicator,
+  Alert,
+  ActionSheetIOS,
+  Platform,
+  Clipboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import ImageView from "react-native-image-viewing";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -19,6 +23,7 @@ import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
 import { getConversationMedia } from "../../../services/api/Api";
+import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
 import { VideoViewerModal } from "./ConversationScreen";
 
 // Messenger-style "Gallery": every photo/video, file, or link ever shared in
@@ -43,8 +48,8 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   const [lastPageByTab, setLastPageByTab] = useState({ image: 1, file: 1, link: 1 });
   const [loading, setLoading] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
-  const [imageViewer, setImageViewer] = useState({ visible: false, uris: [], index: 0 });
-  const [videoViewer, setVideoViewer] = useState({ visible: false, uri: null });
+  const [imageViewer, setImageViewer] = useState({ visible: false, items: [], index: 0 });
+  const [videoViewer, setVideoViewer] = useState({ visible: false, item: null });
 
   // "image" tab actually fetches both images and videos (the API's `type`
   // filter is per-request) - request both and merge, sorted by recency,
@@ -99,26 +104,35 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     fetchTab(activeTab, pageByTab[activeTab] + 1);
   };
 
+  const handleJumpToMessage = (messageId) => {
+    setImageViewer({ visible: false, items: [], index: 0 });
+    setVideoViewer({ visible: false, item: null });
+    navigation.navigate("ConversationScreen", { conversationId, highlightMessageId: messageId });
+  };
+
+  // Downloads to a scratch cache file and hands it to the OS share sheet -
+  // used for both "Share" (any file type) and, for files specifically, is
+  // the same flow the row's tap already did (the share sheet itself offers
+  // "Save to Files"/"Save to library", so a separate raw-download action
+  // would just duplicate it without adding anything).
+  const shareRemoteFile = async (url, proposedName) => {
+    const safeName = (proposedName || url.split("/").pop() || "file").replace(/[\\/:*?"<>|]/g, "_");
+    const fileUri = `${FileSystem.cacheDirectory}${safeName}`;
+    const existing = await FileSystem.getInfoAsync(fileUri);
+    if (existing.exists) await FileSystem.deleteAsync(fileUri, { idempotent: true });
+    const result = await FileSystem.downloadAsync(url, fileUri);
+    if (result?.status !== 200) throw new Error(`Unexpected status ${result?.status}`);
+    if (!(await Sharing.isAvailableAsync())) {
+      throw new Error(t("chatConversation.shareUnavailable"));
+    }
+    await Sharing.shareAsync(result.uri, { dialogTitle: safeName });
+  };
+
   const handleOpenFile = async (item) => {
     if (!item.file_url || downloadingId) return;
     try {
       setDownloadingId(item.message_id);
-      const proposedName = item.content || item.file_url.split("/").pop() || "file";
-      const safeName = proposedName.replace(/[\\/:*?"<>|]/g, "_");
-      const fileUri = `${FileSystem.documentDirectory}${safeName}`;
-
-      const existing = await FileSystem.getInfoAsync(fileUri);
-      if (existing.exists) {
-        await FileSystem.deleteAsync(fileUri, { idempotent: true });
-      }
-      const result = await FileSystem.downloadAsync(item.file_url, fileUri);
-      if (result?.status !== 200) throw new Error(`Unexpected status ${result?.status}`);
-
-      if (!(await Sharing.isAvailableAsync())) {
-        Toast.show({ type: "error", text1: t("common.error"), text2: t("chatConversation.shareUnavailable") });
-        return;
-      }
-      await Sharing.shareAsync(result.uri, { dialogTitle: safeName });
+      await shareRemoteFile(item.file_url, item.content);
     } catch (error) {
       Toast.show({ type: "error", text1: t("common.error"), text2: error?.message });
     } finally {
@@ -126,7 +140,94 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     }
   };
 
-  const renderPhotoVideoItem = ({ item, index }) => {
+  const handleShareMedia = async (item) => {
+    if (!item?.file_url) return;
+    try {
+      await shareRemoteFile(item.file_url, `media.${item.type === "video" ? "mp4" : "jpg"}`);
+    } catch (error) {
+      Toast.show({ type: "error", text1: t("common.error"), text2: error?.message });
+    }
+  };
+
+  const handleSaveMedia = async (item) => {
+    if (!item?.file_url) return;
+    try {
+      await downloadMediaToLibrary(item.file_url, item.type);
+      Toast.show({ type: "success", text1: t("chatConversation.downloadSuccess", "Đã lưu vào thư viện") });
+    } catch (error) {
+      const message = error?.message === "PERMISSION_DENIED"
+        ? t("chatConversation.downloadPermissionDenied", "Cần quyền truy cập thư viện ảnh để tải xuống")
+        : t("chatConversation.downloadError", "Không thể tải xuống, vui lòng thử lại");
+      Toast.show({ type: "error", text1: message });
+    }
+  };
+
+  const showFileOptions = (item) => {
+    const options = [
+      t("chatConversation.share", "Chia sẻ"),
+      t("chatConversation.viewOriginalMessage", "Xem tin nhắn gốc"),
+      t("common.cancel"),
+    ];
+    const cancelButtonIndex = 2;
+    const run = (index) => {
+      if (index === 0) handleOpenFile(item);
+      else if (index === 1) handleJumpToMessage(item.message_id);
+    };
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex }, run);
+    } else {
+      Alert.alert(item.content || t("chatConversation.attachment", "Tệp đính kèm"), null, [
+        { text: options[0], onPress: () => run(0) },
+        { text: options[1], onPress: () => run(1) },
+        { text: options[2], style: "cancel" },
+      ]);
+    }
+  };
+
+  const showLinkOptions = (item) => {
+    const options = [
+      t("chatConversation.openLink", "Mở liên kết"),
+      t("chatConversation.copyLink", "Sao chép liên kết"),
+      t("chatConversation.share", "Chia sẻ"),
+      t("chatConversation.viewOriginalMessage", "Xem tin nhắn gốc"),
+      t("common.cancel"),
+    ];
+    const cancelButtonIndex = 4;
+    const run = (index) => {
+      if (index === 0) {
+        Linking.openURL(item.url).catch(() => {});
+      } else if (index === 1) {
+        Clipboard.setString(item.url);
+        Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
+      } else if (index === 2) {
+        Sharing.isAvailableAsync().then((available) => {
+          // Links have no file to download - share the URL text itself via
+          // the native share sheet by writing it to a throwaway .txt file
+          // (expo-sharing has no "share plain text" API of its own).
+          if (!available) return;
+          const fileUri = `${FileSystem.cacheDirectory}link-${Date.now()}.txt`;
+          FileSystem.writeAsStringAsync(fileUri, item.url)
+            .then(() => Sharing.shareAsync(fileUri, { mimeType: "text/plain", UTI: "public.plain-text" }))
+            .catch(() => {});
+        });
+      } else if (index === 3) {
+        handleJumpToMessage(item.message_id);
+      }
+    };
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex }, run);
+    } else {
+      Alert.alert(item.url, null, [
+        { text: options[0], onPress: () => run(0) },
+        { text: options[1], onPress: () => run(1) },
+        { text: options[2], onPress: () => run(2) },
+        { text: options[3], onPress: () => run(3) },
+        { text: options[4], style: "cancel" },
+      ]);
+    }
+  };
+
+  const renderPhotoVideoItem = ({ item }) => {
     const isVideo = item.type === "video";
     const thumbUri = item.thumbnail_url || item.file_url;
     return (
@@ -135,15 +236,11 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         activeOpacity={0.8}
         onPress={() => {
           if (isVideo) {
-            setVideoViewer({ visible: true, uri: item.file_url });
+            setVideoViewer({ visible: true, item });
           } else {
             const images = itemsByTab.image.filter((m) => m.type !== "video");
             const imageIndex = images.findIndex((m) => m.message_id === item.message_id);
-            setImageViewer({
-              visible: true,
-              uris: images.map((m) => m.file_url),
-              index: Math.max(0, imageIndex),
-            });
+            setImageViewer({ visible: true, items: images, index: Math.max(0, imageIndex) });
           }
         }}
       >
@@ -162,6 +259,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
       style={[styles.fileRow, { borderBottomColor: theme.border }]}
       activeOpacity={0.6}
       onPress={() => handleOpenFile(item)}
+      onLongPress={() => showFileOptions(item)}
       disabled={!!downloadingId}
     >
       <View style={[styles.fileIconWrapper, { backgroundColor: theme.iconBackground }]}>
@@ -187,6 +285,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
       style={[styles.fileRow, { borderBottomColor: theme.border }]}
       activeOpacity={0.6}
       onPress={() => Linking.openURL(item.url).catch(() => {})}
+      onLongPress={() => showLinkOptions(item)}
     >
       <View style={[styles.fileIconWrapper, { backgroundColor: theme.iconBackground }]}>
         <Ionicons name="link-outline" size={20} color={theme.primary} />
@@ -203,6 +302,24 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   );
 
   const currentItems = itemsByTab[activeTab];
+
+  // Footer for the image lightbox: sender/time for whichever image is
+  // currently showing, plus share/save/jump-to-message - closes over
+  // imageViewer.items since react-native-image-viewing only gives us the index.
+  const ImageViewerFooter = ({ imageIndex }) => {
+    const item = imageViewer.items[imageIndex];
+    if (!item) return null;
+    return (
+      <MediaActionBar
+        item={item}
+        theme={theme}
+        insetsBottom={insets.bottom}
+        onShare={() => handleShareMedia(item)}
+        onSave={() => handleSaveMedia(item)}
+        onJump={() => handleJumpToMessage(item.message_id)}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["top"]}>
@@ -262,22 +379,57 @@ const MediaGalleryScreen = ({ route, navigation }) => {
       )}
 
       <ImageView
-        images={imageViewer.uris.map((uri) => ({ uri }))}
+        images={imageViewer.items.map((m) => ({ uri: m.file_url }))}
         imageIndex={imageViewer.index}
         visible={imageViewer.visible}
-        onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}
+        onRequestClose={() => setImageViewer({ visible: false, items: [], index: 0 })}
+        FooterComponent={ImageViewerFooter}
       />
-      {videoViewer.uri && (
+      {videoViewer.item && (
         <VideoViewerModal
           visible={videoViewer.visible}
-          uri={videoViewer.uri}
-          onClose={() => setVideoViewer({ visible: false, uri: null })}
+          uri={videoViewer.item.file_url}
+          onClose={() => setVideoViewer({ visible: false, item: null })}
           insetsTop={insets.top}
+          footer={
+            <MediaActionBar
+              item={videoViewer.item}
+              theme={theme}
+              insetsBottom={insets.bottom}
+              onShare={() => handleShareMedia(videoViewer.item)}
+              onSave={() => handleSaveMedia(videoViewer.item)}
+              onJump={() => handleJumpToMessage(videoViewer.item.message_id)}
+            />
+          }
         />
       )}
     </SafeAreaView>
   );
 };
+
+// Sender/time + share/save/jump-to-message bar shown at the bottom of the
+// photo/video viewer. Only the Gallery uses this today.
+const MediaActionBar = ({ item, theme, insetsBottom, onShare, onSave, onJump }) => (
+  <View style={[styles.mediaActionBar, { paddingBottom: insetsBottom + 12 }]}>
+    <View style={styles.mediaActionBarInfo}>
+      <Text style={styles.mediaActionBarSender} numberOfLines={1}>
+        {item.user?.profile_name || item.user?.username}
+      </Text>
+      <Text style={styles.mediaActionBarTime}>{formatTime(item.created_at)}</Text>
+    </View>
+    <View style={styles.mediaActionBarButtons}>
+      <TouchableOpacity onPress={onJump} style={styles.mediaActionBarButton} hitSlop={8}>
+        <Ionicons name="arrow-redo-outline" size={20} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onSave} style={styles.mediaActionBarButton} hitSlop={8}>
+        <Ionicons name="download-outline" size={20} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onShare} style={styles.mediaActionBarButton} hitSlop={8}>
+        <Ionicons name="share-outline" size={20} color="#fff" />
+      </TouchableOpacity>
+    </View>
+  </View>
+);
 
 const EmptyState = ({ theme, t }) => (
   <View style={styles.emptyState}>
@@ -332,6 +484,23 @@ const styles = StyleSheet.create({
   fileName: { fontSize: 14, fontWeight: "500" },
   fileSub: { fontSize: 12, marginTop: 2 },
   emptyState: { alignItems: "center", justifyContent: "center", paddingTop: 80 },
+  mediaActionBar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  mediaActionBarInfo: { flex: 1, minWidth: 0, marginRight: 12 },
+  mediaActionBarSender: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  mediaActionBarTime: { color: "rgba(255,255,255,0.75)", fontSize: 11, marginTop: 2 },
+  mediaActionBarButtons: { flexDirection: "row", gap: 20 },
+  mediaActionBarButton: { padding: 4 },
 });
 
 export default MediaGalleryScreen;
