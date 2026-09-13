@@ -1285,6 +1285,48 @@ const MessageRow = React.memo(({
   );
 });
 
+// Three dots bouncing in a staggered loop, matching web's CSS
+// `typingDotBounce` keyframes (globals.css) so both platforms read as the
+// same design.
+const TypingDots = ({ color }) => {
+  const anims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+
+  useEffect(() => {
+    const loops = anims.map((anim, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 150),
+          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0, duration: 300, useNativeDriver: true }),
+          Animated.delay((2 - i) * 150),
+        ])
+      )
+    );
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [anims]);
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 3 }}>
+      {anims.map((anim, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: color,
+            opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
+            transform: [
+              { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
+            ],
+          }}
+        />
+      ))}
+    </View>
+  );
+};
+
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const BUTTON_SIZE = 47;
@@ -1510,8 +1552,10 @@ const ConversationScreen = ({ navigation, route }) => {
   } = useChatSocket();
   // { id, content } | null — message currently being edited
   const [editingMessage, setEditingMessage] = useState(null);
-  const [typingUser, setTypingUser] = useState(null);
-  const typingTimeoutRef = useRef(null);
+  // Keyed by user_id so multiple people (or the AI) can show as typing at
+  // once instead of the most recent one clobbering everyone else.
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimeoutsRef = useRef({});
   // A busy conversation can fire onMessageSent/onMessageRead/onMessageDeleted
   // several times within milliseconds of each other (a burst of replies, or
   // a group where everyone's "read" receipt lands at once) - each one used
@@ -2076,10 +2120,26 @@ const ConversationScreen = ({ navigation, route }) => {
       return true;
     };
 
+    const clearTypingUser = (userId) => {
+      clearTimeout(typingTimeoutsRef.current[userId]);
+      delete typingTimeoutsRef.current[userId];
+      setTypingUsers((prev) => {
+        if (!prev[userId]) return prev;
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+    };
+
+    const clearAllTypingUsers = () => {
+      Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+      typingTimeoutsRef.current = {};
+      setTypingUsers({});
+    };
+
     const refreshAndScroll = (e) => {
       // A real message arrived, so any "typing..." bubble for this conversation is stale.
-      clearTimeout(typingTimeoutRef.current);
-      setTypingUser(null);
+      clearAllTypingUsers();
 
       const distanceFromBottom =
         (scrollContentHeightRef.current || 0) -
@@ -2107,11 +2167,24 @@ const ConversationScreen = ({ navigation, route }) => {
       refreshOtherUserOnlineStatus();
     };
     const handleTyping = (data) => {
-      setTypingUser({ name: data?.name });
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
-        setTypingUser(null);
-      }, 4000);
+      if (!data?.user_id) return;
+
+      // Yoyo AI has no client to whisper from - its typing state arrives as
+      // a real broadcast (isAi: true) with an explicit start/stop instead of
+      // a whisper that just expires on its own.
+      if (data.isAi && data.starting === false) {
+        clearTypingUser(data.user_id);
+        return;
+      }
+
+      setTypingUsers((prev) => ({
+        ...prev,
+        [data.user_id]: { userId: data.user_id, isAi: !!data.isAi, avatarUrl: data.avatar_url },
+      }));
+      clearTimeout(typingTimeoutsRef.current[data.user_id]);
+      typingTimeoutsRef.current[data.user_id] = setTimeout(() => {
+        clearTypingUser(data.user_id);
+      }, data.isAi ? 20000 : 4000);
     };
     const handleReacted = (data) => {
       if (!data?.message_id) return;
@@ -2154,9 +2227,9 @@ const ConversationScreen = ({ navigation, route }) => {
       unsubscribeReacted();
       unsubscribeRecalled();
       unsubscribeEdited();
-      clearTimeout(typingTimeoutRef.current);
+      Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
       clearTimeout(backgroundRefreshTimerRef.current);
-      // NOTE: Do NOT call setTypingUser(null) here.
+      // NOTE: Do NOT call setTypingUsers({}) here.
       // Calling setState inside a useEffect cleanup causes React to schedule
       // another render → cleanup → setState → infinite "Maximum update depth"
       // loop that also blocks the hardware back button.
@@ -4027,20 +4100,54 @@ const ConversationScreen = ({ navigation, route }) => {
             attemptScrollToHighlightRef={attemptScrollToHighlightRef}
             seenParticipants={seenParticipants}
           />
-          {typingUser && (
-            <Text
+          {Object.keys(typingUsers).length > 0 && (
+            <View
               style={{
-                fontSize: 12,
-                fontStyle: "italic",
-                color: theme.subText,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
                 paddingHorizontal: 12,
                 paddingTop: 4,
               }}
             >
-              {currentConversation?.type === "group" && typingUser.name
-                ? `${typingUser.name} ${t("chatConversation.isTyping", "đang nhập...")}`
-                : t("chatConversation.typing", "Đang nhập...")}
-            </Text>
+              <View style={{ flexDirection: "row" }}>
+                {Object.values(typingUsers).slice(0, 3).map((entry, i) => {
+                  const participant = entry.isAi
+                    ? null
+                    : currentConversation?.participants?.find(
+                        (p) => String(p.id) === String(entry.userId)
+                      );
+                  const avatarUrl = entry.isAi ? entry.avatarUrl : participant?.avatar_url;
+                  return (
+                    <FastImage
+                      key={entry.userId}
+                      source={{ uri: avatarUrl }}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: theme.background,
+                        marginLeft: i === 0 ? 0 : -6,
+                        backgroundColor: theme.border,
+                      }}
+                    />
+                  );
+                })}
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: theme.iconBackground,
+                  borderRadius: 12,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                }}
+              >
+                <TypingDots color={theme.subText} />
+              </View>
+            </View>
           )}
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
