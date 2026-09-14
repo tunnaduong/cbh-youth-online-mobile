@@ -1509,6 +1509,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // the height actually added, landing the user back where they were
   // instead of still sitting at the very top edge.
   const pendingLoadMoreAdjustRef = useRef(null);
+  // Clears pendingLoadMoreAdjustRef a beat after the last height-growth
+  // event, instead of after just the first one - see onContentSizeChange.
+  const pendingLoadMoreAdjustTimeoutRef = useRef(null);
   const isFocused = useIsFocused();
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
@@ -2273,6 +2276,7 @@ const ConversationScreen = ({ navigation, route }) => {
       unsubscribeEdited();
       Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
       clearTimeout(backgroundRefreshTimerRef.current);
+      clearTimeout(pendingLoadMoreAdjustTimeoutRef.current);
       // NOTE: Do NOT call setTypingUsers({}) here.
       // Calling setState inside a useEffect cleanup causes React to schedule
       // another render → cleanup → setState → infinite "Maximum update depth"
@@ -4116,9 +4120,19 @@ const ConversationScreen = ({ navigation, route }) => {
           onContentSizeChange={(w, h) => {
             const pending = pendingLoadMoreAdjustRef.current;
             if (pending && h > pending.prevHeight) {
-              pendingLoadMoreAdjustRef.current = null;
+              // The newly-prepended older page's images/avatars/reply
+              // previews often haven't finished laying out yet when this
+              // first fires, so content height keeps growing in several
+              // more steps after the first compensation - a one-shot
+              // correction only accounted for the first step and let every
+              // later step silently push the viewport up past what the user
+              // was reading, all the way to the top. Keep re-anchoring on
+              // every growth step (rolling prevHeight/prevOffsetY) instead
+              // of clearing after the first, until growth actually stops.
               const grownBy = h - pending.prevHeight;
               const targetY = pending.prevOffsetY + grownBy;
+              pending.prevHeight = h;
+              pending.prevOffsetY = targetY;
               requestAnimationFrame(() => {
                 messagesScrollRef.current?.scrollTo({ y: targetY, animated: false });
               });
@@ -4126,6 +4140,10 @@ const ConversationScreen = ({ navigation, route }) => {
                 grownBy: Math.round(grownBy),
                 targetY: Math.round(targetY),
               });
+              clearTimeout(pendingLoadMoreAdjustTimeoutRef.current);
+              pendingLoadMoreAdjustTimeoutRef.current = setTimeout(() => {
+                pendingLoadMoreAdjustRef.current = null;
+              }, 500);
             }
             scrollContentHeightRef.current = h;
             handleMessagesContentSizeChange(w, h);
