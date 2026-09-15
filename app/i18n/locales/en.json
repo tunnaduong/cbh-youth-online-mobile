@@ -487,6 +487,11 @@
     "sendImageError": "Could not pick image. Please try again.",
     "sendFileError": "Could not send file. Please try again.",
     "sendMessageError": "Could not send message. Please try again later.",
+    "aiCommands": {
+      "ai": "Ask Yoyo AI about this message",
+      "summary": "Summarize the recent conversation",
+      "help": "View the Yoyo AI usage guide"
+    },
     "storyReply": {
       "you": "You commented on {{owner}}'s story",
       "other": "{{sender}} commented on your story"
@@ -506,7 +511,7 @@
     "typing": "Typing...",
     "storyNotAvailable": "This story is no longer available.",
     "recall": "Unsend",
-    "recalled": "This message was unsent",
+    "recalled": "Message unsent",
     "recallTitle": "Unsend message",
     "recallConfirm": "This message will be unsent for everyone.",
     "editMessage": "Edit",
@@ -537,6 +542,15 @@
     "addMembers": "Add members",
     "createGroupError": "Could not create group. Please try again.",
     "groupInfo": "Group info",
+    "gallery": "Gallery",
+    "galleryPhotos": "Photos/Videos",
+    "galleryFiles": "Files",
+    "galleryLinks": "Links",
+    "galleryEmpty": "Nothing here yet",
+    "share": "Share",
+    "openFile": "Open file",
+    "openLink": "Open link",
+    "copyLink": "Copy link",
     "loadGroupError": "Could not load group info.",
     "renameGroup": "Rename group",
     "renameGroupError": "Could not rename group.",
@@ -561,6 +575,9 @@
     "transferOwnershipBody": "{{name}} will become the new group owner instead of you.",
     "transferOwnershipAction": "Transfer ownership",
     "transferOwnershipError": "Could not transfer group ownership.",
+    "mustTransferOwnershipTitle": "Choose a new group owner",
+    "mustTransferOwnershipBody": "You're the group owner - pick a member to transfer ownership to before leaving.",
+    "skipTransferOwnership": "Skip (choose randomly)",
     "inviteViaLink": "Invite via link",
     "inviteLinkError": "Could not create the invite link.",
     "manageGroup": "Manage group",
@@ -598,6 +615,7 @@
     "readReceiptsOffTitle": "Read receipts are off",
     "readReceiptsOffDesc": "You won't see when others have read your messages here.",
     "forward": "Forward",
+    "searchToForward": "Search someone to forward to...",
     "send": "Send",
     "forwarded": "Message forwarded",
     "forwardFailed": "Failed to forward message",
@@ -849,6 +867,13 @@
     "successMessage": "Profile updated successfully",
     "errorUpdate": "Could not update profile",
     "birthdayFormat": "{{month}}/{{day}}/{{year}}"
+  },
+  "firstLaunchSettings": {
+    "title": "Customize your experience",
+    "subtitle": "You can change these anytime in Settings.",
+    "autoplayDescription": "Automatically play videos as you scroll through chat, without needing to tap them first.",
+    "liquidGlassDescription": "A modern frosted-glass look for the interface. May lag on lower-end devices - turn it off if the app doesn't feel smooth.",
+    "continue": "Continue"
   },
   "settings": {
     "title": "Settings",

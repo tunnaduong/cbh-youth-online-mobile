@@ -50,4 +50,18 @@ export const changeLanguage = async (lng) => {
   i18n.changeLanguage(nextLanguage);
 };
 
+// AsyncStorage only ever gets LANGUAGE_KEY written by changeLanguage() above -
+// initI18n() falls back to 'vi' in memory without persisting it - so an
+// unset key reliably means the user has never actually picked a language
+// yet (as opposed to having picked 'vi'), which is what LanguageSelectScreen
+// uses to decide whether to show itself on first launch.
+export const hasChosenLanguage = async () => {
+  try {
+    return (await AsyncStorage.getItem(LANGUAGE_KEY)) != null;
+  } catch (error) {
+    console.error('Error reading saved language:', error);
+    return false;
+  }
+};
+
 export default i18n;

@@ -124,7 +124,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 <View style={styles.inputRow}>
                   <Ionicons
                     name="mail-outline"
-                    size={20}
+                    size={21}
                     color={theme.primary}
                     style={styles.inputIcon}
                   />
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     marginBottom: 20,
@@ -209,15 +209,15 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    height: 52,
+    paddingHorizontal: 18,
+    height: 60,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
   },
   submitButton: {
     height: 52,

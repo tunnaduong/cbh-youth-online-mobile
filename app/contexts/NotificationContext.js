@@ -13,6 +13,7 @@ import {
   getUnreadNotificationCount,
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
+import { resolveNotificationTarget } from '../utils/notificationRouting';
 
 export const NotificationContext = createContext();
 
@@ -155,43 +156,11 @@ export const NotificationProvider = ({ children }) => {
     console.log('[Push] Notification tapped, raw data:', JSON.stringify(data));
     if (!data) return;
 
-    const type = data.type;
-    const topicId = data.topic_id ?? data.topicId;
-    const postId = data.post_id ?? data.postId ?? topicId;
-    const conversationId = data.conversation_id ?? data.conversationId;
-    const storyId = data.story_id ?? data.storyId;
-    const messageId = data.message_id ?? data.messageId;
-
-    let target = null;
-
-    // Route by the presence of conversation_id rather than requiring an
-    // exact `type` string match first - a chat-message push not matching
-    // whatever type string was assumed here (e.g. 'chat_message') meant this
-    // branch was silently skipped entirely and nothing happened at all, in
-    // every app state (foreground, background, killed) alike, since the
-    // fallback branches below don't handle conversations either.
-    const materialId = data.material_id ?? data.materialId;
-    const actorUsername = data.actor?.username ?? data.actor_username ?? data.actorUsername;
-
-    if (conversationId) {
-      target = { screen: 'ConversationScreen', params: { conversationId, highlightMessageId: messageId } };
-    } else if (type === 'story_reacted' && storyId) {
-      target = { screen: 'MainScreens', params: { screen: 'Home', params: { openStoryId: storyId } } };
-    } else if (type === 'story_replied' || type === 'message_reacted') {
-      // No conversation_id on this payload - best we can do is the Chat tab.
-      target = { screen: 'MainScreens', params: { screen: 'Chat' } };
-    } else if (type === 'payment_received' || data.url === '/wallet') {
-      target = { screen: 'PointWalletScreen', params: undefined };
-    } else if (type === 'study_material_purchased' || type === 'study_material_rated') {
-      if (materialId) {
-        target = { screen: 'StudyMaterialDetailScreen', params: { materialId } };
-      }
-    } else if (type === 'followed' && actorUsername) {
-      target = { screen: 'ProfileScreen', params: { username: actorUsername } };
-    } else if (postId) {
-      const id = parseInt(postId, 10);
-      target = { screen: 'PostScreen', params: { postId: isNaN(id) ? postId : id, item: null } };
-    }
+    // Same resolver the in-app notification bell list uses
+    // (NotificationScreen/index.js) - the API now forwards the full
+    // notification `data` payload (see PushNotificationService.php), so this
+    // has everything that switch already knows how to route.
+    const target = resolveNotificationTarget({ type: data.type, data, actor: data.actor });
 
     console.log('[Push] Resolved navigation target:', target);
 

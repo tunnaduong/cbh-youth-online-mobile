@@ -35,7 +35,7 @@ import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const EditProfileScreen = ({ navigation }) => {
-  const { username, userInfo, setUserInfo, bumpAvatarVersion, bumpCoverVersion, getCoverUrl } = useContext(AuthContext);
+  const { username, userInfo, setUserInfo, bumpAvatarVersion, bumpCoverVersion, getCoverUrl, refreshUserInfo } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -197,6 +197,11 @@ const EditProfileScreen = ({ navigation }) => {
 
       // Bust the avatar cache so all screens immediately show the new photo
       bumpAvatarVersion();
+
+      // Refresh the cached user_info (profile_name, bio, etc.) so screens
+      // reading it from AuthContext/AsyncStorage (e.g. Sidebar) show the
+      // change immediately instead of only after the next login/app restart.
+      await refreshUserInfo();
 
       Toast.show({
         type: "success",

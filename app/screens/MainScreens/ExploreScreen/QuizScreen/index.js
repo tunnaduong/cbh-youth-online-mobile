@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import FastImage from "../../../../components/FastImage";
 import {
   View,
   Text,
@@ -550,7 +551,7 @@ const QuizScreen = ({ navigation, route }) => {
                   {leaderboard.map((u, i) => (
                     <View key={u.id} style={styles.leaderboardRow}>
                       <Text style={[styles.leaderboardRank, { color: theme.subText }]}>{i + 1}</Text>
-                      <Image
+                      <FastImage
                         source={{ uri: u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar` }}
                         style={styles.leaderboardAvatar}
                       />

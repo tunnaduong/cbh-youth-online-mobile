@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import FastImage from "../../../../components/FastImage";
 import {
   View,
   Text,
@@ -209,7 +210,7 @@ const GamesScreen = ({ navigation }) => {
               </View>
               {nowPlaying.slice(0, 8).map((p, i) => (
                 <View key={`${p.user_id}-${i}`} style={styles.playingRow}>
-                  <Image
+                  <FastImage
                     source={{ uri: p.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${p.username}/avatar` }}
                     style={styles.playingAvatar}
                   />
@@ -238,7 +239,7 @@ const GamesScreen = ({ navigation }) => {
               {leaderboard.map((u, i) => (
                 <View key={u.id} style={styles.playingRow}>
                   <Text style={[styles.leaderboardRank, { color: theme.subText }]}>{i + 1}</Text>
-                  <Image
+                  <FastImage
                     source={{ uri: u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar` }}
                     style={styles.playingAvatar}
                   />

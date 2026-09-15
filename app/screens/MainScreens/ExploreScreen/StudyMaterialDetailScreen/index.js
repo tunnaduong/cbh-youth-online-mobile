@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import FastImage from "../../../../components/FastImage";
 import {
   ActivityIndicator,
   Animated,
@@ -612,7 +613,7 @@ const StudyMaterialDetailScreen = ({ route, navigation }) => {
                     <View style={styles.ratingHeader}>
                       <View style={styles.ratingUserRow}>
                         {avatarUrl ? (
-                          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+                          <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
                         ) : (
                           <View style={[styles.avatarFallback, { backgroundColor: theme.primary + "20" }]}> 
                             <Text style={[styles.avatarFallbackText, { color: theme.primary }]}>

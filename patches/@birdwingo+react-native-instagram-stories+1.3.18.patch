@@ -29,10 +29,10 @@ index 9419aa6..0e3a161 100644
    containerFlex: {
      flexDirection: 'row',
 diff --git a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
-index 32010ab..c3c3ea7 100644
+index 32010ab..dc439f2 100644
 --- a/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
 +++ b/node_modules/@birdwingo/react-native-instagram-stories/src/components/Header/index.tsx
-@@ -1,57 +1,103 @@
+@@ -1,57 +1,111 @@
 -import React, { FC, memo } from 'react';
 -import {
 -  View, Text, Image, TouchableOpacity,
@@ -146,7 +146,15 @@ index 32010ab..c3c3ea7 100644
        >
 -        <Close color={closeColor} />
 -      </TouchableOpacity>
-+        {Boolean(name) && <Text style={[textStyle, { textAlign: "center" }]}>{name}</Text>}
++        {Boolean(name) && (
++          <Text
++            style={[textStyle, { textAlign: "center" }]}
++            numberOfLines={1}
++            ellipsizeMode="tail"
++          >
++            {name}
++          </Text>
++        )}
 +        {Boolean(date) && (
 +          <Text style={[textStyle, { fontSize: 12, opacity: 0.8, textAlign: "center" }]}>
 +            {date}

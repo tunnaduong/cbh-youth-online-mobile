@@ -476,6 +476,11 @@
     "sendImageError": "Không thể chọn ảnh. Vui lòng thử lại.",
     "sendFileError": "Không thể gửi tệp. Vui lòng thử lại.",
     "sendMessageError": "Không thể gửi tin nhắn. Vui lòng thử lại sau.",
+    "aiCommands": {
+      "ai": "Hỏi Yoyo AI về tin nhắn này",
+      "summary": "Tóm tắt cuộc trò chuyện gần đây",
+      "help": "Xem hướng dẫn sử dụng Yoyo AI"
+    },
     "storyReply": {
       "you": "Bạn đã bình luận về tin của {{owner}}",
       "other": "{{sender}} đã bình luận về tin của bạn"
@@ -526,6 +531,15 @@
     "addMembers": "Thêm thành viên",
     "createGroupError": "Không thể tạo nhóm. Vui lòng thử lại.",
     "groupInfo": "Thông tin nhóm",
+    "gallery": "Bộ sưu tập",
+    "galleryPhotos": "Ảnh/Video",
+    "galleryFiles": "Tệp",
+    "galleryLinks": "Liên kết",
+    "galleryEmpty": "Chưa có gì ở đây",
+    "share": "Chia sẻ",
+    "openFile": "Mở tệp",
+    "openLink": "Mở liên kết",
+    "copyLink": "Sao chép liên kết",
     "loadGroupError": "Không thể tải thông tin nhóm.",
     "renameGroup": "Đổi tên nhóm",
     "renameGroupError": "Không thể đổi tên nhóm.",
@@ -550,6 +564,9 @@
     "transferOwnershipBody": "{{name}} sẽ trở thành trưởng nhóm mới thay bạn.",
     "transferOwnershipAction": "Chuyển quyền trưởng nhóm",
     "transferOwnershipError": "Không thể chuyển quyền trưởng nhóm.",
+    "mustTransferOwnershipTitle": "Chọn trưởng nhóm mới",
+    "mustTransferOwnershipBody": "Bạn là trưởng nhóm - hãy chọn một thành viên để chuyển quyền trưởng nhóm trước khi rời nhóm.",
+    "skipTransferOwnership": "Bỏ qua (chọn ngẫu nhiên)",
     "inviteViaLink": "Mời qua liên kết",
     "inviteLinkError": "Không thể tạo liên kết mời.",
     "manageGroup": "Quản lý nhóm",
@@ -587,6 +604,7 @@
     "readReceiptsOffTitle": "Trạng thái đã xem đang tắt",
     "readReceiptsOffDesc": "Bạn sẽ không thấy khi người khác đã xem tin nhắn của mình trong đoạn chat này.",
     "forward": "Chuyển tiếp",
+    "searchToForward": "Tìm người để chuyển tiếp...",
     "send": "Gửi",
     "forwarded": "Đã chuyển tiếp tin nhắn",
     "forwardFailed": "Chuyển tiếp thất bại",
@@ -837,6 +855,13 @@
     "successMessage": "Cập nhật thông tin thành công",
     "errorUpdate": "Không thể cập nhật thông tin",
     "birthdayFormat": "{{day}} Tháng {{month}} {{year}}"
+  },
+  "firstLaunchSettings": {
+    "title": "Tuỳ chỉnh trải nghiệm",
+    "subtitle": "Bạn có thể đổi lại các cài đặt này bất cứ lúc nào trong phần Cài đặt.",
+    "autoplayDescription": "Tự động phát video khi cuộn qua trong khung chat, không cần nhấn để phát.",
+    "liquidGlassDescription": "Hiệu ứng kính mờ hiện đại cho giao diện. Có thể gây giật/lag trên các thiết bị cấu hình thấp - có thể tắt nếu ứng dụng chạy không mượt.",
+    "continue": "Tiếp tục"
   },
   "settings": {
     "title": "Cài đặt",

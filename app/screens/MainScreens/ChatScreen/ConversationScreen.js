@@ -50,6 +50,7 @@ import {
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
+import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
 import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
 import CommentBar from "../../../components/CommentBar";
@@ -214,7 +215,7 @@ const injectTimeHeaders = (messages, t) => {
 
 // Full-screen video player - a separate component so useVideoPlayer only ever
 // mounts (and allocates a native player) while the modal is actually open.
-const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
+export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) => {
   const { autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   const player = useVideoPlayer(uri || null, (p) => {
@@ -285,6 +286,10 @@ const VideoViewerModal = ({ visible, uri, onClose, insetsTop }) => {
             nativeControls
           />
         ) : null}
+        {/* Optional overlay (currently just the Gallery's sender/time +
+            share/save/jump-to-message bar) - undefined everywhere else, so
+            existing callers are unaffected. */}
+        {footer}
       </View>
     </Modal>
   );
@@ -711,9 +716,12 @@ const MessageRow = React.memo(({
   autoplayVideos,
   seenAvatars,
 }) => {
-  // For group chats, check if sender changed from previous message
+  // For group chats, check if sender changed from previous message. Also
+  // true for the AI in a private chat (isGroupChat is false there, but its
+  // name should still show above its bubble like it does everywhere else -
+  // see the (isGroupChat || item.sender?.is_ai) check that reads this below).
   const senderChanged =
-    isGroupChat &&
+    (isGroupChat || item.sender?.is_ai) &&
     !item.is_myself &&
     (!prevMessage ||
       prevMessage.is_myself !== item.is_myself ||
@@ -722,13 +730,21 @@ const MessageRow = React.memo(({
         !prevMessage.sender?.id &&
         !item.sender?.id));
 
-  // Check if this is the last message in a group (same sender and same alignment)
-  // For group chats, also check if the next message is from a different sender
+  // Check if this is the last message in a group (same sender and same alignment).
+  // This used to only compare actual sender identity when isGroupChat - fine
+  // as long as a private (non-group) conversation could only ever have ONE
+  // possible "not me" sender. That stopped being true once Yoyo AI can also
+  // post into any conversation (e.g. someone replies to a message with /ai
+  // inside a normal 1-on-1 chat): two consecutive "not me" messages from two
+  // actually-different senders (the other human, then the AI) both have
+  // is_myself === false, so without this check they were treated as one
+  // group and only the last one got an avatar - making it look like a
+  // single shared avatar for two different people. Now checks real sender
+  // identity regardless of conversation type.
   const isLastInGroup =
     !nextMessage ||
     nextMessage.is_myself !== item.is_myself ||
-    (isGroupChat &&
-      !item.is_myself &&
+    (!item.is_myself &&
       // Different sender IDs (for authenticated users)
       ((nextMessage.sender?.id &&
         item.sender?.id &&
@@ -884,8 +900,8 @@ const MessageRow = React.memo(({
           </View>
         </TouchableOpacity>
       )}
-      {/* Show sender name for group chats when sender changes */}
-      {isGroupChat && !item.is_myself && senderChanged && (
+      {/* Show sender name for group chats when sender changes, and always for Yoyo AI */}
+      {(isGroupChat || item.sender?.is_ai) && !item.is_myself && senderChanged && (
         <Text style={[styles.senderName, { color: theme.subText }]}>
           {item.sender?.profile_name ||
             item.sender?.username ||
@@ -1172,6 +1188,7 @@ const MessageRow = React.memo(({
                 // @all has no meaning there, so it must render as plain
                 // text instead of a highlighted/tappable mention.
                 allowBroadcastMention={isGroupChat}
+                enableAiCommands
                 onMentionPress={(username) =>
                   navigation.navigate("ProfileScreen", { username })
                 }
@@ -1229,7 +1246,7 @@ const MessageRow = React.memo(({
               hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
               {seenAvatars.slice(0, 3).map((p, i) => (
-                <Image
+                <FastImage
                   key={p.id}
                   source={{ uri: p.avatar_url }}
                   style={[
@@ -1271,6 +1288,48 @@ const MessageRow = React.memo(({
     prev.seenAvatars === next.seenAvatars
   );
 });
+
+// Three dots bouncing in a staggered loop, matching web's CSS
+// `typingDotBounce` keyframes (globals.css) so both platforms read as the
+// same design.
+const TypingDots = ({ color }) => {
+  const anims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+
+  useEffect(() => {
+    const loops = anims.map((anim, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 150),
+          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 0, duration: 300, useNativeDriver: true }),
+          Animated.delay((2 - i) * 150),
+        ])
+      )
+    );
+    loops.forEach((l) => l.start());
+    return () => loops.forEach((l) => l.stop());
+  }, [anims]);
+
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 3 }}>
+      {anims.map((anim, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: color,
+            opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
+            transform: [
+              { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
+            ],
+          }}
+        />
+      ))}
+    </View>
+  );
+};
 
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -1350,6 +1409,14 @@ const ConversationScreen = ({ navigation, route }) => {
     fetchSuggestions: fetchMessageMentionSuggestions,
   });
 
+  const { slashProps: messageSlashProps, suggestions: slashSuggestions, onSelectCommand: onSelectSlashCommand } = useSlashCommandInput({
+    value: message,
+    onChange: (text) => {
+      latestMessageRef.current = text;
+      setMessage(text);
+    },
+  });
+
   const [chatKeyboardHeight, setChatKeyboardHeight] = useState(0);
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => setChatKeyboardHeight(e.endCoordinates.height));
@@ -1384,62 +1451,38 @@ const ConversationScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  // Caps how many of the loaded `messages` actually get rendered/mounted at
-  // once. "Load more" pagination keeps prepending older pages to `messages`
-  // as the user scrolls back through history, but every one of those rows
-  // stayed mounted forever in the plain (non-virtualized) ScrollView below -
-  // for a conversation with a lot of scroll-back, that's hundreds of message
-  // bubbles (some with images/videos) all live at once. RENDER_WINDOW_CHUNK
-  // is comfortably above a typical page size so ordinary conversations never
-  // even reach the cap; it only kicks in once someone's scrolled back far
-  // enough that keeping everything mounted would actually hurt.
-  const RENDER_WINDOW_CHUNK = 80;
-  // Scrolling near the top keeps growing the window by RENDER_WINDOW_CHUNK
-  // with no ceiling, so a long enough scroll-back session would eventually
-  // reach "render everything anyway" and quietly bring back the exact
-  // mounted-bubble-count problem this cap exists to avoid. Past this many,
-  // further scroll-up still fetches more history (see handleMessagesScroll)
-  // but stops mounting it - a deliberate, rare tradeoff over letting a
-  // single very-long session snowball back into the original perf problem.
-  const MAX_RENDER_LIMIT = 400;
-  // The backend already delivers history in real pages (getConversationMessages'
-  // `page` param, `current_page`/`last_page`) - this just remembers each
-  // loaded older page's boundary (the id of its oldest message) so the
-  // near-top growth step below can snap renderLimit to reveal one whole
-  // fetched page at a time, instead of an arbitrary RENDER_WINDOW_CHUNK-sized
-  // guess that might land mid-page. Oldest-page-first, matching how pages
-  // get prepended to `messages`. Message ids rather than indices/counts
-  // because `messages` also has date/time headers interspersed
-  // (injectTimeHeaders) whose count per page isn't fixed - an id survives
-  // that; a raw count wouldn't line up.
-  const pageBoundaryIdsRef = useRef([]);
-  const [renderLimit, setRenderLimit] = useState(RENDER_WINDOW_CHUNK);
-  // Companion to renderLimit, but for the *other* end: renderLimit caps how
-  // far back (toward the oldest) mounted content reaches; this caps how far
-  // forward (toward the newest) it reaches once the user has scrolled well
-  // away from the bottom. Count of newest messages currently left unmounted
-  // - 0 means "render all the way to the newest" (the common case: reading
-  // recent messages, or nobody's scrolled away from the bottom yet).
-  // handleMessagesScroll keeps this in sync with scroll position: scroll up
-  // into history and whatever's now off-screen below unmounts: scroll back
-  // down and it remounts, exactly mirroring what renderLimit already does
-  // at the other end - and safely, since unmounting content that's already
-  // below the viewport never shifts what's currently on screen (unlike
-  // trimming from above, which would need scroll-offset compensation this
-  // doesn't attempt).
-  const [renderEndOffset, setRenderEndOffset] = useState(0);
-  // Only messages within [start, end) actually get mounted; everything
-  // outside that window stays in `messages` state (so pagination/scroll
-  // math is unaffected) but isn't rendered until scrolling brings it back
-  // into range (see handleMessagesScroll) or a reply-jump explicitly needs
-  // it (see handleJumpToRepliedMessage).
-  const visibleMessages = useMemo(() => {
-    const start = messages.length > renderLimit ? messages.length - renderLimit : 0;
-    const end = renderEndOffset > 0
-      ? Math.max(start + 1, messages.length - renderEndOffset)
-      : messages.length;
-    return messages.slice(start, end);
-  }, [messages, renderLimit, renderEndOffset]);
+  // Every loaded message is always rendered - unlike the old approach here
+  // (manually slicing `messages` to a JS-estimated "window" based on scroll
+  // position, unmounting/remounting rows as that estimate crossed
+  // thresholds), which caused visible stutter: the estimate was only ever
+  // an average height guess, so it frequently mounted/unmounted rows mid-
+  // gesture, changing the ScrollView's content height while a scroll was in
+  // progress. `removeClippedSubviews` below does the equivalent job at the
+  // native view layer instead - real, measured clipping, no JS-estimated
+  // thresholds, no data-array slicing, so there's nothing to desync from
+  // the actual scroll position.
+  const visibleMessages = messages;
+  // Autoplay's "which video is centered" check (handleMessagesScroll below)
+  // used to scan messageLayoutOffsetsRef - which keeps a layout entry for
+  // every message ever mounted, growing unbounded as history is scrolled -
+  // on every single onScroll frame (throttled to 16ms, i.e. up to 60x/sec).
+  // For an all-text conversation that's a full ref scan every frame for
+  // zero benefit, and it gets slower the longer someone scrolls back -
+  // exactly the "scrolling gets janky the further you go" symptom. Narrow
+  // the scan to just the (usually empty, always small) set of video message
+  // ids so there's nothing to do at all in the common no-video case.
+  const videoMessageIdsKey = useMemo(
+    () =>
+      messages
+        .filter((m) => m.type === "video" || m.content_type === "video")
+        .map((m) => String(m.id))
+        .join(","),
+    [messages],
+  );
+  const videoMessageIds = useMemo(
+    () => (videoMessageIdsKey ? videoMessageIdsKey.split(",") : []),
+    [videoMessageIdsKey],
+  );
   const inputRef = useRef(null);
   const messagesScrollRef = useRef(null);
   const lastTapRef = useRef({});
@@ -1466,6 +1509,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // the height actually added, landing the user back where they were
   // instead of still sitting at the very top edge.
   const pendingLoadMoreAdjustRef = useRef(null);
+  // Clears pendingLoadMoreAdjustRef a beat after the last height-growth
+  // event, instead of after just the first one - see onContentSizeChange.
+  const pendingLoadMoreAdjustTimeoutRef = useRef(null);
   const isFocused = useIsFocused();
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
@@ -1513,8 +1559,23 @@ const ConversationScreen = ({ navigation, route }) => {
   } = useChatSocket();
   // { id, content } | null — message currently being edited
   const [editingMessage, setEditingMessage] = useState(null);
-  const [typingUser, setTypingUser] = useState(null);
-  const typingTimeoutRef = useRef(null);
+  // Keyed by user_id so multiple people (or the AI) can show as typing at
+  // once instead of the most recent one clobbering everyone else.
+  const [typingUsers, setTypingUsers] = useState({});
+  const typingTimeoutsRef = useRef({});
+  // A busy conversation can fire onMessageSent/onMessageRead/onMessageDeleted
+  // several times within milliseconds of each other (a burst of replies, or
+  // a group where everyone's "read" receipt lands at once) - each one used
+  // to trigger its own full fetchMessages(true, true) round trip (network
+  // request + JSON.stringify diff + injectTimeHeaders over the whole list),
+  // all synchronous JS-thread work. A burst of those overlapping was enough
+  // to visibly stall the UI thread - including eating scroll gesture frames,
+  // which is what made scrolling feel like it "stuck" - right as new
+  // messages were coming in. Coalescing a burst into one trailing fetch
+  // keeps the eventual-consistency behavior (nothing here skips reconciling
+  // with the server) while cutting that repeated work down to once per lull.
+  const backgroundRefreshTimerRef = useRef(null);
+  const backgroundRefreshWantsScrollRef = useRef(false);
   const [imageViewer, setImageViewer] = useState({ visible: false, uris: [], index: 0 });
   const [videoViewer, setVideoViewer] = useState({ visible: false, uri: null });
   const [reactionPicker, setReactionPicker] = useState({
@@ -1669,14 +1730,19 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const showOptions = () => {
+    const privateConversationId = currentConversationId || conversationId;
+    const openGallery = () =>
+      navigation.navigate("MediaGalleryScreen", { conversationId: privateConversationId });
+
     const options = [
+      t("chatConversation.gallery", "Bộ sưu tập"),
       t("chatConversation.report"),
       t("chatConversation.changeBackground", "Đổi hình nền"),
       t("chatConversation.blockUser"),
       t("common.cancel"),
     ];
-    const destructiveButtonIndex = 2;
-    const cancelButtonIndex = 3;
+    const destructiveButtonIndex = 3;
+    const cancelButtonIndex = 4;
 
     if (!otherUser) {
       // Group conversation (or the singleton public chat, which has no group management).
@@ -1685,6 +1751,10 @@ const ConversationScreen = ({ navigation, route }) => {
 
       if (isPublicChat) {
         Alert.alert(t("chatConversation.optionsTitle"), null, [
+          {
+            text: t("chatConversation.gallery", "Bộ sưu tập"),
+            onPress: () => navigation.navigate("MediaGalleryScreen", { conversationId: targetConversationId }),
+          },
           {
             text: t("chatConversation.report"),
             onPress: () => setReportModalVisible(true),
@@ -1698,6 +1768,10 @@ const ConversationScreen = ({ navigation, route }) => {
         {
           text: t("chatConversation.groupInfo", "Thông tin nhóm"),
           onPress: () => navigation.navigate("GroupInfoScreen", { conversationId: targetConversationId }),
+        },
+        {
+          text: t("chatConversation.gallery", "Bộ sưu tập"),
+          onPress: () => navigation.navigate("MediaGalleryScreen", { conversationId: targetConversationId }),
         },
         {
           text: t("chatConversation.report"),
@@ -1721,13 +1795,18 @@ const ConversationScreen = ({ navigation, route }) => {
           destructiveButtonIndex,
         },
         (buttonIndex) => {
-          if (buttonIndex === 0) setReportModalVisible(true);
-          else if (buttonIndex === 1) setBackgroundModalVisible(true);
-          else if (buttonIndex === 2) confirmBlock();
+          if (buttonIndex === 0) openGallery();
+          else if (buttonIndex === 1) setReportModalVisible(true);
+          else if (buttonIndex === 2) setBackgroundModalVisible(true);
+          else if (buttonIndex === 3) confirmBlock();
         },
       );
     } else {
       Alert.alert(t("chatConversation.optionsTitle"), null, [
+        {
+          text: t("chatConversation.gallery", "Bộ sưu tập"),
+          onPress: openGallery,
+        },
         {
           text: t("chatConversation.report"),
           onPress: () => setReportModalVisible(true),
@@ -1923,8 +2002,6 @@ const ConversationScreen = ({ navigation, route }) => {
       if (isRefresh && !isBackground) {
         setPage(1);
         setHasMore(true);
-        setRenderLimit(RENDER_WINDOW_CHUNK);
-        pageBoundaryIdsRef.current = [];
       }
 
       if (!hasMore && !isRefresh) return;
@@ -1951,9 +2028,6 @@ const ConversationScreen = ({ navigation, route }) => {
       const transformed = injectTimeHeaders(newMessages, t);
 
       if (!isBackground) {
-        if (!isRefresh && newMessages.length > 0) {
-          pageBoundaryIdsRef.current = [newMessages[0].id, ...pageBoundaryIdsRef.current];
-        }
         setMessages((prev) => {
           if (isRefresh || prev.length === 0) {
             return preserveRecentReactions(transformed);
@@ -1962,7 +2036,14 @@ const ConversationScreen = ({ navigation, route }) => {
           const existingMessages = prev.filter(
             (item) => item.type === "message",
           );
-          return injectTimeHeaders([...newMessages, ...existingMessages], t);
+          // The API's pagination is offset-from-the-end (computed off the
+          // conversation's current total message count), so if new messages
+          // arrive between page fetches, that offset shifts and an "older
+          // page" request can come back overlapping what's already loaded -
+          // dedupe by id or the same message renders twice.
+          const existingIds = new Set(existingMessages.map((m) => m.id));
+          const dedupedOlder = newMessages.filter((m) => !existingIds.has(m.id));
+          return injectTimeHeaders([...dedupedOlder, ...existingMessages], t);
         });
         setHasMore(response.data.current_page < response.data.last_page);
         setPage((prev) => (isRefresh ? 2 : prev + 1));
@@ -2014,7 +2095,23 @@ const ConversationScreen = ({ navigation, route }) => {
     const activeId = currentConversationId || conversationId;
     if (isNewConversation || !activeId) return undefined;
 
-    const refresh = () => fetchMessagesRef.current(true, true);
+    // Trailing-debounced background refresh - see backgroundRefreshTimerRef
+    // above. `wantsScroll` from any call within the debounce window wins
+    // (OR'd together), so a burst that includes a "scroll to latest" request
+    // still scrolls once the coalesced fetch actually lands.
+    const scheduleBackgroundRefresh = (wantsScroll) => {
+      backgroundRefreshWantsScrollRef.current = backgroundRefreshWantsScrollRef.current || wantsScroll;
+      clearTimeout(backgroundRefreshTimerRef.current);
+      backgroundRefreshTimerRef.current = setTimeout(() => {
+        const shouldScroll = backgroundRefreshWantsScrollRef.current;
+        backgroundRefreshWantsScrollRef.current = false;
+        fetchMessagesRef.current(true, true).then(() => {
+          if (shouldScroll) scrollToLatestMessageAnimated();
+        });
+      }, 400);
+    };
+
+    const refresh = () => scheduleBackgroundRefresh(false);
 
     // Optimistically append the just-pushed message straight from the socket
     // payload, instead of waiting on the REST refetch below - that fetch is a
@@ -2055,10 +2152,26 @@ const ConversationScreen = ({ navigation, route }) => {
       return true;
     };
 
+    const clearTypingUser = (userId) => {
+      clearTimeout(typingTimeoutsRef.current[userId]);
+      delete typingTimeoutsRef.current[userId];
+      setTypingUsers((prev) => {
+        if (!prev[userId]) return prev;
+        const next = { ...prev };
+        delete next[userId];
+        return next;
+      });
+    };
+
+    const clearAllTypingUsers = () => {
+      Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+      typingTimeoutsRef.current = {};
+      setTypingUsers({});
+    };
+
     const refreshAndScroll = (e) => {
       // A real message arrived, so any "typing..." bubble for this conversation is stale.
-      clearTimeout(typingTimeoutRef.current);
-      setTypingUser(null);
+      clearAllTypingUsers();
 
       const distanceFromBottom =
         (scrollContentHeightRef.current || 0) -
@@ -2070,13 +2183,10 @@ const ConversationScreen = ({ navigation, route }) => {
         if (isNearBottom) scrollToLatestMessageAnimated();
       }
 
-      // Wait for the fetch (and the setMessages it triggers) to actually complete
-      // before scrolling - otherwise this scrolls to the end of the *old* list,
-      // before the new message has been added to state. Also the source of
-      // truth that reconciles the optimistic append above, if any.
-      fetchMessagesRef.current(true, true).then(() => {
-        if (isNearBottom) scrollToLatestMessageAnimated();
-      });
+      // Reconciles the optimistic append above with the server's copy -
+      // debounced (see scheduleBackgroundRefresh) so a burst of messages
+      // coalesces into one fetch instead of one each.
+      scheduleBackgroundRefresh(isNearBottom);
       // The screen is already open, so this new message is immediately read too -
       // dispatch a read receipt so the sender's "seen" status keeps updating live.
       markConversationAsRead(activeId).catch((error) => {
@@ -2089,11 +2199,24 @@ const ConversationScreen = ({ navigation, route }) => {
       refreshOtherUserOnlineStatus();
     };
     const handleTyping = (data) => {
-      setTypingUser({ name: data?.name });
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
-        setTypingUser(null);
-      }, 4000);
+      if (!data?.user_id) return;
+
+      // Yoyo AI has no client to whisper from - its typing state arrives as
+      // a real broadcast (isAi: true) with an explicit start/stop instead of
+      // a whisper that just expires on its own.
+      if (data.isAi && data.starting === false) {
+        clearTypingUser(data.user_id);
+        return;
+      }
+
+      setTypingUsers((prev) => ({
+        ...prev,
+        [data.user_id]: { userId: data.user_id, isAi: !!data.isAi, avatarUrl: data.avatar_url },
+      }));
+      clearTimeout(typingTimeoutsRef.current[data.user_id]);
+      typingTimeoutsRef.current[data.user_id] = setTimeout(() => {
+        clearTypingUser(data.user_id);
+      }, data.isAi ? 20000 : 4000);
     };
     const handleReacted = (data) => {
       if (!data?.message_id) return;
@@ -2102,21 +2225,36 @@ const ConversationScreen = ({ navigation, route }) => {
     const handleRecalled = (data) => {
       if (!data?.message_id) return;
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === data.message_id
-            ? { ...m, is_recalled: true, content: null, file_url: null, metadata: null }
-            : m
-        )
+        prev.map((m) => {
+          if (m.id === data.message_id) {
+            return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
+          }
+          // Any OTHER message quoting this one in its reply preview carries
+          // its own denormalized snapshot of it (m.reply_to) that never gets
+          // touched by the update above - without this it would keep
+          // showing the pre-recall content forever.
+          if (m.reply_to?.id === data.message_id) {
+            return {
+              ...m,
+              reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },
+            };
+          }
+          return m;
+        })
       );
     };
     const handleEdited = (data) => {
       if (!data?.message_id) return;
       setMessages((prev) =>
-        prev.map((m) =>
-          m.id === data.message_id
-            ? { ...m, content: data.content, is_edited: true }
-            : m
-        )
+        prev.map((m) => {
+          if (m.id === data.message_id) {
+            return { ...m, content: data.content, is_edited: true };
+          }
+          if (m.reply_to?.id === data.message_id) {
+            return { ...m, reply_to: { ...m.reply_to, content: data.content } };
+          }
+          return m;
+        })
       );
     };
 
@@ -2136,8 +2274,10 @@ const ConversationScreen = ({ navigation, route }) => {
       unsubscribeReacted();
       unsubscribeRecalled();
       unsubscribeEdited();
-      clearTimeout(typingTimeoutRef.current);
-      // NOTE: Do NOT call setTypingUser(null) here.
+      Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+      clearTimeout(backgroundRefreshTimerRef.current);
+      clearTimeout(pendingLoadMoreAdjustTimeoutRef.current);
+      // NOTE: Do NOT call setTypingUsers({}) here.
       // Calling setState inside a useEffect cleanup causes React to schedule
       // another render → cleanup → setState → infinite "Maximum update depth"
       // loop that also blocks the hardware back button.
@@ -2203,12 +2343,6 @@ const ConversationScreen = ({ navigation, route }) => {
     setHighlightedMessageId(targetId);
     setTimeout(() => {
       setHighlightedMessageId(null);
-      // handleJumpToRepliedMessage may have blown renderLimit open
-      // (messages.length or Infinity) to guarantee the jump target was
-      // mounted - once the highlight itself fades there's no reason to keep
-      // rendering everything for the rest of the session, so drop back to
-      // the normal windowed cap. Harmless no-op if it was never widened.
-      setRenderLimit((prev) => Math.min(prev, RENDER_WINDOW_CHUNK));
     }, 2500);
     return true;
   };
@@ -2238,24 +2372,15 @@ const ConversationScreen = ({ navigation, route }) => {
     if (replyToId == null) return;
     if (scrollToMessageAndHighlight(replyToId)) return;
 
-    // The target might already be loaded in `messages` but simply outside
-    // the current render window (see renderLimit/visibleMessages) - expand
-    // to cover everything already fetched before falling back to actually
-    // fetching more from the server below.
+    // Every loaded message is always rendered (see the removeClippedSubviews
+    // comment near visibleMessages), so if the target is already in
+    // `messages` it's already mounted - the only reason scrollToMessageAndHighlight
+    // just failed is that its layout hasn't been measured yet. Otherwise, it
+    // isn't loaded at all yet and needs fetching further below.
     if (messages.some((m) => String(m.id) === String(replyToId))) {
-      setRenderLimit(messages.length);
       await new Promise((resolve) => setTimeout(resolve, 80));
       if (scrollToMessageAndHighlight(replyToId)) return;
     }
-
-    // About to fetch more pages looking for the target - each fetch's fresh
-    // message count isn't visible in this closure (state updates are async
-    // and this function's `messages` snapshot is already stale by the next
-    // line), so there's no reliable count to grow renderLimit to match.
-    // Just render everything for the rest of this jump; it's a rare,
-    // deliberate action, not the common scrolling path renderLimit exists
-    // for.
-    setRenderLimit(Infinity);
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -2289,20 +2414,18 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     if (!autoplayVideos || !isFocused) return;
     if (activeInlineVideoIdRef.current) return;
+    if (videoMessageIds.length === 0) return;
     // Initialize active inline video when the screen first appears or messages change.
     const centerY = scrollOffsetRef.current + (scrollViewHeightRef.current || 0) / 2;
     let found = null;
-    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
-    for (let i = 0; i < entries.length; i++) {
-      const [key, layout] = entries[i];
+    for (let i = 0; i < videoMessageIds.length; i++) {
+      const key = videoMessageIds[i];
+      const layout = messageLayoutOffsetsRef.current[key];
       if (!layout || typeof layout.y !== "number") continue;
       const top = layout.y;
       const h = layout.height || 0;
       if (centerY >= top && centerY <= top + h) {
-        const msg = messages.find((m) => String(m.id) === String(key));
-        if (msg && (msg.type === "video" || msg.content_type === "video")) {
-          found = key;
-        }
+        found = key;
         break;
       }
     }
@@ -2310,7 +2433,7 @@ const ConversationScreen = ({ navigation, route }) => {
       activeInlineVideoIdRef.current = found;
       setActiveInlineVideoId(found);
     }
-  }, [messages, autoplayVideos, isFocused]);
+  }, [messages, autoplayVideos, isFocused, videoMessageIds]);
 
   const handleMessagesScroll = ({ nativeEvent }) => {
     const offsetY = nativeEvent.contentOffset.y;
@@ -2324,64 +2447,9 @@ const ConversationScreen = ({ navigation, route }) => {
       };
       fetchMessages(false);
     }
-    // Reveal more of what's already loaded as the user scrolls back into
-    // history, independent of whether there's anything left to fetch from
-    // the server - this is a separate, purely local render cap (see
-    // renderLimit above), not the "load more" pagination trigger above it.
-    if (isNearTop) {
-      setRenderLimit((prev) => {
-        if (messages.length <= prev || prev >= MAX_RENDER_LIMIT) return prev;
-
-        // Snap to the next real fetched-page boundary (see
-        // pageBoundaryIdsRef) instead of a flat RENDER_WINDOW_CHUNK guess,
-        // so a mount/unmount always lines up with an actual page the
-        // server sent rather than an arbitrary message count that might
-        // land mid-page. Walked oldest-first; the first boundary not yet
-        // inside the current window is the next one to reveal.
-        for (let i = 0; i < pageBoundaryIdsRef.current.length; i++) {
-          const idx = messages.findIndex(
-            (m) => String(m.id) === String(pageBoundaryIdsRef.current[i])
-          );
-          if (idx === -1) continue;
-          const countFromEnd = messages.length - idx;
-          if (countFromEnd > prev) {
-            return Math.min(countFromEnd, MAX_RENDER_LIMIT);
-          }
-        }
-
-        // No tracked boundary beyond the current window yet (e.g. right
-        // after a page just landed, before its id is findable) - fall back
-        // to the old flat increment so growth never stalls.
-        return Math.min(prev + RENDER_WINDOW_CHUNK, MAX_RENDER_LIMIT);
-      });
-    }
     const distanceFromBottom = scrollContentHeightRef.current - scrollViewHeightRef.current - offsetY;
     const shouldShow = distanceFromBottom > 150;
     setShowScrollButton((prev) => (prev === shouldShow ? prev : shouldShow));
-
-    // Bottom half of the render window (see renderEndOffset above): once
-    // scrolled more than a few screens away from the newest message, unmount
-    // whatever's that far below the current view - it's off-screen either
-    // way, so dropping it doesn't shift anything currently visible. Coming
-    // back within reach (including landing exactly at the bottom, where
-    // this evaluates to 0) remounts it. Within the keep-zone - "reading in
-    // the middle" - nothing here changes.
-    const BOTTOM_KEEP_PX = (scrollViewHeightRef.current || 800) * 1.5;
-    if (distanceFromBottom <= BOTTOM_KEEP_PX) {
-      setRenderEndOffset((prev) => (prev === 0 ? prev : 0));
-    } else {
-      const renderedCount = visibleMessages.length || 1;
-      const avgHeight = (scrollContentHeightRef.current || 1) / renderedCount;
-      const hiddenCount = Math.max(0, Math.floor((distanceFromBottom - BOTTOM_KEEP_PX) / avgHeight));
-      console.log("[ChatWindow] bottom-trim check", {
-        distanceFromBottom: Math.round(distanceFromBottom),
-        BOTTOM_KEEP_PX: Math.round(BOTTOM_KEEP_PX),
-        renderedCount,
-        avgHeight: Math.round(avgHeight),
-        hiddenCount,
-      });
-      setRenderEndOffset((prev) => (prev === hiddenCount ? prev : hiddenCount));
-    }
 
     scrollOffsetRef.current = offsetY;
     if (!autoplayVideos || !isFocused) {
@@ -2392,20 +2460,24 @@ const ConversationScreen = ({ navigation, route }) => {
       return;
     }
 
+    if (videoMessageIds.length === 0) {
+      if (activeInlineVideoIdRef.current) {
+        activeInlineVideoIdRef.current = null;
+        setActiveInlineVideoId(null);
+      }
+      return;
+    }
+
     const centerY = offsetY + (scrollViewHeightRef.current || 0) / 2;
     let found = null;
-    const entries = Object.entries(messageLayoutOffsetsRef.current || {});
-    for (let i = 0; i < entries.length; i++) {
-      const [key, layout] = entries[i];
+    for (let i = 0; i < videoMessageIds.length; i++) {
+      const key = videoMessageIds[i];
+      const layout = messageLayoutOffsetsRef.current[key];
       if (!layout || typeof layout.y !== "number") continue;
       const top = layout.y;
       const h = layout.height || 0;
       if (centerY >= top && centerY <= top + h) {
-        const id = key;
-        const msg = messages.find((m) => String(m.id) === String(id));
-        if (msg && (msg.type === "video" || msg.content_type === "video")) {
-          found = id;
-        }
+        found = key;
         break;
       }
     }
@@ -3381,13 +3453,23 @@ const ConversationScreen = ({ navigation, route }) => {
           text: t("chatConversation.recall", "Thu hồi"),
           style: "destructive",
           onPress: async () => {
-            // Optimistic update
+            // Optimistic update - also patches any other message's reply_to
+            // snapshot of this one, same as the realtime handleRecalled
+            // handler does for everyone else's clients (recall broadcasts
+            // via ->toOthers(), so the sender never gets their own here).
             setMessages((prev) =>
-              prev.map((m) =>
-                m.id === item.id
-                  ? { ...m, is_recalled: true, content: null, file_url: null, metadata: null }
-                  : m
-              )
+              prev.map((m) => {
+                if (m.id === item.id) {
+                  return { ...m, is_recalled: true, content: null, file_url: null, metadata: null };
+                }
+                if (m.reply_to?.id === item.id) {
+                  return {
+                    ...m,
+                    reply_to: { ...m.reply_to, is_recalled: true, content: null, file_url: null },
+                  };
+                }
+                return m;
+              })
             );
             try {
               await recallMessage(item.id);
@@ -3433,11 +3515,14 @@ const ConversationScreen = ({ navigation, route }) => {
 
     setEditingMessage(null);
     setMessage("");
-    // Optimistic update
+    // Optimistic update - also patches any other message's reply_to
+    // snapshot of this one (see handleRecallMessage's comment above for why).
     setMessages((prev) =>
-      prev.map((m) =>
-        m.id === id ? { ...m, content: trimmed, is_edited: true } : m
-      )
+      prev.map((m) => {
+        if (m.id === id) return { ...m, content: trimmed, is_edited: true };
+        if (m.reply_to?.id === id) return { ...m, reply_to: { ...m.reply_to, content: trimmed } };
+        return m;
+      })
     );
 
     try {
@@ -3720,6 +3805,23 @@ const ConversationScreen = ({ navigation, route }) => {
           />
         </View>
       )}
+      {slashSuggestions.length > 0 && (
+        <View
+          style={{
+            position: "absolute",
+            bottom: (chatKeyboardHeight || insets.bottom) + 72,
+            left: 0,
+            right: 0,
+            zIndex: 50,
+          }}
+          pointerEvents="box-none"
+        >
+          <SlashCommandSuggestions
+            suggestions={slashSuggestions}
+            onSelect={onSelectSlashCommand}
+          />
+        </View>
+      )}
       {/* Header */}
       <View
         pointerEvents="box-none"
@@ -3838,19 +3940,27 @@ const ConversationScreen = ({ navigation, route }) => {
                 <FlatList
                   data={seenByModalParticipants || []}
                   keyExtractor={(item) => String(item.id)}
-                  renderItem={({ item }) => (
-                    <View style={styles.seenByParticipantRow}>
-                      <Image source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
-                          {item.profile_name || item.username}
-                        </Text>
-                        <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
-                          {formatTime(item.last_read_at)}
-                        </Text>
+                  renderItem={({ item }) => {
+                    const goToProfile = () => {
+                      setSeenByModalParticipants(null);
+                      navigation.push("ProfileScreen", { username: item.username });
+                    };
+                    return (
+                      <View style={styles.seenByParticipantRow}>
+                        <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
+                          <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
+                          <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
+                            {item.profile_name || item.username}
+                          </Text>
+                          <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
+                            {formatTime(item.last_read_at)}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
-                    </View>
-                  )}
+                    );
+                  }}
                 />
               </View>
             </TouchableWithoutFeedback>
@@ -4003,12 +4113,26 @@ const ConversationScreen = ({ navigation, route }) => {
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
+          // Native-level view recycling (real measured clipping, done by the
+          // platform) instead of the old JS-estimated mount/unmount windowing
+          // this replaces - see the visibleMessages comment above.
+          removeClippedSubviews={Platform.OS === "android"}
           onContentSizeChange={(w, h) => {
             const pending = pendingLoadMoreAdjustRef.current;
             if (pending && h > pending.prevHeight) {
-              pendingLoadMoreAdjustRef.current = null;
+              // The newly-prepended older page's images/avatars/reply
+              // previews often haven't finished laying out yet when this
+              // first fires, so content height keeps growing in several
+              // more steps after the first compensation - a one-shot
+              // correction only accounted for the first step and let every
+              // later step silently push the viewport up past what the user
+              // was reading, all the way to the top. Keep re-anchoring on
+              // every growth step (rolling prevHeight/prevOffsetY) instead
+              // of clearing after the first, until growth actually stops.
               const grownBy = h - pending.prevHeight;
               const targetY = pending.prevOffsetY + grownBy;
+              pending.prevHeight = h;
+              pending.prevOffsetY = targetY;
               requestAnimationFrame(() => {
                 messagesScrollRef.current?.scrollTo({ y: targetY, animated: false });
               });
@@ -4016,6 +4140,10 @@ const ConversationScreen = ({ navigation, route }) => {
                 grownBy: Math.round(grownBy),
                 targetY: Math.round(targetY),
               });
+              clearTimeout(pendingLoadMoreAdjustTimeoutRef.current);
+              pendingLoadMoreAdjustTimeoutRef.current = setTimeout(() => {
+                pendingLoadMoreAdjustRef.current = null;
+              }, 500);
             }
             scrollContentHeightRef.current = h;
             handleMessagesContentSizeChange(w, h);
@@ -4044,20 +4172,54 @@ const ConversationScreen = ({ navigation, route }) => {
             attemptScrollToHighlightRef={attemptScrollToHighlightRef}
             seenParticipants={seenParticipants}
           />
-          {typingUser && (
-            <Text
+          {Object.keys(typingUsers).length > 0 && (
+            <View
               style={{
-                fontSize: 12,
-                fontStyle: "italic",
-                color: theme.subText,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
                 paddingHorizontal: 12,
                 paddingTop: 4,
               }}
             >
-              {currentConversation?.type === "group" && typingUser.name
-                ? `${typingUser.name} ${t("chatConversation.isTyping", "đang nhập...")}`
-                : t("chatConversation.typing", "Đang nhập...")}
-            </Text>
+              <View style={{ flexDirection: "row" }}>
+                {Object.values(typingUsers).slice(0, 3).map((entry, i) => {
+                  const participant = entry.isAi
+                    ? null
+                    : currentConversation?.participants?.find(
+                        (p) => String(p.id) === String(entry.userId)
+                      );
+                  const avatarUrl = entry.isAi ? entry.avatarUrl : participant?.avatar_url;
+                  return (
+                    <FastImage
+                      key={entry.userId}
+                      source={{ uri: avatarUrl }}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: theme.background,
+                        marginLeft: i === 0 ? 0 : -6,
+                        backgroundColor: theme.border,
+                      }}
+                    />
+                  );
+                })}
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: theme.iconBackground,
+                  borderRadius: 12,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                }}
+              >
+                <TypingDots color={theme.subText} />
+              </View>
+            </View>
           )}
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
@@ -4157,12 +4319,14 @@ const ConversationScreen = ({ navigation, route }) => {
               onChangeText={(text) => {
                 latestMessageRef.current = text;
                 messageMentionProps.onChangeText(text);
+                messageSlashProps.onChangeText(text);
                 sendTyping(currentConversationId || conversationId);
               }}
               value={message}
               disabled={!message.trim() || sending}
               isSubmitting={sending}
               allowBroadcastMention={currentConversation?.type === "group"}
+              enableAiCommands
               style={{
                 paddingHorizontal: 12,
                 paddingBottom: isAndroid ? 14 : 0,

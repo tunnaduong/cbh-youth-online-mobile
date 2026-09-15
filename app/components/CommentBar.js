@@ -29,7 +29,7 @@ const RootView = View;
 // that had to redo a full text layout pass on every keystroke and was
 // visibly laggy on mid/low-end Android; coloring here happens natively in
 // the text renderer itself instead.
-function makeMentionParser(allowBroadcastMention) {
+function makeMentionParser(allowBroadcastMention, enableAiCommands) {
   return function mentionParser(input) {
     "worklet";
     // MarkdownTextInput requires `parser` to be a worklet (it checks
@@ -40,6 +40,24 @@ function makeMentionParser(allowBroadcastMention) {
     // boundary and take the runtime down with it.
     try {
       const ranges = [];
+
+      // /ai and /summary only count as the Chat with AI trigger when they're
+      // the very first thing typed (matches the backend's leading-prefix
+      // check) - only highlighted in chat (enableAiCommands), never in forum
+      // comments/posts which also use this same input component.
+      //
+      // MarkdownType (the native highlighter's range type) is a closed union
+      // of specific strings - an arbitrary "ai-command" type is silently
+      // ignored (never colored). "mention-report" is a real type this app
+      // never otherwise uses, so it's repurposed here and restyled blue via
+      // markdownStyle.mentionReport below instead of its red/pink default.
+      if (enableAiCommands) {
+        const commandMatch = input.match(/^\/(ai|summary|help)\b/i);
+        if (commandMatch) {
+          ranges.push({ start: 0, length: commandMatch[0].length, type: "mention-report" });
+        }
+      }
+
       // \w is ASCII-only, so a mention using Vietnamese characters (diacritics
       // like "@Tuấn") never matched here either, staying uncolored while typing.
       // \p{L}/\p{N} match any Unicode letter/digit (English still matches fine,
@@ -89,6 +107,7 @@ const CommentBar = React.forwardRef(
       // its own glass on top of that.
       androidTransparentPill = false,
       allowBroadcastMention = true,
+      enableAiCommands = false,
       // See LiquidButton's forceNoGlass for why: real glass on Android runs
       // a full per-frame shader, too expensive to keep running behind an
       // always-mounted composer. Falls back to the same opaque tinted pill
@@ -100,8 +119,8 @@ const CommentBar = React.forwardRef(
     const { theme, isDarkMode } = useTheme();
     const { t } = useTranslation();
     const mentionParser = React.useMemo(
-      () => makeMentionParser(allowBroadcastMention),
-      [allowBroadcastMention]
+      () => makeMentionParser(allowBroadcastMention, enableAiCommands),
+      [allowBroadcastMention, enableAiCommands]
     );
     const useGlass =
       !!LiquidGlassView && !(isAndroid && androidTransparentPill) && !(isAndroid && forceNoGlass);
@@ -273,6 +292,9 @@ const CommentBar = React.forwardRef(
               parser={mentionParser}
               markdownStyle={{
                 mentionUser: { color: "#22c55e", backgroundColor: "transparent" },
+                // Blue, distinct from the green @mention color, so the AI
+                // trigger reads as a different kind of thing while typing.
+                mentionReport: { color: isDarkMode ? "#93c5fd" : "#1d4ed8", backgroundColor: "transparent", borderRadius: 0 },
               }}
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}

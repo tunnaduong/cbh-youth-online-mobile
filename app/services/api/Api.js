@@ -483,6 +483,12 @@ export const sendMessage = (id, params) => {
   );
 };
 
+export const getConversationMedia = (id, type, page = 1) => {
+  return Api.getRequest(
+    `/v1.0/chat/conversations/${id}/media?type=${type}&page=${page}`
+  );
+};
+
 export const searchChatUsername = (query) => {
   return Api.getRequest("/v1.0/chat/search/users?username=" + query);
 };
@@ -746,13 +752,20 @@ export const getQuizTopics = () => {
 };
 
 export const startQuiz = (count, difficulty, topic, grade, customTopic) => {
-  return Api.postRequest("/v1.0/quiz/start", {
-    count,
-    difficulty,
-    topic,
-    grade,
-    custom_topic: customTopic,
-  });
+  return Api.postRequest(
+    "/v1.0/quiz/start",
+    {
+      count,
+      difficulty,
+      topic,
+      grade,
+      custom_topic: customTopic,
+    },
+    // Explicit (rather than relying on the instance-wide default) since
+    // this waits on AI generation specifically - keeping it scoped here
+    // means it doesn't change the timeout for every other request.
+    { timeout: 30000 }
+  );
 };
 
 export const submitQuiz = (quizSetId, answers) => {

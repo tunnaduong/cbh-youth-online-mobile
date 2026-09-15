@@ -204,8 +204,14 @@ export default function MainScreens({ navigation: stackNavigation }) {
   // iOS 26+ keeps react-navigation's native system tab bar (real native
   // UIGlassEffect with the OS's own scroll-collapse behavior, which
   // react-native-liquid-glassmorphism has no equivalent for). Android and
-  // iOS < 26 use this app's own custom pill-style bar instead.
-  const isCustomTabBar = Platform.OS === "android" || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
+  // iOS < 26 use this app's own custom pill-style bar instead. iPad is
+  // excluded from the native-tab-bar path regardless of OS version - on
+  // iPadOS's regular-width size class, the system tab bar renders as a
+  // plain top bar instead of the floating bottom pill it uses on iPhone
+  // (react-navigation/UIKit's own adaptive behavior for wide layouts), so
+  // iPad always gets this app's own bar to keep it floating at the bottom
+  // like Android and iPhone.
+  const isCustomTabBar = Platform.OS === "android" || Platform.isPad || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
   const [currentRoute, setCurrentRoute] = useState("Home");
   const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;

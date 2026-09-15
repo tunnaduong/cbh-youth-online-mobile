@@ -1,5 +1,6 @@
 import React from "react";
 import { Text, Linking } from "react-native";
+import { useTheme } from "../contexts/ThemeContext";
 
 // Matches http/https URLs. Deliberately simple — no bare www. to avoid
 // false-positives on usernames/filenames that start with "www".
@@ -8,9 +9,18 @@ const URL_REGEX = /https?:\/\/[^\s<>"']+/gi;
 // Matches @mention tokens (Unicode-safe for Vietnamese names).
 const MENTION_REGEX = /@([\p{L}\p{N}\p{M}_.-]+)/gu;
 
+// Only counts as the Chat with AI trigger when it's the very first thing in
+// the message (matches the backend's leading-prefix check in ChatController).
+const AI_COMMAND_REGEX = /^\/(ai|summary|help)\b/i;
+
 export function buildParts(text) {
   // Collect all token matches (mentions + URLs) with their positions.
   const tokens = [];
+
+  const commandMatch = text.match(AI_COMMAND_REGEX);
+  if (commandMatch) {
+    tokens.push({ type: "aicommand", start: 0, end: commandMatch[0].length, value: commandMatch[0] });
+  }
 
   let m;
   MENTION_REGEX.lastIndex = 0;
@@ -58,8 +68,14 @@ export function buildParts(text) {
  *                              is meaningless there and should render as
  *                              plain text instead.
  */
-const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcastMention = true, ...rest }) => {
+const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcastMention = true, enableAiCommands = false, ...rest }) => {
+  const { isDarkMode } = useTheme();
   const text = typeof children === "string" ? children : String(children ?? "");
+  // Message bubbles range from near-white to near-black across own/other
+  // and light/dark theme - a single blue can't have good contrast on all of
+  // them, so pick a lighter blue against the darker bubble backgrounds and a
+  // darker, more saturated blue against the lighter ones.
+  const aiCommandColor = isDarkMode ? "#93c5fd" : "#1d4ed8";
 
   const validSet = React.useMemo(() => {
     const s = new Set();
@@ -70,7 +86,9 @@ const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcast
     return s;
   }, [mentions, allowBroadcastMention]);
 
-  const parts = buildParts(text);
+  const parts = buildParts(text).map((p) =>
+    p.type === "aicommand" && !enableAiCommands ? { type: "text", value: p.value } : p
+  );
   const hasSpecial = parts.some((p) => p.type !== "text");
 
   if (!hasSpecial) {
@@ -90,6 +108,13 @@ const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcast
               style={{ color: "#22c55e", fontWeight: "600" }}
               onPress={isBroadcast ? undefined : () => onMentionPress?.(part.username)}
             >
+              {part.value}
+            </Text>
+          );
+        }
+        if (part.type === "aicommand") {
+          return (
+            <Text key={i} style={{ color: aiCommandColor, fontWeight: "700" }}>
               {part.value}
             </Text>
           );
