@@ -17,7 +17,7 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "774",
+      "buildNumber": "823",
       "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
@@ -104,7 +104,7 @@
       },
       "package": "com.fatties.youth",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 774,
+      "versionCode": 823,
       "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
