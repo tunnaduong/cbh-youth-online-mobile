@@ -47,6 +47,10 @@ import {
   leaveGroupConversation,
   getGroupSeenReceipts,
   getNotificationSettings,
+  getGroupDetails,
+  addGroupDeputy,
+  removeGroupDeputy,
+  removeGroupParticipant,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
@@ -917,14 +921,19 @@ const MessageRow = React.memo(({
         ]}
       >
         {!item.is_myself && isLastInGroup && (
-          <FastImage
-            source={{
-              uri:
-                item.sender?.avatar_url ||
-                "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-            }}
-            style={styles.messageAvatar}
-          />
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => handlersRef.current.openSenderActions?.(item.sender)}
+          >
+            <FastImage
+              source={{
+                uri:
+                  item.sender?.avatar_url ||
+                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+              }}
+              style={styles.messageAvatar}
+            />
+          </TouchableOpacity>
         )}
         <View
           style={{
@@ -1637,8 +1646,14 @@ const ConversationScreen = ({ navigation, route }) => {
     refreshOtherUserOnlineStatus();
   }, [refreshOtherUserOnlineStatus]);
 
-  const confirmBlock = () => {
-    if (!otherUser) return;
+  // `afterBlock` defaults to the original behavior (this screen only ever
+  // had one other person to block: the private chat's own otherUser, after
+  // which the conversation itself is moot, hence navigating back). Blocking
+  // someone spotted via their avatar in a group (see openSenderActions
+  // below) shouldn't leave the group's conversation - it passes its own
+  // afterBlock that just toasts instead.
+  const confirmBlock = (targetUser = otherUser, afterBlock) => {
+    if (!targetUser) return;
     Alert.alert(
       t("chatConversation.blockTitle"),
       t("chatConversation.blockBody"),
@@ -1649,12 +1664,16 @@ const ConversationScreen = ({ navigation, route }) => {
           style: "destructive",
           onPress: async () => {
             try {
-              await blockUser(otherUser.id);
-              Alert.alert(
-                t("chatConversation.blockedTitle"),
-                t("chatConversation.blockedBody"),
-                [{ text: t("common.ok"), onPress: safeGoBack }],
-              );
+              await blockUser(targetUser.id);
+              if (afterBlock) {
+                afterBlock();
+              } else {
+                Alert.alert(
+                  t("chatConversation.blockedTitle"),
+                  t("chatConversation.blockedBody"),
+                  [{ text: t("common.ok"), onPress: safeGoBack }],
+                );
+              }
             } catch (e) {
               const errorMessage =
                 e.response?.data?.message ||
@@ -1666,6 +1685,167 @@ const ConversationScreen = ({ navigation, route }) => {
         },
       ],
     );
+  };
+
+  // Same {text, onPress, style} option list either way - iOS gets a real
+  // native ActionSheet, Android falls back to Alert.alert (see the
+  // Alert.alert = CustomAlert.alert override at the top of App.js, which is
+  // what lets more than the usual 2-3 Android AlertDialog buttons stack
+  // into a real scrollable list here).
+  const showActionList = (title, options) => {
+    if (Platform.OS === "ios") {
+      const cancelButtonIndex = options.findIndex((o) => o.style === "cancel");
+      const destructiveButtonIndex = options
+        .map((o, i) => (o.style === "destructive" ? i : -1))
+        .filter((i) => i >= 0);
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title,
+          options: options.map((o) => o.text),
+          cancelButtonIndex: cancelButtonIndex >= 0 ? cancelButtonIndex : undefined,
+          destructiveButtonIndex,
+        },
+        (index) => options[index]?.onPress?.(),
+      );
+    } else {
+      Alert.alert(title, null, options);
+    }
+  };
+
+  // Messenger-style per-sender action sheet, opened by tapping the small
+  // avatar next to someone else's message bubble (see MessageRow below).
+  // Only ever offers actions this app actually has - no calling, no
+  // Facebook profile link, nothing that isn't a real feature here.
+  const openSenderActions = async (sender) => {
+    // This is a per-USER action sheet - Yoyo AI isn't a real participant
+    // (can't be messaged-as-a-new-conversation from here since it already
+    // has its own dedicated entry point, can't be blocked/managed as a
+    // group member), so tapping its avatar is a no-op.
+    if (!sender?.id || sender.is_ai) return;
+
+    const name = sender.profile_name || sender.username || t("chatConversation.anonymous");
+    const isGroup = currentConversation?.type === "group";
+    const activeId = currentConversationId || conversationId;
+
+    const goToProfile = () => navigation.navigate("ProfileScreen", { username: sender.username });
+
+    const goToMessage = async () => {
+      try {
+        const response = await getConversations();
+        const existing = (response?.data || []).find(
+          (conv) =>
+            conv.type === "private" &&
+            conv.participants?.some((p) => p.id === sender.id),
+        );
+        if (existing) {
+          navigation.push("ConversationScreen", {
+            conversation: existing,
+            conversationId: existing.id,
+          });
+          return;
+        }
+      } catch (e) {
+        // Fall through to starting a new conversation below, same as
+        // ProfileScreen's own Message button.
+      }
+      navigation.push("ConversationScreen", {
+        isNewConversation: true,
+        selectedUser: {
+          id: sender.id,
+          profile_name: sender.profile_name,
+          avatar_url: sender.avatar_url,
+          username: sender.username,
+        },
+      });
+    };
+
+    const options = [];
+
+    // Doesn't apply in a private 1-1 - we're already messaging this exact
+    // person, there's nowhere else to send "Message" to.
+    if (currentConversation?.type !== "private") {
+      options.push({ text: t("follow.message", "Nhắn tin"), onPress: goToMessage });
+    }
+    options.push({ text: t("chatConversation.viewProfile", "Xem trang cá nhân"), onPress: goToProfile });
+
+    if (isGroup && activeId) {
+      try {
+        const res = await getGroupDetails(activeId);
+        const group = res?.data;
+        const participant = group?.participants?.find((p) => p.id === sender.id);
+
+        if (group && participant && participant.role !== "owner") {
+          if (group.is_owner) {
+            options.push(
+              participant.role === "deputy"
+                ? {
+                    text: t("chatConversation.removeDeputyAction", "Gỡ vai trò phó nhóm"),
+                    onPress: () =>
+                      removeGroupDeputy(activeId, sender.id).catch((e) =>
+                        Toast.show({
+                          type: "error",
+                          text1: e.response?.data?.message || t("chatConversation.removeDeputyError", "Không thể gỡ vai trò phó nhóm."),
+                        }),
+                      ),
+                  }
+                : {
+                    text: t("chatConversation.makeDeputyAction", "Chỉ định làm phó nhóm"),
+                    onPress: () =>
+                      addGroupDeputy(activeId, sender.id).catch((e) =>
+                        Toast.show({
+                          type: "error",
+                          text1: e.response?.data?.message || t("chatConversation.makeDeputyError", "Không thể chỉ định phó nhóm."),
+                        }),
+                      ),
+                  },
+            );
+          }
+
+          if (group.permissions?.can?.perm_remove_members) {
+            options.push({
+              text: t("chatConversation.removeMemberAction", "Xóa khỏi nhóm"),
+              style: "destructive",
+              onPress: () => {
+                Alert.alert(
+                  t("chatConversation.removeMemberTitle", "Xóa thành viên?"),
+                  t("chatConversation.removeMemberBody", "{{name}} sẽ bị xóa khỏi nhóm.", { name }),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("chatConversation.removeMemberAction", "Xóa"),
+                      style: "destructive",
+                      onPress: () =>
+                        removeGroupParticipant(activeId, sender.id).catch((e) =>
+                          Toast.show({
+                            type: "error",
+                            text1: e.response?.data?.message || t("chatConversation.removeMemberError", "Không thể xóa thành viên."),
+                          }),
+                        ),
+                    },
+                  ],
+                );
+              },
+            });
+          }
+        }
+      } catch (e) {
+        // Couldn't load group permissions - just skip the management
+        // options rather than failing the whole sheet.
+      }
+    }
+
+    options.push({
+      text: t("chatConversation.blockUser"),
+      style: "destructive",
+      onPress: () =>
+        confirmBlock(sender, () =>
+          Toast.show({ type: "success", text1: t("chatConversation.blockedTitle") }),
+        ),
+    });
+
+    options.push({ text: t("common.cancel"), style: "cancel" });
+
+    showActionList(name, options);
   };
 
   const handleReportSubmit = async (reason) => {
@@ -3777,6 +3957,7 @@ const ConversationScreen = ({ navigation, route }) => {
       lastTapRef,
       focusInput: () => inputRef.current?.focus?.(),
       showSeenBy: setSeenByModalParticipants,
+      openSenderActions,
     };
   });
 
