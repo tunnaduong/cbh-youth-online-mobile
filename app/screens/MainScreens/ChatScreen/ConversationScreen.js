@@ -1466,10 +1466,10 @@ const ConversationScreen = ({ navigation, route }) => {
   // thresholds), which caused visible stutter: the estimate was only ever
   // an average height guess, so it frequently mounted/unmounted rows mid-
   // gesture, changing the ScrollView's content height while a scroll was in
-  // progress. `removeClippedSubviews` below does the equivalent job at the
-  // native view layer instead - real, measured clipping, no JS-estimated
-  // thresholds, no data-array slicing, so there's nothing to desync from
-  // the actual scroll position.
+  // progress. `removeClippedSubviews` used to do the equivalent job at the
+  // native view layer instead (real, measured clipping, no JS-estimated
+  // thresholds), but it's now disabled - see the comment on it below - so
+  // every mounted row really does just stay mounted, full stop.
   const visibleMessages = messages;
   // Autoplay's "which video is centered" check (handleMessagesScroll below)
   // used to scan messageLayoutOffsetsRef - which keeps a layout entry for
@@ -4294,10 +4294,16 @@ const ConversationScreen = ({ navigation, route }) => {
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
-          // Native-level view recycling (real measured clipping, done by the
-          // platform) instead of the old JS-estimated mount/unmount windowing
-          // this replaces - see the visibleMessages comment above.
-          removeClippedSubviews={Platform.OS === "android"}
+          // Was Platform.OS === "android" for native-level view recycling
+          // (real measured clipping instead of the old JS-estimated mount/
+          // unmount windowing - see the visibleMessages comment above), but
+          // Android's implementation detaches clipped views from the native
+          // hierarchy entirely, and image/video views frequently fail to
+          // redraw when scrolled back into view afterward - the thumbnail
+          // just stays blank until something else forces a re-render.
+          // Disabled outright rather than risk that for the sake of the
+          // scroll perf gain.
+          removeClippedSubviews={false}
           onContentSizeChange={(w, h) => {
             const pending = pendingLoadMoreAdjustRef.current;
             if (pending && h > pending.prevHeight) {
