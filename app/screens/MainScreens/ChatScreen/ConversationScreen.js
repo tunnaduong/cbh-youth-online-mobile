@@ -1801,7 +1801,15 @@ const ConversationScreen = ({ navigation, route }) => {
             );
           }
 
-          if (group.permissions?.can?.perm_remove_members) {
+          // Same rule GroupInfoScreen's member list uses to decide whether
+          // to even show a "..." button for this member (canAct there): a
+          // non-owner deputy may only act on plain members, never on a
+          // fellow deputy. perm_remove_members alone doesn't encode that -
+          // without this, a deputy could remove another deputy from here,
+          // which GroupInfoScreen deliberately prevents.
+          const canActOnThisMember = group.is_owner || (group.is_deputy && participant.role === "member");
+
+          if (canActOnThisMember && group.permissions?.can?.perm_remove_members) {
             options.push({
               text: t("chatConversation.removeMemberAction", "Xóa khỏi nhóm"),
               style: "destructive",
