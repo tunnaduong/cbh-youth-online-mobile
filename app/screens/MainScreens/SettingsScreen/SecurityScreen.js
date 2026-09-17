@@ -120,6 +120,7 @@ export default function SecurityScreen({ navigation }) {
 
   const [loading, setLoading] = useState(false);
   const [chatReadReceipts, setChatReadReceipts] = useState(true);
+  const [hideEmail, setHideEmail] = useState(userInfo?.hide_email ?? false);
 
   useEffect(() => {
     getNotificationSettings()
@@ -136,6 +137,21 @@ export default function SecurityScreen({ navigation }) {
       await updateNotificationSettings({ chat_read_receipts: value });
     } catch {
       setChatReadReceipts(!value);
+    }
+  };
+
+  const toggleHideEmail = async (value) => {
+    setHideEmail(value);
+    try {
+      await updateProfile(userInfo.username, { hide_email: value });
+      setUserInfo({ ...userInfo, hide_email: value });
+    } catch {
+      setHideEmail(!value);
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: t("security.hideEmailError", "Không thể cập nhật cài đặt này."),
+      });
     }
   };
 
@@ -425,6 +441,15 @@ export default function SecurityScreen({ navigation }) {
             isSwitch
             value={chatReadReceipts}
             onPress={toggleChatReadReceipts}
+            theme={theme}
+          />
+          <SettingItem
+            icon="mail-outline"
+            title={t('security.hideEmail', "Ẩn email trên trang cá nhân")}
+            description={t('security.hideEmailDesc', "Người khác sẽ không thấy email của bạn khi xem trang cá nhân")}
+            isSwitch
+            value={hideEmail}
+            onPress={toggleHideEmail}
             lastItem
             theme={theme}
           />
