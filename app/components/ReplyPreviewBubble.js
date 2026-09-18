@@ -8,6 +8,14 @@ import { useTranslation } from "react-i18next";
 // replied to) and ReplyComposerBar (above the input, showing what's about to
 // be replied to) - same content, different chrome around it.
 export const getReplyContentDisplay = (replyTo, t) => {
+  if (replyTo?.is_recalled) {
+    return {
+      icon: "arrow-undo-outline",
+      label: t("chatConversation.recalled", "Tin nhắn đã bị thu hồi"),
+      showThumb: false,
+    };
+  }
+
   switch (replyTo?.type) {
     case "image":
       return {

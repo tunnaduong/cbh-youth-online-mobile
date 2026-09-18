@@ -290,7 +290,10 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   const showOptions = () => {
-    const options = [t('home.reportStory'), t('home.blockPerson'), t('settings.cancel')];
+    // Was previously mislabeled t('home.reportStory') ("Report story"),
+    // copy-pasted from the story viewer's report action - this menu reports
+    // the profile's user (reportUser() below), not a story.
+    const options = [t('profile.reportTitle'), t('home.blockPerson'), t('settings.cancel')];
     const destructiveButtonIndex = 1;
     const cancelButtonIndex = 2;
 
@@ -312,7 +315,7 @@ const ProfileScreen = ({ route, navigation }) => {
         t('profile.optionsTitle'),
         null,
         [
-          { text: t('home.reportStory'), onPress: () => setReportModalVisible(true) },
+          { text: t('profile.reportTitle'), onPress: () => setReportModalVisible(true) },
           { text: t('home.blockPerson'), onPress: confirmBlock, style: "destructive" },
           { text: t('settings.cancel'), style: "cancel" },
         ]
@@ -431,7 +434,7 @@ const ProfileScreen = ({ route, navigation }) => {
         });
       }}
     >
-      <Image source={{ uri: user.profile_picture }} style={styles.userAvatar} />
+      <FastImage source={{ uri: user.profile_picture }} style={styles.userAvatar} />
       <View style={styles.userInfo}>
         <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
           {user.profile_name}

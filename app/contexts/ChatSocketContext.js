@@ -74,6 +74,10 @@ export const ChatSocketProvider = ({ children }) => {
       .listenForWhisper("typing", (data) => {
         if (!data || String(data.user_id) === String(userInfo?.id)) return;
         bucket.typing.forEach((cb) => cb(data));
+      })
+      .listen(".ai.typing", (e) => {
+        console.log("[ChatSocket] ai.typing on chat." + id, e);
+        bucket.typing.forEach((cb) => cb({ ...e, isAi: true }));
       });
   }, [userInfo?.id]);
 
@@ -148,12 +152,9 @@ export const ChatSocketProvider = ({ children }) => {
       if (now - lastSent < TYPING_THROTTLE_MS) return;
       typingLastSentRef.current[id] = now;
 
-      channel.whisper("typing", {
-        user_id: userInfo.id,
-        name: userInfo.profile_name || userInfo.username,
-      });
+      channel.whisper("typing", { user_id: userInfo.id });
     },
-    [userInfo?.id, userInfo?.profile_name, userInfo?.username]
+    [userInfo?.id]
   );
 
   useEffect(() => {

@@ -13,6 +13,10 @@ import {
   Platform,
 } from "react-native";
 import FastImage from "../../../components/FastImage";
+import {
+  resolveNotificationTarget,
+  isAnonymousNotificationActor,
+} from "../../../utils/notificationRouting";
 import { Ionicons } from "@expo/vector-icons";
 import CustomLoading from "../../../components/CustomLoading";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
@@ -399,17 +403,8 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
     }
   };
 
-  // Only these notification types mean the actor authored the anonymous
-  // content themselves (their own anonymous reply/comment). Voters/likers
-  // are never anonymous, even when they vote on someone else's anonymous
-  // comment/post, so `data.is_anonymous` must not hide them for those types.
-  const ANONYMOUS_ACTOR_TYPES = ["comment_replied", "topic_commented"];
-
   const renderItem = ({ item }) => {
-    const isAnonymous =
-      (item.actor && item.actor.id === null) ||
-      (ANONYMOUS_ACTOR_TYPES.includes(item.type) &&
-        (item.data?.is_anonymous === true || item.data?.anonymous === true));
+    const isAnonymous = isAnonymousNotificationActor(item.type, item.data, item.actor);
     const isSystemMessage = item.type === "system_message" || (!item.actor && !isAnonymous);
     const userName = isSystemMessage
       ? t('notifications.system')
@@ -429,84 +424,13 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           if (!item.read) {
             handleMarkAsRead(item.id);
           }
-          // Navigate to relevant screen based on notification type
-          // Check if it's a welcome notification
-          if (
-            item.type === "system_message" &&
-            item.data?.message?.includes("Chào mừng")
-          ) {
-            navigation.navigate("PostScreen", { postId: 173336279 });
-          } else if (
-            item.type === "system_message" &&
-            item.data?.url === "/wallet"
-          ) {
-            navigation.navigate("PointWalletScreen");
-          } else if (item.type === "story_reacted") {
-            // Navigate to the Home tab so the story viewer can open the requested story.
-            navigation.navigate("MainScreens", {
-              screen: "Home",
-              params: {
-                openStoryId: item.data?.story_id ?? item.data?.storyId,
-              },
-            });
-          } else if (
-            item.type === "story_replied" ||
-            item.type === "message_reacted" ||
-            item.type === "message_replied"
-          ) {
-            // Navigate to conversation screen
-            if (item.data?.conversation_id) {
-              navigation.navigate("ConversationScreen", {
-                conversationId: item.data.conversation_id,
-                highlightMessageId:
-                  item.data?.reply_message_id ?? item.data?.message_id ?? item.data?.messageId,
-              });
-            } else {
-              navigation.navigate("Chat");
-            }
-          } else if (item.type === "mentioned" && item.data?.conversation_id) {
-            navigation.navigate("ConversationScreen", {
-              conversationId: item.data.conversation_id,
-              highlightMessageId: item.data?.message_id,
-            });
-          } else if (item.data?.comment_id && item.data?.topic_id) {
-            // Any comment-related notification (mention, reply, reaction, etc.)
-            // jumps straight to the comment and highlights it.
-            navigation.navigate("PostScreen", {
-              postId: item.data.topic_id,
-              highlightCommentId: item.data.comment_id,
-            });
-          } else if (item.type === "mentioned" && item.data?.topic_id) {
-            navigation.navigate("PostScreen", { postId: item.data.topic_id });
-          } else if (item.type === "followed") {
-            if (item.actor?.username && !isAnonymous) {
-              navigation.navigate("ProfileScreen", {
-                username: item.actor.username,
-              });
-            }
-          } else if (
-            item.type === "study_material_purchased" ||
-            item.type === "study_material_rated"
-          ) {
-            if (item.data?.material_id) {
-              navigation.navigate("StudyMaterialDetailScreen", {
-                materialId: item.data.material_id,
-              });
-            }
-          } else if (
-            item.type === "payment_received" ||
-            item.raw?.url === "/wallet" ||
-            item.data?.url === "/wallet"
-          ) {
-            navigation.navigate("PointWalletScreen");
-          } else if (item.data?.topic_id) {
-            navigation.navigate("PostScreen", { postId: item.data.topic_id });
-          } else if (item.data?.post_id) {
-            navigation.navigate("PostScreen", { postId: item.data.post_id });
-          } else if (item.actor?.username && !isAnonymous) {
-            navigation.navigate("ProfileScreen", {
-              username: item.actor.username,
-            });
+          const target = resolveNotificationTarget({
+            type: item.type,
+            data: item.data,
+            actor: item.actor,
+          });
+          if (target) {
+            navigation.navigate(target.screen, target.params);
           }
         }}
       >

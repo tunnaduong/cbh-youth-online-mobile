@@ -197,7 +197,26 @@ const LoginScreen = ({ navigation }) => {
               style={styles.scroll}
               contentContainerStyle={[
                 styles.content,
-                { paddingBottom: insets.bottom + 32, paddingTop: insets.top + 60 },
+                {
+                  // flexGrow + centering (instead of a fixed top offset) keeps
+                  // the form vertically balanced across very different screen
+                  // heights - a fixed offset either crowded it near the top
+                  // on tall screens or sat too close to the back button on
+                  // short ones. minHeight guarantees it can still center
+                  // against the full screen even before layout measures the
+                  // scroll view itself; a minimum top padding still clears
+                  // the floating back button, and it stays scrollable when
+                  // the keyboard shrinks the visible area.
+                  flexGrow: 1,
+                  justifyContent: "center",
+                  minHeight: "100%",
+                  // Shifts the vertically-centered form up ~18px (more
+                  // paddingBottom than paddingTop moves the centered content
+                  // up within the same minHeight) without disturbing the
+                  // centering behavior itself.
+                  paddingBottom: insets.bottom + 32 + 18,
+                  paddingTop: Math.max(insets.top + 60, 96) - 18,
+                },
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -228,7 +247,7 @@ const LoginScreen = ({ navigation }) => {
                 <View style={[styles.inputRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
                   <Ionicons
                     name="person-outline"
-                    size={20}
+                    size={21}
                     color={theme.primary}
                     style={styles.inputIcon}
                   />
@@ -250,7 +269,7 @@ const LoginScreen = ({ navigation }) => {
                 <View style={styles.inputRow}>
                   <Ionicons
                     name="lock-closed-outline"
-                    size={20}
+                    size={21}
                     color={theme.primary}
                     style={styles.inputIcon}
                   />
@@ -406,7 +425,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     marginBottom: 12,
@@ -414,15 +433,15 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    height: 52,
+    paddingHorizontal: 18,
+    height: 60,
   },
   inputIcon: {
-    marginRight: 10,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
   },
   forgotPassword: {
     alignSelf: "flex-end",

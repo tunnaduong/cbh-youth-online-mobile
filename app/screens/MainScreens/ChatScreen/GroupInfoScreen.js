@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useContext, useEffect, useRef } from "react";
+import FastImage from "../../../components/FastImage";
 import {
   View,
   Text,
@@ -351,7 +352,74 @@ const GroupInfoScreen = ({ navigation, route }) => {
     }
   };
 
+  // Owners can't just vanish - the group always needs one, and letting the
+  // backend pick randomly (see handlePostParticipantRemoval) is a fine
+  // fallback for removal-by-someone-else, but a voluntary leave is a good
+  // moment to let the owner actually choose their successor instead.
+  const openOwnerMustTransferPicker = () => {
+    const otherParticipants = (group.participants || []).filter((p) => p.id !== userInfo?.id);
+    const options = otherParticipants.map((p) => ({
+      text: p.profile_name || p.username,
+      onPress: () => transferOwnershipThenLeave(p),
+    }));
+    // Transferring is offered, not forced - skipping just leaves normally,
+    // and the backend's existing random-succession fallback
+    // (handlePostParticipantRemoval) picks a new owner exactly as it
+    // already does when an owner is removed by someone else.
+    options.push({
+      text: t("chatConversation.skipTransferOwnership", "Bỏ qua (chọn ngẫu nhiên)"),
+      onPress: () => leaveGroupDirectly(),
+    });
+    options.push({ text: t("common.cancel"), style: "cancel" });
+
+    Alert.alert(
+      t("chatConversation.mustTransferOwnershipTitle", "Chọn trưởng nhóm mới"),
+      t("chatConversation.mustTransferOwnershipBody", "Bạn là trưởng nhóm - hãy chọn một thành viên để chuyển quyền trưởng nhóm trước khi rời nhóm."),
+      options
+    );
+  };
+
+  const leaveGroupDirectly = async () => {
+    setLeaving(true);
+    try {
+      await leaveGroupConversation(conversationId);
+      navigation.pop(2);
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1:
+          error?.response?.data?.message ||
+          t("chatConversation.leaveGroupError", "Không thể rời nhóm."),
+      });
+    } finally {
+      setLeaving(false);
+    }
+  };
+
+  const transferOwnershipThenLeave = async (newOwner) => {
+    setLeaving(true);
+    try {
+      await transferGroupOwnership(conversationId, newOwner.id);
+      await leaveGroupConversation(conversationId);
+      navigation.pop(2);
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1:
+          error?.response?.data?.message ||
+          t("chatConversation.leaveGroupError", "Không thể rời nhóm."),
+      });
+    } finally {
+      setLeaving(false);
+    }
+  };
+
   const confirmLeaveGroup = () => {
+    if (group.is_owner && (group.participants || []).some((p) => p.id !== userInfo?.id)) {
+      openOwnerMustTransferPicker();
+      return;
+    }
+
     Alert.alert(
       t("chatConversation.leaveGroupTitle", "Rời nhóm?"),
       t("chatConversation.leaveGroupBody", "Bạn sẽ không nhận được tin nhắn từ nhóm này nữa."),
@@ -464,10 +532,15 @@ const GroupInfoScreen = ({ navigation, route }) => {
               disabled={uploadingAvatar || !group.permissions?.can?.perm_change_avatar}
             >
               {group.avatar_url ? (
-                <Image source={{ uri: group.avatar_url }} style={styles.groupAvatarImage} />
+                <FastImage source={{ uri: group.avatar_url }} style={styles.groupAvatarImage} />
               ) : (
+                // Matches the web app's fallback (AvatarFallback): a plain
+                // circle with the group name's first letter, instead of a
+                // generic people icon with no way to tell groups apart.
                 <View style={[styles.groupAvatar, { backgroundColor: theme.iconBackground }]}>
-                  <Ionicons name="people" size={34} color={theme.subText} />
+                  <Text style={[styles.groupAvatarInitial, { color: theme.primary }]}>
+                    {group.name?.trim()?.[0]?.toUpperCase() || "?"}
+                  </Text>
                 </View>
               )}
               {group.permissions?.can?.perm_change_avatar && (
@@ -565,21 +638,20 @@ const GroupInfoScreen = ({ navigation, route }) => {
             item.id !== userInfo?.id &&
             item.role !== "owner" &&
             (group.is_owner || (group.is_deputy && item.role === "member"));
+          const goToProfile = () => navigation.push("ProfileScreen", { username: item.username });
           return (
-            <TouchableOpacity
-              style={styles.participantRow}
-              activeOpacity={canAct ? 0.6 : 1}
-              onPress={canAct ? () => openParticipantActions(item) : undefined}
-            >
-              <Image source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
-              <View style={{ flex: 1 }}>
+            <View style={styles.participantRow}>
+              <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
+                <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
                 <Text style={[styles.participantName, { color: theme.text }]} numberOfLines={1}>
                   {item.profile_name || item.username}
                 </Text>
                 <Text style={[styles.participantHandle, { color: theme.subText }]} numberOfLines={1}>
                   @{item.username}
                 </Text>
-              </View>
+              </TouchableOpacity>
               {item.role === "owner" && (
                 <View style={[styles.roleBadge, { backgroundColor: theme.iconBackground }]}>
                   <Text style={[styles.roleBadgeText, { color: theme.primary }]}>
@@ -595,9 +667,14 @@ const GroupInfoScreen = ({ navigation, route }) => {
                 </View>
               )}
               {canAct && (
-                <Ionicons name="chevron-forward" size={18} color={theme.subText} style={{ marginLeft: 6 }} />
+                <TouchableOpacity
+                  onPress={() => openParticipantActions(item)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="chevron-forward" size={18} color={theme.subText} style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
+            </View>
           );
         }}
         ListFooterComponent={
@@ -744,6 +821,10 @@ const styles = StyleSheet.create({
     height: 84,
     borderRadius: 42,
     marginBottom: 12,
+  },
+  groupAvatarInitial: {
+    fontSize: 34,
+    fontWeight: "700",
   },
   avatarEditBadge: {
     position: "absolute",

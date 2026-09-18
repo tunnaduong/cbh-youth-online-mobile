@@ -5,9 +5,11 @@ export const getRequest = (endpoint, params = {}) => {
   return axiosInstance.get(endpoint, params);
 };
 
-// Post Data with optional data
-export const postRequest = (endpoint, params = {}) => {
-  return axiosInstance.post(endpoint, params);
+// Post Data with optional data. `config` lets a caller override axios
+// options (e.g. `timeout`) for a specific request without touching the
+// instance-wide default.
+export const postRequest = (endpoint, params = {}, config = {}) => {
+  return axiosInstance.post(endpoint, params, config);
 };
 
 // Put Data with optional data

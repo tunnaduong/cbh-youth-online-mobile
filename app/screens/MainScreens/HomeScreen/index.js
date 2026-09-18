@@ -1917,7 +1917,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 <View style={{ position: "absolute", top: 8, left: 8 }}>
                   <View style={{ borderRadius: 100, padding: 2, borderWidth: 2, borderColor: theme.primary }}>
                     <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden" }}>
-                      <Image
+                      <FastImage
                         source={{ uri: user.avatarSource.uri }}
                         style={{ width: 24, height: 24 }}
                       />
@@ -2581,7 +2581,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               >
                 {avatarSource && (
                   <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
-                    <Image source={avatarSource} style={{ width: 28, height: 28 }} />
+                    <FastImage source={avatarSource} style={{ width: 28, height: 28 }} />
                   </View>
                 )}
               </Pressable>

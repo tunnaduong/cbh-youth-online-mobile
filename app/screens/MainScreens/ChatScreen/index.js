@@ -29,6 +29,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import CustomLoading from "../../../components/CustomLoading";
+import FastImage from "../../../components/FastImage";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -39,6 +40,16 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const [conversations, setConversations] = useState([]);
   const [onlineStatuses, setOnlineStatuses] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  // `refreshing` also drives the custom CustomLoading overlay and gets set
+  // true for every reload, gesture or not (mount, focus, re-tapping the
+  // active tab). RefreshControl's own `refreshing` prop needs to stay
+  // separate: on iOS, setting it true from something other than an actual
+  // pull gesture makes UIKit reserve the native control's layout space
+  // immediately (no pull distance to size it from), pushing the list down -
+  // exactly the "big empty gap under the search bar" seen only on iOS.
+  // Android doesn't have this quirk. Keeping this true only while a real
+  // pull-to-refresh is in flight avoids it entirely.
+  const [pullRefreshing, setPullRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -105,9 +116,14 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   }, []);
 
   const onRefresh = React.useCallback(() => {
+    // The only place `pullRefreshing` is ever set - this is the actual
+    // native pull-to-refresh gesture, so it's safe for RefreshControl to
+    // reserve/animate its space here.
+    setPullRefreshing(true);
     setRefreshing(true);
     fetchConversations().finally(() => {
       setTimeout(() => {
+        setPullRefreshing(false);
         setRefreshing(false);
       }, 1000);
     });
@@ -337,18 +353,30 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       }}
     >
       <View style={styles.avatarWrapper}>
-        <Image
-          source={
-            getAvatar(item) === "local:chat.jpg"
-              ? require("../../../assets/chat.jpg")
-              : {
-                uri:
-                  getAvatar(item) ||
-                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-              }
-          }
-          style={[styles.avatar, { backgroundColor: theme.border }]}
-        />
+        {item.type === "group" && getAvatar(item) !== "local:chat.jpg" && !getAvatar(item) ? (
+          // Matches the web app's fallback: a plain circle with the group
+          // name's first letter, instead of the generic person-silhouette
+          // placeholder image (which reads as "no avatar for a person", not
+          // "this group has no avatar").
+          <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.iconBackground }]}>
+            <Text style={[styles.avatarFallbackInitial, { color: theme.primary }]}>
+              {getChatName(item)?.trim()?.[0]?.toUpperCase() || "?"}
+            </Text>
+          </View>
+        ) : (
+          <FastImage
+            source={
+              getAvatar(item) === "local:chat.jpg"
+                ? require("../../../assets/chat.jpg")
+                : {
+                  uri:
+                    getAvatar(item) ||
+                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+                }
+            }
+            style={[styles.avatar, { backgroundColor: theme.border }]}
+          />
+        )}
         {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
           <View style={styles.onlineDot} />
         ) : null}
@@ -450,7 +478,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={pullRefreshing}
             onRefresh={onRefresh}
             tintColor="transparent"
             colors={["transparent"]}
@@ -561,6 +589,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+  },
+  avatarFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarFallbackInitial: {
+    fontSize: 20,
+    fontWeight: "700",
   },
   onlineDot: {
     position: "absolute",

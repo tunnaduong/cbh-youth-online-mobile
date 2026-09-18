@@ -8,13 +8,14 @@ import {
   ActivityIndicator,
   Image,
   StyleSheet,
-  SafeAreaView,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
 import FastImage from "./FastImage";
+import UserMultiSelectPicker from "./UserMultiSelectPicker";
 import { getConversations, forwardMessage } from "../services/api/Api";
 
 const GROUP_AVATAR = require("../assets/chat.jpg");
@@ -34,14 +35,19 @@ const getConversationDisplay = (conversation) => {
 const ForwardMessageModal = ({ visible, message, onClose }) => {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  // People found via search who aren't an existing conversation yet - same
+  // "search for someone new to forward to" flow as web's UserMultiSelect.
+  const [selectedUsers, setSelectedUsers] = useState([]);
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
     setSelectedIds([]);
+    setSelectedUsers([]);
     setLoading(true);
     getConversations()
       .then((res) => setConversations(res.data || []))
@@ -60,11 +66,16 @@ const ForwardMessageModal = ({ visible, message, onClose }) => {
     );
   };
 
+  const totalSelected = selectedIds.length + selectedUsers.length;
+
   const handleSend = async () => {
-    if (!message || selectedIds.length === 0 || sending) return;
+    if (!message || totalSelected === 0 || sending) return;
     setSending(true);
     try {
-      await forwardMessage(message.id, { conversationIds: selectedIds });
+      await forwardMessage(message.id, {
+        conversationIds: selectedIds,
+        userIds: selectedUsers.map((u) => u.id),
+      });
       Toast.show({
         type: "success",
         text1: t("chatConversation.forwarded", "Đã chuyển tiếp tin nhắn"),
@@ -82,7 +93,7 @@ const ForwardMessageModal = ({ visible, message, onClose }) => {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["top", "bottom"]}>
         <View style={[styles.header, { borderBottomColor: theme.border }]}>
           <TouchableOpacity onPress={onClose} style={styles.headerButton}>
             <Ionicons name="close" size={24} color={theme.text} />
@@ -93,7 +104,7 @@ const ForwardMessageModal = ({ visible, message, onClose }) => {
           <TouchableOpacity
             onPress={handleSend}
             style={styles.headerButton}
-            disabled={selectedIds.length === 0 || sending}
+            disabled={totalSelected === 0 || sending}
           >
             {sending ? (
               <ActivityIndicator size="small" color={theme.primary} />
@@ -101,16 +112,21 @@ const ForwardMessageModal = ({ visible, message, onClose }) => {
               <Text
                 style={[
                   styles.sendText,
-                  {
-                    color:
-                      selectedIds.length === 0 ? theme.placeholder : theme.primary,
-                  },
+                  { color: totalSelected === 0 ? theme.placeholder : theme.primary },
                 ]}
               >
                 {t("chatConversation.send", "Gửi")}
               </Text>
             )}
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchWrapper}>
+          <UserMultiSelectPicker
+            selected={selectedUsers}
+            onChange={setSelectedUsers}
+            placeholder={t("chatConversation.searchToForward", "Tìm người để chuyển tiếp...")}
+          />
         </View>
 
         {loading ? (
@@ -121,6 +137,8 @@ const ForwardMessageModal = ({ visible, message, onClose }) => {
           <FlatList
             data={conversations}
             keyExtractor={(item) => String(item.id)}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
             renderItem={({ item }) => {
               const { name, avatarUrl, isGroup } = getConversationDisplay(item);
               const selected = selectedIds.includes(item.id);
@@ -170,6 +188,7 @@ const styles = StyleSheet.create({
   headerButton: { minWidth: 44 },
   headerTitle: { fontSize: 17, fontWeight: "600" },
   sendText: { fontSize: 16, fontWeight: "600", textAlign: "right" },
+  searchWrapper: { paddingTop: 12 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   row: {
     flexDirection: "row",

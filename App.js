@@ -14,12 +14,14 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
-import i18n from "./app/i18n";
+import i18n, { hasChosenLanguage } from "./app/i18n";
 
 if (Platform.OS === "android") {
   Alert.alert = CustomAlert.alert;
 }
 import { useStatusBar } from "./app/contexts/StatusBarContext";
+import LanguageSelectScreen from "./app/screens/LanguageSelectScreen";
+import FirstLaunchSettingsScreen from "./app/screens/FirstLaunchSettingsScreen";
 import LoginScreen from "./app/screens/LoginScreen";
 import SignupScreen from "./app/screens/SignupScreen";
 import ForgotPasswordScreen from "./app/screens/ForgotPasswordScreen";
@@ -63,6 +65,7 @@ import ConversationScreen from "./app/screens/MainScreens/ChatScreen/Conversatio
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
 import CreateGroupScreen from "./app/screens/MainScreens/ChatScreen/CreateGroupScreen";
 import GroupInfoScreen from "./app/screens/MainScreens/ChatScreen/GroupInfoScreen";
+import MediaGalleryScreen from "./app/screens/MainScreens/ChatScreen/MediaGalleryScreen";
 import AddGroupMembersScreen from "./app/screens/MainScreens/ChatScreen/AddGroupMembersScreen";
 import ExploreScreen from "./app/screens/MainScreens/ExploreScreen";
 import StudyMaterialScreen from "./app/screens/MainScreens/ExploreScreen/StudyMaterialScreen";
@@ -306,6 +309,12 @@ const App = () => {
     const handleInitialized = () => setI18nReady(true);
     i18n.on("initialized", handleInitialized);
     return () => i18n.off("initialized", handleInitialized);
+  }, []);
+  // null while unknown, then true/false - decides whether a signed-out user
+  // lands on LanguageSelectScreen (never picked one) or straight on Welcome.
+  const [languageChosen, setLanguageChosen] = useState(null);
+  useEffect(() => {
+    hasChosenLanguage().then(setLanguageChosen);
   }, []);
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
@@ -553,7 +562,7 @@ const App = () => {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (isLoading) {
+  if (isLoading || languageChosen === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
         <LottieView
@@ -584,6 +593,7 @@ const App = () => {
         onStateChange={handleNavigationStateChange}
       >
         <Stack.Navigator
+          initialRouteName={!isLoggedIn && !languageChosen ? "LanguageSelect" : undefined}
           screenOptions={{
             headerStyle: {
               backgroundColor: theme.headerBackground,
@@ -851,6 +861,11 @@ const App = () => {
                 options={{ headerShown: false }}
               />
               <Stack.Screen
+                name="MediaGalleryScreen"
+                component={MediaGalleryScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
                 name="AddGroupMembersScreen"
                 options={{
                   headerShown: false,
@@ -920,6 +935,24 @@ const App = () => {
             </>
           ) : (
             <>
+              <Stack.Screen
+                name="LanguageSelect"
+                options={{
+                  title: "Chọn ngôn ngữ",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={LanguageSelectScreen}
+              />
+              <Stack.Screen
+                name="FirstLaunchSettings"
+                options={{
+                  title: "Tuỳ chỉnh trải nghiệm",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={FirstLaunchSettingsScreen}
+              />
               <Stack.Screen
                 name="Welcome"
                 options={{
