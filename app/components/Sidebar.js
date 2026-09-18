@@ -18,6 +18,7 @@ import { useTheme } from "../contexts/ThemeContext";
 import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
 import FastImage from "./FastImage";
+import AccountSwitcher from "./AccountSwitcher";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
@@ -257,6 +258,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               <Text style={{ color: theme.subText }}>@{username}</Text>
             </View>
           </TouchableOpacity>
+          <AccountSwitcher />
           <List.Section>
             <List.Subheader
               style={{ color: theme.primary, fontWeight: "bold" }}

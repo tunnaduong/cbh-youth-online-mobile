@@ -24,6 +24,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
+import { SavedAccountList } from "../../components/AccountSwitcher";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
 
 const LoginScreen = ({ navigation }) => {
@@ -235,6 +236,15 @@ const LoginScreen = ({ navigation }) => {
                   {t("auth.welcome")}
                 </Text>
               </View>
+
+              <SavedAccountList
+                showAdd={false}
+                title={t("sidebar.continueAs")}
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.surface, borderColor: theme.border, paddingVertical: 10, marginBottom: 16 },
+                ]}
+              />
 
               {/* Credentials card */}
               <View
