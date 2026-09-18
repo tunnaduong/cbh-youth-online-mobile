@@ -339,7 +339,13 @@
     "reportIssue": "Báo lỗi / Góp ý",
     "privacy": "Quyền riêng tư",
     "terms": "Điều khoản sử dụng",
-    "featureInDevelopment": "Tính năng đang được phát triển"
+    "featureInDevelopment": "Tính năng đang được phát triển",
+    "switchAccount": "Chuyển tài khoản",
+    "addAccount": "Thêm tài khoản",
+    "removeAccount": "Gỡ khỏi thiết bị này",
+    "removeAccountConfirm": "Gỡ @{{username}} khỏi thiết bị này? Bạn sẽ cần đăng nhập lại để dùng tài khoản này.",
+    "sessionExpired": "Phiên đăng nhập của tài khoản này đã hết hạn, vui lòng đăng nhập lại.",
+    "continueAs": "Tiếp tục với tài khoản đã đăng nhập"
   },
   "post": {
     "details": "Chi tiết bài viết",

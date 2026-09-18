@@ -7,6 +7,40 @@ import {
   getBlockedUsers,
 } from "../services/api/Api";
 import { storage } from "../global/storage";
+import { DevSettings } from "react-native";
+import * as Updates from "expo-updates";
+import {
+  getSavedAccounts,
+  upsertSavedAccount,
+  removeSavedAccount,
+} from "../utils/savedAccounts";
+
+// Wipes per-account MMKV caches (chat, feed...) while keeping per-DEVICE
+// display preferences - theme/autoplay/liquid-glass/tab-labels should survive
+// a sign-out or account switch exactly like they survive an app update.
+const clearSessionCaches = () => {
+  const preserved = {};
+  if (storage.contains("theme")) preserved.theme = storage.getString("theme");
+  if (storage.contains("hideTabLabels")) preserved.hideTabLabels = storage.getBoolean("hideTabLabels");
+  if (storage.contains("autoplayVideos")) preserved.autoplayVideos = storage.getBoolean("autoplayVideos");
+  if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
+
+  storage.clearAll();
+
+  for (const [key, value] of Object.entries(preserved)) {
+    if (value !== undefined) storage.set(key, value);
+  }
+};
+
+// Cold-restart the JS app so every context (chat socket, push registration,
+// feed caches, navigation) boots fresh for the newly active account.
+const reloadApp = async () => {
+  try {
+    await Updates.reloadAsync();
+  } catch (e) {
+    DevSettings.reload();
+  }
+};
 
 export const AuthContext = createContext();
 
@@ -176,14 +210,8 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signOut = async () => {
-    // Call logout API first (while token is still available) then clear local state
-    try {
-      await logoutRequest();
-    } catch (e) {
-      console.error("Logout API call failed (proceeding with local sign-out):", e.message);
-    }
-
+  // Clears the active session locally (the account stays in saved accounts).
+  const clearLocalSession = async () => {
     await AsyncStorage.removeItem("auth_token");
     await AsyncStorage.removeItem("user_info");
 
@@ -194,25 +222,66 @@ export const AuthProvider = ({ children }) => {
     setEmailVerifiedAt(null);
     setBlockedUsers([]);
 
-    // clearAll() wipes every MMKV key, but theme/autoplay/liquid-glass/tab-
-    // label/language are per-DEVICE display preferences, not per-account
-    // session data - they should survive a sign-out exactly like they
-    // survive an app update, so whoever logs in next (or the same person
-    // again) doesn't have them silently reset back to defaults. Only
-    // per-account/session caches (chat message cache, feed cache, etc.)
-    // are meant to be wiped here.
-    const preserved = {};
-    if (storage.contains("theme")) preserved.theme = storage.getString("theme");
-    if (storage.contains("hideTabLabels")) preserved.hideTabLabels = storage.getBoolean("hideTabLabels");
-    if (storage.contains("autoplayVideos")) preserved.autoplayVideos = storage.getBoolean("autoplayVideos");
-    if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
-
-    storage.clearAll();
-
-    for (const [key, value] of Object.entries(preserved)) {
-      if (value !== undefined) storage.set(key, value);
-    }
+    clearSessionCaches();
   };
+
+  const signOut = async () => {
+    // Call logout API first (while token is still available) then clear local state
+    try {
+      await logoutRequest();
+    } catch (e) {
+      console.error("Logout API call failed (proceeding with local sign-out):", e.message);
+    }
+
+    // Forget this account on the device; fall back to another signed-in one if any
+    const remaining = userInfo?.id ? await removeSavedAccount(userInfo.id) : await getSavedAccounts();
+    for (const account of remaining) {
+      try {
+        await switchAccount(account);
+        return;
+      } catch {
+        // That session was revoked too - try the next one
+      }
+    }
+
+    await clearLocalSession();
+  };
+
+  // Throws "SESSION_EXPIRED" (and forgets the account) if its token was revoked.
+  const switchAccount = async (account) => {
+    const previousToken = await AsyncStorage.getItem("auth_token");
+    await AsyncStorage.setItem("auth_token", account.token);
+    let freshUser = account.user;
+    try {
+      const response = await getCurrentUser();
+      if (response?.data) freshUser = response.data;
+    } catch (e) {
+      if (e?.response?.status === 401) {
+        await removeSavedAccount(account.user.id);
+        if (previousToken) await AsyncStorage.setItem("auth_token", previousToken);
+        else await AsyncStorage.removeItem("auth_token");
+        throw new Error("SESSION_EXPIRED");
+      }
+      // Offline etc. - switch anyway with the cached snapshot
+    }
+    await AsyncStorage.setItem("user_info", JSON.stringify(freshUser));
+    await AsyncStorage.removeItem("blocked_users");
+    clearSessionCaches();
+    await reloadApp();
+  };
+
+  // Keeps the current account signed in (saved) and shows the login screens.
+  const addAccount = async () => {
+    await clearLocalSession();
+  };
+
+  // Remember every signed-in account on this device for the account switcher
+  useEffect(() => {
+    if (!userInfo?.id) return;
+    AsyncStorage.getItem("auth_token").then((token) => {
+      if (token) upsertSavedAccount(token, userInfo);
+    });
+  }, [userInfo?.id, userInfo?.username, userInfo?.profile_name]);
 
   const blockUser = async (userToBlock) => {
     // userToBlock should be the username (string)
@@ -294,6 +363,8 @@ export const AuthProvider = ({ children }) => {
         refreshUserInfo,
         signIn,
         signOut,
+        switchAccount,
+        addAccount,
         blockedUsers,
         blockUserInContext: blockUser,
         unblockUserInContext: unblockUser,
