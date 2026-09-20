@@ -847,8 +847,22 @@ const PostScreen = ({ route, navigation }) => {
           );
         }
       }
+      // AI moderation may hold the comment for a human reviewer. It stays
+      // visible to its author, so say why it isn't showing for anyone else.
+      if (resp.data?.moderation?.status === "pending") {
+        Alert.alert(
+          t("post.pendingModerationTitle"),
+          resp.data.moderation.message || t("post.pendingModerationBody"),
+        );
+      }
     } catch (error) {
       console.error("Error submitting comment:", error);
+      // A 422 from AI moderation carries the rejection reason - surfacing it
+      // matters here, since the comment silently never appears otherwise.
+      Alert.alert(
+        t("profile.errorTitle"),
+        error.response?.data?.message || t("post.commentError"),
+      );
     } finally {
       setIsSubmitting(false);
     }

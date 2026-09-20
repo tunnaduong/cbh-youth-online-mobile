@@ -313,6 +313,8 @@
     "cannotPost": "Chưa thể đăng bài viết",
     "missingFields": "Vui lòng nhập tiêu đề và nội dung bài viết.",
     "postedSuccess": "Đăng bài viết thành công",
+    "pendingModeration": "Bài viết đang chờ kiểm duyệt",
+    "pendingModerationDesc": "Bài viết của bạn sẽ hiển thị sau khi được duyệt.",
     "reloading": "Đang tải lại trang...",
     "tryAgainLater": "Vui lòng thử lại sau."
   },
@@ -384,7 +386,10 @@
     "tapToPlayVideo": "Nhấn để phát video",
     "anonymousUser": "Người dùng ẩn danh",
     "anonymous": "Ẩn danh",
-    "reply": "Trả lời"
+    "reply": "Trả lời",
+    "pendingModerationTitle": "Bình luận đang chờ kiểm duyệt",
+    "pendingModerationBody": "Bình luận của bạn sẽ hiển thị với mọi người sau khi được duyệt.",
+    "commentError": "Không thể gửi bình luận. Vui lòng thử lại."
   },
   "savedPosts": {
     "title": "Bài viết đã lưu",
