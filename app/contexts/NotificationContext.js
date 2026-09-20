@@ -21,8 +21,12 @@ export const NotificationProvider = ({ children }) => {
   const { isLoggedIn } = useContext(AuthContext);
   const [expoPushToken, setExpoPushToken] = useState(null);
   const [isRegistering, setIsRegistering] = useState(false);
-  const notificationListeners = useRef([]);
   const registeredTokenRef = useRef(null);
+  // Guards against handling the same tap twice: on a cold start the launching
+  // tap arrives BOTH from getLastNotificationResponseAsync() and (on some
+  // platforms/timings) from the live response listener, which would otherwise
+  // push the same screen twice.
+  const handledResponseIdRef = useRef(null);
 
   // Register push token when user logs in
   useEffect(() => {
@@ -37,28 +41,33 @@ export const NotificationProvider = ({ children }) => {
         setExpoPushToken(null);
       }
     }
-
-    return () => {
-      // Cleanup listeners
-      if (notificationListeners.current.length > 0) {
-        removeNotificationListeners(notificationListeners.current);
-        notificationListeners.current = [];
-      }
-    };
   }, [isLoggedIn, expoPushToken, isRegistering]);
 
-  // Set up notification listeners
+  // Set up notification listeners.
+  //
+  // Mounted exactly once, and deliberately NOT owned by the registration
+  // effect above. That effect re-runs on every expoPushToken/isRegistering
+  // change (both flip within the first moments of startup, as the token is
+  // fetched and registered), and it used to tear these subscriptions down in
+  // its cleanup - so seconds after launch the response listener was gone and
+  // never re-created, since this effect didn't re-run. Tapping a notification
+  // while the app was already running then did nothing at all; only cold
+  // starts still worked, because those are routed by the one-shot
+  // getLastNotificationResponseAsync() poll inside setupNotificationListeners
+  // rather than by the live listener.
+  //
+  // The handlers below must stay free of component state for this to be safe:
+  // with an empty dep array they capture the first render's closures.
   useEffect(() => {
     const subscriptions = setupNotificationListeners(
       handleNotificationReceived,
       handleNotificationTapped
     );
-    notificationListeners.current = subscriptions;
 
     return () => {
       removeNotificationListeners(subscriptions);
     };
-  }, [isLoggedIn]);
+  }, []);
 
   // Update badge count periodically when logged in
   useEffect(() => {
@@ -149,6 +158,13 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const handleNotificationTapped = (response) => {
+    const responseId = response?.notification?.request?.identifier;
+    if (responseId && handledResponseIdRef.current === responseId) {
+      console.log('[Push] Ignoring already-handled notification tap:', responseId);
+      return;
+    }
+    handledResponseIdRef.current = responseId ?? null;
+
     const data = response?.notification?.request?.content?.data;
     // Left in deliberately (not gated on __DEV__): this is the only way to
     // see the actual payload a real push notification arrived with, since
