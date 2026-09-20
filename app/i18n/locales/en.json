@@ -324,6 +324,8 @@
     "cannotPost": "Cannot post yet",
     "missingFields": "Please enter the title and content of the post.",
     "postedSuccess": "Post published successfully",
+    "pendingModeration": "Post is awaiting review",
+    "pendingModerationDesc": "Your post will appear once it has been approved.",
     "reloading": "Reloading page...",
     "tryAgainLater": "Please try again later."
   },
@@ -395,7 +397,10 @@
     "tapToPlayVideo": "Tap to play video",
     "anonymousUser": "Anonymous user",
     "anonymous": "Anonymous",
-    "reply": "Reply"
+    "reply": "Reply",
+    "pendingModerationTitle": "Comment is awaiting review",
+    "pendingModerationBody": "Your comment will be visible to everyone once it has been approved.",
+    "commentError": "Could not post the comment. Please try again."
   },
   "savedPosts": {
     "title": "Saved posts",
