@@ -48,7 +48,7 @@ const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={[styles.pickerModal, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+        <TouchableOpacity activeOpacity={1} style={[styles.pickerModal, { backgroundColor: theme.cardBackground, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
           <Text style={[styles.pickerTitle, { color: theme.text }]}>{title}</Text>
           <View style={[styles.pickerSearchBar, { backgroundColor: theme.iconBackground }]}>
             <Ionicons name="search" size={16} color={theme.subText} />
@@ -134,7 +134,7 @@ function UniversityCard({ uni, theme, isDarkMode, t }) {
   const visibleMajors = expanded ? majors : majors.slice(0, 4);
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+    <View style={[styles.card, { backgroundColor: theme.cardBackground, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
       <View style={styles.cardHeader}>
         <View style={[styles.cardIconWrap, { backgroundColor: theme.primary + "1A" }]}>
           <Ionicons name="school-outline" size={18} color={theme.primary} />
@@ -599,7 +599,7 @@ const UniversityScreen = ({ navigation }) => {
           {generalInfo.length > 0 && (
             <View style={{ marginTop: 28 }}>
               <Text style={[styles.generalInfoTitle, { color: theme.text }]}>{t("universities.generalInfoTitle", "Quy chế tuyển sinh đại học")}</Text>
-              <View style={[styles.generalInfoBox, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+              <View style={[styles.generalInfoBox, { backgroundColor: theme.cardBackground, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
                 {generalInfo.map((item, i) => (
                   <TouchableOpacity
                     key={i}
@@ -730,6 +730,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
+    // A hairline border carries the card edge in dark mode, where the shadow
+    // below is switched off (a black shadow on a dark page shows nothing).
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -756,6 +759,7 @@ const styles = StyleSheet.create({
   generalInfoBox: {
     borderRadius: 16,
     overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -776,6 +780,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     maxHeight: "75%",
+    borderWidth: StyleSheet.hairlineWidth,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,

@@ -376,7 +376,7 @@ const QuizScreen = ({ navigation, route }) => {
                 {t("quiz.subtitle", "Trả lời câu hỏi trắc nghiệm do AI tạo ra, thử thách kiến thức của bạn.")}
               </Text>
 
-              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
+              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.cardLabel, { color: theme.text }]}>
                   {t("quiz.questionCount", "Số câu hỏi")}
                 </Text>
@@ -594,7 +594,7 @@ const QuizScreen = ({ navigation, route }) => {
                 />
               </View>
 
-              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
+              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.questionIndex, { color: theme.subText }]}>
                   {t("quiz.questionIndex", "Câu {{current}}/{{total}}", {
                     current: currentIndex + 1,
@@ -722,7 +722,7 @@ const QuizScreen = ({ navigation, route }) => {
 
           {phase === "result" && result && quiz && (
             <View>
-              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
+              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.resultLabel, { color: theme.subText }]}>{t("quiz.result", "Kết quả")}</Text>
                 <Text style={[styles.resultScore, { color: theme.primary }]}>
                   {result.score}/{result.total}
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: "700" },
   subtitle: { fontSize: 13, marginBottom: 16 },
-  card: { borderRadius: 16, padding: 16, marginBottom: 20 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: StyleSheet.hairlineWidth },
   cardLabel: { fontSize: 14, fontWeight: "700", marginBottom: 10 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
