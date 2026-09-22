@@ -43,6 +43,10 @@ import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
 const avatarUrl = (u) =>
   u.avatar_url || `https://api.chuyenbienhoa.com/v1.0/users/${u.username}/avatar`;
 
+// Same destructive red the Settings screen's danger zone uses.
+const DANGER = "#FF3B30";
+const DANGER_TINT = "rgba(255,59,48,0.12)";
+
 const PERMISSION_FIELDS = [
   { key: "perm_change_name", labelKey: "chatConversation.permChangeName", labelDefault: "Đổi tên nhóm", options: ["owner", "deputy", "member"] },
   { key: "perm_change_avatar", labelKey: "chatConversation.permChangeAvatar", labelDefault: "Đổi ảnh đại diện nhóm", options: ["owner", "deputy", "member"] },
@@ -569,78 +573,101 @@ const GroupInfoScreen = ({ navigation, route }) => {
               {t("chatConversation.membersCount", "{{count}} thành viên", { count: group.participants.length })}
             </Text>
 
-            <TouchableOpacity
-              style={[styles.actionRow, { borderColor: theme.border }]}
-              onPress={() => setBackgroundModalVisible(true)}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
-                <Ionicons name="image-outline" size={16} color="#fff" />
-              </View>
-              <Text style={[styles.actionText, { color: theme.text }]}>
-                {t("chatConversation.changeBackground", "Đổi hình nền")}
-              </Text>
-            </TouchableOpacity>
+            {/* One grouped card with hairline-separated rows, matching the
+                Settings/Security screens, instead of a stack of separately
+                outlined boxes. */}
+            {(() => {
+              const actions = [
+                {
+                  key: "background",
+                  icon: "image-outline",
+                  label: t("chatConversation.changeBackground", "Đổi hình nền"),
+                  onPress: () => setBackgroundModalVisible(true),
+                },
+                group.permissions?.can?.perm_invite_members && {
+                  key: "add",
+                  icon: "person-add-outline",
+                  label: t("chatConversation.addMembers", "Thêm thành viên"),
+                  onPress: () => navigation.navigate("AddGroupMembersScreen", { conversationId }),
+                },
+                group.permissions?.can?.perm_share_invite_link && {
+                  key: "invite",
+                  icon: "link-outline",
+                  label: t("chatConversation.inviteViaLink", "Mời qua liên kết"),
+                  onPress: handleInvite,
+                  loading: invitingLoading,
+                },
+                group.is_owner && {
+                  key: "manage",
+                  icon: "shield-checkmark-outline",
+                  label: t("chatConversation.manageGroup", "Quản lý nhóm"),
+                  onPress: () => setPermissionsVisible(true),
+                },
+              ].filter(Boolean);
 
-            {group.permissions?.can?.perm_invite_members && (
-              <TouchableOpacity
-                style={[styles.actionRow, { borderColor: theme.border }]}
-                onPress={() => navigation.navigate("AddGroupMembersScreen", { conversationId })}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
-                  <Ionicons name="person-add-outline" size={16} color="#fff" />
+              return (
+                <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  {actions.map((action, index) => (
+                    <TouchableOpacity
+                      key={action.key}
+                      style={[
+                        styles.actionRow,
+                        index < actions.length - 1 && {
+                          borderBottomWidth: StyleSheet.hairlineWidth,
+                          borderBottomColor: theme.border,
+                        },
+                      ]}
+                      onPress={action.onPress}
+                      disabled={action.loading}
+                      activeOpacity={0.6}
+                    >
+                      <View style={[styles.actionIcon, { backgroundColor: theme.iconBackground }]}>
+                        {action.loading ? (
+                          <ActivityIndicator size="small" color={theme.primary} />
+                        ) : (
+                          <Ionicons name={action.icon} size={18} color={theme.primary} />
+                        )}
+                      </View>
+                      <Text style={[styles.actionText, { color: theme.text }]}>{action.label}</Text>
+                      <Ionicons name="chevron-forward" size={18} color={theme.subText} />
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                <Text style={[styles.actionText, { color: theme.text }]}>
-                  {t("chatConversation.addMembers", "Thêm thành viên")}
-                </Text>
-              </TouchableOpacity>
-            )}
+              );
+            })()}
 
-            {group.permissions?.can?.perm_share_invite_link && (
-              <TouchableOpacity
-                style={[styles.actionRow, { borderColor: theme.border }]}
-                onPress={handleInvite}
-                disabled={invitingLoading}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
-                  {invitingLoading ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Ionicons name="link-outline" size={16} color="#fff" />
-                  )}
-                </View>
-                <Text style={[styles.actionText, { color: theme.text }]}>
-                  {t("chatConversation.inviteViaLink", "Mời qua liên kết")}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {group.is_owner && (
-              <TouchableOpacity
-                style={[styles.actionRow, { borderColor: theme.border }]}
-                onPress={() => setPermissionsVisible(true)}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: theme.primary }]}>
-                  <Ionicons name="shield-checkmark-outline" size={16} color="#fff" />
-                </View>
-                <Text style={[styles.actionText, { color: theme.text }]}>
-                  {t("chatConversation.manageGroup", "Quản lý nhóm")}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            <Text style={[styles.sectionLabel, { color: theme.subText }]}>
+            <Text style={[styles.sectionLabel, { color: theme.primary }]}>
               {t("chatConversation.members", "Thành viên")}
             </Text>
           </View>
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const canAct =
             item.id !== userInfo?.id &&
             item.role !== "owner" &&
             (group.is_owner || (group.is_deputy && item.role === "member"));
           const goToProfile = () => navigation.push("ProfileScreen", { username: item.username });
+          // The member list is the FlatList's data, so the "one card" look is
+          // assembled per row: side borders throughout, rounded caps on the
+          // first/last, hairline separators in between.
+          const isFirst = index === 0;
+          const isLast = index === group.participants.length - 1;
           return (
-            <View style={styles.participantRow}>
+            <View
+              style={[
+                styles.participantRow,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  borderTopWidth: isFirst ? StyleSheet.hairlineWidth : 0,
+                  borderBottomWidth: StyleSheet.hairlineWidth,
+                  borderTopLeftRadius: isFirst ? 16 : 0,
+                  borderTopRightRadius: isFirst ? 16 : 0,
+                  borderBottomLeftRadius: isLast ? 16 : 0,
+                  borderBottomRightRadius: isLast ? 16 : 0,
+                },
+              ]}
+            >
               <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
                 <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
               </TouchableOpacity>
@@ -679,28 +706,53 @@ const GroupInfoScreen = ({ navigation, route }) => {
         }}
         ListFooterComponent={
           <View>
-            <TouchableOpacity style={styles.leaveRow} onPress={confirmLeaveGroup} disabled={leaving}>
-              {leaving ? (
-                <ActivityIndicator size="small" color="#e53935" />
-              ) : (
-                <>
-                  <Ionicons name="exit-outline" size={20} color="#e53935" />
-                  <Text style={styles.leaveText}>{t("chatConversation.leaveGroupAction", "Rời nhóm")}</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            {group.is_owner && (
-              <TouchableOpacity style={styles.leaveRow} onPress={confirmDeleteGroup} disabled={deleting}>
-                {deleting ? (
-                  <ActivityIndicator size="small" color="#e53935" />
-                ) : (
-                  <>
-                    <Ionicons name="trash-outline" size={20} color="#e53935" />
-                    <Text style={styles.leaveText}>{t("chatConversation.deleteGroupAction", "Xóa nhóm")}</Text>
-                  </>
-                )}
+            <Text style={[styles.sectionLabel, { color: DANGER }]}>
+              {t("security.dangerZone", "Vùng nguy hiểm")}
+            </Text>
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <TouchableOpacity
+                style={[
+                  styles.actionRow,
+                  group.is_owner && {
+                    borderBottomWidth: StyleSheet.hairlineWidth,
+                    borderBottomColor: theme.border,
+                  },
+                ]}
+                onPress={confirmLeaveGroup}
+                disabled={leaving}
+                activeOpacity={0.6}
+              >
+                <View style={[styles.actionIcon, { backgroundColor: DANGER_TINT }]}>
+                  {leaving ? (
+                    <ActivityIndicator size="small" color={DANGER} />
+                  ) : (
+                    <Ionicons name="exit-outline" size={18} color={DANGER} />
+                  )}
+                </View>
+                <Text style={[styles.actionText, { color: DANGER }]}>
+                  {t("chatConversation.leaveGroupAction", "Rời nhóm")}
+                </Text>
               </TouchableOpacity>
-            )}
+              {group.is_owner && (
+                <TouchableOpacity
+                  style={styles.actionRow}
+                  onPress={confirmDeleteGroup}
+                  disabled={deleting}
+                  activeOpacity={0.6}
+                >
+                  <View style={[styles.actionIcon, { backgroundColor: DANGER_TINT }]}>
+                    {deleting ? (
+                      <ActivityIndicator size="small" color={DANGER} />
+                    ) : (
+                      <Ionicons name="trash-outline" size={18} color={DANGER} />
+                    )}
+                  </View>
+                  <Text style={[styles.actionText, { color: DANGER }]}>
+                    {t("chatConversation.deleteGroupAction", "Xóa nhóm")}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         }
         contentContainerStyle={{ paddingTop: headerHeight + 8, paddingBottom: 40 + insets.bottom }}
@@ -840,38 +892,44 @@ const styles = StyleSheet.create({
   groupNameRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 24 },
   groupName: { fontSize: 19, fontWeight: "700", textAlign: "center" },
   membersCount: { fontSize: 13, marginTop: 4, marginBottom: 20 },
+  // Grouped card holding hairline-separated rows, same shape as the
+  // Settings/Security screens use.
+  card: {
+    alignSelf: "stretch",
+    marginHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "stretch",
-    marginHorizontal: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
   },
   actionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  actionText: { fontSize: 15, fontWeight: "500" },
+  actionText: { flex: 1, fontSize: 16 },
   sectionLabel: {
     alignSelf: "stretch",
     fontSize: 13,
     fontWeight: "600",
+    letterSpacing: 0.5,
     textTransform: "uppercase",
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 4,
+    marginHorizontal: 20,
+    marginTop: 24,
+    marginBottom: 8,
   },
   participantRow: {
     flexDirection: "row",
     alignItems: "center",
+    marginHorizontal: 16,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
@@ -880,14 +938,6 @@ const styles = StyleSheet.create({
   participantHandle: { fontSize: 12, marginTop: 1 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 6 },
   roleBadgeText: { fontSize: 11, fontWeight: "700" },
-  leaveRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 16,
-  },
-  leaveText: { color: "#e53935", fontSize: 15, fontWeight: "600" },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
