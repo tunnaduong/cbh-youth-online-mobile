@@ -86,6 +86,7 @@ import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/Withdraw
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
+import StudentVerificationScreen from "./app/screens/MainScreens/SettingsScreen/StudentVerificationScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -763,6 +764,13 @@ const App = () => {
               <Stack.Screen
                 name="BlockedUsersScreen"
                 component={BlockedUsersScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="StudentVerificationScreen"
+                component={StudentVerificationScreen}
                 options={{
                   headerShown: false,
                 }}
