@@ -177,6 +177,45 @@ export const uploadFile = (formData, config = {}) => {
   return Api.postFormDataRequest("/v1.0/upload", formData, config);
 };
 
+// Student (eKYC) verification - unlocks the Gift Shop discount once an admin
+// approves the submitted selfie + student card photos.
+export const getStudentVerificationStatus = () => {
+  return Api.getRequest("/v1.0/student-verification/status");
+};
+
+export const submitStudentVerification = (params) => {
+  return Api.postRequest("/v1.0/student-verification", params);
+};
+
+/**
+ * Uploads one eKYC photo and returns its absolute URL.
+ *
+ * The submit endpoint validates selfie_url/student_card_url as `url`, but
+ * /v1.0/upload answers with a root-relative path ("/storage/images/..."), so
+ * it has to be resolved against the API origin before being sent back.
+ *
+ * @param {string} imageUri  Local file uri from expo-image-picker
+ * @param {number} userId    Owner of the upload (the endpoint requires `uid`)
+ */
+export const uploadStudentVerificationPhoto = async (imageUri, userId) => {
+  const isPng = imageUri.toLowerCase().endsWith(".png");
+  const formData = new FormData();
+  formData.append("file", {
+    uri: imageUri,
+    type: isPng ? "image/png" : "image/jpeg",
+    name: isPng ? "verification.png" : "verification.jpg",
+  });
+  formData.append("uid", String(userId));
+
+  const response = await uploadFile(formData);
+  const path = response?.data?.path || response?.data?.url || response?.data?.file_url;
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+
+  const base = (axiosInstance.defaults.baseURL || "").replace(/\/$/, "");
+  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
 // Study materials / marketplace
 export const getStudyMaterials = (params = {}) => {
   const query = new URLSearchParams(params).toString();
