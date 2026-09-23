@@ -27,12 +27,9 @@ import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import StoryOverlayLayer from "../../../components/StoryOverlays/StoryOverlayLayer";
-import StoryFilterTint from "../../../components/StoryOverlays/StoryFilterTint";
+import StoryViewerOverlay from "../../../components/StoryOverlays/StoryViewerOverlay";
 import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
 import {
-  denormalizeOverlayItem,
-  getStoryCanvasRect,
   parseStoryMusic,
   parseStoryOverlays,
 } from "../../../components/StoryOverlays/storyOverlayModel";
@@ -285,19 +282,14 @@ const ArchiveScreen = ({ route, navigation }) => {
 
         const overlays = parseStoryOverlays(story.overlays);
         const storyMusic = parseStoryMusic(story.music);
-        const overlayRect = getStoryCanvasRect(width, SCREEN_HEIGHT);
-        const overlayItems = (overlays?.items || []).map((item, itemIndex) =>
-          denormalizeOverlayItem(item, overlayRect, itemIndex)
-        );
         const overlayLayer = (
-          <>
-            {isVideoStory && <StoryFilterTint filterId={overlays?.filter} />}
-            <StoryOverlayLayer
-              items={overlayItems}
-              canvasWidth={overlayRect.width}
-              hidden={Boolean(overlays?.flattened)}
-            />
-          </>
+          <StoryViewerOverlay
+            overlays={overlays}
+            mediaUri={mediaUrl}
+            isVideo={isVideoStory}
+            viewportWidth={width}
+            viewportHeight={SCREEN_HEIGHT}
+          />
         );
 
         return {

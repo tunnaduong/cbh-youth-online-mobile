@@ -71,12 +71,9 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
-import StoryOverlayLayer from "../../../components/StoryOverlays/StoryOverlayLayer";
-import StoryFilterTint from "../../../components/StoryOverlays/StoryFilterTint";
+import StoryViewerOverlay from "../../../components/StoryOverlays/StoryViewerOverlay";
 import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
 import {
-  denormalizeOverlayItem,
-  getStoryCanvasRect,
   parseStoryMusic,
   parseStoryOverlays,
 } from "../../../components/StoryOverlays/storyOverlayModel";
@@ -1487,9 +1484,18 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const link = story?.overlays?.items?.find((item) => item.type === "link" && item.url);
 
     if (link) {
-      storyRef.current?.pause?.();
-      openExternalLink(navigation, link.url, theme);
+      openStoryLink(link.url);
     }
+  };
+
+  /**
+   * The story viewer is a native Modal, so anything navigated to while it is
+   * up (the link-safety screen included) lands underneath it, invisible.
+   * Close the viewer first, then open the link once the modal is gone.
+   */
+  const openStoryLink = (url) => {
+    dismissStoryModal();
+    setTimeout(() => openExternalLink(navigation, url, theme), 350);
   };
 
   /** Soundtrack of the story currently on screen, if it has one. */
@@ -1724,10 +1730,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           // invisible tap targets - see `flattened` below.
           const overlays = parseStoryOverlays(story.overlays);
           const storyMusic = parseStoryMusic(story.music);
-          const overlayRect = getStoryCanvasRect(SCREEN_WIDTH, SCREEN_HEIGHT);
-          const overlayItems = (overlays?.items || []).map((item, itemIndex) =>
-            denormalizeOverlayItem(item, overlayRect, itemIndex)
-          );
 
           return {
           id: story.id,
@@ -1763,11 +1765,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     media; a photo already has them baked in, so the same
                     items are rendered invisibly just to catch taps on the
                     mention/link stickers. */}
-                {isVideoStory && <StoryFilterTint filterId={overlays?.filter} />}
-                <StoryOverlayLayer
-                  items={overlayItems}
-                  canvasWidth={overlayRect.width}
-                  hidden={Boolean(overlays?.flattened)}
+                <StoryViewerOverlay
+                  overlays={overlays}
+                  mediaUri={mediaUrl}
+                  isVideo={isVideoStory}
+                  viewportWidth={SCREEN_WIDTH}
+                  viewportHeight={SCREEN_HEIGHT}
                   interactive
                   onPressMention={(item) => {
                     if (!item.username) return;
@@ -1779,8 +1782,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   }}
                   onPressLink={(item) => {
                     if (!item.url) return;
-                    storyRef.current?.pause?.();
-                    openExternalLink(navigation, item.url, theme);
+                    openStoryLink(item.url);
                   }}
                 />
               </>
@@ -1788,7 +1790,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
             return () => {
               if (isVideoStory) {
-                return overlayItems.length || overlays?.filter ? overlayLayer() : null;
+                return overlays ? overlayLayer() : null;
               }
 
               if (shouldRenderAsImage) {

@@ -149,6 +149,35 @@ export const getStoryCanvasRect = (viewportWidth, viewportHeight) => {
 };
 
 /**
+ * Where the 9:16 editor canvas sits once a *flattened* story picture is
+ * letterboxed into the viewport, given the picture's real aspect ratio.
+ *
+ * Older posts came out taller than 9:16 (the canvas plus a black band at the
+ * bottom), so the canvas is the top, full-width slice of the picture; for a
+ * true 9:16 picture this is identical to `getStoryCanvasRect`. Anchoring the
+ * overlays to the picture like this is what keeps the invisible tap targets
+ * exactly on top of the stickers painted into it.
+ */
+export const getStoryCanvasRectForMedia = (viewportWidth, viewportHeight, mediaAspect) => {
+  const aspect = mediaAspect > 0 ? mediaAspect : STORY_ASPECT_RATIO;
+
+  let mediaWidth = viewportWidth;
+  let mediaHeight = viewportWidth / aspect;
+
+  if (mediaHeight > viewportHeight) {
+    mediaHeight = viewportHeight;
+    mediaWidth = viewportHeight * aspect;
+  }
+
+  return {
+    x: (viewportWidth - mediaWidth) / 2,
+    y: (viewportHeight - mediaHeight) / 2,
+    width: mediaWidth,
+    height: mediaWidth / STORY_ASPECT_RATIO,
+  };
+};
+
+/**
  * Contain-fit variant, used by the editor where the whole 9:16 canvas has to
  * stay visible instead of being cropped.
  */

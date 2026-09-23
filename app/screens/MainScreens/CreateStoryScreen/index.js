@@ -1063,11 +1063,32 @@ const CreateStoryScreen = ({ navigation }) => {
           {hasContent ? (
             <View style={{ flex: 1 }}>
               <View style={styles.aspectRatioContainer}>
-                <ScrollView
-                  style={{ width: captureDims.w, height: captureDims.h, backgroundColor: "#000" }}
-                  scrollEnabled={false}
+                {/* The snapshot is taken of this plain, exactly-sized View.
+                    A ScrollView cannot be the capture target: React Native
+                    gives it flexGrow, so it silently stretched to fill the
+                    screen and the posted picture came out taller than 9:16
+                    with a black band underneath - which then pulled every
+                    tap target in the viewer out from under its sticker. */}
+                <View
                   ref={imageWithOverlaysRef}
+                  collapsable={false}
                   onLayout={onViewLayout}
+                  style={{
+                    width: captureDims.w,
+                    height: captureDims.h,
+                    overflow: "hidden",
+                    backgroundColor: "#000",
+                  }}
+                >
+                <ScrollView
+                  style={{
+                    width: captureDims.w,
+                    height: captureDims.h,
+                    flexGrow: 0,
+                    flexShrink: 0,
+                    backgroundColor: "#000",
+                  }}
+                  scrollEnabled={false}
                   contentContainerStyle={{ width: captureDims.w, height: captureDims.h }}
                   showsVerticalScrollIndicator={false}
                   showsHorizontalScrollIndicator={false}
@@ -1145,6 +1166,7 @@ const CreateStoryScreen = ({ navigation }) => {
                       </MoveableItem>
                     ))}
                 </ScrollView>
+                </View>
 
                 {isApplyingFilter && (
                   <View style={styles.filterLoading} pointerEvents="none">
