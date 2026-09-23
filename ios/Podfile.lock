@@ -3,14 +3,14 @@ PODS:
   - DoubleConversion (1.1.6)
   - EASClient (55.0.5):
     - ExpoModulesCore
-  - EXApplication (55.0.17):
+  - EXApplication (55.0.18):
     - ExpoModulesCore
   - EXConstants (55.0.17):
     - ExpoModulesCore
   - EXJSONUtils (55.0.2)
-  - EXManifests (55.0.19):
+  - EXManifests (55.0.20):
     - ExpoModulesCore
-  - Expo (55.0.28):
+  - Expo (55.0.29):
     - boost
     - DoubleConversion
     - ExpoModulesCore
@@ -41,17 +41,17 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-client (55.0.37):
+  - expo-dev-client (55.0.38):
     - EXManifests
     - expo-dev-launcher
     - expo-dev-menu
     - expo-dev-menu-interface
     - EXUpdatesInterface
-  - expo-dev-launcher (55.0.38):
+  - expo-dev-launcher (55.0.39):
     - boost
     - DoubleConversion
     - EXManifests
-    - expo-dev-launcher/Main (= 55.0.38)
+    - expo-dev-launcher/Main (= 55.0.39)
     - expo-dev-menu
     - expo-dev-menu-interface
     - ExpoModulesCore
@@ -84,7 +84,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-launcher/Main (55.0.38):
+  - expo-dev-launcher/Main (55.0.39):
     - boost
     - DoubleConversion
     - EXManifests
@@ -121,7 +121,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-launcher/Unsafe (55.0.38):
+  - expo-dev-launcher/Unsafe (55.0.39):
     - boost
     - DoubleConversion
     - EXManifests
@@ -157,10 +157,10 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - expo-dev-menu (55.0.32):
+  - expo-dev-menu (55.0.33):
     - boost
     - DoubleConversion
-    - expo-dev-menu/Main (= 55.0.32)
+    - expo-dev-menu/Main (= 55.0.33)
     - fast_float
     - fmt
     - glog
@@ -187,7 +187,7 @@ PODS:
     - SocketRocket
     - Yoga
   - expo-dev-menu-interface (55.0.2)
-  - expo-dev-menu/Main (55.0.32):
+  - expo-dev-menu/Main (55.0.33):
     - boost
     - DoubleConversion
     - EXManifests
@@ -219,27 +219,27 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - ExpoAppleAuthentication (55.0.15):
+  - ExpoAppleAuthentication (55.0.16):
     - ExpoModulesCore
-  - ExpoAsset (55.0.18):
+  - ExpoAsset (55.0.19):
     - ExpoModulesCore
-  - ExpoCamera (55.0.21):
+  - ExpoCamera (55.0.22):
     - ExpoModulesCore
-  - ExpoCameraBarcodeScanning (55.0.21):
+  - ExpoCameraBarcodeScanning (55.0.22):
     - ExpoCamera
     - ZXingObjC/OneD
     - ZXingObjC/PDF417
-  - ExpoCrypto (55.0.17):
+  - ExpoCrypto (55.0.18):
     - ExpoModulesCore
-  - ExpoDocumentPicker (55.0.15):
+  - ExpoDocumentPicker (55.0.16):
     - ExpoModulesCore
   - ExpoDomWebView (55.0.6):
     - ExpoModulesCore
-  - ExpoFileSystem (55.0.24):
+  - ExpoFileSystem (55.0.25):
     - ExpoModulesCore
   - ExpoFont (55.0.8):
     - ExpoModulesCore
-  - ExpoHaptics (55.0.16):
+  - ExpoHaptics (55.0.17):
     - ExpoModulesCore
   - ExpoImage (55.0.11):
     - ExpoModulesCore
@@ -248,22 +248,22 @@ PODS:
     - SDWebImageAVIFCoder (~> 0.11.0)
     - SDWebImageSVGCoder (~> 1.7.0)
     - SDWebImageWebPCoder (~> 0.14.6)
-  - ExpoImageManipulator (55.0.19):
+  - ExpoImageManipulator (55.0.20):
     - ExpoModulesCore
     - SDWebImageWebPCoder
-  - ExpoImagePicker (55.0.22):
+  - ExpoImagePicker (55.0.23):
     - ExpoModulesCore
   - ExpoKeepAwake (55.0.8):
     - ExpoModulesCore
-  - ExpoLinearGradient (55.0.16):
+  - ExpoLinearGradient (55.0.17):
     - ExpoModulesCore
-  - ExpoLinking (55.0.16):
+  - ExpoLinking (55.0.17):
     - ExpoModulesCore
-  - ExpoLocalization (55.0.17):
+  - ExpoLocalization (55.0.18):
     - ExpoModulesCore
   - ExpoLogBox (55.0.13):
     - React-Core
-  - ExpoMediaLibrary (55.0.19):
+  - ExpoMediaLibrary (55.0.20):
     - ExpoModulesCore
     - React-Core
   - ExpoModulesCore (55.0.25):
@@ -302,24 +302,24 @@ PODS:
     - React-Core
     - React-runtimescheduler
     - ReactCommon
-  - ExpoNotifications (55.0.25):
+  - ExpoNotifications (55.0.26):
     - ExpoModulesCore
   - ExpoShareIntentModule (6.1.1):
     - ExpoModulesCore
-  - ExpoSharing (55.0.22):
+  - ExpoSharing (55.0.23):
     - ExpoModulesCore
-  - ExpoSplashScreen (55.0.23):
+  - ExpoSplashScreen (55.0.24):
     - ExpoModulesCore
-  - ExpoSystemUI (55.0.20):
+  - ExpoSystemUI (55.0.21):
     - ExpoModulesCore
-  - ExpoVideo (55.0.19):
+  - ExpoVideo (55.0.20):
     - ExpoModulesCore
-  - ExpoVideoThumbnails (55.0.17):
+  - ExpoVideoThumbnails (55.0.18):
     - ExpoModulesCore
-  - ExpoWebBrowser (55.0.18):
+  - ExpoWebBrowser (55.0.19):
     - ExpoModulesCore
   - EXStructuredHeaders (55.0.2)
-  - EXUpdates (55.0.26):
+  - EXUpdates (55.0.27):
     - boost
     - DoubleConversion
     - EASClient
@@ -379,7 +379,7 @@ PODS:
   - libwebp/sharpyuv (1.6.0)
   - libwebp/webp (1.6.0):
     - libwebp/sharpyuv
-  - LiquidGlass (0.8.0):
+  - LiquidGlassmorphism (1.0.0):
     - boost
     - DoubleConversion
     - fast_float
@@ -2402,7 +2402,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-keyboard-controller (1.22.2):
+  - react-native-keyboard-controller (1.22.4):
     - boost
     - DoubleConversion
     - fast_float
@@ -2420,7 +2420,7 @@ PODS:
     - React-graphics
     - React-ImageManager
     - React-jsi
-    - react-native-keyboard-controller/common (= 1.22.2)
+    - react-native-keyboard-controller/common (= 1.22.4)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -2431,7 +2431,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - SocketRocket
     - Yoga
-  - react-native-keyboard-controller/common (1.22.2):
+  - react-native-keyboard-controller/common (1.22.4):
     - boost
     - DoubleConversion
     - fast_float
@@ -3925,7 +3925,7 @@ DEPENDENCIES:
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
-  - "LiquidGlass (from `../node_modules/@callstack/liquid-glass`)"
+  - LiquidGlassmorphism (from `../node_modules/react-native-liquid-glassmorphism`)
   - lottie-react-native (from `../node_modules/lottie-react-native`)
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTDeprecation (from `../node_modules/react-native/ReactApple/Libraries/RCTFoundation/RCTDeprecation`)
@@ -4136,8 +4136,8 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v0.14.1
-  LiquidGlass:
-    :path: "../node_modules/@callstack/liquid-glass"
+  LiquidGlassmorphism:
+    :path: "../node_modules/react-native-liquid-glassmorphism"
   lottie-react-native:
     :path: "../node_modules/lottie-react-native"
   RCT-Folly:
@@ -4329,46 +4329,46 @@ SPEC CHECKSUMS:
   boost: 7e761d76ca2ce687f7cc98e698152abd03a18f90
   DoubleConversion: cb417026b2400c8f53ae97020b2be961b59470cb
   EASClient: 8077eb9af46cc7ad3ad216cec12d2bf5763cca13
-  EXApplication: 62f11f3b27bbeb132b4fceaa4e7275dd0fd39cb7
+  EXApplication: 7d049f1415573b29e5b21de8e98c01fafd007f7d
   EXConstants: 49a092f564eb895b79ab416f53ba54f7e6935197
   EXJSONUtils: 04bc3807d351331a5fe154ce1da596ec15d99169
-  EXManifests: 005bd5690cd2859db6da3b9f33983577add13155
-  Expo: ba630628a148476632cec47ad022e2b05174e235
-  expo-dev-client: e007f426b184dc3d596c4c57bfa68c16b53028ef
-  expo-dev-launcher: 3bc80cf02e08a4957e23a5b28df0d786d1300c90
-  expo-dev-menu: 4ff9b71f5698bd804373e29e970f013033aeb6d4
+  EXManifests: 3ad40f835983da0a1434ab882a619f0d3670f233
+  Expo: f1bec13e40612a3089f173448699aa4fa27efd47
+  expo-dev-client: 2c6b8b31f8a726b5360830905f510540fd8ffc42
+  expo-dev-launcher: 6dd03f0fdd20808885134a7819eafb93e3413ab8
+  expo-dev-menu: a50fece1f91dc30e2c1d64ca637ee12dea052533
   expo-dev-menu-interface: 833795f4c98a674d36cbc12b11b21756c38e01e8
-  ExpoAppleAuthentication: 99b5448e247e4238568b632ef80d2c9825d0cd55
-  ExpoAsset: 42278ae3d585ab9bf5a223e7979d5365c348cffc
-  ExpoCamera: 815b0045875628e0eaf94d153b9b43e9e29df04b
-  ExpoCameraBarcodeScanning: 294dff362664fb67533977a70f880e5207c565de
-  ExpoCrypto: c824505d1529d941e7ea150263b3924e8b905d18
-  ExpoDocumentPicker: 8f1356ab2ac5b67aeaafc4c14b3719ceb480c099
+  ExpoAppleAuthentication: abcf2c7c656152ee25910494cb95f5b867a8b5b1
+  ExpoAsset: 3ed03b277e3c0d095671a6fdaaf158cb275361a0
+  ExpoCamera: f357b3d607bf8b31bf1b9e78ce9467d5ae5926f4
+  ExpoCameraBarcodeScanning: 4fbbd257833da0fcc60983c532d078586aa24ba6
+  ExpoCrypto: 0d10b019fad79c08e2f872e6107dbc18a25877c7
+  ExpoDocumentPicker: ea8101a3f71e44649777edaac6433f2bdb0b7317
   ExpoDomWebView: b2e9d601f9cb77d3c97da73234e175b64be91928
-  ExpoFileSystem: b16ad358dff1dd561f561d8ca0bf22cf00ddad40
+  ExpoFileSystem: 8d5b2404ef2e839136146812d0036485d3ed8198
   ExpoFont: a7e34a75bdfb703fa07a0e87807f836236608c76
-  ExpoHaptics: a00b3d00dee7c5c6dfd848616fc58f69d82a8ae2
+  ExpoHaptics: 68a758dc96b24f51a1f0ed01a1cc15d8692154b7
   ExpoImage: 5854bd51edd7c0a775755473598f9daeb3fde4e3
-  ExpoImageManipulator: 8a11e240d5faa9a49a0ee88ce637d740412eabae
-  ExpoImagePicker: f82edc16bb8eeb6260c2759b0015afc0ab45a3d0
+  ExpoImageManipulator: 73ab3187df7c59fc96cf17cf9e547e514a26803d
+  ExpoImagePicker: bd1dd27116e1460a20a57cfc11c36de31eb97673
   ExpoKeepAwake: d0eb7a0719500d2a43fbf29b6f79e84d70c75ebf
-  ExpoLinearGradient: caf2c659e6ea0c473ece8f6164eaeae05740664d
-  ExpoLinking: 221ab136d976b632e04ff4023660cc9c24233d07
-  ExpoLocalization: f7e332c396d6dd5434b6a951900da84f14a5c277
+  ExpoLinearGradient: 57d394ff8683ec8f207b05395673b90d0719595f
+  ExpoLinking: 72204a7378924ec333a2ab4ee80aac7058b33ffe
+  ExpoLocalization: 9b3a4704be6fe005f4718cd31c42a454b8d59e59
   ExpoLogBox: 4bb2f041d3281b8c27ed494fae3b6f217ba79857
-  ExpoMediaLibrary: 00cb64dbf0c193178049cec75ef96ce25a571807
+  ExpoMediaLibrary: 20389c2c3ffe29cf61408074d59119585477ada4
   ExpoModulesCore: cc07ebf5b947a239f1669cb5856d905cb2b093f7
   ExpoModulesJSI: 964334271fc77832736f66ee1785761cdc778dbe
-  ExpoNotifications: ca16befd83d0a6ee07f6b4e40dccfb9148708700
+  ExpoNotifications: a0cfb0cd95fd477ff5b6fd86341da23c218eaf86
   ExpoShareIntentModule: d32b9aee244c870304299dd2b242b0775291e7e0
-  ExpoSharing: 40cd8fd65209bc35adc710ff7e42dd35913d2a0f
-  ExpoSplashScreen: 6b96ff01e0f7bf9a0ca66858b9996853b129e6be
-  ExpoSystemUI: e64c0e662ddf324a1a5e9bbd8752d00cd8a485ea
-  ExpoVideo: e6ac5b0bd3a9e636403afde090fd8abf28ce192b
-  ExpoVideoThumbnails: 63d87fc6344778754a17efd8fbaf83d348050022
-  ExpoWebBrowser: b10b2e9f3552fe1c75aa2fa518f78ce8b213c439
+  ExpoSharing: 324fc4c7f51aac7e8ffa022261feb1c83bb347f8
+  ExpoSplashScreen: be95d9eaf02fd68b7a9430c86dcc197edfcf8bc6
+  ExpoSystemUI: e125a578b929cff0dc18e2ff3a6f967d4e7e4668
+  ExpoVideo: 6804920fc5d90249001f6ef21e5f0e10d4e8c26c
+  ExpoVideoThumbnails: 837666d84334e92aadfa147fefc4744ee8a75d45
+  ExpoWebBrowser: 0e33184a4aab4459b24569c7ce0c5016f834e344
   EXStructuredHeaders: 93ad4f31a2eec124428675e28aca11de243ee1e4
-  EXUpdates: 548d468f8c826d1263b8f43ed4e87771aad3e1d7
+  EXUpdates: 58659bbd20473355503058372e2a10fe47434add
   EXUpdatesInterface: 4c11f4d1594526258f14d09817dc407acbf24e3b
   fast_float: b32c788ed9c6a8c584d114d0047beda9664e7cc6
   FBLazyVector: 07433c4ab85da44d0b5ceac374ff4e1d57c7aa23
@@ -4378,7 +4378,7 @@ SPEC CHECKSUMS:
   libavif: 5f8e715bea24debec477006f21ef9e95432e254d
   libdav1d: 23581a4d8ec811ff171ed5e2e05cd27bad64c39f
   libwebp: af5937a13536ef73f3784d69cc342b98961acf33
-  LiquidGlass: fb9205c25c3926f5b2e379650e0ffc70d310445a
+  LiquidGlassmorphism: a37dbe1237a4c4ae8d2a417c56971ea07eff2c62
   lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
   lottie-react-native: b410d8c9dcaf536198ce852ea47e73c9158ad04e
   RCT-Folly: b29feb752b08042c62badaef7d453f3bb5e6ae23
@@ -4420,7 +4420,7 @@ SPEC CHECKSUMS:
   React-microtasksnativemodule: a16f4cf13979dafdf60d5c51993928374ad8b4e9
   React-mutationobservernativemodule: 0b13c5342cb1c4dc613ef8d0869d25056e19dd89
   react-native-date-picker: 4f4f40f6e65798038bb4b1bff47890c2be69c2e6
-  react-native-keyboard-controller: b918b5ab9e0a4f85f0a25c4de2804335c99c5808
+  react-native-keyboard-controller: 1d5ba749e13f7392286934769bfad3ce98e4f519
   react-native-mmkv: ac7507625cd74bac0eb5333604a7cd7b08fe9e3e
   react-native-netinfo: 57447b5a45c98808f8eae292cf641f3d91d13830
   react-native-render-html: 5afc4751f1a98621b3009432ef84c47019dcb2bd
