@@ -52,6 +52,7 @@ import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
+import FeedbackScreen from "./app/screens/MainScreens/FeedbackScreen";
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
 import EasterEggScreen from "./app/screens/MainScreens/SettingsScreen/EasterEggScreen";
@@ -724,6 +725,14 @@ const App = () => {
               <Stack.Screen
                 name="ReportScreen"
                 component={ReportNavigator}
+                options={{
+                  headerShown: false,
+                  presentation: "modal",
+                }}
+              />
+              <Stack.Screen
+                name="FeedbackScreen"
+                component={FeedbackScreen}
                 options={{
                   headerShown: false,
                   presentation: "modal",

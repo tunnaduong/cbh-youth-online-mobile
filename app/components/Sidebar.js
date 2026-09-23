@@ -506,7 +506,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               title={t("sidebar.reportIssue")}
               titleStyle={{ color: theme.text }}
               onPress={() =>
-                openInAppBrowser("https://forms.gle/XJ3v1vN82BxLUVWo9", theme)
+                navigation.navigate("FeedbackScreen", { source: "sidebar" })
               }
               left={() => (
                 <Ionicons

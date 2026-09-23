@@ -27,6 +27,7 @@ const FeatureHeader = ({
   havingIcon = false,
   setSetting,
   onLogoPress,
+  onLogoLongPress,
   theme,
   isDarkMode,
   providerId,
@@ -84,6 +85,8 @@ const FeatureHeader = ({
         }}>
           <TouchableOpacity
             onPress={onLogoPress}
+            onLongPress={onLogoLongPress}
+            delayLongPress={500}
             activeOpacity={0.7}
             style={styles.logoContainer}
           >
