@@ -56,6 +56,7 @@ import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
 import EasterEggScreen from "./app/screens/MainScreens/SettingsScreen/EasterEggScreen";
 import TermsOfServiceScreen from "./app/screens/MainScreens/SettingsScreen/TermsOfServiceScreen";
 import PrivacyPolicyScreen from "./app/screens/MainScreens/SettingsScreen/PrivacyPolicyScreen";
+import LinkSafetyScreen from "./app/screens/MainScreens/LinkSafetyScreen";
 import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
@@ -755,6 +756,13 @@ const App = () => {
                 }}
               />
               <Stack.Screen
+                name="LinkSafetyScreen"
+                component={LinkSafetyScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="SecurityScreen"
                 component={SecurityScreen}
                 options={{
@@ -995,6 +1003,13 @@ const App = () => {
               <Stack.Screen
                 name="PrivacyPolicyScreen"
                 component={PrivacyPolicyScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="LinkSafetyScreen"
+                component={LinkSafetyScreen}
                 options={{
                   headerShown: false,
                 }}

@@ -1629,5 +1629,27 @@
     "title": "Người đã vote bình luận",
     "empty": "Chưa có lượt vote nào",
     "loadError": "Không thể tải danh sách người vote"
+  },
+  "linkSafety": {
+    "title": "Bạn đang rời khỏi CBH Youth Online",
+    "subtitle": "Liên kết này dẫn tới một trang web bên ngoài mà chúng tôi không kiểm soát. Luôn kiểm tra an toàn trước khi bấm vào.",
+    "visitingLabel": "Bạn đang truy cập",
+    "copyLink": "Sao chép",
+    "shareLink": "Chia sẻ",
+    "copied": "Đã sao chép liên kết",
+    "openFailed": "Không mở được liên kết này",
+    "checklistTitle": "Trước khi tiếp tục, hãy kiểm tra:",
+    "tipDomain": "Tên miền có đúng chính tả không? Các trang lừa đảo hay dùng tên gần giống, ví dụ chuyenb1enhoa.com.",
+    "tipPassword": "Không bao giờ nhập mật khẩu CBH Youth Online của bạn ở một trang web khác.",
+    "tipSensitive": "Cẩn thận với trang yêu cầu tải tệp về, nhập mã OTP, số điện thoại hay thông tin thẻ ngân hàng.",
+    "tipUnknownSender": "Nếu bạn không biết ai đã gửi liên kết này, tốt nhất là đừng truy cập.",
+    "warningInsecure": "Liên kết này không dùng HTTPS. Mọi thông tin bạn gửi tới trang này đều có thể bị người khác đọc được trên đường truyền.",
+    "warningPunycode": "Tên miền này chứa ký tự đặc biệt được mã hóa. Đây là cách các trang giả mạo thường dùng để trông giống một trang web quen thuộc.",
+    "warningUserInfo": "Liên kết này được viết để trông giống một trang khác, nhưng nơi bạn thật sự đến là {{hostname}}.",
+    "continue": "Tiếp tục đến trang này",
+    "goBack": "Quay lại",
+    "reportHint": "Nếu bạn cho rằng liên kết này là lừa đảo hoặc có hại, hãy báo cho chúng tôi qua phần Liên hệ trong Cài đặt.",
+    "invalidTitle": "Liên kết không hợp lệ",
+    "invalidDescription": "Chúng tôi không đọc được địa chỉ đích của liên kết này. Có thể nó đã bị sửa hoặc bị cắt mất một phần. Đừng truy cập nếu bạn không chắc nó đến từ đâu."
   }
 }
