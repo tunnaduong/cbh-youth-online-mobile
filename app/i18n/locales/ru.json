@@ -694,7 +694,13 @@
     "changedBackgroundGroup": "изменил(а) фон группы",
     "changedBackgroundPrivate": "изменил(а) фон чата",
     "moderationPendingPost": "Пост @{{username}} ожидает модерации",
-    "moderationPendingComment": "Комментарий @{{username}} ожидает модерации"
+    "moderationPendingComment": "Комментарий @{{username}} ожидает модерации",
+    "contentPendingReviewPost": "Ваш пост ожидает модерации",
+    "contentPendingReviewComment": "Ваш комментарий ожидает модерации",
+    "contentApprovedPost": "Ваш пост одобрен и теперь виден всем",
+    "contentApprovedComment": "Ваш комментарий одобрен и теперь виден всем",
+    "contentRejectedPost": "Ваш пост не одобрен",
+    "contentRejectedComment": "Ваш комментарий не одобрен"
   },
   "chatBackground": {
     "title": "Фон чата",

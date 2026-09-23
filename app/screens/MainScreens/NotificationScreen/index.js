@@ -52,6 +52,19 @@ const formatNotificationMessage = (notification, t) => {
   if (!actor) {
     // Handle other notifications without actor
     switch (type) {
+      // The author's own content changing moderation state.
+      case "content_pending_review":
+        return t(data?.comment_id
+          ? 'notifications.contentPendingReviewComment'
+          : 'notifications.contentPendingReviewPost');
+      case "content_approved":
+        return t(data?.comment_id
+          ? 'notifications.contentApprovedComment'
+          : 'notifications.contentApprovedPost');
+      case "content_rejected":
+        return t(data?.comment_id
+          ? 'notifications.contentRejectedComment'
+          : 'notifications.contentRejectedPost');
       // Admin-only alert: something is sitting in the moderation queue.
       case "moderation_pending":
         return t(
