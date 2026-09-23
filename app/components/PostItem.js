@@ -27,6 +27,8 @@ import {
   unsavePost,
   hidePost,
   unhidePost,
+  archivePost,
+  unarchivePost,
   votePost,
   reportUser,
 } from "../services/api/Api";
@@ -265,6 +267,7 @@ const PostItem = ({
   onVote: onVoteCallback, // Callback for single view vote updates
   onSave: onSaveCallback, // Callback for single view save updates
   isActive = true, // Whether this card is on-screen — drives inline video autoplay
+  onArchiveChange, // (postId, archived) — lets a list (e.g. ArchiveScreen) drop the row
 }) => {
   const videoUrls = Array.isArray(item.video_urls)
     ? item.video_urls
@@ -296,6 +299,7 @@ const PostItem = ({
   const insets = useSafeAreaInsets();
   const { username, userInfo } = useContext(AuthContext);
   const { feed, setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const [isArchived, setIsArchived] = useState(!!item.archived);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [votesModalVisible, setVotesModalVisible] = useState(false);
@@ -421,6 +425,80 @@ const PostItem = ({
     }
   };
 
+  // "Chuyển vào kho lưu trữ" flips the post's own `hidden` column, so it
+  // disappears for everyone else - feeds, search and other people's view of
+  // the profile. Only the author still sees it, on their profile and in the
+  // archive screen, from where it can be restored. Different from
+  // handleHidePost, which only filters someone else's post out of your feed.
+  const handleArchivePost = () => {
+    hideBottomSheet();
+    Alert.alert(
+      t('post.archiveConfirmTitle'),
+      t('post.archiveConfirmBody'),
+      [
+        {
+          text: t('post.archiveAction'),
+          style: "default",
+          onPress: async () => {
+            try {
+              await archivePost(item.id);
+              setIsArchived(true);
+              if (setFeed) {
+                setFeed((prevPosts) =>
+                  Array.isArray(prevPosts)
+                    ? prevPosts.filter((post) => post.id !== item.id)
+                    : prevPosts
+                );
+              }
+              onArchiveChange?.(item.id, true);
+              Toast.show({
+                type: "success",
+                text1: t('post.archiveSuccess'),
+                autoHide: true,
+                visibilityTime: 3000,
+              });
+            } catch (error) {
+              console.error("Archiving post failed:", error);
+              Toast.show({
+                type: "error",
+                text1: t('post.archiveError'),
+                autoHide: true,
+                visibilityTime: 4000,
+              });
+            }
+          },
+        },
+        {
+          text: t('settings.cancel'),
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const handleUnarchivePost = async () => {
+    hideBottomSheet();
+    try {
+      await unarchivePost(item.id);
+      setIsArchived(false);
+      onArchiveChange?.(item.id, false);
+      Toast.show({
+        type: "success",
+        text1: t('post.unarchiveSuccess'),
+        autoHide: true,
+        visibilityTime: 3000,
+      });
+    } catch (error) {
+      console.error("Unarchiving post failed:", error);
+      Toast.show({
+        type: "error",
+        text1: t('post.unarchiveError'),
+        autoHide: true,
+        visibilityTime: 4000,
+      });
+    }
+  };
+
   const handleReportSubmit = async (reason) => {
     try {
       const reportedUserId = item?.author?.id || item?.user_id || item?.uid || item?.userid;
@@ -505,6 +583,29 @@ const PostItem = ({
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
                 {t('post.edit')}
               </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        {isCurrentUser && (
+          <TouchableOpacity
+            onPress={isArchived ? handleUnarchivePost : handleArchivePost}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons
+                name={isArchived ? "arrow-undo-outline" : "archive-outline"}
+                size={23}
+                color={theme.text}
+              />
+              <View style={{ padding: 12, flex: 1 }}>
+                <Text style={{ fontSize: 17, color: theme.text }}>
+                  {isArchived ? t('post.unarchive') : t('post.archive')}
+                </Text>
+                {!isArchived && (
+                  <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+                    {t('post.archiveSubtitle')}
+                  </Text>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
         )}
@@ -714,6 +815,27 @@ const PostItem = ({
         backgroundColor: theme.background,
       }}
     >
+      {isArchived && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            marginHorizontal: 15,
+            marginTop: single ? 0 : 15,
+            marginBottom: single ? 8 : 0,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 999,
+            backgroundColor: theme.surface,
+          }}
+        >
+          <Ionicons name="archive-outline" size={12} color={theme.subText} />
+          <Text style={{ fontSize: 12, color: theme.subText, marginLeft: 4 }}>
+            {t('post.archivedBadge')}
+          </Text>
+        </View>
+      )}
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         {single ? (
           // Single view: no navigation, just show title

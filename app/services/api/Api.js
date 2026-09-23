@@ -150,6 +150,21 @@ export const unhidePost = (id) => {
   return Api.deleteRequest("/v1.0/user/hidden-topics/" + id);
 };
 
+// Archive ("kho lưu trữ") flips the post's own `hidden` column: it disappears
+// for everyone else and only the author keeps seeing it, on their profile and
+// in the archive screen.
+export const archivePost = (id) => {
+  return Api.postRequest("/v1.0/topics/" + id + "/archive");
+};
+
+export const unarchivePost = (id) => {
+  return Api.deleteRequest("/v1.0/topics/" + id + "/archive");
+};
+
+export const getArchivedPosts = (page = 1) => {
+  return Api.getRequest("/v1.0/user/archived-topics?page=" + page);
+};
+
 export const createPost = (params) => {
   return Api.postRequest("/v1.0/topics", params);
 };
