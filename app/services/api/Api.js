@@ -689,6 +689,11 @@ export const reportUser = (params) => {
   return Api.postRequest("/v1.0/reports", params);
 };
 
+// In-app feedback (bug reports & suggestions)
+export const submitFeedback = (params) => {
+  return Api.postRequest("/v1.0/feedback", params);
+};
+
 export const blockUser = (userId) => {
   return Api.postRequest("/v1.0/users/block", { blocked_user_id: userId });
 };

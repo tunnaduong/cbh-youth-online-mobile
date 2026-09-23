@@ -3,6 +3,7 @@ import { Dimensions, View, Platform, StyleSheet, Animated, Easing, DeviceEventEm
 import Sidebar from "../../components/Sidebar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import HomeScreen from "./HomeScreen";
 import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
@@ -37,7 +38,7 @@ const ANDROID_ICON_MAP = {
 // Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
 // render prop) and driven directly by MainScreens' own `currentRoute` state
 // and navigation.
-const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
+const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -125,6 +126,8 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, chatUnreadCount, notif
               key={route.name}
               style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 }}
               onPress={() => onTabPress(route.name)}
+              onLongPress={route.name === "Home" ? onHomeLongPress : undefined}
+              delayLongPress={450}
               activeOpacity={0.8}
             >
               <View style={{ position: "relative" }}>
@@ -301,6 +304,13 @@ export default function MainScreens({ navigation: stackNavigation }) {
     Chat: triggerChatScrollOrReload,
     Notifications: triggerNotificationScrollOrReload,
   };
+  // Long-pressing the Home button (tab bar or header logo) opens the
+  // feedback form - a quick way to report a bug from anywhere.
+  const openFeedback = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    stackNavigation.navigate("FeedbackScreen", { source: "home_long_press" });
+  }, [stackNavigation]);
+
   const handleAndroidTabPress = (routeName) => {
     if (currentRoute === routeName) {
       TAB_RELOAD_TRIGGERS[routeName]?.();
@@ -419,6 +429,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                     havingIcon
                     setSetting={setSetting}
                     onLogoPress={triggerHomeScrollOrReload}
+                    onLogoLongPress={openFeedback}
                     providerId="Home"
                   />
                 </View>
@@ -521,6 +532,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
           chatUnreadCount={chatUnreadCount}
           notificationUnreadCount={notificationUnreadCount}
           onTabPress={handleAndroidTabPress}
+          onHomeLongPress={openFeedback}
           onCreatePress={() => stackNavigation.navigate("CreatePostScreen")}
         />
       )}

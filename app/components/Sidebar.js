@@ -504,7 +504,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               title={t("sidebar.reportIssue")}
               titleStyle={{ color: theme.text }}
               onPress={() =>
-                Linking.openURL("https://forms.gle/XJ3v1vN82BxLUVWo9")
+                navigation.navigate("FeedbackScreen", { source: "sidebar" })
               }
               left={() => (
                 <Ionicons
