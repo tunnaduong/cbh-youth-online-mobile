@@ -374,6 +374,12 @@
     "share": "Share",
     "unsave": "Unsave post",
     "save": "Save post",
+    "hide": "Hide post",
+    "hideSubtitle": "Hide this post from your feed",
+    "hideSuccess": "Post hidden from your feed",
+    "hideUndo": "Tap to undo",
+    "hideError": "Could not hide the post. Please try again.",
+    "unhideSuccess": "Post is back in your feed",
     "privacy": "Privacy settings",
     "edit": "Edit post",
     "delete": "Delete post",
@@ -407,6 +413,18 @@
     "pendingModerationTitle": "Comment is awaiting review",
     "pendingModerationBody": "Your comment will be visible to everyone once it has been approved.",
     "commentError": "Could not post the comment. Please try again."
+  },
+  "sharePost": {
+    "title": "Share post",
+    "viaMessage": "Send in a message",
+    "searchPeople": "Search for someone to share with...",
+    "notePlaceholder": "Add a message...",
+    "toOtherApps": "Other apps",
+    "copyLink": "Copy link",
+    "copied": "Link copied",
+    "sent": "Post shared",
+    "failed": "Sharing failed",
+    "tooMany": "You can share to at most 20 places"
   },
   "savedPosts": {
     "title": "Saved posts",

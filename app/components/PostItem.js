@@ -4,7 +4,6 @@ import {
   Pressable,
   Text,
   TouchableOpacity,
-  Share,
   Alert,
   Dimensions,
   ScrollView,
@@ -26,11 +25,14 @@ import {
   deletePost,
   savePost,
   unsavePost,
+  hidePost,
+  unhidePost,
   votePost,
   reportUser,
 } from "../services/api/Api";
 import ReportModal from "./ReportModal";
 import PostVotesModal from "./PostVotesModal";
+import SharePostModal from "./SharePostModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
@@ -293,10 +295,11 @@ const PostItem = ({
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
   const insets = useSafeAreaInsets();
   const { username, userInfo } = useContext(AuthContext);
-  const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const { feed, setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [votesModalVisible, setVotesModalVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -309,16 +312,6 @@ const PostItem = ({
     externalSaved !== undefined
       ? externalSaved
       : item.saved || item.is_saved || false;
-
-  const shareLink = async (link) => {
-    try {
-      await Share.share({
-        message: link,
-      });
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
-  };
 
   const handleDeletePost = async () => {
     Alert.alert(
@@ -362,6 +355,72 @@ const PostItem = ({
     );
   };
 
+  // "Ẩn bài viết": a per-user feed filter, not a delete - the post stays
+  // public and reachable by link, it just stops showing up in this user's
+  // feed. Removed from the list optimistically and put back at the same
+  // position if the request fails or the user taps undo on the toast.
+  const handleHidePost = async () => {
+    hideBottomSheet();
+
+    const removedIndex = Array.isArray(feed)
+      ? feed.findIndex((post) => post.id === item.id)
+      : -1;
+
+    const restorePost = () => {
+      if (!setFeed || removedIndex < 0) return;
+      setFeed((prevPosts) => {
+        if (!Array.isArray(prevPosts)) return prevPosts;
+        if (prevPosts.some((post) => post.id === item.id)) return prevPosts;
+        const next = [...prevPosts];
+        next.splice(Math.min(removedIndex, next.length), 0, item);
+        return next;
+      });
+    };
+
+    if (setFeed) {
+      setFeed((prevPosts) =>
+        Array.isArray(prevPosts)
+          ? prevPosts.filter((post) => post.id !== item.id)
+          : prevPosts
+      );
+    }
+
+    try {
+      await hidePost(item.id);
+      Toast.show({
+        type: "success",
+        text1: t("post.hideSuccess"),
+        text2: t("post.hideUndo"),
+        autoHide: true,
+        visibilityTime: 5000,
+        onPress: async () => {
+          Toast.hide();
+          try {
+            await unhidePost(item.id);
+            restorePost();
+            Toast.show({
+              type: "success",
+              text1: t("post.unhideSuccess"),
+              autoHide: true,
+              visibilityTime: 2500,
+            });
+          } catch (error) {
+            console.error("Unhiding post failed:", error);
+          }
+        },
+      });
+    } catch (error) {
+      console.error("Hiding post failed:", error);
+      restorePost();
+      Toast.show({
+        type: "error",
+        text1: t("post.hideError"),
+        autoHide: true,
+        visibilityTime: 4000,
+      });
+    }
+  };
+
   const handleReportSubmit = async (reason) => {
     try {
       const reportedUserId = item?.author?.id || item?.user_id || item?.uid || item?.userid;
@@ -393,11 +452,25 @@ const PostItem = ({
             </Text>
           </View>
         </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity onPress={handleHidePost}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="eye-off-outline" size={23} color={theme.text} />
+              <View style={{ padding: 12, flex: 1 }}>
+                <Text style={{ fontSize: 17, color: theme.text }}>
+                  {t('post.hide')}
+                </Text>
+                <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+                  {t('post.hideSubtitle')}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           onPress={() => {
-            shareLink(
-              `https://chuyenbienhoa.com/${item.author.id}/posts/${generatePostSlug(item.id, item.title)}?source=share`
-            );
+            hideBottomSheet();
+            setShareModalVisible(true);
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -1066,6 +1139,24 @@ const PostItem = ({
               color={currentSaved ? theme.primary : theme.subText} // Green icon when saved, themed when not saved
             />
           </Pressable>
+          <Pressable
+            onPress={() => setShareModalVisible(true)}
+            accessibilityLabel={t("sharePost.title", "Chia sẻ bài viết")}
+            style={{
+              borderRadius: single ? 10 : 8,
+              width: single ? 42 : 33.6,
+              height: single ? 42 : 33.6,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: theme.iconBackground,
+            }}
+          >
+            <Ionicons
+              name="share-outline"
+              size={single ? 24 : 20}
+              color={theme.subText}
+            />
+          </Pressable>
           <View style={{ flex: 1, flexDirection: "row-reverse", alignItems: "center" }}>
             <Text style={{ color: theme.subText, fontSize: single ? 16 : undefined }}>
               {item.view_count ?? item.views_count ?? item.views ?? 0}
@@ -1100,6 +1191,11 @@ const PostItem = ({
           </View>
         </View>
       </View>
+      <SharePostModal
+        visible={shareModalVisible}
+        post={item}
+        onClose={() => setShareModalVisible(false)}
+      />
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}

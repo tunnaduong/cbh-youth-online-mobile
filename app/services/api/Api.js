@@ -140,6 +140,16 @@ export const unsavePost = (id) => {
   return Api.deleteRequest("/v1.0/user/saved-topics/" + id);
 };
 
+// Per-user feed filter ("Ẩn bài viết") - hides the post from this user's
+// feed only, it stays public and reachable by link.
+export const hidePost = (id) => {
+  return Api.postRequest("/v1.0/user/hidden-topics", { topic_id: id });
+};
+
+export const unhidePost = (id) => {
+  return Api.deleteRequest("/v1.0/user/hidden-topics/" + id);
+};
+
 export const createPost = (params) => {
   return Api.postRequest("/v1.0/topics", params);
 };
@@ -564,6 +574,17 @@ export const forwardMessage = (messageId, { conversationIds, userIds } = {}) => 
   return Api.postRequest(`/v1.0/chat/messages/${messageId}/forward`, {
     conversation_ids: conversationIds || [],
     user_ids: userIds || [],
+  });
+};
+
+// Share a forum post into conversations as a quick message. The message body is
+// built server-side from the topic, so only the target list travels from here.
+export const sharePostToChat = (topicId, { conversationIds, userIds, note } = {}) => {
+  return Api.postRequest("/v1.0/chat/share/topic", {
+    topic_id: topicId,
+    conversation_ids: conversationIds || [],
+    user_ids: userIds || [],
+    note: note || null,
   });
 };
 

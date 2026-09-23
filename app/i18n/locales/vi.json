@@ -363,6 +363,12 @@
     "share": "Chia sẻ",
     "unsave": "Bỏ lưu bài viết",
     "save": "Lưu bài viết",
+    "hide": "Ẩn bài viết",
+    "hideSubtitle": "Ẩn bài viết này khỏi bảng tin của bạn",
+    "hideSuccess": "Đã ẩn bài viết khỏi bảng tin",
+    "hideUndo": "Nhấn để hoàn tác",
+    "hideError": "Không thể ẩn bài viết. Vui lòng thử lại.",
+    "unhideSuccess": "Đã hoàn tác ẩn bài viết",
     "privacy": "Cài đặt quyền riêng tư",
     "edit": "Chỉnh sửa bài đăng",
     "delete": "Xóa bài viết",
@@ -396,6 +402,18 @@
     "pendingModerationTitle": "Bình luận đang chờ kiểm duyệt",
     "pendingModerationBody": "Bình luận của bạn sẽ hiển thị với mọi người sau khi được duyệt.",
     "commentError": "Không thể gửi bình luận. Vui lòng thử lại."
+  },
+  "sharePost": {
+    "title": "Chia sẻ bài viết",
+    "viaMessage": "Gửi qua tin nhắn",
+    "searchPeople": "Tìm người để chia sẻ...",
+    "notePlaceholder": "Thêm lời nhắn...",
+    "toOtherApps": "Ứng dụng khác",
+    "copyLink": "Sao chép liên kết",
+    "copied": "Đã sao chép liên kết",
+    "sent": "Đã chia sẻ bài viết",
+    "failed": "Chia sẻ thất bại",
+    "tooMany": "Chỉ có thể chia sẻ tới tối đa 20 nơi"
   },
   "savedPosts": {
     "title": "Bài viết đã lưu",
