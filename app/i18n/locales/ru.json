@@ -991,7 +991,9 @@
     "accountDeleted": "Аккаунт успешно удален",
     "usernameRequired": "Введите новое имя пользователя",
     "emailRequired": "Введите новый email",
-    "hideEmailError": "Не удалось обновить эту настройку."
+    "hideEmailError": "Не удалось обновить эту настройку.",
+    "hideEmail": "Скрыть email в профиле",
+    "hideEmailDesc": "Другие не увидят ваш email при просмотре профиля"
   },
   "notificationSettings": {
     "title": "Уведомления",

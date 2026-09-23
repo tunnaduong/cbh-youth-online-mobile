@@ -66,8 +66,20 @@ const GatedLiquidGlassView = ({
     );
   }
 
+  // `borderRadius` is an optional prop: most call sites never pass it and put
+  // the radius in `style` instead. Spreading it unconditionally wrote
+  // `borderRadius: undefined` *after* `style`, which in RN's style merge
+  // overrides the style's own radius and squares the view off - that's what
+  // put a hard-cornered box behind the round "+" tab button whenever the
+  // Liquid glass setting was turned off. Only override when actually given.
   return (
-    <View style={[style, { borderRadius, backgroundColor: tintColor }]}>
+    <View
+      style={[
+        style,
+        { backgroundColor: tintColor },
+        borderRadius != null && { borderRadius },
+      ]}
+    >
       {children}
     </View>
   );

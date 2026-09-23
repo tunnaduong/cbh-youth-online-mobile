@@ -323,9 +323,13 @@ const App = () => {
   // a first launch, so it must not drag the person back through language and
   // preference onboarding - any saved account means they've been here before.
   const [hasSavedAccounts, setHasSavedAccounts] = useState(null);
+  // Re-read on every isLoggedIn flip, not just at boot: the account that makes
+  // this true is saved *during* the session, so a boot-only read is still
+  // false at the moment "Add account" signs the device out - which is exactly
+  // when this has to be true to skip onboarding.
   useEffect(() => {
     getSavedAccounts().then((list) => setHasSavedAccounts(list.length > 0));
-  }, []);
+  }, [isLoggedIn]);
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
@@ -604,11 +608,9 @@ const App = () => {
       >
         <Stack.Navigator
           initialRouteName={
-            isLoggedIn
-              ? undefined
-              : !languageChosen && !hasSavedAccounts
+            !isLoggedIn && languageChosen === false && hasSavedAccounts === false
               ? "LanguageSelect"
-              : "Welcome"
+              : undefined
           }
           screenOptions={{
             headerStyle: {
@@ -965,6 +967,22 @@ const App = () => {
             </>
           ) : (
             <>
+              {/* Welcome is declared FIRST on purpose. React Navigation falls
+                  back to the first screen in the list whenever initialRouteName
+                  is undefined or resolves before hasSavedAccounts has loaded,
+                  so the safe default for an already-onboarded device has to be
+                  the one at the top - otherwise a momentary sign-out (Add
+                  account / Switch account) drops the person back into language
+                  and preference onboarding. */}
+              <Stack.Screen
+                name="Welcome"
+                options={{
+                  title: "Chào mừng đến với CYO",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={WelcomeScreen}
+              />
               <Stack.Screen
                 name="LanguageSelect"
                 options={{
@@ -982,15 +1000,6 @@ const App = () => {
                   animation: "fade",
                 }}
                 component={FirstLaunchSettingsScreen}
-              />
-              <Stack.Screen
-                name="Welcome"
-                options={{
-                  title: "Chào mừng đến với CYO",
-                  headerShown: false,
-                  animation: "fade",
-                }}
-                component={WelcomeScreen}
               />
               <Stack.Screen
                 name="Login"

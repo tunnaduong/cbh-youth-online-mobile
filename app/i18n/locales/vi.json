@@ -967,7 +967,9 @@
     "accountDeleted": "Đã xóa tài khoản thành công",
     "usernameRequired": "Vui lòng nhập tên đăng nhập mới",
     "emailRequired": "Vui lòng nhập email mới",
-    "hideEmailError": "Không thể cập nhật cài đặt này."
+    "hideEmailError": "Không thể cập nhật cài đặt này.",
+    "hideEmail": "Ẩn email trên trang cá nhân",
+    "hideEmailDesc": "Người khác sẽ không thấy email của bạn khi xem trang cá nhân"
   },
   "notificationSettings": {
     "title": "Thông báo",

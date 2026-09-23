@@ -979,7 +979,9 @@
     "accountDeleted": "Account deleted successfully",
     "usernameRequired": "Please enter a new username",
     "emailRequired": "Please enter a new email",
-    "hideEmailError": "Couldn't update this setting."
+    "hideEmailError": "Couldn't update this setting.",
+    "hideEmail": "Hide email on profile",
+    "hideEmailDesc": "Other people won't see your email when they view your profile"
   },
   "notificationSettings": {
     "title": "Notifications",
