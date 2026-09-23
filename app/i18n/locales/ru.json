@@ -1341,7 +1341,8 @@
     "score18to20": "18 – 20",
     "score20to22": "20 – 22",
     "score22to24": "22 – 24",
-    "scoreAbove24": "Выше 24"
+    "scoreAbove24": "Выше 24",
+    "filterAll": "Все"
   },
   "quiz": {
     "title": "Викторина",

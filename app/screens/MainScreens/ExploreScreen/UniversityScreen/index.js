@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
+import SegmentedControl from "../../../../components/SegmentedControl";
 import { openInAppBrowser } from "../../../../utils/externalLink";
 import {
   getUniversityOptions,
@@ -104,18 +105,27 @@ const PickerModal = ({ visible, title, options, selectedIndex, onSelect, onClose
   );
 };
 
-const FilterField = ({ label, placeholder, theme, onPress }) => (
-  <TouchableOpacity
-    style={[styles.filterField, { backgroundColor: theme.iconBackground }]}
-    onPress={onPress}
-  >
-    <Text
-      style={[styles.filterFieldText, { color: label ? theme.text : theme.subText }]}
-      numberOfLines={1}
-    >
-      {label || placeholder}
+// One row of the inset-grouped filter card: the field's name on the left,
+// its current value (or a muted "Tất cả") on the right, iOS Settings-style.
+// The four filters used to be four separate floating boxes, which read as
+// four unrelated controls instead of one set of choices.
+const FilterField = ({ label, placeholder, theme, onPress, isLast, t }) => (
+  <TouchableOpacity style={styles.filterRow} onPress={onPress} activeOpacity={0.6}>
+    <Text style={[styles.filterRowLabel, { color: theme.text }]} numberOfLines={1}>
+      {placeholder}
     </Text>
-    <Ionicons name="chevron-down" size={16} color={theme.subText} />
+    <View style={styles.filterRowValue}>
+      <Text
+        style={[styles.filterRowValueText, { color: label ? theme.text : theme.subText }]}
+        numberOfLines={1}
+      >
+        {label || t("universities.filterAll", "Tất cả")}
+      </Text>
+      <Ionicons name="chevron-forward" size={16} color={theme.subText} />
+    </View>
+    {!isLast && (
+      <View style={[styles.filterRowSeparator, { backgroundColor: theme.border }]} />
+    )}
   </TouchableOpacity>
 );
 
@@ -389,27 +399,18 @@ const UniversityScreen = ({ navigation }) => {
             {t("universities.subtitle", "Tra cứu thông tin trường và điểm chuẩn tuyển sinh.")}
           </Text>
 
-          {/* Tabs */}
-          <View style={[styles.tabRow, { borderBottomColor: theme.border }]}>
-            {[
+          {/* Mode switch - an iOS segmented control rather than the old pair
+              of underlined text tabs, since "filter" and "search by name" are
+              two views of the same thing, not two destinations. */}
+          <SegmentedControl
+            style={{ marginBottom: 4 }}
+            value={tab}
+            onChange={setTab}
+            segments={[
               { key: "filter", icon: "options-outline", label: t("universities.tabFilter", "Bộ lọc") },
               { key: "search", icon: "search-outline", label: t("universities.tabSearch", "Tìm theo tên") },
-            ].map((tItem) => {
-              const active = tab === tItem.key;
-              return (
-                <TouchableOpacity
-                  key={tItem.key}
-                  onPress={() => setTab(tItem.key)}
-                  style={[styles.tabBtn, active && { borderBottomColor: theme.primary }]}
-                >
-                  <Ionicons name={tItem.icon} size={14} color={active ? theme.primary : theme.subText} />
-                  <Text style={[styles.tabBtnText, { color: active ? theme.primary : theme.subText }]}>
-                    {tItem.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+            ]}
+          />
 
           {tab === "filter" ? (
             <View style={{ marginTop: 16 }}>
@@ -417,30 +418,40 @@ const UniversityScreen = ({ navigation }) => {
                 <ActivityIndicator size="small" color={theme.primary} style={{ marginVertical: 20 }} />
               ) : (
                 <>
-                  <View style={styles.filterGrid}>
+                  <View
+                    style={[
+                      styles.filterCard,
+                      { backgroundColor: theme.cardBackground, borderColor: theme.border },
+                    ]}
+                  >
                     <FilterField
                       label={cityIdx != null ? options.city[cityIdx] : null}
                       placeholder={t("universities.cityPlaceholder", "TP / Tỉnh")}
                       theme={theme}
                       onPress={() => setActivePicker("city")}
+                      t={t}
                     />
                     <FilterField
                       label={typeIdx != null ? options.type[typeIdx] : null}
                       placeholder={t("universities.typePlaceholder", "Loại hình")}
                       theme={theme}
                       onPress={() => setActivePicker("type")}
+                      t={t}
                     />
                     <FilterField
                       label={majorIdx != null ? options.major[majorIdx] : null}
                       placeholder={t("universities.majorPlaceholder", "Ngành học")}
                       theme={theme}
                       onPress={() => setActivePicker("major")}
+                      t={t}
                     />
                     <FilterField
                       label={subjectIdx != null ? options.subjectComposition[subjectIdx] : null}
                       placeholder={t("universities.subjectPlaceholder", "Khối thi")}
                       theme={theme}
                       onPress={() => setActivePicker("subject")}
+                      isLast
+                      t={t}
                     />
                   </View>
 
@@ -655,27 +666,30 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: "700" },
   subtitle: { fontSize: 13, marginBottom: 14 },
-  tabRow: { flexDirection: "row", borderBottomWidth: 1 },
-  tabBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
+  filterCard: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    marginBottom: 4,
   },
-  tabBtnText: { fontSize: 13, fontWeight: "600" },
-  filterGrid: { gap: 10, marginBottom: 4 },
-  filterField: {
+  filterRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
+    gap: 12,
   },
-  filterFieldText: { fontSize: 14, flex: 1, marginRight: 8 },
+  filterRowLabel: { fontSize: 14, fontWeight: "500" },
+  filterRowValue: { flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 },
+  filterRowValueText: { fontSize: 14, flexShrink: 1, textAlign: "right" },
+  filterRowSeparator: {
+    position: "absolute",
+    left: 14,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth,
+  },
   scoreLabel: { fontSize: 13, fontWeight: "700", marginTop: 14, marginBottom: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
   searchButton: {

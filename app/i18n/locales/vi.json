@@ -1314,7 +1314,8 @@
     "score18to20": "18 – 20",
     "score20to22": "20 – 22",
     "score22to24": "22 – 24",
-    "scoreAbove24": "Trên 24"
+    "scoreAbove24": "Trên 24",
+    "filterAll": "Tất cả"
   },
   "quiz": {
     "title": "Đố vui",
