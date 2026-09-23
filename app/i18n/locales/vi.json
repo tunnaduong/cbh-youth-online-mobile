@@ -424,7 +424,8 @@
     "copied": "Đã sao chép liên kết",
     "sent": "Đã chia sẻ bài viết",
     "failed": "Chia sẻ thất bại",
-    "tooMany": "Chỉ có thể chia sẻ tới tối đa 20 nơi"
+    "tooMany": "Chỉ có thể chia sẻ tới tối đa 20 nơi",
+    "sharedAPost": "Đã chia sẻ một bài viết"
   },
   "savedPosts": {
     "title": "Bài viết đã lưu",

@@ -335,6 +335,18 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       );
     }
 
+    // A shared post's content is "note + link" - the raw url reads as noise in
+    // a one-line preview, so show the post's title instead.
+    const sharedTopic = latestMessage.metadata?.shared_topic;
+    if (sharedTopic) {
+      return (
+        <>
+          <Ionicons name="share-outline" size={14} color={theme.subText} />{" "}
+          {sharedTopic.title || t("sharePost.sharedAPost", "Đã chia sẻ một bài viết")}
+        </>
+      );
+    }
+
     const content = latestMessage.content || t("chat.noMessages");
     if (latestMessage.is_edited) {
       return `${content} ${t("chatConversation.edited", "(Đã sửa)")}`;

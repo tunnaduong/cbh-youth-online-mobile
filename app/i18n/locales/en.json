@@ -435,7 +435,8 @@
     "copied": "Link copied",
     "sent": "Post shared",
     "failed": "Sharing failed",
-    "tooMany": "You can share to at most 20 places"
+    "tooMany": "You can share to at most 20 places",
+    "sharedAPost": "Shared a post"
   },
   "savedPosts": {
     "title": "Saved posts",

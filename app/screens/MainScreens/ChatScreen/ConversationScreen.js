@@ -53,6 +53,7 @@ import {
   removeGroupParticipant,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
+import SharedPostCard from "../../../components/SharedPostCard";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
@@ -764,6 +765,13 @@ const MessageRow = React.memo(({
   // message has gone through a refetch its original content type only survives in
   // `content_type` (see injectTimeHeaders) - check both so attachments keep
   // rendering as images/file cards instead of falling back to plain text.
+  // A post shared from the feed: render the preview card instead of the bare
+  // link, and keep whatever note the sender typed above it.
+  const sharedTopic = item.metadata?.shared_topic || null;
+  const sharedTopicNote = sharedTopic
+    ? String(item.content || "").replace(sharedTopic.url || "", "").trim()
+    : "";
+
   const isImageMessage = item.type === "image" || item.content_type === "image";
   const isVideoMessage = item.type === "video" || item.content_type === "video";
   const isFileMessage = item.type === "file" || item.content_type === "file";
@@ -1179,6 +1187,37 @@ const MessageRow = React.memo(({
                         : t("chatConversation.tapToOpen", "Nhấn để mở")}
                   </Text>
                 </View>
+              </View>
+            ) : !item.is_recalled && sharedTopic ? (
+              <View style={{ gap: 8 }}>
+                {sharedTopicNote ? (
+                  <MentionText
+                    style={[
+                      styles.messageText,
+                      {
+                        color: item.is_myself
+                          ? isDarkMode
+                            ? "#ecfdf5"
+                            : "#000"
+                          : theme.text,
+                      },
+                    ]}
+                    mentions={item.mentions}
+                    allowBroadcastMention={isGroupChat}
+                    onMentionPress={(username) =>
+                      navigation.navigate("ProfileScreen", { username })
+                    }
+                  >
+                    {sharedTopicNote}
+                  </MentionText>
+                ) : null}
+                <SharedPostCard
+                  topic={sharedTopic}
+                  compact
+                  onPress={() =>
+                    navigation.navigate("PostScreen", { postId: sharedTopic.id })
+                  }
+                />
               </View>
             ) : !item.is_recalled ? (
               <MentionText
