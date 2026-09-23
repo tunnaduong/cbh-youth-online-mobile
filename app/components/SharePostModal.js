@@ -23,7 +23,6 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
 import FastImage from "./FastImage";
 import UserMultiSelectPicker from "./UserMultiSelectPicker";
-import SharedPostCard from "./SharedPostCard";
 import { getConversations, sharePostToChat } from "../services/api/Api";
 import { generatePostSlug } from "../utils/slugify";
 
@@ -41,20 +40,6 @@ const getConversationDisplay = (conversation) => {
     avatarUrl: participant?.avatar_url || null,
     isGroup: false,
   };
-};
-
-const htmlToExcerpt = (html) => {
-  if (!html) return "";
-  const text = String(html)
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/\s+/g, " ")
-    .trim();
-  return text.length > 200 ? text.slice(0, 200) + "..." : text;
 };
 
 const buildPostUrl = (post) => {
@@ -100,26 +85,6 @@ const SharePostModal = ({ visible, post, onClose }) => {
       })
       .finally(() => setLoading(false));
   }, [visible]);
-
-  // Same shape the server stores in metadata.shared_topic, so the sender sees
-  // exactly the card the recipient will get.
-  const previewTopic = post
-    ? {
-        id: post.id,
-        title: post.title,
-        url: buildPostUrl(post),
-        excerpt: htmlToExcerpt(post.content),
-        thumbnail:
-          post.image_thumbnail_urls?.[0] || post.image_urls?.[0] || null,
-        author_name: post.anonymous
-          ? t("post.anonymousUser", "Người dùng ẩn danh")
-          : post.author?.profile_name || post.author?.username || "",
-        author_avatar:
-          post.anonymous || !post.author?.username
-            ? null
-            : `https://api.chuyenbienhoa.com/v1.0/users/${post.author.username}/avatar`,
-      }
-    : null;
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) =>
@@ -235,12 +200,6 @@ const SharePostModal = ({ visible, post, onClose }) => {
               )}
             </TouchableOpacity>
           </View>
-
-          {previewTopic ? (
-            <View style={[styles.previewWrapper, { borderBottomColor: theme.border }]}>
-              <SharedPostCard topic={previewTopic} compact />
-            </View>
-          ) : null}
 
           {/* Option 2: hand the link to other apps via the OS share intent. */}
           <View style={[styles.externalRow, { borderBottomColor: theme.border }]}>
@@ -390,11 +349,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     paddingHorizontal: 16,
     marginBottom: 6,
-  },
-  previewWrapper: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   searchWrapper: { paddingTop: 12 },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
