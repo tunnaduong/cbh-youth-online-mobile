@@ -52,6 +52,14 @@ const formatNotificationMessage = (notification, t) => {
   if (!actor) {
     // Handle other notifications without actor
     switch (type) {
+      // Admin-only alert: something is sitting in the moderation queue.
+      case "moderation_pending":
+        return t(
+          data?.content_type === "comment"
+            ? 'notifications.moderationPendingComment'
+            : 'notifications.moderationPendingPost',
+          { username: data?.author_username || "" }
+        );
       case "topic_pinned":
         return `${t('notifications.pinnedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
       case "topic_moved":

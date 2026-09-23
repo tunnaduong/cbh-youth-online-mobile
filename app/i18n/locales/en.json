@@ -682,7 +682,9 @@
     "removedDeputyRole": "removed your deputy role in",
     "madeDeputy": "made you a deputy of",
     "changedBackgroundGroup": "changed the background of",
-    "changedBackgroundPrivate": "changed the chat background"
+    "changedBackgroundPrivate": "changed the chat background",
+    "moderationPendingPost": "@{{username}}'s post is waiting for review",
+    "moderationPendingComment": "@{{username}}'s comment is waiting for review"
   },
   "chatBackground": {
     "title": "Chat background",

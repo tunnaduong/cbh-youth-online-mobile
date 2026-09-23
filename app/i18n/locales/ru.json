@@ -691,7 +691,9 @@
     "removedDeputyRole": "снял(а) вашу роль заместителя в группе",
     "madeDeputy": "назначил(а) вас заместителем в группе",
     "changedBackgroundGroup": "изменил(а) фон группы",
-    "changedBackgroundPrivate": "изменил(а) фон чата"
+    "changedBackgroundPrivate": "изменил(а) фон чата",
+    "moderationPendingPost": "Пост @{{username}} ожидает модерации",
+    "moderationPendingComment": "Комментарий @{{username}} ожидает модерации"
   },
   "chatBackground": {
     "title": "Фон чата",

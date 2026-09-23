@@ -671,7 +671,9 @@
     "removedDeputyRole": "đã gỡ vai trò phó nhóm của bạn trong nhóm",
     "madeDeputy": "đã chỉ định bạn làm phó nhóm",
     "changedBackgroundGroup": "đã đổi hình nền nhóm",
-    "changedBackgroundPrivate": "đã đổi hình nền cuộc trò chuyện"
+    "changedBackgroundPrivate": "đã đổi hình nền cuộc trò chuyện",
+    "moderationPendingPost": "Bài viết của @{{username}} đang chờ kiểm duyệt",
+    "moderationPendingComment": "Bình luận của @{{username}} đang chờ kiểm duyệt"
   },
   "chatBackground": {
     "title": "Hình nền đoạn chat",
