@@ -10,7 +10,6 @@ import {
   Animated,
   Modal,
   FlatList,
-  Linking,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
+import { openInAppBrowser } from "../../../../utils/externalLink";
 import {
   getUniversityOptions,
   getUniversities,
@@ -175,7 +175,7 @@ function UniversityCard({ uni, theme, isDarkMode, t }) {
       {uni.website ? (
         <TouchableOpacity
           style={styles.infoRow}
-          onPress={() => Linking.openURL(uni.website.startsWith("http") ? uni.website : `https://${uni.website}`)}
+          onPress={() => openInAppBrowser(uni.website.startsWith("http") ? uni.website : `https://${uni.website}`, theme)}
         >
           <Ionicons name="globe-outline" size={13} color={theme.subText} />
           <Text style={[styles.infoText, { color: theme.primary }]} numberOfLines={1}>
@@ -220,7 +220,7 @@ function UniversityCard({ uni, theme, isDarkMode, t }) {
       {(uni.urls || []).length > 0 && (
         <View style={{ marginTop: 10, gap: 4 }}>
           {uni.urls.map((u, i) => (
-            <TouchableOpacity key={i} onPress={() => Linking.openURL(u)}>
+            <TouchableOpacity key={i} onPress={() => openInAppBrowser(u, theme)}>
               <Text style={[styles.urlLink, { color: theme.primary }]} numberOfLines={1}>
                 {i === 0
                   ? t("universities.admissionLink", "Xem trang tuyển sinh →")
@@ -604,7 +604,7 @@ const UniversityScreen = ({ navigation }) => {
                   <TouchableOpacity
                     key={i}
                     style={[styles.generalInfoRow, i < generalInfo.length - 1 && { borderBottomWidth: 1, borderBottomColor: theme.border }]}
-                    onPress={() => item.url && Linking.openURL(item.url)}
+                    onPress={() => item.url && openInAppBrowser(item.url, theme)}
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.generalInfoItemTitle, { color: theme.text }]} numberOfLines={2}>

@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Linking,
   StatusBar,
   Animated,
   Share,
@@ -17,7 +16,7 @@ import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
-import { decodeLinkToken, parseUrlParts } from "../../../utils/externalLink";
+import { decodeLinkToken, openInAppBrowser, parseUrlParts } from "../../../utils/externalLink";
 
 /**
  * Warning screen shown before the app hands a link from user content (post
@@ -58,17 +57,17 @@ const LinkSafetyScreen = ({ navigation, route }) => {
 
   const handleContinue = useCallback(() => {
     if (!url) return;
-    Linking.openURL(url).catch(() => {
-      Toast.show({
-        type: "error",
-        text1: t("linkSafety.openFailed"),
-        autoHide: true,
-      });
-    });
-    // Leave the warning behind so coming back from the browser lands on the
-    // post the link came from, not on this screen again.
-    navigation.goBack();
-  }, [url, navigation, t]);
+    // In-app browser rather than Safari/Chrome: the user stays inside the app
+    // and one tap on "close" puts them back where they were reading.
+    //
+    // Dropping this screen happens once the browser is up, not before it:
+    // openBrowserAsync resolves on dismiss on iOS (where the browser is a
+    // modal presented over this screen, so tearing the screen down first
+    // could race the presentation) and as soon as the Custom Tab activity
+    // starts on Android. Either way the warning is gone by the time the user
+    // is back, so they land on the post the link came from.
+    openInAppBrowser(url, theme).finally(() => navigation.goBack());
+  }, [url, navigation, theme]);
 
   const handleCopy = useCallback(() => {
     if (!url) return;

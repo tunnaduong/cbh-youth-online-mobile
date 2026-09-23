@@ -7,7 +7,6 @@ import {
   Share,
   Alert,
   Dimensions,
-  Linking,
   ScrollView,
   Platform,
 } from "react-native";
@@ -44,7 +43,7 @@ import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
 import { appendSoundCloudEmbedBelow } from "../utils/soundcloudShare";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
-import { openExternalLink } from "../utils/externalLink";
+import { openExternalLink, openInAppBrowser } from "../utils/externalLink";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -585,7 +584,7 @@ const PostItem = ({
     }
     // Outbound links stop at the link-safety screen first: the post author
     // writes both the link text and its destination, so the two can disagree.
-    openExternalLink(navigation, href);
+    openExternalLink(navigation, href, theme);
   };
 
   // The post body sits inside the collapse/expand Pressable (onPress =
@@ -887,7 +886,7 @@ const PostItem = ({
             return (
               <TouchableOpacity
                 key={index}
-                onPress={() => Linking.openURL(docUrl)}
+                onPress={() => openInAppBrowser(docUrl, theme)}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',

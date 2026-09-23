@@ -71,7 +71,7 @@ export function buildParts(text) {
  *                              plain text instead.
  */
 const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcastMention = true, enableAiCommands = false, ...rest }) => {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, theme } = useTheme();
   const navigation = useNavigation();
   const text = typeof children === "string" ? children : String(children ?? "");
   // Message bubbles range from near-white to near-black across own/other
@@ -135,7 +135,7 @@ const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcast
               // Goes via the link-safety screen rather than straight to the
               // browser - a chat message is the easiest place to drop a
               // phishing link, and the sender chooses the text around it.
-              onPress={() => openExternalLink(navigation, part.value)}
+              onPress={() => openExternalLink(navigation, part.value, theme)}
             >
               {part.value}
             </Text>
