@@ -1550,6 +1550,7 @@ const ConversationScreen = ({ navigation, route }) => {
     activeConversationId.current = currentConversationId || conversationId;
   }, [currentConversationId, conversationId]);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportMessageTarget, setReportMessageTarget] = useState(null);
   const [backgroundModalVisible, setBackgroundModalVisible] = useState(false);
   // Chat background (Messenger-style): defaults to the conversation's stored
   // background_url, but a live "background_changed" system message overrides
@@ -1854,6 +1855,36 @@ const ConversationScreen = ({ navigation, route }) => {
     options.push({ text: t("common.cancel"), style: "cancel" });
 
     showActionList(name, options);
+  };
+
+  const handleReportMessage = () => {
+    const message = reactionPicker.message;
+    closeReactionPicker();
+    if (message) setReportMessageTarget(message);
+  };
+
+  const handleReportMessageSubmit = async (reason) => {
+    const message = reportMessageTarget;
+    if (!message) return;
+
+    try {
+      await reportUser({
+        message_id: message.id,
+        reported_user_id: message.sender?.id,
+        reason,
+      });
+      Alert.alert(
+        t("chatConversation.thanksTitle"),
+        t("chatConversation.reportSent"),
+      );
+    } catch (e) {
+      const errorMessage =
+        e.response?.data?.message ||
+        e.message ||
+        t("chatConversation.reportError");
+      Alert.alert(t("common.error"), errorMessage);
+      throw e;
+    }
   };
 
   const handleReportSubmit = async (reason) => {
@@ -4103,6 +4134,13 @@ const ConversationScreen = ({ navigation, route }) => {
         onSubmit={handleReportSubmit}
       />
 
+      <ReportModal
+        visible={!!reportMessageTarget}
+        onClose={() => setReportMessageTarget(null)}
+        onSubmit={handleReportMessageSubmit}
+        title={t("chatConversation.reportMessage", "Báo cáo tin nhắn")}
+      />
+
       <ChatBackgroundModal
         visible={backgroundModalVisible}
         conversationId={currentConversationId || conversationId}
@@ -4222,6 +4260,15 @@ const ConversationScreen = ({ navigation, route }) => {
         onRecall={
           reactionPicker.message?.is_myself && !reactionPicker.message?.is_recalled
             ? handleRecallMessage
+            : undefined
+        }
+        onReport={
+          // Only other people's messages, and never the AI's - there's no
+          // account behind those to report.
+          !reactionPicker.message?.is_myself &&
+          !reactionPicker.message?.sender?.is_ai &&
+          !reactionPicker.message?.is_sending
+            ? handleReportMessage
             : undefined
         }
         onViewSeenBy={

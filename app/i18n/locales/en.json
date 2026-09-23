@@ -491,6 +491,7 @@
     "reportTargetError": "Could not identify the user to report.",
     "reportError": "Could not send report",
     "report": "Report",
+    "reportMessage": "Report message",
     "blockUser": "Block user",
     "changeBackground": "Change background",
     "optionsTitle": "Options",

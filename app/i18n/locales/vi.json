@@ -480,6 +480,7 @@
     "reportTargetError": "Không thể xác định người dùng để báo cáo.",
     "reportError": "Không thể gửi báo cáo",
     "report": "Báo cáo",
+    "reportMessage": "Báo cáo tin nhắn",
     "blockUser": "Chặn người dùng",
     "changeBackground": "Đổi hình nền",
     "optionsTitle": "Tùy chọn",
