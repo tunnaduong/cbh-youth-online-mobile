@@ -16,6 +16,7 @@ import Toast from "react-native-toast-message";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import i18n from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import {
@@ -39,7 +40,7 @@ const StatusBanner = ({ icon, iconColor, tint, border, title, children, theme })
   </View>
 );
 
-const PhotoPicker = ({ label, hint, uri, onPick, icon, theme }) => (
+const PhotoPicker = ({ label, hint, uri, onPick, icon, theme, t }) => (
   <View style={{ flex: 1 }}>
     <Text style={[styles.inputLabel, { color: theme.text }]}>
       {label} <Text style={{ color: "#ef4444" }}>*</Text>
@@ -54,7 +55,9 @@ const PhotoPicker = ({ label, hint, uri, onPick, icon, theme }) => (
       ) : (
         <View style={{ alignItems: "center", paddingVertical: 14 }}>
           <Ionicons name={icon} size={30} color={theme.subText} />
-          <Text style={[styles.dropzoneText, { color: theme.subText }]}>Chạm để chọn ảnh</Text>
+          <Text style={[styles.dropzoneText, { color: theme.subText }]}>
+            {t("studentVerification.pickPhoto")}
+          </Text>
           <Text style={[styles.dropzoneHint, { color: theme.subText }]}>{hint}</Text>
         </View>
       )}
@@ -89,7 +92,7 @@ export default function StudentVerificationScreen({ navigation }) {
       Toast.show({
         type: "error",
         text1: t("common.error"),
-        text2: "Không thể tải trạng thái xác minh.",
+        text2: t("studentVerification.statusError"),
       });
     } finally {
       setLoading(false);
@@ -103,7 +106,7 @@ export default function StudentVerificationScreen({ navigation }) {
   const pickImage = async (setUri) => {
     const { status: permission } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (permission !== "granted") {
-      Alert.alert(t("common.error"), "Vui lòng cho phép truy cập thư viện ảnh.");
+      Alert.alert(t("common.error"), t("studentVerification.permissionDenied"));
       return;
     }
 
@@ -119,7 +122,7 @@ export default function StudentVerificationScreen({ navigation }) {
 
   const handleSubmit = async () => {
     if (!selfieUri || !cardUri) {
-      Toast.show({ type: "error", text1: "Vui lòng chọn cả ảnh selfie và thẻ học sinh." });
+      Toast.show({ type: "error", text1: t("studentVerification.missingPhotos") });
       return;
     }
 
@@ -131,15 +134,15 @@ export default function StudentVerificationScreen({ navigation }) {
       ]);
 
       if (!selfieUrl || !cardUrl) {
-        throw new Error("Tải ảnh lên thất bại. Vui lòng thử lại.");
+        throw new Error(t("studentVerification.uploadFailed"));
       }
 
       await submitStudentVerification({ selfie_url: selfieUrl, student_card_url: cardUrl });
 
       Toast.show({
         type: "success",
-        text1: "Gửi yêu cầu xác minh thành công!",
-        text2: "Admin sẽ xét duyệt trong vòng 24 giờ.",
+        text1: t("studentVerification.submitSuccess"),
+        text2: t("studentVerification.submitSuccessBody"),
       });
 
       setSelfieUri(null);
@@ -152,7 +155,7 @@ export default function StudentVerificationScreen({ navigation }) {
         text2:
           error?.response?.data?.message ||
           error?.message ||
-          "Gửi yêu cầu thất bại. Vui lòng thử lại.",
+          t("studentVerification.submitFailed"),
       });
     } finally {
       setSubmitting(false);
@@ -178,13 +181,16 @@ export default function StudentVerificationScreen({ navigation }) {
           iconColor="#22c55e"
           tint={isDarkMode ? "rgba(34,197,94,0.12)" : "#f0fdf4"}
           border={isDarkMode ? "rgba(34,197,94,0.3)" : "#bbf7d0"}
-          title="Tài khoản đã được xác minh học sinh"
+          title={t("studentVerification.verifiedTitle")}
           theme={theme}
         >
           <Text style={[styles.bannerBody, { color: theme.subText }]}>
-            Bạn đang được hưởng giảm giá {DISCOUNT_LABEL} tại Gift Shop.
+            {t("studentVerification.verifiedBody", { discount: DISCOUNT_LABEL })}
             {status.verified_at
-              ? `\nXác minh từ: ${new Date(status.verified_at).toLocaleDateString("vi-VN")}`
+              ? "\n" +
+                t("studentVerification.verifiedSince", {
+                  date: new Date(status.verified_at).toLocaleDateString(i18n.language),
+                })
               : ""}
           </Text>
         </StatusBanner>
@@ -198,11 +204,11 @@ export default function StudentVerificationScreen({ navigation }) {
           iconColor="#eab308"
           tint={isDarkMode ? "rgba(234,179,8,0.12)" : "#fefce8"}
           border={isDarkMode ? "rgba(234,179,8,0.3)" : "#fef08a"}
-          title="Đang chờ xét duyệt"
+          title={t("studentVerification.pendingTitle")}
           theme={theme}
         >
           <Text style={[styles.bannerBody, { color: theme.subText }]}>
-            Yêu cầu của bạn đã được gửi và đang được xem xét. Vui lòng đợi admin duyệt trong 24 giờ.
+            {t("studentVerification.pendingBody")}
           </Text>
         </StatusBanner>
       );
@@ -216,36 +222,38 @@ export default function StudentVerificationScreen({ navigation }) {
             iconColor="#ef4444"
             tint={isDarkMode ? "rgba(239,68,68,0.12)" : "#fef2f2"}
             border={isDarkMode ? "rgba(239,68,68,0.3)" : "#fecaca"}
-            title="Yêu cầu đã bị từ chối"
+            title={t("studentVerification.rejectedTitle")}
             theme={theme}
           >
             {verification.rejection_reason ? (
               <Text style={[styles.bannerBody, { color: theme.subText }]}>
-                Lý do: {verification.rejection_reason}
+                {t("studentVerification.rejectedReason", { reason: verification.rejection_reason })}
               </Text>
             ) : null}
             <Text style={[styles.bannerBody, { color: theme.subText }]}>
-              Bạn có thể gửi lại yêu cầu bên dưới.
+              {t("studentVerification.rejectedRetry")}
             </Text>
           </StatusBanner>
         )}
 
         <View style={{ flexDirection: "row", gap: 12 }}>
           <PhotoPicker
-            label="Ảnh selfie cầm thẻ"
-            hint="Chụp rõ mặt và thẻ học sinh"
+            label={t("studentVerification.selfieLabel")}
+            hint={t("studentVerification.selfieHint")}
             icon="school-outline"
             uri={selfieUri}
             onPick={() => pickImage(setSelfieUri)}
             theme={theme}
+            t={t}
           />
           <PhotoPicker
-            label="Ảnh thẻ học sinh"
-            hint="Chụp rõ thông tin trên thẻ"
+            label={t("studentVerification.cardLabel")}
+            hint={t("studentVerification.cardHint")}
             icon="card-outline"
             uri={cardUri}
             onPick={() => pickImage(setCardUri)}
             theme={theme}
+            t={t}
           />
         </View>
 
@@ -258,11 +266,13 @@ export default function StudentVerificationScreen({ navigation }) {
             },
           ]}
         >
-          <Text style={[styles.noteTitle, { color: theme.text }]}>Lưu ý khi chụp ảnh:</Text>
+          <Text style={[styles.noteTitle, { color: theme.text }]}>
+            {t("studentVerification.notesTitle")}
+          </Text>
           {[
-            "Ảnh selfie: Chụp rõ mặt cùng thẻ học sinh Chuyên Biên Hòa",
-            "Thẻ học sinh: Chụp rõ tên, lớp, năm học trên thẻ",
-            "Ảnh phải rõ nét, không bị mờ hay che khuất",
+            t("studentVerification.note1"),
+            t("studentVerification.note2"),
+            t("studentVerification.note3"),
           ].map((line) => (
             <Text key={line} style={[styles.noteLine, { color: theme.subText }]}>
               {"•"} {line}
@@ -282,7 +292,7 @@ export default function StudentVerificationScreen({ navigation }) {
           {submitting ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.submitText}>Gửi yêu cầu xác minh</Text>
+            <Text style={styles.submitText}>{t("studentVerification.submit")}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -320,7 +330,7 @@ export default function StudentVerificationScreen({ navigation }) {
             ]}
             numberOfLines={1}
           >
-            Xác minh học sinh
+            {t("studentVerification.headerTitle")}
           </Animated.Text>
           <View style={{ width: 44 }} />
         </View>
@@ -340,10 +350,11 @@ export default function StudentVerificationScreen({ navigation }) {
             paddingHorizontal: 16,
           }}
         >
-          <Text style={[styles.title, { color: theme.text }]}>Xác minh học sinh CBH</Text>
+          <Text style={[styles.title, { color: theme.text }]}>
+            {t("studentVerification.title")}
+          </Text>
           <Text style={[styles.subtitle, { color: theme.subText }]}>
-            Xác minh tài khoản học sinh để nhận giảm giá {DISCOUNT_LABEL} tại Gift Shop. Admin sẽ xét
-            duyệt trong vòng 24 giờ.
+            {t("studentVerification.subtitle", { discount: DISCOUNT_LABEL })}
           </Text>
 
           {renderBody()}

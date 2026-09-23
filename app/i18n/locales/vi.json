@@ -62,7 +62,9 @@
     "unknownError": "Có lỗi xảy ra",
     "close": "Đóng",
     "save": "Lưu",
-    "add": "Thêm"
+    "add": "Thêm",
+    "done": "Xong",
+    "loading": "Đang tải..."
   },
   "createActions": {
     "post": "Tạo bài viết",
@@ -620,7 +622,8 @@
     "forwarded": "Đã chuyển tiếp tin nhắn",
     "forwardFailed": "Chuyển tiếp thất bại",
     "loadConversationsFailed": "Không thể tải danh sách trò chuyện",
-    "viewSeenBy": "Lượt xem"
+    "viewSeenBy": "Lượt xem",
+    "viewProfile": "Xem trang cá nhân"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
@@ -963,7 +966,8 @@
     "passwordRequired": "Vui lòng nhập mật khẩu",
     "accountDeleted": "Đã xóa tài khoản thành công",
     "usernameRequired": "Vui lòng nhập tên đăng nhập mới",
-    "emailRequired": "Vui lòng nhập email mới"
+    "emailRequired": "Vui lòng nhập email mới",
+    "hideEmailError": "Không thể cập nhật cài đặt này."
   },
   "notificationSettings": {
     "title": "Thông báo",
@@ -1032,7 +1036,8 @@
     "appleLoginError": "Không thể đăng nhập bằng Apple",
     "signupSuccess": "Đăng ký thành công",
     "signupSuccessBody": "Chào mừng bạn đến với CBH Youth Online!",
-    "signupError": "Lỗi đăng ký"
+    "signupError": "Lỗi đăng ký",
+    "tryForgotPassword": "Vui lòng thử dùng 'Quên mật khẩu' để đặt lại mật khẩu."
   },
   "signup": {
     "loading": "Đang xử lý...",
@@ -1348,7 +1353,9 @@
     "startError": "Không thể tạo câu hỏi lúc này, vui lòng thử lại.",
     "answerError": "Không thể ghi nhận câu trả lời, vui lòng thử lại.",
     "joinError": "Không thể tham gia bài đố vui này.",
-    "shareMessage": "Cùng thử sức với bài đố vui này nhé! {{link}}"
+    "shareMessage": "Cùng thử sức với bài đố vui này nhé! {{link}}",
+    "restartError": "Không thể làm lại bài đố vui này.",
+    "retrySame": "Làm lại bài này"
   },
   "customQuiz": {
     "entryTitle": "Tạo bộ đề tùy chỉnh",
@@ -1506,7 +1513,8 @@
     "freeMaterialHint": "Nếu bật, người dùng có thể tải không mất điểm.",
     "priceLabel": "Giá điểm",
     "pricePlaceholder": "Ví dụ: 50",
-    "publish": "Đăng tài liệu ngay"
+    "publish": "Đăng tài liệu ngay",
+    "shareUnavailable": "Thiết bị này không hỗ trợ chia sẻ (Trình giả lập không hỗ trợ)."
   },
   "wallet": {
     "backLabel": "Quay lại",
@@ -1648,5 +1656,35 @@
     "reportHint": "Nếu bạn cho rằng liên kết này là lừa đảo hoặc có hại, hãy báo cho chúng tôi qua phần Liên hệ trong Cài đặt.",
     "invalidTitle": "Liên kết không hợp lệ",
     "invalidDescription": "Chúng tôi không đọc được địa chỉ đích của liên kết này. Có thể nó đã bị sửa hoặc bị cắt mất một phần. Đừng truy cập nếu bạn không chắc nó đến từ đâu."
+  },
+  "studentVerification": {
+    "headerTitle": "Xác minh học sinh",
+    "title": "Xác minh học sinh CBH",
+    "subtitle": "Xác minh tài khoản học sinh để nhận giảm giá {{discount}} tại Gift Shop. Admin sẽ xét duyệt trong vòng 24 giờ.",
+    "statusError": "Không thể tải trạng thái xác minh.",
+    "permissionDenied": "Vui lòng cho phép truy cập thư viện ảnh.",
+    "missingPhotos": "Vui lòng chọn cả ảnh selfie và thẻ học sinh.",
+    "uploadFailed": "Tải ảnh lên thất bại. Vui lòng thử lại.",
+    "submitSuccess": "Gửi yêu cầu xác minh thành công!",
+    "submitSuccessBody": "Admin sẽ xét duyệt trong vòng 24 giờ.",
+    "submitFailed": "Gửi yêu cầu thất bại. Vui lòng thử lại.",
+    "verifiedTitle": "Tài khoản đã được xác minh học sinh",
+    "verifiedBody": "Bạn đang được hưởng giảm giá {{discount}} tại Gift Shop.",
+    "verifiedSince": "Xác minh từ: {{date}}",
+    "pendingTitle": "Đang chờ xét duyệt",
+    "pendingBody": "Yêu cầu của bạn đã được gửi và đang được xem xét. Vui lòng đợi admin duyệt trong 24 giờ.",
+    "rejectedTitle": "Yêu cầu đã bị từ chối",
+    "rejectedReason": "Lý do: {{reason}}",
+    "rejectedRetry": "Bạn có thể gửi lại yêu cầu bên dưới.",
+    "selfieLabel": "Ảnh selfie cầm thẻ",
+    "selfieHint": "Chụp rõ mặt và thẻ học sinh",
+    "cardLabel": "Ảnh thẻ học sinh",
+    "cardHint": "Chụp rõ thông tin trên thẻ",
+    "pickPhoto": "Chạm để chọn ảnh",
+    "notesTitle": "Lưu ý khi chụp ảnh:",
+    "note1": "Ảnh selfie: Chụp rõ mặt cùng thẻ học sinh Chuyên Biên Hòa",
+    "note2": "Thẻ học sinh: Chụp rõ tên, lớp, năm học trên thẻ",
+    "note3": "Ảnh phải rõ nét, không bị mờ hay che khuất",
+    "submit": "Gửi yêu cầu xác minh"
   }
 }

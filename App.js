@@ -15,6 +15,7 @@ import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } f
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 import i18n, { hasChosenLanguage } from "./app/i18n";
+import { getSavedAccounts } from "./app/utils/savedAccounts";
 
 if (Platform.OS === "android") {
   Alert.alert = CustomAlert.alert;
@@ -318,6 +319,13 @@ const App = () => {
   useEffect(() => {
     hasChosenLanguage().then(setLanguageChosen);
   }, []);
+  // Adding/switching an account signs the device out momentarily. That is not
+  // a first launch, so it must not drag the person back through language and
+  // preference onboarding - any saved account means they've been here before.
+  const [hasSavedAccounts, setHasSavedAccounts] = useState(null);
+  useEffect(() => {
+    getSavedAccounts().then((list) => setHasSavedAccounts(list.length > 0));
+  }, []);
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
@@ -564,7 +572,7 @@ const App = () => {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (isLoading || languageChosen === null) {
+  if (isLoading || languageChosen === null || hasSavedAccounts === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
         <LottieView
@@ -595,7 +603,13 @@ const App = () => {
         onStateChange={handleNavigationStateChange}
       >
         <Stack.Navigator
-          initialRouteName={!isLoggedIn && !languageChosen ? "LanguageSelect" : undefined}
+          initialRouteName={
+            isLoggedIn
+              ? undefined
+              : !languageChosen && !hasSavedAccounts
+              ? "LanguageSelect"
+              : "Welcome"
+          }
           screenOptions={{
             headerStyle: {
               backgroundColor: theme.headerBackground,
