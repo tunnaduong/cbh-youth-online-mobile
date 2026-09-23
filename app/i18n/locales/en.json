@@ -148,7 +148,11 @@
     "noConversations": "No conversations found...",
     "searchUserPlaceholder": "Search user...",
     "noUserFound": "No users found",
-    "searchUserHint": "Enter username to start searching"
+    "searchUserHint": "Enter username to start searching",
+    "resultsLabel": "RESULTS",
+    "continueConversation": "Continue conversation",
+    "startConversation": "Start a new conversation",
+    "noUserFoundHint": "Check the username and try again."
   },
   "search": {
     "all": "All",

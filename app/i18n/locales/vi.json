@@ -137,7 +137,11 @@
     "noConversations": "Không tìm thấy cuộc trò chuyện nào...",
     "searchUserPlaceholder": "Tìm kiếm người dùng...",
     "noUserFound": "Không tìm thấy người dùng nào",
-    "searchUserHint": "Nhập username để bắt đầu tìm kiếm"
+    "searchUserHint": "Nhập username để bắt đầu tìm kiếm",
+    "resultsLabel": "KẾT QUẢ",
+    "continueConversation": "Tiếp tục cuộc trò chuyện",
+    "startConversation": "Bắt đầu cuộc trò chuyện mới",
+    "noUserFoundHint": "Hãy kiểm tra lại username và thử lần nữa."
   },
   "search": {
     "all": "Tất cả",

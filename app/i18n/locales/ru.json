@@ -158,7 +158,11 @@
     "noConversations": "Беседы не найдены...",
     "searchUserPlaceholder": "Поиск пользователя...",
     "noUserFound": "Пользователи не найдены",
-    "searchUserHint": "Введите имя пользователя для поиска"
+    "searchUserHint": "Введите имя пользователя для поиска",
+    "resultsLabel": "РЕЗУЛЬТАТЫ",
+    "continueConversation": "Продолжить переписку",
+    "startConversation": "Начать новую переписку",
+    "noUserFoundHint": "Проверьте имя пользователя и попробуйте снова."
   },
   "search": {
     "all": "Все",
