@@ -208,42 +208,43 @@ const StoryOverlayLayer = ({
           interactive &&
           (item.type === OVERLAY_TYPES.MENTION || item.type === OVERLAY_TYPES.LINK);
 
+        const placement = {
+          position: "absolute",
+          left: item.x,
+          top: item.y,
+          transform: [{ scale: item.scale }, { rotate: `${item.rotation}deg` }],
+        };
+
+        // The item is hidden by making its *content* transparent rather than
+        // the tappable box itself: iOS skips any view with an alpha under
+        // 0.01 while hit-testing, so fading the box out would silently kill
+        // every mention/link tap on flattened photo stories.
         const content = (
-          <View
-            style={{
-              position: "absolute",
-              left: item.x,
-              top: item.y,
-              opacity: hidden ? 0 : 1,
-              transform: [{ scale: item.scale }, { rotate: `${item.rotation}deg` }],
-            }}
-            pointerEvents={isTappable ? "auto" : "none"}
-          >
+          <View style={hidden ? styles.hiddenContent : null}>
             <StoryOverlayItemContent item={item} canvasWidth={canvasWidth} />
           </View>
         );
 
         if (!isTappable) {
-          return <React.Fragment key={item.id || index}>{content}</React.Fragment>;
+          return (
+            <View key={item.id || index} style={placement} pointerEvents="none">
+              {content}
+            </View>
+          );
         }
 
         return (
           <Pressable
             key={item.id || index}
+            style={placement}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             onPress={() =>
               item.type === OVERLAY_TYPES.MENTION
                 ? onPressMention?.(item)
                 : onPressLink?.(item)
             }
-            style={{
-              position: "absolute",
-              left: item.x,
-              top: item.y,
-              opacity: hidden ? 0 : 1,
-              transform: [{ scale: item.scale }, { rotate: `${item.rotation}deg` }],
-            }}
           >
-            <StoryOverlayItemContent item={item} canvasWidth={canvasWidth} />
+            {content}
           </Pressable>
         );
       })}
@@ -252,6 +253,9 @@ const StoryOverlayLayer = ({
 };
 
 const styles = StyleSheet.create({
+  hiddenContent: {
+    opacity: 0,
+  },
   chip: {
     flexDirection: "row",
     alignItems: "center",

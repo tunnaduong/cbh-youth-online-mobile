@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,13 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   STORY_FONTS,
   STORY_TEXT_COLORS,
@@ -30,12 +31,32 @@ const ALIGN_ICONS = { center: "text", left: "text-outline", right: "text-sharp" 
  */
 const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [text, setText] = useState(item?.text || "");
   const [color, setColor] = useState(item?.color || "#FFFFFF");
   const [font, setFont] = useState(item?.font || "classic");
   const [effect, setEffect] = useState(item?.effect || "shadow");
   const [align, setAlign] = useState(item?.align || "center");
   const [fontSize, setFontSize] = useState(item?.fontSize || Math.round(canvasWidth * 0.09));
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  // The style bars have to sit on top of the keyboard, and this layer is
+  // absolutely positioned over the canvas, so KeyboardAvoidingView (which
+  // measures from the window) cannot place them - track the keyboard itself.
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (event) =>
+      setKeyboardHeight(event.endCoordinates?.height || 0)
+    );
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const fontStyle = getStoryFont(font).style;
   const hasBackground = effect === "background";
@@ -65,7 +86,9 @@ const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
     <View style={styles.container}>
       <Pressable style={StyleSheet.absoluteFill} onPress={commit} />
 
-      <View style={styles.topBar} pointerEvents="box-none">
+      {/* Sits exactly over the screen's own header so the composer's controls
+          replace it instead of stacking a second row on top of it. */}
+      <View style={[styles.topBar, { top: insets.top, height: 50 }]} pointerEvents="box-none">
         <TouchableOpacity style={styles.topButton} onPress={cycleAlign}>
           <Ionicons name={ALIGN_ICONS[align]} size={22} color="#fff" />
         </TouchableOpacity>
@@ -77,9 +100,11 @@ const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        style={styles.center}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      <View
+        style={[
+          styles.center,
+          { marginTop: insets.top + 50, marginBottom: keyboardHeight + 120 },
+        ]}
         pointerEvents="box-none"
       >
         <TextInput
@@ -107,7 +132,7 @@ const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
             },
           ]}
         />
-      </KeyboardAvoidingView>
+      </View>
 
       <View style={styles.sizeSliderWrapper} pointerEvents="box-none">
         <Slider
@@ -122,7 +147,16 @@ const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
         />
       </View>
 
-      <View style={styles.bottomBars} pointerEvents="box-none">
+      <View
+        style={[
+          styles.bottomBars,
+          {
+            bottom: keyboardHeight,
+            paddingBottom: keyboardHeight ? 10 : insets.bottom + 12,
+          },
+        ]}
+        pointerEvents="box-none"
+      >
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -173,13 +207,14 @@ const styles = StyleSheet.create({
   },
   topBar: {
     position: "absolute",
-    top: 12,
-    left: 12,
-    right: 12,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
     gap: 8,
+    backgroundColor: "rgba(0,0,0,0.85)",
   },
   topButton: {
     height: 36,
@@ -208,8 +243,8 @@ const styles = StyleSheet.create({
   },
   sizeSliderWrapper: {
     position: "absolute",
-    left: -70,
-    top: "38%",
+    left: -66,
+    top: "30%",
     width: 200,
     transform: [{ rotate: "-90deg" }],
   },
@@ -219,7 +254,7 @@ const styles = StyleSheet.create({
   },
   bottomBars: {
     position: "absolute",
-    bottom: 16,
+    bottom: 0,
     left: 0,
     right: 0,
     gap: 10,

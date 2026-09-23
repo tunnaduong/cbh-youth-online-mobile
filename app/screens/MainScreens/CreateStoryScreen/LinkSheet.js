@@ -42,7 +42,7 @@ const LinkSheet = ({ visible, onClose, onSubmit }) => {
   };
 
   return (
-    <EditorSheet visible={visible} title={t("story.linkTitle")} onClose={onClose} height="46%">
+    <EditorSheet visible={visible} title={t("story.linkTitle")} onClose={onClose} heightRatio={0.5}>
       <View style={styles.body}>
         <Text style={styles.label}>{t("story.linkUrlLabel")}</Text>
         <TextInput
@@ -91,9 +91,11 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   input: {
-    height: 46,
     borderRadius: 12,
     paddingHorizontal: 14,
+    // See MentionSheet: padding, not a fixed height, keeps the text centred.
+    paddingVertical: 13,
+    margin: 0,
     backgroundColor: "rgba(255,255,255,0.1)",
     color: "#fff",
     fontSize: 15,

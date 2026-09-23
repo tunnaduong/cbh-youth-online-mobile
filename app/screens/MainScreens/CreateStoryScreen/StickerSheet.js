@@ -29,7 +29,7 @@ const StickerSheet = ({
   ];
 
   return (
-    <EditorSheet visible={visible} title={t("story.stickers")} onClose={onClose} height="66%">
+    <EditorSheet visible={visible} title={t("story.stickers")} onClose={onClose} heightRatio={0.66}>
       <View style={styles.actionRow}>
         {actions.map((action) => (
           <TouchableOpacity key={action.id} style={styles.actionButton} onPress={action.onPress}>
@@ -57,7 +57,7 @@ const StickerSheet = ({
         ))}
       </ScrollView>
 
-      <ScrollView contentContainerStyle={styles.grid}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.grid}>
         {pack.stickers.map((emoji) => (
           <TouchableOpacity
             key={emoji}
@@ -97,6 +97,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 8,
     paddingBottom: 6,
+    alignItems: "center",
   },
   packChip: {
     height: 32,

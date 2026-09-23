@@ -3,7 +3,7 @@ import { View, ScrollView, StyleSheet, Dimensions } from "react-native";
 import { Canvas, Path, useCanvasRef } from "@shopify/react-native-skia";
 import { captureRef } from "react-native-view-shot";
 
-const { width, height } = Dimensions.get("window");
+const { width: WINDOW_WIDTH, height: WINDOW_HEIGHT } = Dimensions.get("window");
 
 const DrawingCanvas = React.forwardRef(
   (
@@ -12,6 +12,11 @@ const DrawingCanvas = React.forwardRef(
       strokeWidth = 3,
       isEraser = false,
       savedDrawingData = null,
+      // The drawing surface must match the 9:16 story canvas, not the window:
+      // its snapshot is later laid back over that canvas, and a window-sized
+      // snapshot would be rescaled and pull every stroke out of place.
+      width = WINDOW_WIDTH,
+      height = WINDOW_HEIGHT,
     },
     ref
   ) => {

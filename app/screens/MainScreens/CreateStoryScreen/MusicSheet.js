@@ -89,7 +89,7 @@ const MusicSheet = ({ visible, onClose, onSelect }) => {
   };
 
   return (
-    <EditorSheet visible={visible} title={t("story.musicTitle")} onClose={onClose} height="70%">
+    <EditorSheet visible={visible} title={t("story.musicTitle")} onClose={onClose} heightRatio={0.7}>
       {selected ? (
         <View style={styles.trimBody}>
           <View style={styles.selectedRow}>
@@ -162,6 +162,7 @@ const MusicSheet = ({ visible, onClose, onSelect }) => {
 
           <FlatList
             data={results}
+            style={{ flex: 1 }}
             keyExtractor={(item) => String(item.trackId)}
             keyboardShouldPersistTaps="handled"
             ListEmptyComponent={
@@ -211,7 +212,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginHorizontal: 16,
     paddingHorizontal: 12,
-    height: 44,
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.1)",
   },
@@ -219,6 +219,10 @@ const styles = StyleSheet.create({
     flex: 1,
     color: "#fff",
     fontSize: 15,
+    // Padding rather than a fixed row height: a TextInput sized by its
+    // parent renders its text against the bottom edge on iOS.
+    paddingVertical: 12,
+    margin: 0,
   },
   row: {
     flexDirection: "row",

@@ -295,6 +295,42 @@ const CreateStoryScreen = ({ navigation }) => {
   const isVideo = selectedMediaType === "video";
 
   /**
+   * Size and position the media so it always *covers* the 9:16 canvas.
+   *
+   * Letting the image component do the cover fit turned out not to be
+   * reliable here (pictures ended up letterboxed inside the canvas, and the
+   * black bars were then baked into the posted story), so the crop is worked
+   * out from the asset's own dimensions instead.
+   */
+  const mediaCoverStyle = useMemo(() => {
+    const canvasWidth = captureDims.w;
+    const canvasHeight = captureDims.h;
+
+    if (!canvasWidth || !canvasHeight) return null;
+
+    const assetWidth = selectedMediaAsset?.width;
+    const assetHeight = selectedMediaAsset?.height;
+    const aspect =
+      assetWidth && assetHeight ? assetWidth / assetHeight : canvasWidth / canvasHeight;
+
+    let mediaWidth = canvasWidth;
+    let mediaHeight = canvasWidth / aspect;
+
+    if (mediaHeight < canvasHeight) {
+      mediaHeight = canvasHeight;
+      mediaWidth = canvasHeight * aspect;
+    }
+
+    return {
+      position: "absolute",
+      left: (canvasWidth - mediaWidth) / 2,
+      top: (canvasHeight - mediaHeight) / 2,
+      width: mediaWidth,
+      height: mediaHeight,
+    };
+  }, [captureDims.w, captureDims.h, selectedMediaAsset]);
+
+  /**
    * Photo filters are baked with Skia as soon as they are picked rather than
    * at share time: React Native's own `filter` style is behind a feature flag
    * on iOS, and baking keeps the preview and the upload identical.
@@ -1019,11 +1055,13 @@ const CreateStoryScreen = ({ navigation }) => {
                       <StoryFilterTint filterId={filterId} />
                     </View>
                   ) : (
-                    <FastImage
-                      source={{ uri: displayImage || originalImage }}
-                      style={StyleSheet.absoluteFill}
-                      resizeMode={FastImage.resizeMode.cover}
-                    />
+                    <View style={[StyleSheet.absoluteFill, styles.mediaPreviewContainer]}>
+                      <FastImage
+                        source={{ uri: displayImage || originalImage }}
+                        style={mediaCoverStyle || StyleSheet.absoluteFill}
+                        resizeMode={FastImage.resizeMode.cover}
+                      />
+                    </View>
                   )}
 
                   {savedDrawingData && !isDrawing && (
@@ -1041,6 +1079,8 @@ const CreateStoryScreen = ({ navigation }) => {
                       strokeWidth={strokeWidth}
                       isEraser={isEraser}
                       savedDrawingData={savedDrawingData}
+                      width={captureDims.w}
+                      height={captureDims.h}
                     />
                   )}
 
@@ -1089,7 +1129,7 @@ const CreateStoryScreen = ({ navigation }) => {
                     setShowBrushSize={setShowBrushSize}
                   />
                 </View>
-              ) : (
+              ) : editingText ? null : (
                 <>
                   <ToolsBar
                     onAddText={openTextEditor}

@@ -83,6 +83,7 @@ const MentionSheet = ({ visible, onClose, onSelect }) => {
 
       <FlatList
         data={results}
+        style={{ flex: 1 }}
         keyExtractor={(item) => String(item.id ?? item.username)}
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
@@ -118,7 +119,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginHorizontal: 16,
     paddingHorizontal: 12,
-    height: 44,
     borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.1)",
   },
@@ -126,6 +126,10 @@ const styles = StyleSheet.create({
     flex: 1,
     color: "#fff",
     fontSize: 15,
+    // Padding rather than a fixed row height: a TextInput sized by its
+    // parent renders its text against the bottom edge on iOS.
+    paddingVertical: 12,
+    margin: 0,
   },
   row: {
     flexDirection: "row",

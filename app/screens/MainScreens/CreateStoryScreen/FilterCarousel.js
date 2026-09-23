@@ -8,6 +8,7 @@ import {
 } from "@shopify/react-native-skia";
 import { LinearGradient } from "expo-linear-gradient";
 import { useTranslation } from "react-i18next";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { STORY_FILTERS, VIDEO_STORY_FILTERS } from "../../../components/StoryOverlays/storyFilters";
 
 const THUMB_SIZE = 54;
@@ -42,10 +43,15 @@ const FilterThumbnail = ({ uri, filter }) => {
 
 const FilterCarousel = ({ mediaUri, isVideo, selectedFilter, onSelect }) => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const filters = isVideo ? VIDEO_STORY_FILTERS : STORY_FILTERS;
 
   return (
-    <View style={styles.container} pointerEvents="box-none">
+    // Sits above the home indicator so the filter names are never clipped.
+    <View
+      style={[styles.container, { paddingBottom: insets.bottom + 10 }]}
+      pointerEvents="box-none"
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -94,7 +100,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    paddingVertical: 10,
+    paddingTop: 10,
     backgroundColor: "rgba(0,0,0,0.45)",
   },
   row: {
