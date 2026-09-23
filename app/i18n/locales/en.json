@@ -1640,5 +1640,27 @@
     "title": "Who voted on this comment",
     "empty": "No votes yet",
     "loadError": "Could not load voters list"
+  },
+  "linkSafety": {
+    "title": "You are leaving CBH Youth Online",
+    "subtitle": "This link goes to an external website we don't control. Always check that a link is safe before you tap it.",
+    "visitingLabel": "You are visiting",
+    "copyLink": "Copy",
+    "shareLink": "Share",
+    "copied": "Link copied",
+    "openFailed": "Couldn't open this link",
+    "checklistTitle": "Before you continue, check that:",
+    "tipDomain": "The domain name is spelled correctly. Scam sites often use near-identical names, e.g. chuyenb1enhoa.com.",
+    "tipPassword": "Never enter your CBH Youth Online password on another website.",
+    "tipSensitive": "Be careful with pages asking you to download a file or enter an OTP, phone number or card details.",
+    "tipUnknownSender": "If you don't know who sent this link, it's safest not to open it.",
+    "warningInsecure": "This link doesn't use HTTPS. Anything you send to this site can be read by others along the way.",
+    "warningPunycode": "This domain contains encoded special characters — a common trick for making a fake site look like a familiar one.",
+    "warningUserInfo": "This link is written to look like a different site, but it actually takes you to {{hostname}}.",
+    "continue": "Continue to this site",
+    "goBack": "Go back",
+    "reportHint": "If you think this link is a scam or harmful, report it to us from Contact in Settings.",
+    "invalidTitle": "Invalid link",
+    "invalidDescription": "We couldn't read this link's destination. It may have been edited or cut off. Don't open it if you aren't sure where it came from."
   }
 }

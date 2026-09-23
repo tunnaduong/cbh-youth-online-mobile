@@ -44,6 +44,7 @@ import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
 import { appendSoundCloudEmbedBelow } from "../utils/soundcloudShare";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
+import { openExternalLink } from "../utils/externalLink";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -583,7 +584,7 @@ const PostItem = ({
   // intercept those to navigate in-app instead of trying to open a URL.
   // "/username" links come from linkifyMentionsInHtml (mention-tag class)
   // and open the mentioned user's profile instead. Anything else (autolinked
-  // URLs) opens in the browser.
+  // URLs) goes through the link-safety screen before the browser.
   const handleContentLinkPress = (event, href) => {
     const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
     if (hashtagMatch) {
@@ -599,7 +600,9 @@ const PostItem = ({
       navigation?.navigate("ProfileScreen", { username: mentionMatch[1] });
       return;
     }
-    Linking.openURL(href);
+    // Outbound links stop at the link-safety screen first: the post author
+    // writes both the link text and its destination, so the two can disagree.
+    openExternalLink(navigation, href);
   };
 
   // The post body sits inside the collapse/expand Pressable (onPress =
