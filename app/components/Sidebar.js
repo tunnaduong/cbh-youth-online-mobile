@@ -8,7 +8,6 @@ import {
   ActionSheetIOS,
   Animated,
   Alert,
-  Linking,
 } from "react-native";
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { List } from "react-native-paper";
@@ -23,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
+import { openInAppBrowser } from "../utils/externalLink";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -491,7 +491,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               title={t("sidebar.help")}
               titleStyle={{ color: theme.text }}
               onPress={() =>
-                Linking.openURL("https://www.chuyenbienhoa.com/help")
+                openInAppBrowser("https://www.chuyenbienhoa.com/help", theme)
               }
               left={() => (
                 <Ionicons
@@ -506,7 +506,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               title={t("sidebar.reportIssue")}
               titleStyle={{ color: theme.text }}
               onPress={() =>
-                Linking.openURL("https://forms.gle/XJ3v1vN82BxLUVWo9")
+                openInAppBrowser("https://forms.gle/XJ3v1vN82BxLUVWo9", theme)
               }
               left={() => (
                 <Ionicons

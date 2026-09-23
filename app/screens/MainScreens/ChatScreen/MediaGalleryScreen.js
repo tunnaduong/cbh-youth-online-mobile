@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Linking,
   ActivityIndicator,
   Alert,
   ActionSheetIOS,
@@ -21,6 +20,7 @@ import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context"
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { openExternalLink } from "../../../utils/externalLink";
 import formatTime from "../../../utils/formatTime";
 import { getConversationMedia } from "../../../services/api/Api";
 import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
@@ -189,7 +189,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     const cancelButtonIndex = 3;
     const run = (index) => {
       if (index === 0) {
-        Linking.openURL(item.url).catch(() => {});
+        openExternalLink(navigation, item.url, theme);
       } else if (index === 1) {
         Clipboard.setString(item.url);
         Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
@@ -291,7 +291,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     <TouchableOpacity
       style={[styles.fileRow, { borderBottomColor: theme.border }]}
       activeOpacity={0.6}
-      onPress={() => Linking.openURL(item.url).catch(() => {})}
+      onPress={() => openExternalLink(navigation, item.url, theme)}
       onLongPress={() => showLinkOptions(item)}
     >
       <View style={[styles.fileIconWrapper, { backgroundColor: theme.iconBackground }]}>

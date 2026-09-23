@@ -1,4 +1,5 @@
 import { Linking } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 
 // Links typed into posts, comments and chat messages can point anywhere, so
 // tapping one doesn't hand the URL straight to the system browser - it opens
@@ -186,15 +187,43 @@ export function decodeLinkToken(token) {
 }
 
 /**
+ * Opens an http(s) URL in the in-app browser (SFSafariViewController on iOS,
+ * Chrome Custom Tabs on Android) so the user keeps the app's context and can
+ * come straight back, instead of being thrown out to Safari/Chrome.
+ *
+ * `theme` is the object from ThemeContext; passing it tints the browser chrome
+ * to match the app. Anything that isn't http(s) - mailto:, tel:, a deep link
+ * into another app - has no in-app browser to open in and is handed to the OS.
+ */
+export function openInAppBrowser(url, theme) {
+  const raw = String(url || "").trim();
+  if (!raw) return Promise.resolve();
+  if (!/^https?:\/\//i.test(raw)) {
+    return Linking.openURL(raw).catch(() => {});
+  }
+  return WebBrowser.openBrowserAsync(raw, {
+    toolbarColor: theme?.headerBackground,
+    secondaryToolbarColor: theme?.surface,
+    controlsColor: theme?.primary,
+    dismissButtonStyle: "close",
+    enableBarCollapsing: true,
+  }).catch(() =>
+    // Custom Tabs needs a browser that supports them, and the whole module is
+    // missing in Expo Go; falling back keeps the link openable either way.
+    Linking.openURL(raw).catch(() => {})
+  );
+}
+
+/**
  * Opens a link found in user content. Anything on our own domain (and any
  * non-http scheme we'd hand to the OS anyway) opens directly; everything else
  * goes through the warning screen.
  */
-export function openExternalLink(navigation, url) {
+export function openExternalLink(navigation, url, theme) {
   const raw = String(url || "").trim();
   if (!raw) return;
   if (!navigation?.navigate || !isExternalUrl(raw)) {
-    Linking.openURL(raw).catch(() => {});
+    openInAppBrowser(raw, theme);
     return;
   }
   navigation.navigate("LinkSafetyScreen", { token: encodeLinkToken(raw) });
