@@ -293,7 +293,8 @@ const ZoomableStoryImage = ({ uri, style }) => {
           ],
         },
       ]}
-      resizeMode="cover"
+      // Contain, so the whole 9:16 frame the author composed stays visible.
+      resizeMode="contain"
       {...panResponder.panHandlers}
     />
   );
@@ -2637,13 +2638,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           statusBarTranslucent={false}
           backgroundColor="#000000"
           mediaContainerStyle={{ backgroundColor: "#000000" }}
-          imageProps={{ resizeMode: "cover" }}
+          imageProps={{ resizeMode: "contain" }}
           imageStyles={StyleSheet.absoluteFillObject}
           videoProps={{
-            // Cover, not contain: the editor composes on a 9:16 canvas with
-            // the video filling it, so letterboxing here would both add black
-            // bars the author never saw and pull the overlays out of place.
-            resizeMode: "cover",
+            // Contain: the editor previews video letterboxed inside the 9:16
+            // canvas too, so this is exactly the framing the author saw, and
+            // the overlays keep lining up with it.
+            resizeMode: "contain",
             repeat: false,
             muted: Boolean(currentStory && (clientMuted[currentStory] || (() => {
               try {

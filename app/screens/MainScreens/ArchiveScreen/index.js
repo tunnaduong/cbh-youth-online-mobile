@@ -608,6 +608,12 @@ const ArchiveScreen = ({ route, navigation }) => {
           stories={[selectedStories]}
           hideAvatarList={true}
           showName={false}
+          backgroundColor="#000000"
+          mediaContainerStyle={{ backgroundColor: "#000000" }}
+          // Letterbox the 9:16 frame so archived stories show exactly what
+          // was composed, overlays included.
+          imageProps={{ resizeMode: "contain" }}
+          videoProps={{ resizeMode: "contain" }}
           statusBarTranslucent={Platform.OS === "android"}
           textStyle={{
             color: "#fff",

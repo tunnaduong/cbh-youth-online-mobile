@@ -125,21 +125,17 @@ export const STICKER_PACKS = [
 ];
 
 /**
- * Cover-fit a 9:16 story canvas inside an arbitrary viewport, matching the
- * `resizeMode: "cover"` the viewer uses for the media itself. Overlays are
- * positioned against the returned rect so they stay glued to the same spot on
- * the picture regardless of the device's screen shape.
+ * Fit the whole 9:16 story canvas inside a viewport, letterboxing it the way
+ * the viewer shows the media itself (`resizeMode: "contain"`). Overlays are
+ * positioned against the returned rect, so what the author placed on the
+ * canvas is exactly what every viewer sees - nothing is cropped away at the
+ * edges on tall phones.
  */
 export const getStoryCanvasRect = (viewportWidth, viewportHeight) => {
-  const viewportRatio = viewportWidth / viewportHeight;
   let width = viewportWidth;
   let height = viewportWidth / STORY_ASPECT_RATIO;
 
-  if (viewportRatio > STORY_ASPECT_RATIO) {
-    // Viewport is wider than 9:16 - the canvas is cropped top/bottom.
-    width = viewportWidth;
-    height = viewportWidth / STORY_ASPECT_RATIO;
-  } else {
+  if (height > viewportHeight) {
     height = viewportHeight;
     width = viewportHeight * STORY_ASPECT_RATIO;
   }

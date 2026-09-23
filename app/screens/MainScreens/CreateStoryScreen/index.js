@@ -565,25 +565,54 @@ const CreateStoryScreen = ({ navigation }) => {
   };
 
   /**
-   * Stories are 9:16, so anything picked gets centre-cropped to that ratio -
-   * some OS pickers ignore the `aspect` hint when both photos and videos are
-   * selectable, which used to leave uncropped images in the editor.
+   * The picker does not always hand back the dimensions (and iOS' own editor
+   * reports the pre-crop ones), so fall back to asking the image itself.
+   */
+  const resolveImageSize = (asset) =>
+    new Promise((resolve) => {
+      if (asset?.width && asset?.height) {
+        resolve({ width: asset.width, height: asset.height });
+        return;
+      }
+
+      if (!asset?.uri) {
+        resolve(null);
+        return;
+      }
+
+      Image.getSize(
+        asset.uri,
+        (width, height) => resolve({ width, height }),
+        () => resolve(null)
+      );
+    });
+
+  /**
+   * Stories are 9:16, so every picture is centre-cropped to that ratio before
+   * it reaches the canvas. iOS' built-in editor only ever crops square and
+   * ignores the `aspect` hint, so the crop is done here rather than left to
+   * the OS - otherwise the canvas would letterbox the picture and bake black
+   * bars into the posted story.
    */
   const forceStoryAspect = async (asset) => {
-    if (!asset?.width || !asset?.height) return asset;
+    const size = await resolveImageSize(asset);
+
+    if (!size?.width || !size?.height) return asset;
 
     const targetRatio = 9 / 16;
-    const currentRatio = asset.width / asset.height;
+    const currentRatio = size.width / size.height;
 
-    if (Math.abs(currentRatio - targetRatio) <= 0.02) return asset;
+    if (Math.abs(currentRatio - targetRatio) <= 0.01) {
+      return { ...asset, width: size.width, height: size.height };
+    }
 
     try {
-      let cropWidth = asset.width;
-      let cropHeight = Math.round(asset.width / targetRatio);
+      let cropWidth = size.width;
+      let cropHeight = Math.round(size.width / targetRatio);
 
-      if (cropHeight > asset.height) {
-        cropHeight = asset.height;
-        cropWidth = Math.round(asset.height * targetRatio);
+      if (cropHeight > size.height) {
+        cropHeight = size.height;
+        cropWidth = Math.round(size.height * targetRatio);
       }
 
       const manipulated = await manipulateAsync(
@@ -591,8 +620,8 @@ const CreateStoryScreen = ({ navigation }) => {
         [
           {
             crop: {
-              originX: Math.round((asset.width - cropWidth) / 2),
-              originY: Math.round((asset.height - cropHeight) / 2),
+              originX: Math.round((size.width - cropWidth) / 2),
+              originY: Math.round((size.height - cropHeight) / 2),
               width: cropWidth,
               height: cropHeight,
             },
@@ -601,17 +630,26 @@ const CreateStoryScreen = ({ navigation }) => {
         { compress: 1, format: SaveFormat.JPEG }
       );
 
-      return { ...asset, uri: manipulated.uri, width: manipulated.width, height: manipulated.height };
+      return {
+        ...asset,
+        uri: manipulated.uri,
+        width: manipulated.width,
+        height: manipulated.height,
+      };
     } catch (error) {
-      console.warn("Failed to force 9:16 crop on story image:", error?.message);
-      return asset;
+      console.warn("Failed to force 9:16 crop on story image:", error?.message || error);
+      // The canvas covers the frame anyway, so an uncropped picture still
+      // posts correctly - it just is not the user's own choice of crop.
+      return { ...asset, width: size.width, height: size.height };
     }
   };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
+      // Android's picker crops to the ratio we ask for; iOS' only does
+      // squares, so there we crop to 9:16 ourselves right after.
+      allowsEditing: Platform.OS === "android",
       aspect: [9, 16],
       quality: 1,
     });
@@ -646,7 +684,7 @@ const CreateStoryScreen = ({ navigation }) => {
           preferredType === "video"
             ? ImagePicker.MediaTypeOptions.Videos
             : ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
+        allowsEditing: Platform.OS === "android",
         aspect: [9, 16],
         quality: 1,
       });
@@ -1047,7 +1085,10 @@ const CreateStoryScreen = ({ navigation }) => {
                       <Video
                         source={{ uri: originalImage }}
                         style={styles.videoPreview}
-                        resizeMode="cover"
+                        // Videos are uploaded untouched, so preview them the
+                        // way the viewer shows them: letterboxed inside the
+                        // 9:16 frame rather than cropped to fill it.
+                        resizeMode="contain"
                         repeat
                         paused={false}
                         muted={isMuted}
