@@ -684,7 +684,13 @@
     "changedBackgroundGroup": "changed the background of",
     "changedBackgroundPrivate": "changed the chat background",
     "moderationPendingPost": "@{{username}}'s post is waiting for review",
-    "moderationPendingComment": "@{{username}}'s comment is waiting for review"
+    "moderationPendingComment": "@{{username}}'s comment is waiting for review",
+    "contentPendingReviewPost": "Your post is waiting for review",
+    "contentPendingReviewComment": "Your comment is waiting for review",
+    "contentApprovedPost": "Your post was approved and is now public",
+    "contentApprovedComment": "Your comment was approved and is now public",
+    "contentRejectedPost": "Your post was not approved",
+    "contentRejectedComment": "Your comment was not approved"
   },
   "chatBackground": {
     "title": "Chat background",

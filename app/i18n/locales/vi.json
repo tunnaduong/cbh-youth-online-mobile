@@ -673,7 +673,13 @@
     "changedBackgroundGroup": "đã đổi hình nền nhóm",
     "changedBackgroundPrivate": "đã đổi hình nền cuộc trò chuyện",
     "moderationPendingPost": "Bài viết của @{{username}} đang chờ kiểm duyệt",
-    "moderationPendingComment": "Bình luận của @{{username}} đang chờ kiểm duyệt"
+    "moderationPendingComment": "Bình luận của @{{username}} đang chờ kiểm duyệt",
+    "contentPendingReviewPost": "Bài viết của bạn đang chờ kiểm duyệt",
+    "contentPendingReviewComment": "Bình luận của bạn đang chờ kiểm duyệt",
+    "contentApprovedPost": "Bài viết của bạn đã được duyệt và hiển thị công khai",
+    "contentApprovedComment": "Bình luận của bạn đã được duyệt và hiển thị công khai",
+    "contentRejectedPost": "Bài viết của bạn không được duyệt",
+    "contentRejectedComment": "Bình luận của bạn không được duyệt"
   },
   "chatBackground": {
     "title": "Hình nền đoạn chat",
