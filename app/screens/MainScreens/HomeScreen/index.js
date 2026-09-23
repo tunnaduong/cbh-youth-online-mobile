@@ -1742,6 +1742,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           previewText: textContent,
           mediaType: isVideoStory ? "video" : undefined,
           duration: story.duration,
+          // A photo with a soundtrack stays up as long as the clip it was
+          // posted with; videos keep running for their own length.
+          animationDuration:
+            !isVideoStory && storyMusic
+              ? Math.min(30, Math.max(5, story.duration || 15)) * 1000
+              : undefined,
           viewers_count: getStoryViewersCount(story),
           is_muted: story.is_muted || false,
           overlays,

@@ -46,7 +46,7 @@ import {
   normalizeOverlayItem,
 } from "../../../components/StoryOverlays/storyOverlayModel";
 import { bakeFilterIntoImage, getStoryFilter } from "../../../components/StoryOverlays/storyFilters";
-import { toStoryMusicPayload } from "../../../services/musicSearch";
+import { toStoryMusicPayload, STORY_MUSIC_CLIP_MS } from "../../../services/musicSearch";
 
 const { width } = Dimensions.get("window");
 
@@ -817,6 +817,12 @@ const CreateStoryScreen = ({ navigation }) => {
 
         if (isTextOnly && textBackground?.length >= 2) {
           formData.append("background_color", JSON.stringify(textBackground));
+        }
+
+        // Give a photo long enough on screen for its soundtrack to be worth
+        // playing, instead of the default 10 seconds.
+        if (music) {
+          formData.append("duration", String(Math.round(STORY_MUSIC_CLIP_MS / 1000)));
         }
       }
 

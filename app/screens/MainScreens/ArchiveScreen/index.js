@@ -250,6 +250,7 @@ const ArchiveScreen = ({ route, navigation }) => {
           : [gradientColorsRaw[0], shadeHex(gradientColorsRaw[0], -12)];
 
         const overlays = parseStoryOverlays(story.overlays);
+        const storyMusic = parseStoryMusic(story.music);
         const overlayRect = getStoryCanvasRect(width, SCREEN_HEIGHT);
         const overlayItems = (overlays?.items || []).map((item, itemIndex) =>
           denormalizeOverlayItem(item, overlayRect, itemIndex)
@@ -276,7 +277,9 @@ const ArchiveScreen = ({ route, navigation }) => {
         media_type: isVideoStory ? "video" : storyType || "image",
         is_muted: story.is_muted || false,
         date: formatTime(story.created_at || story.created_at_human),
-        music: parseStoryMusic(story.music),
+        music: storyMusic,
+        // Keep a photo up for as long as its soundtrack, like the feed does.
+        animationDuration: !isVideoStory && storyMusic ? 15000 : undefined,
         renderContent: isTextStory
           ? () => (
               <LinearGradient
