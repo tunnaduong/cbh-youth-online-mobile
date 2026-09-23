@@ -26,8 +26,17 @@ import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import StoryOverlayLayer from "../../../components/StoryOverlays/StoryOverlayLayer";
+import StoryFilterTint from "../../../components/StoryOverlays/StoryFilterTint";
+import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
+import {
+  denormalizeOverlayItem,
+  getStoryCanvasRect,
+  parseStoryMusic,
+  parseStoryOverlays,
+} from "../../../components/StoryOverlays/storyOverlayModel";
 
-const { width } = Dimensions.get("window");
+const { width, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const STORY_SIZE = (width - 48) / 3; // 3 columns with padding
 
 const ArchiveScreen = ({ route, navigation }) => {
@@ -35,6 +44,8 @@ const ArchiveScreen = ({ route, navigation }) => {
   const [archiveData, setArchiveData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStories, setSelectedStories] = useState(null);
+  const [activeArchiveStoryId, setActiveArchiveStoryId] = useState(null);
+  const [isArchiveStoryPaused, setIsArchiveStoryPaused] = useState(false);
   const storyRef = React.useRef(null);
   const username = route.params?.username || currentUsername;
   const { t } = useTranslation();
@@ -184,6 +195,35 @@ const ArchiveScreen = ({ route, navigation }) => {
     return ['#0f172a'];
   };
 
+  /** Soundtrack of the archived story currently on screen, if it has one. */
+  const activeArchiveMusic = React.useMemo(() => {
+    if (!selectedStories || !activeArchiveStoryId) return null;
+
+    const story = selectedStories.stories?.find(
+      (item) => String(item.id) === String(activeArchiveStoryId)
+    );
+
+    return story?.music || null;
+  }, [selectedStories, activeArchiveStoryId]);
+
+  useEffect(() => {
+    if (!selectedStories || !activeArchiveMusic) {
+      setIsArchiveStoryPaused(false);
+      return undefined;
+    }
+
+    // Follow the viewer's own pause state (long-press) so the music stops too.
+    const interval = setInterval(() => {
+      try {
+        setIsArchiveStoryPaused(Boolean(storyRef.current?.isPaused?.()));
+      } catch (error) {
+        // ignore - the modal may already be gone
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [selectedStories, activeArchiveMusic]);
+
   const transformStoriesForViewer = (stories) => {
     return {
       uid: "archive",
@@ -209,6 +249,22 @@ const ArchiveScreen = ({ route, navigation }) => {
           ? gradientColorsRaw
           : [gradientColorsRaw[0], shadeHex(gradientColorsRaw[0], -12)];
 
+        const overlays = parseStoryOverlays(story.overlays);
+        const overlayRect = getStoryCanvasRect(width, SCREEN_HEIGHT);
+        const overlayItems = (overlays?.items || []).map((item, itemIndex) =>
+          denormalizeOverlayItem(item, overlayRect, itemIndex)
+        );
+        const overlayLayer = (
+          <>
+            {isVideoStory && <StoryFilterTint filterId={overlays?.filter} />}
+            <StoryOverlayLayer
+              items={overlayItems}
+              canvasWidth={overlayRect.width}
+              hidden={Boolean(overlays?.flattened)}
+            />
+          </>
+        );
+
         return {
         id: story.id,
         storyId: story.id,
@@ -220,6 +276,7 @@ const ArchiveScreen = ({ route, navigation }) => {
         media_type: isVideoStory ? "video" : storyType || "image",
         is_muted: story.is_muted || false,
         date: formatTime(story.created_at || story.created_at_human),
+        music: parseStoryMusic(story.music),
         renderContent: isTextStory
           ? () => (
               <LinearGradient
@@ -249,9 +306,10 @@ const ArchiveScreen = ({ route, navigation }) => {
                 >
                   {textContent}
                 </Text>
+                {overlayLayer}
               </LinearGradient>
             )
-          : undefined,
+          : () => overlayLayer,
         renderFooter: () => (
           <View
             style={{
@@ -455,9 +513,22 @@ const ArchiveScreen = ({ route, navigation }) => {
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
-          onHide={() => setSelectedStories(null)}
+          onHide={() => {
+            setSelectedStories(null);
+            setActiveArchiveStoryId(null);
+          }}
+          onStoryStart={(userId, storyId) => setActiveArchiveStoryId(storyId)}
+          onSwipeUp={(userId, storyId) => {
+            if (username !== currentUsername) return;
+            DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", { storyId, isOwn: true });
+          }}
         />
       )}
+
+      <StoryMusicPlayer
+        music={activeArchiveMusic}
+        paused={!selectedStories || isArchiveStoryPaused}
+      />
 
       <StoryViewersSheet />
     </View>

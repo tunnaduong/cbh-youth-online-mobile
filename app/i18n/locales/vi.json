@@ -705,7 +705,8 @@
     "contentApprovedPost": "Bài viết của bạn đã được duyệt và hiển thị công khai",
     "contentApprovedComment": "Bình luận của bạn đã được duyệt và hiển thị công khai",
     "contentRejectedPost": "Bài viết của bạn không được duyệt",
-    "contentRejectedComment": "Bình luận của bạn không được duyệt"
+    "contentRejectedComment": "Bình luận của bạn không được duyệt",
+    "mentionedInStory": "đã nhắc đến bạn trong một tin"
   },
   "chatBackground": {
     "title": "Hình nền đoạn chat",
@@ -1180,7 +1181,59 @@
     },
     "dragToAdjust": "Kéo để điều chỉnh vùng crop",
     "retake": "Chụp lại",
-    "usePhoto": "Dùng ảnh này"
+    "usePhoto": "Dùng ảnh này",
+    "stickers": "Nhãn dán",
+    "mention": "Nhắc đến",
+    "link": "Liên kết",
+    "music": "Nhạc",
+    "addSticker": "Thêm vào tin",
+    "mentionTitle": "Nhắc đến ai đó",
+    "mentionPlaceholder": "Tìm tên người dùng...",
+    "mentionNoResults": "Không tìm thấy người dùng nào",
+    "linkTitle": "Thêm liên kết",
+    "linkUrlLabel": "Đường dẫn",
+    "linkLabelLabel": "Nhãn hiển thị (tùy chọn)",
+    "linkLabelPlaceholder": "Xem thêm",
+    "linkInvalid": "Đường dẫn không hợp lệ",
+    "musicTitle": "Thêm nhạc",
+    "musicPlaceholder": "Tìm bài hát hoặc ca sĩ...",
+    "musicHint": "Nhập tên bài hát để tìm nhạc cho tin của bạn",
+    "musicNoResults": "Không tìm thấy bài hát nào",
+    "musicSearchError": "Không thể tìm nhạc lúc này, vui lòng thử lại",
+    "musicTrimHint": "Phát từ giây {{start}} ({{length}} giây)",
+    "musicChange": "Đổi bài",
+    "fonts": {
+      "classic": "Cổ điển",
+      "modern": "Hiện đại",
+      "typewriter": "Máy chữ",
+      "serif": "Có chân",
+      "handwriting": "Viết tay"
+    },
+    "textEffects": {
+      "none": "Aa",
+      "shadow": "Đổ bóng",
+      "outline": "Viền",
+      "background": "Nền",
+      "neon": "Neon"
+    },
+    "filters": {
+      "none": "Gốc",
+      "vivid": "Rực rỡ",
+      "mono": "Trắng đen",
+      "noir": "Noir",
+      "warm": "Ấm",
+      "cool": "Lạnh",
+      "fade": "Nhạt",
+      "retro": "Hoài cổ",
+      "dusk": "Hoàng hôn"
+    },
+    "stickerPacks": {
+      "smileys": "Mặt cười",
+      "love": "Tình yêu",
+      "fun": "Vui nhộn",
+      "school": "Học tập",
+      "nature": "Thiên nhiên"
+    }
   },
   "terms": {
     "headerTitle": "Điều khoản sử dụng",

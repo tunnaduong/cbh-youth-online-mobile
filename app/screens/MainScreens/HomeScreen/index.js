@@ -71,6 +71,16 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useTranslation } from "react-i18next";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused } from "@react-navigation/native";
+import StoryOverlayLayer from "../../../components/StoryOverlays/StoryOverlayLayer";
+import StoryFilterTint from "../../../components/StoryOverlays/StoryFilterTint";
+import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
+import {
+  denormalizeOverlayItem,
+  getStoryCanvasRect,
+  parseStoryMusic,
+  parseStoryOverlays,
+} from "../../../components/StoryOverlays/storyOverlayModel";
+import { openExternalLink } from "../../../utils/externalLink";
 
 const emojis = ["❤️", "😆", "😮", "😢", "😡", "👍"];
 
@@ -1451,6 +1461,73 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
   };
 
+  /**
+   * Swiping up on a story: on your own story it opens the viewers list (the
+   * same sheet the "views" pill opens), and on someone else's it follows the
+   * story's link sticker, if it has one - exactly what Instagram does.
+   */
+  const handleStorySwipeUp = (userId, storyId) => {
+    const user = userStories.find((item) => item.id === userId || item.uid === userId);
+    const story = user?.stories.find(
+      (item) => String(item.storyId) === String(storyId) || String(item.id) === String(storyId)
+    );
+
+    const isOwnStory =
+      String(user?.uid) === String(userInfo?.id) || String(user?.id) === String(userInfo?.username);
+
+    if (isOwnStory) {
+      DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", {
+        storyId: story?.storyId || storyId,
+        isOwn: true,
+      });
+      return;
+    }
+
+    const link = story?.overlays?.items?.find((item) => item.type === "link" && item.url);
+
+    if (link) {
+      storyRef.current?.pause?.();
+      openExternalLink(navigation, link.url, theme);
+    }
+  };
+
+  /** Soundtrack of the story currently on screen, if it has one. */
+  const currentStoryMusic = useMemo(() => {
+    if (!currentStory) return null;
+
+    for (const user of userStories) {
+      const story = user.stories.find(
+        (item) =>
+          String(item.storyId) === String(currentStory) || String(item.id) === String(currentStory)
+      );
+
+      if (story) return story.music || null;
+    }
+
+    return null;
+  }, [currentStory, userStories]);
+
+  const [isStoryPaused, setIsStoryPaused] = useState(false);
+
+  useEffect(() => {
+    if (!isStoryVisible || !currentStoryMusic) {
+      setIsStoryPaused(false);
+      return undefined;
+    }
+
+    // The library pauses on long-press without telling us, so the music has
+    // to follow the progress bar by polling its paused flag.
+    const interval = setInterval(() => {
+      try {
+        setIsStoryPaused(Boolean(storyRef.current?.isPaused?.()));
+      } catch (error) {
+        // ignore - the modal may already be gone
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [isStoryVisible, currentStoryMusic]);
+
   const handleReportSubmit = async (reason) => {
     try {
       if (!currentStoryUser) return;
@@ -1640,6 +1717,17 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             ? resolveStoryMediaUrl({ media_url: story.video_first_frame_url }) || mediaUrl
             : mediaUrl;
 
+          // Editor overlays (text, stickers, mentions, links, music chip) and
+          // the story's soundtrack. Photo stories already have their overlays
+          // painted into the picture, so those items are only rendered as
+          // invisible tap targets - see `flattened` below.
+          const overlays = parseStoryOverlays(story.overlays);
+          const storyMusic = parseStoryMusic(story.music);
+          const overlayRect = getStoryCanvasRect(SCREEN_WIDTH, SCREEN_HEIGHT);
+          const overlayItems = (overlays?.items || []).map((item, itemIndex) =>
+            denormalizeOverlayItem(item, overlayRect, itemIndex)
+          );
+
           return {
           id: story.id,
           storyId: story.id, // Store the actual story ID
@@ -1656,24 +1744,58 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           duration: story.duration,
           viewers_count: getStoryViewersCount(story),
           is_muted: story.is_muted || false,
+          overlays,
+          music: storyMusic,
           renderContent: (() => {
             const colors = gradientColors;
             const text = textContent;
 
+            const overlayLayer = () => (
+              <>
+                {/* A video keeps its overlays live on top of the playing
+                    media; a photo already has them baked in, so the same
+                    items are rendered invisibly just to catch taps on the
+                    mention/link stickers. */}
+                {isVideoStory && <StoryFilterTint filterId={overlays?.filter} />}
+                <StoryOverlayLayer
+                  items={overlayItems}
+                  canvasWidth={overlayRect.width}
+                  hidden={Boolean(overlays?.flattened)}
+                  interactive
+                  onPressMention={(item) => {
+                    if (!item.username) return;
+                    dismissStoryModal();
+                    setTimeout(
+                      () => navigation.navigate("ProfileScreen", { username: item.username }),
+                      300
+                    );
+                  }}
+                  onPressLink={(item) => {
+                    if (!item.url) return;
+                    storyRef.current?.pause?.();
+                    openExternalLink(navigation, item.url, theme);
+                  }}
+                />
+              </>
+            );
+
             return () => {
               if (isVideoStory) {
-                return null;
+                return overlayItems.length || overlays?.filter ? overlayLayer() : null;
               }
 
               if (shouldRenderAsImage) {
                 return (
-                  <ZoomableStoryImage
-                    uri={mediaUrl}
-                    style={{
-                      width: SCREEN_WIDTH,
-                      height: SCREEN_HEIGHT,
-                    }}
-                  />
+                  <>
+                    <ZoomableStoryImage
+                      uri={mediaUrl}
+                      style={{
+                        width: SCREEN_WIDTH,
+                        height: SCREEN_HEIGHT,
+                      }}
+                    />
+                    {overlayLayer()}
+                  </>
                 );
               }
 
@@ -2512,7 +2634,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           imageProps={{ resizeMode: "cover" }}
           imageStyles={StyleSheet.absoluteFillObject}
           videoProps={{
-            resizeMode: "contain",
+            // Cover, not contain: the editor composes on a 9:16 canvas with
+            // the video filling it, so letterboxing here would both add black
+            // bars the author never saw and pull the overlays out of place.
+            resizeMode: "cover",
             repeat: false,
             muted: Boolean(currentStory && (clientMuted[currentStory] || (() => {
               try {
@@ -2538,7 +2663,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             fontWeight: "600",
           }}
           renderCustomContent={(story) => {
-            if (story.renderContent && story.mediaType !== 'video') {
+            // Video stories used to skip this entirely; they now come through
+            // as well so their overlays (text, stickers, mentions, links) can
+            // be drawn on top of the playing video.
+            if (story.renderContent) {
               return story.renderContent();
             }
             return null;
@@ -2647,6 +2775,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           onShow={handleStoryShow}
           onHide={handleStoryHide}
           onStoryStart={handleStoryStart}
+          onSwipeUp={handleStorySwipeUp}
           onStoryItemPress={(item, index) => {
             // item is the story object, find the actual story ID
             const user = userStories.find((u) =>
@@ -2723,6 +2852,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               <StoryViewersSheet />
             </GestureHandlerRootView>
           }
+        />
+        <StoryMusicPlayer
+          music={currentStoryMusic}
+          paused={!isStoryVisible || isStoryPaused}
         />
         <ResendVerificationModal />
       </View>

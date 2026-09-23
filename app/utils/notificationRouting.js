@@ -50,6 +50,13 @@ export function resolveNotificationTarget({ type, data, actor }) {
     return { screen: "PointWalletScreen" };
   }
 
+  if (type === "mentioned" && storyId) {
+    return {
+      screen: "MainScreens",
+      params: { screen: "Home", params: { openStoryId: storyId } },
+    };
+  }
+
   if (type === "story_reacted") {
     return {
       screen: "MainScreens",

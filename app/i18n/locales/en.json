@@ -716,7 +716,8 @@
     "contentApprovedPost": "Your post was approved and is now public",
     "contentApprovedComment": "Your comment was approved and is now public",
     "contentRejectedPost": "Your post was not approved",
-    "contentRejectedComment": "Your comment was not approved"
+    "contentRejectedComment": "Your comment was not approved",
+    "mentionedInStory": "mentioned you in a story"
   },
   "chatBackground": {
     "title": "Chat background",
@@ -1192,7 +1193,59 @@
     },
     "dragToAdjust": "Drag to adjust crop area",
     "retake": "Retake",
-    "usePhoto": "Use Photo"
+    "usePhoto": "Use Photo",
+    "stickers": "Stickers",
+    "mention": "Mention",
+    "link": "Link",
+    "music": "Music",
+    "addSticker": "Add to story",
+    "mentionTitle": "Mention someone",
+    "mentionPlaceholder": "Search for a username...",
+    "mentionNoResults": "No users found",
+    "linkTitle": "Add a link",
+    "linkUrlLabel": "URL",
+    "linkLabelLabel": "Display label (optional)",
+    "linkLabelPlaceholder": "See more",
+    "linkInvalid": "That link doesn't look valid",
+    "musicTitle": "Add music",
+    "musicPlaceholder": "Search songs or artists...",
+    "musicHint": "Search for a song to add it to your story",
+    "musicNoResults": "No songs found",
+    "musicSearchError": "Couldn't search for music right now, please try again",
+    "musicTrimHint": "Starts at {{start}}s ({{length}}s clip)",
+    "musicChange": "Change",
+    "fonts": {
+      "classic": "Classic",
+      "modern": "Modern",
+      "typewriter": "Typewriter",
+      "serif": "Serif",
+      "handwriting": "Handwriting"
+    },
+    "textEffects": {
+      "none": "Aa",
+      "shadow": "Shadow",
+      "outline": "Outline",
+      "background": "Background",
+      "neon": "Neon"
+    },
+    "filters": {
+      "none": "Original",
+      "vivid": "Vivid",
+      "mono": "Mono",
+      "noir": "Noir",
+      "warm": "Warm",
+      "cool": "Cool",
+      "fade": "Fade",
+      "retro": "Retro",
+      "dusk": "Dusk"
+    },
+    "stickerPacks": {
+      "smileys": "Smileys",
+      "love": "Love",
+      "fun": "Fun",
+      "school": "School",
+      "nature": "Nature"
+    }
   },
   "terms": {
     "headerTitle": "Terms of Service",

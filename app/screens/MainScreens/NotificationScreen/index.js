@@ -108,6 +108,7 @@ const formatNotificationMessage = (notification, t) => {
     case "mentioned":
       if (data?.conversation_id) return t('notifications.mentionedInChat');
       if (data?.comment_id) return t('notifications.mentionedComment');
+      if (data?.story_id) return t('notifications.mentionedInStory');
       return t('notifications.mentionedInPost');
     case "followed":
       return t('notifications.followedYou');

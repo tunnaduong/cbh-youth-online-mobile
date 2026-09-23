@@ -726,7 +726,8 @@
     "contentApprovedPost": "Ваш пост одобрен и теперь виден всем",
     "contentApprovedComment": "Ваш комментарий одобрен и теперь виден всем",
     "contentRejectedPost": "Ваш пост не одобрен",
-    "contentRejectedComment": "Ваш комментарий не одобрен"
+    "contentRejectedComment": "Ваш комментарий не одобрен",
+    "mentionedInStory": "упомянул(а) вас в истории"
   },
   "chatBackground": {
     "title": "Фон чата",
@@ -1207,7 +1208,59 @@
     },
     "dragToAdjust": "Перетащите для настройки кадрирования",
     "retake": "Переснять",
-    "usePhoto": "Использовать фото"
+    "usePhoto": "Использовать фото",
+    "stickers": "Стикеры",
+    "mention": "Упоминание",
+    "link": "Ссылка",
+    "music": "Музыка",
+    "addSticker": "Добавить в историю",
+    "mentionTitle": "Упомянуть кого-то",
+    "mentionPlaceholder": "Поиск по имени пользователя...",
+    "mentionNoResults": "Пользователи не найдены",
+    "linkTitle": "Добавить ссылку",
+    "linkUrlLabel": "Ссылка",
+    "linkLabelLabel": "Подпись (необязательно)",
+    "linkLabelPlaceholder": "Подробнее",
+    "linkInvalid": "Ссылка выглядит некорректной",
+    "musicTitle": "Добавить музыку",
+    "musicPlaceholder": "Поиск песен или исполнителей...",
+    "musicHint": "Найдите песню, чтобы добавить её в историю",
+    "musicNoResults": "Песни не найдены",
+    "musicSearchError": "Сейчас не удалось найти музыку, попробуйте ещё раз",
+    "musicTrimHint": "Начало с {{start}} сек. (фрагмент {{length}} сек.)",
+    "musicChange": "Изменить",
+    "fonts": {
+      "classic": "Классический",
+      "modern": "Современный",
+      "typewriter": "Печатная машинка",
+      "serif": "С засечками",
+      "handwriting": "Рукописный"
+    },
+    "textEffects": {
+      "none": "Aa",
+      "shadow": "Тень",
+      "outline": "Контур",
+      "background": "Фон",
+      "neon": "Неон"
+    },
+    "filters": {
+      "none": "Оригинал",
+      "vivid": "Яркий",
+      "mono": "Ч/б",
+      "noir": "Нуар",
+      "warm": "Тёплый",
+      "cool": "Холодный",
+      "fade": "Выцветший",
+      "retro": "Ретро",
+      "dusk": "Сумерки"
+    },
+    "stickerPacks": {
+      "smileys": "Смайлики",
+      "love": "Любовь",
+      "fun": "Веселье",
+      "school": "Учёба",
+      "nature": "Природа"
+    }
   },
   "terms": {
     "headerTitle": "Условия использования",

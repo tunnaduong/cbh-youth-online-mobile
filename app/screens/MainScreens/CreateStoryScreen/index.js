@@ -1,30 +1,18 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-  memo,
-} from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback, memo } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Image,
-  TextInput,
   ScrollView,
   Dimensions,
   StyleSheet,
   TouchableHighlight,
-  PanResponder,
-  Pressable,
   Keyboard,
   Platform,
-  Linking,
   ActionSheetIOS,
   Alert,
-  Modal,
-  KeyboardAvoidingView,
+  ActivityIndicator,
   Animated,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -32,15 +20,7 @@ import * as ImagePicker from "expo-image-picker";
 import FastImage from "../../../components/FastImage";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
-import {
-  Canvas,
-  Path,
-  useCanvasRef,
-  Skia,
-  useImage,
-  Image as SkiaImage,
-} from "@shopify/react-native-skia";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Slider from "@react-native-community/slider";
 import { captureRef } from "react-native-view-shot";
@@ -49,8 +29,26 @@ import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
+import DrawingCanvas from "./DrawingCanvas";
+import MoveableItem from "./MoveableItem";
+import TextEditorOverlay from "./TextEditorOverlay";
+import FilterCarousel from "./FilterCarousel";
+import StickerSheet from "./StickerSheet";
+import MentionSheet from "./MentionSheet";
+import LinkSheet from "./LinkSheet";
+import MusicSheet from "./MusicSheet";
+import { StoryOverlayItemContent } from "../../../components/StoryOverlays/StoryOverlayLayer";
+import StoryFilterTint from "../../../components/StoryOverlays/StoryFilterTint";
+import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
+import {
+  OVERLAY_TYPES,
+  getContainedCanvasSize,
+  normalizeOverlayItem,
+} from "../../../components/StoryOverlays/storyOverlayModel";
+import { bakeFilterIntoImage, getStoryFilter } from "../../../components/StoryOverlays/storyFilters";
+import { toStoryMusicPayload } from "../../../services/musicSearch";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 const GRADIENTS = [
   { colors: ["#FF6B6B", "#4ECDC4"], nameKey: "sunset" },
@@ -61,212 +59,6 @@ const GRADIENTS = [
   { colors: ["#F9D423", "#FF4E50"], nameKey: "goldenHour" },
   { colors: ["#00c6ff", "#0072ff"], nameKey: "skyBlue" },
 ];
-
-const DrawingCanvas = React.forwardRef(
-  (
-    {
-      color = "#FFFFFF",
-      strokeWidth = 3,
-      isEraser = false,
-      savedDrawingData = null,
-    },
-    ref
-  ) => {
-    const [paths, setPaths] = useState([]);
-    const [currentPath, setCurrentPath] = useState("");
-    const [isDrawing, setIsDrawing] = useState(false);
-    const canvasRef = useCanvasRef();
-    const viewRef = useRef();
-
-    // Load saved drawing paths when component mounts or savedDrawingData changes
-    useEffect(() => {
-      if (savedDrawingData?.paths) {
-        setPaths(savedDrawingData.paths);
-      }
-    }, [savedDrawingData]);
-
-    const handleTouchStart = (evt) => {
-      const { locationX, locationY } = evt.nativeEvent;
-      if (locationX && locationY && !isNaN(locationX) && !isNaN(locationY)) {
-        setIsDrawing(true);
-        const newPath = `M${locationX},${locationY}`;
-        setCurrentPath(newPath);
-      }
-    };
-
-    const handleTouchMove = (evt) => {
-      if (!isDrawing) return;
-      const { locationX, locationY } = evt.nativeEvent;
-      if (locationX && locationY && !isNaN(locationX) && !isNaN(locationY)) {
-        setCurrentPath((prev) =>
-          prev
-            ? `${prev}L${locationX},${locationY}`
-            : `M${locationX},${locationY}`
-        );
-      }
-    };
-
-    const handleTouchEnd = () => {
-      if (isDrawing && currentPath && currentPath.length > 5) {
-        setPaths((currentPaths) => [
-          ...currentPaths,
-          { path: currentPath, color, strokeWidth, isEraser },
-        ]);
-        setCurrentPath("");
-      }
-      setIsDrawing(false);
-    };
-
-    const handleUndo = () => {
-      setPaths((currentPaths) => currentPaths.slice(0, -1));
-    };
-
-    const handleClear = () => {
-      setPaths([]);
-      setCurrentPath("");
-    };
-
-    const makeImageSnapshot = async () => {
-      try {
-        if (!viewRef.current) {
-          throw new Error("View reference is not ready");
-        }
-
-        const uri = await captureRef(viewRef, {
-          format: "png",
-          quality: 1,
-          result: "base64",
-        });
-
-        if (!uri) {
-          throw new Error("Failed to capture view");
-        }
-
-        return uri;
-      } catch (error) {
-        console.error("Error creating image snapshot:", error.message);
-        return null;
-      }
-    };
-
-    React.useImperativeHandle(ref, () => ({
-      handleUndo,
-      handleClear,
-      getPaths: () => paths,
-      makeImageSnapshot,
-      getDrawingData: () => ({
-        paths: paths,
-        currentPath: currentPath,
-        timestamp: Date.now(),
-      }),
-    }));
-
-    return (
-      <View
-        style={[StyleSheet.absoluteFill]}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <ScrollView
-          ref={viewRef}
-          style={[StyleSheet.absoluteFill]}
-          scrollEnabled={false}
-          bounces={false}
-          showsVerticalScrollIndicator={false}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
-            width: width,
-            height: height,
-            backgroundColor: "transparent",
-          }}
-        >
-          <View
-            style={[
-              StyleSheet.absoluteFill,
-              { backgroundColor: "transparent" },
-            ]}
-          >
-            <Canvas
-              ref={canvasRef}
-              style={StyleSheet.absoluteFill}
-              pointerEvents="none"
-            >
-              {paths.map((pathData, index) => {
-                if (!pathData.path || pathData.path.length < 5) return null;
-                return (
-                  <Path
-                    key={index}
-                    path={pathData.path}
-                    strokeWidth={pathData.strokeWidth}
-                    style="stroke"
-                    color={pathData.isEraser ? "transparent" : pathData.color}
-                    blendMode={pathData.isEraser ? "clear" : "source-over"}
-                  />
-                );
-              })}
-              {currentPath && currentPath.length > 5 && (
-                <Path
-                  path={currentPath}
-                  strokeWidth={strokeWidth}
-                  style="stroke"
-                  color={isEraser ? "transparent" : color}
-                  blendMode={isEraser ? "clear" : "source-over"}
-                />
-              )}
-            </Canvas>
-          </View>
-        </ScrollView>
-      </View>
-    );
-  }
-);
-
-// Move TextInputArea outside the main component
-const TextInputArea = React.memo(
-  ({ text, setText, isTextOnly, placeholder, onFinish }) => {
-    const handleSubmit = () => {
-      Keyboard.dismiss();
-      onFinish?.();
-    };
-
-    return (
-      <Pressable
-        onPress={handleSubmit}
-        style={[
-          isTextOnly
-            ? [styles.textOnlyCenterContainer, styles.textInputContainer2]
-            : styles.textInputContainer,
-        ]}
-      >
-        <View>
-          <TextInput
-            value={text}
-            onChangeText={setText}
-            placeholder={placeholder}
-            placeholderTextColor="rgba(255,255,255,0.7)"
-            multiline
-            style={[styles.textInput, isTextOnly ? styles.textOnlyInput : null]}
-            autoFocus
-          />
-        </View>
-        {!isTextOnly && <KeyboardAvoidingView behavior="padding" />}
-      </Pressable>
-    );
-  }
-);
-
-const TextOnlyContent = memo(({ text }) => (
-  <View style={styles.textOnlyWrapper}>
-    <Text
-      style={styles.textOnlyText}
-      adjustsFontSizeToFit={false}
-      numberOfLines={0}
-    >
-      {text}
-    </Text>
-  </View>
-));
 
 const DRAWING_COLORS = [
   "#FFFFFF",
@@ -296,8 +88,13 @@ const ColorPicker = ({ strokeColor, setStrokeColor }) => (
 
 const BrushSizePicker = ({ strokeWidth, setStrokeWidth, showBrushSize, t }) => {
   const [sliderValue, setSliderValue] = useState(strokeWidth);
-  React.useEffect(() => { setSliderValue(strokeWidth); }, [strokeWidth]);
+
+  useEffect(() => {
+    setSliderValue(strokeWidth);
+  }, [strokeWidth]);
+
   if (!showBrushSize) return null;
+
   return (
     <View style={styles.brushSizeSlider}>
       <Text style={styles.brushSizeLabel}>{t("story.brushSize", { size: sliderValue })}</Text>
@@ -319,13 +116,22 @@ const BrushSizePicker = ({ strokeWidth, setStrokeWidth, showBrushSize, t }) => {
 
 const DrawingTools = ({ drawingRef, isEraser, setIsEraser, showBrushSize, setShowBrushSize }) => (
   <View style={styles.drawingTools}>
-    <TouchableOpacity style={[styles.toolButton, !isEraser && styles.activeToolButton]} onPress={() => setIsEraser(false)}>
+    <TouchableOpacity
+      style={[styles.toolButton, !isEraser && styles.activeToolButton]}
+      onPress={() => setIsEraser(false)}
+    >
       <Ionicons name="brush" size={24} color="#fff" />
     </TouchableOpacity>
-    <TouchableOpacity style={[styles.toolButton, isEraser && styles.activeToolButton]} onPress={() => setIsEraser(true)}>
+    <TouchableOpacity
+      style={[styles.toolButton, isEraser && styles.activeToolButton]}
+      onPress={() => setIsEraser(true)}
+    >
       <Image source={require("../../../assets/eraser.png")} style={{ width: 24, height: 24 }} />
     </TouchableOpacity>
-    <TouchableOpacity style={[styles.toolButton, showBrushSize && styles.activeToolButton]} onPress={() => setShowBrushSize(!showBrushSize)}>
+    <TouchableOpacity
+      style={[styles.toolButton, showBrushSize && styles.activeToolButton]}
+      onPress={() => setShowBrushSize(!showBrushSize)}
+    >
       <Ionicons name="resize" size={24} color="#fff" />
     </TouchableOpacity>
     <TouchableOpacity style={styles.toolButton} onPress={() => drawingRef.current?.handleUndo()}>
@@ -336,78 +142,6 @@ const DrawingTools = ({ drawingRef, isEraser, setIsEraser, showBrushSize, setSho
     </TouchableOpacity>
   </View>
 );
-
-const MoveableText = memo(({ id, text, x, y, isEditing, onPositionChange, onTap, onDragStart, onDragEnd, onDragging, isAnyDragging }) => {
-  const isEditingRef = useRef(isEditing);
-  const posRef = useRef({ x, y });
-  const panOffset = useRef({ x: 0, y: 0 });
-  const didDragRef = useRef(false);
-  const callbacksRef = useRef({ onPositionChange, onTap, onDragStart, onDragEnd, onDragging });
-
-  useEffect(() => {
-    isEditingRef.current = isEditing;
-  }, [isEditing]);
-
-  useEffect(() => {
-    posRef.current = { x, y };
-  }, [x, y]);
-
-  useEffect(() => {
-    callbacksRef.current = { onPositionChange, onTap, onDragStart, onDragEnd, onDragging };
-  }, [onPositionChange, onTap, onDragStart, onDragEnd, onDragging]);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        panOffset.current = { ...posRef.current };
-        didDragRef.current = false;
-      },
-      onPanResponderMove: (evt, gestureState) => {
-        if (isEditingRef.current) return;
-        if (!didDragRef.current && (Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5)) {
-          didDragRef.current = true;
-          callbacksRef.current.onDragStart?.();
-        }
-        if (didDragRef.current) {
-          callbacksRef.current.onPositionChange?.(id, {
-            x: panOffset.current.x + gestureState.dx,
-            y: panOffset.current.y + gestureState.dy,
-          });
-          callbacksRef.current.onDragging?.(gestureState.moveY);
-        }
-      },
-      onPanResponderRelease: (evt, gestureState) => {
-        if (isEditingRef.current) return;
-        if (didDragRef.current) {
-          const isOverTrash = gestureState.moveY > Dimensions.get("window").height * 0.82;
-          callbacksRef.current.onDragEnd?.(id, isOverTrash);
-        } else {
-          callbacksRef.current.onTap?.(id);
-        }
-        didDragRef.current = false;
-      },
-    })
-  ).current;
-
-  if (!text || isEditing) return null;
-
-  return (
-    <View
-      {...panResponder.panHandlers}
-      style={[
-        styles.moveableTextContainer,
-        {
-          transform: [{ translateX: x }, { translateY: y }],
-          opacity: isAnyDragging && !isEditing ? 0.8 : 1,
-        },
-      ]}
-    >
-      <Text style={styles.moveableText}>{text}</Text>
-    </View>
-  );
-});
 
 const TrashZone = memo(({ visible, isOver, t }) => {
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -432,514 +166,409 @@ const TrashZone = memo(({ visible, isOver, t }) => {
         },
       ]}
     >
-      <Ionicons
-        name={isOver ? "trash" : "trash-outline"}
-        size={isOver ? 36 : 28}
-        color="#fff"
-      />
+      <Ionicons name={isOver ? "trash" : "trash-outline"} size={isOver ? 36 : 28} color="#fff" />
       <Text style={[styles.trashZoneText, isOver && { fontWeight: "700" }]}>
-        {isOver ? t('story.dropToDelete', 'Drop to delete') : t('story.dragHereToDelete', 'Drag here to delete')}
+        {isOver ? t("story.dropToDelete") : t("story.dragHereToDelete")}
       </Text>
     </Animated.View>
   );
 });
 
-const ToolsBar = ({ isEditing, setIsEditing, isDrawing, setIsDrawing, pickImage, onAddText, onFinishText, selectedMediaType, isMuted, toggleMute, t }) => {
-  const handleTextPress = () => {
-    // A text box is already open for editing - pressing the same "Aa" icon
-    // again should finish/commit that one, not silently stack a brand new
-    // empty text box on top of it (which visually hid the just-typed text
-    // and looked like the input had been discarded).
-    if (isEditing) {
-      if (onFinishText) {
-        onFinishText();
-      } else {
-        setIsEditing(false);
-      }
-    } else if (onAddText) {
-      onAddText();
-    } else {
-      setIsEditing(true);
-    }
-  };
-
-  return (
+/**
+ * Editing toolbar down the right-hand side of the canvas, Instagram style.
+ */
+const ToolsBar = ({
+  onAddText,
+  onOpenStickers,
+  onToggleDrawing,
+  onToggleFilters,
+  onOpenMusic,
+  isDrawing,
+  filtersVisible,
+  hasMusic,
+  selectedMediaType,
+  isMuted,
+  toggleMute,
+  isTextOnly,
+  onCycleGradient,
+}) => (
   <View style={styles.toolsContainer}>
-    {/* If editing a video, only show music and mute controls */}
-    {selectedMediaType === 'video' ? (
+    <TouchableOpacity style={styles.toolButton} onPress={onAddText}>
+      <Ionicons name="text" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.toolButton} onPress={onOpenStickers}>
+      <Ionicons name="happy-outline" size={24} color="#fff" />
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={[styles.toolButton, hasMusic && styles.activeToolButton]}
+      onPress={onOpenMusic}
+    >
+      <Ionicons name="musical-notes" size={24} color="#fff" />
+    </TouchableOpacity>
+    {!isTextOnly && (
       <>
         <TouchableOpacity
-          style={styles.toolButton}
-          onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+          style={[styles.toolButton, isDrawing && styles.activeToolButton]}
+          onPress={onToggleDrawing}
         >
-          <Ionicons name="musical-notes" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.toolButton} onPress={toggleMute}>
-          <Ionicons name={isMuted ? 'volume-mute-outline' : 'volume-high-outline'} size={24} color="#fff" />
-        </TouchableOpacity>
-      </>
-    ) : (
-      <>
-        <TouchableOpacity style={styles.toolButton} onPress={handleTextPress}>
-          <Ionicons name="text" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.toolButton} onPress={pickImage}>
-          <Ionicons name="image" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.toolButton, isDrawing && styles.activeToolButton]} onPress={() => setIsDrawing(!isDrawing)}>
           <Ionicons name="brush" size={24} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.toolButton}
-          onPress={() => Toast.show({ type: "info", text1: t("story.featureInDevelopment"), text2: t("story.stayTuned") })}
+          style={[styles.toolButton, filtersVisible && styles.activeToolButton]}
+          onPress={onToggleFilters}
         >
-          <Ionicons name="musical-notes" size={24} color="#fff" />
+          <Ionicons name="color-filter-outline" size={24} color="#fff" />
         </TouchableOpacity>
       </>
     )}
+    {isTextOnly && (
+      <TouchableOpacity style={styles.toolButton} onPress={onCycleGradient}>
+        <Ionicons name="color-palette-outline" size={24} color="#fff" />
+      </TouchableOpacity>
+    )}
+    {selectedMediaType === "video" && (
+      <TouchableOpacity style={styles.toolButton} onPress={toggleMute}>
+        <Ionicons
+          name={isMuted ? "volume-mute-outline" : "volume-high-outline"}
+          size={24}
+          color="#fff"
+        />
+      </TouchableOpacity>
+    )}
   </View>
-  );
-};
-
+);
 
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
-  const [selectedImage, setSelectedImage] = useState(null);
+  const insets = useSafeAreaInsets();
+
+  // Media
+  const [originalImage, setOriginalImage] = useState(null);
+  const [displayImage, setDisplayImage] = useState(null);
   const [selectedMediaType, setSelectedMediaType] = useState(null);
   const [selectedMediaAsset, setSelectedMediaAsset] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [text, setText] = useState("");
-  const [textPosition, setTextPosition] = useState({
-    x: 0,
-    y: 0,
-  });
-  const [isEditing, setIsEditing] = useState(false);
+  const [isTextOnly, setIsTextOnly] = useState(false);
+  const [textBackground, setTextBackground] = useState(GRADIENTS[0].colors);
+
+  // Overlays
+  const [items, setItems] = useState([]);
+  const [editingText, setEditingText] = useState(null); // { id?, ...textProps }
+  const [isDraggingItem, setIsDraggingItem] = useState(false);
+  const [isOverTrash, setIsOverTrash] = useState(false);
+  const [music, setMusic] = useState(null);
+  const [filterId, setFilterId] = useState("none");
+  const [isApplyingFilter, setIsApplyingFilter] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [activeSheet, setActiveSheet] = useState(null);
+
+  // Drawing
   const [isDrawing, setIsDrawing] = useState(false);
   const [strokeColor, setStrokeColor] = useState("#FFFFFF");
   const [strokeWidth, setStrokeWidth] = useState(3);
   const [isEraser, setIsEraser] = useState(false);
   const [showBrushSize, setShowBrushSize] = useState(false);
   const [savedDrawingData, setSavedDrawingData] = useState(null);
-  const [isTextOnly, setIsTextOnly] = useState(false);
-  const [textBackground, setTextBackground] = useState(["#FF6B6B", "#4ECDC4"]);
 
-  const [storyTexts, setStoryTexts] = useState([]);
-  const [editingTextId, setEditingTextId] = useState(null);
-  const [isDraggingText, setIsDraggingText] = useState(false);
-  const [isOverTrash, setIsOverTrash] = useState(false);
-  const textIdCounter = useRef(0);
-
-  const addStoryText = useCallback(() => {
-    const newId = `text_${textIdCounter.current++}`;
-    setStoryTexts((prev) => [
-      ...prev,
-      // Use captureDims.w, not the raw window width - the story canvas is
-      // letterboxed/pillarboxed to a 9:16 area on devices whose screen
-      // aspect ratio isn't exactly 9:16, so the canvas is often narrower
-      // than the window itself. Centering against the window width placed
-      // new text off-center relative to the actual visible canvas.
-      { id: newId, text: "", x: captureDims.w / 2 - 100, y: captureDims.h / 2 - 20 },
-    ]);
-    setEditingTextId(newId);
-  }, [captureDims]);
-
-  const updateStoryText = useCallback((id, newText) => {
-    setStoryTexts((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, text: newText } : item))
-    );
-  }, []);
-
-  const updateStoryTextPosition = useCallback((id, newPos) => {
-    setStoryTexts((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, x: newPos.x, y: newPos.y } : item))
-    );
-  }, []);
-
-  const deleteStoryText = useCallback((id) => {
-    setStoryTexts((prev) => prev.filter((item) => item.id !== id));
-    setEditingTextId((prev) => (prev === id ? null : prev));
-  }, []);
-
-  const handleStoryTextDragStart = useCallback(() => {
-    setIsDraggingText(true);
-    setIsOverTrash(false);
-  }, []);
-
-  const handleStoryTextDragEnd = useCallback((id, wasOverTrash) => {
-    if (wasOverTrash) {
-      deleteStoryText(id);
-    }
-    setIsDraggingText(false);
-    setIsOverTrash(false);
-  }, [deleteStoryText]);
-
-  const handleStoryTextDragging = useCallback((moveY) => {
-    const screenH = Dimensions.get("window").height;
-    setIsOverTrash(moveY > screenH * 0.82);
-  }, []);
-
-  const handleStoryTextTap = useCallback((id) => {
-    setEditingTextId(id);
-  }, []);
-
-  const editingTextItem = useMemo(
-    () => storyTexts.find((item) => item.id === editingTextId),
-    [storyTexts, editingTextId]
-  );
-
-  const finishStoryTextEdit = useCallback(() => {
-    Keyboard.dismiss();
-    setEditingTextId((prevId) => {
-      if (prevId) {
-        setStoryTexts((prev) => {
-          const current = prev.find((item) => item.id === prevId);
-          if (current && !current.text) {
-            return prev.filter((item) => item.id !== prevId);
-          }
-          return prev;
-        });
-      }
-      return null;
-    });
-  }, []);
-
-  const drawingRef = useRef(null);
-  const insets = useSafeAreaInsets();
   const [isUploading, setIsUploading] = useState(false);
-  const imageWithOverlaysRef = useRef(null);
   const [viewReady, setViewReady] = useState(false);
   const [contentAreaHeight, setContentAreaHeight] = useState(0);
 
+  const drawingRef = useRef(null);
+  const imageWithOverlaysRef = useRef(null);
+  const itemIdCounter = useRef(0);
+
+  /**
+   * The story canvas is always 9:16 - letterboxed inside whatever space the
+   * screen leaves, so the editor shows exactly the frame that gets posted.
+   */
   const captureDims = useMemo(() => {
-    const extraTopPad = Platform.OS === 'android' ? 4 : 0;
-    const availH = contentAreaHeight > 0 ? contentAreaHeight - extraTopPad : 0;
-    if (availH <= 0) {
-      return { w: width, h: width * 16 / 9 };
-    }
-    const idealH = width * 16 / 9;
-    if (idealH <= availH) {
-      return { w: width, h: idealH };
-    }
-    return { w: availH * 9 / 16, h: availH };
+    const extraTopPad = Platform.OS === "android" ? 4 : 0;
+    const availableHeight = contentAreaHeight > 0 ? contentAreaHeight - extraTopPad : 0;
+    const size = getContainedCanvasSize(width, availableHeight);
+
+    return { w: size.width, h: size.height };
   }, [contentAreaHeight]);
 
-  const handleTextOnlyStory = () => {
-    setSelectedImage(null);
-    setSelectedMediaType(null);
-    setSelectedMediaAsset(null);
-    setIsMuted(false);
-    setIsTextOnly(true);
-    setIsEditing(true);
-    setText("");
-    // Randomly select a gradient background
-    const randomIndex = Math.floor(Math.random() * GRADIENTS.length);
-    setTextBackground(GRADIENTS[randomIndex].colors);
-  };
+  const hasContent = Boolean(originalImage || isTextOnly);
+  const isVideo = selectedMediaType === "video";
 
-  const cycleGradient = () => {
-    const currentIndex = GRADIENTS.findIndex(
-      (g) => JSON.stringify(g.colors) === JSON.stringify(textBackground)
-    );
-    const nextIndex = (currentIndex + 1) % GRADIENTS.length;
-    setTextBackground(GRADIENTS[nextIndex].colors);
-  };
+  /**
+   * Photo filters are baked with Skia as soon as they are picked rather than
+   * at share time: React Native's own `filter` style is behind a feature flag
+   * on iOS, and baking keeps the preview and the upload identical.
+   */
+  useEffect(() => {
+    let cancelled = false;
 
-  const onViewLayout = useCallback(() => {
-    setViewReady(true);
+    if (!originalImage || isVideo) {
+      return undefined;
+    }
+
+    const filter = getStoryFilter(filterId);
+
+    if (!filter?.matrix) {
+      setDisplayImage(originalImage);
+      return undefined;
+    }
+
+    setIsApplyingFilter(true);
+
+    bakeFilterIntoImage(originalImage, filterId)
+      .then((uri) => {
+        if (!cancelled) setDisplayImage(uri);
+      })
+      .finally(() => {
+        if (!cancelled) setIsApplyingFilter(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [originalImage, filterId, isVideo]);
+
+  // --- overlay items -------------------------------------------------------
+
+  const nextItemId = () => `item_${itemIdCounter.current++}`;
+
+  const addItem = useCallback((item) => {
+    setItems((prev) => [...prev, item]);
   }, []);
 
-  const captureImageWithOverlays = useCallback(async () => {
-    try {
-      if (!imageWithOverlaysRef.current || !viewReady) {
-        console.log("View not ready for capture, waiting...");
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        if (!imageWithOverlaysRef.current) {
-          throw new Error("Image reference still not available after waiting");
-        }
+  const updateItemTransform = useCallback((id, transform) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...transform } : item))
+    );
+  }, []);
+
+  const removeItem = useCallback(
+    (id) => {
+      // Dropping the music sticker is how you remove the soundtrack.
+      if (items.find((item) => item.id === id)?.type === OVERLAY_TYPES.MUSIC) {
+        setMusic(null);
       }
 
-      // Force a render cycle
-      await new Promise((resolve) =>
-        requestAnimationFrame(() => {
-          requestAnimationFrame(resolve);
-        })
+      setItems((prev) => prev.filter((item) => item.id !== id));
+    },
+    [items]
+  );
+
+  const handleItemDragStart = useCallback(() => {
+    setIsDraggingItem(true);
+    setIsOverTrash(false);
+  }, []);
+
+  const handleItemDragging = useCallback((moveY) => {
+    setIsOverTrash(moveY > Dimensions.get("window").height * 0.82);
+  }, []);
+
+  const handleItemDragEnd = useCallback(
+    (id, wasOverTrash) => {
+      if (wasOverTrash) removeItem(id);
+      setIsDraggingItem(false);
+      setIsOverTrash(false);
+    },
+    [removeItem]
+  );
+
+  const handleItemTap = useCallback(
+    (id) => {
+      const target = items.find((item) => item.id === id);
+
+      if (target?.type === OVERLAY_TYPES.TEXT) {
+        setEditingText(target);
+      }
+    },
+    [items]
+  );
+
+  const openTextEditor = useCallback(() => {
+    setEditingText({
+      id: null,
+      text: "",
+      color: "#FFFFFF",
+      font: "classic",
+      effect: "shadow",
+      align: "center",
+      fontSize: Math.round(captureDims.w * 0.09),
+    });
+  }, [captureDims.w]);
+
+  const handleTextEditorDone = useCallback(
+    (values) => {
+      const editingId = editingText?.id;
+
+      if (editingId) {
+        setItems((prev) =>
+          prev.map((item) => (item.id === editingId ? { ...item, ...values } : item))
+        );
+      } else {
+        const boxWidth = captureDims.w * 0.86;
+
+        addItem({
+          id: nextItemId(),
+          type: OVERLAY_TYPES.TEXT,
+          x: (captureDims.w - boxWidth) / 2,
+          y: captureDims.h * 0.4,
+          scale: 1,
+          rotation: 0,
+          width: boxWidth,
+          ...values,
+        });
+      }
+
+      setEditingText(null);
+    },
+    [editingText, addItem, captureDims.w, captureDims.h]
+  );
+
+  const addSticker = useCallback(
+    (emoji) => {
+      const size = captureDims.w * 0.22;
+
+      addItem({
+        id: nextItemId(),
+        type: OVERLAY_TYPES.STICKER,
+        emoji,
+        x: (captureDims.w - size) / 2,
+        y: captureDims.h * 0.42,
+        scale: 1,
+        rotation: 0,
+        width: size,
+      });
+      setActiveSheet(null);
+    },
+    [addItem, captureDims.w, captureDims.h]
+  );
+
+  const addMention = useCallback(
+    (user) => {
+      addItem({
+        id: nextItemId(),
+        type: OVERLAY_TYPES.MENTION,
+        username: user.username,
+        userId: user.id,
+        style: "light",
+        x: captureDims.w * 0.25,
+        y: captureDims.h * 0.5,
+        scale: 1,
+        rotation: 0,
+        width: captureDims.w * 0.5,
+      });
+      setActiveSheet(null);
+    },
+    [addItem, captureDims.w, captureDims.h]
+  );
+
+  const addLink = useCallback(
+    ({ url, label }) => {
+      addItem({
+        id: nextItemId(),
+        type: OVERLAY_TYPES.LINK,
+        url,
+        label,
+        style: "light",
+        x: captureDims.w * 0.2,
+        y: captureDims.h * 0.62,
+        scale: 1,
+        rotation: 0,
+        width: captureDims.w * 0.6,
+      });
+      setActiveSheet(null);
+    },
+    [addItem, captureDims.w, captureDims.h]
+  );
+
+  const addMusic = useCallback(
+    (track) => {
+      setMusic(track);
+
+      // A video's own audio would fight the soundtrack, so mute it - the same
+      // thing Instagram does when you add music to a video.
+      if (selectedMediaType === "video") {
+        setIsMuted(true);
+      }
+
+      setItems((prev) => {
+        const withoutMusic = prev.filter((item) => item.type !== OVERLAY_TYPES.MUSIC);
+
+        return [
+          ...withoutMusic,
+          {
+            id: nextItemId(),
+            type: OVERLAY_TYPES.MUSIC,
+            title: track.title,
+            artist: track.artist,
+            artworkUrl: track.artworkUrl,
+            style: "light",
+            x: captureDims.w * 0.18,
+            y: captureDims.h * 0.12,
+            scale: 1,
+            rotation: 0,
+            width: captureDims.w * 0.64,
+          },
+        ];
+      });
+      setActiveSheet(null);
+    },
+    [captureDims.w, captureDims.h, selectedMediaType]
+  );
+
+  // --- media ---------------------------------------------------------------
+
+  const applyPickedAsset = (asset) => {
+    const mediaType = asset?.type === "video" ? "video" : "image";
+
+    setSelectedMediaType(mediaType);
+    setSelectedMediaAsset(asset);
+    setOriginalImage(asset.uri);
+    setDisplayImage(asset.uri);
+    setFilterId("none");
+    setIsMuted(false);
+  };
+
+  /**
+   * Stories are 9:16, so anything picked gets centre-cropped to that ratio -
+   * some OS pickers ignore the `aspect` hint when both photos and videos are
+   * selectable, which used to leave uncropped images in the editor.
+   */
+  const forceStoryAspect = async (asset) => {
+    if (!asset?.width || !asset?.height) return asset;
+
+    const targetRatio = 9 / 16;
+    const currentRatio = asset.width / asset.height;
+
+    if (Math.abs(currentRatio - targetRatio) <= 0.02) return asset;
+
+    try {
+      let cropWidth = asset.width;
+      let cropHeight = Math.round(asset.width / targetRatio);
+
+      if (cropHeight > asset.height) {
+        cropHeight = asset.height;
+        cropWidth = Math.round(asset.height * targetRatio);
+      }
+
+      const manipulated = await manipulateAsync(
+        asset.uri,
+        [
+          {
+            crop: {
+              originX: Math.round((asset.width - cropWidth) / 2),
+              originY: Math.round((asset.height - cropHeight) / 2),
+              width: cropWidth,
+              height: cropHeight,
+            },
+          },
+        ],
+        { compress: 1, format: SaveFormat.JPEG }
       );
 
-      console.log("Starting capture...");
-      const capturedUri = await captureRef(imageWithOverlaysRef.current, {
-        format: "jpg",
-        quality: 1,
-        result: "file",
-      });
-
-      return capturedUri;
+      return { ...asset, uri: manipulated.uri, width: manipulated.width, height: manipulated.height };
     } catch (error) {
-      console.error("Error capturing image with overlays:", error);
-      throw error;
-    }
-  }, [viewReady]);
-
-  const uploadStory = async () => {
-    try {
-      if (isTextOnly && (!text || text.trim() === "")) {
-        Toast.show({
-          type: "error",
-          text1: t("common.error"),
-          text2: t("story.emptyTextError", "Please enter some text for your story."),
-        });
-        return;
-      }
-
-      setIsUploading(true);
-
-      const formData = new FormData();
-
-      const contentText =
-        (isTextOnly && text ? text : "") ||
-        storyTexts
-          .filter((item) => item.text)
-          .map((item) => item.text)
-          .join("\n")
-          .trim();
-
-      if (contentText) {
-        formData.append("content", contentText);
-      }
-
-      try {
-        let finalImageUri = null;
-        let fileName = "story_image.jpg";
-        let fileType = "image/jpeg";
-
-        if (selectedMediaType === "video") {
-          finalImageUri = selectedImage;
-          fileName = selectedMediaAsset?.fileName || "story_video.mp4";
-          fileType = selectedMediaAsset?.mimeType || "video/mp4";
-        } else if (selectedImage || isTextOnly) {
-          // Dismiss keyboard and stop editing first so that overlays are properly rendered in their final state
-          Keyboard.dismiss();
-          setEditingTextId(null);
-          setIsEditing(false);
-          await new Promise((resolve) => setTimeout(resolve, 150));
-
-          finalImageUri = await captureImageWithOverlays();
-          if (!finalImageUri) {
-            throw new Error("Failed to capture story content");
-          }
-        }
-
-        if (selectedMediaType === "video") {
-          const storyFile = {
-            uri: finalImageUri,
-            type: fileType,
-            name: fileName,
-          };
-
-          formData.append("media_type", "video");
-          formData.append("media_file", storyFile);
-          formData.append("file", storyFile);
-          formData.append("is_muted", isMuted ? "true" : "false");
-          // If there are text overlays or drawing data, include them as metadata so the server
-          // can persist and the viewer can render overlays on top of the original video.
-          try {
-            if (storyTexts && storyTexts.length > 0) {
-              formData.append("overlays[texts]", JSON.stringify(storyTexts));
-            }
-            const drawingData = drawingRef.current?.getDrawingData?.();
-            if (drawingData && drawingData.paths && drawingData.paths.length > 0) {
-              formData.append("overlays[drawing]", JSON.stringify(drawingData));
-            }
-          } catch (e) {
-            console.warn("Failed to append overlays metadata:", e?.message || e);
-          }
-        } else if (selectedImage) {
-          const storyFile = {
-            uri: finalImageUri,
-            type: "image/jpeg",
-            name: "story_image.jpg",
-          };
-
-          formData.append("media_type", "image");
-          formData.append("media_file", storyFile);
-          formData.append("file", storyFile);
-        } else if (isTextOnly) {
-          // For text-only stories, we'll send both the text content and the captured image
-          const storyFile = {
-            uri: finalImageUri,
-            type: "image/jpeg",
-            name: "story_text.jpg",
-          };
-
-          formData.append("media_type", "text");
-          formData.append("media_file", storyFile);
-          formData.append("file", storyFile);
-          // Add background color for text-only stories
-          if (textBackground && textBackground.length >= 2) {
-            formData.append("background_color", JSON.stringify(textBackground));
-          }
-        }
-
-        formData.append("privacy", "public");
-
-        const requestSummary = {
-          contentLength: contentText?.length || 0,
-          isTextOnly,
-          selectedMediaType,
-          hasMediaFile: Boolean(finalImageUri),
-          isMuted,
-          storyTextCount: storyTexts?.length || 0,
-          hasDrawing: Boolean(
-            drawingRef.current?.getDrawingData?.()?.paths?.length
-          ),
-        };
-
-        console.log("[CreateStory] submitting story", requestSummary);
-
-        try {
-          await createStory(formData);
-        } catch (error) {
-          console.error("[CreateStory] server rejected story upload", {
-            message: error?.message,
-            status: error?.response?.status,
-            statusText: error?.response?.statusText,
-            url: error?.config?.url,
-            requestSummary,
-            responseData: error?.response?.data,
-          });
-          throw error;
-        }
-
-        Toast.show({
-          type: "success",
-          text1: t("story.postSuccess"),
-          text2: isTextOnly
-            ? t("story.textStoryPosted")
-            : savedDrawingData
-            ? t("story.drawingStoryPosted")
-            : t("story.storyPosted"),
-        });
-
-        // Reset navigation stack and go to MainScreens
-        navigation.reset({
-          index: 0,
-          routes: [
-            {
-              name: "MainScreens",
-              params: {
-                screen: "Home",
-                params: {
-                  refresh: Date.now(), // Pass a timestamp to ensure the refresh trigger is unique
-                },
-              },
-            },
-          ],
-        });
-      } catch (imageError) {
-        const serverMessage =
-          imageError?.response?.data?.message ||
-          imageError?.response?.data?.error ||
-          imageError?.response?.data?.errors ||
-          imageError?.message;
-
-        console.error("Error processing story content:", imageError);
-        console.error("Story upload server details:", {
-          status: imageError?.response?.status,
-          statusText: imageError?.response?.statusText,
-          data: imageError?.response?.data,
-        });
-
-        Toast.show({
-          type: "error",
-          text1: t("story.contentError"),
-          text2: serverMessage || t("story.contentErrorDesc"),
-        });
-        return;
-      }
-    } catch (error) {
-      console.error("Error uploading story:", error.response?.data || error);
-      Toast.show({
-        type: "error",
-        text1: t("story.postError"),
-        text2: t("story.postErrorDesc"),
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleExitIOS = (type) => {
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: [
-          type == "drawing" ? t("story.discardDrawing") : t("story.discardStory"),
-          t("story.continueEditing"),
-        ],
-        destructiveButtonIndex: 0,
-        userInterfaceStyle: "dark",
-      },
-      (buttonIndex) => {
-        if (buttonIndex === 1) {
-          // cancel action
-        } else if (buttonIndex === 0) {
-          if (type === "drawing") {
-            setIsDrawing(false);
-          } else if (type === "text") {
-            setIsTextOnly(false);
-            setIsEditing(false);
-            setText("");
-          } else if (type === "image") {
-            setSelectedImage(null);
-            setSelectedMediaType(null);
-            setSelectedMediaAsset(null);
-            setIsMuted(false);
-            setText("");
-            setIsEditing(false);
-            setStoryTexts([]);
-            setEditingTextId(null);
-          }
-          // navigation.goBack();
-        }
-      }
-    );
-  };
-
-  const handleExitAndroid = (type) => {
-    Alert.alert(
-      t("story.exitConfirm"),
-      t("story.exitConfirmDesc"),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("story.exit"),
-          onPress: () => {
-            if (type === "drawing") {
-              setIsDrawing(false);
-            } else if (type === "text") {
-              setIsTextOnly(false);
-              setIsEditing(false);
-              setText("");
-            } else if (type === "image") {
-              setSelectedImage(null);
-              setSelectedMediaType(null);
-              setSelectedMediaAsset(null);
-              setIsMuted(false);
-              setText("");
-              setIsEditing(false);
-              setStoryTexts([]);
-              setEditingTextId(null);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const handleHeaderRightPress = () => {
-    if (isDrawing) {
-      saveDrawing();
-    } else {
-      uploadStory();
+      console.warn("Failed to force 9:16 crop on story image:", error?.message);
+      return asset;
     }
   };
 
@@ -947,65 +576,111 @@ const CreateStoryScreen = ({ navigation }) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
       allowsEditing: true,
-      aspect: [5, 6],
+      aspect: [9, 16],
       quality: 1,
     });
 
-    if (!result.canceled) {
-      let asset = result.assets?.[0];
-      if (!asset?.uri) return;
-      const mediaType = asset?.type === "video" ? "video" : "image";
+    if (result.canceled) return;
 
-      // Some OS gallery pickers silently ignore the aspect/editing hint
-      // above when mediaTypes includes both photos and videos (a known
-      // expo-image-picker limitation), returning the raw uncropped image
-      // instead of the requested 6:5. Force it here so uploaded story
-      // images are consistently 6:5 regardless of OS picker behavior.
-      if (mediaType === "image" && asset.width && asset.height) {
-        const targetRatio = 5 / 6;
-        const currentRatio = asset.width / asset.height;
-        if (Math.abs(currentRatio - targetRatio) > 0.02) {
-          try {
-            let cropWidth = asset.width;
-            let cropHeight = Math.round(asset.width / targetRatio);
-            if (cropHeight > asset.height) {
-              cropHeight = asset.height;
-              cropWidth = Math.round(asset.height * targetRatio);
-            }
-            const originX = Math.round((asset.width - cropWidth) / 2);
-            const originY = Math.round((asset.height - cropHeight) / 2);
+    let asset = result.assets?.[0];
+    if (!asset?.uri) return;
 
-            const manipulated = await manipulateAsync(
-              asset.uri,
-              [{ crop: { originX, originY, width: cropWidth, height: cropHeight } }],
-              { compress: 1, format: SaveFormat.JPEG }
-            );
-
-            asset = { ...asset, uri: manipulated.uri, width: manipulated.width, height: manipulated.height };
-          } catch (error) {
-            console.warn("Failed to force 6:5 crop on story image:", error?.message);
-          }
-        }
-      }
-
-      setSelectedMediaType(mediaType);
-      setSelectedMediaAsset(asset);
-      setSelectedImage(asset.uri);
-      setIsMuted(false);
+    if (asset.type !== "video") {
+      asset = await forceStoryAspect(asset);
     }
+
+    applyPickedAsset(asset);
   };
 
+  const handleCameraPress = async () => {
+    const { status } = await ImagePicker.getCameraPermissionsAsync();
 
+    if (status !== "granted") {
+      const { status: newStatus } = await ImagePicker.requestCameraPermissionsAsync();
+
+      if (newStatus !== "granted") {
+        Toast.show({ type: "error", text1: t("story.cameraPermissionDenied") });
+        return;
+      }
+    }
+
+    const openCameraPicker = async (preferredType = "image") => {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes:
+          preferredType === "video"
+            ? ImagePicker.MediaTypeOptions.Videos
+            : ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [9, 16],
+        quality: 1,
+      });
+
+      if (result.canceled) return;
+
+      let asset = result.assets?.[0];
+      if (!asset?.uri) return;
+
+      if (asset.type !== "video") {
+        asset = await forceStoryAspect(asset);
+      }
+
+      applyPickedAsset(asset);
+    };
+
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: [t("story.takePhoto"), t("story.recordVideo"), t("common.cancel")],
+          cancelButtonIndex: 2,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) openCameraPicker("image");
+          else if (buttonIndex === 1) openCameraPicker("video");
+        }
+      );
+      return;
+    }
+
+    Alert.alert(t("story.chooseMedia"), t("story.chooseMediaDesc"), [
+      { text: t("story.takePhoto"), onPress: () => openCameraPicker("image") },
+      { text: t("story.recordVideo"), onPress: () => openCameraPicker("video") },
+      { text: t("common.cancel"), style: "cancel" },
+    ]);
+  };
+
+  const handleTextOnlyStory = () => {
+    setOriginalImage(null);
+    setDisplayImage(null);
+    setSelectedMediaType(null);
+    setSelectedMediaAsset(null);
+    setIsMuted(false);
+    setIsTextOnly(true);
+    setFilterId("none");
+    setTextBackground(GRADIENTS[Math.floor(Math.random() * GRADIENTS.length)].colors);
+    // Drop straight into the composer, like the "Create" tab does elsewhere.
+    setTimeout(openTextEditor, 120);
+  };
+
+  const cycleGradient = () => {
+    const currentIndex = GRADIENTS.findIndex(
+      (gradient) => JSON.stringify(gradient.colors) === JSON.stringify(textBackground)
+    );
+
+    setTextBackground(GRADIENTS[(currentIndex + 1) % GRADIENTS.length].colors);
+  };
+
+  // --- drawing -------------------------------------------------------------
 
   const saveDrawing = async () => {
     try {
       const currentDrawingData = drawingRef.current?.getDrawingData?.();
+
       if (!currentDrawingData) {
         throw new Error(t("story.noDrawingData"));
       }
 
-      // Save both the drawing data and capture the image
       const imageBase64 = await drawingRef.current?.makeImageSnapshot();
+
       if (!imageBase64) {
         throw new Error(t("story.captureDrawingError"));
       }
@@ -1033,126 +708,236 @@ const CreateStoryScreen = ({ navigation }) => {
     }
   };
 
-  // Memoize the text input placeholder
-  const textInputPlaceholder = useMemo(
-    () => (isTextOnly ? t("story.textPlaceholder") : t("story.drawingPlaceholder")),
-    [isTextOnly]
-  );
+  // --- upload --------------------------------------------------------------
 
-  const handleTextChange = useCallback((newText) => {
-    setText(newText);
-  }, []);
+  const onViewLayout = useCallback(() => setViewReady(true), []);
 
-  const handleCameraPress = async () => {
-    const { status } = await ImagePicker.getCameraPermissionsAsync();
-    if (status !== "granted") {
-      const { status: newStatus } = await ImagePicker.requestCameraPermissionsAsync();
-      if (newStatus !== "granted") {
-        Toast.show({ type: "error", text1: t("story.cameraPermissionDenied") });
-        return;
+  const captureImageWithOverlays = useCallback(async () => {
+    if (!imageWithOverlaysRef.current || !viewReady) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      if (!imageWithOverlaysRef.current) {
+        throw new Error("Image reference still not available after waiting");
       }
     }
 
-    const openCameraPicker = async (preferredType = "image") => {
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes:
-          preferredType === "video"
-            ? ImagePicker.MediaTypeOptions.Videos
-            : ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [5, 6],
-        quality: 1,
-      });
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
+    );
 
-      if (!result.canceled) {
-        const asset = result.assets?.[0];
-        if (!asset?.uri) return;
-        const mediaType = asset?.type === "video" ? "video" : "image";
-        setSelectedMediaType(mediaType);
-        setSelectedMediaAsset(asset);
-        setSelectedImage(asset.uri);
-        setIsMuted(false);
-      }
-    };
+    return captureRef(imageWithOverlaysRef.current, {
+      format: "jpg",
+      quality: 1,
+      result: "file",
+    });
+  }, [viewReady]);
 
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: [
-            t("story.takePhoto"),
-            t("story.recordVideo"),
-            t("common.cancel"),
-          ],
-          cancelButtonIndex: 2,
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 0) {
-            openCameraPicker("image");
-          } else if (buttonIndex === 1) {
-            openCameraPicker("video");
-          }
-        }
+  const buildOverlaysPayload = useCallback(
+    (flattened) => {
+      const normalized = items.map((item) =>
+        normalizeOverlayItem(item, captureDims.w, captureDims.h)
       );
+
+      if (!normalized.length && filterId === "none") return null;
+
+      return {
+        version: 1,
+        flattened,
+        filter: filterId,
+        items: normalized,
+      };
+    },
+    [items, captureDims.w, captureDims.h, filterId]
+  );
+
+  const uploadStory = async () => {
+    const textItems = items.filter((item) => item.type === OVERLAY_TYPES.TEXT);
+
+    if (isTextOnly && textItems.length === 0) {
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: t("story.emptyTextError"),
+      });
       return;
     }
 
-    Alert.alert(
-      t("story.chooseMedia", "Choose media"),
-      t("story.chooseMediaDesc", "Take a photo or record a video"),
-      [
-        {
-          text: t("story.takePhoto"),
-          onPress: () => openCameraPicker("image"),
-        },
-        {
-          text: t("story.recordVideo"),
-          onPress: () => openCameraPicker("video"),
-        },
-        { text: t("common.cancel"), style: "cancel" },
-      ]
+    try {
+      setIsUploading(true);
+
+      const formData = new FormData();
+      const contentText = textItems
+        .map((item) => item.text)
+        .join("\n")
+        .trim();
+
+      if (contentText) {
+        formData.append("content", contentText);
+      }
+
+      let mediaUri = null;
+
+      if (isVideo) {
+        mediaUri = originalImage;
+      } else {
+        // Freeze the canvas exactly as it looks before snapshotting it.
+        Keyboard.dismiss();
+        setEditingText(null);
+        setShowFilters(false);
+        await new Promise((resolve) => setTimeout(resolve, 150));
+
+        mediaUri = await captureImageWithOverlays();
+
+        if (!mediaUri) {
+          throw new Error("Failed to capture story content");
+        }
+      }
+
+      if (isVideo) {
+        const storyFile = {
+          uri: mediaUri,
+          type: selectedMediaAsset?.mimeType || "video/mp4",
+          name: selectedMediaAsset?.fileName || "story_video.mp4",
+        };
+
+        formData.append("media_type", "video");
+        formData.append("media_file", storyFile);
+        formData.append("file", storyFile);
+        formData.append("is_muted", isMuted ? "true" : "false");
+      } else {
+        const storyFile = {
+          uri: mediaUri,
+          type: "image/jpeg",
+          name: isTextOnly ? "story_text.jpg" : "story_image.jpg",
+        };
+
+        formData.append("media_type", isTextOnly ? "text" : "image");
+        formData.append("media_file", storyFile);
+        formData.append("file", storyFile);
+
+        if (isTextOnly && textBackground?.length >= 2) {
+          formData.append("background_color", JSON.stringify(textBackground));
+        }
+      }
+
+      // Overlays are always sent: for photos they only carry the tap targets
+      // for mentions/links (the look is already flattened into the picture),
+      // for videos they are what the viewer draws on top.
+      const overlays = buildOverlaysPayload(!isVideo);
+
+      if (overlays) {
+        formData.append("overlays", JSON.stringify(overlays));
+      }
+
+      if (music) {
+        formData.append("music", JSON.stringify(toStoryMusicPayload(music)));
+      }
+
+      formData.append("privacy", "public");
+
+      await createStory(formData);
+
+      Toast.show({
+        type: "success",
+        text1: t("story.postSuccess"),
+        text2: isTextOnly ? t("story.textStoryPosted") : t("story.storyPosted"),
+      });
+
+      navigation.reset({
+        index: 0,
+        routes: [
+          {
+            name: "MainScreens",
+            params: { screen: "Home", params: { refresh: Date.now() } },
+          },
+        ],
+      });
+    } catch (error) {
+      const serverMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message;
+
+      console.error("[CreateStory] failed to post story", {
+        message: error?.message,
+        status: error?.response?.status,
+        data: error?.response?.data,
+      });
+
+      Toast.show({
+        type: "error",
+        text1: t("story.postError"),
+        text2: typeof serverMessage === "string" ? serverMessage : t("story.postErrorDesc"),
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // --- exit ----------------------------------------------------------------
+
+  const resetEditor = (type) => {
+    if (type === "drawing") {
+      setIsDrawing(false);
+      return;
+    }
+
+    setOriginalImage(null);
+    setDisplayImage(null);
+    setSelectedMediaType(null);
+    setSelectedMediaAsset(null);
+    setIsMuted(false);
+    setIsTextOnly(false);
+    setItems([]);
+    setEditingText(null);
+    setMusic(null);
+    setFilterId("none");
+    setSavedDrawingData(null);
+    setShowFilters(false);
+  };
+
+  const handleExitIOS = (type) => {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [
+          type === "drawing" ? t("story.discardDrawing") : t("story.discardStory"),
+          t("story.continueEditing"),
+        ],
+        destructiveButtonIndex: 0,
+        userInterfaceStyle: "dark",
+      },
+      (buttonIndex) => {
+        if (buttonIndex === 0) resetEditor(type);
+      }
     );
+  };
+
+  const handleExitAndroid = (type) => {
+    Alert.alert(t("story.exitConfirm"), t("story.exitConfirmDesc"), [
+      { text: t("common.cancel"), style: "cancel" },
+      { text: t("story.exit"), onPress: () => resetEditor(type) },
+    ]);
   };
 
   const handleBackPress = useCallback(() => {
     if (isDrawing) {
-      if (Platform.OS === "ios") {
-        handleExitIOS("drawing");
-      } else {
-        handleExitAndroid("drawing");
-      }
-    } else if (isTextOnly) {
-      if (Platform.OS === "ios") {
-        handleExitIOS("text");
-      } else {
-        handleExitAndroid("text");
-      }
-    } else if (selectedImage) {
-      if (Platform.OS === "ios") {
-        handleExitIOS("image");
-      } else {
-        handleExitAndroid("image");
-      }
+      Platform.OS === "ios" ? handleExitIOS("drawing") : handleExitAndroid("drawing");
+    } else if (hasContent) {
+      Platform.OS === "ios" ? handleExitIOS("content") : handleExitAndroid("content");
     } else {
       navigation.goBack();
     }
-  }, [isDrawing, isTextOnly, selectedImage]);
+  }, [isDrawing, hasContent]);
 
-
-
-  // Update the header right button to show loading state
   const headerRightButton = (
     <TouchableOpacity
       style={{ position: "absolute", right: 10 }}
-      onPress={handleHeaderRightPress}
-      disabled={(!selectedImage && !isTextOnly) || isUploading}
+      onPress={() => (isDrawing ? saveDrawing() : uploadStory())}
+      disabled={!hasContent || isUploading}
     >
       <Text
         style={{
-          color: selectedImage || isTextOnly
-            ? isUploading
-              ? `${theme.primary}80`
-              : theme.primary
-            : `${theme.primary}80`,
+          color: hasContent && !isUploading ? theme.primary : `${theme.primary}80`,
         }}
         className="text-base font-semibold"
       >
@@ -1163,50 +948,43 @@ const CreateStoryScreen = ({ navigation }) => {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      
-
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        {/* Header */}
-        {(
-          <View
-            style={{ marginTop: insets.top }}
-            className="flex-row items-center justify-center px-4 py-2 h-[50px]"
+        <View
+          style={{ marginTop: insets.top }}
+          className="flex-row items-center justify-center px-4 py-2 h-[50px]"
+        >
+          <TouchableOpacity
+            style={{ position: "absolute", left: 10 }}
+            onPress={handleBackPress}
+            disabled={isUploading}
           >
-            <TouchableOpacity
-              style={{ position: "absolute", left: 10 }}
-              onPress={handleBackPress}
-              disabled={isUploading}
-            >
-              <Ionicons
-                name={
-                  isDrawing || isTextOnly || selectedImage
-                    ? "close"
-                    : "arrow-back"
-                }
-                size={28}
-                color={theme.text}
-              />
-            </TouchableOpacity>
-            <Text style={{ color: theme.text }} className="text-lg font-semibold">
-              {isDrawing
-                ? t("story.draw")
-                : isTextOnly
-                ? t("story.textContent")
-                : selectedImage
-                ? t("story.edit")
-                : t("story.createStory")}
-            </Text>
-            {headerRightButton}
-          </View>
-        )}
+            <Ionicons
+              name={isDrawing || hasContent ? "close" : "arrow-back"}
+              size={28}
+              color={theme.text}
+            />
+          </TouchableOpacity>
+          <Text style={{ color: theme.text }} className="text-lg font-semibold">
+            {isDrawing
+              ? t("story.draw")
+              : isTextOnly
+              ? t("story.textContent")
+              : hasContent
+              ? t("story.edit")
+              : t("story.createStory")}
+          </Text>
+          {headerRightButton}
+        </View>
 
-        {/* Main Content */}
-        <View style={{ flex: 1 }} onLayout={(e) => setContentAreaHeight(e.nativeEvent.layout.height)}>
-          {selectedImage || isTextOnly ? (
+        <View
+          style={{ flex: 1 }}
+          onLayout={(event) => setContentAreaHeight(event.nativeEvent.layout.height)}
+        >
+          {hasContent ? (
             <View style={{ flex: 1 }}>
               <View style={styles.aspectRatioContainer}>
                 <ScrollView
-                  style={{ width: captureDims.w, height: captureDims.h, backgroundColor: '#000' }}
+                  style={{ width: captureDims.w, height: captureDims.h, backgroundColor: "#000" }}
                   scrollEnabled={false}
                   ref={imageWithOverlaysRef}
                   onLayout={onViewLayout}
@@ -1218,135 +996,121 @@ const CreateStoryScreen = ({ navigation }) => {
                   {isTextOnly ? (
                     <LinearGradient
                       colors={textBackground}
-                      style={[
-                        StyleSheet.absoluteFill,
-                        styles.gradientContainer,
-                      ]}
+                      style={[StyleSheet.absoluteFill, styles.gradientContainer]}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
-                    >
-                      {text && !isEditing && <TextOnlyContent text={text} />}
-                    </LinearGradient>
+                    />
+                  ) : isVideo ? (
+                    <View style={[StyleSheet.absoluteFill, styles.mediaPreviewContainer]}>
+                      <Video
+                        source={{ uri: originalImage }}
+                        style={styles.videoPreview}
+                        resizeMode="cover"
+                        repeat
+                        paused={false}
+                        muted={isMuted}
+                      />
+                      <StoryFilterTint filterId={filterId} />
+                    </View>
                   ) : (
-                    <>
-                      {selectedMediaType === "video" ? (
-                        <View style={[StyleSheet.absoluteFill, styles.mediaPreviewContainer]}>
-                          <Video
-                            source={{ uri: selectedImage }}
-                            style={styles.videoPreview}
-                            resizeMode="cover"
-                            repeat={false}
-                            paused={false}
-                            muted={isMuted}
-                          />
-                        </View>
-                      ) : (
-                        <FastImage
-                          source={{ uri: selectedImage }}
-                          style={StyleSheet.absoluteFill}
-                          resizeMode={FastImage.resizeMode.contain}
-                        />
-                      )}
-
-                      {savedDrawingData && !isDrawing && (
-                        <Image
-                          source={{ uri: savedDrawingData.imageBase64 }}
-                          style={StyleSheet.absoluteFill}
-                          resizeMode="cover"
-                        />
-                      )}
-
-                      {/* video mute control moved into sidebar ToolsBar; no inline overlay here */}
-
-                      {isDrawing && (
-                        <DrawingCanvas
-                          ref={drawingRef}
-                          color={strokeColor}
-                          strokeWidth={strokeWidth}
-                          isEraser={isEraser}
-                          savedDrawingData={savedDrawingData}
-                        />
-                      )}
-
-                      {!isDrawing && storyTexts.map((item) => (
-                        <MoveableText
-                          key={item.id}
-                          id={item.id}
-                          text={item.text}
-                          x={item.x}
-                          y={item.y}
-                          isEditing={editingTextId === item.id}
-                          onPositionChange={updateStoryTextPosition}
-                          onTap={handleStoryTextTap}
-                          onDragStart={handleStoryTextDragStart}
-                          onDragEnd={handleStoryTextDragEnd}
-                          onDragging={handleStoryTextDragging}
-                          isAnyDragging={isDraggingText}
-                        />
-                      ))}
-                    </>
+                    <FastImage
+                      source={{ uri: displayImage || originalImage }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode={FastImage.resizeMode.cover}
+                    />
                   )}
+
+                  {savedDrawingData && !isDrawing && (
+                    <Image
+                      source={{ uri: savedDrawingData.imageBase64 }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="cover"
+                    />
+                  )}
+
+                  {isDrawing && (
+                    <DrawingCanvas
+                      ref={drawingRef}
+                      color={strokeColor}
+                      strokeWidth={strokeWidth}
+                      isEraser={isEraser}
+                      savedDrawingData={savedDrawingData}
+                    />
+                  )}
+
+                  {!isDrawing &&
+                    items
+                      // The item being edited lives in the text composer
+                      // instead, so it is not drawn twice.
+                      .filter((item) => item.id !== editingText?.id)
+                      .map((item) => (
+                      <MoveableItem
+                        key={item.id}
+                        item={item}
+                        onChange={updateItemTransform}
+                        onTap={handleItemTap}
+                        onDragStart={handleItemDragStart}
+                        onDragging={handleItemDragging}
+                        onDragEnd={handleItemDragEnd}
+                        disabled={Boolean(editingText)}
+                      >
+                        <StoryOverlayItemContent item={item} canvasWidth={captureDims.w} />
+                      </MoveableItem>
+                    ))}
                 </ScrollView>
+
+                {isApplyingFilter && (
+                  <View style={styles.filterLoading} pointerEvents="none">
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                )}
               </View>
 
-              {/* UI Controls - Not Captured */}
               {isDrawing ? (
                 <View style={styles.overlayTools} pointerEvents="box-none">
                   <ColorPicker strokeColor={strokeColor} setStrokeColor={setStrokeColor} />
-                  <BrushSizePicker strokeWidth={strokeWidth} setStrokeWidth={setStrokeWidth} showBrushSize={showBrushSize} t={t} />
-                  <DrawingTools drawingRef={drawingRef} isEraser={isEraser} setIsEraser={setIsEraser} showBrushSize={showBrushSize} setShowBrushSize={setShowBrushSize} />
-                </View>
-              ) : !isTextOnly ? (
-                <>
-                  <ToolsBar
-                    isEditing={editingTextId !== null}
-                    setIsEditing={(v) => { if (!v) setEditingTextId(null); }}
-                    isDrawing={isDrawing}
-                    setIsDrawing={setIsDrawing}
-                    pickImage={pickImage}
-                    onAddText={addStoryText}
-                    onFinishText={finishStoryTextEdit}
-                    selectedMediaType={selectedMediaType}
-                    isMuted={isMuted}
-                    toggleMute={() => setIsMuted((p) => !p)}
+                  <BrushSizePicker
+                    strokeWidth={strokeWidth}
+                    setStrokeWidth={setStrokeWidth}
+                    showBrushSize={showBrushSize}
                     t={t}
                   />
-                  {editingTextId && editingTextItem && (
-                    <TextInputArea
-                      text={editingTextItem.text}
-                      setText={(newText) => updateStoryText(editingTextId, newText)}
-                      isTextOnly={false}
-                      placeholder={t("story.drawingPlaceholder")}
-                      onFinish={finishStoryTextEdit}
-                    />
-                  )}
-                  <TrashZone visible={isDraggingText} isOver={isOverTrash} t={t} />
-                </>
+                  <DrawingTools
+                    drawingRef={drawingRef}
+                    isEraser={isEraser}
+                    setIsEraser={setIsEraser}
+                    showBrushSize={showBrushSize}
+                    setShowBrushSize={setShowBrushSize}
+                  />
+                </View>
               ) : (
                 <>
-                  {isEditing && (
-                    <TextInputArea
-                      text={text}
-                      setText={handleTextChange}
-                      isTextOnly={isTextOnly}
-                      placeholder={textInputPlaceholder}
+                  <ToolsBar
+                    onAddText={openTextEditor}
+                    onOpenStickers={() => setActiveSheet("sticker")}
+                    onToggleDrawing={() => setIsDrawing(true)}
+                    onToggleFilters={() => setShowFilters((prev) => !prev)}
+                    onOpenMusic={() => setActiveSheet("music")}
+                    isDrawing={isDrawing}
+                    filtersVisible={showFilters}
+                    hasMusic={Boolean(music)}
+                    selectedMediaType={selectedMediaType}
+                    isMuted={isMuted}
+                    toggleMute={() => setIsMuted((prev) => !prev)}
+                    isTextOnly={isTextOnly}
+                    onCycleGradient={cycleGradient}
+                  />
+
+                  {showFilters && !isTextOnly && (
+                    <FilterCarousel
+                      mediaUri={originalImage}
+                      isVideo={isVideo}
+                      selectedFilter={filterId}
+                      onSelect={setFilterId}
                     />
                   )}
-                  <View style={[styles.toolsContainer, { zIndex: 10000 }]}>
-                    <TouchableOpacity
-                      style={[
-                        styles.toolButton,
-                        {
-                          backgroundColor: "rgba(0,0,0,0.6)",
-                          borderWidth: 1,
-                          borderColor: "rgba(255,255,255,0.4)",
-                        },
-                      ]}
-                      onPress={cycleGradient}
-                    >
-                      <Ionicons name="color-palette-outline" size={24} color="#fff" />
-                    </TouchableOpacity>
-                  </View>
+
+                  <TrashZone visible={isDraggingItem} isOver={isOverTrash} t={t} />
                 </>
               )}
             </View>
@@ -1358,7 +1122,10 @@ const CreateStoryScreen = ({ navigation }) => {
                   className="flex-1 rounded-xl"
                   underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
                 >
-                  <View style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} className="items-center justify-center h-[100px] rounded-xl border-2">
+                  <View
+                    style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+                    className="items-center justify-center h-[100px] rounded-xl border-2"
+                  >
                     <Ionicons
                       name="camera-outline"
                       size={40}
@@ -1375,7 +1142,10 @@ const CreateStoryScreen = ({ navigation }) => {
                   className="flex-1 rounded-xl"
                   underlayColor={isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}
                 >
-                  <View style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }} className="items-center justify-center h-[100px] rounded-xl border-2">
+                  <View
+                    style={{ backgroundColor: theme.cardBackground, borderColor: theme.border }}
+                    className="items-center justify-center h-[100px] rounded-xl border-2"
+                  >
                     <Ionicons
                       name="text-outline"
                       size={40}
@@ -1388,7 +1158,10 @@ const CreateStoryScreen = ({ navigation }) => {
                   </View>
                 </TouchableHighlight>
               </View>
-              <TouchableOpacity style={[styles.imagePicker, { backgroundColor: theme.background }]} onPress={pickImage}>
+              <TouchableOpacity
+                style={[styles.imagePicker, { backgroundColor: theme.background }]}
+                onPress={pickImage}
+              >
                 <View style={styles.imagePickerContent}>
                   <Ionicons name="image" size={40} color={theme.text} />
                   <Text style={[styles.imagePickerText, { color: theme.text }]}>
@@ -1399,6 +1172,43 @@ const CreateStoryScreen = ({ navigation }) => {
             </>
           )}
         </View>
+
+        {/* Hear the chosen track while composing, the way it will play in the
+            story - paused while a picker is open on top of the canvas. */}
+        <StoryMusicPlayer music={music} paused={Boolean(activeSheet) || isUploading} />
+
+        {!!editingText && (
+          <TextEditorOverlay
+            item={editingText}
+            canvasWidth={captureDims.w}
+            onCancel={() => setEditingText(null)}
+            onDone={handleTextEditorDone}
+          />
+        )}
+
+        <StickerSheet
+          visible={activeSheet === "sticker"}
+          onClose={() => setActiveSheet(null)}
+          onPickEmoji={addSticker}
+          onRequestMention={() => setActiveSheet("mention")}
+          onRequestLink={() => setActiveSheet("link")}
+          onRequestMusic={() => setActiveSheet("music")}
+        />
+        <MentionSheet
+          visible={activeSheet === "mention"}
+          onClose={() => setActiveSheet(null)}
+          onSelect={addMention}
+        />
+        <LinkSheet
+          visible={activeSheet === "link"}
+          onClose={() => setActiveSheet(null)}
+          onSubmit={addLink}
+        />
+        <MusicSheet
+          visible={activeSheet === "music"}
+          onClose={() => setActiveSheet(null)}
+          onSelect={addMusic}
+        />
       </View>
     </GestureHandlerRootView>
   );
@@ -1424,7 +1234,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 10,
     top: "50%",
-    transform: [{ translateY: -100 }],
+    transform: [{ translateY: -120 }],
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 12,
     padding: 8,
@@ -1437,13 +1247,8 @@ const styles = StyleSheet.create({
     marginVertical: 4,
     borderRadius: 20,
   },
-  textInputContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-    backgroundColor: "rgba(0,0,0,0.5)",
+  activeToolButton: {
+    backgroundColor: "rgba(255,255,255,0.25)",
   },
   mediaPreviewContainer: {
     overflow: "hidden",
@@ -1453,360 +1258,87 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "#000",
   },
-  videoMuteButton: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 10,
-  },
-  textInputContainer2: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-  },
-  textInput: {
-    color: "#fff",
-    fontSize: 18,
-    minHeight: 40,
-  },
-  textDisplay: {
-    position: "absolute",
-    padding: 10,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    borderRadius: 8,
-  },
-  displayText: {
-    color: "#fff",
-    fontSize: 18,
-    textAlign: "center",
-  },
-  moveableTextContainer: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    marginLeft: -100,
-    marginTop: -20,
-    width: 200,
-    padding: 10,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-    zIndex: 10,
-    alignItems: "center",
-  },
-  moveableText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-    textAlign: "center",
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
   trashZone: {
     position: "absolute",
-    bottom: 30,
+    bottom: 40,
     alignSelf: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 20,
-    zIndex: 1000,
+    zIndex: 15000,
   },
   trashZoneText: {
     color: "#fff",
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 4,
   },
   colorPicker: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
     flexDirection: "row",
     justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 10,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    zIndex: 1,
+    gap: 10,
+    marginBottom: 12,
   },
   colorButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    margin: 5,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.5)",
+    borderColor: "rgba(255,255,255,0.6)",
   },
   selectedColor: {
     borderColor: "#fff",
     borderWidth: 3,
+    transform: [{ scale: 1.15 }],
   },
   drawingTools: {
-    position: "absolute",
-    left: 10,
-    top: "50%",
-    transform: [{ translateY: -50 }],
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
     backgroundColor: "rgba(0,0,0,0.5)",
-    borderRadius: 12,
-    padding: 8,
-    zIndex: 1000,
-  },
-  activeToolButton: {
-    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 24,
+    paddingHorizontal: 10,
+    alignSelf: "center",
   },
   brushSizeSlider: {
-    position: "absolute",
-    top: 60,
-    left: 0,
-    right: 0,
-    padding: 15,
+    marginHorizontal: 30,
+    marginBottom: 10,
     backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    zIndex: 1,
+    borderRadius: 12,
+    padding: 10,
   },
   brushSizeLabel: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 10,
     textAlign: "center",
+    marginBottom: 4,
   },
   slider: {
-    width: width * 0.7,
-    height: 40,
+    width: "100%",
+    height: 30,
   },
   sliderThumb: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
     backgroundColor: "#fff",
-  },
-  savedIndicator: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#319527",
-    borderWidth: 2,
-    borderColor: "#fff",
   },
   overlayTools: {
     position: "absolute",
-    top: 0,
+    bottom: 24,
     left: 0,
     right: 0,
-    bottom: 0,
-    pointerEvents: "box-none",
-  },
-  textOnlyInput: {
-    fontSize: 24,
-    textAlign: "center",
-    color: "#fff",
-    fontWeight: "600",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-    width: "100%",
-    maxWidth: width * 0.9,
-    paddingHorizontal: 20,
-  },
-  textOnlyCenterContainer: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  textOnlyContentContainer: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 1,
-  },
-  textOnlyInnerContainer: {
-    padding: 20,
-    width: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  textOnlyDisplayText: {
-    fontSize: 24,
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "600",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-    includeFontPadding: false,
-    textAlignVertical: "center",
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#000",
-  },
-  whiteText: {
-    color: "#fff",
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 20,
-  },
-  permissionButton: {
-    backgroundColor: "#319527",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  permissionButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  cameraControls: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 50,
-  },
-  cameraButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  captureButtonContainer: {
-    position: "absolute",
-    bottom: 40,
-    alignSelf: "center",
-  },
-  captureButton: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  captureButtonInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "rgba(0,0,0,0.3)",
   },
   aspectRatioContainer: {
     flex: 1,
-    justifyContent: "center",
     alignItems: "center",
-  },
-  captureContainer: {
-    width: "100%",
-    aspectRatio: 9 / 16,
-  },
-  captureContentContainer: {
-    flex: 1,
+    justifyContent: "flex-start",
   },
   gradientContainer: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
   },
-  textOnlyWrapper: {
-    width: "100%",
-    height: "100%",
-    paddingHorizontal: 20,
+  filterLoading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-  },
-  textOnlyText: {
-    fontSize: 24,
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "600",
-    textShadowColor: "rgba(0, 0, 0, 0.3)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-    includeFontPadding: false,
-  },
-  androidOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  androidDialog: {
-    width: "100%",
-    maxWidth: 320,
-    borderRadius: 28,
-    padding: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 24,
-  },
-  androidTitle: {
-    fontSize: 24,
-    fontWeight: "500",
-    marginBottom: 16,
-    lineHeight: 32,
-  },
-  androidOptionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  androidRadioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  androidRadioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  androidOptionText: {
-    fontSize: 16,
-    includeFontPadding: false,
-    textAlignVertical: "center",
-  },
-  androidActions: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 16,
-  },
-  androidCancelButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
   },
 });
 
