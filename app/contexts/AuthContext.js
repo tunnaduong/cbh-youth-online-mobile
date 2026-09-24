@@ -3,7 +3,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   logoutRequest,
   getCurrentUser,
-  reportUser,
   getBlockedUsers,
 } from "../services/api/Api";
 import { storage } from "../global/storage";
@@ -283,21 +282,11 @@ export const AuthProvider = ({ children }) => {
 
     const newBlocked = [...blockedUsers, userToBlock];
     setBlockedUsers(newBlocked);
-    // Note: Using AsyncStorage for client-side blocking persistence.
-    // In a full implementation, this should be synced with the backend.
+    // Local mirror of the server-side block list (synced from
+    // GET /users/blocked on launch/sign-in). Callers must hit the block API
+    // themselves with the user's numeric id - this only updates the cache
+    // used for client-side filtering.
     await AsyncStorage.setItem("blocked_users", JSON.stringify(newBlocked));
-
-    // Notify developer
-    try {
-      // Best-effort network call to report the user.
-      // reportUser expects a params object: { reported_user_id, reason }
-      await reportUser({ reported_user_id: userToBlock, reason: "Blocked by user" });
-    } catch (e) {
-      console.log(
-        "[Safety] Failed to send report for blocked user (expected if endpoint missing):",
-        e.message
-      );
-    }
   };
 
   const unblockUser = async (userToUnblock) => {

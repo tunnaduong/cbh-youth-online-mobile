@@ -868,6 +868,8 @@
     "female": "Female",
     "errorTitle": "Error",
     "errorLoading": "Could not load profile information",
+    "notFoundTitle": "User not found",
+    "notFoundMessage": "This profile doesn't exist or isn't available to you.",
     "blockTitle": "Block User",
     "blockConfirm": "Are you sure you want to block {{username}}? You will no longer see content from this user.",
     "blockAction": "Block",

@@ -1564,7 +1564,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
-  const { username, profileName } = useContext(AuthContext);
+  const { username, profileName, blockUserInContext } = useContext(AuthContext);
   // The socket effect below (tryAppendPushedMessage) doesn't list `username`
   // in its dependency array - by design, so it doesn't resubscribe socket
   // listeners on every render. But that means it was capturing whatever
@@ -1705,6 +1705,11 @@ const ConversationScreen = ({ navigation, route }) => {
           onPress: async () => {
             try {
               await blockUser(targetUser.id);
+              // Keep the local blocked list in sync so the feed/story/chat
+              // list filters apply immediately, not only after next launch.
+              if (targetUser.username && blockUserInContext) {
+                await blockUserInContext(targetUser.username);
+              }
               if (afterBlock) {
                 afterBlock();
               } else {

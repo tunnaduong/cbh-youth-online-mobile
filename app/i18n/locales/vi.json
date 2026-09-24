@@ -857,6 +857,8 @@
     "female": "Nữ",
     "errorTitle": "Lỗi",
     "errorLoading": "Không thể tải thông tin cá nhân",
+    "notFoundTitle": "Không tìm thấy người dùng",
+    "notFoundMessage": "Trang cá nhân này không tồn tại hoặc bạn không thể xem được.",
     "blockTitle": "Chặn người dùng",
     "blockConfirm": "Bạn có chắc chắn muốn chặn {{username}}? Bạn sẽ không còn nhìn thấy nội dung từ người này.",
     "blockAction": "Chặn",

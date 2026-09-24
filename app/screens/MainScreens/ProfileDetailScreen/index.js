@@ -11,7 +11,11 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import FastImage from "../../../components/FastImage";
 import { AuthContext } from "../../../contexts/AuthContext";
-import { getProfile } from "../../../services/api/Api";
+import {
+  getProfile,
+  blockUser as blockUserApi,
+  unblockUser as unblockUserApi,
+} from "../../../services/api/Api";
 import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
@@ -31,6 +35,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const { theme, isDarkMode } = useTheme();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
+  const [profileUserId, setProfileUserId] = useState(route.params?.userId ?? null);
   const username = route.params?.username || currentUsername;
   const isCurrentUser = username === currentUsername;
   const insets = useSafeAreaInsets();
@@ -65,6 +70,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     try {
       const response = await getProfile(username);
       setProfileData(response.data.profile);
+      if (response.data?.id) setProfileUserId(response.data.id);
     } catch (error) {
       console.error("Error fetching profile:", error);
       Toast.show({
@@ -124,13 +130,24 @@ const ProfileDetailScreen = ({ navigation, route }) => {
           text: t('profile.blockAction'),
           style: "destructive",
           onPress: async () => {
-            await blockUser(username);
-            Toast.show({
-              type: "success",
-              text1: t('profile.blockSuccessTitle'),
-              text2: t('profile.blockSuccessMessage'),
-            });
-            navigation.goBack();
+            try {
+              // The server is the source of truth for blocks - the local
+              // context list only mirrors it for client-side filtering.
+              if (profileUserId) await blockUserApi(profileUserId);
+              await blockUser(username);
+              Toast.show({
+                type: "success",
+                text1: t('profile.blockSuccessTitle'),
+                text2: t('profile.blockSuccessMessage'),
+              });
+              navigation.goBack();
+            } catch (e) {
+              Toast.show({
+                type: "error",
+                text1: t('profile.errorTitle'),
+                text2: e.response?.data?.message || e.message,
+              });
+            }
           },
         },
       ]
@@ -149,12 +166,21 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         {
           text: t('profile.unblockAction'),
           onPress: async () => {
-            await unblockUser(username);
-            Toast.show({
-              type: "success",
-              text1: t('profile.unblockSuccessTitle'),
-              text2: t('profile.unblockSuccessMessage'),
-            });
+            try {
+              if (profileUserId) await unblockUserApi(profileUserId);
+              await unblockUser(username);
+              Toast.show({
+                type: "success",
+                text1: t('profile.unblockSuccessTitle'),
+                text2: t('profile.unblockSuccessMessage'),
+              });
+            } catch (e) {
+              Toast.show({
+                type: "error",
+                text1: t('profile.errorTitle'),
+                text2: e.response?.data?.message || e.message,
+              });
+            }
           },
         },
       ]

@@ -61,6 +61,9 @@ const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
+  // True when the API says this profile doesn't exist - which is also what
+  // it answers for someone blocked in either direction.
+  const [notFound, setNotFound] = useState(false);
   const { username, profileName, blockUser: blockUserInContext, getAvatarUrl, getCoverUrl } = React.useContext(AuthContext);
   const userId = route?.params?.username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
@@ -348,12 +351,18 @@ const ProfileScreen = ({ route, navigation }) => {
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
+      setNotFound(false);
       // Check if the current user is in the followers list
       const isFollowed = response.data.followers.some(
         (follower) => follower.username === username
       );
       setFollowed(!isFollowed);
     } catch (error) {
+      if (error?.response?.status === 404) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
       console.error("Error fetching user data:", error);
     } finally {
       setLoading(false);
@@ -402,6 +411,27 @@ const ProfileScreen = ({ route, navigation }) => {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
         <CustomLoading />
+      </View>
+    );
+  }
+
+  if (notFound || !userData) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ position: "absolute", top: insets.top + 8, left: 12, padding: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={26} color={theme.text} />
+        </TouchableOpacity>
+        <Ionicons name="person-circle-outline" size={72} color={theme.subText} />
+        <Text style={{ color: theme.text, fontSize: 18, fontWeight: "600", marginTop: 12 }}>
+          {t("profile.notFoundTitle")}
+        </Text>
+        <Text style={{ color: theme.subText, marginTop: 6, textAlign: "center", paddingHorizontal: 32 }}>
+          {t("profile.notFoundMessage")}
+        </Text>
       </View>
     );
   }
