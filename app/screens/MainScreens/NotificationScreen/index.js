@@ -52,6 +52,27 @@ const formatNotificationMessage = (notification, t) => {
   if (!actor) {
     // Handle other notifications without actor
     switch (type) {
+      // The author's own content changing moderation state.
+      case "content_pending_review":
+        return t(data?.comment_id
+          ? 'notifications.contentPendingReviewComment'
+          : 'notifications.contentPendingReviewPost');
+      case "content_approved":
+        return t(data?.comment_id
+          ? 'notifications.contentApprovedComment'
+          : 'notifications.contentApprovedPost');
+      case "content_rejected":
+        return t(data?.comment_id
+          ? 'notifications.contentRejectedComment'
+          : 'notifications.contentRejectedPost');
+      // Admin-only alert: something is sitting in the moderation queue.
+      case "moderation_pending":
+        return t(
+          data?.content_type === "comment"
+            ? 'notifications.moderationPendingComment'
+            : 'notifications.moderationPendingPost',
+          { username: data?.author_username || "" }
+        );
       case "topic_pinned":
         return `${t('notifications.pinnedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
       case "topic_moved":
@@ -87,9 +108,12 @@ const formatNotificationMessage = (notification, t) => {
     case "mentioned":
       if (data?.conversation_id) return t('notifications.mentionedInChat');
       if (data?.comment_id) return t('notifications.mentionedComment');
+      if (data?.story_id) return t('notifications.mentionedInStory');
       return t('notifications.mentionedInPost');
     case "followed":
       return t('notifications.followedYou');
+    case "points_gifted":
+      return `${t('notifications.giftedPoints', { amount: Number(data?.amount || 0).toLocaleString() })}${data?.message ? `: "${data.message}"` : ""}`;
     case "story_reacted":
       return `${t('notifications.reactedStory')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourStory')}`;
     case "story_replied":

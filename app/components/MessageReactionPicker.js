@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 
@@ -27,7 +28,10 @@ export const REACTION_EMOJI_BY_TYPE = REACTION_EMOJIS.reduce((acc, r) => {
 }, {});
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 const PICKER_WIDTH = 280;
+// Breathing room kept between the menu and the bottom edge of the screen.
+const BOTTOM_MARGIN = 12;
 
 const MessageReactionPicker = ({
   visible,
@@ -42,10 +46,21 @@ const MessageReactionPicker = ({
   onEdit,
   onRecall,
   onViewSeenBy,
+  onReport,
   onClose,
 }) => {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  // The action list below the emoji row is a different length per message
+  // (copy/edit/recall/download/seen-by only apply to some), so the height
+  // can't be known up front - it's measured on layout, then used to keep the
+  // menu on screen. Re-measured per open, keyed on the anchor.
+  const [menuHeight, setMenuHeight] = useState(0);
+
+  useEffect(() => {
+    setMenuHeight(0);
+  }, [anchor?.x, anchor?.y, visible]);
 
   if (!visible || !anchor) return null;
 
@@ -55,7 +70,14 @@ const MessageReactionPicker = ({
   }
   left = Math.max(8, Math.min(left, SCREEN_WIDTH - PICKER_WIDTH - 8));
 
-  const top = Math.max(insetsSafeTop, anchor.y);
+  // Anchoring straight to the press point only clamped the top, so
+  // long-pressing a message near the bottom of the thread ran the action
+  // rows off the bottom of the screen (hidden behind the composer). Pull the
+  // menu up far enough that its measured height fits above the bottom inset.
+  const lowestTop = SCREEN_HEIGHT - insets.bottom - BOTTOM_MARGIN - menuHeight;
+  const top = menuHeight
+    ? Math.max(insetsSafeTop, Math.min(anchor.y, lowestTop))
+    : Math.max(insetsSafeTop, anchor.y);
 
   // Count per type in my reactions
   const myReactionCounts = (myReactions || []).reduce((acc, type) => {
@@ -76,8 +98,12 @@ const MessageReactionPicker = ({
                 top,
                 backgroundColor: isDarkMode ? "#262626" : "#ffffff",
                 shadowColor: "#000",
+                // Hidden for the single frame before the height is known,
+                // otherwise the clamp would visibly snap it upwards.
+                opacity: menuHeight ? 1 : 0,
               },
             ]}
+            onLayout={(e) => setMenuHeight(e.nativeEvent.layout.height)}
           >
             <View style={styles.emojiRow}>
               {REACTION_EMOJIS.map(({ type, emoji }) => {
@@ -189,6 +215,18 @@ const MessageReactionPicker = ({
                 <Ionicons name="pencil-outline" size={18} color={theme.text} />
                 <Text style={[styles.replyText, { color: theme.text }]}>
                   {t("chatConversation.editMessage", "Chỉnh sửa")}
+                </Text>
+              </TouchableOpacity>
+            )}
+            {onReport && (
+              <TouchableOpacity
+                style={[styles.replyRow, { borderTopColor: theme.border }]}
+                onPress={onReport}
+                activeOpacity={0.6}
+              >
+                <Ionicons name="flag-outline" size={18} color="#ef4444" />
+                <Text style={[styles.replyText, { color: "#ef4444" }]}>
+                  {t("chatConversation.reportMessage", "Báo cáo tin nhắn")}
                 </Text>
               </TouchableOpacity>
             )}

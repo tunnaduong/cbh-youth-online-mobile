@@ -15,6 +15,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
+  Modal,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -25,6 +27,7 @@ import {
   followUser,
   getProfile,
   getUserPosts,
+  getUserLikedPosts,
   unfollowUser,
   blockUser,
   reportUser,
@@ -41,6 +44,13 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+
+const LIKED_SORT_OPTIONS = [
+  { value: "newest", labelKey: "profile.sortNewest" },
+  { value: "oldest", labelKey: "profile.sortOldest" },
+  { value: "most_liked", labelKey: "profile.sortMostLiked" },
+  { value: "least_liked", labelKey: "profile.sortLeastLiked" },
+];
 
 const ProfileScreen = ({ route, navigation }) => {
   const { theme, isDarkMode, autoplayVideos } = useTheme();
@@ -61,6 +71,9 @@ const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
+  // True when the API says this profile doesn't exist - which is also what
+  // it answers for someone blocked in either direction.
+  const [notFound, setNotFound] = useState(false);
   const { username, profileName, blockUser: blockUserInContext, getAvatarUrl, getCoverUrl } = React.useContext(AuthContext);
   const userId = route?.params?.username; // Default to current user if no ID passed
   const [refreshing, setRefreshing] = React.useState(false);
@@ -72,8 +85,17 @@ const ProfileScreen = ({ route, navigation }) => {
   const [postsPage, setPostsPage] = useState(1);
   const [postsHasMore, setPostsHasMore] = useState(true);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  // "Likes" tab: the posts that add up to the profile's like total.
+  const [likedPosts, setLikedPosts] = useState([]);
+  const [likedSort, setLikedSort] = useState("newest");
+  const [likedPage, setLikedPage] = useState(1);
+  const [likedHasMore, setLikedHasMore] = useState(false);
+  const [loadingLiked, setLoadingLiked] = useState(false);
+  const [likedTotal, setLikedTotal] = useState(0);
+  const [likedTotalLikes, setLikedTotalLikes] = useState(0);
   const [followed, setFollowed] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -249,11 +271,12 @@ const ProfileScreen = ({ route, navigation }) => {
       if (route.params?.post) {
         console.log("Post updated:", route.params.post);
 
-        setRecentPostsProfile((prevPosts) =>
-          prevPosts.map((post) =>
+        const replaceUpdated = (prevPosts) =>
+          (prevPosts || []).map((post) =>
             post.id === route.params.postId ? route.params.post : post
-          )
-        );
+          );
+        setRecentPostsProfile(replaceUpdated);
+        setLikedPosts(replaceUpdated);
 
         // Clear the parameters to avoid re-triggering
         navigation.setParams({ post: null, postId: null });
@@ -336,6 +359,10 @@ const ProfileScreen = ({ route, navigation }) => {
   const handleRefresh = () => {
     setRefreshing(true);
 
+    if (activeTab === "likes") {
+      fetchLikedPosts(1, likedSort);
+    }
+
     fetchUserData(userId).finally(() => {
       setTimeout(() => {
         setRefreshing(false);
@@ -348,12 +375,18 @@ const ProfileScreen = ({ route, navigation }) => {
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
+      setNotFound(false);
       // Check if the current user is in the followers list
       const isFollowed = response.data.followers.some(
         (follower) => follower.username === username
       );
       setFollowed(!isFollowed);
     } catch (error) {
+      if (error?.response?.status === 404) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
       console.error("Error fetching user data:", error);
     } finally {
       setLoading(false);
@@ -373,6 +406,35 @@ const ProfileScreen = ({ route, navigation }) => {
     } catch (error) {
       console.error("Error fetching user posts:", error);
     }
+  };
+
+  // The "Likes" tab is fetched on demand (first open / sort change) rather
+  // than with the profile, since most visits never open it.
+  const fetchLikedPosts = async (page = 1, sort = likedSort) => {
+    setLoadingLiked(true);
+    try {
+      const response = await getUserLikedPosts(userId, page, 10, sort);
+      const items = response.data?.data || [];
+      setLikedPosts((prev) => (page === 1 ? items : [...(prev || []), ...items]));
+      setLikedPage(page);
+      setLikedHasMore(Boolean(response.data?.has_more));
+      setLikedTotal(response.data?.total || 0);
+      setLikedTotalLikes(response.data?.total_likes || 0);
+    } catch (error) {
+      console.error("Error fetching liked posts:", error);
+    } finally {
+      setLoadingLiked(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab !== "likes") return;
+    fetchLikedPosts(1, likedSort);
+  }, [activeTab, likedSort, userId]);
+
+  const loadMoreLikedPosts = () => {
+    if (loadingLiked || !likedHasMore) return;
+    fetchLikedPosts(likedPage + 1, likedSort);
   };
 
   const loadMoreProfilePosts = async () => {
@@ -406,21 +468,51 @@ const ProfileScreen = ({ route, navigation }) => {
     );
   }
 
-  const handleVoteUpdate = (postId, newVotes) => {
-    // Update votes in both recentPostsProfile state and userData state
-    setRecentPostsProfile((prevPosts) =>
-      prevPosts.map((post) =>
-        post.id === postId ? { ...post, votes: newVotes } : post
-      )
+  if (notFound || !userData) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={{ position: "absolute", top: insets.top + 8, left: 12, padding: 8 }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={26} color={theme.text} />
+        </TouchableOpacity>
+        <Ionicons name="person-circle-outline" size={72} color={theme.subText} />
+        <Text style={{ color: theme.text, fontSize: 18, fontWeight: "600", marginTop: 12 }}>
+          {t("profile.notFoundTitle")}
+        </Text>
+        <Text style={{ color: theme.subText, marginTop: 6, textAlign: "center", paddingHorizontal: 32 }}>
+          {t("profile.notFoundMessage")}
+        </Text>
+      </View>
     );
+  }
+
+  // A post can be on screen in both the Posts tab and the Likes tab, so
+  // vote/save changes are patched into both lists.
+  const handleVoteUpdate = (postId, newVotes) => {
+    const applyVotes = (prevPosts) =>
+      (prevPosts || []).map((post) =>
+        post.id === postId
+          ? {
+              ...post,
+              votes: newVotes,
+              likes_count: (newVotes || []).filter((v) => v.vote_value === 1).length,
+            }
+          : post
+      );
+    setRecentPostsProfile(applyVotes);
+    setLikedPosts(applyVotes);
   };
 
   const handleSaveUpdate = (postId, savedStatus) => {
-    setRecentPostsProfile((prevPosts) =>
-      prevPosts.map((post) =>
+    const applySaved = (prevPosts) =>
+      (prevPosts || []).map((post) =>
         post.id === postId ? { ...post, saved: savedStatus } : post
-      )
-    );
+      );
+    setRecentPostsProfile(applySaved);
+    setLikedPosts(applySaved);
   };
 
   // Render user connection item
@@ -480,15 +572,19 @@ const ProfileScreen = ({ route, navigation }) => {
   const listData =
     activeTab === "posts"
       ? recentPostsProfile || []
+      : activeTab === "likes"
+      ? likedPosts || []
       : activeTab === "following"
       ? userData?.following || []
       : userData?.followers || [];
 
+  const isPostTab = activeTab === "posts" || activeTab === "likes";
+
   const listKeyExtractor = (item) =>
-    activeTab === "posts" ? `post-${item.id}` : `user-${item.id}`;
+    isPostTab ? `post-${item.id}` : `user-${item.id}`;
 
   const renderListItem = ({ item }) => {
-    if (activeTab === "posts") {
+    if (isPostTab) {
       return (
         <PostItem
           item={isCurrentUser ? { ...item, is_owner: true } : item}
@@ -506,11 +602,14 @@ const ProfileScreen = ({ route, navigation }) => {
   const emptyStateTextKey =
     activeTab === "posts"
       ? "profile.emptyPosts"
+      : activeTab === "likes"
+      ? "profile.emptyLikes"
       : activeTab === "following"
       ? "profile.emptyFollowing"
       : "profile.emptyFollowers";
 
   const renderListEmpty = () => (
+    activeTab === "likes" && loadingLiked ? null :
     <View>
       <Image
         source={require("../../../assets/sad_frog.png")}
@@ -524,6 +623,21 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const renderListFooter = () => (
     <>
+      {activeTab === "likes" && (likedHasMore || (loadingLiked && likedPosts.length === 0)) && (
+        <TouchableOpacity
+          onPress={loadMoreLikedPosts}
+          disabled={loadingLiked}
+          style={{ alignItems: "center", paddingVertical: 16 }}
+        >
+          {loadingLiked ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <Text style={{ color: theme.primary, fontWeight: "600" }}>
+              {t('profile.loadMorePosts')}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
       {activeTab === "posts" && postsHasMore && (
         <TouchableOpacity
           onPress={loadMoreProfilePosts}
@@ -820,20 +934,64 @@ const ProfileScreen = ({ route, navigation }) => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}>
+            <TouchableOpacity
+              style={[
+                { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
+                activeTab === "likes" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+              ]}
+              onPress={() => setActiveTab("likes")}
+            >
               <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.likesTab')}</Text>
               <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.total_likes_count}
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}>
+            <TouchableOpacity
+              style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}
+              onPress={() => setShowMilestonesModal(true)}
+            >
               <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.pointsTab')}</Text>
-              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.primary }}>
                 {userData?.stats?.activity_points}
               </Text>
             </TouchableOpacity>
           </View>
+
+          {activeTab === "likes" && (
+            <View style={{ marginTop: 16, marginHorizontal: 16, gap: 10 }}>
+              <Text style={{ color: theme.subText, fontSize: 13 }}>
+                {t('profile.likesSummary', { posts: likedTotal, likes: likedTotalLikes })}
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8 }}
+              >
+                {LIKED_SORT_OPTIONS.map((option) => {
+                  const selected = likedSort === option.value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      onPress={() => setLikedSort(option.value)}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 6,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: selected ? theme.primary : theme.border,
+                        backgroundColor: selected ? theme.primary : "transparent",
+                      }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: selected ? "#fff" : theme.text }}>
+                        {t(option.labelKey)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
           <View
             style={{
@@ -906,6 +1064,57 @@ const ProfileScreen = ({ route, navigation }) => {
             </View>
           </View>
         </View>
+
+        <Modal
+          visible={showMilestonesModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowMilestonesModal(false)}
+        >
+          <Pressable
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
+            onPress={() => setShowMilestonesModal(false)}
+          >
+            <Pressable
+              style={{ backgroundColor: isDarkMode ? "#1c1c1e" : "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 }}
+              onPress={() => {}}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <Text style={{ fontWeight: "700", fontSize: 16, color: theme.primary }}>Điểm thành tích</Text>
+                <TouchableOpacity onPress={() => setShowMilestonesModal(false)}>
+                  <Ionicons name="close" size={22} color={theme.subText} />
+                </TouchableOpacity>
+              </View>
+              {(() => {
+                const TIERS = [
+                  { id: "trainee", name: "Tập sự", min_points: 50, color: "#6b7280" },
+                  { id: "active", name: "Tích cực", min_points: 150, color: "#3b82f6" },
+                  { id: "distinguished", name: "Tiêu biểu", min_points: 500, color: "#eab308" },
+                  { id: "veteran", name: "Kỳ cựu", min_points: 1000, color: "#a855f7" },
+                ];
+                const milestones = userData?.points_milestones || {};
+                return TIERS.map((tier) => {
+                  const m = milestones[tier.id];
+                  const achieved = m?.achieved_at;
+                  return (
+                    <View key={tier.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? "#2a2a2a" : "#f0f0f0", opacity: achieved ? 1 : 0.4 }}>
+                      <View style={{ width: 52, alignItems: "center" }}>
+                        <Text style={{ fontWeight: "800", fontSize: 13, color: tier.color }}>{tier.min_points}</Text>
+                        <Text style={{ fontSize: 10, color: tier.color }}>điểm</Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text }}>{tier.name}</Text>
+                      </View>
+                      <Text style={{ fontSize: 12, color: theme.subText }}>
+                        {achieved ? new Date(achieved).toLocaleDateString("vi-VN") : "Chưa đạt"}
+                      </Text>
+                    </View>
+                  );
+                });
+              })()}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <ReportModal
           visible={reportModalVisible}

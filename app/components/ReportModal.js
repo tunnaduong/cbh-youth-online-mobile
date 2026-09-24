@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { useTheme } from '../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
-const ReportModal = ({ visible, onClose, onSubmit }) => {
+const ReportModal = ({ visible, onClose, onSubmit, title }) => {
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { theme, isDarkMode } = useTheme();
@@ -43,7 +43,7 @@ const ReportModal = ({ visible, onClose, onSubmit }) => {
               <View style={styles.container}>
                 <TouchableWithoutFeedback>
                   <View style={[styles.content, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
-                    <Text style={[styles.title, { color: theme.text }]}>{t('report.modalTitle')}</Text>
+                    <Text style={[styles.title, { color: theme.text }]}>{title || t('report.modalTitle')}</Text>
                     <TextInput
                       style={[styles.input, {
                         backgroundColor: isDarkMode ? '#374151' : '#f9fafb',

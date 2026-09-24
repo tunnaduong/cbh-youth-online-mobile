@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useCallback, useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 // react-native-screens' enableFreeze(true) used to be on here - it pauses a
@@ -14,7 +14,9 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
+import { SessionResetContext } from "./app/contexts/SessionContext";
 import i18n, { hasChosenLanguage } from "./app/i18n";
+import { getSavedAccounts } from "./app/utils/savedAccounts";
 
 if (Platform.OS === "android") {
   Alert.alert = CustomAlert.alert;
@@ -57,6 +59,7 @@ import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
 import EasterEggScreen from "./app/screens/MainScreens/SettingsScreen/EasterEggScreen";
 import TermsOfServiceScreen from "./app/screens/MainScreens/SettingsScreen/TermsOfServiceScreen";
 import PrivacyPolicyScreen from "./app/screens/MainScreens/SettingsScreen/PrivacyPolicyScreen";
+import LinkSafetyScreen from "./app/screens/MainScreens/LinkSafetyScreen";
 import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
@@ -87,6 +90,7 @@ import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/Withdraw
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
+import StudentVerificationScreen from "./app/screens/MainScreens/SettingsScreen/StudentVerificationScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -288,14 +292,17 @@ const parseDeepLink = (url) => {
 };
 
 // Main App component
-const App = () => {
+const App = ({ skipSplash = false }) => {
   const { theme, isDarkMode } = useTheme();
   const { barStyle, backgroundColor: statusBarColor } = useStatusBar();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const { shareIntent, resetShareIntent } = useShareIntent();
-  const [showSplash, setShowSplash] = useState(true);
+  // An in-process restart (account switch) skips the branded splash: the
+  // native splash already played at launch, replaying the animation would
+  // just make switching feel slow.
+  const [showSplash, setShowSplash] = useState(!skipSplash);
   // i18n.init() reads the saved language from AsyncStorage asynchronously, so
   // i18n.language is undefined for a brief window after app start. Screens
   // that fetch and format data (e.g. story/post timestamps) as soon as they
@@ -318,6 +325,17 @@ const App = () => {
   useEffect(() => {
     hasChosenLanguage().then(setLanguageChosen);
   }, []);
+  // Adding/switching an account signs the device out momentarily. That is not
+  // a first launch, so it must not drag the person back through language and
+  // preference onboarding - any saved account means they've been here before.
+  const [hasSavedAccounts, setHasSavedAccounts] = useState(null);
+  // Re-read on every isLoggedIn flip, not just at boot: the account that makes
+  // this true is saved *during* the session, so a boot-only read is still
+  // false at the moment "Add account" signs the device out - which is exactly
+  // when this has to be true to skip onboarding.
+  useEffect(() => {
+    getSavedAccounts().then((list) => setHasSavedAccounts(list.length > 0));
+  }, [isLoggedIn]);
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
@@ -564,7 +582,7 @@ const App = () => {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (isLoading || languageChosen === null) {
+  if (isLoading || languageChosen === null || hasSavedAccounts === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
         <LottieView
@@ -595,7 +613,11 @@ const App = () => {
         onStateChange={handleNavigationStateChange}
       >
         <Stack.Navigator
-          initialRouteName={!isLoggedIn && !languageChosen ? "LanguageSelect" : undefined}
+          initialRouteName={
+            !isLoggedIn && languageChosen === false && hasSavedAccounts === false
+              ? "LanguageSelect"
+              : undefined
+          }
           screenOptions={{
             headerStyle: {
               backgroundColor: theme.headerBackground,
@@ -764,6 +786,13 @@ const App = () => {
                 }}
               />
               <Stack.Screen
+                name="LinkSafetyScreen"
+                component={LinkSafetyScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="SecurityScreen"
                 component={SecurityScreen}
                 options={{
@@ -773,6 +802,13 @@ const App = () => {
               <Stack.Screen
                 name="BlockedUsersScreen"
                 component={BlockedUsersScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="StudentVerificationScreen"
+                component={StudentVerificationScreen}
                 options={{
                   headerShown: false,
                 }}
@@ -945,6 +981,22 @@ const App = () => {
             </>
           ) : (
             <>
+              {/* Welcome is declared FIRST on purpose. React Navigation falls
+                  back to the first screen in the list whenever initialRouteName
+                  is undefined or resolves before hasSavedAccounts has loaded,
+                  so the safe default for an already-onboarded device has to be
+                  the one at the top - otherwise a momentary sign-out (Add
+                  account / Switch account) drops the person back into language
+                  and preference onboarding. */}
+              <Stack.Screen
+                name="Welcome"
+                options={{
+                  title: "Chào mừng đến với CYO",
+                  headerShown: false,
+                  animation: "fade",
+                }}
+                component={WelcomeScreen}
+              />
               <Stack.Screen
                 name="LanguageSelect"
                 options={{
@@ -962,15 +1014,6 @@ const App = () => {
                   animation: "fade",
                 }}
                 component={FirstLaunchSettingsScreen}
-              />
-              <Stack.Screen
-                name="Welcome"
-                options={{
-                  title: "Chào mừng đến với CYO",
-                  headerShown: false,
-                  animation: "fade",
-                }}
-                component={WelcomeScreen}
               />
               <Stack.Screen
                 name="Login"
@@ -1001,6 +1044,13 @@ const App = () => {
                   headerShown: false,
                 }}
               />
+              <Stack.Screen
+                name="LinkSafetyScreen"
+                component={LinkSafetyScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
             </>
           )}
         </Stack.Navigator>
@@ -1012,17 +1062,28 @@ const App = () => {
   );
 };
 
-export default () => (
-  <TailwindProvider>
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <MultiContextProvider>
-        <SafeAreaProvider>
-          <KeyboardProvider>
-            <App />
-          </KeyboardProvider>
-        </SafeAreaProvider>
-      </MultiContextProvider>
-      <Toast topOffset={60} />
-    </GestureHandlerRootView>
-  </TailwindProvider>
-);
+export default () => {
+  // Bumped by AuthContext when the active account changes. Keying the whole
+  // provider tree on it throws every context and the navigator away and
+  // mounts them again from storage - a cold start without a native reload
+  // (see SessionContext for why the native reload was dropped).
+  const [sessionKey, setSessionKey] = useState(0);
+  const resetSession = useCallback(() => setSessionKey((k) => k + 1), []);
+
+  return (
+    <TailwindProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SessionResetContext.Provider value={resetSession}>
+          <MultiContextProvider key={sessionKey}>
+            <SafeAreaProvider>
+              <KeyboardProvider>
+                <App skipSplash={sessionKey > 0} />
+              </KeyboardProvider>
+            </SafeAreaProvider>
+          </MultiContextProvider>
+        </SessionResetContext.Provider>
+        <Toast topOffset={60} />
+      </GestureHandlerRootView>
+    </TailwindProvider>
+  );
+};

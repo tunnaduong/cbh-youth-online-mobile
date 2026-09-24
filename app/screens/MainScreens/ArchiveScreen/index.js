@@ -12,7 +12,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { getStoryArchive } from "../../../services/api/Api";
+import { getStoryArchive, getArchivedPosts } from "../../../services/api/Api";
+import PostItem from "../../../components/PostItem";
 import FastImage from "../../../components/FastImage";
 import { DeviceEventEmitter } from "react-native";
 import StoryViewersSheet from "../../../components/StoryViewersSheet";
@@ -26,22 +27,36 @@ import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import StoryViewerOverlay from "../../../components/StoryOverlays/StoryViewerOverlay";
+import StoryMusicPlayer from "../../../components/StoryOverlays/StoryMusicPlayer";
+import {
+  parseStoryMusic,
+  parseStoryOverlays,
+} from "../../../components/StoryOverlays/storyOverlayModel";
 
-const { width } = Dimensions.get("window");
+const { width, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const STORY_SIZE = (width - 48) / 3; // 3 columns with padding
+const TAB_BAR_HEIGHT = 46;
 
 const ArchiveScreen = ({ route, navigation }) => {
   const { username: currentUsername } = useContext(AuthContext);
+  const [activeTab, setActiveTab] = useState("posts");
   const [archiveData, setArchiveData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [archivedPosts, setArchivedPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
   const [selectedStories, setSelectedStories] = useState(null);
+  const [activeArchiveStoryId, setActiveArchiveStoryId] = useState(null);
+  const [isArchiveStoryPaused, setIsArchiveStoryPaused] = useState(false);
   const storyRef = React.useRef(null);
   const username = route.params?.username || currentUsername;
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 64 + insets.top;
+  // The tab bar sits inside the floating header, so content has to clear both.
+  const titleBarHeight = 64 + insets.top;
+  const headerHeight = titleBarHeight + TAB_BAR_HEIGHT;
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 10, 50],
     outputRange: [1, 1, 0],
@@ -72,6 +87,7 @@ const ArchiveScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     fetchArchive();
+    fetchArchivedPosts();
   }, []);
 
   const resolveStoryMediaUrl = (story) => {
@@ -142,6 +158,32 @@ const ArchiveScreen = ({ route, navigation }) => {
     }
   };
 
+  const fetchArchivedPosts = async () => {
+    try {
+      setPostsLoading(true);
+      const response = await getArchivedPosts();
+      const posts = response?.data?.data;
+      setArchivedPosts(Array.isArray(posts) ? posts : []);
+    } catch (error) {
+      console.error("Error fetching archived posts:", error);
+      Toast.show({
+        type: "error",
+        text1: t('common.error'),
+        text2: t('archive.loadPostsError'),
+      });
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
+  // PostItem performs the restore call itself; this only drops the row once
+  // the post is no longer archived.
+  const handleArchiveChange = (postId, archived) => {
+    if (!archived) {
+      setArchivedPosts((prev) => prev.filter((post) => post.id !== postId));
+    }
+  };
+
   const getStoryPlaceholderUri = () => {
     return "https://placehold.co/1080x1920/111827/ffffff.png?text=Story";
   };
@@ -184,6 +226,35 @@ const ArchiveScreen = ({ route, navigation }) => {
     return ['#0f172a'];
   };
 
+  /** Soundtrack of the archived story currently on screen, if it has one. */
+  const activeArchiveMusic = React.useMemo(() => {
+    if (!selectedStories || !activeArchiveStoryId) return null;
+
+    const story = selectedStories.stories?.find(
+      (item) => String(item.id) === String(activeArchiveStoryId)
+    );
+
+    return story?.music || null;
+  }, [selectedStories, activeArchiveStoryId]);
+
+  useEffect(() => {
+    if (!selectedStories || !activeArchiveMusic) {
+      setIsArchiveStoryPaused(false);
+      return undefined;
+    }
+
+    // Follow the viewer's own pause state (long-press) so the music stops too.
+    const interval = setInterval(() => {
+      try {
+        setIsArchiveStoryPaused(Boolean(storyRef.current?.isPaused?.()));
+      } catch (error) {
+        // ignore - the modal may already be gone
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [selectedStories, activeArchiveMusic]);
+
   const transformStoriesForViewer = (stories) => {
     return {
       uid: "archive",
@@ -209,6 +280,18 @@ const ArchiveScreen = ({ route, navigation }) => {
           ? gradientColorsRaw
           : [gradientColorsRaw[0], shadeHex(gradientColorsRaw[0], -12)];
 
+        const overlays = parseStoryOverlays(story.overlays);
+        const storyMusic = parseStoryMusic(story.music);
+        const overlayLayer = (
+          <StoryViewerOverlay
+            overlays={overlays}
+            mediaUri={mediaUrl}
+            isVideo={isVideoStory}
+            viewportWidth={width}
+            viewportHeight={SCREEN_HEIGHT}
+          />
+        );
+
         return {
         id: story.id,
         storyId: story.id,
@@ -220,6 +303,9 @@ const ArchiveScreen = ({ route, navigation }) => {
         media_type: isVideoStory ? "video" : storyType || "image",
         is_muted: story.is_muted || false,
         date: formatTime(story.created_at || story.created_at_human),
+        music: storyMusic,
+        // Keep a photo up for as long as its soundtrack, like the feed does.
+        animationDuration: !isVideoStory && storyMusic ? 15000 : undefined,
         renderContent: isTextStory
           ? () => (
               <LinearGradient
@@ -249,9 +335,10 @@ const ArchiveScreen = ({ route, navigation }) => {
                 >
                   {textContent}
                 </Text>
+                {overlayLayer}
               </LinearGradient>
             )
-          : undefined,
+          : () => overlayLayer,
         renderFooter: () => (
           <View
             style={{
@@ -387,7 +474,7 @@ const ArchiveScreen = ({ route, navigation }) => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
       <View pointerEvents="box-none" style={styles.floatingHeader}>
-        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: headerHeight }}>
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: titleBarHeight }}>
           <View style={{ width: 44 }}>
             <LiquidButton providerId="ArchiveScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={22} color={theme.primary} />
@@ -401,10 +488,80 @@ const ArchiveScreen = ({ route, navigation }) => {
           </Animated.Text>
           <View style={{ width: 44 }} />
         </View>
+        <View style={{ flexDirection: "row", height: TAB_BAR_HEIGHT, paddingHorizontal: 16 }}>
+          {[
+            { key: "posts", label: t('archive.tabPosts') },
+            { key: "stories", label: t('archive.tabStories') },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
+                style={{
+                  flex: 1,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderBottomWidth: 2,
+                  borderBottomColor: isActive ? theme.primary : "transparent",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: isActive ? "700" : "500",
+                    color: isActive ? theme.primary : theme.subText,
+                  }}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       <AndroidGlassBackdrop providerId="ArchiveScreen" style={{ flex: 1 }}>
-        {loading ? (
+        {activeTab === "posts" ? (
+          postsLoading ? (
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+              <ActivityIndicator size="large" color="#319527" />
+            </View>
+          ) : archivedPosts.length === 0 ? (
+            <View style={[styles.emptyContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+              <Ionicons name="document-text-outline" size={64} color={theme.placeholder} />
+              <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.emptyPosts')}</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={archivedPosts}
+              renderItem={({ item }) => (
+                <PostItem
+                  navigation={navigation}
+                  item={item}
+                  screenName="ArchiveScreen"
+                  onArchiveChange={handleArchiveChange}
+                />
+              )}
+              keyExtractor={(item) => String(item.id)}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              initialNumToRender={3}
+              maxToRenderPerBatch={3}
+              windowSize={5}
+              removeClippedSubviews={Platform.OS === 'android'}
+              ListHeaderComponent={
+                <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                  <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
+                  <Text style={[styles.privacyText, { color: theme.subText }]}>
+                    {t('archive.postsPrivacyNotice')}
+                  </Text>
+                </View>
+              }
+              contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }}
+            />
+          )
+        ) : loading ? (
           <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
             <ActivityIndicator size="large" color="#319527" />
           </View>
@@ -443,6 +600,12 @@ const ArchiveScreen = ({ route, navigation }) => {
           stories={[selectedStories]}
           hideAvatarList={true}
           showName={false}
+          backgroundColor="#000000"
+          mediaContainerStyle={{ backgroundColor: "#000000" }}
+          // Letterbox the 9:16 frame so archived stories show exactly what
+          // was composed, overlays included.
+          imageProps={{ resizeMode: "contain" }}
+          videoProps={{ resizeMode: "contain" }}
           statusBarTranslucent={Platform.OS === "android"}
           textStyle={{
             color: "#fff",
@@ -455,9 +618,22 @@ const ArchiveScreen = ({ route, navigation }) => {
           closeIconColor="#c4c4c4"
           modalAnimationDuration={300}
           storyAnimationDuration={300}
-          onHide={() => setSelectedStories(null)}
+          onHide={() => {
+            setSelectedStories(null);
+            setActiveArchiveStoryId(null);
+          }}
+          onStoryStart={(userId, storyId) => setActiveArchiveStoryId(storyId)}
+          onSwipeUp={(userId, storyId) => {
+            if (username !== currentUsername) return;
+            DeviceEventEmitter.emit("SHOW_STORY_VIEWERS", { storyId, isOwn: true });
+          }}
         />
       )}
+
+      <StoryMusicPlayer
+        music={activeArchiveMusic}
+        paused={!selectedStories || isArchiveStoryPaused}
+      />
 
       <StoryViewersSheet />
     </View>

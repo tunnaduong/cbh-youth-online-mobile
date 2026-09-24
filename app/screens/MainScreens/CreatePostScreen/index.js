@@ -461,7 +461,26 @@ const CreatePostScreen = ({ navigation, route }) => {
         anonymous: isAnonymous,
       });
 
-      if (viewSelected.value === "public") {
+      // AI moderation can hold a post for a human reviewer instead of
+      // publishing it. Such a post is hidden server-side, so don't drop it
+      // into the feed optimistically - tell the author it's queued instead.
+      const isPendingModeration =
+        response.data?.moderation?.status === "pending";
+
+      if (isPendingModeration) {
+        Toast.show({
+          type: "info",
+          text1: t("createPost.pendingModeration"),
+          text2:
+            response.data?.moderation?.message ||
+            t("createPost.pendingModerationDesc"),
+          autoHide: true,
+          visibilityTime: 5000,
+          topOffset: 60,
+        });
+      }
+
+      if (viewSelected.value === "public" && !isPendingModeration) {
         setFeed((prevPosts) => [
           {
             ...response.data,
@@ -489,14 +508,18 @@ const CreatePostScreen = ({ navigation, route }) => {
         }
       } else {
         // If navigation is not available, at least update the feed
-        Toast.show({
-          type: "success",
-          text1: t("createPost.postedSuccess"),
-          text2: t("createPost.reloading"),
-          autoHide: true,
-          visibilityTime: 2000,
-          topOffset: 60,
-        });
+        // Skip when a pending-moderation toast already went up above, or the
+        // two stack on top of each other.
+        if (!isPendingModeration) {
+          Toast.show({
+            type: "success",
+            text1: t("createPost.postedSuccess"),
+            text2: t("createPost.reloading"),
+            autoHide: true,
+            visibilityTime: 2000,
+            topOffset: 60,
+          });
+        }
       }
 
       return response;

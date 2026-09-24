@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,21 +6,30 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Linking,
   ActivityIndicator,
   Alert,
   ActionSheetIOS,
   Platform,
   Clipboard,
+  Animated,
+  Easing,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import ImageView from "react-native-image-viewing";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
+import LiquidButton from "../../../components/LiquidButton";
+import {
+  LiquidGlassView,
+  glassTint,
+  androidGlassPerfProps,
+} from "../../../components/GlassModules";
+import { openExternalLink } from "../../../utils/externalLink";
 import formatTime from "../../../utils/formatTime";
 import { getConversationMedia } from "../../../services/api/Api";
 import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
@@ -31,11 +40,130 @@ import ForwardMessageModal from "../../../components/ForwardMessageModal";
 // this conversation, grouped into tabs. Mirrors the file-bubble rendering
 // and image/video viewers already used inline in ConversationScreen.js, but
 // as its own paginated screen instead of scrolling through the whole thread.
+//
+// The tab switcher is a floating glass pill pinned to the bottom of the
+// screen, deliberately built to the same spec as the app's main bottom nav
+// (MainScreens/index.js CustomTabBar): same 49pt height, 24.5 radius, same
+// surface/border/indicator colors, same sliding indicator. It is scoped to
+// this screen only and has no "+" button - there is nothing to create here.
 const TABS = [
-  { key: "image", labelKey: "chatConversation.galleryPhotos", fallback: "Ảnh/Video" },
-  { key: "file", labelKey: "chatConversation.galleryFiles", fallback: "Tệp" },
-  { key: "link", labelKey: "chatConversation.galleryLinks", fallback: "Liên kết" },
+  {
+    key: "image",
+    labelKey: "chatConversation.galleryPhotos",
+    fallback: "Ảnh/Video",
+    icon: "images-outline",
+    iconFocused: "images",
+  },
+  {
+    key: "file",
+    labelKey: "chatConversation.galleryFiles",
+    fallback: "Tệp",
+    icon: "document-text-outline",
+    iconFocused: "document-text",
+  },
+  {
+    key: "link",
+    labelKey: "chatConversation.galleryLinks",
+    fallback: "Liên kết",
+    icon: "link-outline",
+    iconFocused: "link",
+  },
 ];
+
+const NAV_HEIGHT = 49;
+const NAV_RADIUS = 24.5;
+
+// Bottom nav pill - mirrors CustomTabBar's structure so the two read as the
+// same control. Kept local to this file because it is gallery-only.
+const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
+  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const insets = useSafeAreaInsets();
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 40);
+
+  const activeIndex = Math.max(0, tabs.findIndex((tab) => tab.key === activeTab));
+  const buttonWidth = pillWidth / Math.max(1, tabs.length);
+
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: activeIndex * buttonWidth,
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [activeIndex, buttonWidth]);
+
+  const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
+  const surface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";
+  const border = isDarkMode ? "rgba(255, 255, 255, 0.10)" : "rgba(0, 0, 0, 0.07)";
+  const indicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
+  const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
+  const NavGlassWrapper = LiquidGlassView ?? View;
+
+  return (
+    <View style={[styles.navWrap, { bottom: bottomOffset }]}>
+      <NavGlassWrapper
+        {...(LiquidGlassView
+          ? {
+              variant: "clear",
+              interactive: true,
+              tintColor: glassTint(isDarkMode),
+              borderRadius: NAV_RADIUS,
+              ...androidGlassPerfProps,
+            }
+          : {})}
+        renderToHardwareTextureAndroid
+        onLayout={(e) => {
+          const w = e.nativeEvent.layout.width;
+          if (w && w !== pillWidth) setPillWidth(w);
+        }}
+        style={[
+          styles.navPill,
+          {
+            backgroundColor: LiquidGlassView ? "transparent" : surface,
+            borderColor: border,
+          },
+          // Android's elevation shadow renders black and ignores borderRadius
+          // clipping, poking a square corner past the pill in dark mode.
+          isDarkMode && { elevation: 0, shadowOpacity: 0 },
+        ]}
+      >
+        <Animated.View
+          renderToHardwareTextureAndroid
+          style={{
+            position: "absolute",
+            width: buttonWidth,
+            height: NAV_HEIGHT,
+            borderRadius: NAV_RADIUS,
+            top: 0,
+            left: 0,
+            backgroundColor: indicator,
+            transform: [{ translateX: slideAnim }],
+          }}
+        />
+        {tabs.map((tab) => {
+          const focused = tab.key === activeTab;
+          const color = focused ? theme.primary : inactiveColor;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.navButton}
+              onPress={() => onSelect(tab.key)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name={focused ? tab.iconFocused : tab.icon} size={22} color={color} />
+              {!hideTabLabels && (
+                <Text style={[styles.navLabel, { color }]} numberOfLines={1}>
+                  {t(tab.labelKey, tab.fallback)}
+                </Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </NavGlassWrapper>
+    </View>
+  );
+};
 
 const MediaGalleryScreen = ({ route, navigation }) => {
   const { conversationId } = route.params;
@@ -52,6 +180,26 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   const [imageViewer, setImageViewer] = useState({ visible: false, items: [], index: 0 });
   const [videoViewer, setVideoViewer] = useState({ visible: false, item: null });
   const [forwardModal, setForwardModal] = useState({ visible: false, message: null });
+
+  // Drives the header back button's appear/disappear glass, the same way
+  // every other secondary screen in the app does it (LiquidButton reads the
+  // value directly and hard-switches its glass surface past the threshold).
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+  const onScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false }
+  );
+  // Reset to the top-of-scroll (no glass) look whenever the tab changes -
+  // each tab has its own list, so the shared scrollY would otherwise keep a
+  // stale offset from the tab you just left.
+  useEffect(() => {
+    scrollY.setValue(0);
+  }, [activeTab]);
 
   // "image" tab actually fetches both images and videos (the API's `type`
   // filter is per-request) - request both and merge, sorted by recency,
@@ -189,7 +337,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     const cancelButtonIndex = 3;
     const run = (index) => {
       if (index === 0) {
-        Linking.openURL(item.url).catch(() => {});
+        openExternalLink(navigation, item.url, theme);
       } else if (index === 1) {
         Clipboard.setString(item.url);
         Toast.show({ type: "success", text1: t("chatConversation.copied", "Đã sao chép") });
@@ -291,7 +439,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     <TouchableOpacity
       style={[styles.fileRow, { borderBottomColor: theme.border }]}
       activeOpacity={0.6}
-      onPress={() => Linking.openURL(item.url).catch(() => {})}
+      onPress={() => openExternalLink(navigation, item.url, theme)}
       onLongPress={() => showLinkOptions(item)}
     >
       <View style={[styles.fileIconWrapper, { backgroundColor: theme.iconBackground }]}>
@@ -343,62 +491,70 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     );
   };
 
+  // Content clears the floating header at the top and the floating nav pill
+  // at the bottom - both are overlays now, so the list has to pad itself.
+  const listContentStyle = {
+    paddingTop: 64 + insets.top,
+    paddingBottom: (insets.bottom > 0 ? insets.bottom + 8 : 16) + NAV_HEIGHT + 16,
+  };
+
+  const sharedListProps = {
+    data: currentItems,
+    keyExtractor: (item, index) => `${item.message_id}-${index}`,
+    onEndReached: loadMore,
+    onEndReachedThreshold: 0.5,
+    onScroll,
+    scrollEventThrottle: 16,
+    showsVerticalScrollIndicator: false,
+    contentContainerStyle: listContentStyle,
+    ListEmptyComponent: !loading ? <EmptyState theme={theme} t={t} /> : null,
+    ListFooterComponent: loading ? (
+      <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary} />
+    ) : null,
+  };
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["top"]}>
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={10} style={styles.headerSideButton}>
-          <Ionicons name="arrow-back" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-          {t("chatConversation.gallery", "Bộ sưu tập")}
-        </Text>
-        <View style={styles.headerSideButton} />
-      </View>
-      <View style={[styles.tabBar, { borderBottomColor: theme.border }]}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tabButton, activeTab === tab.key && { borderBottomColor: theme.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text
-              style={[
-                styles.tabLabel,
-                { color: activeTab === tab.key ? theme.primary : theme.subText },
-              ]}
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Floating header - transparent at the top of the scroll, the back
+          button grows its own glass once the list moves under it. */}
+      <View pointerEvents="box-none" style={styles.headerWrap}>
+        <View style={[styles.headerRow, { paddingTop: insets.top, height: 64 + insets.top }]}>
+          <View style={{ width: 44 }}>
+            <LiquidButton
+              size={44}
+              scrollY={scrollY}
+              providerId="MediaGalleryScreen"
+              onPress={() => navigation.goBack()}
             >
-              {t(tab.labelKey, tab.fallback)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.text, opacity: headerTitleOpacity }]}
+            numberOfLines={1}
+          >
+            {t("chatConversation.gallery", "Bộ sưu tập")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
       {activeTab === "image" ? (
-        <FlatList
+        <Animated.FlatList
           key="image-grid"
-          data={currentItems}
-          keyExtractor={(item, index) => `${item.message_id}-${index}`}
+          {...sharedListProps}
           renderItem={renderPhotoVideoItem}
           numColumns={3}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
-          ListEmptyComponent={!loading ? <EmptyState theme={theme} t={t} /> : null}
-          ListFooterComponent={loading ? <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary} /> : null}
         />
       ) : (
-        <FlatList
+        <Animated.FlatList
           key="single-column-list"
-          data={currentItems}
-          keyExtractor={(item, index) => `${item.message_id}-${index}`}
+          {...sharedListProps}
           renderItem={activeTab === "file" ? renderFileItem : renderLinkItem}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
-          ListEmptyComponent={!loading ? <EmptyState theme={theme} t={t} /> : null}
-          ListFooterComponent={loading ? <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary} /> : null}
         />
       )}
+
+      <GalleryTabBar tabs={TABS} activeTab={activeTab} onSelect={setActiveTab} t={t} />
 
       <ImageView
         images={imageViewer.items.map((m) => ({ uri: m.file_url }))}
@@ -431,7 +587,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         message={forwardModal.message}
         onClose={() => setForwardModal({ visible: false, message: null })}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -466,19 +622,38 @@ const EmptyState = ({ theme, t }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
+  headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
+  headerRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
-    height: 52,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 8,
   },
-  headerSideButton: { width: 36, alignItems: "flex-start", justifyContent: "center" },
   headerTitle: { flex: 1, fontSize: 17, fontWeight: "600", textAlign: "center" },
-  tabBar: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth },
-  tabButton: { flex: 1, alignItems: "center", paddingVertical: 12 },
-  tabLabel: { fontSize: 14, fontWeight: "600" },
+  navWrap: {
+    position: "absolute",
+    left: 20,
+    right: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 99,
+  },
+  navPill: {
+    flex: 1,
+    height: NAV_HEIGHT,
+    borderRadius: NAV_RADIUS,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+  },
+  navButton: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 },
+  navLabel: { fontSize: 9, fontWeight: "bold", marginTop: 2 },
   gridItem: { width: `${100 / 3}%`, aspectRatio: 1, padding: 1 },
   gridImage: { width: "100%", height: "100%", backgroundColor: "#ddd" },
   playIconOverlay: {

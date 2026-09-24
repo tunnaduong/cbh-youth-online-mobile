@@ -9,7 +9,11 @@ import {
   Image,
   StyleSheet,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaProvider,
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
@@ -93,84 +97,89 @@ const ForwardMessageModal = ({ visible, message, onClose }) => {
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["top", "bottom"]}>
-        <View style={[styles.header, { borderBottomColor: theme.border }]}>
-          <TouchableOpacity onPress={onClose} style={styles.headerButton}>
-            <Ionicons name="close" size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: theme.text }]}>
-            {t("chatConversation.forward", "Chuyển tiếp")}
-          </Text>
-          <TouchableOpacity
-            onPress={handleSend}
-            style={styles.headerButton}
-            disabled={totalSelected === 0 || sending}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color={theme.primary} />
-            ) : (
-              <Text
-                style={[
-                  styles.sendText,
-                  { color: totalSelected === 0 ? theme.placeholder : theme.primary },
-                ]}
-              >
-                {t("chatConversation.send", "Gửi")}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.searchWrapper}>
-          <UserMultiSelectPicker
-            selected={selectedUsers}
-            onChange={setSelectedUsers}
-            placeholder={t("chatConversation.searchToForward", "Tìm người để chuyển tiếp...")}
-          />
-        </View>
-
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.primary} />
-          </View>
-        ) : (
-          <FlatList
-            data={conversations}
-            keyExtractor={(item) => String(item.id)}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
-            renderItem={({ item }) => {
-              const { name, avatarUrl, isGroup } = getConversationDisplay(item);
-              const selected = selectedIds.includes(item.id);
-              return (
-                <TouchableOpacity
-                  style={styles.row}
-                  activeOpacity={0.6}
-                  onPress={() => toggleSelect(item.id)}
+      {/* RN's Modal is a separate native window, so safe-area-context needs
+          its own provider in here - otherwise the insets come back 0 and the
+          header rides up under the status bar. */}
+      <SafeAreaProvider>
+        <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={["top", "bottom"]}>
+          <View style={[styles.header, { borderBottomColor: theme.border }]}>
+            <TouchableOpacity onPress={onClose} style={styles.headerButton}>
+              <Ionicons name="close" size={24} color={theme.text} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>
+              {t("chatConversation.forward", "Chuyển tiếp")}
+            </Text>
+            <TouchableOpacity
+              onPress={handleSend}
+              style={styles.headerButton}
+              disabled={totalSelected === 0 || sending}
+            >
+              {sending ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <Text
+                  style={[
+                    styles.sendText,
+                    { color: totalSelected === 0 ? theme.placeholder : theme.primary },
+                  ]}
                 >
-                  {isGroup ? (
-                    <Image source={GROUP_AVATAR} style={styles.avatar} />
-                  ) : avatarUrl ? (
-                    <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.border }]}>
-                      <Ionicons name="person" size={20} color={theme.subText} />
-                    </View>
-                  )}
-                  <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={1}>
-                    {name}
-                  </Text>
-                  <Ionicons
-                    name={selected ? "checkmark-circle" : "ellipse-outline"}
-                    size={22}
-                    color={selected ? theme.primary : theme.border}
-                  />
-                </TouchableOpacity>
-              );
-            }}
-          />
-        )}
-      </SafeAreaView>
+                  {t("chatConversation.send", "Gửi")}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.searchWrapper}>
+            <UserMultiSelectPicker
+              selected={selectedUsers}
+              onChange={setSelectedUsers}
+              placeholder={t("chatConversation.searchToForward", "Tìm người để chuyển tiếp...")}
+            />
+          </View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={theme.primary} />
+            </View>
+          ) : (
+            <FlatList
+              data={conversations}
+              keyExtractor={(item) => String(item.id)}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+              renderItem={({ item }) => {
+                const { name, avatarUrl, isGroup } = getConversationDisplay(item);
+                const selected = selectedIds.includes(item.id);
+                return (
+                  <TouchableOpacity
+                    style={styles.row}
+                    activeOpacity={0.6}
+                    onPress={() => toggleSelect(item.id)}
+                  >
+                    {isGroup ? (
+                      <Image source={GROUP_AVATAR} style={styles.avatar} />
+                    ) : avatarUrl ? (
+                      <FastImage source={{ uri: avatarUrl }} style={styles.avatar} />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.border }]}>
+                        <Ionicons name="person" size={20} color={theme.subText} />
+                      </View>
+                    )}
+                    <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={1}>
+                      {name}
+                    </Text>
+                    <Ionicons
+                      name={selected ? "checkmark-circle" : "ellipse-outline"}
+                      size={22}
+                      color={selected ? theme.primary : theme.border}
+                    />
+                  </TouchableOpacity>
+                );
+              }}
+            />
+          )}
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 };

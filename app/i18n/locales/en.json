@@ -69,7 +69,9 @@
     "unknownError": "An error occurred",
     "close": "Close",
     "save": "Save",
-    "add": "Add"
+    "add": "Add",
+    "done": "Done",
+    "loading": "Loading..."
   },
   "createActions": {
     "post": "Create post",
@@ -146,7 +148,11 @@
     "noConversations": "No conversations found...",
     "searchUserPlaceholder": "Search user...",
     "noUserFound": "No users found",
-    "searchUserHint": "Enter username to start searching"
+    "searchUserHint": "Enter username to start searching",
+    "resultsLabel": "RESULTS",
+    "continueConversation": "Continue conversation",
+    "startConversation": "Start a new conversation",
+    "noUserFoundHint": "Check the username and try again."
   },
   "search": {
     "all": "All",
@@ -324,6 +330,8 @@
     "cannotPost": "Cannot post yet",
     "missingFields": "Please enter the title and content of the post.",
     "postedSuccess": "Post published successfully",
+    "pendingModeration": "Post is awaiting review",
+    "pendingModerationDesc": "Your post will appear once it has been approved.",
     "reloading": "Reloading page...",
     "tryAgainLater": "Please try again later."
   },
@@ -350,7 +358,13 @@
     "reportIssue": "Report bug / Feedback",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
-    "featureInDevelopment": "Feature is under development"
+    "featureInDevelopment": "Feature is under development",
+    "switchAccount": "Switch account",
+    "addAccount": "Add account",
+    "removeAccount": "Remove from this device",
+    "removeAccountConfirm": "Remove @{{username}} from this device? You'll need to log in again to use it.",
+    "sessionExpired": "This account's session has expired, please log in again.",
+    "continueAs": "Continue with a signed-in account"
   },
   "post": {
     "details": "Post Details",
@@ -360,6 +374,25 @@
     "share": "Share",
     "unsave": "Unsave post",
     "save": "Save post",
+    "hide": "Hide post",
+    "hideSubtitle": "Hide this post from your feed",
+    "hideSuccess": "Post hidden from your feed",
+    "hideUndo": "Tap to undo",
+    "hideError": "Could not hide the post. Please try again.",
+    "unhideSuccess": "Post is back in your feed",
+    "archive": "Move to archive",
+    "archiveSubtitle": "Only you can see this post",
+    "giftPoints": "Gift points to the author",
+    "giftPointsSubtitle": "Send points from your wallet to support this post",
+    "archiveConfirmTitle": "Move to archive?",
+    "archiveConfirmBody": "The post will no longer be visible to others. You can restore it anytime from the Archive.",
+    "archiveAction": "Archive",
+    "archiveSuccess": "Post moved to the archive",
+    "archiveError": "Could not archive the post. Please try again.",
+    "unarchive": "Restore post",
+    "unarchiveSuccess": "Post restored",
+    "unarchiveError": "Could not restore the post. Please try again.",
+    "archivedBadge": "Archived",
     "privacy": "Privacy settings",
     "edit": "Edit post",
     "delete": "Delete post",
@@ -389,7 +422,23 @@
     "tapToPlayVideo": "Tap to play video",
     "anonymousUser": "Anonymous user",
     "anonymous": "Anonymous",
-    "reply": "Reply"
+    "reply": "Reply",
+    "pendingModerationTitle": "Comment is awaiting review",
+    "pendingModerationBody": "Your comment will be visible to everyone once it has been approved.",
+    "commentError": "Could not post the comment. Please try again."
+  },
+  "sharePost": {
+    "title": "Share post",
+    "viaMessage": "Send in a message",
+    "searchPeople": "Search for someone to share with...",
+    "notePlaceholder": "Add a message...",
+    "toOtherApps": "Other apps",
+    "copyLink": "Copy link",
+    "copied": "Link copied",
+    "sent": "Post shared",
+    "failed": "Sharing failed",
+    "tooMany": "You can share to at most 20 places",
+    "sharedAPost": "Shared a post"
   },
   "savedPosts": {
     "title": "Saved posts",
@@ -478,6 +527,7 @@
     "reportTargetError": "Could not identify the user to report.",
     "reportError": "Could not send report",
     "report": "Report",
+    "reportMessage": "Report message",
     "blockUser": "Block user",
     "changeBackground": "Change background",
     "optionsTitle": "Options",
@@ -620,7 +670,8 @@
     "forwarded": "Message forwarded",
     "forwardFailed": "Failed to forward message",
     "loadConversationsFailed": "Could not load conversations",
-    "viewSeenBy": "Seen by"
+    "viewSeenBy": "Seen by",
+    "viewProfile": "View profile"
   },
   "blockedUsers": {
     "title": "Blocked users",
@@ -634,6 +685,7 @@
   },
   "notifications": {
     "newNotification": "New notification",
+    "giftedPoints": "gifted you {{amount}} points",
     "pinnedPost": "pinned your post",
     "movedPost": "moved your post",
     "closedPost": "closed your post",
@@ -671,7 +723,16 @@
     "removedDeputyRole": "removed your deputy role in",
     "madeDeputy": "made you a deputy of",
     "changedBackgroundGroup": "changed the background of",
-    "changedBackgroundPrivate": "changed the chat background"
+    "changedBackgroundPrivate": "changed the chat background",
+    "moderationPendingPost": "@{{username}}'s post is waiting for review",
+    "moderationPendingComment": "@{{username}}'s comment is waiting for review",
+    "contentPendingReviewPost": "Your post is waiting for review",
+    "contentPendingReviewComment": "Your comment is waiting for review",
+    "contentApprovedPost": "Your post was approved and is now public",
+    "contentApprovedComment": "Your comment was approved and is now public",
+    "contentRejectedPost": "Your post was not approved",
+    "contentRejectedComment": "Your comment was not approved",
+    "mentionedInStory": "mentioned you in a story"
   },
   "chatBackground": {
     "title": "Chat background",
@@ -807,6 +868,8 @@
     "female": "Female",
     "errorTitle": "Error",
     "errorLoading": "Could not load profile information",
+    "notFoundTitle": "User not found",
+    "notFoundMessage": "This profile doesn't exist or isn't available to you.",
     "blockTitle": "Block User",
     "blockConfirm": "Are you sure you want to block {{username}}? You will no longer see content from this user.",
     "blockAction": "Block",
@@ -842,6 +905,12 @@
     "followingTab": "Following",
     "followersTab": "Followers",
     "likesTab": "Likes",
+    "emptyLikes": "No liked posts yet",
+    "likesSummary": "{{posts}} posts · {{likes}} likes",
+    "sortNewest": "Newest",
+    "sortOldest": "Oldest",
+    "sortMostLiked": "Most liked",
+    "sortLeastLiked": "Least liked",
     "pointsTab": "Points",
     "yourActivity": "Your Activity",
     "savedPosts": "Saved Posts",
@@ -881,6 +950,7 @@
     "editProfile": "Edit Profile",
     "security": "Security",
     "notifications": "Notifications",
+    "studentVerification": "Student verification",
     "autoplayVideos": "Autoplay videos",
     "liquidGlassEffect": "Liquid glass effect",
     "shakeToReport": "Shake phone to report a problem",
@@ -956,7 +1026,10 @@
     "passwordRequired": "Please enter your password",
     "accountDeleted": "Account deleted successfully",
     "usernameRequired": "Please enter a new username",
-    "emailRequired": "Please enter a new email"
+    "emailRequired": "Please enter a new email",
+    "hideEmailError": "Couldn't update this setting.",
+    "hideEmail": "Hide email on profile",
+    "hideEmailDesc": "Other people won't see your email when they view your profile"
   },
   "notificationSettings": {
     "title": "Notifications",
@@ -986,6 +1059,11 @@
   },
   "archive": {
     "title": "Archive",
+    "tabPosts": "Posts",
+    "tabStories": "Stories",
+    "emptyPosts": "No archived posts yet",
+    "postsPrivacyNotice": "Archived posts are only visible to you.",
+    "loadPostsError": "Could not load archived posts.",
     "loadError": "Could not load archive.",
     "privacyNotice": "Archived stories will only be visible to you.",
     "empty": "No stories yet",
@@ -1025,7 +1103,8 @@
     "appleLoginError": "Failed to log in with Apple",
     "signupSuccess": "Registration Successful",
     "signupSuccessBody": "Welcome to CBH Youth Online!",
-    "signupError": "Registration Error"
+    "signupError": "Registration Error",
+    "tryForgotPassword": "Please try 'Forgot password' to reset your password."
   },
   "signup": {
     "loading": "Processing...",
@@ -1143,7 +1222,59 @@
     },
     "dragToAdjust": "Drag to adjust crop area",
     "retake": "Retake",
-    "usePhoto": "Use Photo"
+    "usePhoto": "Use Photo",
+    "stickers": "Stickers",
+    "mention": "Mention",
+    "link": "Link",
+    "music": "Music",
+    "addSticker": "Add to story",
+    "mentionTitle": "Mention someone",
+    "mentionPlaceholder": "Search for a username...",
+    "mentionNoResults": "No users found",
+    "linkTitle": "Add a link",
+    "linkUrlLabel": "URL",
+    "linkLabelLabel": "Display label (optional)",
+    "linkLabelPlaceholder": "See more",
+    "linkInvalid": "That link doesn't look valid",
+    "musicTitle": "Add music",
+    "musicPlaceholder": "Search songs or artists...",
+    "musicHint": "Search for a song to add it to your story",
+    "musicNoResults": "No songs found",
+    "musicSearchError": "Couldn't search for music right now, please try again",
+    "musicTrimHint": "Starts at {{start}}s ({{length}}s clip)",
+    "musicChange": "Change",
+    "fonts": {
+      "classic": "Classic",
+      "modern": "Modern",
+      "typewriter": "Typewriter",
+      "serif": "Serif",
+      "handwriting": "Handwriting"
+    },
+    "textEffects": {
+      "none": "Aa",
+      "shadow": "Shadow",
+      "outline": "Outline",
+      "background": "Background",
+      "neon": "Neon"
+    },
+    "filters": {
+      "none": "Original",
+      "vivid": "Vivid",
+      "mono": "Mono",
+      "noir": "Noir",
+      "warm": "Warm",
+      "cool": "Cool",
+      "fade": "Fade",
+      "retro": "Retro",
+      "dusk": "Dusk"
+    },
+    "stickerPacks": {
+      "smileys": "Smileys",
+      "love": "Love",
+      "fun": "Fun",
+      "school": "School",
+      "nature": "Nature"
+    }
   },
   "terms": {
     "headerTitle": "Terms of Service",
@@ -1300,7 +1431,8 @@
     "score18to20": "18 – 20",
     "score20to22": "20 – 22",
     "score22to24": "22 – 24",
-    "scoreAbove24": "Above 24"
+    "scoreAbove24": "Above 24",
+    "filterAll": "All"
   },
   "quiz": {
     "title": "Trivia",
@@ -1341,7 +1473,9 @@
     "startError": "Couldn't generate questions right now, please try again.",
     "answerError": "Couldn't record your answer, please try again.",
     "joinError": "Couldn't join this quiz.",
-    "shareMessage": "Try this quiz with me! {{link}}"
+    "shareMessage": "Try this quiz with me! {{link}}",
+    "restartError": "This quiz can't be retaken.",
+    "retrySame": "Retry this quiz"
   },
   "customQuiz": {
     "entryTitle": "Create a custom quiz",
@@ -1499,7 +1633,28 @@
     "freeMaterialHint": "When enabled, users can download it without spending points.",
     "priceLabel": "Point price",
     "pricePlaceholder": "Example: 50",
-    "publish": "Publish material"
+    "publish": "Publish material",
+    "shareUnavailable": "Sharing isn't available on this device (Simulator doesn't support it)."
+  },
+  "giftPoints": {
+    "title": "Gift points to {{name}}",
+    "anonymousAuthor": "the anonymous author",
+    "author": "the author",
+    "description": "Points are taken from your wallet and added straight to {{name}}'s wallet.",
+    "balance": "Current balance: {{points}} points",
+    "amountPlaceholder": "Amount",
+    "pointsUnit": "points",
+    "notePlaceholder": "Message (optional)",
+    "submit": "Gift {{amount}} points",
+    "cancel": "Cancel",
+    "close": "Close",
+    "requirement": "Gifting points is available from the Active Member tier ({{required}}+ points). You currently have {{points}} points.",
+    "invalidAmount": "Amount must be between {{min}} and {{max}}.",
+    "insufficient": "Insufficient balance. You have {{points}} points.",
+    "successTitle": "Gifted {{amount}} points",
+    "successBody": "Thanks for supporting {{name}}!",
+    "errorTitle": "Couldn't gift points",
+    "errorDefault": "Please try again later."
   },
   "wallet": {
     "backLabel": "Back",
@@ -1621,6 +1776,57 @@
     "title": "Who voted on this comment",
     "empty": "No votes yet",
     "loadError": "Could not load voters list"
+  },
+  "linkSafety": {
+    "title": "You are leaving CBH Youth Online",
+    "subtitle": "This link goes to an external website we don't control. Always check that a link is safe before you tap it.",
+    "visitingLabel": "You are visiting",
+    "copyLink": "Copy",
+    "shareLink": "Share",
+    "copied": "Link copied",
+    "checklistTitle": "Before you continue, check that:",
+    "tipDomain": "The domain name is spelled correctly. Scam sites often use near-identical names, e.g. chuyenb1enhoa.com.",
+    "tipPassword": "Never enter your CBH Youth Online password on another website.",
+    "tipSensitive": "Be careful with pages asking you to download a file or enter an OTP, phone number or card details.",
+    "tipUnknownSender": "If you don't know who sent this link, it's safest not to open it.",
+    "warningInsecure": "This link doesn't use HTTPS. Anything you send to this site can be read by others along the way.",
+    "warningPunycode": "This domain contains encoded special characters — a common trick for making a fake site look like a familiar one.",
+    "warningUserInfo": "This link is written to look like a different site, but it actually takes you to {{hostname}}.",
+    "continue": "Continue to this site",
+    "goBack": "Go back",
+    "reportHint": "If you think this link is a scam or harmful, report it to us from Contact in Settings.",
+    "invalidTitle": "Invalid link",
+    "invalidDescription": "We couldn't read this link's destination. It may have been edited or cut off. Don't open it if you aren't sure where it came from."
+  },
+  "studentVerification": {
+    "headerTitle": "Student verification",
+    "title": "CBH student verification",
+    "subtitle": "Verify your student account to get {{discount}} off at the Gift Shop. Admins review requests within 24 hours.",
+    "statusError": "Couldn't load your verification status.",
+    "permissionDenied": "Please allow access to your photo library.",
+    "missingPhotos": "Please choose both the selfie and the student card photo.",
+    "uploadFailed": "Photo upload failed. Please try again.",
+    "submitSuccess": "Verification request sent!",
+    "submitSuccessBody": "An admin will review it within 24 hours.",
+    "submitFailed": "Request failed. Please try again.",
+    "verifiedTitle": "Your account is verified as a student",
+    "verifiedBody": "You're getting {{discount}} off at the Gift Shop.",
+    "verifiedSince": "Verified since: {{date}}",
+    "pendingTitle": "Awaiting review",
+    "pendingBody": "Your request has been sent and is being reviewed. Please allow admins up to 24 hours.",
+    "rejectedTitle": "Request rejected",
+    "rejectedReason": "Reason: {{reason}}",
+    "rejectedRetry": "You can submit a new request below.",
+    "selfieLabel": "Selfie holding your card",
+    "selfieHint": "Show your face and student card clearly",
+    "cardLabel": "Student card photo",
+    "cardHint": "Capture the details on the card clearly",
+    "pickPhoto": "Tap to choose a photo",
+    "notesTitle": "Photo tips:",
+    "note1": "Selfie: show your face together with your Chuyên Biên Hòa student card",
+    "note2": "Student card: name, class and school year must be readable",
+    "note3": "Photos must be sharp, not blurry or obstructed",
+    "submit": "Send verification request"
   },
   "feedback": {
     "title": "Feedback & Bug report",

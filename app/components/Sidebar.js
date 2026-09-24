@@ -8,7 +8,6 @@ import {
   ActionSheetIOS,
   Animated,
   Alert,
-  Linking,
 } from "react-native";
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { List } from "react-native-paper";
@@ -18,10 +17,12 @@ import { useTheme } from "../contexts/ThemeContext";
 import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
 import FastImage from "./FastImage";
+import AccountSwitcher from "./AccountSwitcher";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
+import { openInAppBrowser } from "../utils/externalLink";
 
 // Reusable component for collapsible menu items
 const CollapsibleMenuItem = ({
@@ -257,6 +258,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               <Text style={{ color: theme.subText }}>@{username}</Text>
             </View>
           </TouchableOpacity>
+          <AccountSwitcher />
           <List.Section>
             <List.Subheader
               style={{ color: theme.primary, fontWeight: "bold" }}
@@ -489,7 +491,7 @@ const Sidebar = ({ providerId, isOpen }) => {
               title={t("sidebar.help")}
               titleStyle={{ color: theme.text }}
               onPress={() =>
-                Linking.openURL("https://www.chuyenbienhoa.com/help")
+                openInAppBrowser("https://www.chuyenbienhoa.com/help", theme)
               }
               left={() => (
                 <Ionicons

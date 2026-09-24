@@ -1,6 +1,8 @@
 import React from "react";
-import { Text, Linking } from "react-native";
+import { Text } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../contexts/ThemeContext";
+import { openExternalLink } from "../utils/externalLink";
 
 // Matches http/https URLs. Deliberately simple — no bare www. to avoid
 // false-positives on usernames/filenames that start with "www".
@@ -69,7 +71,8 @@ export function buildParts(text) {
  *                              plain text instead.
  */
 const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcastMention = true, enableAiCommands = false, ...rest }) => {
-  const { isDarkMode } = useTheme();
+  const { isDarkMode, theme } = useTheme();
+  const navigation = useNavigation();
   const text = typeof children === "string" ? children : String(children ?? "");
   // Message bubbles range from near-white to near-black across own/other
   // and light/dark theme - a single blue can't have good contrast on all of
@@ -124,7 +127,10 @@ const MentionText = ({ children, style, onMentionPress, mentions, allowBroadcast
             <Text
               key={i}
               style={{ color: "#3b82f6", textDecorationLine: "underline" }}
-              onPress={() => Linking.openURL(part.value).catch(() => {})}
+              // Goes via the link-safety screen rather than straight to the
+              // browser - a chat message is the easiest place to drop a
+              // phishing link, and the sender chooses the text around it.
+              onPress={() => openExternalLink(navigation, part.value, theme)}
             >
               {part.value}
             </Text>

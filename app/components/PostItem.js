@@ -4,10 +4,8 @@ import {
   Pressable,
   Text,
   TouchableOpacity,
-  Share,
   Alert,
   Dimensions,
-  Linking,
   ScrollView,
   Platform,
 } from "react-native";
@@ -27,11 +25,17 @@ import {
   deletePost,
   savePost,
   unsavePost,
+  hidePost,
+  unhidePost,
+  archivePost,
+  unarchivePost,
   votePost,
   reportUser,
 } from "../services/api/Api";
 import ReportModal from "./ReportModal";
 import PostVotesModal from "./PostVotesModal";
+import SharePostModal from "./SharePostModal";
+import GiftPointsModal from "./GiftPointsModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
@@ -44,6 +48,7 @@ import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
 import { appendSoundCloudEmbedBelow } from "../utils/soundcloudShare";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
+import { openExternalLink, openInAppBrowser } from "../utils/externalLink";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -263,6 +268,7 @@ const PostItem = ({
   onVote: onVoteCallback, // Callback for single view vote updates
   onSave: onSaveCallback, // Callback for single view save updates
   isActive = true, // Whether this card is on-screen — drives inline video autoplay
+  onArchiveChange, // (postId, archived) — lets a list (e.g. ArchiveScreen) drop the row
 }) => {
   const videoUrls = Array.isArray(item.video_urls)
     ? item.video_urls
@@ -293,10 +299,13 @@ const PostItem = ({
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
   const insets = useSafeAreaInsets();
   const { username, userInfo } = useContext(AuthContext);
-  const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const { feed, setFeed, setRecentPostsProfile } = useContext(FeedContext);
+  const [isArchived, setIsArchived] = useState(!!item.archived);
   const [visible, setIsVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [votesModalVisible, setVotesModalVisible] = useState(false);
+  const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [giftModalVisible, setGiftModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -309,16 +318,6 @@ const PostItem = ({
     externalSaved !== undefined
       ? externalSaved
       : item.saved || item.is_saved || false;
-
-  const shareLink = async (link) => {
-    try {
-      await Share.share({
-        message: link,
-      });
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
-  };
 
   const handleDeletePost = async () => {
     Alert.alert(
@@ -362,6 +361,146 @@ const PostItem = ({
     );
   };
 
+  // "Ẩn bài viết": a per-user feed filter, not a delete - the post stays
+  // public and reachable by link, it just stops showing up in this user's
+  // feed. Removed from the list optimistically and put back at the same
+  // position if the request fails or the user taps undo on the toast.
+  const handleHidePost = async () => {
+    hideBottomSheet();
+
+    const removedIndex = Array.isArray(feed)
+      ? feed.findIndex((post) => post.id === item.id)
+      : -1;
+
+    const restorePost = () => {
+      if (!setFeed || removedIndex < 0) return;
+      setFeed((prevPosts) => {
+        if (!Array.isArray(prevPosts)) return prevPosts;
+        if (prevPosts.some((post) => post.id === item.id)) return prevPosts;
+        const next = [...prevPosts];
+        next.splice(Math.min(removedIndex, next.length), 0, item);
+        return next;
+      });
+    };
+
+    if (setFeed) {
+      setFeed((prevPosts) =>
+        Array.isArray(prevPosts)
+          ? prevPosts.filter((post) => post.id !== item.id)
+          : prevPosts
+      );
+    }
+
+    try {
+      await hidePost(item.id);
+      Toast.show({
+        type: "success",
+        text1: t("post.hideSuccess"),
+        text2: t("post.hideUndo"),
+        autoHide: true,
+        visibilityTime: 5000,
+        onPress: async () => {
+          Toast.hide();
+          try {
+            await unhidePost(item.id);
+            restorePost();
+            Toast.show({
+              type: "success",
+              text1: t("post.unhideSuccess"),
+              autoHide: true,
+              visibilityTime: 2500,
+            });
+          } catch (error) {
+            console.error("Unhiding post failed:", error);
+          }
+        },
+      });
+    } catch (error) {
+      console.error("Hiding post failed:", error);
+      restorePost();
+      Toast.show({
+        type: "error",
+        text1: t("post.hideError"),
+        autoHide: true,
+        visibilityTime: 4000,
+      });
+    }
+  };
+
+  // "Chuyển vào kho lưu trữ" flips the post's own `hidden` column, so it
+  // disappears for everyone else - feeds, search and other people's view of
+  // the profile. Only the author still sees it, on their profile and in the
+  // archive screen, from where it can be restored. Different from
+  // handleHidePost, which only filters someone else's post out of your feed.
+  const handleArchivePost = () => {
+    hideBottomSheet();
+    Alert.alert(
+      t('post.archiveConfirmTitle'),
+      t('post.archiveConfirmBody'),
+      [
+        {
+          text: t('post.archiveAction'),
+          style: "default",
+          onPress: async () => {
+            try {
+              await archivePost(item.id);
+              setIsArchived(true);
+              if (setFeed) {
+                setFeed((prevPosts) =>
+                  Array.isArray(prevPosts)
+                    ? prevPosts.filter((post) => post.id !== item.id)
+                    : prevPosts
+                );
+              }
+              onArchiveChange?.(item.id, true);
+              Toast.show({
+                type: "success",
+                text1: t('post.archiveSuccess'),
+                autoHide: true,
+                visibilityTime: 3000,
+              });
+            } catch (error) {
+              console.error("Archiving post failed:", error);
+              Toast.show({
+                type: "error",
+                text1: t('post.archiveError'),
+                autoHide: true,
+                visibilityTime: 4000,
+              });
+            }
+          },
+        },
+        {
+          text: t('settings.cancel'),
+          style: "cancel",
+        },
+      ]
+    );
+  };
+
+  const handleUnarchivePost = async () => {
+    hideBottomSheet();
+    try {
+      await unarchivePost(item.id);
+      setIsArchived(false);
+      onArchiveChange?.(item.id, false);
+      Toast.show({
+        type: "success",
+        text1: t('post.unarchiveSuccess'),
+        autoHide: true,
+        visibilityTime: 3000,
+      });
+    } catch (error) {
+      console.error("Unarchiving post failed:", error);
+      Toast.show({
+        type: "error",
+        text1: t('post.unarchiveError'),
+        autoHide: true,
+        visibilityTime: 4000,
+      });
+    }
+  };
+
   const handleReportSubmit = async (reason) => {
     try {
       const reportedUserId = item?.author?.id || item?.user_id || item?.uid || item?.userid;
@@ -393,11 +532,25 @@ const PostItem = ({
             </Text>
           </View>
         </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity onPress={handleHidePost}>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="eye-off-outline" size={23} color={theme.text} />
+              <View style={{ padding: 12, flex: 1 }}>
+                <Text style={{ fontSize: 17, color: theme.text }}>
+                  {t('post.hide')}
+                </Text>
+                <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+                  {t('post.hideSubtitle')}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           onPress={() => {
-            shareLink(
-              `https://chuyenbienhoa.com/${item.author.id}/posts/${generatePostSlug(item.id, item.title)}?source=share`
-            );
+            hideBottomSheet();
+            setShareModalVisible(true);
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center" }}>
@@ -405,6 +558,26 @@ const PostItem = ({
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity
+            onPress={() => {
+              hideBottomSheet();
+              setGiftModalVisible(true);
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="gift-outline" size={23} color={theme.text} />
+              <View style={{ padding: 12, flex: 1 }}>
+                <Text style={{ fontSize: 17, color: theme.text }}>
+                  {t('post.giftPoints')}
+                </Text>
+                <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+                  {t('post.giftPointsSubtitle')}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
         {false && isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
@@ -432,6 +605,29 @@ const PostItem = ({
               <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
                 {t('post.edit')}
               </Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        {isCurrentUser && (
+          <TouchableOpacity
+            onPress={isArchived ? handleUnarchivePost : handleArchivePost}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons
+                name={isArchived ? "arrow-undo-outline" : "archive-outline"}
+                size={23}
+                color={theme.text}
+              />
+              <View style={{ padding: 12, flex: 1 }}>
+                <Text style={{ fontSize: 17, color: theme.text }}>
+                  {isArchived ? t('post.unarchive') : t('post.archive')}
+                </Text>
+                {!isArchived && (
+                  <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+                    {t('post.archiveSubtitle')}
+                  </Text>
+                )}
+              </View>
             </View>
           </TouchableOpacity>
         )}
@@ -583,7 +779,7 @@ const PostItem = ({
   // intercept those to navigate in-app instead of trying to open a URL.
   // "/username" links come from linkifyMentionsInHtml (mention-tag class)
   // and open the mentioned user's profile instead. Anything else (autolinked
-  // URLs) opens in the browser.
+  // URLs) goes through the link-safety screen before the browser.
   const handleContentLinkPress = (event, href) => {
     const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
     if (hashtagMatch) {
@@ -599,7 +795,9 @@ const PostItem = ({
       navigation?.navigate("ProfileScreen", { username: mentionMatch[1] });
       return;
     }
-    Linking.openURL(href);
+    // Outbound links stop at the link-safety screen first: the post author
+    // writes both the link text and its destination, so the two can disagree.
+    openExternalLink(navigation, href, theme);
   };
 
   // The post body sits inside the collapse/expand Pressable (onPress =
@@ -639,6 +837,27 @@ const PostItem = ({
         backgroundColor: theme.background,
       }}
     >
+      {isArchived && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            marginHorizontal: 15,
+            marginTop: single ? 0 : 15,
+            marginBottom: single ? 8 : 0,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 999,
+            backgroundColor: theme.surface,
+          }}
+        >
+          <Ionicons name="archive-outline" size={12} color={theme.subText} />
+          <Text style={{ fontSize: 12, color: theme.subText, marginLeft: 4 }}>
+            {t('post.archivedBadge')}
+          </Text>
+        </View>
+      )}
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         {single ? (
           // Single view: no navigation, just show title
@@ -905,7 +1124,7 @@ const PostItem = ({
             return (
               <TouchableOpacity
                 key={index}
-                onPress={() => Linking.openURL(docUrl)}
+                onPress={() => openInAppBrowser(docUrl, theme)}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -1064,6 +1283,24 @@ const PostItem = ({
               color={currentSaved ? theme.primary : theme.subText} // Green icon when saved, themed when not saved
             />
           </Pressable>
+          <Pressable
+            onPress={() => setShareModalVisible(true)}
+            accessibilityLabel={t("sharePost.title", "Chia sẻ bài viết")}
+            style={{
+              borderRadius: single ? 10 : 8,
+              width: single ? 42 : 33.6,
+              height: single ? 42 : 33.6,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: theme.iconBackground,
+            }}
+          >
+            <Ionicons
+              name="share-outline"
+              size={single ? 24 : 20}
+              color={theme.subText}
+            />
+          </Pressable>
           <View style={{ flex: 1, flexDirection: "row-reverse", alignItems: "center" }}>
             <Text style={{ color: theme.subText, fontSize: single ? 16 : undefined }}>
               {item.view_count ?? item.views_count ?? item.views ?? 0}
@@ -1098,10 +1335,20 @@ const PostItem = ({
           </View>
         </View>
       </View>
+      <SharePostModal
+        visible={shareModalVisible}
+        post={item}
+        onClose={() => setShareModalVisible(false)}
+      />
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
+      />
+      <GiftPointsModal
+        visible={giftModalVisible}
+        onClose={() => setGiftModalVisible(false)}
+        post={item}
       />
       <PostVotesModal
         visible={votesModalVisible}

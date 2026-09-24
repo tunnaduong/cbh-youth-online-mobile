@@ -140,6 +140,31 @@ export const unsavePost = (id) => {
   return Api.deleteRequest("/v1.0/user/saved-topics/" + id);
 };
 
+// Per-user feed filter ("Ẩn bài viết") - hides the post from this user's
+// feed only, it stays public and reachable by link.
+export const hidePost = (id) => {
+  return Api.postRequest("/v1.0/user/hidden-topics", { topic_id: id });
+};
+
+export const unhidePost = (id) => {
+  return Api.deleteRequest("/v1.0/user/hidden-topics/" + id);
+};
+
+// Archive ("kho lưu trữ") flips the post's own `hidden` column: it disappears
+// for everyone else and only the author keeps seeing it, on their profile and
+// in the archive screen.
+export const archivePost = (id) => {
+  return Api.postRequest("/v1.0/topics/" + id + "/archive");
+};
+
+export const unarchivePost = (id) => {
+  return Api.deleteRequest("/v1.0/topics/" + id + "/archive");
+};
+
+export const getArchivedPosts = (page = 1) => {
+  return Api.getRequest("/v1.0/user/archived-topics?page=" + page);
+};
+
 export const createPost = (params) => {
   return Api.postRequest("/v1.0/topics", params);
 };
@@ -175,6 +200,45 @@ export const forgotPassword = (params) => {
 
 export const uploadFile = (formData, config = {}) => {
   return Api.postFormDataRequest("/v1.0/upload", formData, config);
+};
+
+// Student (eKYC) verification - unlocks the Gift Shop discount once an admin
+// approves the submitted selfie + student card photos.
+export const getStudentVerificationStatus = () => {
+  return Api.getRequest("/v1.0/student-verification/status");
+};
+
+export const submitStudentVerification = (params) => {
+  return Api.postRequest("/v1.0/student-verification", params);
+};
+
+/**
+ * Uploads one eKYC photo and returns its absolute URL.
+ *
+ * The submit endpoint validates selfie_url/student_card_url as `url`, but
+ * /v1.0/upload answers with a root-relative path ("/storage/images/..."), so
+ * it has to be resolved against the API origin before being sent back.
+ *
+ * @param {string} imageUri  Local file uri from expo-image-picker
+ * @param {number} userId    Owner of the upload (the endpoint requires `uid`)
+ */
+export const uploadStudentVerificationPhoto = async (imageUri, userId) => {
+  const isPng = imageUri.toLowerCase().endsWith(".png");
+  const formData = new FormData();
+  formData.append("file", {
+    uri: imageUri,
+    type: isPng ? "image/png" : "image/jpeg",
+    name: isPng ? "verification.png" : "verification.jpg",
+  });
+  formData.append("uid", String(userId));
+
+  const response = await uploadFile(formData);
+  const path = response?.data?.path || response?.data?.url || response?.data?.file_url;
+  if (!path) return null;
+  if (path.startsWith("http")) return path;
+
+  const base = (axiosInstance.defaults.baseURL || "").replace(/\/$/, "");
+  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 };
 
 // Study materials / marketplace
@@ -218,6 +282,12 @@ export const downloadMaterial = (id) => {
 
 export const viewMaterial = (id) => {
   return Api.postRequest(`/v1.0/study-materials/${id}/view`);
+};
+
+// Gift points to another member. Pass `topic_id` (the post's author gets
+// the points - works for anonymous posts too) or `username`.
+export const giftPoints = (params) => {
+  return Api.postRequest("/v1.0/points/gift", params);
 };
 
 // Points wallet
@@ -352,6 +422,14 @@ export const getProfile = (username) => {
 export const getUserPosts = (username, page = 1, perPage = 10) => {
   return Api.getRequest(
     "/v1.0/users/" + username + "/posts?page=" + page + "&per_page=" + perPage
+  );
+};
+
+// Posts that make up a profile's "likes" total, sortable:
+// newest | oldest | most_liked | least_liked
+export const getUserLikedPosts = (username, page = 1, perPage = 10, sort = "newest") => {
+  return Api.getRequest(
+    "/v1.0/users/" + username + "/likes?page=" + page + "&per_page=" + perPage + "&sort=" + sort
   );
 };
 
@@ -525,6 +603,17 @@ export const forwardMessage = (messageId, { conversationIds, userIds } = {}) => 
   return Api.postRequest(`/v1.0/chat/messages/${messageId}/forward`, {
     conversation_ids: conversationIds || [],
     user_ids: userIds || [],
+  });
+};
+
+// Share a forum post into conversations as a quick message. The message body is
+// built server-side from the topic, so only the target list travels from here.
+export const sharePostToChat = (topicId, { conversationIds, userIds, note } = {}) => {
+  return Api.postRequest("/v1.0/chat/share/topic", {
+    topic_id: topicId,
+    conversation_ids: conversationIds || [],
+    user_ids: userIds || [],
+    note: note || null,
   });
 };
 

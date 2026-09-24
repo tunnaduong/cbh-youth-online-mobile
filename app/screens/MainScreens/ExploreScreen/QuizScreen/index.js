@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
+import SegmentedControl from "../../../../components/SegmentedControl";
 import {
   startQuiz,
   answerQuizQuestion,
@@ -376,7 +377,7 @@ const QuizScreen = ({ navigation, route }) => {
                 {t("quiz.subtitle", "Trả lời câu hỏi trắc nghiệm do AI tạo ra, thử thách kiến thức của bạn.")}
               </Text>
 
-              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
+              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.cardLabel, { color: theme.text }]}>
                   {t("quiz.questionCount", "Số câu hỏi")}
                 </Text>
@@ -486,25 +487,20 @@ const QuizScreen = ({ navigation, route }) => {
                 <Text style={[styles.cardLabel, { color: theme.text, marginTop: 16 }]}>
                   {t("quiz.difficulty", "Độ khó")}
                 </Text>
-                <View style={styles.chipRow}>
-                  {DIFFICULTIES.map((d) => {
-                    const active = difficulty === d;
-                    return (
-                      <TouchableOpacity
-                        key={d}
-                        onPress={() => setDifficulty(d)}
-                        style={[
-                          styles.chip,
-                          { backgroundColor: active ? theme.primary : theme.iconBackground },
-                        ]}
-                      >
-                        <Text style={{ color: active ? "#fff" : theme.text, fontWeight: "600", fontSize: 13, lineHeight: 18 }}>
-                          {t(`quiz.difficulty_${d}`, d === "easy" ? "Dễ" : d === "medium" ? "Trung bình" : "Khó")}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                {/* Three mutually-exclusive levels - a segmented control says
+                    "pick exactly one of a scale" far better than three chips
+                    that look like independent toggles. */}
+                <SegmentedControl
+                  value={difficulty}
+                  onChange={setDifficulty}
+                  segments={DIFFICULTIES.map((d) => ({
+                    key: d,
+                    label: t(
+                      `quiz.difficulty_${d}`,
+                      d === "easy" ? "Dễ" : d === "medium" ? "Trung bình" : "Khó"
+                    ),
+                  }))}
+                />
 
                 <TouchableOpacity
                   style={[styles.startButton, { backgroundColor: theme.primary }]}
@@ -589,12 +585,15 @@ const QuizScreen = ({ navigation, route }) => {
                 <View
                   style={[
                     styles.progressFill,
-                    { backgroundColor: theme.primary, width: `${(answeredCount / quiz.question_count) * 100}%` },
+                    {
+                      backgroundColor: theme.primary,
+                      width: `${Math.round((answeredCount / quiz.question_count) * 100)}%`,
+                    },
                   ]}
                 />
               </View>
 
-              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
+              <View style={[styles.card, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.questionIndex, { color: theme.subText }]}>
                   {t("quiz.questionIndex", "Câu {{current}}/{{total}}", {
                     current: currentIndex + 1,
@@ -629,17 +628,52 @@ const QuizScreen = ({ navigation, route }) => {
                       }
                     }
 
+                    // The API sends each option already prefixed ("A. Paris").
+                    // The letter becomes its own badge, so strip the prefix
+                    // from the body rather than printing it twice.
+                    const optionText = opt.trim().replace(/^[A-Za-z]\s*[.)-]\s*/, "");
+                    const badgeFilled = selected || isCorrectOption || isWrongSelected;
+
                     return (
                       <TouchableOpacity
                         key={opt}
                         onPress={() => handleSelect(currentQuestion.id, letter)}
                         disabled={!!currentFeedback || answering}
+                        activeOpacity={0.7}
                         style={[styles.optionRow, { backgroundColor: bg, borderColor: border }]}
                       >
-                        <Text style={{ color: textColor, fontWeight: selected || isCorrectOption ? "700" : "500", fontSize: 14 }}>
-                          {opt}
-                          {isCorrectOption ? " ✓" : isWrongSelected ? " ✗" : ""}
+                        <View
+                          style={[
+                            styles.optionBadge,
+                            {
+                              backgroundColor: badgeFilled ? textColor : "transparent",
+                              borderColor: badgeFilled ? textColor : theme.subText,
+                            },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.optionBadgeText,
+                              { color: badgeFilled ? "#fff" : theme.subText },
+                            ]}
+                          >
+                            {letter}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.optionText,
+                            { color: textColor, fontWeight: selected || isCorrectOption ? "700" : "500" },
+                          ]}
+                        >
+                          {optionText}
                         </Text>
+                        {isCorrectOption && (
+                          <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
+                        )}
+                        {isWrongSelected && (
+                          <Ionicons name="close-circle" size={18} color="#e53935" />
+                        )}
                       </TouchableOpacity>
                     );
                   })}
@@ -722,11 +756,16 @@ const QuizScreen = ({ navigation, route }) => {
 
           {phase === "result" && result && quiz && (
             <View>
-              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground }]}>
+              <View style={[styles.card, styles.resultCard, { backgroundColor: theme.cardBackground || theme.iconBackground, borderColor: theme.border }]}>
                 <Text style={[styles.resultLabel, { color: theme.subText }]}>{t("quiz.result", "Kết quả")}</Text>
-                <Text style={[styles.resultScore, { color: theme.primary }]}>
-                  {result.score}/{result.total}
-                </Text>
+                <View style={[styles.resultRing, { borderColor: theme.primary }]}>
+                  <Text style={[styles.resultScore, { color: theme.primary }]}>
+                    {result.score}/{result.total}
+                  </Text>
+                  <Text style={[styles.resultPercent, { color: theme.subText }]}>
+                    {Math.round((result.score / Math.max(1, result.total)) * 100)}%
+                  </Text>
+                </View>
                 {result.points != null && (
                   <Text style={[styles.resultPoints, { color: theme.text }]}>
                     {t("quiz.pointsEarned", "+{{points}} điểm", { points: result.points })}
@@ -831,7 +870,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 17, fontWeight: "700" },
   subtitle: { fontSize: 13, marginBottom: 16 },
-  card: { borderRadius: 16, padding: 16, marginBottom: 20 },
+  card: { borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: StyleSheet.hairlineWidth },
   cardLabel: { fontSize: 14, fontWeight: "700", marginBottom: 10 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
@@ -882,19 +921,54 @@ const styles = StyleSheet.create({
   topicLabel: { fontSize: 11 },
   topicValue: { fontSize: 15, fontWeight: "700", marginTop: 2 },
   answeredCount: { fontSize: 12 },
-  progressTrack: { height: 6, borderRadius: 3, overflow: "hidden", marginBottom: 20 },
-  progressFill: { height: "100%", borderRadius: 3 },
+  progressTrack: { height: 8, borderRadius: 4, overflow: "hidden", marginBottom: 20 },
+  progressFill: { height: "100%", borderRadius: 4 },
   questionIndex: { fontSize: 11, marginBottom: 8 },
   questionText: { fontSize: 15, fontWeight: "700", marginBottom: 14 },
-  optionRow: { borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1 },
+  optionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    borderWidth: 1,
+  },
+  optionBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionBadgeText: { fontSize: 12, fontWeight: "700" },
+  optionText: { flex: 1, fontSize: 14, lineHeight: 20 },
   navRow: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginBottom: 20 },
-  navButton: { flex: 1, borderWidth: 1, borderRadius: 999, paddingVertical: 12, alignItems: "center" },
+  navButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   navButtonPrimary: { flex: 1, borderRadius: 999, paddingVertical: 12, alignItems: "center", justifyContent: "center" },
   dotsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   dot: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", borderWidth: 1 },
   resultCard: { alignItems: "center" },
-  resultLabel: { fontSize: 13, marginBottom: 4 },
-  resultScore: { fontSize: 34, fontWeight: "800", marginBottom: 2 },
+  resultLabel: { fontSize: 13, marginBottom: 12 },
+  resultRing: {
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    borderWidth: 4,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
+  resultScore: { fontSize: 30, fontWeight: "800" },
+  resultPercent: { fontSize: 13, fontWeight: "600", marginTop: 2 },
   resultPoints: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
   resultTopic: { fontSize: 13, marginBottom: 16 },
   restartButton: {

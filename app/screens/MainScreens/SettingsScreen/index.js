@@ -251,6 +251,11 @@ export default function SettingsScreen({ navigation }) {
             title={t("settings.notifications")}
             onPress={() => navigation.navigate("NotificationSettingsScreen")}
           />
+          <SettingItem
+            icon="school-outline"
+            title={t("settings.studentVerification", "Xác minh học sinh")}
+            onPress={() => navigation.navigate("StudentVerificationScreen")}
+          />
         </SettingSection>
 
         {/* App Section */}

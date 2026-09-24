@@ -47,8 +47,13 @@ import {
   leaveGroupConversation,
   getGroupSeenReceipts,
   getNotificationSettings,
+  getGroupDetails,
+  addGroupDeputy,
+  removeGroupDeputy,
+  removeGroupParticipant,
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
+import SharedPostCard from "../../../components/SharedPostCard";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
@@ -760,6 +765,13 @@ const MessageRow = React.memo(({
   // message has gone through a refetch its original content type only survives in
   // `content_type` (see injectTimeHeaders) - check both so attachments keep
   // rendering as images/file cards instead of falling back to plain text.
+  // A post shared from the feed: render the preview card instead of the bare
+  // link, and keep whatever note the sender typed above it.
+  const sharedTopic = item.metadata?.shared_topic || null;
+  const sharedTopicNote = sharedTopic
+    ? String(item.content || "").replace(sharedTopic.url || "", "").trim()
+    : "";
+
   const isImageMessage = item.type === "image" || item.content_type === "image";
   const isVideoMessage = item.type === "video" || item.content_type === "video";
   const isFileMessage = item.type === "file" || item.content_type === "file";
@@ -917,14 +929,19 @@ const MessageRow = React.memo(({
         ]}
       >
         {!item.is_myself && isLastInGroup && (
-          <FastImage
-            source={{
-              uri:
-                item.sender?.avatar_url ||
-                "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-            }}
-            style={styles.messageAvatar}
-          />
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => handlersRef.current.openSenderActions?.(item.sender)}
+          >
+            <FastImage
+              source={{
+                uri:
+                  item.sender?.avatar_url ||
+                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+              }}
+              style={styles.messageAvatar}
+            />
+          </TouchableOpacity>
         )}
         <View
           style={{
@@ -1170,6 +1187,37 @@ const MessageRow = React.memo(({
                         : t("chatConversation.tapToOpen", "Nhấn để mở")}
                   </Text>
                 </View>
+              </View>
+            ) : !item.is_recalled && sharedTopic ? (
+              <View style={{ gap: 8 }}>
+                {sharedTopicNote ? (
+                  <MentionText
+                    style={[
+                      styles.messageText,
+                      {
+                        color: item.is_myself
+                          ? isDarkMode
+                            ? "#ecfdf5"
+                            : "#000"
+                          : theme.text,
+                      },
+                    ]}
+                    mentions={item.mentions}
+                    allowBroadcastMention={isGroupChat}
+                    onMentionPress={(username) =>
+                      navigation.navigate("ProfileScreen", { username })
+                    }
+                  >
+                    {sharedTopicNote}
+                  </MentionText>
+                ) : null}
+                <SharedPostCard
+                  topic={sharedTopic}
+                  compact
+                  onPress={() =>
+                    navigation.navigate("PostScreen", { postId: sharedTopic.id })
+                  }
+                />
               </View>
             ) : !item.is_recalled ? (
               <MentionText
@@ -1457,10 +1505,10 @@ const ConversationScreen = ({ navigation, route }) => {
   // thresholds), which caused visible stutter: the estimate was only ever
   // an average height guess, so it frequently mounted/unmounted rows mid-
   // gesture, changing the ScrollView's content height while a scroll was in
-  // progress. `removeClippedSubviews` below does the equivalent job at the
-  // native view layer instead - real, measured clipping, no JS-estimated
-  // thresholds, no data-array slicing, so there's nothing to desync from
-  // the actual scroll position.
+  // progress. `removeClippedSubviews` used to do the equivalent job at the
+  // native view layer instead (real, measured clipping, no JS-estimated
+  // thresholds), but it's now disabled - see the comment on it below - so
+  // every mounted row really does just stay mounted, full stop.
   const visibleMessages = messages;
   // Autoplay's "which video is centered" check (handleMessagesScroll below)
   // used to scan messageLayoutOffsetsRef - which keeps a layout entry for
@@ -1516,7 +1564,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
-  const { username, profileName } = useContext(AuthContext);
+  const { username, profileName, blockUserInContext } = useContext(AuthContext);
   // The socket effect below (tryAppendPushedMessage) doesn't list `username`
   // in its dependency array - by design, so it doesn't resubscribe socket
   // listeners on every render. But that means it was capturing whatever
@@ -1541,6 +1589,7 @@ const ConversationScreen = ({ navigation, route }) => {
     activeConversationId.current = currentConversationId || conversationId;
   }, [currentConversationId, conversationId]);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportMessageTarget, setReportMessageTarget] = useState(null);
   const [backgroundModalVisible, setBackgroundModalVisible] = useState(false);
   // Chat background (Messenger-style): defaults to the conversation's stored
   // background_url, but a live "background_changed" system message overrides
@@ -1637,8 +1686,14 @@ const ConversationScreen = ({ navigation, route }) => {
     refreshOtherUserOnlineStatus();
   }, [refreshOtherUserOnlineStatus]);
 
-  const confirmBlock = () => {
-    if (!otherUser) return;
+  // `afterBlock` defaults to the original behavior (this screen only ever
+  // had one other person to block: the private chat's own otherUser, after
+  // which the conversation itself is moot, hence navigating back). Blocking
+  // someone spotted via their avatar in a group (see openSenderActions
+  // below) shouldn't leave the group's conversation - it passes its own
+  // afterBlock that just toasts instead.
+  const confirmBlock = (targetUser = otherUser, afterBlock) => {
+    if (!targetUser) return;
     Alert.alert(
       t("chatConversation.blockTitle"),
       t("chatConversation.blockBody"),
@@ -1649,12 +1704,21 @@ const ConversationScreen = ({ navigation, route }) => {
           style: "destructive",
           onPress: async () => {
             try {
-              await blockUser(otherUser.id);
-              Alert.alert(
-                t("chatConversation.blockedTitle"),
-                t("chatConversation.blockedBody"),
-                [{ text: t("common.ok"), onPress: safeGoBack }],
-              );
+              await blockUser(targetUser.id);
+              // Keep the local blocked list in sync so the feed/story/chat
+              // list filters apply immediately, not only after next launch.
+              if (targetUser.username && blockUserInContext) {
+                await blockUserInContext(targetUser.username);
+              }
+              if (afterBlock) {
+                afterBlock();
+              } else {
+                Alert.alert(
+                  t("chatConversation.blockedTitle"),
+                  t("chatConversation.blockedBody"),
+                  [{ text: t("common.ok"), onPress: safeGoBack }],
+                );
+              }
             } catch (e) {
               const errorMessage =
                 e.response?.data?.message ||
@@ -1666,6 +1730,205 @@ const ConversationScreen = ({ navigation, route }) => {
         },
       ],
     );
+  };
+
+  // Same {text, onPress, style} option list either way - iOS gets a real
+  // native ActionSheet, Android falls back to Alert.alert (see the
+  // Alert.alert = CustomAlert.alert override at the top of App.js, which is
+  // what lets more than the usual 2-3 Android AlertDialog buttons stack
+  // into a real scrollable list here).
+  const showActionList = (title, options) => {
+    if (Platform.OS === "ios") {
+      const cancelButtonIndex = options.findIndex((o) => o.style === "cancel");
+      const destructiveButtonIndex = options
+        .map((o, i) => (o.style === "destructive" ? i : -1))
+        .filter((i) => i >= 0);
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title,
+          options: options.map((o) => o.text),
+          cancelButtonIndex: cancelButtonIndex >= 0 ? cancelButtonIndex : undefined,
+          destructiveButtonIndex,
+        },
+        (index) => options[index]?.onPress?.(),
+      );
+    } else {
+      Alert.alert(title, null, options);
+    }
+  };
+
+  // Messenger-style per-sender action sheet, opened by tapping the small
+  // avatar next to someone else's message bubble (see MessageRow below).
+  // Only ever offers actions this app actually has - no calling, no
+  // Facebook profile link, nothing that isn't a real feature here.
+  const openSenderActions = async (sender) => {
+    // This is a per-USER action sheet - Yoyo AI isn't a real participant
+    // (can't be messaged-as-a-new-conversation from here since it already
+    // has its own dedicated entry point, can't be blocked/managed as a
+    // group member), so tapping its avatar is a no-op.
+    if (!sender?.id || sender.is_ai) return;
+
+    const name = sender.profile_name || sender.username || t("chatConversation.anonymous");
+    const isGroup = currentConversation?.type === "group";
+    const activeId = currentConversationId || conversationId;
+
+    const goToProfile = () => navigation.navigate("ProfileScreen", { username: sender.username });
+
+    const goToMessage = async () => {
+      try {
+        const response = await getConversations();
+        const existing = (response?.data || []).find(
+          (conv) =>
+            conv.type === "private" &&
+            conv.participants?.some((p) => p.id === sender.id),
+        );
+        if (existing) {
+          navigation.push("ConversationScreen", {
+            conversation: existing,
+            conversationId: existing.id,
+          });
+          return;
+        }
+      } catch (e) {
+        // Fall through to starting a new conversation below, same as
+        // ProfileScreen's own Message button.
+      }
+      navigation.push("ConversationScreen", {
+        isNewConversation: true,
+        selectedUser: {
+          id: sender.id,
+          profile_name: sender.profile_name,
+          avatar_url: sender.avatar_url,
+          username: sender.username,
+        },
+      });
+    };
+
+    const options = [];
+
+    // Doesn't apply in a private 1-1 - we're already messaging this exact
+    // person, there's nowhere else to send "Message" to.
+    if (currentConversation?.type !== "private") {
+      options.push({ text: t("follow.message", "Nhắn tin"), onPress: goToMessage });
+    }
+    options.push({ text: t("chatConversation.viewProfile", "Xem trang cá nhân"), onPress: goToProfile });
+
+    if (isGroup && activeId) {
+      try {
+        const res = await getGroupDetails(activeId);
+        const group = res?.data;
+        const participant = group?.participants?.find((p) => p.id === sender.id);
+
+        if (group && participant && participant.role !== "owner") {
+          if (group.is_owner) {
+            options.push(
+              participant.role === "deputy"
+                ? {
+                    text: t("chatConversation.removeDeputyAction", "Gỡ vai trò phó nhóm"),
+                    onPress: () =>
+                      removeGroupDeputy(activeId, sender.id).catch((e) =>
+                        Toast.show({
+                          type: "error",
+                          text1: e.response?.data?.message || t("chatConversation.removeDeputyError", "Không thể gỡ vai trò phó nhóm."),
+                        }),
+                      ),
+                  }
+                : {
+                    text: t("chatConversation.makeDeputyAction", "Chỉ định làm phó nhóm"),
+                    onPress: () =>
+                      addGroupDeputy(activeId, sender.id).catch((e) =>
+                        Toast.show({
+                          type: "error",
+                          text1: e.response?.data?.message || t("chatConversation.makeDeputyError", "Không thể chỉ định phó nhóm."),
+                        }),
+                      ),
+                  },
+            );
+          }
+
+          // Same rule GroupInfoScreen's member list uses to decide whether
+          // to even show a "..." button for this member (canAct there): a
+          // non-owner deputy may only act on plain members, never on a
+          // fellow deputy. perm_remove_members alone doesn't encode that -
+          // without this, a deputy could remove another deputy from here,
+          // which GroupInfoScreen deliberately prevents.
+          const canActOnThisMember = group.is_owner || (group.is_deputy && participant.role === "member");
+
+          if (canActOnThisMember && group.permissions?.can?.perm_remove_members) {
+            options.push({
+              text: t("chatConversation.removeMemberAction", "Xóa khỏi nhóm"),
+              style: "destructive",
+              onPress: () => {
+                Alert.alert(
+                  t("chatConversation.removeMemberTitle", "Xóa thành viên?"),
+                  t("chatConversation.removeMemberBody", "{{name}} sẽ bị xóa khỏi nhóm.", { name }),
+                  [
+                    { text: t("common.cancel"), style: "cancel" },
+                    {
+                      text: t("chatConversation.removeMemberAction", "Xóa"),
+                      style: "destructive",
+                      onPress: () =>
+                        removeGroupParticipant(activeId, sender.id).catch((e) =>
+                          Toast.show({
+                            type: "error",
+                            text1: e.response?.data?.message || t("chatConversation.removeMemberError", "Không thể xóa thành viên."),
+                          }),
+                        ),
+                    },
+                  ],
+                );
+              },
+            });
+          }
+        }
+      } catch (e) {
+        // Couldn't load group permissions - just skip the management
+        // options rather than failing the whole sheet.
+      }
+    }
+
+    options.push({
+      text: t("chatConversation.blockUser"),
+      style: "destructive",
+      onPress: () =>
+        confirmBlock(sender, () =>
+          Toast.show({ type: "success", text1: t("chatConversation.blockedTitle") }),
+        ),
+    });
+
+    options.push({ text: t("common.cancel"), style: "cancel" });
+
+    showActionList(name, options);
+  };
+
+  const handleReportMessage = () => {
+    const message = reactionPicker.message;
+    closeReactionPicker();
+    if (message) setReportMessageTarget(message);
+  };
+
+  const handleReportMessageSubmit = async (reason) => {
+    const message = reportMessageTarget;
+    if (!message) return;
+
+    try {
+      await reportUser({
+        message_id: message.id,
+        reported_user_id: message.sender?.id,
+        reason,
+      });
+      Alert.alert(
+        t("chatConversation.thanksTitle"),
+        t("chatConversation.reportSent"),
+      );
+    } catch (e) {
+      const errorMessage =
+        e.response?.data?.message ||
+        e.message ||
+        t("chatConversation.reportError");
+      Alert.alert(t("common.error"), errorMessage);
+      throw e;
+    }
   };
 
   const handleReportSubmit = async (reason) => {
@@ -3777,6 +4040,7 @@ const ConversationScreen = ({ navigation, route }) => {
       lastTapRef,
       focusInput: () => inputRef.current?.focus?.(),
       showSeenBy: setSeenByModalParticipants,
+      openSenderActions,
     };
   });
 
@@ -3914,6 +4178,13 @@ const ConversationScreen = ({ navigation, route }) => {
         onSubmit={handleReportSubmit}
       />
 
+      <ReportModal
+        visible={!!reportMessageTarget}
+        onClose={() => setReportMessageTarget(null)}
+        onSubmit={handleReportMessageSubmit}
+        title={t("chatConversation.reportMessage", "Báo cáo tin nhắn")}
+      />
+
       <ChatBackgroundModal
         visible={backgroundModalVisible}
         conversationId={currentConversationId || conversationId}
@@ -4035,6 +4306,15 @@ const ConversationScreen = ({ navigation, route }) => {
             ? handleRecallMessage
             : undefined
         }
+        onReport={
+          // Only other people's messages, and never the AI's - there's no
+          // account behind those to report.
+          !reactionPicker.message?.is_myself &&
+          !reactionPicker.message?.sender?.is_ai &&
+          !reactionPicker.message?.is_sending
+            ? handleReportMessage
+            : undefined
+        }
         onViewSeenBy={
           isGroupConversation &&
           reactionPicker.message?.is_myself &&
@@ -4113,10 +4393,16 @@ const ConversationScreen = ({ navigation, route }) => {
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
           scrollEventThrottle={16}
-          // Native-level view recycling (real measured clipping, done by the
-          // platform) instead of the old JS-estimated mount/unmount windowing
-          // this replaces - see the visibleMessages comment above.
-          removeClippedSubviews={Platform.OS === "android"}
+          // Was Platform.OS === "android" for native-level view recycling
+          // (real measured clipping instead of the old JS-estimated mount/
+          // unmount windowing - see the visibleMessages comment above), but
+          // Android's implementation detaches clipped views from the native
+          // hierarchy entirely, and image/video views frequently fail to
+          // redraw when scrolled back into view afterward - the thumbnail
+          // just stays blank until something else forces a re-render.
+          // Disabled outright rather than risk that for the sake of the
+          // scroll perf gain.
+          removeClippedSubviews={false}
           onContentSizeChange={(w, h) => {
             const pending = pendingLoadMoreAdjustRef.current;
             if (pending && h > pending.prevHeight) {

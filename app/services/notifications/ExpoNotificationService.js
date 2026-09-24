@@ -137,6 +137,8 @@ export function getDeviceType() {
  * @param {Function} onNotificationTapped - Callback when notification is tapped
  * @returns {Array} Array of subscription objects to remove listeners
  */
+let initialResponseHandled = false;
+
 export function setupNotificationListeners(
   onNotificationReceived,
   onNotificationTapped
@@ -163,6 +165,15 @@ export function setupNotificationListeners(
     });
 
   subscriptions.push(receivedSubscription, responseSubscription);
+
+  // The launching tap is routed once per process. An account switch remounts
+  // NotificationProvider (see SessionContext) and would otherwise re-poll the
+  // same stale response and drag the new account to whatever screen the old
+  // account's notification pointed at.
+  if (initialResponseHandled) {
+    return subscriptions;
+  }
+  initialResponseHandled = true;
 
   Notifications.getLastNotificationResponseAsync()
     .then((response) => {

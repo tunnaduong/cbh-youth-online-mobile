@@ -62,7 +62,9 @@
     "unknownError": "Có lỗi xảy ra",
     "close": "Đóng",
     "save": "Lưu",
-    "add": "Thêm"
+    "add": "Thêm",
+    "done": "Xong",
+    "loading": "Đang tải..."
   },
   "createActions": {
     "post": "Tạo bài viết",
@@ -135,7 +137,11 @@
     "noConversations": "Không tìm thấy cuộc trò chuyện nào...",
     "searchUserPlaceholder": "Tìm kiếm người dùng...",
     "noUserFound": "Không tìm thấy người dùng nào",
-    "searchUserHint": "Nhập username để bắt đầu tìm kiếm"
+    "searchUserHint": "Nhập username để bắt đầu tìm kiếm",
+    "resultsLabel": "KẾT QUẢ",
+    "continueConversation": "Tiếp tục cuộc trò chuyện",
+    "startConversation": "Bắt đầu cuộc trò chuyện mới",
+    "noUserFoundHint": "Hãy kiểm tra lại username và thử lần nữa."
   },
   "search": {
     "all": "Tất cả",
@@ -313,6 +319,8 @@
     "cannotPost": "Chưa thể đăng bài viết",
     "missingFields": "Vui lòng nhập tiêu đề và nội dung bài viết.",
     "postedSuccess": "Đăng bài viết thành công",
+    "pendingModeration": "Bài viết đang chờ kiểm duyệt",
+    "pendingModerationDesc": "Bài viết của bạn sẽ hiển thị sau khi được duyệt.",
     "reloading": "Đang tải lại trang...",
     "tryAgainLater": "Vui lòng thử lại sau."
   },
@@ -339,7 +347,13 @@
     "reportIssue": "Báo lỗi / Góp ý",
     "privacy": "Quyền riêng tư",
     "terms": "Điều khoản sử dụng",
-    "featureInDevelopment": "Tính năng đang được phát triển"
+    "featureInDevelopment": "Tính năng đang được phát triển",
+    "switchAccount": "Chuyển tài khoản",
+    "addAccount": "Thêm tài khoản",
+    "removeAccount": "Gỡ khỏi thiết bị này",
+    "removeAccountConfirm": "Gỡ @{{username}} khỏi thiết bị này? Bạn sẽ cần đăng nhập lại để dùng tài khoản này.",
+    "sessionExpired": "Phiên đăng nhập của tài khoản này đã hết hạn, vui lòng đăng nhập lại.",
+    "continueAs": "Tiếp tục với tài khoản đã đăng nhập"
   },
   "post": {
     "details": "Chi tiết bài viết",
@@ -349,6 +363,25 @@
     "share": "Chia sẻ",
     "unsave": "Bỏ lưu bài viết",
     "save": "Lưu bài viết",
+    "hide": "Ẩn bài viết",
+    "hideSubtitle": "Ẩn bài viết này khỏi bảng tin của bạn",
+    "hideSuccess": "Đã ẩn bài viết khỏi bảng tin",
+    "hideUndo": "Nhấn để hoàn tác",
+    "hideError": "Không thể ẩn bài viết. Vui lòng thử lại.",
+    "unhideSuccess": "Đã hoàn tác ẩn bài viết",
+    "archive": "Chuyển vào kho lưu trữ",
+    "archiveSubtitle": "Chỉ mình bạn thấy bài viết này",
+    "giftPoints": "Tặng điểm cho tác giả",
+    "giftPointsSubtitle": "Gửi điểm từ ví của bạn để ủng hộ bài viết này",
+    "archiveConfirmTitle": "Chuyển vào kho lưu trữ?",
+    "archiveConfirmBody": "Bài viết sẽ không còn hiển thị với người khác. Bạn có thể khôi phục bất cứ lúc nào trong Kho lưu trữ.",
+    "archiveAction": "Lưu trữ",
+    "archiveSuccess": "Đã chuyển bài viết vào kho lưu trữ",
+    "archiveError": "Không thể lưu trữ bài viết. Vui lòng thử lại.",
+    "unarchive": "Khôi phục bài viết",
+    "unarchiveSuccess": "Đã khôi phục bài viết",
+    "unarchiveError": "Không thể khôi phục bài viết. Vui lòng thử lại.",
+    "archivedBadge": "Đã lưu trữ",
     "privacy": "Cài đặt quyền riêng tư",
     "edit": "Chỉnh sửa bài đăng",
     "delete": "Xóa bài viết",
@@ -378,7 +411,23 @@
     "tapToPlayVideo": "Nhấn để phát video",
     "anonymousUser": "Người dùng ẩn danh",
     "anonymous": "Ẩn danh",
-    "reply": "Trả lời"
+    "reply": "Trả lời",
+    "pendingModerationTitle": "Bình luận đang chờ kiểm duyệt",
+    "pendingModerationBody": "Bình luận của bạn sẽ hiển thị với mọi người sau khi được duyệt.",
+    "commentError": "Không thể gửi bình luận. Vui lòng thử lại."
+  },
+  "sharePost": {
+    "title": "Chia sẻ bài viết",
+    "viaMessage": "Gửi qua tin nhắn",
+    "searchPeople": "Tìm người để chia sẻ...",
+    "notePlaceholder": "Thêm lời nhắn...",
+    "toOtherApps": "Ứng dụng khác",
+    "copyLink": "Sao chép liên kết",
+    "copied": "Đã sao chép liên kết",
+    "sent": "Đã chia sẻ bài viết",
+    "failed": "Chia sẻ thất bại",
+    "tooMany": "Chỉ có thể chia sẻ tới tối đa 20 nơi",
+    "sharedAPost": "Đã chia sẻ một bài viết"
   },
   "savedPosts": {
     "title": "Bài viết đã lưu",
@@ -467,6 +516,7 @@
     "reportTargetError": "Không thể xác định người dùng để báo cáo.",
     "reportError": "Không thể gửi báo cáo",
     "report": "Báo cáo",
+    "reportMessage": "Báo cáo tin nhắn",
     "blockUser": "Chặn người dùng",
     "changeBackground": "Đổi hình nền",
     "optionsTitle": "Tùy chọn",
@@ -609,7 +659,8 @@
     "forwarded": "Đã chuyển tiếp tin nhắn",
     "forwardFailed": "Chuyển tiếp thất bại",
     "loadConversationsFailed": "Không thể tải danh sách trò chuyện",
-    "viewSeenBy": "Lượt xem"
+    "viewSeenBy": "Lượt xem",
+    "viewProfile": "Xem trang cá nhân"
   },
   "blockedUsers": {
     "title": "Người dùng đã chặn",
@@ -623,6 +674,7 @@
   },
   "notifications": {
     "newNotification": "Thông báo mới",
+    "giftedPoints": "đã tặng bạn {{amount}} điểm",
     "pinnedPost": "đã ghim bài đăng",
     "movedPost": "đã chuyển bài đăng",
     "closedPost": "đã đóng bài đăng",
@@ -660,7 +712,16 @@
     "removedDeputyRole": "đã gỡ vai trò phó nhóm của bạn trong nhóm",
     "madeDeputy": "đã chỉ định bạn làm phó nhóm",
     "changedBackgroundGroup": "đã đổi hình nền nhóm",
-    "changedBackgroundPrivate": "đã đổi hình nền cuộc trò chuyện"
+    "changedBackgroundPrivate": "đã đổi hình nền cuộc trò chuyện",
+    "moderationPendingPost": "Bài viết của @{{username}} đang chờ kiểm duyệt",
+    "moderationPendingComment": "Bình luận của @{{username}} đang chờ kiểm duyệt",
+    "contentPendingReviewPost": "Bài viết của bạn đang chờ kiểm duyệt",
+    "contentPendingReviewComment": "Bình luận của bạn đang chờ kiểm duyệt",
+    "contentApprovedPost": "Bài viết của bạn đã được duyệt và hiển thị công khai",
+    "contentApprovedComment": "Bình luận của bạn đã được duyệt và hiển thị công khai",
+    "contentRejectedPost": "Bài viết của bạn không được duyệt",
+    "contentRejectedComment": "Bình luận của bạn không được duyệt",
+    "mentionedInStory": "đã nhắc đến bạn trong một tin"
   },
   "chatBackground": {
     "title": "Hình nền đoạn chat",
@@ -796,6 +857,8 @@
     "female": "Nữ",
     "errorTitle": "Lỗi",
     "errorLoading": "Không thể tải thông tin cá nhân",
+    "notFoundTitle": "Không tìm thấy người dùng",
+    "notFoundMessage": "Trang cá nhân này không tồn tại hoặc bạn không thể xem được.",
     "blockTitle": "Chặn người dùng",
     "blockConfirm": "Bạn có chắc chắn muốn chặn {{username}}? Bạn sẽ không còn nhìn thấy nội dung từ người này.",
     "blockAction": "Chặn",
@@ -830,6 +893,12 @@
     "followingTab": "Đ. theo dõi",
     "followersTab": "N. theo dõi",
     "likesTab": "Lượt thích",
+    "emptyLikes": "Chưa có bài viết nào được thích",
+    "likesSummary": "{{posts}} bài viết · {{likes}} lượt thích",
+    "sortNewest": "Mới nhất",
+    "sortOldest": "Cũ nhất",
+    "sortMostLiked": "Nhiều lượt thích",
+    "sortLeastLiked": "Ít lượt thích",
     "pointsTab": "Điểm",
     "yourActivity": "Hoạt động của bạn",
     "savedPosts": "Bài viết đã lưu",
@@ -869,6 +938,7 @@
     "editProfile": "Chỉnh sửa trang cá nhân",
     "security": "Bảo mật",
     "notifications": "Thông báo",
+    "studentVerification": "Xác minh học sinh",
     "autoplayVideos": "Tự động phát video",
     "liquidGlassEffect": "Hiệu ứng kính lỏng",
     "shakeToReport": "Lắc điện thoại để báo cáo sự cố",
@@ -944,7 +1014,10 @@
     "passwordRequired": "Vui lòng nhập mật khẩu",
     "accountDeleted": "Đã xóa tài khoản thành công",
     "usernameRequired": "Vui lòng nhập tên đăng nhập mới",
-    "emailRequired": "Vui lòng nhập email mới"
+    "emailRequired": "Vui lòng nhập email mới",
+    "hideEmailError": "Không thể cập nhật cài đặt này.",
+    "hideEmail": "Ẩn email trên trang cá nhân",
+    "hideEmailDesc": "Người khác sẽ không thấy email của bạn khi xem trang cá nhân"
   },
   "notificationSettings": {
     "title": "Thông báo",
@@ -974,6 +1047,11 @@
   },
   "archive": {
     "title": "Kho lưu trữ",
+    "tabPosts": "Bài viết",
+    "tabStories": "Tin",
+    "emptyPosts": "Chưa có bài viết nào trong kho lưu trữ",
+    "postsPrivacyNotice": "Bài viết đã lưu trữ sẽ chỉ hiển thị với mình bạn.",
+    "loadPostsError": "Không thể tải bài viết đã lưu trữ.",
     "loadError": "Không thể tải kho lưu trữ.",
     "privacyNotice": "Tin đã lưu trữ sẽ chỉ hiển thị với mình bạn.",
     "empty": "Chưa có story nào",
@@ -1013,7 +1091,8 @@
     "appleLoginError": "Không thể đăng nhập bằng Apple",
     "signupSuccess": "Đăng ký thành công",
     "signupSuccessBody": "Chào mừng bạn đến với CBH Youth Online!",
-    "signupError": "Lỗi đăng ký"
+    "signupError": "Lỗi đăng ký",
+    "tryForgotPassword": "Vui lòng thử dùng 'Quên mật khẩu' để đặt lại mật khẩu."
   },
   "signup": {
     "loading": "Đang xử lý...",
@@ -1131,7 +1210,59 @@
     },
     "dragToAdjust": "Kéo để điều chỉnh vùng crop",
     "retake": "Chụp lại",
-    "usePhoto": "Dùng ảnh này"
+    "usePhoto": "Dùng ảnh này",
+    "stickers": "Nhãn dán",
+    "mention": "Nhắc đến",
+    "link": "Liên kết",
+    "music": "Nhạc",
+    "addSticker": "Thêm vào tin",
+    "mentionTitle": "Nhắc đến ai đó",
+    "mentionPlaceholder": "Tìm tên người dùng...",
+    "mentionNoResults": "Không tìm thấy người dùng nào",
+    "linkTitle": "Thêm liên kết",
+    "linkUrlLabel": "Đường dẫn",
+    "linkLabelLabel": "Nhãn hiển thị (tùy chọn)",
+    "linkLabelPlaceholder": "Xem thêm",
+    "linkInvalid": "Đường dẫn không hợp lệ",
+    "musicTitle": "Thêm nhạc",
+    "musicPlaceholder": "Tìm bài hát hoặc ca sĩ...",
+    "musicHint": "Nhập tên bài hát để tìm nhạc cho tin của bạn",
+    "musicNoResults": "Không tìm thấy bài hát nào",
+    "musicSearchError": "Không thể tìm nhạc lúc này, vui lòng thử lại",
+    "musicTrimHint": "Phát từ giây {{start}} ({{length}} giây)",
+    "musicChange": "Đổi bài",
+    "fonts": {
+      "classic": "Cổ điển",
+      "modern": "Hiện đại",
+      "typewriter": "Máy chữ",
+      "serif": "Có chân",
+      "handwriting": "Viết tay"
+    },
+    "textEffects": {
+      "none": "Aa",
+      "shadow": "Đổ bóng",
+      "outline": "Viền",
+      "background": "Nền",
+      "neon": "Neon"
+    },
+    "filters": {
+      "none": "Gốc",
+      "vivid": "Rực rỡ",
+      "mono": "Trắng đen",
+      "noir": "Noir",
+      "warm": "Ấm",
+      "cool": "Lạnh",
+      "fade": "Nhạt",
+      "retro": "Hoài cổ",
+      "dusk": "Hoàng hôn"
+    },
+    "stickerPacks": {
+      "smileys": "Mặt cười",
+      "love": "Tình yêu",
+      "fun": "Vui nhộn",
+      "school": "Học tập",
+      "nature": "Thiên nhiên"
+    }
   },
   "terms": {
     "headerTitle": "Điều khoản sử dụng",
@@ -1288,7 +1419,8 @@
     "score18to20": "18 – 20",
     "score20to22": "20 – 22",
     "score22to24": "22 – 24",
-    "scoreAbove24": "Trên 24"
+    "scoreAbove24": "Trên 24",
+    "filterAll": "Tất cả"
   },
   "quiz": {
     "title": "Đố vui",
@@ -1329,7 +1461,9 @@
     "startError": "Không thể tạo câu hỏi lúc này, vui lòng thử lại.",
     "answerError": "Không thể ghi nhận câu trả lời, vui lòng thử lại.",
     "joinError": "Không thể tham gia bài đố vui này.",
-    "shareMessage": "Cùng thử sức với bài đố vui này nhé! {{link}}"
+    "shareMessage": "Cùng thử sức với bài đố vui này nhé! {{link}}",
+    "restartError": "Không thể làm lại bài đố vui này.",
+    "retrySame": "Làm lại bài này"
   },
   "customQuiz": {
     "entryTitle": "Tạo bộ đề tùy chỉnh",
@@ -1487,7 +1621,28 @@
     "freeMaterialHint": "Nếu bật, người dùng có thể tải không mất điểm.",
     "priceLabel": "Giá điểm",
     "pricePlaceholder": "Ví dụ: 50",
-    "publish": "Đăng tài liệu ngay"
+    "publish": "Đăng tài liệu ngay",
+    "shareUnavailable": "Thiết bị này không hỗ trợ chia sẻ (Trình giả lập không hỗ trợ)."
+  },
+  "giftPoints": {
+    "title": "Tặng điểm cho {{name}}",
+    "anonymousAuthor": "tác giả ẩn danh",
+    "author": "tác giả",
+    "description": "Điểm sẽ được trừ khỏi ví của bạn và cộng thẳng vào ví của {{name}}.",
+    "balance": "Số dư hiện tại: {{points}} điểm",
+    "amountPlaceholder": "Số điểm",
+    "pointsUnit": "điểm",
+    "notePlaceholder": "Lời nhắn (không bắt buộc)",
+    "submit": "Tặng {{amount}} điểm",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "requirement": "Tính năng tặng điểm dành cho hạng Thành viên tích cực trở lên (từ {{required}} điểm). Bạn đang có {{points}} điểm.",
+    "invalidAmount": "Số điểm phải từ {{min}} đến {{max}}.",
+    "insufficient": "Số dư không đủ. Bạn đang có {{points}} điểm.",
+    "successTitle": "Đã tặng {{amount}} điểm",
+    "successBody": "Cảm ơn bạn đã ủng hộ {{name}}!",
+    "errorTitle": "Không thể tặng điểm",
+    "errorDefault": "Vui lòng thử lại sau."
   },
   "wallet": {
     "backLabel": "Quay lại",
@@ -1608,6 +1763,57 @@
     "title": "Người đã vote bình luận",
     "empty": "Chưa có lượt vote nào",
     "loadError": "Không thể tải danh sách người vote"
+  },
+  "linkSafety": {
+    "title": "Bạn đang rời khỏi CBH Youth Online",
+    "subtitle": "Liên kết này dẫn tới một trang web bên ngoài mà chúng tôi không kiểm soát. Luôn kiểm tra an toàn trước khi bấm vào.",
+    "visitingLabel": "Bạn đang truy cập",
+    "copyLink": "Sao chép",
+    "shareLink": "Chia sẻ",
+    "copied": "Đã sao chép liên kết",
+    "checklistTitle": "Trước khi tiếp tục, hãy kiểm tra:",
+    "tipDomain": "Tên miền có đúng chính tả không? Các trang lừa đảo hay dùng tên gần giống, ví dụ chuyenb1enhoa.com.",
+    "tipPassword": "Không bao giờ nhập mật khẩu CBH Youth Online của bạn ở một trang web khác.",
+    "tipSensitive": "Cẩn thận với trang yêu cầu tải tệp về, nhập mã OTP, số điện thoại hay thông tin thẻ ngân hàng.",
+    "tipUnknownSender": "Nếu bạn không biết ai đã gửi liên kết này, tốt nhất là đừng truy cập.",
+    "warningInsecure": "Liên kết này không dùng HTTPS. Mọi thông tin bạn gửi tới trang này đều có thể bị người khác đọc được trên đường truyền.",
+    "warningPunycode": "Tên miền này chứa ký tự đặc biệt được mã hóa. Đây là cách các trang giả mạo thường dùng để trông giống một trang web quen thuộc.",
+    "warningUserInfo": "Liên kết này được viết để trông giống một trang khác, nhưng nơi bạn thật sự đến là {{hostname}}.",
+    "continue": "Tiếp tục đến trang này",
+    "goBack": "Quay lại",
+    "reportHint": "Nếu bạn cho rằng liên kết này là lừa đảo hoặc có hại, hãy báo cho chúng tôi qua phần Liên hệ trong Cài đặt.",
+    "invalidTitle": "Liên kết không hợp lệ",
+    "invalidDescription": "Chúng tôi không đọc được địa chỉ đích của liên kết này. Có thể nó đã bị sửa hoặc bị cắt mất một phần. Đừng truy cập nếu bạn không chắc nó đến từ đâu."
+  },
+  "studentVerification": {
+    "headerTitle": "Xác minh học sinh",
+    "title": "Xác minh học sinh CBH",
+    "subtitle": "Xác minh tài khoản học sinh để nhận giảm giá {{discount}} tại Gift Shop. Admin sẽ xét duyệt trong vòng 24 giờ.",
+    "statusError": "Không thể tải trạng thái xác minh.",
+    "permissionDenied": "Vui lòng cho phép truy cập thư viện ảnh.",
+    "missingPhotos": "Vui lòng chọn cả ảnh selfie và thẻ học sinh.",
+    "uploadFailed": "Tải ảnh lên thất bại. Vui lòng thử lại.",
+    "submitSuccess": "Gửi yêu cầu xác minh thành công!",
+    "submitSuccessBody": "Admin sẽ xét duyệt trong vòng 24 giờ.",
+    "submitFailed": "Gửi yêu cầu thất bại. Vui lòng thử lại.",
+    "verifiedTitle": "Tài khoản đã được xác minh học sinh",
+    "verifiedBody": "Bạn đang được hưởng giảm giá {{discount}} tại Gift Shop.",
+    "verifiedSince": "Xác minh từ: {{date}}",
+    "pendingTitle": "Đang chờ xét duyệt",
+    "pendingBody": "Yêu cầu của bạn đã được gửi và đang được xem xét. Vui lòng đợi admin duyệt trong 24 giờ.",
+    "rejectedTitle": "Yêu cầu đã bị từ chối",
+    "rejectedReason": "Lý do: {{reason}}",
+    "rejectedRetry": "Bạn có thể gửi lại yêu cầu bên dưới.",
+    "selfieLabel": "Ảnh selfie cầm thẻ",
+    "selfieHint": "Chụp rõ mặt và thẻ học sinh",
+    "cardLabel": "Ảnh thẻ học sinh",
+    "cardHint": "Chụp rõ thông tin trên thẻ",
+    "pickPhoto": "Chạm để chọn ảnh",
+    "notesTitle": "Lưu ý khi chụp ảnh:",
+    "note1": "Ảnh selfie: Chụp rõ mặt cùng thẻ học sinh Chuyên Biên Hòa",
+    "note2": "Thẻ học sinh: Chụp rõ tên, lớp, năm học trên thẻ",
+    "note3": "Ảnh phải rõ nét, không bị mờ hay che khuất",
+    "submit": "Gửi yêu cầu xác minh"
   },
   "feedback": {
     "title": "Góp ý & Báo lỗi",
