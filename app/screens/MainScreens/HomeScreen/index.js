@@ -33,6 +33,7 @@ import {
   PanResponder,
 } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
+import { CONTENT_MAX_WIDTH } from "../../../utils/responsive";
 import {
   getPersonalizedFeed,
   getLatestFeed,
@@ -2572,6 +2573,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           <CustomLoading size={44} showBackdrop />
         </Animated.View>
         <FlatList
+          // Capped and centered so posts read as a normal-width column
+          // instead of stretching edge-to-edge on a tablet or unfolded
+          // foldable - phones never reach this width, so nothing changes
+          // for them.
+          style={{ width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center" }}
           onScroll={handleScroll}
           onScrollBeginDrag={handleScrollBeginDrag}
           scrollEventThrottle={16}

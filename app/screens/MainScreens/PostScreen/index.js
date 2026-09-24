@@ -23,7 +23,6 @@ import {
   ActivityIndicator,
   Platform,
   Keyboard,
-  Dimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import {
@@ -58,6 +57,7 @@ import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { generatePostSlug } from "../../../utils/slugify";
@@ -70,6 +70,10 @@ const Comment = React.memo(React.forwardRef(
      highlightedCommentId, isDarkMode, theme, t, username,
      navigation, focusCommentInput, handleCommentVote,
      setCommentVotesModal, setImageViewer, handleLongPressComment }, ref) => {
+    // Called before the early return below so hook order stays stable
+    // regardless of whether this render bails out.
+    const { contentWidth } = useResponsiveLayout();
+
     if (!comment || !comment.id) return null;
 
     const votes = comment.votes ?? [];
@@ -157,7 +161,7 @@ const Comment = React.memo(React.forwardRef(
               {!!contentHtml ? (
                 <View style={{ flexShrink: 1 }}>
                   <RenderHTML
-                    contentWidth={Dimensions.get("window").width - 90 - level * 20}
+                    contentWidth={contentWidth - 90 - level * 20}
                     source={{ html: linkifyMentionsInHtml(contentHtml, validMentions, { allowBroadcastMention: true }) }}
                     customHTMLElementModels={customHTMLElementModels}
                     renderers={{ iframe: YouTubeIframeRenderer }}
@@ -1402,6 +1406,9 @@ const PostScreen = ({ route, navigation }) => {
         )}
         <AndroidGlassBackdrop providerId="PostScreen" style={{ flex: 1 }}>
         <Animated.FlatList
+          // Capped and centered - see the same treatment on the feed's
+          // FlatList in HomeScreen/index.js.
+          style={{ width: "100%", maxWidth: CONTENT_MAX_WIDTH, alignSelf: "center" }}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           keyboardShouldPersistTaps="handled"
