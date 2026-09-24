@@ -371,6 +371,8 @@
     "unhideSuccess": "Đã hoàn tác ẩn bài viết",
     "archive": "Chuyển vào kho lưu trữ",
     "archiveSubtitle": "Chỉ mình bạn thấy bài viết này",
+    "giftPoints": "Tặng điểm cho tác giả",
+    "giftPointsSubtitle": "Gửi điểm từ ví của bạn để ủng hộ bài viết này",
     "archiveConfirmTitle": "Chuyển vào kho lưu trữ?",
     "archiveConfirmBody": "Bài viết sẽ không còn hiển thị với người khác. Bạn có thể khôi phục bất cứ lúc nào trong Kho lưu trữ.",
     "archiveAction": "Lưu trữ",
@@ -672,6 +674,7 @@
   },
   "notifications": {
     "newNotification": "Thông báo mới",
+    "giftedPoints": "đã tặng bạn {{amount}} điểm",
     "pinnedPost": "đã ghim bài đăng",
     "movedPost": "đã chuyển bài đăng",
     "closedPost": "đã đóng bài đăng",
@@ -1612,6 +1615,26 @@
     "pricePlaceholder": "Ví dụ: 50",
     "publish": "Đăng tài liệu ngay",
     "shareUnavailable": "Thiết bị này không hỗ trợ chia sẻ (Trình giả lập không hỗ trợ)."
+  },
+  "giftPoints": {
+    "title": "Tặng điểm cho {{name}}",
+    "anonymousAuthor": "tác giả ẩn danh",
+    "author": "tác giả",
+    "description": "Điểm sẽ được trừ khỏi ví của bạn và cộng thẳng vào ví của {{name}}.",
+    "balance": "Số dư hiện tại: {{points}} điểm",
+    "amountPlaceholder": "Số điểm",
+    "pointsUnit": "điểm",
+    "notePlaceholder": "Lời nhắn (không bắt buộc)",
+    "submit": "Tặng {{amount}} điểm",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "requirement": "Tính năng tặng điểm dành cho hạng Thành viên tích cực trở lên (từ {{required}} điểm). Bạn đang có {{points}} điểm.",
+    "invalidAmount": "Số điểm phải từ {{min}} đến {{max}}.",
+    "insufficient": "Số dư không đủ. Bạn đang có {{points}} điểm.",
+    "successTitle": "Đã tặng {{amount}} điểm",
+    "successBody": "Cảm ơn bạn đã ủng hộ {{name}}!",
+    "errorTitle": "Không thể tặng điểm",
+    "errorDefault": "Vui lòng thử lại sau."
   },
   "wallet": {
     "backLabel": "Quay lại",

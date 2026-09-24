@@ -35,6 +35,7 @@ import {
 import ReportModal from "./ReportModal";
 import PostVotesModal from "./PostVotesModal";
 import SharePostModal from "./SharePostModal";
+import GiftPointsModal from "./GiftPointsModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
 import { FeedContext } from "../contexts/FeedContext";
@@ -304,6 +305,7 @@ const PostItem = ({
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [votesModalVisible, setVotesModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [giftModalVisible, setGiftModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
@@ -556,6 +558,26 @@ const PostItem = ({
             <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>{t('post.share')}</Text>
           </View>
         </TouchableOpacity>
+        {!isCurrentUser && (
+          <TouchableOpacity
+            onPress={() => {
+              hideBottomSheet();
+              setGiftModalVisible(true);
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Ionicons name="gift-outline" size={23} color={theme.text} />
+              <View style={{ padding: 12, flex: 1 }}>
+                <Text style={{ fontSize: 17, color: theme.text }}>
+                  {t('post.giftPoints')}
+                </Text>
+                <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+                  {t('post.giftPointsSubtitle')}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )}
         {false && isCurrentUser && (
           <TouchableOpacity onPress={() => {
             if (navigation) {
@@ -1322,6 +1344,11 @@ const PostItem = ({
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
+      />
+      <GiftPointsModal
+        visible={giftModalVisible}
+        onClose={() => setGiftModalVisible(false)}
+        post={item}
       />
       <PostVotesModal
         visible={votesModalVisible}

@@ -382,6 +382,8 @@
     "unhideSuccess": "Post is back in your feed",
     "archive": "Move to archive",
     "archiveSubtitle": "Only you can see this post",
+    "giftPoints": "Gift points to the author",
+    "giftPointsSubtitle": "Send points from your wallet to support this post",
     "archiveConfirmTitle": "Move to archive?",
     "archiveConfirmBody": "The post will no longer be visible to others. You can restore it anytime from the Archive.",
     "archiveAction": "Archive",
@@ -683,6 +685,7 @@
   },
   "notifications": {
     "newNotification": "New notification",
+    "giftedPoints": "gifted you {{amount}} points",
     "pinnedPost": "pinned your post",
     "movedPost": "moved your post",
     "closedPost": "closed your post",
@@ -1624,6 +1627,26 @@
     "pricePlaceholder": "Example: 50",
     "publish": "Publish material",
     "shareUnavailable": "Sharing isn't available on this device (Simulator doesn't support it)."
+  },
+  "giftPoints": {
+    "title": "Gift points to {{name}}",
+    "anonymousAuthor": "the anonymous author",
+    "author": "the author",
+    "description": "Points are taken from your wallet and added straight to {{name}}'s wallet.",
+    "balance": "Current balance: {{points}} points",
+    "amountPlaceholder": "Amount",
+    "pointsUnit": "points",
+    "notePlaceholder": "Message (optional)",
+    "submit": "Gift {{amount}} points",
+    "cancel": "Cancel",
+    "close": "Close",
+    "requirement": "Gifting points is available from the Active Member tier ({{required}}+ points). You currently have {{points}} points.",
+    "invalidAmount": "Amount must be between {{min}} and {{max}}.",
+    "insufficient": "Insufficient balance. You have {{points}} points.",
+    "successTitle": "Gifted {{amount}} points",
+    "successBody": "Thanks for supporting {{name}}!",
+    "errorTitle": "Couldn't gift points",
+    "errorDefault": "Please try again later."
   },
   "wallet": {
     "backLabel": "Back",

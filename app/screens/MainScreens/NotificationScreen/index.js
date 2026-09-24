@@ -112,6 +112,8 @@ const formatNotificationMessage = (notification, t) => {
       return t('notifications.mentionedInPost');
     case "followed":
       return t('notifications.followedYou');
+    case "points_gifted":
+      return `${t('notifications.giftedPoints', { amount: Number(data?.amount || 0).toLocaleString() })}${data?.message ? `: "${data.message}"` : ""}`;
     case "story_reacted":
       return `${t('notifications.reactedStory')} ${data?.reaction_emoji || "👍"} ${t('notifications.toYourStory')}`;
     case "story_replied":

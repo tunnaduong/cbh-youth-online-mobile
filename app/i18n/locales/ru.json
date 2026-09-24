@@ -392,6 +392,8 @@
     "unhideSuccess": "Пост снова в вашей ленте",
     "archive": "Переместить в архив",
     "archiveSubtitle": "Этот пост увидите только вы",
+    "giftPoints": "Подарить баллы автору",
+    "giftPointsSubtitle": "Отправьте баллы из своего кошелька в поддержку поста",
     "archiveConfirmTitle": "Переместить в архив?",
     "archiveConfirmBody": "Пост больше не будет виден другим. Вы можете восстановить его в любой момент в архиве.",
     "archiveAction": "В архив",
@@ -693,6 +695,7 @@
   },
   "notifications": {
     "newNotification": "Новое уведомление",
+    "giftedPoints": "подарил вам {{amount}} баллов",
     "pinnedPost": "закрепил ваш пост",
     "movedPost": "переместил ваш пост",
     "closedPost": "закрыл ваш пост",
@@ -1640,6 +1643,26 @@
     "pricePlaceholder": "Пример: 50",
     "publish": "Опубликовать материал",
     "shareUnavailable": "Это устройство не поддерживает отправку (симулятор её не поддерживает)."
+  },
+  "giftPoints": {
+    "title": "Подарить баллы: {{name}}",
+    "anonymousAuthor": "анонимный автор",
+    "author": "автор",
+    "description": "Баллы будут списаны с вашего кошелька и сразу зачислены в кошелёк ({{name}}).",
+    "balance": "Текущий баланс: {{points}} баллов",
+    "amountPlaceholder": "Количество",
+    "pointsUnit": "баллов",
+    "notePlaceholder": "Сообщение (необязательно)",
+    "submit": "Подарить {{amount}} баллов",
+    "cancel": "Отмена",
+    "close": "Закрыть",
+    "requirement": "Дарить баллы могут участники уровня «Активный участник» и выше (от {{required}} баллов). У вас сейчас {{points}} баллов.",
+    "invalidAmount": "Количество должно быть от {{min}} до {{max}}.",
+    "insufficient": "Недостаточно баллов. У вас {{points}} баллов.",
+    "successTitle": "Подарено {{amount}} баллов",
+    "successBody": "Спасибо за поддержку ({{name}})!",
+    "errorTitle": "Не удалось подарить баллы",
+    "errorDefault": "Попробуйте позже."
   },
   "wallet": {
     "backLabel": "Назад",
