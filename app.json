@@ -160,6 +160,12 @@
       "expo-web-browser",
       "expo-apple-authentication",
       "expo-localization",
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Cho phép CBH Youth Online nhận biết khi bạn lắc điện thoại để báo cáo sự cố"
+        }
+      ],
       "@react-native-community/datetimepicker",
       [
         "expo-build-properties",

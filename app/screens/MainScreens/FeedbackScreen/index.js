@@ -41,6 +41,15 @@ function deviceInfo() {
   return `${model} | ${Platform.OS} ${Platform.Version} | build ${Application.nativeBuildVersion ?? "?"}`.slice(0, 255);
 }
 
+// Where in the app the report was started from. Kept as a pseudo-URL so the
+// admin page can tell the screen (shake reports) apart from the entry point
+// (sidebar / long-press), e.g. "app://PostScreen?via=shake".
+function pageUrl(source, screenName) {
+  if (!source && !screenName) return undefined;
+  const base = `app://${screenName || ""}`;
+  return source ? `${base}?via=${source}` : base;
+}
+
 // The upload endpoint builds its URL from APP_URL (the main site), but the
 // files live on the API host - keep only the /storage/... part.
 function toApiStorageUrl(path) {
@@ -55,17 +64,24 @@ export default function FeedbackScreen({ navigation, route }) {
   const { userInfo } = useContext(AuthContext);
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
 
+  // Shake-to-report hands over a screenshot of the screen the user was on
+  // (see components/ShakeToReport.js) - it's pre-attached like a picked image
+  // and can be removed the same way.
+  const shakeScreenshot = route?.params?.source === "shake" ? route?.params?.screenshotUri : null;
+  const screenName = route?.params?.screenName || null;
+
   const [type, setType] = useState(route?.params?.type || "bug");
   const [content, setContent] = useState("");
   const [email, setEmail] = useState("");
-  const [images, setImages] = useState([]); // local URIs
+  const [images, setImages] = useState(() => (shakeScreenshot ? [shakeScreenshot] : [])); // local URIs
   const [submitting, setSubmitting] = useState(false);
 
   const inputBg = isDarkMode ? "#2A2A2A" : "#F3F4F6";
   const activeType = TYPES.find((x) => x.value === type) || TYPES[0];
 
   const close = () => {
-    if (!content.trim() && images.length === 0) {
+    const onlyAutoScreenshot = images.length === 1 && images[0] === shakeScreenshot;
+    if (!content.trim() && (images.length === 0 || onlyAutoScreenshot)) {
       navigation.goBack();
       return;
     }
@@ -129,7 +145,8 @@ export default function FeedbackScreen({ navigation, route }) {
         platform: Platform.OS === "ios" ? "ios" : "android",
         app_version: Application.nativeApplicationVersion || undefined,
         device_info: deviceInfo(),
-        page_url: route?.params?.source || undefined,
+        // Admin sees this as "where it happened": app://<screen>?via=<source>
+        page_url: pageUrl(route?.params?.source, screenName),
       });
 
       Toast.show({ type: "success", text1: t("feedback.success"), text2: t("feedback.successDesc") });
@@ -174,6 +191,15 @@ export default function FeedbackScreen({ navigation, route }) {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.subtitle, { color: theme.subText }]}>{t("feedback.subtitle")}</Text>
+
+          {shakeScreenshot && images.includes(shakeScreenshot) && (
+            <View style={[styles.shakeBanner, { backgroundColor: isDarkMode ? "#1f3320" : "#EEF7ED", borderColor: theme.primary }]}>
+              <Ionicons name="camera-outline" size={18} color={theme.primary} />
+              <Text style={[styles.shakeBannerText, { color: theme.text }]}>
+                {screenName ? t("feedback.shakeAttachedWithScreen", { screen: screenName }) : t("feedback.shakeAttached")}
+              </Text>
+            </View>
+          )}
 
           <Text style={[styles.label, { color: theme.text }]}>{t("feedback.typeLabel")}</Text>
           {TYPES.map((item) => {
@@ -290,6 +316,16 @@ const styles = StyleSheet.create({
   headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", marginHorizontal: 12 },
   headerAction: { fontSize: 16, fontWeight: "700" },
   subtitle: { fontSize: 14, marginBottom: 8 },
+  shakeBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+    marginTop: 4,
+  },
+  shakeBannerText: { flex: 1, fontSize: 13, lineHeight: 18 },
   label: { fontSize: 15, fontWeight: "700", marginTop: 16, marginBottom: 8 },
   typeCard: {
     flexDirection: "row",

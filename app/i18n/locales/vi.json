@@ -930,6 +930,7 @@
     "studentVerification": "Xác minh học sinh",
     "autoplayVideos": "Tự động phát video",
     "liquidGlassEffect": "Hiệu ứng kính lỏng",
+    "shakeToReport": "Lắc điện thoại để báo cáo sự cố",
     "blockedUsers": "Người dùng đã chặn",
     "about": "Giới thiệu",
     "debugConsole": "Bảng debug",
@@ -1812,6 +1813,14 @@
     "discardTitle": "Bỏ góp ý?",
     "discardMessage": "Nội dung bạn đã nhập sẽ bị mất.",
     "discard": "Bỏ",
-    "keepEditing": "Tiếp tục viết"
+    "keepEditing": "Tiếp tục viết",
+    "shakeTitle": "Báo cáo sự cố kỹ thuật",
+    "shakeDesc": "Nếu tính năng nào đó hoạt động không đúng, bạn có thể góp ý để giúp chúng mình cải thiện CBH Online.",
+    "shakeDescWithShot": "Ảnh chụp màn hình hiện tại sẽ được gửi kèm để đội ngũ phát triển dễ tìm ra lỗi.",
+    "shakeReport": "Báo cáo sự cố",
+    "shakeNotNow": "Để sau",
+    "shakeToggleHint": "Tắt để vô hiệu hóa",
+    "shakeAttached": "Đã đính kèm ảnh chụp màn hình lúc bạn lắc điện thoại. Bạn có thể xóa ảnh nếu không muốn gửi.",
+    "shakeAttachedWithScreen": "Đã đính kèm ảnh chụp màn hình \"{{screen}}\" lúc bạn lắc điện thoại. Bạn có thể xóa ảnh nếu không muốn gửi."
   }
 }

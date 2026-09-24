@@ -942,6 +942,7 @@
     "studentVerification": "Student verification",
     "autoplayVideos": "Autoplay videos",
     "liquidGlassEffect": "Liquid glass effect",
+    "shakeToReport": "Shake phone to report a problem",
     "blockedUsers": "Blocked Users",
     "about": "About",
     "debugConsole": "Debug Console",
@@ -1825,6 +1826,14 @@
     "discardTitle": "Discard feedback?",
     "discardMessage": "What you've written will be lost.",
     "discard": "Discard",
-    "keepEditing": "Keep editing"
+    "keepEditing": "Keep editing",
+    "shakeTitle": "Report a technical problem",
+    "shakeDesc": "If a feature isn't working right, let us know so we can improve CBH Online.",
+    "shakeDescWithShot": "A screenshot of the current screen will be attached to help the team find the bug.",
+    "shakeReport": "Report a problem",
+    "shakeNotNow": "Not now",
+    "shakeToggleHint": "Turn off to disable",
+    "shakeAttached": "A screenshot taken when you shook the phone is attached. Remove it if you'd rather not send it.",
+    "shakeAttachedWithScreen": "A screenshot of \"{{screen}}\" taken when you shook the phone is attached. Remove it if you'd rather not send it."
   }
 }
