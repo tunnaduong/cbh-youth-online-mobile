@@ -15,6 +15,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Animated,
+  Modal,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -93,6 +95,7 @@ const ProfileScreen = ({ route, navigation }) => {
   const [likedTotalLikes, setLikedTotalLikes] = useState(0);
   const [followed, setFollowed] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -944,9 +947,12 @@ const ProfileScreen = ({ route, navigation }) => {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}>
+            <TouchableOpacity
+              style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}
+              onPress={() => setShowMilestonesModal(true)}
+            >
               <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.pointsTab')}</Text>
-              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.primary }}>
                 {userData?.stats?.activity_points}
               </Text>
             </TouchableOpacity>
@@ -1058,6 +1064,57 @@ const ProfileScreen = ({ route, navigation }) => {
             </View>
           </View>
         </View>
+
+        <Modal
+          visible={showMilestonesModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowMilestonesModal(false)}
+        >
+          <Pressable
+            style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}
+            onPress={() => setShowMilestonesModal(false)}
+          >
+            <Pressable
+              style={{ backgroundColor: isDarkMode ? "#1c1c1e" : "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 36 }}
+              onPress={() => {}}
+            >
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <Text style={{ fontWeight: "700", fontSize: 16, color: theme.primary }}>Điểm thành tích</Text>
+                <TouchableOpacity onPress={() => setShowMilestonesModal(false)}>
+                  <Ionicons name="close" size={22} color={theme.subText} />
+                </TouchableOpacity>
+              </View>
+              {(() => {
+                const TIERS = [
+                  { id: "trainee", name: "Tập sự", min_points: 50, color: "#6b7280" },
+                  { id: "active", name: "Tích cực", min_points: 150, color: "#3b82f6" },
+                  { id: "distinguished", name: "Tiêu biểu", min_points: 500, color: "#eab308" },
+                  { id: "veteran", name: "Kỳ cựu", min_points: 1000, color: "#a855f7" },
+                ];
+                const milestones = userData?.points_milestones || {};
+                return TIERS.map((tier) => {
+                  const m = milestones[tier.id];
+                  const achieved = m?.achieved_at;
+                  return (
+                    <View key={tier.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? "#2a2a2a" : "#f0f0f0", opacity: achieved ? 1 : 0.4 }}>
+                      <View style={{ width: 52, alignItems: "center" }}>
+                        <Text style={{ fontWeight: "800", fontSize: 13, color: tier.color }}>{tier.min_points}</Text>
+                        <Text style={{ fontSize: 10, color: tier.color }}>điểm</Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text }}>{tier.name}</Text>
+                      </View>
+                      <Text style={{ fontSize: 12, color: theme.subText }}>
+                        {achieved ? new Date(achieved).toLocaleDateString("vi-VN") : "Chưa đạt"}
+                      </Text>
+                    </View>
+                  );
+                });
+              })()}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <ReportModal
           visible={reportModalVisible}
