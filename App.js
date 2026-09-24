@@ -94,6 +94,7 @@ import { useShareIntent } from "expo-share-intent";
 import { parseYouTubeShare } from "./app/utils/youtubeShare";
 import { initDevConsole } from "./app/utils/devConsole";
 import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
+import ShakeToReport from "./app/components/ShakeToReport";
 
 // Patches console.log/warn/error as early as possible so nothing logged
 // during app startup is missed if dev mode is already enabled from a
@@ -1004,6 +1005,8 @@ const App = () => {
           )}
         </Stack.Navigator>
       </NavigationContainer>
+      {/* Shake the phone -> screenshot + feedback form (toggle in Settings) */}
+      <ShakeToReport navigationRef={navigationRef} />
       <CustomAlertProvider />
     </>
   );

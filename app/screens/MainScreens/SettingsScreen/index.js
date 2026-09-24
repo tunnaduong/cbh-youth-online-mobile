@@ -93,7 +93,7 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled } = useTheme();
+  const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
 
@@ -323,6 +323,13 @@ export default function SettingsScreen({ navigation }) {
             isSwitch
             value={liquidGlassEnabled}
             onPress={setLiquidGlassEnabled}
+          />
+          <SettingItem
+            icon="phone-portrait-outline"
+            title={t("settings.shakeToReport")}
+            isSwitch
+            value={shakeToReportEnabled}
+            onPress={setShakeToReportEnabled}
           />
           <SettingItem
             icon="ban-outline"

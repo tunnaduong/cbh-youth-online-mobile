@@ -69,6 +69,14 @@ export const ThemeProvider = ({ children }) => {
     return storage.getBoolean("liquidGlassEnabled") ?? true;
   });
 
+  // Shake-to-report: shaking the phone grabs a screenshot of the current
+  // screen and opens the feedback form with it attached. On by default (it's
+  // the fastest way to report a bug where it happens); users who trigger it
+  // by accident can switch it off in Settings or from the shake sheet itself.
+  const [shakeToReportEnabled, setShakeToReportEnabledState] = useState(() => {
+    return storage.getBoolean("shakeToReportEnabled") ?? true;
+  });
+
   useEffect(() => {
     if (useSystemTheme) {
       setIsDarkMode(systemColorScheme === "dark");
@@ -101,6 +109,11 @@ export const ThemeProvider = ({ children }) => {
     storage.set("liquidGlassEnabled", value);
   };
 
+  const setShakeToReportEnabled = (value) => {
+    setShakeToReportEnabledState(value);
+    storage.set("shakeToReportEnabled", value);
+  };
+
   const theme = isDarkMode ? colors.dark : colors.light;
 
   return (
@@ -117,6 +130,8 @@ export const ThemeProvider = ({ children }) => {
         setAutoplayVideos,
         liquidGlassEnabled,
         setLiquidGlassEnabled,
+        shakeToReportEnabled,
+        setShakeToReportEnabled,
       }}
     >
       {children}

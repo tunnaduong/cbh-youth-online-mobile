@@ -206,6 +206,7 @@ export const AuthProvider = ({ children }) => {
     if (storage.contains("hideTabLabels")) preserved.hideTabLabels = storage.getBoolean("hideTabLabels");
     if (storage.contains("autoplayVideos")) preserved.autoplayVideos = storage.getBoolean("autoplayVideos");
     if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
+    if (storage.contains("shakeToReportEnabled")) preserved.shakeToReportEnabled = storage.getBoolean("shakeToReportEnabled");
 
     storage.clearAll();
 
