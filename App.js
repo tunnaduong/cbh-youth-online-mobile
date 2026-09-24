@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useCallback, useContext, useState, useEffect, useRef } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 // react-native-screens' enableFreeze(true) used to be on here - it pauses a
@@ -14,6 +14,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { View, Text, Platform, Alert, StatusBar, Linking, DeviceEventEmitter } from "react-native";
 import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
+import { SessionResetContext } from "./app/contexts/SessionContext";
 import i18n, { hasChosenLanguage } from "./app/i18n";
 import { getSavedAccounts } from "./app/utils/savedAccounts";
 
@@ -291,14 +292,17 @@ const parseDeepLink = (url) => {
 };
 
 // Main App component
-const App = () => {
+const App = ({ skipSplash = false }) => {
   const { theme, isDarkMode } = useTheme();
   const { barStyle, backgroundColor: statusBarColor } = useStatusBar();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
   const { shareIntent, resetShareIntent } = useShareIntent();
-  const [showSplash, setShowSplash] = useState(true);
+  // An in-process restart (account switch) skips the branded splash: the
+  // native splash already played at launch, replaying the animation would
+  // just make switching feel slow.
+  const [showSplash, setShowSplash] = useState(!skipSplash);
   // i18n.init() reads the saved language from AsyncStorage asynchronously, so
   // i18n.language is undefined for a brief window after app start. Screens
   // that fetch and format data (e.g. story/post timestamps) as soon as they
@@ -1058,17 +1062,28 @@ const App = () => {
   );
 };
 
-export default () => (
-  <TailwindProvider>
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <MultiContextProvider>
-        <SafeAreaProvider>
-          <KeyboardProvider>
-            <App />
-          </KeyboardProvider>
-        </SafeAreaProvider>
-      </MultiContextProvider>
-      <Toast topOffset={60} />
-    </GestureHandlerRootView>
-  </TailwindProvider>
-);
+export default () => {
+  // Bumped by AuthContext when the active account changes. Keying the whole
+  // provider tree on it throws every context and the navigator away and
+  // mounts them again from storage - a cold start without a native reload
+  // (see SessionContext for why the native reload was dropped).
+  const [sessionKey, setSessionKey] = useState(0);
+  const resetSession = useCallback(() => setSessionKey((k) => k + 1), []);
+
+  return (
+    <TailwindProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SessionResetContext.Provider value={resetSession}>
+          <MultiContextProvider key={sessionKey}>
+            <SafeAreaProvider>
+              <KeyboardProvider>
+                <App skipSplash={sessionKey > 0} />
+              </KeyboardProvider>
+            </SafeAreaProvider>
+          </MultiContextProvider>
+        </SessionResetContext.Provider>
+        <Toast topOffset={60} />
+      </GestureHandlerRootView>
+    </TailwindProvider>
+  );
+};

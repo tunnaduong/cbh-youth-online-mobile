@@ -7,8 +7,7 @@ import {
   getBlockedUsers,
 } from "../services/api/Api";
 import { storage } from "../global/storage";
-import { DevSettings } from "react-native";
-import * as Updates from "expo-updates";
+import { useSessionReset } from "./SessionContext";
 import {
   getSavedAccounts,
   upsertSavedAccount,
@@ -33,16 +32,6 @@ const clearSessionCaches = () => {
   }
 };
 
-// Cold-restart the JS app so every context (chat socket, push registration,
-// feed caches, navigation) boots fresh for the newly active account.
-const reloadApp = async () => {
-  try {
-    await Updates.reloadAsync();
-  } catch (e) {
-    DevSettings.reload();
-  }
-};
-
 export const AuthContext = createContext();
 
 export const useAuthContext = () => {
@@ -54,6 +43,10 @@ export const useAuthContext = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  // Remounts the whole provider tree (see SessionContext) so every context -
+  // chat socket, push registration, feed caches, navigation - boots fresh for
+  // the newly active account, the same way a cold start would.
+  const restartSession = useSessionReset();
   const [isLoggedIn, setIsLoggedIn] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [username, setUsername] = useState(null);
@@ -268,7 +261,7 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.setItem("user_info", JSON.stringify(freshUser));
     await AsyncStorage.removeItem("blocked_users");
     clearSessionCaches();
-    await reloadApp();
+    restartSession();
   };
 
   // Keeps the current account signed in (saved) and shows the login screens.
