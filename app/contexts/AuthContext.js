@@ -7,8 +7,6 @@ import {
   getBlockedUsers,
 } from "../services/api/Api";
 import { storage } from "../global/storage";
-import { DevSettings } from "react-native";
-import * as Updates from "expo-updates";
 import {
   getSavedAccounts,
   upsertSavedAccount,
@@ -30,16 +28,6 @@ const clearSessionCaches = () => {
 
   for (const [key, value] of Object.entries(preserved)) {
     if (value !== undefined) storage.set(key, value);
-  }
-};
-
-// Cold-restart the JS app so every context (chat socket, push registration,
-// feed caches, navigation) boots fresh for the newly active account.
-const reloadApp = async () => {
-  try {
-    await Updates.reloadAsync();
-  } catch (e) {
-    DevSettings.reload();
   }
 };
 
@@ -65,6 +53,14 @@ export const AuthProvider = ({ children }) => {
   const [avatarVersion, setAvatarVersion] = useState(1);
   // Incremented when current user updates their cover photo → busts expo-image cache
   const [coverVersion, setCoverVersion] = useState(1);
+  // Bumped on every account switch. MultiContextProvider keys the whole app
+  // tree (chat socket, push registration, feed caches, navigation...) on it,
+  // so switching remounts everything fresh for the new account - a pure-JS
+  // "restart". This used to be Updates.reloadAsync() - a full native JS
+  // reload right after storage.clearAll() - which is what crashed the app on
+  // tapping an account (a runtime reload is rarely exercised outside dev and
+  // several native modules don't survive it cleanly).
+  const [sessionKey, setSessionKey] = useState(0);
 
   // Persisted so the cache-bust survives an app restart - without this, a
   // fresh cold start resets the in-memory version to 1, the avatar/cover
@@ -268,7 +264,31 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.setItem("user_info", JSON.stringify(freshUser));
     await AsyncStorage.removeItem("blocked_users");
     clearSessionCaches();
-    await reloadApp();
+
+    // Per-account state lives in React here; everything below the provider
+    // is remounted via sessionKey. These setStates are batched into one
+    // commit, so nothing renders in between with a half-switched session.
+    setAvatarVersion(1);
+    setCoverVersion(1);
+    setBlockedUsers([]);
+    setUsername(freshUser.username || null);
+    setProfileName(freshUser.profile_name || null);
+    setUserInfo(freshUser);
+    setEmailVerifiedAt(freshUser.email_verified_at || null);
+    setIsLoggedIn(true);
+    setSessionKey((k) => k + 1);
+
+    // Best-effort: pull the new account's block list like signIn does.
+    try {
+      const blocked = await getBlockedUsers();
+      if (blocked?.data) {
+        const blockedUsernames = blocked.data.map((u) => u.username);
+        setBlockedUsers(blockedUsernames);
+        await AsyncStorage.setItem("blocked_users", JSON.stringify(blockedUsernames));
+      }
+    } catch (e) {
+      console.error("Error fetching blocked users after account switch:", e);
+    }
   };
 
   // Keeps the current account signed in (saved) and shows the login screens.
@@ -366,6 +386,7 @@ export const AuthProvider = ({ children }) => {
         signOut,
         switchAccount,
         addAccount,
+        sessionKey,
         blockedUsers,
         blockUserInContext: blockUser,
         unblockUserInContext: unblockUser,
