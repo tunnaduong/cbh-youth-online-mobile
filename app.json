@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "5.3.1",
+    "version": "5.6.5",
     "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "portrait",
     "icon": "./app/assets/icon.png",
@@ -17,7 +17,7 @@
         "tinted": "./app/assets/cbh-youth-iOS-ClearDark-1024x1024@1x.png"
       },
       "bundleIdentifier": "com.fatties.youth",
-      "buildNumber": "823",
+      "buildNumber": "865",
       "appleTeamId": "62H5L8QDTS",
       "infoPlist": {
         "NSCameraUsageDescription": "Cho phép CBH Youth Online truy cập camera của bạn để chụp ảnh",
