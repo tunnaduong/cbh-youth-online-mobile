@@ -3695,11 +3695,21 @@ const ConversationScreen = ({ navigation, route }) => {
     if (!item) return;
 
     const isVideo = item.content_type === "video" || item.type === "video";
-    const url = item.file_url;
-    if (!url) return;
+    // Multi-attachment messages only ever carry `file_url` as the FIRST
+    // attachment's uri (see sendAttachmentMessage's `primary = attachments[0]`
+    // above) - downloading just that one silently dropped every other
+    // attached photo/video. `file_urls` (plural) has the full set.
+    const urls = Array.isArray(item.file_urls) && item.file_urls.length > 0
+      ? item.file_urls
+      : item.file_url
+        ? [item.file_url]
+        : [];
+    if (urls.length === 0) return;
 
     try {
-      await downloadMediaToLibrary(url, isVideo ? "video" : "image");
+      for (const url of urls) {
+        await downloadMediaToLibrary(url, isVideo ? "video" : "image");
+      }
       Toast.show({ type: "success", text1: t("chatConversation.downloadSuccess", "Đã lưu vào thư viện") });
     } catch (error) {
       const message = error?.message === "PERMISSION_DENIED"
