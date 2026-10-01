@@ -17,6 +17,8 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import StyledName from "../../../components/profile/StyledName";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 export default function MemberRankingScreen({ navigation }) {
   const { theme, isDarkMode } = useTheme();
@@ -79,17 +81,19 @@ export default function MemberRankingScreen({ navigation }) {
           <View style={[styles.rankBadge2, { borderColor: theme.background }]}>
             <Text style={styles.rankText}>2</Text>
           </View>
-          <FastImage
-            source={{
-              uri:
-                second.avatar_url ||
-                `https://api.chuyenbienhoa.com/v1.0/users/${second.username}/avatar`,
-            }}
-            style={styles.avatarTop2}
-          />
-          <Text style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
+          <AvatarFrameWrap theme={second.profile_theme} size={60} style={styles.avatarWrapTop}>
+            <FastImage
+              source={{
+                uri:
+                  second.avatar_url ||
+                  `https://api.chuyenbienhoa.com/v1.0/users/${second.username}/avatar`,
+              }}
+              style={styles.avatarTop2}
+            />
+          </AvatarFrameWrap>
+          <StyledName theme={second.profile_theme} variant="compact" style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
             {second.profile_name}
-          </Text>
+          </StyledName>
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: second.total_points })}</Text>
         </TouchableOpacity>
 
@@ -103,18 +107,22 @@ export default function MemberRankingScreen({ navigation }) {
           <View style={styles.crownContainer}>
             <Ionicons name="trophy" size={24} color="#FFD700" />
           </View>
-          <FastImage
-            source={{
-              uri:
-                first.avatar_url ||
-                `https://api.chuyenbienhoa.com/v1.0/users/${first.username}/avatar`,
-            }}
-            style={styles.avatarTop1}
-          />
+          <AvatarFrameWrap theme={first.profile_theme} size={80} style={styles.avatarWrapTop}>
+            <FastImage
+              source={{
+                uri:
+                  first.avatar_url ||
+                  `https://api.chuyenbienhoa.com/v1.0/users/${first.username}/avatar`,
+              }}
+              style={styles.avatarTop1}
+            />
+          </AvatarFrameWrap>
           <View style={[styles.rankBadge1, { borderColor: theme.background }]}>
             <Text style={styles.rankText}>1</Text>
           </View>
-          <Text
+          <StyledName
+            theme={first.profile_theme}
+            variant="compact"
             style={[
               styles.nameTop,
               { fontWeight: "bold", fontSize: 16, marginTop: 18, color: theme.text },
@@ -122,7 +130,7 @@ export default function MemberRankingScreen({ navigation }) {
             numberOfLines={1}
           >
             {first.profile_name}
-          </Text>
+          </StyledName>
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: first.total_points })}</Text>
         </TouchableOpacity>
 
@@ -136,17 +144,19 @@ export default function MemberRankingScreen({ navigation }) {
           <View style={[styles.rankBadge3, { borderColor: theme.background }]}>
             <Text style={styles.rankText}>3</Text>
           </View>
-          <FastImage
-            source={{
-              uri:
-                third.avatar_url ||
-                `https://api.chuyenbienhoa.com/v1.0/users/${third.username}/avatar`,
-            }}
-            style={styles.avatarTop2}
-          />
-          <Text style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
+          <AvatarFrameWrap theme={third.profile_theme} size={60} style={styles.avatarWrapTop}>
+            <FastImage
+              source={{
+                uri:
+                  third.avatar_url ||
+                  `https://api.chuyenbienhoa.com/v1.0/users/${third.username}/avatar`,
+              }}
+              style={styles.avatarTop2}
+            />
+          </AvatarFrameWrap>
+          <StyledName theme={third.profile_theme} variant="compact" style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
             {third.profile_name}
-          </Text>
+          </StyledName>
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: third.total_points })}</Text>
         </TouchableOpacity>
       </View>
@@ -164,16 +174,18 @@ export default function MemberRankingScreen({ navigation }) {
         }
       >
         <Text style={[styles.rankNumber, { color: theme.subText }]}>#{index + 1}</Text>
-        <FastImage
-          source={{
-            uri:
-              item.avatar_url ||
-              `https://api.chuyenbienhoa.com/v1.0/users/${item.username}/avatar`,
-          }}
-          style={styles.itemAvatar}
-        />
+        <AvatarFrameWrap theme={item.profile_theme} size={44} style={styles.itemAvatarWrap}>
+          <FastImage
+            source={{
+              uri:
+                item.avatar_url ||
+                `https://api.chuyenbienhoa.com/v1.0/users/${item.username}/avatar`,
+            }}
+            style={styles.itemAvatar}
+          />
+        </AvatarFrameWrap>
         <View style={styles.itemInfo}>
-          <Text style={[styles.itemName, { color: theme.text }]}>{item.profile_name}</Text>
+          <StyledName theme={item.profile_theme} variant="compact" style={[styles.itemName, { color: theme.text }]}>{item.profile_name}</StyledName>
           <Text style={[styles.itemUsername, { color: theme.subText }]}>@{item.username}</Text>
         </View>
         <Text style={[styles.itemPoints, { color: theme.primary }]}>{t('profile.points', { count: item.total_points })}</Text>
@@ -276,7 +288,6 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 3,
     borderColor: "#FFD700",
-    marginBottom: 8,
   },
   avatarTop2: {
     width: 60,
@@ -284,6 +295,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     borderWidth: 2,
     borderColor: "#C0C0C0",
+  },
+  avatarWrapTop: {
     marginBottom: 8,
   },
   nameTop: {
@@ -358,6 +371,8 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
+  },
+  itemAvatarWrap: {
     marginRight: 12,
   },
   itemInfo: {

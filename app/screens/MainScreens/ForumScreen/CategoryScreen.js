@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
+import StyledName from "../../../components/profile/StyledName";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import CustomLoading from "../../../components/CustomLoading";
 import CustomRefreshControl from "../../../components/CustomRefreshControl";
@@ -202,13 +204,20 @@ const CategoryScreen = ({ navigation, route }) => {
     >
       <View style={styles.threadContentRow}>
         <View style={styles.threadMetaRow}>
-          <FastImage
-            source={{ uri: thread?.author?.avatar }}
-            style={styles.avatar}
-          />
-          <Text style={[styles.metaText, { color: theme.text }]} numberOfLines={1}>
+          <AvatarFrameWrap theme={thread?.author?.profile_theme} size={20} style={{ marginRight: 8 }}>
+            <FastImage
+              source={{ uri: thread?.author?.avatar }}
+              style={[styles.avatar, { marginRight: 0 }]}
+            />
+          </AvatarFrameWrap>
+          <StyledName
+            theme={thread?.author?.profile_theme}
+            variant="compact"
+            style={[styles.metaText, { color: theme.text }]}
+            numberOfLines={1}
+          >
             {thread?.author?.profile_name}
-          </Text>
+          </StyledName>
           {thread?.author?.verified && (
             <Ionicons name="checkmark-circle" size={14} color={theme.primary} style={styles.metaIcon} />
           )}

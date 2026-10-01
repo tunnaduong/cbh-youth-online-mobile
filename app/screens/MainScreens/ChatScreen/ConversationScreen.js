@@ -29,6 +29,8 @@ import InlineVideoPlayer from "../../../components/InlineVideoPlayer";
 import ImageView from "react-native-image-viewing";
 import { useVideoPlayer, VideoView } from "expo-video";
 import FastImage from "../../../components/FastImage";
+import StyledName from "../../../components/profile/StyledName";
+import AvatarFrame, { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import {
   getConversationMessages,
   getConversations,
@@ -932,11 +934,15 @@ const MessageRow = React.memo(({
       )}
       {/* Show sender name for group chats when sender changes, and always for Yoyo AI */}
       {(isGroupChat || item.sender?.is_ai) && !item.is_myself && senderChanged && (
-        <Text style={[styles.senderName, { color: theme.subText }]}>
+        <StyledName
+          theme={item.sender?.profile_theme}
+          variant="compact"
+          style={[styles.senderName, { color: theme.subText }]}
+        >
           {item.sender?.profile_name ||
             item.sender?.username ||
             t("chatConversation.anonymous")}
-        </Text>
+        </StyledName>
       )}
       <View
         style={[
@@ -951,14 +957,20 @@ const MessageRow = React.memo(({
             activeOpacity={0.7}
             onPress={() => handlersRef.current.openSenderActions?.(item.sender)}
           >
-            <FastImage
-              source={{
-                uri:
-                  item.sender?.avatar_url ||
-                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-              }}
-              style={styles.messageAvatar}
-            />
+            <AvatarFrameWrap
+              theme={item.sender?.profile_theme}
+              size={32}
+              style={styles.messageAvatarWrap}
+            >
+              <FastImage
+                source={{
+                  uri:
+                    item.sender?.avatar_url ||
+                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+                }}
+                style={styles.messageAvatar}
+              />
+            </AvatarFrameWrap>
           </TouchableOpacity>
         )}
         <View
@@ -4171,12 +4183,15 @@ const ConversationScreen = ({ navigation, route }) => {
                     style={styles.headerAvatarLarge}
                   />
                 </View>
+                <AvatarFrame theme={otherUser?.profile_theme} size={40} />
                 {currentConversation?.type !== "group" && isOtherUserOnline ? (
                   <View style={styles.headerOnlineDot} />
                 ) : null}
               </View>
               <View style={[styles.headerTextContainer, { flexShrink: 1, minWidth: 0 }]}>
-                <Text
+                <StyledName
+                  theme={otherUser?.profile_theme}
+                  variant="compact"
                   style={[styles.headerName, { color: theme.text }]}
                   numberOfLines={1}
                   ellipsizeMode="tail"
@@ -4188,7 +4203,7 @@ const ConversationScreen = ({ navigation, route }) => {
                         ? t("chatConversation.casualGroupName")
                         : currentConversation?.name || t("chatConversation.casualGroupName")
                       : currentConversation?.participants[0]?.profile_name}
-                </Text>
+                </StyledName>
                 <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
                   {currentConversation?.type === "group"
                     ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
@@ -4818,11 +4833,13 @@ const styles = StyleSheet.create({
   theirMessageContainer: {
     justifyContent: "flex-start",
   },
+  messageAvatarWrap: {
+    marginRight: 8,
+  },
   messageAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    marginRight: 8,
   },
   messageBubble: {
     maxWidth: "75%",

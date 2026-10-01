@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useContext, useEffect, useRef } from "react";
 import FastImage from "../../../components/FastImage";
+import StyledName from "../../../components/profile/StyledName";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import {
   View,
   Text,
@@ -669,12 +671,19 @@ const GroupInfoScreen = ({ navigation, route }) => {
               ]}
             >
               <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
-                <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
+                <AvatarFrameWrap theme={item.profile_theme} size={44} style={styles.participantAvatarWrap}>
+                  <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
+                </AvatarFrameWrap>
               </TouchableOpacity>
               <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
-                <Text style={[styles.participantName, { color: theme.text }]} numberOfLines={1}>
+                <StyledName
+                  theme={item.profile_theme}
+                  variant="compact"
+                  style={[styles.participantName, { color: theme.text }]}
+                  numberOfLines={1}
+                >
                   {item.profile_name || item.username}
-                </Text>
+                </StyledName>
                 <Text style={[styles.participantHandle, { color: theme.subText }]} numberOfLines={1}>
                   @{item.username}
                 </Text>
@@ -933,7 +942,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  participantAvatar: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
+  participantAvatarWrap: { marginRight: 12 },
+  participantAvatar: { width: 44, height: 44, borderRadius: 22 },
   participantName: { fontSize: 15, fontWeight: "600" },
   participantHandle: { fontSize: 12, marginTop: 1 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginLeft: 6 },

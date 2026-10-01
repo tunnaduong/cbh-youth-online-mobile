@@ -1853,5 +1853,86 @@
     "shakeToggleHint": "Tắt để vô hiệu hóa",
     "shakeAttached": "Đã đính kèm ảnh chụp màn hình lúc bạn lắc điện thoại. Bạn có thể xóa ảnh nếu không muốn gửi.",
     "shakeAttachedWithScreen": "Đã đính kèm ảnh chụp màn hình \"{{screen}}\" lúc bạn lắc điện thoại. Bạn có thể xóa ảnh nếu không muốn gửi."
+  },
+  "profileTheme": {
+    "title": "Giao diện hồ sơ",
+    "apply": "Áp dụng",
+    "notSet": "Chưa chọn",
+    "loadError": "Không thể tải dữ liệu. Vui lòng thử lại.",
+    "saveError": "Có lỗi xảy ra khi lưu.",
+    "saved": "Đã lưu thay đổi.",
+    "restored": "Đã khôi phục mặc định.",
+    "unsaved": "Đừng quên lưu thay đổi!",
+    "previewOnly": "Đang xem thử — cần {{points}} điểm để lưu",
+    "unsavedTitle": "Chưa lưu thay đổi",
+    "unsavedMessage": "Bạn có muốn bỏ các thay đổi chưa lưu không?",
+    "stay": "Ở lại",
+    "discard": "Bỏ thay đổi",
+    "reset": "Đặt lại",
+    "save": "Lưu",
+    "lockedNotice": "Cần {{points}} điểm để tùy chỉnh giao diện. Bạn vẫn có thể xem thử.",
+    "changeAvatar": "Đổi ảnh đại diện",
+    "changeCover": "Đổi ảnh bìa",
+    "gifHint": "GIF động · {{points}} điểm",
+    "bannerColor": "Màu ảnh bìa",
+    "clearBanner": "Bỏ màu ảnh bìa",
+    "primaryColor": "Màu chính",
+    "accentColor": "Màu phụ",
+    "clearColors": "Bỏ màu giao diện",
+    "restoreTitle": "Khôi phục giao diện mặc định?",
+    "restore": "Khôi phục",
+    "restoreDefault": "Khôi phục mặc định",
+    "font": "Phông chữ",
+    "effect": "Hiệu ứng",
+    "color": "Màu",
+    "nameColor": "Chọn màu tên {{index}}",
+    "sections": {
+      "avatar": "Ảnh đại diện & Khung",
+      "banner": "Ảnh bìa",
+      "effects": "Hiệu ứng & Khung hồ sơ",
+      "name": "Kiểu tên",
+      "colors": "Màu giao diện"
+    },
+    "groups": {
+      "name_font": "Phông",
+      "name_effect": "Hiệu ứng tên",
+      "avatar_frame": "Khung ảnh đại diện",
+      "profile_effect": "Hiệu ứng hồ sơ",
+      "profile_frame": "Khung hồ sơ"
+    },
+    "preview": {
+      "about": "Giới thiệu",
+      "joined": "Tham gia",
+      "points": "Điểm",
+      "inComments": "Trong bình luận"
+    },
+    "milestones": {
+      "title": "Mốc điểm",
+      "pointsUnit": "điểm",
+      "next": "Còn {{points}} điểm tới {{tier}}",
+      "all": "Đã mở khóa tất cả",
+      "colors": "Màu giao diện & màu ảnh bìa",
+      "gif": "Avatar GIF động"
+    },
+    "fonts": {
+      "default": "Mặc định",
+      "condensed": "Cao gọn",
+      "script": "Thư pháp",
+      "bubbly": "Tròn trịa",
+      "modern": "Hiện đại",
+      "gothic": "Cổ điển",
+      "pixel": "Pixel",
+      "spooky": "Gai góc",
+      "comic": "Truyện tranh",
+      "tech": "Công nghệ",
+      "heavy": "Đậm chất",
+      "handwritten": "Viết tay"
+    },
+    "options": {
+      "avatar_frame": { "none": "Không", "theme": "Theo màu", "trainee": "Bạc", "active": "Băng", "distinguished": "Vàng", "veteran": "Cầu vồng" },
+      "name_effect": { "none": "Không", "solid": "Một màu", "gradient": "Chuyển màu", "pop": "Nổi khối", "toon": "Hoạt hình", "neon": "Neon" },
+      "profile_effect": { "none": "Không", "sparkles": "Lấp lánh", "hearts": "Trái tim", "snow": "Tuyết rơi", "aurora": "Cực quang" },
+      "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay" }
+    }
   }
 }

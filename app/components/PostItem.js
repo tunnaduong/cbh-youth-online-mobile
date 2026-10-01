@@ -51,6 +51,8 @@ import { findPreviewableUrlInHtml } from "../utils/linkPreview";
 import LinkPreviewCard from "./LinkPreviewCard";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
 import { openExternalLink, openInAppBrowser } from "../utils/externalLink";
+import StyledName from "./profile/StyledName";
+import { AvatarFrameWrap } from "./profile/AvatarFrame";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -324,6 +326,7 @@ const PostItem = ({
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const authorTheme = item?.anonymous ? null : item?.author?.profile_theme;
   const isCurrentUser = item?.is_owner === true || item?.topic?.is_owner === true || item?.author?.username === username || String(item?.author?.id) === String(userInfo?.id) || String(item?.user_id) === String(userInfo?.id) || String(item?.uid) === String(userInfo?.id) || String(item?.userid) === String(userInfo?.id) || item?.is_mine === true || item?.is_author === true;
 
   // Use external state if provided (for single view), otherwise use item props
@@ -1185,6 +1188,7 @@ const PostItem = ({
         style={{ paddingHorizontal: 15, flexDirection: "row", alignItems: "center" }}
         disabled={!navigation || !item?.author?.username || !!item.anonymous}
       >
+        <AvatarFrameWrap theme={authorTheme} size={42}>
         <View
           style={{
             backgroundColor: theme.cardBackground,
@@ -1213,7 +1217,8 @@ const PostItem = ({
             )
           )}
         </View>
-        <Text style={{ fontWeight: "bold", color: theme.primary, marginLeft: 8, flexShrink: 1 }}>
+        </AvatarFrameWrap>
+        <StyledName theme={authorTheme} variant="compact" style={{ fontWeight: "bold", color: theme.primary, marginLeft: 8, flexShrink: 1 }}>
           {item.anonymous ? t('post.anonymousUser') : (item?.author?.profile_name || item?.author?.username || "")}
           {item?.author?.verified && !item.anonymous && (
             <View>
@@ -1225,7 +1230,7 @@ const PostItem = ({
               />
             </View>
           )}
-        </Text>
+        </StyledName>
         <Text style={{ color: theme.subText }}>
           {" · "}{formatTime(item.created_at || item.time || item.created_at_human)}{item.is_edited ? ` (${t('post.edited')})` : ""}
         </Text>

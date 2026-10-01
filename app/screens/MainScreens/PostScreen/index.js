@@ -54,6 +54,8 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
 import Verified from "../../../assets/Verified";
+import StyledName from "../../../components/profile/StyledName";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import ReportModal from "../../../components/ReportModal";
 import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -78,6 +80,7 @@ const Comment = React.memo(React.forwardRef(
 
     const votes = comment.votes ?? [];
     const author = comment.author ?? {};
+    const authorTheme = comment.is_anonymous ? null : author.profile_theme;
     const content = comment.content ?? "";
     const contentHtml = comment.comment ?? "";
     const validMentions = Array.isArray(comment.mentions)
@@ -114,29 +117,31 @@ const Comment = React.memo(React.forwardRef(
               onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
               disabled={!author.username || !!comment.is_anonymous}
             >
-              <View style={{ backgroundColor: theme.background, width: 42, height: 42, borderRadius: 21, overflow: "hidden", borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
-                {comment.is_anonymous ? (
-                  <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
-                  </View>
-                ) : author.username ? (
-                  <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
-                ) : null}
-              </View>
+              <AvatarFrameWrap theme={authorTheme} size={42}>
+                <View style={{ backgroundColor: theme.background, width: 42, height: 42, borderRadius: 21, overflow: "hidden", borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
+                  {comment.is_anonymous ? (
+                    <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
+                    </View>
+                  ) : author.username ? (
+                    <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
+                  ) : null}
+                </View>
+              </AvatarFrameWrap>
             </Pressable>
             <View style={{ flexShrink: 1 }}>
               <Pressable
                 onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
                 disabled={!author.username || !!comment.is_anonymous}
               >
-                <Text style={{ fontWeight: "bold", color: theme.primary }}>
+                <StyledName theme={authorTheme} variant="compact" style={{ fontWeight: "bold", color: theme.primary }}>
                   {comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || ""}
                   {author.verified && !comment.is_anonymous && (
                     <View>
                       <Verified width={15} height={15} color={theme.primary} style={{ marginBottom: -3 }} />
                     </View>
                   )}
-                </Text>
+                </StyledName>
               </Pressable>
               {comment.target_author && (
                 <Text style={{ fontSize: 12, color: theme.subText, marginBottom: 2 }}>

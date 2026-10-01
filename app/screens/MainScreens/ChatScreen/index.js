@@ -30,6 +30,8 @@ import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import CustomLoading from "../../../components/CustomLoading";
 import FastImage from "../../../components/FastImage";
+import StyledName from "../../../components/profile/StyledName";
+import AvatarFrame from "../../../components/profile/AvatarFrame";
 
 const formatMessageTime = (timestamp) => {
   // ... same formatMessageTime function ...
@@ -292,6 +294,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     return conversation.avatar_url || null;
   };
 
+  // Only 1-1 chats show a person; group names/images stay unstyled.
+  const getProfileTheme = (conversation) =>
+    conversation.type === "private" ? conversation.participants[0]?.profile_theme : null;
+
   const renderLastMessagePreview = (latestMessage) => {
     if (!latestMessage) return t("chat.noMessages");
 
@@ -389,14 +395,20 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             style={[styles.avatar, { backgroundColor: theme.border }]}
           />
         )}
+        <AvatarFrame theme={getProfileTheme(item)} size={48} />
         {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
           <View style={styles.onlineDot} />
         ) : null}
       </View>
       <View style={styles.info}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
+        <StyledName
+          theme={getProfileTheme(item)}
+          variant="compact"
+          style={[styles.name, { color: theme.text }]}
+          numberOfLines={1}
+        >
           {getChatName(item)}
-        </Text>
+        </StyledName>
         <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
           {item.latest_message?.is_myself ? t('chat.you') : ""}
           {renderLastMessagePreview(item.latest_message)}

@@ -1866,5 +1866,86 @@
     "shakeToggleHint": "Turn off to disable",
     "shakeAttached": "A screenshot taken when you shook the phone is attached. Remove it if you'd rather not send it.",
     "shakeAttachedWithScreen": "A screenshot of \"{{screen}}\" taken when you shook the phone is attached. Remove it if you'd rather not send it."
+  },
+  "profileTheme": {
+    "title": "Profile appearance",
+    "apply": "Apply",
+    "notSet": "Not set",
+    "loadError": "Couldn't load data. Please try again.",
+    "saveError": "Something went wrong while saving.",
+    "saved": "Changes saved.",
+    "restored": "Restored to default.",
+    "unsaved": "Careful — you have unsaved changes!",
+    "previewOnly": "Previewing — {{points}} points needed to save",
+    "unsavedTitle": "Unsaved changes",
+    "unsavedMessage": "Discard your unsaved changes?",
+    "stay": "Stay",
+    "discard": "Discard",
+    "reset": "Reset",
+    "save": "Save",
+    "lockedNotice": "You need {{points}} points to customize your profile. You can still preview.",
+    "changeAvatar": "Change avatar",
+    "changeCover": "Change cover photo",
+    "gifHint": "Animated GIF · {{points}} points",
+    "bannerColor": "Banner color",
+    "clearBanner": "Remove banner color",
+    "primaryColor": "Primary color",
+    "accentColor": "Accent color",
+    "clearColors": "Remove theme colors",
+    "restoreTitle": "Restore the default appearance?",
+    "restore": "Restore",
+    "restoreDefault": "Restore default",
+    "font": "Font",
+    "effect": "Effect",
+    "color": "Color",
+    "nameColor": "Pick name color {{index}}",
+    "sections": {
+      "avatar": "Avatar & Decoration",
+      "banner": "Banner",
+      "effects": "Profile effect & Frame",
+      "name": "Display name style",
+      "colors": "Profile theme"
+    },
+    "groups": {
+      "name_font": "Font",
+      "name_effect": "Name effect",
+      "avatar_frame": "Avatar decoration",
+      "profile_effect": "Profile effect",
+      "profile_frame": "Profile frame"
+    },
+    "preview": {
+      "about": "About me",
+      "joined": "Member since",
+      "points": "Points",
+      "inComments": "In comments"
+    },
+    "milestones": {
+      "title": "Milestones",
+      "pointsUnit": "points",
+      "next": "{{points}} points to {{tier}}",
+      "all": "Everything unlocked",
+      "colors": "Theme & banner colors",
+      "gif": "Animated GIF avatar"
+    },
+    "fonts": {
+      "default": "Default",
+      "condensed": "Condensed",
+      "script": "Script",
+      "bubbly": "Bubbly",
+      "modern": "Modern",
+      "gothic": "Gothic",
+      "pixel": "Pixel",
+      "spooky": "Spiky",
+      "comic": "Comic",
+      "tech": "Tech",
+      "heavy": "Heavy",
+      "handwritten": "Handwritten"
+    },
+    "options": {
+      "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow" },
+      "name_effect": { "none": "None", "solid": "Solid", "gradient": "Gradient", "pop": "Pop", "toon": "Toon", "neon": "Neon" },
+      "profile_effect": { "none": "None", "sparkles": "Sparkles", "hearts": "Hearts", "snow": "Snowfall", "aurora": "Aurora" },
+      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon" }
+    }
   }
 }

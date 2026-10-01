@@ -90,6 +90,7 @@ import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/Withdraw
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
+import ProfileCustomizerScreen from "./app/screens/MainScreens/ProfileCustomizerScreen";
 import StudentVerificationScreen from "./app/screens/MainScreens/SettingsScreen/StudentVerificationScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
@@ -795,6 +796,13 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="SecurityScreen"
                 component={SecurityScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="ProfileCustomizerScreen"
+                component={ProfileCustomizerScreen}
                 options={{
                   headerShown: false,
                 }}

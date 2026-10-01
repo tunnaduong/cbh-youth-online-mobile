@@ -242,6 +242,11 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => navigation.navigate("ProfileDetailScreen", { username: userInfo.username })}
           />
           <SettingItem
+            icon="color-palette-outline"
+            title={t("profileTheme.title", "Giao diện hồ sơ")}
+            onPress={() => navigation.navigate("ProfileCustomizerScreen")}
+          />
+          <SettingItem
             icon="lock-closed-outline"
             title={t("settings.security")}
             onPress={() => navigation.navigate("SecurityScreen")}

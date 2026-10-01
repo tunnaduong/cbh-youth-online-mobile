@@ -44,6 +44,11 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import StyledName from "../../../components/profile/StyledName";
+import AvatarFrame, { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
+import ProfileEffect from "../../../components/profile/ProfileEffect";
+import ProfileFrame from "../../../components/profile/ProfileFrame";
+import { ThemedBanner, ThemedSurface } from "../../../components/profile/ProfilePreviewCard";
 
 const LIKED_SORT_OPTIONS = [
   { value: "newest", labelKey: "profile.sortNewest" },
@@ -71,6 +76,9 @@ const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
+  // Discord-style profile theme (null = default look) - see ProfileCustomizerScreen.
+  const profileTheme = userData?.profile?.theme || null;
+  const tabColor = profileTheme?.primary_color || theme.primary;
   // True when the API says this profile doesn't exist - which is also what
   // it answers for someone blocked in either direction.
   const [notFound, setNotFound] = useState(false);
@@ -526,11 +534,18 @@ const ProfileScreen = ({ route, navigation }) => {
         });
       }}
     >
-      <FastImage source={{ uri: user.profile_picture }} style={styles.userAvatar} />
+      <AvatarFrameWrap theme={user.profile_theme} size={50}>
+        <FastImage source={{ uri: user.profile_picture }} style={styles.userAvatar} />
+      </AvatarFrameWrap>
       <View style={styles.userInfo}>
-        <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
+        <StyledName
+          theme={user.profile_theme}
+          variant="compact"
+          style={[styles.userName, { color: theme.text }]}
+          numberOfLines={1}
+        >
           {user.profile_name}
-        </Text>
+        </StyledName>
         <Text style={[styles.userUsername, { color: theme.subText }]} numberOfLines={1}>
           @{user.username}
         </Text>
@@ -718,26 +733,32 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const renderListHeader = () => (
     <>
-          {userData?.profile?.cover_photo_url ? (
-            <FastImage
-              source={{ uri: isCurrentUser ? getCoverUrl(userId) : userData.profile.cover_photo_url }}
-              style={{
-                height: 170,
-                borderRadius: 15,
-                margin: 16,
-                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
-              }}
+          {/* Cover: the photo, or (without one) the profile theme's banner
+              color / gradient. Profile effect + frame play over it. */}
+          <View
+            style={{
+              height: 170,
+              borderRadius: 15,
+              margin: 16,
+              overflow: "hidden",
+              backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
+            }}
+          >
+            <ThemedBanner
+              theme={profileTheme}
+              coverUrl={
+                userData?.profile?.cover_photo_url
+                  ? isCurrentUser
+                    ? getCoverUrl(userId)
+                    : userData.profile.cover_photo_url
+                  : null
+              }
+              style={StyleSheet.absoluteFill}
+              fallbackColor={isDarkMode ? "#374151" : "#d1d1d1"}
             />
-          ) : (
-            <View
-              style={{
-                height: 170,
-                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
-                borderRadius: 15,
-                margin: 16,
-              }}
-            />
-          )}
+            <ProfileEffect theme={profileTheme} />
+            <ProfileFrame theme={profileTheme} radius={15} />
+          </View>
 
           {/* Avatar row: avatar overlaps cover, name beside it */}
           <View style={{ paddingHorizontal: 16, marginTop: -40 }}>
@@ -749,6 +770,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   }}
                   style={[styles.avatar, { borderColor: theme.background }]}
                 />
+                <AvatarFrame theme={profileTheme} size={120} />
                 {/* Online status */}
                 {userData?.stats?.is_online ? (
                   <View style={{ backgroundColor: theme.background, borderRadius: 999, width: 20, height: 20, position: "absolute", bottom: 4, right: 4, justifyContent: "center", alignItems: "center" }}>
@@ -757,19 +779,18 @@ const ProfileScreen = ({ route, navigation }) => {
                 ) : null}
               </View>
               <View style={{ paddingBottom: 16, flex: 1 }}>
-                <Text style={[styles.name, { color: theme.text, marginTop: 0 }]} numberOfLines={2}>
-                  {userData?.profile?.profile_name}
+                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
+                  <StyledName
+                    theme={profileTheme}
+                    style={[styles.name, { color: theme.text, marginTop: 0, flexShrink: 1 }]}
+                    numberOfLines={2}
+                  >
+                    {userData?.profile?.profile_name}
+                  </StyledName>
                   {userData?.profile?.verified && (
-                    <View>
-                      <Verified
-                        width={23}
-                        height={23}
-                        color={theme.primary}
-                        style={{ marginBottom: -5 }}
-                      />
-                    </View>
+                    <Verified width={23} height={23} color={theme.primary} />
                   )}
-                </Text>
+                </View>
                 <Text style={[styles.username, { color: theme.subText }]} numberOfLines={1}>
                   @{userData?.username}
                 </Text>
@@ -779,14 +800,23 @@ const ProfileScreen = ({ route, navigation }) => {
 
           <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
             {isCurrentUser ? (
-              <TouchableOpacity
-                onPress={() => navigation.navigate("EditProfileScreen")}
-                style={{ backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999 }}
-              >
-                <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
-                  {t('follow.editProfile')}
-                </Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("EditProfileScreen")}
+                  style={{ flex: 1, backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999 }}
+                >
+                  <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
+                    {t('follow.editProfile')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("ProfileCustomizerScreen")}
+                  accessibilityLabel={t("profileTheme.title", "Giao diện hồ sơ")}
+                  style={{ width: 47, height: 47, borderRadius: 999, borderWidth: 1.5, borderColor: theme.primary, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Ionicons name="color-palette-outline" size={20} color={theme.primary} />
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {followed ? (
@@ -835,6 +865,7 @@ const ProfileScreen = ({ route, navigation }) => {
           </View>
 
           <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: theme.surface, padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border }}>
+            <ThemedSurface theme={profileTheme} radius={16} />
             <Text style={{ fontWeight: "600", fontSize: 18, color: theme.text }}>{t('profile.title')}</Text>
             {userData?.profile?.bio && (
               <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8, marginBottom: 12 }}>
@@ -898,7 +929,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "posts" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                activeTab === "posts" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("posts")}
             >
@@ -911,7 +942,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "following" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                activeTab === "following" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("following")}
             >
@@ -924,7 +955,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "followers" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                activeTab === "followers" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("followers")}
             >
@@ -937,7 +968,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "likes" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                activeTab === "likes" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("likes")}
             >

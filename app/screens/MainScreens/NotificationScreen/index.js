@@ -34,6 +34,8 @@ import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
+import StyledName from "../../../components/profile/StyledName";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 
 // Helper function to format notification message based on type and data
@@ -435,6 +437,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
       : isAnonymous
         ? (item.actor?.profile_name || t('createPost.anonymousUser') || "Ẩn danh")
         : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
+    const actorTheme = isSystemMessage || isAnonymous ? null : item.actor?.profile_theme;
     const displayContent = formatNotificationMessage(item.raw || item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
@@ -463,16 +466,22 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
           </View>
         ) : (
-          <FastImage
-            source={
-              !isSystemMessage
-                ? {
-                  uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
-                }
-                : require("../../../assets/logo.png")
-            }
-            style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
-          />
+          <AvatarFrameWrap
+            theme={actorTheme}
+            size={48}
+            style={{ alignSelf: "flex-start", marginRight: 12 }}
+          >
+            <FastImage
+              source={
+                !isSystemMessage
+                  ? {
+                    uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
+                  }
+                  : require("../../../assets/logo.png")
+              }
+              style={[styles.avatar, { marginRight: 0, borderColor: theme.border }]}
+            />
+          </AvatarFrameWrap>
         )}
         <View style={styles.content}>
           <Text style={[styles.message, { color: theme.text }]}>
@@ -480,7 +489,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               displayContent
             ) : (
               <>
-                <Text style={[styles.name, { color: theme.text }]}>{userName}</Text> {displayContent}
+                <StyledName theme={actorTheme} variant="compact" style={[styles.name, { color: theme.text }]}>{userName}</StyledName> {displayContent}
               </>
             )}
           </Text>
