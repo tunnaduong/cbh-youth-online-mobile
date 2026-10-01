@@ -164,6 +164,78 @@ export function parseUrlParts(url) {
   };
 }
 
+// First path segments on chuyenbienhoa.com that are pages of the site rather
+// than a username (mirrors the top-level folders of the web app's src/app, plus
+// a few static/asset paths), so "/forum" isn't mistaken for a profile.
+const RESERVED_ROOT_PATHS = new Set([
+  "about", "admin", "ads", "anonymous", "api", "assets", "auth", "chat",
+  "composer", "contact", "egg", "email", "explore", "feed", "feedback", "forum",
+  "group", "guide", "help", "images", "invite", "jobs", "link", "login", "lookup",
+  "my-archives", "open", "password", "policy", "post", "register", "saved",
+  "search", "settings", "shop", "sitemap.xml", "story", "storage",
+  "unsubscribe", "users", "wallet", "youth-news", "favicon.ico", "robots.txt",
+]);
+
+const USERNAME_REGEX = /^[\w.-]{3,30}$/;
+
+function decodeSegment(segment) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/**
+ * Maps a chuyenbienhoa.com link to the screen that shows the same thing inside
+ * the app, or null when the link isn't a post or a profile (those still open
+ * in the in-app browser).
+ *
+ *   /<username>/posts/<id>-<slug>  -> PostScreen   (also /anonymous/posts/...)
+ *   /post/<id>                     -> PostScreen   (legacy short link)
+ *   /<username>, /<username>/<tab> -> ProfileScreen
+ */
+export function resolveInAppRoute(url) {
+  const parts = parseUrlParts(url);
+  if (!parts) return null;
+  const host = parts.hostname.replace(/\.$/, "").replace(/^www\./, "");
+  if (host !== "chuyenbienhoa.com") return null;
+
+  const segments = parts.path.split("/").filter(Boolean).map(decodeSegment);
+  if (segments.length === 0) return null;
+
+  const postSegment =
+    segments.length >= 3 && segments[1] === "posts"
+      ? segments[2]
+      : segments[0] === "post" && segments.length >= 2
+        ? segments[1]
+        : null;
+  if (postSegment !== null) {
+    const postId = parseInt(postSegment.split("-")[0], 10);
+    if (!postId || postId < 1) return null;
+    return { type: "post", screen: "PostScreen", params: { postId, item: null } };
+  }
+
+  const username = segments[0];
+  if (segments.length > 2) return null;
+  if (RESERVED_ROOT_PATHS.has(username.toLowerCase())) return null;
+  if (!USERNAME_REGEX.test(username)) return null;
+  return { type: "profile", screen: "ProfileScreen", params: { username } };
+}
+
+/** Pushes the in-app screen for a route from resolveInAppRoute. */
+export function navigateToInAppRoute(navigation, route) {
+  if (!navigation || !route) return;
+  // push rather than navigate: PostScreen/ProfileScreen load their data once on
+  // mount, so reusing an instance already on the stack would keep showing the
+  // previous post/profile.
+  if (typeof navigation.push === "function") {
+    navigation.push(route.screen, route.params);
+  } else {
+    navigation.navigate(route.screen, route.params);
+  }
+}
+
 /** True when the URL leaves CBH Youth Online and the user should be warned. */
 export function isExternalUrl(url) {
   const parts = parseUrlParts(url);
@@ -215,13 +287,19 @@ export function openInAppBrowser(url, theme) {
 }
 
 /**
- * Opens a link found in user content. Anything on our own domain (and any
- * non-http scheme we'd hand to the OS anyway) opens directly; everything else
- * goes through the warning screen.
+ * Opens a link found in user content. Post and profile links on our own domain
+ * open the matching in-app screen; the rest of our domain (and any non-http
+ * scheme we'd hand to the OS anyway) opens directly; everything else goes
+ * through the warning screen.
  */
 export function openExternalLink(navigation, url, theme) {
   const raw = String(url || "").trim();
   if (!raw) return;
+  const inAppRoute = navigation ? resolveInAppRoute(raw) : null;
+  if (inAppRoute) {
+    navigateToInAppRoute(navigation, inAppRoute);
+    return;
+  }
   if (!navigation?.navigate || !isExternalUrl(raw)) {
     openInAppBrowser(raw, theme);
     return;

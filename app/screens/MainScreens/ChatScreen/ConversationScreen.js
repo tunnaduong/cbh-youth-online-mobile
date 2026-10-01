@@ -54,6 +54,8 @@ import {
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import SharedPostCard from "../../../components/SharedPostCard";
+import LinkPreviewCard from "../../../components/LinkPreviewCard";
+import { findPreviewableUrl } from "../../../utils/linkPreview";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
@@ -782,6 +784,15 @@ const MessageRow = React.memo(({
   const isImageMessage = item.type === "image" || item.content_type === "image";
   const isVideoMessage = item.type === "video" || item.content_type === "video";
   const isFileMessage = item.type === "file" || item.content_type === "file";
+  // Any other link pasted or typed into a text message gets a preview card
+  // under the text, the way a shared post does.
+  const linkPreviewUrl = useMemo(
+    () =>
+      sharedTopic || item.is_recalled || isImageMessage || isVideoMessage || isFileMessage
+        ? null
+        : findPreviewableUrl(item.content),
+    [sharedTopic, item.is_recalled, isImageMessage, isVideoMessage, isFileMessage, item.content]
+  );
   const resolvedFileUrl = resolveMediaUrl(item.file_url);
   const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
   // Small (480px) muted preview clip for autoplay - see
@@ -1250,6 +1261,9 @@ const MessageRow = React.memo(({
               >
                 {item.content}
               </MentionText>
+            ) : null}
+            {linkPreviewUrl ? (
+              <LinkPreviewCard url={linkPreviewUrl} compact style={{ marginTop: 8 }} />
             ) : null}
           </Pressable>
           <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} />

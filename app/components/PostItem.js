@@ -47,6 +47,8 @@ import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
 import { appendSoundCloudEmbedBelow } from "../utils/soundcloudShare";
+import { findPreviewableUrlInHtml } from "../utils/linkPreview";
+import LinkPreviewCard from "./LinkPreviewCard";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
 import { openExternalLink, openInAppBrowser } from "../utils/externalLink";
 
@@ -297,6 +299,17 @@ const PostItem = ({
   const displayImageUrls = Array.isArray(item.image_urls)
     ? item.image_urls.map((url, i) => imageThumbnailUrls[i] || url)
     : item.image_urls;
+  // A post that's just text plus a link gets the link's preview card, like
+  // Facebook. Skipped when the post has its own media - that's what the
+  // author wants front and centre.
+  const hasAttachedMedia =
+    (Array.isArray(item.image_urls) && item.image_urls.length > 0) ||
+    videoUrls.length > 0 ||
+    (Array.isArray(item.document_urls) && item.document_urls.length > 0);
+  const linkPreviewUrl = useMemo(
+    () => (hasAttachedMedia ? null : findPreviewableUrlInHtml(item.content)),
+    [hasAttachedMedia, item.content]
+  );
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
   const insets = useSafeAreaInsets();
   const { contentWidth } = useResponsiveLayout();
@@ -1117,6 +1130,10 @@ const PostItem = ({
           })()}
         </View>
       )}
+
+      {linkPreviewUrl ? (
+        <LinkPreviewCard url={linkPreviewUrl} style={{ marginHorizontal: 15, marginTop: 10 }} />
+      ) : null}
 
       {/* Document attachment display */}
       {item.document_urls && item.document_urls.length > 0 && (
