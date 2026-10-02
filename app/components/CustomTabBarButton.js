@@ -37,10 +37,13 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
   const menuAnim = useRef(new Animated.Value(0)).current;
   const [showButtons, setShowButtons] = useState(false);
   const navigation = useNavigation();
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
   const { t } = useTranslation();
 
   const isRealGlass = !!LiquidGlassView;
+  // Glass turned off in Settings: LiquidGlassView renders a flat View, so the
+  // green drop shadow on the wrapper bleeds around/through the circle.
+  const flatGlass = isRealGlass && !liquidGlassEnabled;
 
   // Drive the open animation from a mount effect so the menu view is actually
   // mounted before we animate it in (starting the animation in the same tick
@@ -250,13 +253,16 @@ const CustomTabBarButton = forwardRef(({ onPress, bottomOffset = 0, currentRoute
       // (no more custom iosRightPill wrapper), so it needs its own glass
       // background rather than relying on a parent glass pill.
       return (
-        <Pressable style={styles.buttonContainer} onPress={handlePress}>
+        <Pressable style={[styles.buttonContainer, flatGlass && styles.noShadow]} onPress={handlePress}>
           <LiquidGlassView
             variant="clear"
             tintColor={glassTint(isDarkMode)}
             interactive
             {...androidGlassPerfProps}
-            style={styles.iconCircle}
+            style={[
+              styles.iconCircle,
+              flatGlass && { borderWidth: 1, borderColor: pillBorder },
+            ]}
           >
             <Animated.View style={[styles.iconContainer, { transform: [{ rotate }] }]}>
               {circleContent}
@@ -394,6 +400,10 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
+  },
+  noShadow: {
+    shadowOpacity: 0,
+    elevation: 0,
   },
   icon: {},
   glassContainer: {

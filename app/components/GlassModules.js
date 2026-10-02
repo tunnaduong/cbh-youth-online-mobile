@@ -51,7 +51,7 @@ const GatedLiquidGlassView = ({
   children,
   ...rest
 }) => {
-  const { liquidGlassEnabled } = useTheme();
+  const { liquidGlassEnabled, isDarkMode } = useTheme();
 
   if (liquidGlassEnabled) {
     return (
@@ -72,11 +72,20 @@ const GatedLiquidGlassView = ({
   // overrides the style's own radius and squares the view off - that's what
   // put a hard-cornered box behind the round "+" tab button whenever the
   // Liquid glass setting was turned off. Only override when actually given.
+  // Without the blur behind it, glassTint's 0.4 alpha reads as a see-through
+  // smear rather than a surface. Swap the default glass tint for a mostly
+  // opaque panel (One UI-style frosted surface); custom tints such as a
+  // LiquidButton's own backgroundColor are kept as given.
+  const fallbackColor =
+    tintColor == null || tintColor === glassTint(isDarkMode)
+      ? flatSurface(isDarkMode)
+      : tintColor;
+
   return (
     <View
       style={[
         style,
-        { backgroundColor: tintColor },
+        { backgroundColor: fallbackColor },
         borderRadius != null && { borderRadius },
       ]}
     >
@@ -108,6 +117,12 @@ const AndroidGlassBackdrop = ({ style, children }) => (
 const glassTint = (isDarkMode) =>
   isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
 
+// Flat surface used in place of glassTint when the user turns Liquid glass
+// off. There is no blur in that mode, so it has to be nearly opaque to read
+// as a panel - close to One UI's frosted bars/drawers.
+const flatSurface = (isDarkMode) =>
+  isDarkMode ? "rgba(24, 24, 26, 0.94)" : "rgba(250, 250, 252, 0.94)";
+
 // On Android 13+ the library renders its full AGSL refraction shader every
 // single frame for every mounted <LiquidGlassView> - capture backdrop -> GPU
 // blur -> refraction, regardless of whether anyone is touching it. With
@@ -133,6 +148,7 @@ export {
   isGlassAvailable,
   AndroidGlassBackdrop,
   glassTint,
+  flatSurface,
   androidGlassPerfProps,
 };
 
@@ -141,5 +157,6 @@ export default {
   isGlassAvailable,
   AndroidGlassBackdrop,
   glassTint,
+  flatSurface,
   androidGlassPerfProps,
 };

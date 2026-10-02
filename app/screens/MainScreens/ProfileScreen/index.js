@@ -979,11 +979,11 @@ const ProfileScreen = ({ route, navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}
+              style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" }}
               onPress={() => setShowMilestonesModal(true)}
             >
               <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.pointsTab')}</Text>
-              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.primary }}>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.activity_points}
               </Text>
             </TouchableOpacity>
@@ -1111,7 +1111,7 @@ const ProfileScreen = ({ route, navigation }) => {
               onPress={() => {}}
             >
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <Text style={{ fontWeight: "700", fontSize: 16, color: theme.primary }}>Điểm thành tích</Text>
+                <Text style={{ fontWeight: "700", fontSize: 16, color: theme.text }}>Điểm thành tích</Text>
                 <TouchableOpacity onPress={() => setShowMilestonesModal(false)}>
                   <Ionicons name="close" size={22} color={theme.subText} />
                 </TouchableOpacity>
@@ -1123,10 +1123,16 @@ const ProfileScreen = ({ route, navigation }) => {
                   { id: "distinguished", name: "Tiêu biểu", min_points: 500, color: "#eab308" },
                   { id: "veteran", name: "Kỳ cựu", min_points: 1000, color: "#a855f7" },
                 ];
-                const milestones = userData?.points_milestones || {};
-                return TIERS.map((tier) => {
-                  const m = milestones[tier.id];
-                  const achieved = m?.achieved_at;
+                // The API sends an array of {id, name, min_points, achieved_at}
+                // (achieved_at already formatted as d/m/Y), not an id-keyed map.
+                const raw = userData?.points_milestones;
+                const list = Array.isArray(raw) ? raw : Object.values(raw || {});
+                const milestones = Object.fromEntries(list.filter(Boolean).map((m) => [m.id, m]));
+                const points = Number(userData?.stats?.activity_points) || 0;
+                return TIERS.map((base) => {
+                  const m = milestones[base.id];
+                  const tier = { ...base, name: m?.name ?? base.name, min_points: m?.min_points ?? base.min_points };
+                  const achieved = !!m?.achieved_at || points >= tier.min_points;
                   return (
                     <View key={tier.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? "#2a2a2a" : "#f0f0f0", opacity: achieved ? 1 : 0.4 }}>
                       <View style={{ width: 52, alignItems: "center" }}>
@@ -1137,7 +1143,7 @@ const ProfileScreen = ({ route, navigation }) => {
                         <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text }}>{tier.name}</Text>
                       </View>
                       <Text style={{ fontSize: 12, color: theme.subText }}>
-                        {achieved ? new Date(achieved).toLocaleDateString("vi-VN") : "Chưa đạt"}
+                        {m?.achieved_at || (achieved ? "Đã đạt" : "Chưa đạt")}
                       </Text>
                     </View>
                   );

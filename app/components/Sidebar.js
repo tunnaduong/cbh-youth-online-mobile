@@ -87,7 +87,7 @@ const SidebarGlassWrapper = LiquidGlassView ?? View;
 
 const Sidebar = ({ providerId, isOpen }) => {
   const { signOut, username, profileName } = useContext(AuthContext);
-  const { theme, isDarkMode } = useTheme();
+  const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
   // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
   // entirely, reading as a flat tinted panel instead of glass. Matches
   // glassTint's ratio (see GlassModules.js) used everywhere else in the app.
@@ -211,6 +211,15 @@ const Sidebar = ({ providerId, isOpen }) => {
           : {})}
         style={[
           { flex: 1, borderTopRightRadius: 24, borderBottomRightRadius: 24 },
+          // Glass off: GlassModules paints the near-opaque flat surface; add
+          // the same hairline edge the no-library fallback has.
+          LiquidGlassView && !liquidGlassEnabled && {
+            overflow: "hidden",
+            borderRightWidth: 1,
+            borderColor: isDarkMode
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(0,0,0,0.06)",
+          },
           !LiquidGlassView && {
             backgroundColor: sidebarTint,
             borderRightWidth: Platform.OS === "android" ? 1 : 0,
@@ -226,7 +235,9 @@ const Sidebar = ({ providerId, isOpen }) => {
           // Same sidebarTint that used to be a separate absoluteFill overlay
           // sibling over the glass - now just this content wrapper's own
           // background, which composites correctly since it's a real child.
-          backgroundColor: LiquidGlassView ? sidebarTint : "transparent",
+          // Only over real glass - in glass-off mode it would stack a second
+          // see-through layer on the flat surface.
+          backgroundColor: LiquidGlassView && liquidGlassEnabled ? sidebarTint : "transparent",
           paddingTop: insets.top,
         }}
       >
