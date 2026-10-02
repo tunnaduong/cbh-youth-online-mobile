@@ -1174,7 +1174,15 @@ const ProfileScreen = ({ route, navigation }) => {
           renderItem={renderListItem}
           ListEmptyComponent={renderListEmpty}
           ListFooterComponent={renderListFooter}
-          ListHeaderComponent={renderListHeader}
+          // Pass the header as an element, not the function: FlatList renders
+          // a function as `<ListHeaderComponent />`, and renderListHeader is
+          // a new function every render - so every re-render (useIsFocused
+          // flipping on push/pop, the focus refetch, onLayout...) unmounted
+          // and remounted the whole header. That restarted the profile
+          // effect, re-created the Skia frame/avatar-ring canvases (blank
+          // until re-measured) and re-faded the cover image - the "effects
+          // flicker when entering/leaving the profile" bug.
+          ListHeaderComponent={renderListHeader()}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={Animated.event(

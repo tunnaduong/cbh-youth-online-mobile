@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
-  FlatList,
+  Animated,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -11,6 +11,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { getStoryViewers } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
@@ -24,6 +26,12 @@ const StoryViewersScreen = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   useEffect(() => {
     fetchViewers();
@@ -109,13 +117,21 @@ const StoryViewersScreen = ({ route, navigation }) => {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('storyViewers.title')}</Text>
-        <View style={{ width: 24 }} />
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Floating header: glass back button appears once the list scrolls under it */}
+      <View pointerEvents="box-none" style={styles.headerWrap}>
+        <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
+          <LiquidButton size={44} scrollY={scrollY} providerId="StoryViewersScreen" onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={theme.primary} />
+          </LiquidButton>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
+            numberOfLines={1}
+          >
+            {t('storyViewers.title')}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
       {loading ? (
@@ -128,12 +144,18 @@ const StoryViewersScreen = ({ route, navigation }) => {
           <Text style={[styles.emptyText, { color: theme.subText }]}>{t('storyViewers.empty')}</Text>
         </View>
       ) : (
-        <FlatList
-          data={viewers}
-          renderItem={renderViewerItem}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={[styles.listContent, { paddingBottom: (insets?.bottom || 0) + 8 }]}
-        />
+        <AndroidGlassBackdrop providerId="StoryViewersScreen" style={{ flex: 1 }}>
+          <Animated.FlatList
+            data={viewers}
+            renderItem={renderViewerItem}
+            keyExtractor={(item) => item.id.toString()}
+            scrollEventThrottle={16}
+            onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+              useNativeDriver: false,
+            })}
+            contentContainerStyle={[styles.listContent, { paddingTop: 64 + insets.top, paddingBottom: (insets?.bottom || 0) + 8 }]}
+          />
+        </AndroidGlassBackdrop>
       )}
     </View>
   );
@@ -144,14 +166,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    paddingBottom: 8,
   },
   headerTitle: {
     fontSize: 18,

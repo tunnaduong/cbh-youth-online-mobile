@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -20,6 +19,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { getProfile, updateProfile } from "../../../services/api/Api";
 import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import StyledName from "../../../components/profile/StyledName";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import ProfileEffect from "../../../components/profile/ProfileEffect";
@@ -115,6 +115,11 @@ export default function ProfileCustomizerScreen({ navigation }) {
   const [picker, setPicker] = useState(null);
   const shake = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   const load = useCallback(async () => {
     const response = await getProfile(username);
@@ -218,15 +223,15 @@ export default function ProfileCustomizerScreen({ navigation }) {
 
   const header = (
     <View pointerEvents="box-none" style={styles.headerWrap}>
-      <View style={[styles.header, { paddingTop: insets.top, height: 56 + insets.top, backgroundColor: theme.background }]}>
+      <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
         <View style={{ width: 44 }}>
           <LiquidButton size={44} scrollY={scrollY} providerId="ProfileCustomizerScreen" onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
           </LiquidButton>
         </View>
-        <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
+        <Animated.Text style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]} numberOfLines={1}>
           {t("profileTheme.title", "Giao diện hồ sơ")}
-        </Text>
+        </Animated.Text>
         <View style={{ width: 44 }} />
       </View>
     </View>
@@ -309,7 +314,12 @@ export default function ProfileCustomizerScreen({ navigation }) {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {header}
-      <ScrollView
+      <AndroidGlassBackdrop providerId="ProfileCustomizerScreen" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        scrollEventThrottle={16}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
         contentContainerStyle={{
           paddingTop: 64 + insets.top,
           paddingHorizontal: 16,
@@ -467,7 +477,8 @@ export default function ProfileCustomizerScreen({ navigation }) {
           avatarUrl={avatarUrl}
           onTry={(field, key) => update({ [field]: key })}
         />
-      </ScrollView>
+      </Animated.ScrollView>
+      </AndroidGlassBackdrop>
 
       {Object.entries(pickers).map(([field, config]) => (
         <OptionPickerSheet
@@ -700,7 +711,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 8 },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "700" },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600" },
   notice: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 14, padding: 12 },
   noticeText: { flex: 1, fontSize: 13 },
   panel: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16 },
