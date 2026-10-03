@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useRef } from "react";
 import {
   View,
   Text,
   Platform,
   StyleSheet,
   TouchableOpacity,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,6 +28,15 @@ export default function Success({ navigation }) {
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
+  const scrollY = useRef(new Animated.Value(0)).current;
+  // iOS: presented via presentation:"modal" as a floating card that already
+  // clears the notch/status bar - adding insets.top would double-count it.
+  const headerHeight = Platform.OS === "ios" ? 68 : 64 + insets.top;
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 60],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
 
   const handleReturnHome = () => {
     navigation.dispatch(
@@ -39,39 +49,48 @@ export default function Success({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Header */}
+      {/* Floating header - same pattern as the other report steps */}
       <View
-        style={[
-          styles.header,
-          // iOS: this screen is presented via presentation:"modal", which
-          // renders as a floating card (not full-bleed like Android), so it
-          // already clears the notch/status bar on its own — adding the
-          // full device insets.top double-counts the offset.
-          Platform.OS === "ios"
-            ? { paddingTop: 12, height: 68 }
-            : { paddingTop: insets.top + 8, height: insets.top + 64 },
-        ]}
+        pointerEvents="box-none"
+        style={[styles.floatingHeader, { height: headerHeight }]}
       >
-        <View style={{ width: 44 }}>
-          <LiquidButton
-            providerId="ReportSuccess"
-            size={44}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-        </View>
-        <Text
-          style={[styles.headerTitle, { color: theme.primary }]}
-          numberOfLines={1}
+        <View
+          style={[
+            styles.header,
+            { paddingTop: Platform.OS === "ios" ? 12 : insets.top + 8 },
+          ]}
         >
-          {t("report.createReport")}
-        </Text>
-        <View style={{ width: 44 }} />
+          <View style={{ width: 44 }}>
+            <LiquidButton
+              providerId="ReportSuccess"
+              size={44}
+              scrollY={scrollY}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, opacity: titleOpacity }]}
+            numberOfLines={1}
+          >
+            {t("report.createReport")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
 
-      <View style={styles.body}>
       <AndroidGlassBackdrop providerId="ReportSuccess" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        // flexGrow so the success card still fills the space left on screen.
+        contentContainerStyle={{ flexGrow: 1, paddingTop: headerHeight + 16, paddingBottom: 16 }}
+      >
         {/* Gradient info card */}
         <LinearGradient
           colors={
@@ -141,8 +160,8 @@ export default function Success({ navigation }) {
             </Text>
           </LinearGradient>
         </View>
+      </Animated.ScrollView>
       </AndroidGlassBackdrop>
-      </View>
 
       {/* Return button */}
       <View
@@ -169,6 +188,13 @@ export default function Success({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  floatingHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -181,7 +207,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
   },
-  body: { flex: 1, paddingTop: 16 },
   gradientCard: {
     flexDirection: "row",
     alignItems: "center",
