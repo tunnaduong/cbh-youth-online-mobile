@@ -1122,6 +1122,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   { id: "active", name: "Tích cực", min_points: 150, color: "#3b82f6" },
                   { id: "distinguished", name: "Tiêu biểu", min_points: 500, color: "#eab308" },
                   { id: "veteran", name: "Kỳ cựu", min_points: 1000, color: "#a855f7" },
+                  { id: "premium", name: "Cao cấp", min_points: 1500, color: "#f43f5e" },
                 ];
                 // The API sends an array of {id, name, min_points, achieved_at}
                 // (achieved_at already formatted as d/m/Y), not an id-keyed map.
@@ -1131,7 +1132,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 const points = Number(userData?.stats?.activity_points) || 0;
                 return TIERS.map((base) => {
                   const m = milestones[base.id];
-                  const tier = { ...base, name: m?.name ?? base.name, min_points: m?.min_points ?? base.min_points };
+                  const tier = { ...base, name: t(`memberTiers.${base.id}`, m?.name ?? base.name), min_points: m?.min_points ?? base.min_points };
                   const achieved = !!m?.achieved_at || points >= tier.min_points;
                   return (
                     <View key={tier.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? "#2a2a2a" : "#f0f0f0", opacity: achieved ? 1 : 0.4 }}>

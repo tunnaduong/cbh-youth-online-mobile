@@ -1888,6 +1888,7 @@
     "shakeAttachedWithScreen": "Приложен скриншот экрана «{{screen}}», сделанный при встряхивании телефона. Удалите его, если не хотите отправлять."
   },
   "profileTheme": {
+    "outlineColors": "Цвет текста и контура",
     "title": "Оформление профиля",
     "apply": "Применить",
     "notSet": "Не выбран",
@@ -1959,11 +1960,13 @@
       "comic": "Комикс",
       "tech": "Техно",
       "heavy": "Жирный",
-      "handwritten": "От руки"
+      "handwritten": "От руки",
+      "flex": "Google Sans Flex",
+      "grotesk": "Space Grotesk"
     },
     "options": {
       "avatar_frame": { "none": "Нет", "theme": "Цвет темы", "trainee": "Серебро", "active": "Лёд", "distinguished": "Золото", "veteran": "Радуга" },
-      "name_effect": { "none": "Нет", "solid": "Сплошной", "gradient": "Градиент", "pop": "Объём", "toon": "Мультяшный", "neon": "Неон" },
+      "name_effect": { "none": "Нет", "solid": "Сплошной", "gradient": "Градиент", "pop": "Объём", "toon": "Мультяшный", "neon": "Неон", "rainbow": "Радуга", "outline": "Контур" },
       "profile_effect": { "none": "Нет", "sparkles": "Блёстки", "hearts": "Сердечки", "snow": "Снегопад", "aurora": "Сияние" },
       "profile_frame": { "none": "Нет", "glow": "Свечение", "gold": "Золотая кайма", "neon": "Вращающийся неон" }
     }
@@ -1975,6 +1978,13 @@
     "loadErrorTitle": "Не удалось загрузить страницу",
     "loadErrorMessage": "Проверьте подключение к интернету и попробуйте снова.",
     "retry": "Повторить"
+  },
+  "memberTiers": {
+    "trainee": "Участник-новичок",
+    "active": "Активный участник",
+    "distinguished": "Выдающийся участник",
+    "veteran": "Участник-ветеран",
+    "premium": "Премиум-участник"
   },
   "twoFactor": {
     "title": "Двухфакторная аутентификация",

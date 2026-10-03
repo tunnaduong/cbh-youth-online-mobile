@@ -1870,6 +1870,7 @@
     "shakeAttachedWithScreen": "A screenshot of \"{{screen}}\" taken when you shook the phone is attached. Remove it if you'd rather not send it."
   },
   "profileTheme": {
+    "outlineColors": "Text and border colours",
     "title": "Profile appearance",
     "apply": "Apply",
     "notSet": "Not set",
@@ -1941,11 +1942,13 @@
       "comic": "Comic",
       "tech": "Tech",
       "heavy": "Heavy",
-      "handwritten": "Handwritten"
+      "handwritten": "Handwritten",
+      "flex": "Google Sans Flex",
+      "grotesk": "Space Grotesk"
     },
     "options": {
       "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow" },
-      "name_effect": { "none": "None", "solid": "Solid", "gradient": "Gradient", "pop": "Pop", "toon": "Toon", "neon": "Neon" },
+      "name_effect": { "none": "None", "solid": "Solid", "gradient": "Gradient", "pop": "Pop", "toon": "Toon", "neon": "Neon", "rainbow": "Rainbow", "outline": "Outline" },
       "profile_effect": { "none": "None", "sparkles": "Sparkles", "hearts": "Hearts", "snow": "Snowfall", "aurora": "Aurora" },
       "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon" }
     }
@@ -1957,6 +1960,13 @@
     "loadErrorTitle": "Couldn't load the page",
     "loadErrorMessage": "Check your internet connection and try again.",
     "retry": "Try again"
+  },
+  "memberTiers": {
+    "trainee": "Trainee member",
+    "active": "Active member",
+    "distinguished": "Distinguished member",
+    "veteran": "Veteran member",
+    "premium": "Premium member"
   },
   "twoFactor": {
     "title": "Two-factor authentication",

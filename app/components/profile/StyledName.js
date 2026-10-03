@@ -17,7 +17,7 @@ import { useNameFont } from "../../utils/nameFonts";
  *   style, numberOfLines, ...rest - như <Text>
  *
  * "compact" luôn là một <Text>, lồng được trong <Text> khác. "full" với hiệu
- * ứng chuyển màu/hoạt hình là một <View> (chữ vẽ bằng SVG) - đặt nó đứng riêng,
+ * ứng chuyển màu/cầu vồng/hoạt hình/viền chữ là một <View> (chữ vẽ bằng SVG) - đặt nó đứng riêng,
  * không lồng trong <Text>.
  */
 const StyledName = ({ theme, variant = "full", style, numberOfLines, children, ...rest }) => {
@@ -48,7 +48,7 @@ const StyledName = ({ theme, variant = "full", style, numberOfLines, children, .
   const effect = variant === "full" ? getNameEffect(normalized, fontSize) : null;
   const textStyle = [style, fontStyle, effect?.style];
 
-  if (effect?.gradient || effect?.toon) {
+  if (effect?.gradient || effect?.toon || effect?.outline) {
     return (
       <SvgName textStyle={textStyle} effect={effect} numberOfLines={numberOfLines} {...rest}>
         {children}
@@ -84,6 +84,14 @@ function SvgName({ textStyle, effect, numberOfLines, children, ...rest }) {
     fontWeight: flat.fontWeight || "normal",
     letterSpacing: flat.letterSpacing,
   };
+
+  // Two colours fade a -> b -> a (as the web's moving gradient does); a
+  // longer list (rainbow) is spread evenly across the name.
+  const gradientStops = effect.gradient
+    ? effect.gradient.length === 2
+      ? [effect.gradient[0], effect.gradient[1], effect.gradient[0]]
+      : effect.gradient
+    : [];
 
   const renderLines = (props, dy = 0) =>
     lines.map((line, index) => (
@@ -123,12 +131,28 @@ function SvgName({ textStyle, effect, numberOfLines, children, ...rest }) {
                   y2="0"
                   gradientUnits="userSpaceOnUse"
                 >
-                  <Stop offset="0" stopColor={effect.gradient[0]} />
-                  <Stop offset="0.5" stopColor={effect.gradient[1]} />
-                  <Stop offset="1" stopColor={effect.gradient[0]} />
+                  {gradientStops.map((color, index) => (
+                    <Stop
+                      key={index}
+                      offset={String(index / (gradientStops.length - 1))}
+                      stopColor={color}
+                    />
+                  ))}
                 </LinearGradient>
               </Defs>
               {renderLines({ fill: `url(#${gradientId})` })}
+            </>
+          ) : effect.outline ? (
+            <>
+              {/* Border in the picked colour, then the fill on top so only
+                  the outer half of the stroke shows. */}
+              {renderLines({
+                fill: effect.outline.fill,
+                stroke: effect.outline.stroke,
+                strokeWidth: fontSize * 0.12,
+                strokeLinejoin: "round",
+              })}
+              {renderLines({ fill: effect.outline.fill })}
             </>
           ) : (
             <>

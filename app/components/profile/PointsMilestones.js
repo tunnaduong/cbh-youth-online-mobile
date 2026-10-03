@@ -16,6 +16,7 @@ const TIER_COLORS = {
   active: "#3b82f6",
   distinguished: "#eab308",
   veteran: "#a855f7",
+  premium: "#f43f5e",
 };
 
 const EFFECT_SYMBOLS = { sparkles: "✦", hearts: "♥", snow: "❄", aurora: "✺" };
@@ -178,7 +179,7 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
         {next
           ? t("profileTheme.milestones.next", "Còn {{points}} điểm tới {{tier}}", {
               points: next.min_points - points,
-              tier: next.name,
+              tier: t(`memberTiers.${next.id}`, next.name),
             })
           : t("profileTheme.milestones.all", "Đã mở khóa tất cả")}
       </Text>
@@ -201,7 +202,7 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
                 <View style={styles.tierName}>
                   <Ionicons name="ribbon" size={15} color={TIER_COLORS[tier.id] || theme.primary} />
                   <Text style={[styles.tierTitle, { color: theme.text }]} numberOfLines={1}>
-                    {tier.name}
+                    {t(`memberTiers.${tier.id}`, tier.name)}
                   </Text>
                 </View>
                 <View

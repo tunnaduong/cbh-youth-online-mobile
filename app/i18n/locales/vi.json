@@ -1857,6 +1857,7 @@
     "shakeAttachedWithScreen": "Đã đính kèm ảnh chụp màn hình \"{{screen}}\" lúc bạn lắc điện thoại. Bạn có thể xóa ảnh nếu không muốn gửi."
   },
   "profileTheme": {
+    "outlineColors": "Màu chữ và màu viền",
     "title": "Giao diện hồ sơ",
     "apply": "Áp dụng",
     "notSet": "Chưa chọn",
@@ -1928,11 +1929,13 @@
       "comic": "Truyện tranh",
       "tech": "Công nghệ",
       "heavy": "Đậm chất",
-      "handwritten": "Viết tay"
+      "handwritten": "Viết tay",
+      "flex": "Google Sans Flex",
+      "grotesk": "Space Grotesk"
     },
     "options": {
       "avatar_frame": { "none": "Không", "theme": "Theo màu", "trainee": "Bạc", "active": "Băng", "distinguished": "Vàng", "veteran": "Cầu vồng" },
-      "name_effect": { "none": "Không", "solid": "Một màu", "gradient": "Chuyển màu", "pop": "Nổi khối", "toon": "Hoạt hình", "neon": "Neon" },
+      "name_effect": { "none": "Không", "solid": "Một màu", "gradient": "Chuyển màu", "pop": "Nổi khối", "toon": "Hoạt hình", "neon": "Neon", "rainbow": "Cầu vồng", "outline": "Viền chữ" },
       "profile_effect": { "none": "Không", "sparkles": "Lấp lánh", "hearts": "Trái tim", "snow": "Tuyết rơi", "aurora": "Cực quang" },
       "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay" }
     }
@@ -1944,6 +1947,13 @@
     "loadErrorTitle": "Không tải được trang",
     "loadErrorMessage": "Kiểm tra kết nối mạng rồi thử lại.",
     "retry": "Thử lại"
+  },
+  "memberTiers": {
+    "trainee": "Thành viên tập sự",
+    "active": "Thành viên tích cực",
+    "distinguished": "Thành viên tiêu biểu",
+    "veteran": "Thành viên kỳ cựu",
+    "premium": "Thành viên cao cấp"
   },
   "twoFactor": {
     "title": "Xác thực 2 yếu tố",

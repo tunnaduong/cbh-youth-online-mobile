@@ -7,7 +7,7 @@ import * as Font from "expo-font";
  * bộ ký tự tiếng Việt), đóng gói sẵn trong app/assets/fonts/name.
  *
  * Font chỉ được nạp khi một tên dùng nó thực sự hiển thị (useNameFont), nên
- * không làm chậm lúc mở app. Key phải khớp ProfileThemeService::NAME_FONTS
+ * không làm chậm lúc mở app. Key phải khớp ProfileThemeService::OPTIONS['name_font']
  * phía API. `scale` bù cho font vẽ nhỏ hơn cỡ chữ (VT323).
  */
 export const NAME_FONTS = {
@@ -23,6 +23,12 @@ export const NAME_FONTS = {
   tech: { family: "Tektur_700Bold", source: require("../assets/fonts/name/Tektur_700Bold.ttf") },
   heavy: { family: "Bungee_400Regular", source: require("../assets/fonts/name/Bungee_400Regular.ttf") },
   handwritten: { family: "PatrickHand_400Regular", source: require("../assets/fonts/name/PatrickHand_400Regular.ttf") },
+  // "flex" (Google Sans Flex) and "grotesk" (Space Grotesk) exist on the API
+  // and the web, but their .ttf files are not bundled yet, so names using
+  // them show in the system font here. To finish: put static (single-weight)
+  // files in app/assets/fonts/name and uncomment:
+  // flex: { family: "GoogleSansFlex_600SemiBold", source: require("../assets/fonts/name/GoogleSansFlex_600SemiBold.ttf") },
+  // grotesk: { family: "SpaceGrotesk_600SemiBold", source: require("../assets/fonts/name/SpaceGrotesk_600SemiBold.ttf") },
 };
 
 const loading = new Map(); // family -> Promise

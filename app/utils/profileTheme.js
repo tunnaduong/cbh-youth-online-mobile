@@ -120,8 +120,12 @@ export function getSurfaceColors(theme) {
  *   { style }            - làm được bằng style của <Text> (solid, pop, neon)
  *   { gradient: [a, b] } - StyledName vẽ chữ chuyển màu bằng SVG
  *   { toon: {...} }      - StyledName vẽ viền chữ bằng SVG
+ *   { outline: {...} }   - StyledName vẽ viền chữ (màu tự chọn) bằng SVG
  * Trả null nếu không có hiệu ứng.
  */
+// Same stops as the web's rainbow name effect.
+const RAINBOW_COLORS = ["#ff4d4d", "#ff9f1a", "#ffe600", "#2ed573", "#1e90ff", "#a55eea"];
+
 export function getNameEffect(theme, fontSize = 16) {
   const normalized = normalizeTheme(theme);
   if (!normalized) return null;
@@ -133,6 +137,12 @@ export function getNameEffect(theme, fontSize = 16) {
       return { style: { color: first } };
     case "gradient":
       return { style: { color: first }, gradient: [first, second] };
+    case "rainbow":
+      // Static here (the web animates it): the SVG text has no animation.
+      return { style: { color: RAINBOW_COLORS[0] }, gradient: RAINBOW_COLORS };
+    case "outline":
+      // Text colour = first colour, border = second colour.
+      return { style: { color: first }, outline: { fill: first, stroke: second } };
     case "neon":
       return {
         style: {

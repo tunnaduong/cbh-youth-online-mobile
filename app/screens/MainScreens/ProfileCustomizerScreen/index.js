@@ -674,11 +674,15 @@ function NameStyleSheet({ visible, theme: draftTheme, options, profileName, opti
           ))}
         </View>
 
-        {style.name_effect !== "none" ? (
+        {style.name_effect !== "none" && style.name_effect !== "rainbow" ? (
           <>
-            <Text style={[styles.sheetLabel, { color: theme.text }]}>{t("profileTheme.color", "Màu")}</Text>
+            <Text style={[styles.sheetLabel, { color: theme.text }]}>
+              {style.name_effect === "outline"
+                ? t("profileTheme.outlineColors", "Màu chữ và màu viền")
+                : t("profileTheme.color", "Màu")}
+            </Text>
             <View style={styles.nameColors}>
-              {(style.name_effect === "gradient" ? [0, 1] : [0]).map((index) => (
+              {(["gradient", "outline"].includes(style.name_effect) ? [0, 1] : [0]).map((index) => (
                 <TouchableOpacity
                   key={index}
                   accessibilityLabel={t("profileTheme.nameColor", "Chọn màu tên {{index}}", { index: index + 1 })}
