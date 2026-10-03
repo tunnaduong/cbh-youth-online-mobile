@@ -1988,7 +1988,19 @@
     "verify": "Xác nhận",
     "verifying": "Đang xác thực...",
     "recoveryHint": "Không lấy được mã? Bạn có thể nhập một mã khôi phục.",
-    "recoveryUsed": "Bạn vừa dùng một mã khôi phục. Còn lại {{remaining}} mã."
+    "recoveryUsed": "Bạn vừa dùng một mã khôi phục. Còn lại {{remaining}} mã.",
+    "multiDescription": "Khi bật, đăng nhập trên thiết bị mới cần thêm một mã xác thực ngoài mật khẩu. Bạn có thể bật nhiều phương thức cùng lúc và chọn một phương thức khi đăng nhập.",
+    "methodEmailDesc": "Nhận mã 6 số qua email khi đăng nhập trên thiết bị mới",
+    "enterPassword": "Nhập mật khẩu để bật “{{method}}”.",
+    "confirmMethod": "Bật",
+    "methodEnabled": "Đã bật phương thức xác thực",
+    "disableMethod": "Tắt",
+    "disableMethodKeep": "Xác nhận để tắt “{{method}}”. Phương thức còn lại vẫn được giữ.",
+    "disableMethodLast": "Xác nhận để tắt “{{method}}”. Đây là phương thức cuối cùng, nên tài khoản sẽ chỉ còn được bảo vệ bằng mật khẩu.",
+    "download": "Lưu tệp .txt",
+    "downloadError": "Không thể lưu tệp. Hãy sao chép các mã này.",
+    "recoveryFileTitle": "Mã khôi phục CBH Youth Online",
+    "recoveryFileNote": "Mỗi mã chỉ dùng được một lần. Hãy cất tệp này ở nơi an toàn."
   },
   "devices": {
     "title": "Thiết bị đã đăng nhập",

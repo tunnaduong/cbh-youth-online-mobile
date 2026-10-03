@@ -2001,7 +2001,19 @@
     "verify": "Verify",
     "verifying": "Verifying...",
     "recoveryHint": "Can't get a code? You can enter a recovery code instead.",
-    "recoveryUsed": "You just used a recovery code. Codes left: {{remaining}}."
+    "recoveryUsed": "You just used a recovery code. Codes left: {{remaining}}.",
+    "multiDescription": "When on, logging in on a new device needs a verification code as well as your password. You can turn on several methods and pick one when you log in.",
+    "methodEmailDesc": "Get a 6-digit code by email when logging in on a new device",
+    "enterPassword": "Enter your password to turn on “{{method}}”.",
+    "confirmMethod": "Turn on",
+    "methodEnabled": "Verification method turned on",
+    "disableMethod": "Turn off",
+    "disableMethodKeep": "Confirm to turn off “{{method}}”. Your other method stays on.",
+    "disableMethodLast": "Confirm to turn off “{{method}}”. It is your last method, so your account will only be protected by your password.",
+    "download": "Save .txt file",
+    "downloadError": "Couldn't save the file. Copy the codes instead.",
+    "recoveryFileTitle": "CBH Youth Online recovery codes",
+    "recoveryFileNote": "Each code works once. Keep this file somewhere safe."
   },
   "devices": {
     "title": "Logged-in devices",

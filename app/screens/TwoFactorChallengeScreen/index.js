@@ -44,7 +44,17 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
 
-  const isEmail = challenge.method === "email";
+  // An account can have several methods on. `methods` lists them (older API
+  // responses only name one); the user picks which code to enter.
+  const methods = challenge.methods?.length ? challenge.methods : [challenge.method];
+  const [method, setMethod] = useState(challenge.method);
+  // The API only emails a code up front when email is the method it offers
+  // first, so picking email later has to send one.
+  const [emailSent, setEmailSent] = useState(
+    challenge.method === "email" && challenge.email_sent !== false
+  );
+
+  const isEmail = method === "email";
 
   // Expired or out of attempts: the only way forward is logging in again.
   const handleExpired = (message) => {
@@ -61,6 +71,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
       const response = await verifyTwoFactorLogin({
         challenge_token: challenge.challenge_token,
         code: code.trim(),
+        method: method || undefined,
         remember_device: rememberDevice,
         device_name: getDeviceName(),
         device_token: (await getTwoFactorDeviceToken()) || undefined,
@@ -94,7 +105,9 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
     }
   };
 
-  const handleResend = async () => {
+  // `silent` is the automatic first send when the user switches to email:
+  // the subtitle already says where the code went, so no extra alert.
+  const handleResend = async (silent = false) => {
     if (resending) return;
 
     setResending(true);
@@ -102,7 +115,10 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
       const response = await resendTwoFactorLoginCode({
         challenge_token: challenge.challenge_token,
       });
-      Alert.alert(t("twoFactor.title"), response?.data?.message || t("twoFactor.codeSent"));
+      setEmailSent(true);
+      if (!silent) {
+        Alert.alert(t("twoFactor.title"), response?.data?.message || t("twoFactor.codeSent"));
+      }
     } catch (error) {
       const data = error.response?.data;
       const message = data?.message || error.message || t("common.error");
@@ -114,6 +130,13 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
     } finally {
       setResending(false);
     }
+  };
+
+  const chooseMethod = (next) => {
+    if (next === method || loading) return;
+    setMethod(next);
+    setCode("");
+    if (next === "email" && !emailSent) handleResend(true);
   };
 
   return (
@@ -138,6 +161,28 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
               <Text style={[styles.title, { color: theme.text }]}>
                 {t("twoFactor.title")}
               </Text>
+              {methods.length > 1 && (
+                <View style={[styles.methodTabs, { borderColor: theme.border }]}>
+                  {methods.map((item) => {
+                    const selected = item === method;
+                    return (
+                      <TouchableOpacity
+                        key={item}
+                        style={[styles.methodTab, selected && { backgroundColor: theme.primary }]}
+                        onPress={() => chooseMethod(item)}
+                        activeOpacity={0.8}
+                      >
+                        <Text
+                          style={[styles.methodTabText, { color: selected ? "#fff" : theme.text }]}
+                          numberOfLines={1}
+                        >
+                          {item === "email" ? t("twoFactor.methodEmail") : t("twoFactor.methodTotp")}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
               <Text style={[styles.subtitle, { color: theme.subText }]}>
                 {isEmail
                   ? t("twoFactor.challengeEmail", { email: challenge.email || "email" })
@@ -191,7 +236,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
               {isEmail && (
                 <TouchableOpacity
                   style={styles.linkButton}
-                  onPress={handleResend}
+                  onPress={() => handleResend()}
                   disabled={resending}
                   activeOpacity={0.7}
                 >
@@ -231,6 +276,24 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "700",
     letterSpacing: -0.5,
+  },
+  methodTabs: {
+    flexDirection: "row",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 14,
+    padding: 3,
+    marginTop: 16,
+  },
+  methodTab: {
+    flex: 1,
+    borderRadius: 11,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    alignItems: "center",
+  },
+  methodTabText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   subtitle: {
     fontSize: 15,

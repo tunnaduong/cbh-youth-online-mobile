@@ -145,6 +145,8 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **2FA: several methods at once + recovery-code file** (not run): `TwoFactorScreen` now has one switch per method (email code, authenticator app); both can be on, and adding a second method keeps the existing recovery codes. Recovery codes can be saved as a `.txt` through the share sheet (`expo-file-system/legacy` + `expo-sharing`; the temporary file is deleted afterwards). `TwoFactorChallengeScreen` shows a method picker when the challenge lists more than one (`methods`) and sends the email code on first pick (`email_sent`). Needs the matching API change.
+
 - **2FA settings switch fixes** (`SettingsScreen/TwoFactorScreen.js`; from code review, not run): the switch now follows the step in progress (on while setting up, off while confirming turn-off) and flipping it back cancels that step - before, its value never changed, so it snapped back under the finger and then locked. Cancelling a setup waits for the server before the controls unlock. `PrimaryButton` / `SecondaryButton` / `MethodOption` moved to module level so they are no longer remounted on every render. Also: confirm buttons stay off until their password/code field is filled; "send code" and "forget devices" ignore double taps; `DevicesScreen` asks before logging a device out and its pull-to-refresh spinner is offset below the floating header.
 
 - **Two-factor login, logged-in devices, account-switch fixes** (branch `feat/two-factor-auth`, cut from `dhphuc`; written on a machine without Node: **not run yet**). Needs the API branch of the same name.
