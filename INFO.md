@@ -145,6 +145,8 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Post media: photos + videos as one block** (`PostItem.js`, not run): when a post has both, the videos now continue the photo collage edge to edge with square corners and a 3px gap (one video = full width 16:9; two = side by side; three or more scroll sideways at half width), instead of small rounded cards in a padded strip below it.
+
 - **Passkey login, server fonts, gradient colours, story styles, loading placeholders, category headers** (not run; needs the API's `main` and the web's `/auth/passkey` page from web PR 32):
   - **Passkey login** (`app/services/passkey.js`, button on `LoginScreen`): no native passkey module - the prompt runs on `chuyenbienhoa.com/auth/passkey` in the system auth browser (`WebBrowser.openAuthSessionAsync`), PKCE-style: the app keeps a random secret, sends its sha256 in the URL fragment, gets a one-time code back through `com.fatties.youth://passkey?code=…` and redeems it with the secret (`POST /v1.0/login/passkey/redeem`). A passkey login skips two-factor. Uses `expo-crypto` (comes with `expo-auth-session`; not listed in `package.json`). Passkeys are created/removed on the web: Security → "Passkey" opens the web settings in the in-app browser.
   - **Server-hosted name fonts**: `useNameFont` falls back to `GET /v1.0/name-fonts` (fetched once per run) for keys not bundled in `NAME_FONTS` and loads the `.ttf` from its URL with `Font.loadAsync`, so `flex`, `grotesk` and the other premium fonts need no bundled files and no app update. Their labels come from the editor option (`option.label`).

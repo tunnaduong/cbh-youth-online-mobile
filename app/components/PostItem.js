@@ -1111,25 +1111,39 @@ const PostItem = ({
                 </ScrollView>
               );
             }
-            // Has images alongside — keep compact size
-            return (
+            // Photos + videos: the videos continue the photo collage as one
+            // block - edge to edge, square corners and the same thin gap as
+            // between the photos - instead of small rounded cards floating
+            // in a padded strip under it.
+            const GAP = 3;
+            const count = videoUrls.length;
+            // One video spans the width; two or more sit side by side at
+            // half width (three or more scroll sideways).
+            const tileW = count === 1 ? screenWidth : Math.floor((screenWidth - GAP) / 2);
+            const tileH = count === 1 ? Math.round((screenWidth * 9) / 16) : Math.round(tileW * 0.75);
+            const tiles = videoUrls.map((url, index) => (
+              <InlineVideoPlayer
+                key={`${url}-${index}`}
+                uri={videoPreviewUrls[index] || url}
+                fullscreenUri={url}
+                thumbnailUri={videoThumbnailUrls[index]}
+                width={tileW}
+                height={tileH}
+                borderRadius={0}
+                isActive={isActive}
+              />
+            ));
+
+            return count <= 2 ? (
+              <View style={{ flexDirection: "row", gap: GAP, marginTop: GAP }}>{tiles}</View>
+            ) : (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10, gap: 8 }}
+                style={{ marginTop: GAP }}
+                contentContainerStyle={{ gap: GAP }}
               >
-                {videoUrls.map((url, index) => (
-                  <InlineVideoPlayer
-                    key={`${url}-${index}`}
-                    uri={videoPreviewUrls[index] || url}
-                    fullscreenUri={url}
-                    thumbnailUri={videoThumbnailUrls[index]}
-                    width={single ? 260 : 220}
-                    height={single ? 180 : 150}
-                    borderRadius={12}
-                    isActive={isActive}
-                  />
-                ))}
+                {tiles}
               </ScrollView>
             );
           })()}
