@@ -145,6 +145,8 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **2FA settings switch fixes** (`SettingsScreen/TwoFactorScreen.js`; from code review, not run): the switch now follows the step in progress (on while setting up, off while confirming turn-off) and flipping it back cancels that step - before, its value never changed, so it snapped back under the finger and then locked. Cancelling a setup waits for the server before the controls unlock. `PrimaryButton` / `SecondaryButton` / `MethodOption` moved to module level so they are no longer remounted on every render.
+
 - **Two-factor login, logged-in devices, account-switch fixes** (branch `feat/two-factor-auth`, cut from `dhphuc`; written on a machine without Node: **not run yet**). Needs the API branch of the same name.
   - **Login**: `loginRequest` / `loginWithOAuth` send the remembered `device_token`; when the API answers `two_factor_required`, `LoginScreen` and `SignupScreen` navigate to `TwoFactorChallengeScreen` (auth stack), which verifies the code and calls `signIn`.
   - **Security settings**: the old "under development" row now opens `SettingsScreen/TwoFactorScreen.js` (switch, email code or authenticator app, recovery codes, remembered devices). Authenticator setup shows the key and an "open authenticator app" button (`otpauth://` link) instead of a QR code. New `SettingsScreen/DevicesScreen.js` lists logged-in devices with log-out actions.

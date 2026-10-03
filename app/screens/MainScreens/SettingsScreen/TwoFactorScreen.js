@@ -34,6 +34,50 @@ import {
 const errorMessage = (error, fallback) =>
   error.response?.data?.message || error.message || fallback;
 
+// These live at module level on purpose: defined inside the screen they
+// would be new component types on every render, so each keystroke or state
+// change remounted every button and radio row (losing press feedback).
+const PrimaryButton = ({ title, onPress, danger, disabled, busy, theme }) => (
+  <TouchableOpacity
+    style={[styles.button, { backgroundColor: danger ? "#FF3B30" : theme.primary }, (disabled || busy) && { opacity: 0.6 }]}
+    onPress={onPress}
+    disabled={disabled || busy}
+    activeOpacity={0.85}
+  >
+    {busy ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.buttonText}>{title}</Text>}
+  </TouchableOpacity>
+);
+
+const SecondaryButton = ({ title, onPress, busy, theme, isDarkMode }) => (
+  <TouchableOpacity
+    style={[styles.button, { backgroundColor: isDarkMode ? "#374151" : "#ddd" }, busy && { opacity: 0.6 }]}
+    onPress={onPress}
+    disabled={busy}
+    activeOpacity={0.85}
+  >
+    <Text style={[styles.buttonText, { color: theme.text }]}>{title}</Text>
+  </TouchableOpacity>
+);
+
+const MethodOption = ({ value, selected, onSelect, title, description, disabled, theme }) => (
+  <TouchableOpacity
+    style={[styles.methodRow, disabled && { opacity: 0.5 }]}
+    onPress={() => onSelect(value)}
+    disabled={disabled}
+    activeOpacity={0.7}
+  >
+    <Ionicons
+      name={selected === value ? "radio-button-on" : "radio-button-off"}
+      size={22}
+      color={theme.primary}
+    />
+    <View style={{ flex: 1, marginLeft: 10 }}>
+      <Text style={{ color: theme.text, fontSize: 16 }}>{title}</Text>
+      {description ? <Text style={{ color: theme.subText, fontSize: 13, marginTop: 2 }}>{description}</Text> : null}
+    </View>
+  </TouchableOpacity>
+);
+
 // Two-factor authentication settings: turn it on (email code or
 // authenticator app), turn it off, recovery codes and remembered devices.
 export default function TwoFactorScreen({ navigation }) {
@@ -117,9 +161,18 @@ export default function TwoFactorScreen({ navigation }) {
       setMode("recovery");
     });
 
-  const cancelSetup = () => {
-    // Drop the half-finished setup on the server too (nothing was enforced yet).
-    disableTwoFactor().catch(() => {});
+  // Drop the half-finished setup on the server too (nothing was enforced
+  // yet). Awaited, with the controls locked meanwhile: if the user started a
+  // new setup straight away, this request could land after it and wipe it.
+  const cancelSetup = async () => {
+    setBusy(true);
+    try {
+      await disableTwoFactor();
+    } catch {
+      // A leftover unconfirmed setup is harmless and is replaced by the next one.
+    } finally {
+      setBusy(false);
+    }
     reset();
   };
 
@@ -180,7 +233,25 @@ export default function TwoFactorScreen({ navigation }) {
     }
   };
 
+  // The switch shows where the user is heading, not just what is saved. A
+  // controlled Switch whose value doesn't follow the flip snaps back under
+  // the finger, which looked like the toggle wasn't responding.
+  const switchValue =
+    mode === "choose" || mode === "confirm" ? true : mode === "disable" ? false : !!status?.enabled;
+
   const onToggle = (value) => {
+    if (busy) return;
+
+    // Flipping it back while a step is open cancels that step.
+    if (mode === "confirm") {
+      cancelSetup();
+      return;
+    }
+    if (mode === "choose" || mode === "disable") {
+      reset();
+      return;
+    }
+
     setError("");
     setPassword("");
     setCode("");
@@ -192,28 +263,6 @@ export default function TwoFactorScreen({ navigation }) {
     { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" },
   ];
   const cardStyle = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
-
-  const PrimaryButton = ({ title, onPress, danger, disabled }) => (
-    <TouchableOpacity
-      style={[styles.button, { backgroundColor: danger ? "#FF3B30" : theme.primary }, (disabled || busy) && { opacity: 0.6 }]}
-      onPress={onPress}
-      disabled={disabled || busy}
-      activeOpacity={0.85}
-    >
-      {busy ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.buttonText}>{title}</Text>}
-    </TouchableOpacity>
-  );
-
-  const SecondaryButton = ({ title, onPress }) => (
-    <TouchableOpacity
-      style={[styles.button, { backgroundColor: isDarkMode ? "#374151" : "#ddd" }]}
-      onPress={onPress}
-      disabled={busy}
-      activeOpacity={0.85}
-    >
-      <Text style={[styles.buttonText, { color: theme.text }]}>{title}</Text>
-    </TouchableOpacity>
-  );
 
   const identityFields = status?.password_required ? (
     <TextInput
@@ -242,25 +291,6 @@ export default function TwoFactorScreen({ navigation }) {
         </TouchableOpacity>
       )}
     </>
-  );
-
-  const MethodOption = ({ value, title, description, disabled }) => (
-    <TouchableOpacity
-      style={[styles.methodRow, disabled && { opacity: 0.5 }]}
-      onPress={() => setMethod(value)}
-      disabled={disabled}
-      activeOpacity={0.7}
-    >
-      <Ionicons
-        name={method === value ? "radio-button-on" : "radio-button-off"}
-        size={22}
-        color={theme.primary}
-      />
-      <View style={{ flex: 1, marginLeft: 10 }}>
-        <Text style={{ color: theme.text, fontSize: 16 }}>{title}</Text>
-        {description ? <Text style={{ color: theme.subText, fontSize: 13, marginTop: 2 }}>{description}</Text> : null}
-      </View>
-    </TouchableOpacity>
   );
 
   return (
@@ -309,9 +339,9 @@ export default function TwoFactorScreen({ navigation }) {
                     {t("twoFactor.enable")}
                   </Text>
                   <Switch
-                    value={!!status.enabled}
+                    value={switchValue}
                     onValueChange={onToggle}
-                    disabled={mode !== null}
+                    disabled={busy || mode === "recovery" || mode === "regenerate"}
                     trackColor={{ true: theme.primary }}
                   />
                 </View>
@@ -348,13 +378,13 @@ export default function TwoFactorScreen({ navigation }) {
 
               {mode === "choose" && (
                 <View style={cardStyle}>
-                  <MethodOption
+                  <MethodOption theme={theme} selected={method} onSelect={setMethod}
                     value="email"
                     title={t("twoFactor.methodEmail")}
                     description={status.email_verified ? status.email : t("twoFactor.emailNotVerified")}
                     disabled={!status.email_verified}
                   />
-                  <MethodOption
+                  <MethodOption theme={theme} selected={method} onSelect={setMethod}
                     value="totp"
                     title={t("twoFactor.methodTotp")}
                     description={t("twoFactor.methodTotpDesc")}
@@ -370,8 +400,8 @@ export default function TwoFactorScreen({ navigation }) {
                     />
                   )}
                   <View style={styles.actions}>
-                    <SecondaryButton title={t("twoFactor.cancel")} onPress={reset} />
-                    <PrimaryButton title={t("twoFactor.continue")} onPress={startSetup} />
+                    <SecondaryButton theme={theme} busy={busy} isDarkMode={isDarkMode} title={t("twoFactor.cancel")} onPress={reset} />
+                    <PrimaryButton theme={theme} busy={busy} title={t("twoFactor.continue")} onPress={startSetup} />
                   </View>
                 </View>
               )}
@@ -420,8 +450,8 @@ export default function TwoFactorScreen({ navigation }) {
                     </TouchableOpacity>
                   )}
                   <View style={styles.actions}>
-                    <SecondaryButton title={t("twoFactor.cancel")} onPress={cancelSetup} />
-                    <PrimaryButton title={t("twoFactor.confirmEnable")} onPress={confirmSetup} disabled={!code.trim()} />
+                    <SecondaryButton theme={theme} busy={busy} isDarkMode={isDarkMode} title={t("twoFactor.cancel")} onPress={cancelSetup} />
+                    <PrimaryButton theme={theme} busy={busy} title={t("twoFactor.confirmEnable")} onPress={confirmSetup} disabled={!code.trim()} />
                   </View>
                 </View>
               )}
@@ -438,8 +468,8 @@ export default function TwoFactorScreen({ navigation }) {
                     ))}
                   </View>
                   <View style={styles.actions}>
-                    <SecondaryButton title={t("twoFactor.copy")} onPress={() => copy(recoveryCodes.join("\n"))} />
-                    <PrimaryButton
+                    <SecondaryButton theme={theme} busy={busy} isDarkMode={isDarkMode} title={t("twoFactor.copy")} onPress={() => copy(recoveryCodes.join("\n"))} />
+                    <PrimaryButton theme={theme} busy={busy}
                       title={t("twoFactor.saved")}
                       onPress={() => {
                         setRecoveryCodes([]);
@@ -457,8 +487,8 @@ export default function TwoFactorScreen({ navigation }) {
                   </Text>
                   {identityFields}
                   <View style={styles.actions}>
-                    <SecondaryButton title={t("twoFactor.cancel")} onPress={reset} />
-                    <PrimaryButton
+                    <SecondaryButton theme={theme} busy={busy} isDarkMode={isDarkMode} title={t("twoFactor.cancel")} onPress={reset} />
+                    <PrimaryButton theme={theme} busy={busy}
                       title={mode === "disable" ? t("twoFactor.disable") : t("twoFactor.regenerate")}
                       danger={mode === "disable"}
                       onPress={mode === "disable" ? confirmDisable : confirmRegenerate}
