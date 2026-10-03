@@ -176,7 +176,7 @@ Sau khi chỉnh sửa mã, chạy `npm run start` để đảm bảo Metro build
 - **OAuth bị `state mismatch`**: xác nhận redirect URI khớp, backend trả về code đúng và không sửa `code_verifier`.
 
 ## Đóng góp
-1. Fork/branch từ `main` (nhóm hiện phát triển trên nhánh `dhphuc` rồi mở PR vào `main`).
+1. Nhánh mặc định là **`dhphuc`**: nếu không có yêu cầu khác, phát triển và push lên `dhphuc`, sau đó mở PR vào `main`.
 2. Đặt tên nhánh theo chuẩn `feature/<tên>`, `bugfix/<tên>`; commit theo chuẩn conventional commits (`feat(...)`, `fix(...)`).
 3. Chạy `npm run start` để kiểm tra nhanh; nếu chỉnh sửa thư viện bên thứ ba, cập nhật `patches/`.
 4. Viết mô tả PR bằng tiếng Việt (hoặc song ngữ) kèm checklist test thủ công.
