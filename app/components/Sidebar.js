@@ -86,7 +86,7 @@ const CollapsibleMenuItem = ({
 const SidebarGlassWrapper = LiquidGlassView ?? View;
 
 const Sidebar = ({ providerId, isOpen }) => {
-  const { signOut, username, profileName } = useContext(AuthContext);
+  const { signOut, username, profileName, userInfo } = useContext(AuthContext);
   const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
   // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
   // entirely, reading as a flat tinted panel instead of glass. Matches
@@ -441,6 +441,58 @@ const Sidebar = ({ providerId, isOpen }) => {
                 />
               )}
             />
+            <List.Item
+              title={t("sidebar.giftShop")}
+              titleStyle={{ color: theme.text }}
+              onPress={() => navigation.navigate("GiftShopScreen")}
+              left={() => (
+                <Ionicons
+                  name="gift-outline"
+                  size={24}
+                  color={theme.text}
+                  style={{ marginLeft: 14, marginRight: -5 }}
+                />
+              )}
+              right={() => (
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  color={theme.subText}
+                  style={{
+                    marginRight: -10,
+                    marginTop: 3,
+                    transform: [{ rotate: "-90deg" }],
+                  }}
+                />
+              )}
+            />
+            {userInfo?.role === "admin" && (
+              <List.Item
+                title={t("sidebar.admin")}
+                titleStyle={{ color: theme.text }}
+                onPress={() => navigation.navigate("AdminWebScreen")}
+                left={() => (
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={24}
+                    color={theme.text}
+                    style={{ marginLeft: 14, marginRight: -5 }}
+                  />
+                )}
+                right={() => (
+                  <Ionicons
+                    name="chevron-down-outline"
+                    size={20}
+                    color={theme.subText}
+                    style={{
+                      marginRight: -10,
+                      marginTop: 3,
+                      transform: [{ rotate: "-90deg" }],
+                    }}
+                  />
+                )}
+              />
+            )}
           </List.Section>
           <List.Section>
             <List.Subheader

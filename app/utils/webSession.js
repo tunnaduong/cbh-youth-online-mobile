@@ -64,3 +64,43 @@ export async function withWebSession(url, parts) {
   }
 }
 
+
+/**
+ * Script for a react-native-webview's injectedJavaScriptBeforeContentLoaded
+ * that signs the page in as `token`, the app's current login. Unlike the
+ * in-app browser, the app can run script in its own WebViews, so they get
+ * the token directly - and since it runs on every load with whatever
+ * account is active, switching accounts in the app switches the web too.
+ *
+ * It writes the auth_token cookie shared by every *.chuyenbienhoa.com site
+ * and, when that changed what the cookie said, reloads once so the server
+ * render sees the new login as well. A sessionStorage guard stops a cookie
+ * the browser refuses from turning that into a reload loop.
+ */
+export function webViewAuthScript(token) {
+  if (!token) return "true;";
+  return `(function () {
+  try {
+    var token = ${JSON.stringify(token)};
+    if (!/(^|\\.)chuyenbienhoa\\.com$/.test(location.hostname)) return;
+    var current = document.cookie.match(/(?:^|; )auth_token=[^;]*/g) || [];
+    if (current.length === 1 && current[0].replace(/^(; )?auth_token=/, "") === token) return;
+
+    // A host-only auth_token (left by an older login flow) would sit next to
+    // the shared one and the site could read either - drop it first.
+    document.cookie = "auth_token=; path=/; max-age=0";
+    document.cookie = "auth_token=" + token + "; path=/; domain=.chuyenbienhoa.com; max-age=2592000; samesite=lax; secure";
+    try {
+      // The main site caches the signed-in user and token here as well.
+      if (localStorage.getItem("TOKEN") !== token) localStorage.removeItem("CURRENT_USER");
+      localStorage.setItem("TOKEN", token);
+    } catch (e) {}
+
+    if (sessionStorage.getItem("cbh_app_token_reload") !== token) {
+      sessionStorage.setItem("cbh_app_token_reload", token);
+      location.reload();
+    }
+  } catch (e) {}
+})();
+true;`;
+}

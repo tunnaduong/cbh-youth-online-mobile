@@ -340,6 +340,8 @@
     "memberRanking": "Xếp hạng thành viên",
     "explore": "Khám phá",
     "pointWallet": "Ví điểm của tôi",
+    "giftShop": "Cửa hàng quà tặng",
+    "admin": "Quản trị viên",
     "settingsGroup": "Thiết lập",
     "support": "Hỗ trợ",
     "about": "Giới thiệu",
@@ -1934,5 +1936,13 @@
       "profile_effect": { "none": "Không", "sparkles": "Lấp lánh", "hearts": "Trái tim", "snow": "Tuyết rơi", "aurora": "Cực quang" },
       "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay" }
     }
+  },
+  "webApp": {
+    "leftSiteTitle": "Không thể rời khỏi cửa hàng tại đây",
+    "leftSiteMessage": "Liên kết này dẫn đến một trang web khác, không thể mở bên trong cửa hàng quà tặng.",
+    "backToShopHome": "Về trang chủ cửa hàng",
+    "loadErrorTitle": "Không tải được trang",
+    "loadErrorMessage": "Kiểm tra kết nối mạng rồi thử lại.",
+    "retry": "Thử lại"
   }
 }

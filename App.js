@@ -84,6 +84,7 @@ import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
 import PointWalletScreen from "./app/screens/MainScreens/PointWalletScreen";
+import WebAppScreen from "./app/screens/MainScreens/WebAppScreen";
 import DepositScreen from "./app/screens/MainScreens/PointWalletScreen/DepositScreen";
 import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/WithdrawScreen";
 
@@ -872,6 +873,18 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="PointWalletScreen"
                 component={PointWalletScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GiftShopScreen"
+                component={WebAppScreen}
+                initialParams={{ site: "giftshop" }}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="AdminWebScreen"
+                component={WebAppScreen}
+                initialParams={{ site: "admin" }}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

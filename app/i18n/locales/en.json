@@ -351,6 +351,8 @@
     "memberRanking": "Member Ranking",
     "explore": "Explore",
     "pointWallet": "My points wallet",
+    "giftShop": "Gift shop",
+    "admin": "Admin",
     "settingsGroup": "Settings",
     "support": "Support",
     "about": "About",
@@ -1947,5 +1949,13 @@
       "profile_effect": { "none": "None", "sparkles": "Sparkles", "hearts": "Hearts", "snow": "Snowfall", "aurora": "Aurora" },
       "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon" }
     }
+  },
+  "webApp": {
+    "leftSiteTitle": "You can't leave the gift shop here",
+    "leftSiteMessage": "This link goes to another website, which can't be opened inside the gift shop.",
+    "backToShopHome": "Back to gift shop home",
+    "loadErrorTitle": "Couldn't load the page",
+    "loadErrorMessage": "Check your internet connection and try again.",
+    "retry": "Try again"
   }
 }
