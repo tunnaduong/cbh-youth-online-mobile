@@ -120,6 +120,7 @@
       "url": "https://u.expo.dev/172eec8c-8c58-453c-a375-258412496e09"
     },
     "plugins": [
+      "react-native-compressor",
       [
         "expo-splash-screen",
         {

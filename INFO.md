@@ -145,6 +145,8 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **`react-native-compressor` 1.19.4 and `expo-crypto` ~55.0.17 are now in `package.json`** (plus the compressor's config plugin in `app.json`); the lockfile is produced by the `npm` workflow (`.github/workflows/npm.yml`, manual trigger: runs `npm install` and commits `package-lock.json` to `dhphuc`). 1.x was chosen over 2.x because 2.x also needs `react-native-nitro-modules`. Video compression on Android starts working with the next native build.
+
 - **Review fixes** (not run): `FastImage` only tracks loading for images big enough to show the shimmer (avatars in long lists no longer re-render on load); the fallback forum entry in `PostEditScreen` translates its category header; holding a gradient chip in `ProfileCustomizerScreen` removes that second colour (`profileTheme.gradientCleared` / `gradientClearHint`).
 
 - **Media is compressed on the device before upload** (not run): the API no longer compresses uploads. `app/utils/mediaCompression.js`: photos via `expo-image-manipulator` (1470px wide, quality 85); videos via **`react-native-compressor`, loaded optionally** (720p H.264, 4.7 Mbps) - the package is NOT installed yet: run `npx expo install react-native-compressor` and make a new native build, until then videos are uploaded as they are. On iOS the pickers already export 720p H.264 (`videoExportPreset`). Wired into create/edit post (HUD shows "Đang nén ảnh..." / "Đang nén video i/n..."), chat video messages (info toast) and video stories. Chat/comment photos were already re-encoded at quality 0.85.
