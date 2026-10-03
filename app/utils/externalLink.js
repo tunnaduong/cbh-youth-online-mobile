@@ -1,5 +1,6 @@
 import { Linking } from "react-native";
 import * as WebBrowser from "expo-web-browser";
+import { withWebSession } from "./webSession";
 
 // Links typed into posts, comments and chat messages can point anywhere, so
 // tapping one doesn't hand the URL straight to the system browser - it opens
@@ -266,14 +267,18 @@ export function decodeLinkToken(token) {
  * `theme` is the object from ThemeContext; passing it tints the browser chrome
  * to match the app. Anything that isn't http(s) - mailto:, tel:, a deep link
  * into another app - has no in-app browser to open in and is handed to the OS.
+ *
+ * Pages on our own web site open signed in as the app's current user (see
+ * webSession.js).
  */
-export function openInAppBrowser(url, theme) {
+export async function openInAppBrowser(url, theme) {
   const raw = String(url || "").trim();
-  if (!raw) return Promise.resolve();
+  if (!raw) return;
   if (!/^https?:\/\//i.test(raw)) {
     return Linking.openURL(raw).catch(() => {});
   }
-  return WebBrowser.openBrowserAsync(raw, {
+  const target = await withWebSession(raw, parseUrlParts(raw));
+  return WebBrowser.openBrowserAsync(target, {
     toolbarColor: theme?.headerBackground,
     secondaryToolbarColor: theme?.surface,
     controlsColor: theme?.primary,
@@ -282,7 +287,7 @@ export function openInAppBrowser(url, theme) {
   }).catch(() =>
     // Custom Tabs needs a browser that supports them, and the whole module is
     // missing in Expo Go; falling back keeps the link openable either way.
-    Linking.openURL(raw).catch(() => {})
+    Linking.openURL(target).catch(() => {})
   );
 }
 
