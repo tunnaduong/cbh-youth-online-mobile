@@ -12,7 +12,14 @@ import { storage } from "../global/storage";
 // A code rather than the token itself, because the URL ends up in browser
 // history (on Android, Chrome's - synced to the user's Google account).
 
-const WEB_HOSTS = ["chuyenbienhoa.com", "www.chuyenbienhoa.com"];
+// Every CBH site with an /auth/set-token page that redeems the code. They all
+// share one auth_token cookie on .chuyenbienhoa.com, so a handoff through any
+// of them signs the user in on all of them.
+const WEB_HOSTS = [
+  "chuyenbienhoa.com",
+  "www.chuyenbienhoa.com",
+  "giftshop.chuyenbienhoa.com",
+];
 const HANDOFF_TIMEOUT_MS = 4000;
 
 // Each redeemed code mints a new web token, so only hand off once per app
