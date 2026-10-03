@@ -10,16 +10,16 @@ import {
 import { WebView } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
-import LiquidButton from "../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+import WebViewHeader from "../../../components/WebViewHeader";
 import { openInAppBrowser, parseUrlParts } from "../../../utils/externalLink";
-import { webViewAuthScript } from "../../../utils/webSession";
+import { webViewBootScript } from "../../../utils/webSession";
 
 // One screen hosting a CBH web app in a WebView, signed in as the app's
-// current account (see webViewAuthScript). Registered once per site in
+// current account and following its theme (see webViewBootScript). Registered once per site in
 // App.js with `initialParams={{ site }}`.
 //
 // `lockToSite`: the gift shop must never leave its own domain - a navigation
@@ -36,7 +36,7 @@ const SITES = {
   },
   admin: {
     titleKey: "sidebar.admin",
-    homeUrl: "https://www.chuyenbienhoa.com/admin",
+    homeUrl: "https://www.chuyenbienhoa.com/admin?app=true",
     hosts: ["chuyenbienhoa.com", "www.chuyenbienhoa.com"],
     lockToSite: false,
   },
@@ -44,8 +44,8 @@ const SITES = {
 
 export default function WebAppScreen({ navigation, route }) {
   const site = SITES[route.params?.site] || SITES.giftshop;
-  const insets = useSafeAreaInsets();
-  const { theme } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", theme.background);
   const { t } = useTranslation();
   const webViewRef = useRef(null);
 
@@ -124,46 +124,30 @@ export default function WebAppScreen({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top, height: 64 + insets.top, borderColor: theme.border },
-        ]}
-      >
-        <View style={styles.headerSide}>
-          <LiquidButton
-            size={44}
-            providerId={`WebAppScreen-${route.params?.site}`}
-            onPress={() => {
-              if (!handleBack()) navigation.goBack();
-            }}
-          >
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-        </View>
-        <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
-          {t(site.titleKey)}
-        </Text>
-        <View style={[styles.headerSide, { alignItems: "flex-end" }]}>
-          <LiquidButton
-            size={44}
-            providerId={`WebAppScreen-${route.params?.site}-reload`}
+      <WebViewHeader
+        title={t(site.titleKey)}
+        onBack={() => {
+          if (!handleBack()) navigation.goBack();
+        }}
+        right={
+          <TouchableOpacity
+            hitSlop={8}
             onPress={() => {
               if (blockedUrl || loadFailed) goHome();
               else webViewRef.current?.reload();
             }}
           >
             <Ionicons name="refresh" size={22} color={theme.primary} />
-          </LiquidButton>
-        </View>
-      </View>
+          </TouchableOpacity>
+        }
+      />
 
       <View style={styles.body}>
         {tokenReady ? (
           <WebView
-            // Keyed on the token as well, so a different account always gets
-            // a fresh page signed in as itself.
-            key={`${reloadKey}-${token || ""}`}
+            // Keyed on the token and theme as well, so a different account
+            // or appearance always gets a fresh page that matches it.
+            key={`${reloadKey}-${token || ""}-${isDarkMode}`}
             ref={webViewRef}
             source={{ uri: site.homeUrl }}
             style={styles.webview}
@@ -172,7 +156,10 @@ export default function WebAppScreen({ navigation, route }) {
             incognito={false}
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
-            injectedJavaScriptBeforeContentLoaded={webViewAuthScript(token)}
+            injectedJavaScriptBeforeContentLoaded={webViewBootScript({
+              token,
+              theme: isDarkMode ? "dark" : "light",
+            })}
             onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
             // Android: target="_blank" / window.open load here instead of a
             // new window, so they go through the check above too.
@@ -232,20 +219,6 @@ export default function WebAppScreen({ navigation, route }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerSide: { width: 44 },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
-  },
   body: { flex: 1 },
   webview: { flex: 1 },
   overlay: {

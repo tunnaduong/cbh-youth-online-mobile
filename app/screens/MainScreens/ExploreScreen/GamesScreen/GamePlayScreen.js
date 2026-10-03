@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
-import LiquidButton from "../../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
+import WebViewHeader from "../../../../components/WebViewHeader";
 
 // The game itself (embed, play session tracking, XP) is entirely the web
-// page's job - this screen just hosts it in a WebView with a floating back
-// button matching EasterEggScreen's pattern. ?app=true tells the web page to
-// hide its own back button so there's only ever one.
+// page's job - this screen just hosts it in a WebView under a plain header
+// (see WebViewHeader). ?app=true tells the web page to hide its own back
+// button so there's only ever one.
 export default function GamePlayScreen({ navigation, route }) {
-  const { slug } = route.params || {};
-  const insets = useSafeAreaInsets();
+  const { slug, name } = route.params || {};
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", theme.background);
 
   // The website reads its auth token from a cookie (auth_token, see
   // utils/cookies.js on web), completely separate from the app's own
@@ -40,30 +40,9 @@ export default function GamePlayScreen({ navigation, route }) {
       .finally(() => setTokenReady(true));
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      StatusBar.setBarStyle("light-content", true);
-      if (StatusBar.setTranslucent) StatusBar.setTranslucent(true);
-      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor("transparent", true);
-
-      return () => {
-        StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
-        if (StatusBar.setTranslucent) StatusBar.setTranslucent(false);
-        if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
-      };
-    }, [isDarkMode, theme.background])
-  );
-
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        pointerEvents="box-none"
-        style={{ position: "absolute", top: insets.top + 8, left: 16, zIndex: 10 }}
-      >
-        <LiquidButton size={44} providerId="GamePlayScreen" onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-      </View>
+      <WebViewHeader title={name || t("games.title")} onBack={() => navigation.goBack()} />
 
       {tokenReady ? (
         <WebView

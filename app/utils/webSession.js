@@ -67,22 +67,35 @@ export async function withWebSession(url, parts) {
 
 /**
  * Script for a react-native-webview's injectedJavaScriptBeforeContentLoaded
- * that signs the page in as `token`, the app's current login. Unlike the
- * in-app browser, the app can run script in its own WebViews, so they get
- * the token directly - and since it runs on every load with whatever
- * account is active, switching accounts in the app switches the web too.
+ * that makes a CBH web page behave as part of the app:
  *
- * It writes the auth_token cookie shared by every *.chuyenbienhoa.com site
- * and, when that changed what the cookie said, reloads once so the server
- * render sees the new login as well. A sessionStorage guard stops a cookie
- * the browser refuses from turning that into a reload loop.
+ * - App mode: sets the sessionStorage flag the sites read (alongside
+ *   ?app=true) to hide their sign-out, splash and "get the app" prompts -
+ *   set on every load so it survives in-site navigation.
+ * - Theme: writes `theme` ("light"/"dark") to the keys the main site and the
+ *   gift shop read their theme from, before their own scripts run, so they
+ *   follow the app's appearance setting.
+ * - Login: signs the page in as `token`, the app's current login. Unlike the
+ *   in-app browser, the app can run script in its own WebViews, so they get
+ *   the token directly - and since this runs on every load with whatever
+ *   account is active, switching accounts in the app switches the web too.
+ *   It writes the auth_token cookie shared by every *.chuyenbienhoa.com site
+ *   and, when that changed what the cookie said, reloads once so the server
+ *   render sees the new login as well. A sessionStorage guard stops a cookie
+ *   the browser refuses from turning that into a reload loop.
  */
-export function webViewAuthScript(token) {
-  if (!token) return "true;";
+export function webViewBootScript({ token, theme }) {
   return `(function () {
   try {
-    var token = ${JSON.stringify(token)};
     if (!/(^|\\.)chuyenbienhoa\\.com$/.test(location.hostname)) return;
+    try {
+      sessionStorage.setItem("cbh_app_mode", "1");
+      localStorage.setItem("theme", ${JSON.stringify(theme)});
+      localStorage.setItem("giftshop_theme", ${JSON.stringify(theme)});
+    } catch (e) {}
+
+    var token = ${JSON.stringify(token || "")};
+    if (!token) return;
     var current = document.cookie.match(/(?:^|; )auth_token=[^;]*/g) || [];
     if (current.length === 1 && current[0].replace(/^(; )?auth_token=/, "") === token) return;
 
