@@ -22,8 +22,10 @@ This README is written so a new contributor — human or AI agent — can pick t
 How they connect:
 - **Auth**: the app stores its Sanctum token in AsyncStorage (`auth_token`) and sends `Authorization: Bearer` (see `app/services/api/axiosInstance.js`). The web sites share one `auth_token` cookie on `.chuyenbienhoa.com`.
 - **App → web login**:
-  - In-app browser (`openInAppBrowser`, SFSafariViewController / Custom Tabs): a one-time code from `POST /v1.0/web-session/handoff`, opened as `https://<site>/auth/set-token?code=…&return=…`; the site redeems it at `POST /v1.0/web-session/redeem`. Done once per app login (`app/utils/webSession.js` → `withWebSession`).
-  - App-owned WebViews: `webViewBootScript` injects the cookie for the current account before each load (plus app mode + theme, below).
+  - Both the in-app browser (`openInAppBrowser`, SFSafariViewController / Custom Tabs) and the app's own WebViews (`WebAppScreen`, `GamePlayScreen`) get a web session of their own: a one-time code from `POST /v1.0/web-session/handoff`, opened as `https://<site>/auth/set-token?code=…&return=…`; the site redeems it at `POST /v1.0/web-session/redeem`. `sessionEntryUrl(url, parts, "browser" | "webview")` in `app/utils/webSession.js` does it once per app login per cookie store (MMKV keys `web_session_handed_off` / `webview_session_handed_off` hold the token fingerprint).
+  - Never the app's own token: WebViews used to inject it as a cookie, which made the app's entry in the logged-in devices list flip to "web". WebViews append `CBHYouthApp/<version>` to their user agent, so the sites label their session "WebView trong ứng dụng CBH Youth"; browser sessions the app handed over carry a `cbh_session_source=app` cookie and show "<browser> · mở từ ứng dụng".
+  - Signed out / switched account: with no app account, the next CBH page opens via `/auth/set-token?logout=1` (drops the web session and revokes it if the app handed it over). A new handoff after an account switch revokes the previous app-handed session. If the handoff fails after a switch, the page is signed out rather than left on the old account.
+  - `webViewBootScript({ theme })` runs before each WebView load: app mode + theme (below), and drops a stale host-only `auth_token`.
 - **App mode**: web pages opened by the app get `?app=true` and a `sessionStorage.cbh_app_mode` flag; the sites then hide sign-out, splash, "get the app" banners and off-site links.
 - **Deep links**: scheme `com.fatties.youth://` (`post/<id>`, `story/<id>`, `group/<token>`, `oauth`) and universal links on `chuyenbienhoa.com` / `www.chuyenbienhoa.com` (`app.json` `associatedDomains` / intent filters). Routing lives in `App.js` (`navigateToDeepLinkTarget`); in-content CBH links open native screens via `resolveInAppRoute` in `app/utils/externalLink.js`.
 
@@ -138,13 +140,14 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 - **Storage**: auth token + `user_info` in AsyncStorage (`auth_token` is read by the axios interceptor); prefs/caches (theme, avatar versions, handoff flag) in MMKV (`app/global/storage.js`).
 - **Navigation**: register new screens in `App.js` (logged-in stack); use `push` for screens that load data once on mount (Post/Profile) so a new target gets a fresh instance.
 - **External links**: route through `openExternalLink` / `openInAppBrowser` (`utils/externalLink.js`), never `Linking.openURL` directly for http(s).
-- **WebViews of CBH sites**: use `WebAppScreen` (add a `SITES` entry + a `Stack.Screen` with `initialParams={{ site }}`). It injects `webViewBootScript({ token, theme })`, and `lockToSite` keeps a WebView on its domain (blocked navigations show a "back to home" page).
+- **WebViews of CBH sites**: use `WebAppScreen` (add a `SITES` entry + a `Stack.Screen` with `initialParams={{ site }}`). It opens through `sessionEntryUrl(…, "webview")`, injects `webViewBootScript({ theme })`, sets `applicationNameForUserAgent={WEBVIEW_USER_AGENT_SUFFIX}`, and `lockToSite` keeps a WebView on its domain (blocked navigations show a "back to home" page).
 - **Git**: work on branch `dhphuc` (PRs to `main`). Commit messages: conventional commits in English, e.g. `fix(forum): …`, `feat(sidebar): …`. Comments explain *why*, matching the surrounding density.
 
 ---
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Web sessions follow the app account**: WebViews no longer inject the app's token; they get their own session via the handoff (`sessionEntryUrl`), so the app's device entry stays the app's. Signed out → next page goes through `/auth/set-token?logout=1`; account switch → new handoff revokes the old app-handed session. WebView UA suffix `CBHYouthApp/<version>` lets the devices list label WebView sessions.
 - **`react-native-compressor` 1.19.4 and `expo-crypto` ~55.0.17 are now in `package.json`** (plus the compressor's config plugin in `app.json`); the lockfile is produced by the `npm` workflow (`.github/workflows/npm.yml`, manual trigger: runs `npm install` and commits `package-lock.json` to `dhphuc`). 1.x was chosen over 2.x because 2.x also needs `react-native-nitro-modules`. Video compression on Android starts working with the next native build.
 
 - **Review fixes** (not run): `FastImage` only tracks loading for images big enough to show the shimmer (avatars in long lists no longer re-render on load); the fallback forum entry in `PostEditScreen` translates its category header; holding a gradient chip in `ProfileCustomizerScreen` removes that second colour (`profileTheme.gradientCleared` / `gradientClearHint`).

@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -16,10 +15,15 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import WebViewHeader from "../../../components/WebViewHeader";
 import { openInAppBrowser, parseUrlParts } from "../../../utils/externalLink";
-import { webViewBootScript } from "../../../utils/webSession";
+import {
+  sessionEntryUrl,
+  webViewBootScript,
+  WEBVIEW_USER_AGENT_SUFFIX,
+} from "../../../utils/webSession";
 
 // One screen hosting a CBH web app in a WebView, signed in as the app's
-// current account and following its theme (see webViewBootScript). Registered once per site in
+// current account through a session of its own (see sessionEntryUrl) and
+// following its theme (see webViewBootScript). Registered once per site in
 // App.js with `initialParams={{ site }}`.
 //
 // `lockToSite`: the gift shop must never leave its own domain - a navigation
@@ -49,20 +53,28 @@ export default function WebAppScreen({ navigation, route }) {
   const { t } = useTranslation();
   const webViewRef = useRef(null);
 
-  const [token, setToken] = useState(null);
-  const [tokenReady, setTokenReady] = useState(false);
+  // Where the WebView starts: homeUrl, or the site's /auth/set-token first
+  // when this WebView isn't signed in as the current account yet. Null while
+  // that's being worked out.
+  const [startUrl, setStartUrl] = useState(null);
   const [canGoBack, setCanGoBack] = useState(false);
   const [blockedUrl, setBlockedUrl] = useState(null);
   const [loadFailed, setLoadFailed] = useState(false);
   // Bumping this remounts the WebView back at homeUrl.
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Worked out again on every remount (home button, theme change); once the
+  // WebView is signed in it's just homeUrl.
   useEffect(() => {
-    AsyncStorage.getItem("auth_token")
-      .then(setToken)
-      .catch(() => {})
-      .finally(() => setTokenReady(true));
-  }, []);
+    let cancelled = false;
+    setStartUrl(null);
+    sessionEntryUrl(site.homeUrl, parseUrlParts(site.homeUrl), "webview").then((url) => {
+      if (!cancelled) setStartUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [site.homeUrl, reloadKey, isDarkMode]);
 
   const goHome = useCallback(() => {
     setBlockedUrl(null);
@@ -144,13 +156,14 @@ export default function WebAppScreen({ navigation, route }) {
       />
 
       <View style={styles.body}>
-        {tokenReady ? (
+        {startUrl ? (
           <WebView
-            // Keyed on the token and theme as well, so a different account
-            // or appearance always gets a fresh page that matches it.
-            key={`${reloadKey}-${token || ""}-${isDarkMode}`}
+            // Keyed on the theme as well, so a change of appearance gets a
+            // fresh page that matches it.
+            key={`${reloadKey}-${isDarkMode}`}
             ref={webViewRef}
-            source={{ uri: site.homeUrl }}
+            source={{ uri: startUrl }}
+            applicationNameForUserAgent={WEBVIEW_USER_AGENT_SUFFIX}
             style={styles.webview}
             javaScriptEnabled
             domStorageEnabled
@@ -158,7 +171,6 @@ export default function WebAppScreen({ navigation, route }) {
             sharedCookiesEnabled
             thirdPartyCookiesEnabled
             injectedJavaScriptBeforeContentLoaded={webViewBootScript({
-              token,
               theme: isDarkMode ? "dark" : "light",
             })}
             onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}

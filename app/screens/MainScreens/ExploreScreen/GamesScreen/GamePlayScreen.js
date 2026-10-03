@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import WebViewHeader from "../../../../components/WebViewHeader";
+import { parseUrlParts } from "../../../../utils/externalLink";
+import {
+  sessionEntryUrl,
+  webViewBootScript,
+  WEBVIEW_USER_AGENT_SUFFIX,
+} from "../../../../utils/webSession";
 
 // The game itself (embed, play session tracking, XP) is entirely the web
 // page's job - this screen just hosts it in a WebView under a plain header
@@ -17,36 +22,33 @@ export default function GamePlayScreen({ navigation, route }) {
   const { t } = useTranslation();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", theme.background);
 
-  // The website reads its auth token from a cookie (auth_token, see
-  // utils/cookies.js on web), completely separate from the app's own
-  // AsyncStorage-based auth. Without this, the WebView always loads the
-  // game page as a guest, so session tracking (startSession/heartbeat -
-  // what populates "Đang chơi"/leaderboard) silently never fires for
-  // anyone playing through the app. Read the app's token once up front and
-  // set the matching cookie before the page's own scripts run.
-  const [tokenReady, setTokenReady] = useState(false);
-  const [authScript, setAuthScript] = useState("");
+  // Session tracking (startSession/heartbeat - what fills "Đang chơi" and
+  // the leaderboard) only runs for a signed-in player, so the page opens
+  // through the site's login handoff when this WebView isn't signed in as
+  // the current account yet (see sessionEntryUrl). It used to set the app's
+  // own token as a cookie, which made the app's entry in the logged-in
+  // devices list show up as "web" whenever a game was played.
+  const gameUrl = `https://www.chuyenbienhoa.com/explore/games/${slug}?app=true`;
+  const [startUrl, setStartUrl] = useState(null);
 
   useEffect(() => {
-    AsyncStorage.getItem("auth_token")
-      .then((token) => {
-        setAuthScript(
-          token
-            ? `document.cookie = "auth_token=${token}; path=/"; true;`
-            : "true;"
-        );
-      })
-      .catch(() => setAuthScript("true;"))
-      .finally(() => setTokenReady(true));
-  }, []);
+    let cancelled = false;
+    sessionEntryUrl(gameUrl, parseUrlParts(gameUrl), "webview").then((url) => {
+      if (!cancelled) setStartUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameUrl]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <WebViewHeader title={name || t("games.title")} onBack={() => navigation.goBack()} />
 
-      {tokenReady ? (
+      {startUrl ? (
         <WebView
-          source={{ uri: `https://www.chuyenbienhoa.com/explore/games/${slug}?app=true` }}
+          source={{ uri: startUrl }}
+          applicationNameForUserAgent={WEBVIEW_USER_AGENT_SUFFIX}
           style={styles.webview}
           containerStyle={styles.webviewContainer}
           javaScriptEnabled
@@ -57,9 +59,9 @@ export default function GamePlayScreen({ navigation, route }) {
           incognito={false}
           sharedCookiesEnabled
           thirdPartyCookiesEnabled
-          // Signs the WebView into the same account as the app before the
-          // page's own scripts run, so session tracking works from the app.
-          injectedJavaScriptBeforeContentLoaded={authScript}
+          injectedJavaScriptBeforeContentLoaded={webViewBootScript({
+            theme: isDarkMode ? "dark" : "light",
+          })}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           startInLoadingState

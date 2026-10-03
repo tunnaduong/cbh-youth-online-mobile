@@ -68,8 +68,8 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 - Stack bổ sung: tạo/sửa bài, chỉnh sửa hồ sơ, cài đặt, báo cáo nhiều bước (`ReportNavigator`), Story viewers, Explore, Archive, ví điểm.
 
 ### 5. Web trong ứng dụng
-- Link tới website CBH mở bằng trình duyệt trong app (`openInAppBrowser`); lần đầu sau khi đăng nhập, app lấy mã dùng một lần từ API và mở qua `/auth/set-token` để web đăng nhập sẵn cùng tài khoản.
-- Cửa hàng quà tặng và trang quản trị chạy trong `WebAppScreen` (WebView): tự đăng nhập theo tài khoản hiện tại (kể cả khi chuyển tài khoản), theo giao diện sáng/tối của app và mở với `?app=true` để web ẩn nút đăng xuất, màn chờ và banner tải app. Cửa hàng chỉ được ở trong tên miền của nó.
+- Link tới website CBH mở bằng trình duyệt trong app (`openInAppBrowser`); lần đầu sau khi đăng nhập, app lấy mã dùng một lần từ API và mở qua `/auth/set-token` để web đăng nhập sẵn cùng tài khoản. Khi đã đăng xuất khỏi app hoặc chuyển tài khoản, phiên web cũ bị xoá/thay thế ở lần mở trang tiếp theo.
+- Cửa hàng quà tặng và trang quản trị chạy trong `WebAppScreen` (WebView): có phiên đăng nhập riêng theo tài khoản hiện tại (kể cả khi chuyển tài khoản), hiển thị là "WebView trong ứng dụng CBH Youth" trong danh sách thiết bị đăng nhập, theo giao diện sáng/tối của app và mở với `?app=true` để web ẩn nút đăng xuất, màn chờ và banner tải app. Cửa hàng chỉ được ở trong tên miền của nó.
 
 ## Thiết lập môi trường
 ### Yêu cầu
