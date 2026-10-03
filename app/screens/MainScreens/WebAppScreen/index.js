@@ -129,6 +129,7 @@ export default function WebAppScreen({ navigation, route }) {
         onBack={() => {
           if (!handleBack()) navigation.goBack();
         }}
+        onClose={() => navigation.goBack()}
         right={
           <TouchableOpacity
             hitSlop={8}

@@ -1,168 +1,158 @@
-# CBH Youth Online (Mobile)
+# CBH Youth Online — Mobile
 
-CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chuyên Biên Hòa nhằm kết nối cộng đồng, cập nhật thông tin trường lớp, quản lý hoạt động Đoàn – Hội và cung cấp các tiện ích học tập. Ứng dụng được xây dựng bằng React Native/Expo, tối ưu cho trải nghiệm tiếng Việt với hệ thống xác thực đa phương thức, bảng tin tương tác, stories, chat riêng tư, báo cáo vi phạm và thông báo đẩy thời gian thực.
+Expo / React Native app for **CBH Youth Online (CYO)**, the student forum and social network of THPT Chuyên Biên Hòa (Hà Nam). Store name "CBH Online", bundle/package `com.fatties.youth`.
 
-## Tính năng nổi bật
-- **Onboarding & xác thực**: Màn hình chào mừng, đăng nhập/đăng ký truyền thống, quên mật khẩu, xác minh email và đăng nhập OAuth (Google/Facebook).
-- **Bảng tin động**: Newsfeed vô hạn, theo dõi bài viết, upvote/downvote, lưu bài, xem chi tiết, chỉnh sửa và tạo bài mới.
-- **Stories & đa phương tiện**: Stories kiểu Instagram (xem, tạo, phản ứng emoji, trả lời, xem lượt xem, lưu trữ).
-- **Chat & thông báo**: Hộp thư riêng, tạo cuộc trò chuyện mới, số badge chưa đọc, thông báo đẩy Expo tích hợp backend.
-- **Diễn đàn & báo cáo**: Điều hướng Side Menu tới diễn đàn, danh mục, báo cáo nhiều bước, lưu trữ báo cáo thành công.
-- **Khám phá nội dung**: Trang Explore, tìm kiếm nâng cao, danh sách bài viết đã thích, đã lưu, lịch sử hoạt động.
-- **Thiết lập cá nhân**: Trang cá nhân, chỉnh sửa hồ sơ, trang thông tin, Điều khoản và Chính sách riêng tư nội bộ.
+This README is written so a new contributor — human or AI agent — can pick the repo up cold: what the app does, how it is laid out, how to run it, the conventions to follow, and what changed recently.
 
-## Ngăn xếp công nghệ
-- **Runtime**: React Native 0.81 + Expo SDK 54, dev client (`expo-dev-client`) cho thiết bị thật, có liquid glass cho supported devices.
-- **Điều hướng**: React Navigation Stack + Bottom Tabs + Drawer tùy biến (`@chakrahq/react-native-side-menu`).
-- **State & ngữ cảnh**: React Context API (`Auth`, `Feed`, `StatusBar`, `UnreadCounts`, `Notification`, `BottomSheet`) kết hợp AsyncStorage và MMKV.
-- **UI/UX**: `tailwindcss-react-native`, `react-native-vector-icons`, Lottie, LinearGradient, ActionSheet tùy biến.
-- **Đa phương tiện**: `expo-image-picker`, `expo-camera`, `react-native-fast-image`, `react-native-instagram-stories`, `react-native-video`.
-- **Thông báo & thiết bị**: `expo-notifications`, `expo-updates`, `expo-auth-session`, `react-native-keyboard-controller`.
-- **Giao tiếp backend**: Axios instance với interceptor, upload multipart, patch-package cho các thư viện bên thứ ba.
-- **Build & phát hành**: EAS Build/Submit (`eas.json`), hỗ trợ profile `development`, `preview`, `production`.
+---
 
-## Cấu trúc thư mục chính
-| Đường dẫn | Mô tả |
-| --- | --- |
-| `App.js`, `index.js` | Entry point Expo, bọc `TailwindProvider`, `GestureHandlerRootView`, saf earea và các Context. |
-| `app/assets/` | Logo, hình onboarding, ảnh splash, animation Lottie (`refresh.json`, `splash.json`), SVG chứng thực. |
-| `app/components/` | Thành phần tái sử dụng: `PostItem`, `CustomTabBarButton`, `Sidebar`, `SplashScreen`, `TabBarBadge`, v.v. |
-| `app/contexts/` | Toàn bộ Providers (Auth, Feed, Notification, BottomSheet, StatusBar, UnreadCounts) + `index.js` gộp. |
-| `app/screens/` | Tổ chức theo module: `Login`, `Signup`, `MainScreens` (Home, Forum, Chat, Notifications, Search, Report, Stories, Explore, Settings, Profile...). |
-| `app/services/api/` | Axios instance, helper (GET/POST/PUT/DELETE, FormData) và toàn bộ endpoints (`Api.js`). |
-| `app/services/notifications/` | `ExpoNotificationService` cấu hình handler, xin quyền, đăng ký token, badge. |
-| `app/services/oauth.js` | Luồng OAuth PKCE cho Google/Facebook (qua backend `exchangeOAuthCode`). |
-| `app/hooks/` | Hook tùy chỉnh như `useUnreadCounts`, `useCurrentRoute`, `useStatusBarUpdate`. |
-| `app/utils/` | Hàm tiện ích: `formatTime`, `slugify`, lưu token/thông tin. |
-| `android/`, `ios/` | Dự án native cho build bare/Dev Client, cấu hình icon/splash riêng. |
-| `patches/` | File patch cho `patch-package` nhằm vá thư viện (stories, keyboard spacer, markdown, snap carousel). |
+## 1. The CBH system (sibling repos)
 
-## Luồng chức năng trọng tâm
-### 1. Xác thực & lưu trữ phiên
-- `AuthContext` giữ `auth_token`, `user_info` trong AsyncStorage và xoá sạch khi đăng xuất (đồng thời gọi API `/logout`).
-- Hỗ trợ xác minh email và cập nhật `email_verified_at`.
-- OAuth sử dụng `expo-auth-session` (PKCE) + backend `/v1.0/oauth/*` để đổi code sang token.
+| Repo (local path) | What it is | Talks to |
+| --- | --- | --- |
+| `cbh-youth-online-mobile` (this) | Expo app (iOS/Android) | API over HTTPS + Reverb websockets |
+| `/root/cbh-youth-online-api` | Laravel API — `https://api.chuyenbienhoa.com/v1.0/...`, Sanctum bearer tokens, Reverb (chat/realtime) | DB, push, mail |
+| `/root/cbh-youth-online-next-js` | Next.js web site — `https://chuyenbienhoa.com` (+ `/admin` dashboard) | API |
+| `/root/cbh-youth-online-gift-shop` | Next.js gift shop — `https://giftshop.chuyenbienhoa.com` | API |
 
-### 2. Bảng tin & stories
-- `HomeScreen` lấy feed (`/v1.0/topics`), phân trang vô hạn, tự tăng view khi item hiển thị ≥ 50%.
-- Stories tiêu chuẩn Instagram: `@birdwingo/react-native-instagram-stories`, reaction emoji (map sang API `stories/:id/react`), reply chuyển nhanh sang chat, xem người xem.
-- Hộp thoại nhắc xác minh email, refresh Lottie, trigger scroll-to-top khi bấm logo.
+How they connect:
+- **Auth**: the app stores its Sanctum token in AsyncStorage (`auth_token`) and sends `Authorization: Bearer` (see `app/services/api/axiosInstance.js`). The web sites share one `auth_token` cookie on `.chuyenbienhoa.com`.
+- **App → web login**:
+  - In-app browser (`openInAppBrowser`, SFSafariViewController / Custom Tabs): a one-time code from `POST /v1.0/web-session/handoff`, opened as `https://<site>/auth/set-token?code=…&return=…`; the site redeems it at `POST /v1.0/web-session/redeem`. Done once per app login (`app/utils/webSession.js` → `withWebSession`).
+  - App-owned WebViews: `webViewBootScript` injects the cookie for the current account before each load (plus app mode + theme, below).
+- **App mode**: web pages opened by the app get `?app=true` and a `sessionStorage.cbh_app_mode` flag; the sites then hide sign-out, splash, "get the app" banners and off-site links.
+- **Deep links**: scheme `com.fatties.youth://` (`post/<id>`, `story/<id>`, `group/<token>`, `oauth`) and universal links on `chuyenbienhoa.com` / `www.chuyenbienhoa.com` (`app.json` `associatedDomains` / intent filters). Routing lives in `App.js` (`navigateToDeepLinkTarget`); in-content CBH links open native screens via `resolveInAppRoute` in `app/utils/externalLink.js`.
 
-### 3. Chat & thông báo
-- `ChatScreen` + `ConversationScreen` tiêu thụ API `/chat/*`, hook `useUnreadCounts` polling mỗi 30s & khi app foreground.
-- `NotificationContext` đăng ký Expo push token, đồng bộ backend (`/notifications/expo/*`), badge count và listener khi nhận/tap thông báo.
+---
 
-### 4. Điều hướng & module
-- `MainScreens` gộp tab Home / Forum / Create / Chat / Notifications, hỗ trợ Side Menu để mở `Sidebar`.
-- Stack bổ sung: tạo/sửa bài, chỉnh sửa hồ sơ, cài đặt, báo cáo nhiều bước (`ReportNavigator`), Story viewers, Explore, Archive.
+## 2. Features
 
-## Thiết lập môi trường
-### Yêu cầu
-- Node.js >= 18 & npm 10 (khuyến nghị dùng `nvm`).
-- Expo CLI (`npm install -g expo-cli`) & EAS CLI (`npm install -g eas-cli`).
-- Watchman (macOS), Git.
-- Android Studio + SDK/NDK + JDK 17 cho build Android.
-- Xcode 15+ & CocoaPods cho build iOS (chạy trên macOS).
-- Thiết bị thật để thử thông báo đẩy và OAuth sâu.
+- **Onboarding & auth**: welcome carousel, language select (vi/en/ru), first-launch settings, login/signup, forgot password, email verification, Google/Facebook OAuth (PKCE, `app/services/oauth.js`), Apple sign-in, multi-account switcher (`AccountSwitcher`, `utils/savedAccounts.js`).
+- **Feed & posts**: infinite home feed, create/edit post (rich text, images, video upload, YouTube/SoundCloud share), votes with voter lists, comments with mentions and slash commands, saved/liked posts, share/forward, OG link preview cards (`LinkPreviewCard`, `utils/linkPreview.js`), link-safety interstitial for external URLs (`LinkSafetyScreen`).
+- **Forum**: categories/subforums (`ForumScreen`, `CategoryScreen`), Youth Union news category.
+- **Stories**: Instagram-style stories (create with overlays/music, react, reply, viewers sheet, archive).
+- **Chat**: 1-1 and group conversations, realtime via Laravel Echo + Reverb (`ChatSocketContext`, `services/echo`), typing, reactions, replies, forwarding, media gallery, chat backgrounds, group info / invites.
+- **Notifications**: Expo push (`services/notifications/ExpoNotificationService.js`, `NotificationContext`), unread badges (`UnreadCountsContext`), tap routing (`utils/notificationRouting.js`).
+- **Profile**: profile/detail screens, edit profile, Discord-style customization (avatar frames, name fonts/effects, profile effects; `ProfileCustomizerScreen`, `components/profile`, `utils/profileTheme.js`), points milestones, member ranking.
+- **Points**: point wallet, deposit/withdraw, gift points (`GiftPointsModal`).
+- **Explore**: games (web, in WebView), quizzes + custom quizzes, universities, study materials (view/upload).
+- **Reports & feedback**: multi-step student/class violation reports (`ReportScreen/ReportNavigator`), bug report / feedback screen, shake-to-report with screenshot (`ShakeToReport`).
+- **Web apps in the app**: sidebar entries **Gift shop** (everyone) and **Admin** (only `userInfo.role === "admin"`), both `WebAppScreen` (see §5).
+- **Settings**: theme (light/dark/system, liquid glass toggle, video autoplay), language, security, blocked users, notification settings, student verification, about, terms/privacy, dev console, easter egg (long-press About).
+- **Other**: share-intent (`expo-share-intent`), OTA updates (`expo-updates`, channels `preview`/`production`), responsive layout for tablets/foldables (`utils/responsive.js`), in-process "cold restart" (`SessionContext`).
 
-### Các bước cài đặt
-```bash
-git clone <repo-url> cbh-youth-online
-cd cbh-youth-online
-npm install
-# patch-package chạy tự động trong postinstall, xem thư mục patches/ nếu cần chỉnh sửa
+---
+
+## 3. Project structure
+
+```
+App.js                     Root: providers, navigation stacks (logged-in + auth), deep-link handling, screen registry
+index.js                   Expo entry
+app.json / eas.json        Expo config (version, icons, plugins, deep links) / EAS build profiles
+patches/                   patch-package patches (applied on npm install); *.patch.old are retired
+android/, ios/             Native projects (dev client / bare builds)
+app/
+  assets/                  Icons (seasonal + iOS 26 variants), splash, Lottie, fonts
+  components/              Shared UI
+    Sidebar.js             Drawer menu (Utilities / Settings / Support sections)
+    PostItem.js            Feed post card (largest component)
+    LiquidButton.js        Floating glass button used by native screen headers
+    GlassModules.js        Liquid-glass wrappers + AndroidGlassBackdrop
+    WebViewHeader.js       Plain solid header for WebView screens
+    profile/               Profile customization pieces
+    StoryOverlays/         Story text/sticker/music overlays
+  contexts/                Auth, Theme, Feed, Notification, ChatSocket, UnreadCounts, BottomSheet, StatusBar, Session, Animation
+  global/storage.js        MMKV instance (fast local cache / prefs)
+  hooks/                   useStatusBarUpdate/useStatusBarStyle, useUnreadCounts, useCurrentRoute
+  i18n/                    i18next setup + locales/en.json, vi.json, ru.json
+  screens/
+    WelcomeScreen, LanguageSelectScreen, FirstLaunchSettingsScreen, LoginScreen, SignupScreen, ForgotPasswordScreen
+    MainScreens/
+      index.js             Bottom tabs: Home, Forum, Create, Chat, Notifications
+      HomeScreen, ForumScreen, PostScreen, CreatePostScreen, PostEditScreen, CreateStoryScreen
+      ChatScreen/          Conversation list, ConversationScreen, groups, MediaGalleryScreen
+      ProfileScreen, ProfileDetailScreen, EditProfileScreen, ProfileCustomizerScreen
+      ExploreScreen/       Games, Quiz, University, StudyMaterial*, Upload
+      ReportScreen/        Step1-3 + Success (own stack)
+      SettingsScreen/      Settings + sub-screens (About, Security, Privacy, EasterEgg, DevConsole, ...)
+      PointWalletScreen/   Wallet, Deposit, Withdraw
+      WebAppScreen/        Gift shop / Admin WebView host
+      FeedbackScreen, LinkSafetyScreen, MemberRankingScreen, NotificationScreen, SearchScreen, ...
+  services/
+    api/                   axiosInstance (base URL + token interceptor), ApiByAxios helpers, Api.js endpoints
+    echo/                  Laravel Echo / Pusher-protocol client for Reverb
+    notifications/         Expo push registration + handlers
+    oauth.js, musicSearch.js
+  utils/
+    externalLink.js        URL parsing, trusted hosts, in-app routes, openInAppBrowser, link-safety tokens
+    webSession.js          App→web login handoff (withWebSession) + webViewBootScript
+    responsive.js          Tablet/large-screen layout helpers
+    ...                    formatting, mentions, media download, chat helpers, saved accounts
 ```
 
-### Cấu hình bắt buộc
-1. **API Base URL** (`app/services/api/axiosInstance.js`): thay đổi `baseURL` cho môi trường dev/staging/production. Bạn có thể tách ra env riêng:
-   ```js
-   const axiosInstance = axios.create({
-     baseURL: process.env.EXPO_PUBLIC_API_BASE_URL ?? "https://api.chuyenbienhoa.com/",
-     timeout: 10000,
-   });
-   ```
-   và khai báo biến trong `app.config.js`/`app.json`.
-2. **OAuth** (`app/services/oauth.js`):
-   - Thay `GOOGLE_CLIENT_ID`, `FACEBOOK_CLIENT_ID`, `REDIRECT_URI` bằng thông tin của bạn.
-   - Đảm bảo backend whitelists redirect URI và hỗ trợ endpoint `/v1.0/oauth/callback`.
-3. **Expo Notifications** (`app/services/notifications/ExpoNotificationService.js`):
-   - Cập nhật `projectId` cho dự án của bạn (`app.json -> extra.eas.projectId`).
-   - Thiết lập credential (Android FCM server key, Apple Push Key) trong Expo/EAS Dashboard.
-4. **Biểu tượng & Splash**:
-   - Tài nguyên trong `app/assets/` + `android/`, `ios/Images.xcassets`.
-   - Nếu đổi logo, cập nhật cả `app.json`, `android/app/src/main/res`, `ios` asset catalog.
-5. **Expo Updates & EAS**:
-   - Kiểm tra `eas.json` để đồng bộ profile.
-   - Đăng nhập `eas login` trước khi chạy build.
+---
 
-## Scripts & lệnh thường dùng
-| Lệnh | Mô tả |
-| --- | --- |
-| `npm run start` | `expo start --dev-client`: khởi chạy Metro bundler cho Dev Client. |
-| `npm run android` | `expo run:android`: build Dev Client/bare Android (cần Android Studio). |
-| `npm run ios` | `expo run:ios`: build Dev Client/bare iOS (chỉ trên macOS). |
-| `npm run web` | Chạy bản web (Expo Web) phục vụ kiểm tra nhanh UI. |
-| `npx expo start --clear` | Làm sạch cache Metro khi gặp lỗi bundler. |
-| `eas build --profile production --platform android` | Tạo build production (APK/AAB) qua EAS. |
+## 4. Setup, run, build
 
-> **Lưu ý**: Dev Client yêu cầu đã cài app build từ `expo run:*` hoặc `eas build --profile development --local`. Không chạy `expo prebuild --clean` trừ khi thật sự cần và đã sao lưu.
+Requirements: Node 18+ / npm, EAS CLI (devDependency `eas-cli`), Android Studio + JDK 17 for Android, Xcode + CocoaPods (macOS) for iOS. Push and OAuth need a real device.
 
-## Quy ước mã nguồn & kiến trúc
-- **Styling**: ưu tiên `tailwindcss-react-native` (`className`) kết hợp StyleSheet khi cần hiệu năng cao hoặc animation.
-- **Trạng thái**: logic chia nhỏ vào Context + Hooks; tránh gọi API trực tiếp trong component nếu đã có service/hook tương ứng.
-- **Gọi API**: dùng `app/services/api/Api.js`; mọi endpoint đều trả về `axiosInstance` promise. Giữ thông báo lỗi thân thiện tiếng Việt như hiện có.
-- **Lưu trữ**: AsyncStorage cho token nhẹ, MMKV (`app/global/storage.js`) cho cache tốc độ cao.
-- **Patch thư viện**: mọi chỉnh sửa bên thứ ba phải ghi lại ở `patches/` và chạy `npx patch-package <tên>` sau khi sửa `node_modules`.
-- **Thông báo & badge**: chỉ đăng ký push token khi `AuthContext.isLoggedIn === true`; đảm bảo xoá token khi logout để tránh thông báo nhầm.
+```bash
+npm install            # postinstall runs patch-package (patches/)
+npm start              # expo start --dev-client  (needs an installed dev-client build)
+npm run android        # expo run:android  (build + install dev client locally)
+npm run ios            # expo run:ios
+```
 
-## API & dữ liệu backend
-`app/services/api/Api.js` định nghĩa toàn bộ endpoints REST (đều bắt đầu `/v1.0/`):
-- **Auth**: login/logout, register, email verify/resend, quên mật khẩu.
-- **Bài viết**: topics CRUD, vote, save/unsave, increment view.
-- **Stories**: danh sách, tạo (multipart), xóa, react, reply, viewers, archive.
-- **Chat**: conversations, messages, search user, tạo cuộc trò chuyện.
-- **Thông báo**: danh sách, đánh dấu đã đọc, badge count, đăng ký Expo token.
-- **Diễn đàn & tìm kiếm**: categories, subforums, search global.
-- **Hồ sơ**: lấy/sửa profile, follow/unfollow, hoạt động người dùng.
-- **Report**: APIs liên quan nằm trong `ReportScreen` (báo cáo vi phạm, bước 2/3, thành công).
+EAS (`eas.json`, `appVersionSource: local` — bump `app.json` version / buildNumber yourself):
+```bash
+eas build --profile development --platform ios|android   # dev client, internal
+eas build --profile preview --platform android            # internal APK, channel "preview"
+eas build --profile production --platform ios|android     # AAB / IPA, channel "production"
+eas submit --profile production
+```
 
-Luôn đồng bộ response shape với backend (`response.data` hoặc `response.data.data`). Khi thêm endpoint mới, bổ sung helper tương ứng để giữ code thống nhất.
+Config points:
+- API base URL: `app/services/api/axiosInstance.js` (`https://api.chuyenbienhoa.com/`).
+- OAuth client ids / redirect: `app/services/oauth.js`.
+- Expo project id: `app.json` → `expo.projectId`.
+- `package.json` `expo.install.exclude` pins react-native-screens / gesture-handler / keyboard-controller — don't let `expo install --fix` bump them.
 
-## Thông báo đẩy & OAuth
-- **Push notifications**:
-  - Phải yêu cầu quyền (`requestNotificationPermissions`) trước khi gọi `Notifications.getExpoPushTokenAsync`.
-  - Expo push token và `device_type` được gửi tới backend để liên kết tài khoản.
-  - Badge count đồng bộ liên tục (polling 30s) và reset khi logout.
-  - Thử nghiệm trên thiết bị thật; simulator không nhận FCM/APNs.
-- **OAuth**:
-  - Dùng Authorization Code + PKCE, deep link dạng `com.fatties.youth://oauth`.
-  - `exchangeOAuthCode` gọi backend để đổi code -> token; backend phải lưu `code_verifier`.
-  - Nếu thay đổi scheme/bundleId, cập nhật cả cấu hình deep link phía backend và file native (`android/app/src/main/AndroidManifest.xml`, `ios/*/Info.plist`).
+There are no automated tests; verify on device. Quick syntax check for a file:
+`node -e "require('@babel/core').transformFileSync('<file>',{presets:['babel-preset-expo']})"`.
 
-## Kiểm thử & đảm bảo chất lượng
-Hiện dự án chưa có test tự động; khuyến nghị thực hiện thủ công các kịch bản sau trước khi phát hành:
-- Đăng nhập/đăng xuất (email + OAuth), thử sai mật khẩu, reset password.
-- Xác minh email và tạo bài viết/story sau khi verified.
-- Vòng đời stories: tạo → xem → thả cảm xúc → trả lời → xem danh sách người xem → xoá.
-- Push notification: đăng nhập trên thiết bị thật, gửi thông báo từ backend, kiểm tra badge và deep link.
-- Chat: tạo hội thoại mới, gửi tin nhắn, kiểm tra unread badge.
-- Báo cáo: hoàn thành flow Step1 → Step2 → Step3 → Success, xem lịch sử.
-- Lưu bài, thích bài, hoạt động, explore, tìm kiếm.
+---
 
-Sau khi chỉnh sửa mã, chạy `npm run start` để đảm bảo Metro build thành công và xem console warning (React Native coi warning là dấu hiệu regressions).
+## 5. Conventions
 
-## Khắc phục sự cố thường gặp
-- **Metro bundler treo**: xoá `.expo`, `node_modules`, chạy `npm install`, sau đó `expo start --clear`.
-- **Lỗi Android Gradle**: mở Android Studio, đồng bộ Gradle, đảm bảo JDK 17, cập nhật SDK Build-Tools 34.
-- **`react-native-reanimated` không load**: chắc chắn plugin đã nằm cuối trong `babel.config.js`.
-- **Push token null**: kiểm tra quyền thông báo, `projectId`, và chạy trên thiết bị thật.
-- **OAuth bị `state mismatch`**: xác nhận redirect URI khớp, backend trả về code đúng và không sửa `code_verifier`.
+- **Strings**: every user-facing string goes through i18next (`useTranslation`, `t("section.key")`) with keys added to **all three** of `app/i18n/locales/en.json`, `vi.json`, `ru.json`. When editing those files, insert keys textually — re-serializing the JSON reformats unrelated one-line blocks.
+- **Theme**: colors come from `useTheme()` (`theme.primary/text/subText/background/surface/border`, `isDarkMode`, `liquidGlassEnabled`). No hard-coded palette except brand accents already in use.
+- **Headers**:
+  - Native screens: floating header — `LiquidButton` (pass `scrollY`) + title that fades on scroll, content in an `Animated.ScrollView` with top padding, wrapped in `AndroidGlassBackdrop` (see `PrivacyPolicyScreen`, `FeedbackScreen`, `ReportScreen`).
+  - WebView screens (gift shop, admin, games, easter egg): `WebViewHeader` (solid, always visible, plain back button). Don't put floating glass over web content.
+- **Status bar**: `useStatusBarStyle(style, bgColor)` on focus.
+- **Storage**: auth token + `user_info` in AsyncStorage (`auth_token` is read by the axios interceptor); prefs/caches (theme, avatar versions, handoff flag) in MMKV (`app/global/storage.js`).
+- **Navigation**: register new screens in `App.js` (logged-in stack); use `push` for screens that load data once on mount (Post/Profile) so a new target gets a fresh instance.
+- **External links**: route through `openExternalLink` / `openInAppBrowser` (`utils/externalLink.js`), never `Linking.openURL` directly for http(s).
+- **WebViews of CBH sites**: use `WebAppScreen` (add a `SITES` entry + a `Stack.Screen` with `initialParams={{ site }}`). It injects `webViewBootScript({ token, theme })`, and `lockToSite` keeps a WebView on its domain (blocked navigations show a "back to home" page).
+- **Git**: work on branch `dhphuc` (PRs to `main`). Commit messages: conventional commits in English, e.g. `fix(forum): …`, `feat(sidebar): …`. Comments explain *why*, matching the surrounding density.
 
-## Đóng góp
-1. Fork/branch từ `main`.
-2. Đặt tên nhánh theo chuẩn `feature/<tên>`, `bugfix/<tên>`.
-3. Chạy `npm run start` để kiểm tra nhanh; nếu chỉnh sửa thư viện bên thứ ba, cập nhật `patches/`.
-4. Viết mô tả PR bằng tiếng Việt (hoặc song ngữ) kèm checklist test thủ công.
+---
 
-## Giấy phép
-Dự án nội bộ, giấy phép sẽ được cập nhật sau khi có quyết định chính thức từ CBH Youth Online.
+## 6. Recent work (newest first, as of 2026-10)
+
+- **WebView close button**: `WebViewHeader` takes `onClose`; gift shop / admin show an X beside the back arrow. Back walks back through the site, X leaves the screen at once.
+- **Forum on tablets**: section cards used a 105%-wide background with a fixed 14px correction that only lined up on phones. They're now 100% wide, capped at the feed's max width, and use `useResponsiveLayout` for width (`ForumScreen`).
+- **Media gallery**: compact centered tab pill sized to its 3 tabs.
+- **Report flow**: Success step now uses the floating header like steps 1-3.
+- **WebView screens**: `WebViewHeader` replaces the floating glass button on gift shop / admin / games / easter egg.
+- **Gift shop & admin in the app**: new sidebar entries, `WebAppScreen` signs the WebView in as the current account (follows account switches), syncs the app's light/dark theme (`theme` / `giftshop_theme` localStorage keys), and sets app mode. The gift shop is locked to `giftshop.chuyenbienhoa.com`; admin opens other sites in the in-app browser.
+- **App → web sign-in** via one-time handoff codes for the in-app browser (main site + gift shop); depends on the API `web-session` endpoints and each site's `/auth/set-token` page.
+- **Headers**: floating scroll-aware headers on newer screens; profile effect flicker fix.
+- **Profile**: Discord-style profile customization ported from web; points milestones; opaque surfaces when glass is off.
+- **Links**: OG preview cards for pasted links; CBH post/profile links open in-app.
+- **Chat/posts**: comment input growth, multi-image download.
+- **Platform**: iOS 15 launch crash fix (pod deployment targets), large-screen (tablet/foldable) support.
+
+Open items as of this README:
+- Web PR `tunnaduong/cbh-youth-online-next-js#29` (set-token code redeem, admin app mode) must be merged and deployed together with the API and gift shop before an app build relying on them ships.
+- The web `/admin/login` accepts any logged-in cookie without checking the role; real protection relies on the API's admin endpoints.
