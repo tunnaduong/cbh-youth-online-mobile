@@ -68,7 +68,7 @@ app/
   hooks/                   useStatusBarUpdate/useStatusBarStyle, useUnreadCounts, useCurrentRoute
   i18n/                    i18next setup + locales/en.json, vi.json, ru.json
   screens/
-    WelcomeScreen, LanguageSelectScreen, FirstLaunchSettingsScreen, LoginScreen, SignupScreen, ForgotPasswordScreen
+    WelcomeScreen, LanguageSelectScreen, FirstLaunchSettingsScreen, LoginScreen, SignupScreen, ForgotPasswordScreen, TwoFactorChallengeScreen
     MainScreens/
       index.js             Bottom tabs: Home, Forum, Create, Chat, Notifications
       HomeScreen, ForumScreen, PostScreen, CreatePostScreen, PostEditScreen, CreateStoryScreen
@@ -76,7 +76,7 @@ app/
       ProfileScreen, ProfileDetailScreen, EditProfileScreen, ProfileCustomizerScreen
       ExploreScreen/       Games, Quiz, University, StudyMaterial*, Upload
       ReportScreen/        Step1-3 + Success (own stack)
-      SettingsScreen/      Settings + sub-screens (About, Security, Privacy, EasterEgg, DevConsole, ...)
+      SettingsScreen/      Settings + sub-screens (About, Security, TwoFactor, Devices, Privacy, EasterEgg, DevConsole, ...)
       PointWalletScreen/   Wallet, Deposit, Withdraw
       WebAppScreen/        Gift shop / Admin WebView host
       FeedbackScreen, LinkSafetyScreen, MemberRankingScreen, NotificationScreen, SearchScreen, ...
@@ -89,6 +89,7 @@ app/
     externalLink.js        URL parsing, trusted hosts, in-app routes, openInAppBrowser, link-safety tokens
     webSession.js          App→web login handoff (withWebSession) + webViewBootScript
     responsive.js          Tablet/large-screen layout helpers
+    deviceInfo.js          Device headers sent to the API + remembered two-factor device token
     ...                    formatting, mentions, media download, chat helpers, saved accounts
 ```
 
@@ -141,6 +142,13 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 ---
 
 ## 6. Recent work (newest first, as of 2026-10)
+
+- **Two-factor login, logged-in devices, account-switch fixes** (branch `feat/two-factor-auth`, cut from `dhphuc`; written on a machine without Node: **not run yet**). Needs the API branch of the same name.
+  - **Login**: `loginRequest` / `loginWithOAuth` send the remembered `device_token`; when the API answers `two_factor_required`, `LoginScreen` and `SignupScreen` navigate to `TwoFactorChallengeScreen` (auth stack), which verifies the code and calls `signIn`.
+  - **Security settings**: the old "under development" row now opens `SettingsScreen/TwoFactorScreen.js` (switch, email code or authenticator app, recovery codes, remembered devices). Authenticator setup shows the key and an "open authenticator app" button (`otpauth://` link) instead of a QR code. New `SettingsScreen/DevicesScreen.js` lists logged-in devices with log-out actions.
+  - **Device headers**: `app/utils/deviceInfo.js` builds `X-Client-Platform`, `X-Client-Version`, `X-Device-Name`, `X-Device-Model` (URL-encoded), added in the axios request interceptor; it also stores the remembered-device token in AsyncStorage (`two_factor_device_token`). iOS model is only "iPhone"/"iPad" (no `expo-device`).
+  - **Account switch** (reported: crash on opening chat and lag after switching; cause not confirmed without a device): `SafeAreaProvider` and `KeyboardProvider` moved outside the keyed `MultiContextProvider` in `App.js`, and the conversation list cache key is now `conversations_<username>` (`ChatScreen/index.js`, `NewConversationScreen.js`). Not addressed yet: `cached_feed` / `cached_notifications` / `cached_forum` are still un-keyed, and the push token stays registered to the previous account.
+  - i18n: new `twoFactor.*` and `devices.*` sections in en/vi/ru.
 
 - **WebView close button**: `WebViewHeader` takes `onClose`; gift shop / admin show an X beside the back arrow. Back walks back through the site, X leaves the screen at once.
 - **Forum on tablets**: section cards used a 105%-wide background with a fixed 14px correction that only lined up on phones. They're now 100% wide, capped at the feed's max width, and use `useResponsiveLayout` for width (`ForumScreen`).

@@ -15,7 +15,7 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 - **Diễn đàn & báo cáo**: Điều hướng Side Menu tới diễn đàn, danh mục, tin tức Đoàn, báo cáo vi phạm nhiều bước; màn hình Báo lỗi / Góp ý và lắc điện thoại để báo lỗi kèm ảnh chụp màn hình.
 - **Khám phá nội dung**: Trang Explore (trò chơi, quiz, thông tin trường đại học, tài liệu học tập), tìm kiếm, danh sách bài viết đã thích, đã lưu, lịch sử hoạt động.
 - **Điểm & cửa hàng**: Ví điểm (nạp/rút), tặng điểm, xếp hạng thành viên; Cửa hàng quà tặng mở ngay trong ứng dụng (WebView, đã đăng nhập sẵn, chỉ ở trong tên miền cửa hàng).
-- **Thiết lập cá nhân**: Trang cá nhân, chỉnh sửa hồ sơ, tùy biến hồ sơ kiểu Discord (khung avatar, kiểu tên, hiệu ứng), giao diện sáng/tối/liquid glass, ngôn ngữ, bảo mật, chặn người dùng, xác minh học sinh, Điều khoản và Chính sách riêng tư nội bộ.
+- **Thiết lập cá nhân**: Trang cá nhân, chỉnh sửa hồ sơ, tùy biến hồ sơ kiểu Discord (khung avatar, kiểu tên, hiệu ứng), giao diện sáng/tối/liquid glass, ngôn ngữ, bảo mật (xác thực 2 yếu tố bằng mã email hoặc ứng dụng xác thực, danh sách thiết bị đã đăng nhập), chặn người dùng, xác minh học sinh, Điều khoản và Chính sách riêng tư nội bộ.
 - **Quản trị**: Mục Quản trị viên trong Sidebar (chỉ hiện với tài khoản admin) mở trang `/admin` của web trong ứng dụng.
 
 ## Ngăn xếp công nghệ
