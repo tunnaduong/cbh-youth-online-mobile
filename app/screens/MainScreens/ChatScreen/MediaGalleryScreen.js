@@ -13,7 +13,6 @@ import {
   Clipboard,
   Animated,
   Easing,
-  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
@@ -46,6 +45,9 @@ import ForwardMessageModal from "../../../components/ForwardMessageModal";
 // (MainScreens/index.js CustomTabBar): same 49pt height, 24.5 radius, same
 // surface/border/indicator colors, same sliding indicator. It is scoped to
 // this screen only and has no "+" button - there is nothing to create here.
+// Unlike the main nav it hugs its three buttons, centered, instead of
+// stretching edge to edge - three tabs spread across a whole phone (or iPad)
+// width looked sparse.
 const TABS = [
   {
     key: "image",
@@ -72,6 +74,7 @@ const TABS = [
 
 const NAV_HEIGHT = 49;
 const NAV_RADIUS = 24.5;
+const NAV_BUTTON_WIDTH = 76;
 
 // Bottom nav pill - mirrors CustomTabBar's structure so the two read as the
 // same control. Kept local to this file because it is gallery-only.
@@ -79,10 +82,9 @@ const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 40);
 
   const activeIndex = Math.max(0, tabs.findIndex((tab) => tab.key === activeTab));
-  const buttonWidth = pillWidth / Math.max(1, tabs.length);
+  const buttonWidth = NAV_BUTTON_WIDTH;
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -113,13 +115,10 @@ const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
             }
           : {})}
         renderToHardwareTextureAndroid
-        onLayout={(e) => {
-          const w = e.nativeEvent.layout.width;
-          if (w && w !== pillWidth) setPillWidth(w);
-        }}
         style={[
           styles.navPill,
           {
+            width: buttonWidth * tabs.length,
             backgroundColor: LiquidGlassView ? "transparent" : surface,
             borderColor: border,
           },
@@ -636,10 +635,10 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     zIndex: 99,
   },
   navPill: {
-    flex: 1,
     height: NAV_HEIGHT,
     borderRadius: NAV_RADIUS,
     borderWidth: 1,
@@ -652,7 +651,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
   },
-  navButton: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 },
+  navButton: { width: NAV_BUTTON_WIDTH, alignItems: "center", justifyContent: "center", paddingVertical: 4 },
   navLabel: { fontSize: 9, fontWeight: "bold", marginTop: 2 },
   gridItem: { width: `${100 / 3}%`, aspectRatio: 1, padding: 1 },
   gridImage: { width: "100%", height: "100%", backgroundColor: "#ddd" },
