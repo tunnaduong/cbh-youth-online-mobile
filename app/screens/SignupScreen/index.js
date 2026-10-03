@@ -117,6 +117,10 @@ const SignupScreen = ({ navigation }) => {
         profile: oauthResult.profile,
       });
 
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
@@ -147,6 +151,10 @@ const SignupScreen = ({ navigation }) => {
         profile: oauthResult.profile,
       });
 
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
@@ -185,6 +193,10 @@ const SignupScreen = ({ navigation }) => {
         user: credential.user,
       });
 
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {

@@ -56,6 +56,10 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await loginRequest({ username: email, password });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (!response?.data?.token || !response?.data?.user) {
         throw new Error(t("auth.invalidServerResponse"));
       }
@@ -93,6 +97,10 @@ const LoginScreen = ({ navigation }) => {
         idToken: oauthResult.idToken,
         profile: oauthResult.profile,
       });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
@@ -121,6 +129,10 @@ const LoginScreen = ({ navigation }) => {
         idToken: oauthResult.idToken,
         profile: oauthResult.profile,
       });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
@@ -156,6 +168,10 @@ const LoginScreen = ({ navigation }) => {
         fullName: credential.fullName,
         user: credential.user,
       });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {

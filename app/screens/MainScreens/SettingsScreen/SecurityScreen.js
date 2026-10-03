@@ -423,12 +423,13 @@ export default function SecurityScreen({ navigation }) {
           <SettingItem
             icon="shield-checkmark-outline"
             title={t('security.twoFactor')}
-            onPress={() => {
-              Toast.show({
-                type: "info",
-                text1: t('security.featureUnderDevelopment'),
-              });
-            }}
+            onPress={() => navigation.navigate("TwoFactorScreen")}
+            theme={theme}
+          />
+          <SettingItem
+            icon="phone-portrait-outline"
+            title={t('devices.title')}
+            onPress={() => navigation.navigate("DevicesScreen")}
             theme={theme}
           />
         </SettingSection>

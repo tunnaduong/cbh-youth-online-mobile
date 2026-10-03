@@ -1,6 +1,7 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getSocketId } from "../echo/echo";
+import { getClientHeaders } from "../../utils/deviceInfo";
 
 // Online-status should not be hammered on every API response.
 // Throttle to at most once every 60 seconds.
@@ -27,6 +28,9 @@ axiosInstance.interceptors.request.use(
         // Attach the token to the request header
         config.headers.Authorization = `Bearer ${token}`;
       }
+
+      // Tells the API which device this is, for the "logged-in devices" list
+      Object.assign(config.headers, getClientHeaders());
 
       // Lets broadcast()->toOthers() on the backend exclude this device's own socket
       const socketId = getSocketId();

@@ -56,7 +56,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
-  const { blockedUsers } = useContext(AuthContext);
+  const { blockedUsers, username } = useContext(AuthContext);
+  // Per account: a request still in flight during an account switch could
+  // otherwise write the previous account's list into the next one's cache.
+  const conversationsCacheKey = `conversations_${username}`;
   const { onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited } = useChatSocket();
   const flatListRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -145,7 +148,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   );
 
   useEffect(() => {
-    const cached = storage.getString("conversations");
+    const cached = storage.getString(conversationsCacheKey);
     if (cached) {
       setConversations(JSON.parse(cached));
     }
@@ -159,7 +162,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     try {
       const response = await getConversations();
       setConversations(response.data);
-      storage.set("conversations", JSON.stringify(response.data));
+      storage.set(conversationsCacheKey, JSON.stringify(response.data));
       refreshChatCount();
       fetchOnlineStatuses(response.data);
     } catch (error) {

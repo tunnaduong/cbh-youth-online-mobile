@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import FastImage from "../../../components/FastImage";
 import {
   View,
@@ -18,6 +18,7 @@ import {
 } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
+import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
@@ -36,6 +37,7 @@ const NewConversationScreen = ({ navigation }) => {
     extrapolate: "clamp",
   });
   const { t } = useTranslation();
+  const { username } = useContext(AuthContext);
 
   // Each keystroke used to fire its own request, so a fast typist could get
   // an older response landing after a newer one. Debounce, and ignore any
@@ -74,7 +76,7 @@ const NewConversationScreen = ({ navigation }) => {
       // If there's an existing conversation, navigate to it directly
       if (existingConversationId) {
         // Try to get the conversation from cache first
-        const cachedConversations = storage.getString("conversations");
+        const cachedConversations = storage.getString(`conversations_${username}`);
         if (cachedConversations) {
           const conversations = JSON.parse(cachedConversations);
           const existingConversation = conversations.find(

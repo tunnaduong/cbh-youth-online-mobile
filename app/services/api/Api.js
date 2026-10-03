@@ -1,11 +1,18 @@
 import * as Api from "./ApiByAxios";
 import axiosInstance from "./axiosInstance";
 import i18n from "../../i18n";
+import { getTwoFactorDeviceToken } from "../../utils/deviceInfo";
+
+// Lets a device the user chose to remember skip the two-factor step
+const withDeviceToken = async (params) => {
+  const deviceToken = await getTwoFactorDeviceToken();
+  return deviceToken ? { ...params, device_token: deviceToken } : params;
+};
 
 // Authentication
 export const loginRequest = async (params) => {
   try {
-    const response = await Api.postRequest("/v1.0/login", params);
+    const response = await Api.postRequest("/v1.0/login", await withDeviceToken(params));
     return response;
   } catch (error) {
     // console.error("Full error object:", error); // Log the full error object
@@ -35,7 +42,7 @@ export const signupRequest = (params) => {
 
 export const loginWithOAuth = async (params) => {
   try {
-    const response = await Api.postRequest("/v1.0/login/oauth", params);
+    const response = await Api.postRequest("/v1.0/login/oauth", await withDeviceToken(params));
     return response;
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
@@ -478,6 +485,35 @@ export const uploadCoverPhoto = (username, formData) => {
 export const changePassword = (params) => {
   return Api.postRequest("/v1.0/password/change", params);
 };
+
+// Two-factor authentication
+// Login: when /login (or /login/oauth) answers `two_factor_required`, the
+// token is only issued after the code is checked here.
+export const verifyTwoFactorLogin = (params) => {
+  return Api.postRequest("/v1.0/login/two-factor", params);
+};
+
+export const resendTwoFactorLoginCode = (params) => {
+  return Api.postRequest("/v1.0/login/two-factor/resend", params);
+};
+
+// Settings
+export const getTwoFactorStatus = () => Api.getRequest("/v1.0/two-factor");
+export const setupTwoFactorTotp = (params) => Api.postRequest("/v1.0/two-factor/totp", params);
+export const setupTwoFactorEmail = (params) => Api.postRequest("/v1.0/two-factor/email", params);
+export const sendTwoFactorEmailCode = () => Api.postRequest("/v1.0/two-factor/email/send");
+export const confirmTwoFactor = (params) => Api.postRequest("/v1.0/two-factor/confirm", params);
+export const disableTwoFactor = (params) => Api.postRequest("/v1.0/two-factor/disable", params);
+export const regenerateTwoFactorRecoveryCodes = (params) =>
+  Api.postRequest("/v1.0/two-factor/recovery-codes", params);
+export const forgetTwoFactorTrustedDevices = () =>
+  Api.deleteRequest("/v1.0/two-factor/trusted-devices");
+
+// Logged-in devices
+export const getDeviceSessions = () => Api.getRequest("/v1.0/sessions");
+export const logoutDeviceSession = (id) => Api.deleteRequest(`/v1.0/sessions/${id}`);
+// Logs out every device except this one
+export const logoutOtherDeviceSessions = () => Api.deleteRequest("/v1.0/sessions");
 
 
 export const getSavedPosts = () => {

@@ -89,6 +89,9 @@ import DepositScreen from "./app/screens/MainScreens/PointWalletScreen/DepositSc
 import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/WithdrawScreen";
 
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
+import TwoFactorScreen from "./app/screens/MainScreens/SettingsScreen/TwoFactorScreen";
+import DevicesScreen from "./app/screens/MainScreens/SettingsScreen/DevicesScreen";
+import TwoFactorChallengeScreen from "./app/screens/TwoFactorChallengeScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
 import ProfileCustomizerScreen from "./app/screens/MainScreens/ProfileCustomizerScreen";
@@ -802,6 +805,20 @@ const App = ({ skipSplash = false }) => {
                 }}
               />
               <Stack.Screen
+                name="TwoFactorScreen"
+                component={TwoFactorScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="DevicesScreen"
+                component={DevicesScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="ProfileCustomizerScreen"
                 component={ProfileCustomizerScreen}
                 options={{
@@ -1052,6 +1069,11 @@ const App = ({ skipSplash = false }) => {
                 component={ForgotPasswordScreen}
               />
               <Stack.Screen
+                name="TwoFactorChallenge"
+                options={{ title: "Xác thực hai lớp", headerShown: false }}
+                component={TwoFactorChallengeScreen}
+              />
+              <Stack.Screen
                 name="TermsOfServiceScreen"
                 component={TermsOfServiceScreen}
                 options={{
@@ -1094,15 +1116,18 @@ export default () => {
   return (
     <TailwindProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SessionResetContext.Provider value={resetSession}>
-          <MultiContextProvider key={sessionKey}>
-            <SafeAreaProvider>
-              <KeyboardProvider>
+        {/* SafeAreaProvider and KeyboardProvider hold native state, not
+            per-account state, so they stay outside the keyed subtree and
+            are not torn down and recreated on every account switch. */}
+        <SafeAreaProvider>
+          <KeyboardProvider>
+            <SessionResetContext.Provider value={resetSession}>
+              <MultiContextProvider key={sessionKey}>
                 <App skipSplash={sessionKey > 0} />
-              </KeyboardProvider>
-            </SafeAreaProvider>
-          </MultiContextProvider>
-        </SessionResetContext.Provider>
+              </MultiContextProvider>
+            </SessionResetContext.Provider>
+          </KeyboardProvider>
+        </SafeAreaProvider>
         <Toast topOffset={60} />
       </GestureHandlerRootView>
     </TailwindProvider>
