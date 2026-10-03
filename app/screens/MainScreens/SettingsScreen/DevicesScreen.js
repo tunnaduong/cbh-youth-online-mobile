@@ -77,17 +77,29 @@ export default function DevicesScreen({ navigation }) {
     return session.app_version ? `${label} ${session.app_version}` : label;
   };
 
-  const logoutOne = async (id) => {
-    setBusyId(id);
-    try {
-      await logoutDeviceSession(id);
-      Toast.show({ type: "success", text1: t("devices.loggedOut") });
-      await load();
-    } catch (err) {
-      Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
-    } finally {
-      setBusyId(null);
-    }
+  // Asks first: the row is small and a stray tap would sign that device out.
+  const logoutOne = (session) => {
+    if (busyId !== null || loggingOutAll) return;
+
+    Alert.alert(t("devices.logout"), session.device_name || t("devices.unknown"), [
+      { text: t("security.cancel"), style: "cancel" },
+      {
+        text: t("devices.logout"),
+        style: "destructive",
+        onPress: async () => {
+          setBusyId(session.id);
+          try {
+            await logoutDeviceSession(session.id);
+            Toast.show({ type: "success", text1: t("devices.loggedOut") });
+            await load();
+          } catch (err) {
+            Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
+          } finally {
+            setBusyId(null);
+          }
+        },
+      },
+    ]);
   };
 
   const logoutOthers = () => {
@@ -143,7 +155,16 @@ export default function DevicesScreen({ navigation }) {
           { useNativeDriver: false }
         )}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={theme.primary}
+            // The list starts below the floating header; without the offset
+            // the spinner sits under the status bar.
+            progressViewOffset={64 + insets.top}
+          />
+        }
       >
         <Text style={[styles.description, { color: theme.subText }]}>
           {t("devices.description")}
@@ -202,7 +223,7 @@ export default function DevicesScreen({ navigation }) {
                       (busyId === session.id ? (
                         <ActivityIndicator color={theme.primary} size="small" />
                       ) : (
-                        <TouchableOpacity onPress={() => logoutOne(session.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <TouchableOpacity onPress={() => logoutOne(session)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                           <Text style={styles.logoutText}>{t("devices.logout")}</Text>
                         </TouchableOpacity>
                       ))}

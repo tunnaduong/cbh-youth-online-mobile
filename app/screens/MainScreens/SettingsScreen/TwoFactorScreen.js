@@ -102,6 +102,8 @@ export default function TwoFactorScreen({ navigation }) {
   const [code, setCode] = useState("");
   const [recoveryCodes, setRecoveryCodes] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [forgettingDevices, setForgettingDevices] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -199,22 +201,33 @@ export default function TwoFactorScreen({ navigation }) {
       setMode("recovery");
     });
 
+  // sendingCode / forgettingDevices keep a double tap from firing the
+  // request twice (the second "send code" would only hit the resend cooldown
+  // and show an error right after the success toast).
   const sendEmailCode = async () => {
+    if (sendingCode) return;
+    setSendingCode(true);
     try {
       const res = await sendTwoFactorEmailCode();
       Toast.show({ type: "success", text1: res.data?.message || t("twoFactor.codeSent") });
     } catch (err) {
       Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
+    } finally {
+      setSendingCode(false);
     }
   };
 
   const forgetDevices = async () => {
+    if (forgettingDevices) return;
+    setForgettingDevices(true);
     try {
       const res = await forgetTwoFactorTrustedDevices();
       setStatus(res.data.status);
       Toast.show({ type: "success", text1: res.data.message });
     } catch (err) {
       Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
+    } finally {
+      setForgettingDevices(false);
     }
   };
 
@@ -258,6 +271,10 @@ export default function TwoFactorScreen({ navigation }) {
     setMode(value ? "choose" : "disable");
   };
 
+  // The confirm button stays off until its field has something in it, so an
+  // empty submit can't come back as a "wrong password" error.
+  const identityFilled = status?.password_required ? !!password : !!code.trim();
+
   const inputStyle = [
     styles.input,
     { borderColor: theme.border, color: theme.text, backgroundColor: isDarkMode ? "#374151" : "#fff" },
@@ -286,7 +303,7 @@ export default function TwoFactorScreen({ navigation }) {
         maxLength={20}
       />
       {status?.method === "email" && (
-        <TouchableOpacity onPress={sendEmailCode} style={styles.link}>
+        <TouchableOpacity onPress={sendEmailCode} disabled={sendingCode} style={[styles.link, sendingCode && { opacity: 0.5 }]}>
           <Text style={{ color: theme.primary, fontWeight: "600" }}>{t("twoFactor.sendCodeToEmail")}</Text>
         </TouchableOpacity>
       )}
@@ -369,7 +386,7 @@ export default function TwoFactorScreen({ navigation }) {
                     {t("twoFactor.trustedDevices")}: {status.trusted_devices}
                   </Text>
                   {status.trusted_devices > 0 && (
-                    <TouchableOpacity onPress={forgetDevices} style={styles.link}>
+                    <TouchableOpacity onPress={forgetDevices} disabled={forgettingDevices} style={[styles.link, forgettingDevices && { opacity: 0.5 }]}>
                       <Text style={{ color: theme.primary, fontWeight: "600" }}>{t("twoFactor.forgetDevices")}</Text>
                     </TouchableOpacity>
                   )}
@@ -401,7 +418,7 @@ export default function TwoFactorScreen({ navigation }) {
                   )}
                   <View style={styles.actions}>
                     <SecondaryButton theme={theme} busy={busy} isDarkMode={isDarkMode} title={t("twoFactor.cancel")} onPress={reset} />
-                    <PrimaryButton theme={theme} busy={busy} title={t("twoFactor.continue")} onPress={startSetup} />
+                    <PrimaryButton theme={theme} busy={busy} title={t("twoFactor.continue")} onPress={startSetup} disabled={status.password_required && !password} />
                   </View>
                 </View>
               )}
@@ -445,7 +462,7 @@ export default function TwoFactorScreen({ navigation }) {
                     maxLength={7}
                   />
                   {setup.method === "email" && (
-                    <TouchableOpacity onPress={sendEmailCode} style={styles.link}>
+                    <TouchableOpacity onPress={sendEmailCode} disabled={sendingCode} style={[styles.link, sendingCode && { opacity: 0.5 }]}>
                       <Text style={{ color: theme.primary, fontWeight: "600" }}>{t("twoFactor.resend")}</Text>
                     </TouchableOpacity>
                   )}
@@ -492,6 +509,7 @@ export default function TwoFactorScreen({ navigation }) {
                       title={mode === "disable" ? t("twoFactor.disable") : t("twoFactor.regenerate")}
                       danger={mode === "disable"}
                       onPress={mode === "disable" ? confirmDisable : confirmRegenerate}
+                      disabled={!identityFilled}
                     />
                   </View>
                 </View>
