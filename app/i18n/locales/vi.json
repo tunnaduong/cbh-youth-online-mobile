@@ -971,6 +971,8 @@
     "greeting": "Xin chào, {{name}}!"
   },
   "security": {
+    "passkeys": "Passkey",
+    "passkeysDesc": "Đăng nhập bằng vân tay hoặc khuôn mặt, không cần mật khẩu. Quản lý trên trang web.",
     "title": "Bảo mật",
     "personalInfo": "Thông tin cá nhân",
     "loginSecurity": "Đăng nhập & Bảo mật",
@@ -1063,6 +1065,8 @@
     "selectOption": "Chọn một tùy chọn"
   },
   "auth": {
+    "continueWithPasskey": "Đăng nhập bằng passkey",
+    "passkeyLoginError": "Không thể đăng nhập bằng passkey",
     "googleProcessing": "Đang xử lý đăng nhập với Google. Vui lòng đợi...",
     "sessionInProgress": "Đang có một phiên đăng nhập khác đang chạy. Vui lòng đợi hoặc thử lại sau.",
     "stateFailed": "Không thể xác thực đăng nhập. Vui lòng thử lại.",
@@ -1857,6 +1861,9 @@
     "shakeAttachedWithScreen": "Đã đính kèm ảnh chụp màn hình \"{{screen}}\" lúc bạn lắc điện thoại. Bạn có thể xóa ảnh nếu không muốn gửi."
   },
   "profileTheme": {
+    "gradientColor": "Màu chuyển sắc",
+    "gradientLocked": "Màu chuyển sắc cần {{points}} điểm",
+    "gradientPickBase": "Hãy chọn màu trước",
     "outlineColors": "Màu chữ và màu viền",
     "title": "Giao diện hồ sơ",
     "apply": "Áp dụng",

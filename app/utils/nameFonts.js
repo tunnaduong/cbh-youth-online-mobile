@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import * as Font from "expo-font";
+import axiosInstance from "../services/api/axiosInstance";
 
 /**
  * Phông chữ cho tên hiển thị (kiểu Display Name Styles của Discord) - bản
@@ -23,13 +24,43 @@ export const NAME_FONTS = {
   tech: { family: "Tektur_700Bold", source: require("../assets/fonts/name/Tektur_700Bold.ttf") },
   heavy: { family: "Bungee_400Regular", source: require("../assets/fonts/name/Bungee_400Regular.ttf") },
   handwritten: { family: "PatrickHand_400Regular", source: require("../assets/fonts/name/PatrickHand_400Regular.ttf") },
-  // "flex" (Google Sans Flex) and "grotesk" (Space Grotesk) exist on the API
-  // and the web, but their .ttf files are not bundled yet, so names using
-  // them show in the system font here. To finish: put static (single-weight)
-  // files in app/assets/fonts/name and uncomment:
-  // flex: { family: "GoogleSansFlex_600SemiBold", source: require("../assets/fonts/name/GoogleSansFlex_600SemiBold.ttf") },
-  // grotesk: { family: "SpaceGrotesk_600SemiBold", source: require("../assets/fonts/name/SpaceGrotesk_600SemiBold.ttf") },
 };
+
+/**
+ * Fonts the API hosts (GET /v1.0/name-fonts): every `name_font` key that
+ * isn't bundled above. The list is fetched once per app run; a font's file
+ * is downloaded (and cached by expo-font) only when a name using it is
+ * shown, so new fonts added on the server work without an app update.
+ */
+let serverFonts = null; // key -> { family, source }
+let serverFontsPromise = null;
+
+function loadServerFontList() {
+  if (!serverFontsPromise) {
+    serverFontsPromise = axiosInstance
+      .get("/v1.0/name-fonts")
+      .then((response) => {
+        serverFonts = {};
+        (response.data?.fonts || []).forEach((font) => {
+          if (font?.key && font?.url) {
+            // Font family names can't contain spaces on Android.
+            serverFonts[font.key] = {
+              family: `srv_${font.key}`,
+              source: { uri: font.url },
+              label: font.label,
+            };
+          }
+        });
+        return serverFonts;
+      })
+      .catch(() => {
+        // Try again the next time a name needs it.
+        serverFontsPromise = null;
+        return {};
+      });
+  }
+  return serverFontsPromise;
+}
 
 const loading = new Map(); // family -> Promise
 
@@ -57,7 +88,23 @@ function loadFont(font) {
  * thống trong lúc chờ, rồi tự đổi).
  */
 export function useNameFont(key) {
-  const font = NAME_FONTS[key];
+  const bundled = NAME_FONTS[key];
+  const needsServer = !!key && key !== "default" && !bundled;
+  // Re-render once the server list has arrived.
+  const [, setListVersion] = useState(0);
+
+  useEffect(() => {
+    if (!needsServer || serverFonts) return undefined;
+    let cancelled = false;
+    loadServerFontList().then(() => {
+      if (!cancelled) setListVersion((version) => version + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [needsServer]);
+
+  const font = bundled || (needsServer ? serverFonts?.[key] : undefined);
   const [ready, setReady] = useState(() => !font?.family || Font.isLoaded(font.family));
 
   useEffect(() => {
@@ -79,6 +126,8 @@ export function useNameFont(key) {
     };
   }, [font]);
 
-  if (!font?.family || !ready) return null;
+  // isLoaded() as well as `ready`: a server font can appear between renders
+  // (when the list arrives) before the effect above has reset `ready`.
+  if (!font?.family || !ready || !Font.isLoaded(font.family)) return null;
   return { family: font.family, scale: font.scale || 1, letterSpacing: font.letterSpacing };
 }

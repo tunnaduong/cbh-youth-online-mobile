@@ -19,6 +19,7 @@ import ProgressHUD from "../../components/ProgressHUD";
 import { Ionicons } from "@expo/vector-icons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
+import { loginWithPasskey } from "../../services/passkey";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -80,6 +81,27 @@ const LoginScreen = ({ navigation }) => {
             }),
         });
       }
+      Alert.alert(t("auth.loginError"), errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Passkey: the device's fingerprint/face/screen lock is the whole login -
+  // nothing to type and no two-factor step.
+  const handlePasskeyLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const data = await loginWithPasskey();
+      if (!data) return; // browser closed
+      if (!data.token || !data.user) {
+        throw new Error(t("auth.invalidServerResponse"));
+      }
+      signIn(data.token, data.user);
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message || t("auth.passkeyLoginError");
       Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false);
@@ -353,6 +375,21 @@ const LoginScreen = ({ navigation }) => {
                 </Text>
                 <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
               </View>
+
+              {/* Passkey: one tap, no password */}
+              <TouchableOpacity
+                style={[
+                  styles.socialButton,
+                  { backgroundColor: theme.surface, borderColor: theme.border },
+                ]}
+                onPress={handlePasskeyLogin}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="finger-print" size={22} color={theme.primary} />
+                <Text style={[styles.socialButtonText, { color: theme.text }]}>
+                  {t("auth.continueWithPasskey")}
+                </Text>
+              </TouchableOpacity>
 
               {/* Social buttons */}
               {isAppleAuthAvailable && (

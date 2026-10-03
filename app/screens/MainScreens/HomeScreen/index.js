@@ -65,6 +65,9 @@ import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import Toast from "react-native-toast-message";
 import FastImage from "../../../components/FastImage";
+import StyledName from "../../../components/profile/StyledName";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
+import { getAvatarFrame } from "../../../utils/profileTheme";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
@@ -1687,6 +1690,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         id: user.username,
         name: user.name,
         isFollowed: user.is_following,
+        // Name style + avatar frame of the author (drawn on the tray and viewer)
+        profileTheme: user.profile_theme || null,
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
         },
@@ -2045,16 +2050,30 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   />
                 )}
 
-                {/* Avatar */}
+                {/* Avatar: the author's avatar frame (Khung) if they picked
+                    one, otherwise the plain ring as before */}
                 <View style={{ position: "absolute", top: 8, left: 8 }}>
-                  <View style={{ borderRadius: 100, padding: 2, borderWidth: 2, borderColor: theme.primary }}>
-                    <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden" }}>
-                      <FastImage
-                        source={{ uri: user.avatarSource.uri }}
-                        style={{ width: 24, height: 24 }}
-                      />
+                  {getAvatarFrame(user.profileTheme) ? (
+                    <View style={{ margin: 3 }}>
+                      <AvatarFrameWrap theme={user.profileTheme} size={26}>
+                        <View style={{ width: 26, height: 26, borderRadius: 13, overflow: "hidden" }}>
+                          <FastImage
+                            source={{ uri: user.avatarSource.uri }}
+                            style={{ width: 26, height: 26 }}
+                          />
+                        </View>
+                      </AvatarFrameWrap>
                     </View>
-                  </View>
+                  ) : (
+                    <View style={{ borderRadius: 100, padding: 2, borderWidth: 2, borderColor: theme.primary }}>
+                      <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden" }}>
+                        <FastImage
+                          source={{ uri: user.avatarSource.uri }}
+                          style={{ width: 24, height: 24 }}
+                        />
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 {/* Gradient + Title */}
@@ -2070,18 +2089,23 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       bottom: -90,
                     }}
                   />
-                  <Text
+                  <StyledName
+                    theme={user.profileTheme}
+                    variant="compact"
                     numberOfLines={1}
                     ellipsizeMode="tail"
-                    className="text-[13px] font-semibold text-white p-1.5"
                     style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: "#fff",
+                      padding: 6,
                       textShadowColor: "rgba(0, 0, 0, 0.8)",
                       textShadowOffset: { width: 0, height: 0 },
                       textShadowRadius: 2,
                     }}
                   >
                     {user.name}
-                  </Text>
+                  </StyledName>
                 </View>
               </View>
             </TouchableHighlight>
@@ -2723,9 +2747,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 }}
               >
                 {avatarSource && (
-                  <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
-                    <FastImage source={avatarSource} style={{ width: 28, height: 28 }} />
-                  </View>
+                  <AvatarFrameWrap
+                    theme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
+                    size={28}
+                  >
+                    <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
+                      <FastImage source={avatarSource} style={{ width: 28, height: 28 }} />
+                    </View>
+                  </AvatarFrameWrap>
                 )}
               </Pressable>
               {/* Absolutely centered across the full header width (not just
@@ -2739,7 +2768,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 pointerEvents="none"
                 style={{ position: 'absolute', left: 44, right: 44, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
               >
-                {name && <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#fff', fontWeight: '600', textAlign: 'center' }}>{name}</Text>}
+                {name && (
+                  <StyledName
+                    theme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                    style={{ color: '#fff', fontWeight: '600', textAlign: 'center' }}
+                  >
+                    {name}
+                  </StyledName>
+                )}
                 {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>

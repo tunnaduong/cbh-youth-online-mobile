@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
+import MediaShimmer from "./MediaShimmer";
 import { useAuthContext } from "../contexts/AuthContext";
 
 // Matches .../v1.0/users/<username>/avatar or /cover, with or without an
@@ -14,7 +16,13 @@ import { useAuthContext } from "../contexts/AuthContext";
 // the URL (its cache key) never changed.
 const OWN_MEDIA_RE = /\/v1\.0\/users\/([^/?]+)\/(avatar|cover)(?:\?.*)?$/i;
 
-const FastImage = React.forwardRef(({ source, resizeMode, style, ...props }, ref) => {
+// Images at least this big (in both directions) get a pulsing placeholder
+// while they load. Smaller ones - avatars, icons, which fill long lists -
+// are left as they were.
+const SHIMMER_MIN_SIZE = 100;
+
+const FastImage = React.forwardRef(({ source, resizeMode, style, onLoad, onError, ...props }, ref) => {
+  const [settled, setSettled] = useState(false);
   const { username, avatarVersion, coverVersion } = useAuthContext();
 
   // map resizeMode to contentFit
@@ -48,7 +56,7 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, ...props }, ref
   // Support priority prop if it's in source
   const priority = (source && source.priority) ? source.priority.toLowerCase() : undefined;
 
-  return (
+  const image = (imageStyle) => (
     <Image
       ref={ref}
       source={mappedSource}
@@ -56,9 +64,38 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, ...props }, ref
       priority={priority}
       cachePolicy="memory-disk"
       transition={200}
-      style={style}
+      style={imageStyle}
       {...props}
+      onLoad={(event) => {
+        setSettled(true);
+        onLoad?.(event);
+      }}
+      onError={(event) => {
+        setSettled(true);
+        onError?.(event);
+      }}
     />
+  );
+
+  // The placeholder needs a box of its own, so the image's style moves to a
+  // wrapper and the image fills it. Only done for styles with a fixed size,
+  // where that swap can't change the layout.
+  const flat = StyleSheet.flatten(style) || {};
+  const large =
+    typeof flat.width === "number" &&
+    typeof flat.height === "number" &&
+    flat.width >= SHIMMER_MIN_SIZE &&
+    flat.height >= SHIMMER_MIN_SIZE;
+
+  if (!large || !mappedSource) {
+    return image(style);
+  }
+
+  return (
+    <View style={[style, { overflow: "hidden" }]}>
+      {!settled && <MediaShimmer />}
+      {image(StyleSheet.absoluteFill)}
+    </View>
   );
 });
 

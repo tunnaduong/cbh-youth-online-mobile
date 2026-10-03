@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useIsFocused } from "@react-navigation/native";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
+import MediaShimmer from "./MediaShimmer";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import VideoPlayerModal from "./VideoPlayerModal";
@@ -92,6 +93,8 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen, interactive }) =
   return (
     <>
       <Tile style={[styles.tile, { borderRadius }]} {...tileProps}>
+        {/* Shows while the player is being set up, instead of plain black */}
+        <MediaShimmer dark />
         {player && typeof player === "object" ? (
           <VideoView
             key={playerKey}

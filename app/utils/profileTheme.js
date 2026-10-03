@@ -48,6 +48,11 @@ export function normalizeTheme(theme) {
     primary_color: color(theme.primary_color, null),
     accent_color: color(theme.accent_color, null),
     banner_color: color(theme.banner_color, null),
+    // Second colour of each of the three above (1500-point tier): when set,
+    // that colour is drawn as a gradient. Null = solid.
+    primary_color_2: color(theme.primary_color_2, null),
+    accent_color_2: color(theme.accent_color_2, null),
+    banner_color_2: color(theme.banner_color_2, null),
     name_font: theme.name_font || "default",
     name_effect: theme.name_effect || "none",
     name_colors: [
@@ -92,6 +97,15 @@ export function themeColors(theme) {
 }
 
 /**
+ * Every colour stop of the theme gradient, in order: primary (+ its second
+ * colour), accent (+ its second colour). Two stops without gradient colours.
+ */
+export function themeStops(theme) {
+  const [primary, accent] = themeColors(theme);
+  return [primary, theme?.primary_color_2, accent, theme?.accent_color_2].filter(Boolean);
+}
+
+/**
  * Nền ảnh bìa khi người dùng chưa có ảnh bìa: màu ảnh bìa (Banner Color) nếu
  * đã chọn, nếu không thì gradient màu giao diện, nếu không nữa thì null.
  * Trả { color } hoặc { colors } (cho LinearGradient).
@@ -99,8 +113,11 @@ export function themeColors(theme) {
 export function getBannerFill(theme) {
   const normalized = normalizeTheme(theme);
   if (!normalized) return null;
+  if (normalized.banner_color && normalized.banner_color_2) {
+    return { colors: [normalized.banner_color, normalized.banner_color_2] };
+  }
   if (normalized.banner_color) return { color: normalized.banner_color };
-  if (hasThemeColors(normalized)) return { colors: themeColors(normalized) };
+  if (hasThemeColors(normalized)) return { colors: themeStops(normalized) };
   return null;
 }
 
@@ -110,8 +127,7 @@ export function getBannerFill(theme) {
  */
 export function getSurfaceColors(theme) {
   if (!hasThemeColors(theme)) return null;
-  const [primary, accent] = themeColors(normalizeTheme(theme));
-  return [withAlpha(primary, 0.2), withAlpha(accent, 0.2)];
+  return themeStops(normalizeTheme(theme)).map((stop) => withAlpha(stop, 0.2));
 }
 
 /**

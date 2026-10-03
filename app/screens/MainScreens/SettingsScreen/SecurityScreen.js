@@ -25,6 +25,7 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { openInAppBrowser } from "../../../utils/externalLink";
 
 const SettingItem = ({
   icon,
@@ -424,6 +425,13 @@ export default function SecurityScreen({ navigation }) {
             icon="shield-checkmark-outline"
             title={t('security.twoFactor')}
             onPress={() => navigation.navigate("TwoFactorScreen")}
+            theme={theme}
+          />
+          <SettingItem
+            icon="finger-print-outline"
+            title={t('security.passkeys')}
+            description={t('security.passkeysDesc')}
+            onPress={() => openInAppBrowser("https://chuyenbienhoa.com/settings?tab=account", theme)}
             theme={theme}
           />
           <SettingItem

@@ -995,6 +995,8 @@
     "greeting": "Привет, {{name}}!"
   },
   "security": {
+    "passkeys": "Passkey",
+    "passkeysDesc": "Вход по отпечатку или лицу, без пароля. Управление на сайте.",
     "title": "Безопасность",
     "personalInfo": "Личная информация",
     "loginSecurity": "Вход и безопасность",
@@ -1090,6 +1092,8 @@
     "selectOption": "Выберите опцию"
   },
   "auth": {
+    "continueWithPasskey": "Войти с помощью passkey",
+    "passkeyLoginError": "Не удалось войти с помощью passkey",
     "googleProcessing": "Обработка входа через Google. Пожалуйста, подождите...",
     "sessionInProgress": "Другая сессия входа уже выполняется. Подождите или попробуйте позже.",
     "stateFailed": "Не удалось проверить вход. Попробуйте снова.",
@@ -1888,6 +1892,9 @@
     "shakeAttachedWithScreen": "Приложен скриншот экрана «{{screen}}», сделанный при встряхивании телефона. Удалите его, если не хотите отправлять."
   },
   "profileTheme": {
+    "gradientColor": "Градиент",
+    "gradientLocked": "Для градиента нужно {{points}} очков",
+    "gradientPickBase": "Сначала выберите цвет",
     "outlineColors": "Цвет текста и контура",
     "title": "Оформление профиля",
     "apply": "Применить",

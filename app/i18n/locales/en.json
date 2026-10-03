@@ -983,6 +983,8 @@
     "greeting": "Hello, {{name}}!"
   },
   "security": {
+    "passkeys": "Passkeys",
+    "passkeysDesc": "Sign in with your fingerprint or face, no password. Managed on the website.",
     "title": "Security",
     "personalInfo": "Personal Information",
     "loginSecurity": "Login & Security",
@@ -1075,6 +1077,8 @@
     "selectOption": "Select an option"
   },
   "auth": {
+    "continueWithPasskey": "Sign in with a passkey",
+    "passkeyLoginError": "Couldn't sign in with a passkey",
     "googleProcessing": "Processing Google login. Please wait...",
     "sessionInProgress": "Another login session is in progress. Please wait or try again later.",
     "stateFailed": "Could not verify login. Please try again.",
@@ -1870,6 +1874,9 @@
     "shakeAttachedWithScreen": "A screenshot of \"{{screen}}\" taken when you shook the phone is attached. Remove it if you'd rather not send it."
   },
   "profileTheme": {
+    "gradientColor": "Gradient colour",
+    "gradientLocked": "Gradient colours need {{points}} points",
+    "gradientPickBase": "Pick the colour first",
     "outlineColors": "Text and border colours",
     "title": "Profile appearance",
     "apply": "Apply",

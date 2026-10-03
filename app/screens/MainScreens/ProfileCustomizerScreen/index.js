@@ -34,6 +34,9 @@ const DEFAULT_THEME = {
   primary_color: null,
   accent_color: null,
   banner_color: null,
+  primary_color_2: null,
+  accent_color_2: null,
+  banner_color_2: null,
   name_font: "default",
   name_effect: "none",
   name_colors: [DEFAULT_PRIMARY, DEFAULT_ACCENT],
@@ -43,6 +46,7 @@ const DEFAULT_THEME = {
 };
 
 const OPTION_FIELDS = ["name_font", "name_effect", "avatar_frame", "profile_effect", "profile_frame"];
+const GRADIENT_FIELDS = { primary_color_2: "primary_color", accent_color_2: "accent_color", banner_color_2: "banner_color" };
 
 const sameTheme = (a, b) =>
   Object.keys(DEFAULT_THEME).every((key) => JSON.stringify(a?.[key]) === JSON.stringify(b?.[key]));
@@ -59,7 +63,13 @@ const withoutLockedOptions = (theme, editor) =>
       }
       return result;
     },
-    { ...DEFAULT_THEME, ...theme }
+    {
+      ...DEFAULT_THEME,
+      ...theme,
+      ...(editor.color_gradient?.unlocked
+        ? null
+        : { primary_color_2: null, accent_color_2: null, banner_color_2: null }),
+    }
   );
 
 function Section({ title, children, last }) {
@@ -254,7 +264,59 @@ export default function ProfileCustomizerScreen({ navigation }) {
 
   const optionOf = (field, key) => editor.options[field].find((o) => o.key === key);
   const optionLabel = (field, key) =>
-    field === "name_font" ? t(`profileTheme.fonts.${key}`, key) : t(`profileTheme.options.${field}.${key}`, key);
+    field === "name_font"
+      ? t(`profileTheme.fonts.${key}`, optionOf(field, key)?.label || key)
+      : t(`profileTheme.options.${field}.${key}`, key);
+
+
+  // Second colour of a theme colour = draw it as a gradient (1500-point tier).
+  const gradientUnlocked = !!editor.color_gradient?.unlocked;
+  const gradientChip = (key) => {
+    const base = draft[GRADIENT_FIELDS[key]];
+    const second = draft[key];
+    return (
+      <TouchableOpacity
+        key={key}
+        accessibilityLabel={t("profileTheme.gradientColor", "Màu chuyển sắc")}
+        onPress={() => {
+          if (!gradientUnlocked) {
+            Toast.show({
+              type: "info",
+              text1: t("profileTheme.gradientLocked", "Màu chuyển sắc cần {{points}} điểm", {
+                points: editor.color_gradient?.required_points ?? 1500,
+              }),
+            });
+          } else if (!base) {
+            Toast.show({ type: "info", text1: t("profileTheme.gradientPickBase", "Hãy chọn màu trước") });
+          } else {
+            setPicker(key);
+          }
+        }}
+        style={[
+          styles.gradientChip,
+          { borderColor: theme.subText, borderStyle: second ? "solid" : "dashed" },
+          (!gradientUnlocked || !base) && { opacity: 0.5 },
+        ]}
+      >
+        {second && base ? (
+          <LinearGradient
+            colors={[base, second]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={StyleSheet.absoluteFill}
+          />
+        ) : (
+          <Ionicons name={gradientUnlocked ? "add" : "lock-closed"} size={14} color={theme.subText} />
+        )}
+      </TouchableOpacity>
+    );
+  };
+  const gradientHint = (
+    <Text style={[styles.gradientHint, { color: theme.subText }]}>
+      {t("profileTheme.gradientColor", "Màu chuyển sắc")}
+      {gradientUnlocked ? "" : ` · ${editor.color_gradient?.required_points ?? 1500} ${t("profileTheme.milestones.pointsUnit", "điểm")}`}
+    </Text>
+  );
 
   // Points still needed to save the draft (0 = can save).
   const lockedPoints = Math.max(
@@ -390,8 +452,13 @@ export default function ProfileCustomizerScreen({ navigation }) {
                 )}
               </Slot>
             </View>
+            {gradientHint}
+            <View style={styles.colorRow}>
+              {gradientChip("banner_color_2")}
+              <View style={{ flex: 1 }} />
+            </View>
             {draft.banner_color ? (
-              <TouchableOpacity onPress={() => update({ banner_color: null })} style={styles.linkButton}>
+              <TouchableOpacity onPress={() => update({ banner_color: null, banner_color_2: null })} style={styles.linkButton}>
                 <Text style={[styles.link, { color: theme.primary }]}>{t("profileTheme.clearBanner", "Bỏ màu ảnh bìa")}</Text>
               </TouchableOpacity>
             ) : null}
@@ -446,8 +513,13 @@ export default function ProfileCustomizerScreen({ navigation }) {
                 onPress={() => setPicker("accent_color")}
               />
             </View>
+            {gradientHint}
+            <View style={styles.colorRow}>
+              {gradientChip("primary_color_2")}
+              {gradientChip("accent_color_2")}
+            </View>
             {draft.primary_color || draft.accent_color ? (
-              <TouchableOpacity onPress={() => update({ primary_color: null, accent_color: null })} style={styles.linkButton}>
+              <TouchableOpacity onPress={() => update({ primary_color: null, accent_color: null, primary_color_2: null, accent_color_2: null })} style={styles.linkButton}>
                 <Text style={[styles.link, { color: theme.primary }]}>{t("profileTheme.clearColors", "Bỏ màu giao diện")}</Text>
               </TouchableOpacity>
             ) : null}
@@ -513,6 +585,16 @@ export default function ProfileCustomizerScreen({ navigation }) {
                 : t("profileTheme.accentColor", "Màu phụ")
           }
           value={draft[field] || (field === "accent_color" ? DEFAULT_ACCENT : field === "banner_color" ? "#9ca3af" : DEFAULT_PRIMARY)}
+          onApply={(hex) => update({ [field]: hex })}
+          onClose={() => setPicker(null)}
+        />
+      ))}
+      {Object.keys(GRADIENT_FIELDS).map((field) => (
+        <ColorPickerSheet
+          key={field}
+          visible={picker === field}
+          title={t("profileTheme.gradientColor", "Màu chuyển sắc")}
+          value={draft[field] || draft[GRADIENT_FIELDS[field]] || DEFAULT_ACCENT}
           onApply={(hex) => update({ [field]: hex })}
           onClose={() => setPicker(null)}
         />
@@ -751,6 +833,16 @@ const styles = StyleSheet.create({
   hintRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
   hint: { fontSize: 12 },
   colorRow: { flexDirection: "row", gap: 8 },
+  gradientHint: { fontSize: 12, marginTop: 10, marginBottom: 6 },
+  gradientChip: {
+    flex: 1,
+    height: 32,
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   linkButton: { marginTop: 6, alignSelf: "flex-start" },
   link: { fontSize: 13, fontWeight: "500" },
   restoreButton: {

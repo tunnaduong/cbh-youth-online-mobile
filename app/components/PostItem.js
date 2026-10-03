@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
+import MediaShimmer from "./MediaShimmer";
 import RenderHTML, {
   HTMLElementModel,
   HTMLContentModel,
@@ -1043,6 +1044,7 @@ const PostItem = ({
       </Pressable>
       {((item.image_urls && item.image_urls.length > 0) || (videoUrls && videoUrls.length > 0)) && (
         <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
+          <MediaShimmer />
           {item.image_urls && item.image_urls.length > 0 && (
             <>
               <FBCollage

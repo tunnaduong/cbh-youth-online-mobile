@@ -188,6 +188,9 @@ const PostEditScreen = ({ navigation, route }) => {
             ...item,
             value: id,
             label: getCategoryName(name, t),
+            // The dropdown groups options under `category` (the parent section,
+            // e.g. "Thông báo", "Học tập") - translate that header too.
+            category: item.category ? getCategoryName(item.category, t) : item.category,
           };
         });
         setSubforums(translatedSubforums);

@@ -198,7 +198,12 @@ const CreatePostScreen = ({ navigation, route }) => {
         const translated = rawSubforums.map((item) => {
           const id = item.value ?? item.id;
           const name = item.label || item.name || item.title || "";
-          return { ...item, value: id, label: getCategoryName(name, t) };
+          return {
+            ...item,
+            value: id,
+            label: getCategoryName(name, t),
+            category: item.category ? getCategoryName(item.category, t) : item.category,
+          };
         });
         setSubforums(translated);
       } catch (error) {

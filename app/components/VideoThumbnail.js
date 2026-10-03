@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from "react-native";
+import MediaShimmer from "./MediaShimmer";
 import { Ionicons } from "@expo/vector-icons";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import VideoPlayerModal from "./VideoPlayerModal";
@@ -60,6 +61,8 @@ const VideoThumbnail = ({
         onPress={() => setPreviewVisible(true)}
         style={[styles.tile, { borderRadius }]}
       >
+        {/* Pulses behind the frame until it has been extracted/loaded */}
+        <MediaShimmer dark />
         {thumbnailUri ? (
           <Image
             source={{ uri: thumbnailUri }}

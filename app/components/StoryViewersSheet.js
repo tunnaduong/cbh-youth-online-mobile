@@ -19,6 +19,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import formatTime from "../utils/formatTime";
+import StyledName from "./profile/StyledName";
+import { AvatarFrameWrap } from "./profile/AvatarFrame";
 
 // Map reaction types to emojis
 const reactionToEmoji = {
@@ -157,9 +159,11 @@ const StoryViewersSheet = () => {
         actionSheetRef.current?.hide();
       }}
     >
-      <FastImage source={{ uri: item.profile_picture }} style={styles.avatar} />
+      <AvatarFrameWrap theme={item.profile_theme} size={46} style={{ marginRight: 12 }}>
+        <FastImage source={{ uri: item.profile_picture }} style={[styles.avatar, { marginRight: 0 }]} />
+      </AvatarFrameWrap>
       <View style={styles.viewerInfo}>
-        <Text style={[styles.viewerName, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">{item.profile_name}</Text>
+        <StyledName theme={item.profile_theme} variant="compact" style={[styles.viewerName, { color: theme.text }]} numberOfLines={1} ellipsizeMode="tail">{item.profile_name}</StyledName>
         {item.reactions && item.reactions.length > 0 ? (
           <View style={styles.reactionsWrap}>
             {item.reactions.slice(0, 3).map((reaction, index) => (
