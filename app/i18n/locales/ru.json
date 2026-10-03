@@ -313,6 +313,9 @@
     "noPostsInCategory": "В этой категории пока нет постов."
   },
   "createPost": {
+    "compressingImage": "Сжатие фото...",
+    "compressingVideo": "Сжатие видео {{current}}/{{total}}...",
+    "compressingVideoShort": "Сжатие видео...",
     "title": "Создать пост",
     "publish": "Опубликовать",
     "anonymous": "Анонимно",
@@ -1895,6 +1898,8 @@
     "gradientColor": "Градиент",
     "gradientLocked": "Для градиента нужно {{points}} очков",
     "gradientPickBase": "Сначала выберите цвет",
+    "gradientCleared": "Градиент убран",
+    "gradientClearHint": "удерживайте, чтобы убрать",
     "outlineColors": "Цвет текста и контура",
     "title": "Оформление профиля",
     "apply": "Применить",

@@ -292,6 +292,9 @@
     "noPostsInCategory": "Chưa có bài viết nào trong chuyên mục này."
   },
   "createPost": {
+    "compressingImage": "Đang nén ảnh...",
+    "compressingVideo": "Đang nén video {{current}}/{{total}}...",
+    "compressingVideoShort": "Đang nén video...",
     "title": "Tạo bài viết",
     "publish": "Đăng",
     "anonymous": "Đăng ẩn danh",
@@ -1864,6 +1867,8 @@
     "gradientColor": "Màu chuyển sắc",
     "gradientLocked": "Màu chuyển sắc cần {{points}} điểm",
     "gradientPickBase": "Hãy chọn màu trước",
+    "gradientCleared": "Đã bỏ màu chuyển sắc",
+    "gradientClearHint": "giữ để bỏ",
     "outlineColors": "Màu chữ và màu viền",
     "title": "Giao diện hồ sơ",
     "apply": "Áp dụng",

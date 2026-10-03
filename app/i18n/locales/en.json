@@ -303,6 +303,9 @@
     "noPostsInCategory": "No posts in this category yet."
   },
   "createPost": {
+    "compressingImage": "Compressing photo...",
+    "compressingVideo": "Compressing video {{current}}/{{total}}...",
+    "compressingVideoShort": "Compressing video...",
     "title": "Create post",
     "publish": "Post",
     "anonymous": "Post anonymously",
@@ -1877,6 +1880,8 @@
     "gradientColor": "Gradient colour",
     "gradientLocked": "Gradient colours need {{points}} points",
     "gradientPickBase": "Pick the colour first",
+    "gradientCleared": "Gradient colour removed",
+    "gradientClearHint": "hold to remove",
     "outlineColors": "Text and border colours",
     "title": "Profile appearance",
     "apply": "Apply",

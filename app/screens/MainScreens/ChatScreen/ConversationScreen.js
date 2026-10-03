@@ -84,6 +84,7 @@ import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import { canCompressVideo, compressVideoForUpload } from "../../../utils/mediaCompression";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -2795,11 +2796,15 @@ const ConversationScreen = ({ navigation, route }) => {
         result = await ImagePicker.launchCameraAsync({
           mediaTypes: source === "camera_video" ? ["videos"] : ["images"],
           quality: 0.8,
+          // iOS exports video as 720p H.264 (ignored on Android).
+          videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
         });
       } else {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ["images", "videos"],
           quality: 0.8,
+          // iOS exports video as 720p H.264 (ignored on Android).
+          videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
           allowsMultipleSelection: true,
           selectionLimit: 10,
         });
@@ -2971,12 +2976,31 @@ const ConversationScreen = ({ navigation, route }) => {
   // assets (multi-select, up to 10) - same split as sendImageMessage above.
   const sendVideoMessage = async (assetOrAssets) => {
     const assets = Array.isArray(assetOrAssets) ? assetOrAssets : [assetOrAssets];
-    const attachments = assets.map((asset, i) => ({
-      uri: asset.uri,
-      fileName: asset.fileName || asset.uri.split("/").pop() || `video_${i}.mp4`,
-      fileType: asset.mimeType || "video/mp4",
-      fileSize: asset.fileSize,
-    }));
+
+    // Compressed on the device to 720p H.264 before sending (the API no
+    // longer does it), with a notice while it runs.
+    const showNotice = canCompressVideo();
+    if (showNotice) {
+      Toast.show({ type: "info", text1: t("createPost.compressingVideoShort"), autoHide: false });
+    }
+    const attachments = [];
+    try {
+      for (let i = 0; i < assets.length; i++) {
+        const asset = assets[i];
+        const originalName = asset.fileName || asset.uri.split("/").pop() || `video_${i}.mp4`;
+        const compressed = await compressVideoForUpload(asset.uri);
+        attachments.push({
+          uri: compressed.uri,
+          // The compressor always writes an MP4.
+          fileName: compressed.compressed ? `${originalName.replace(/\.[^.]*$/, "")}.mp4` : originalName,
+          fileType: compressed.compressed ? "video/mp4" : asset.mimeType || "video/mp4",
+          // Unknown after compression; the size check already passed on the original.
+          fileSize: compressed.compressed ? undefined : asset.fileSize,
+        });
+      }
+    } finally {
+      if (showNotice) Toast.hide();
+    }
 
     if (attachments.length > 1) {
       await sendAttachmentMessage({ type: "video", attachments });

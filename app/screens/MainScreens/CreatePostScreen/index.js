@@ -26,6 +26,7 @@ import Verified from "../../../assets/Verified";
 import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
+import { compressImageForUpload, compressVideoForUpload } from "../../../utils/mediaCompression";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
@@ -268,6 +269,8 @@ const CreatePostScreen = ({ navigation, route }) => {
       let result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["videos"],
         allowsMultipleSelection: true,
+        // iOS exports the pick as 720p H.264 (ignored on Android).
+        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
       });
 
       if (result.canceled || !result.assets) return;
@@ -366,7 +369,11 @@ const CreatePostScreen = ({ navigation, route }) => {
 
       if (selectedImages.length > 0) {
         // Upload all images
-        for (const imageUri of selectedImages) {
+        for (const originalUri of selectedImages) {
+          // Compressed on the device (the API no longer does it).
+          setUploadProgressText(t("createPost.compressingImage"));
+          const imageUri = await compressImageForUpload(originalUri);
+          setUploadProgressText("");
           const formData = new FormData();
           const fileExtension = imageUri.split(".").pop();
           let mimeType = "image/jpeg";
@@ -419,11 +426,24 @@ const CreatePostScreen = ({ navigation, route }) => {
           const formData = new FormData();
           const extension = getVideoExtension(video.fileName || video.uri) || "mp4";
 
+          // Compressed on the device to 720p H.264 (the API no longer does
+          // it); the HUD says so while it runs.
+          setUploadProgressText(
+            t("createPost.compressingVideo", { current: i + 1, total: selectedVideos.length }),
+          );
+          setUploadProgress(0);
+          const compressed = await compressVideoForUpload(video.uri, (ratio) =>
+            setUploadProgress(((i + ratio) / selectedVideos.length) * 100),
+          );
+
           formData.append("uid", userInfo.id);
           formData.append("file", {
-            uri: video.uri,
-            name: video.fileName || `video.${extension}`,
-            type: video.mimeType || getVideoMimeType(extension),
+            uri: compressed.uri,
+            // The compressor always writes an MP4.
+            name: compressed.compressed
+              ? `${(video.fileName || "video").replace(/\.[^.]*$/, "")}.mp4`
+              : video.fileName || `video.${extension}`,
+            type: compressed.compressed ? "video/mp4" : video.mimeType || getVideoMimeType(extension),
           });
 
           setUploadProgressText(

@@ -27,6 +27,7 @@ import { captureRef } from "react-native-view-shot";
 import { createStory } from "../../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import { compressVideoForUpload } from "../../../utils/mediaCompression";
 import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
 import DrawingCanvas from "./DrawingCanvas";
@@ -652,6 +653,8 @@ const CreateStoryScreen = ({ navigation }) => {
       allowsEditing: Platform.OS === "android",
       aspect: [9, 16],
       quality: 1,
+      // iOS exports video as 720p H.264 (ignored on Android).
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
     });
 
     if (result.canceled) return;
@@ -687,6 +690,7 @@ const CreateStoryScreen = ({ navigation }) => {
         allowsEditing: Platform.OS === "android",
         aspect: [9, 16],
         quality: 1,
+        videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
       });
 
       if (result.canceled) return;
@@ -868,10 +872,13 @@ const CreateStoryScreen = ({ navigation }) => {
       }
 
       if (isVideo) {
+        // Compressed on the device to 720p H.264 (the API no longer does it).
+        const compressed = await compressVideoForUpload(mediaUri);
         const storyFile = {
-          uri: mediaUri,
-          type: selectedMediaAsset?.mimeType || "video/mp4",
-          name: selectedMediaAsset?.fileName || "story_video.mp4",
+          uri: compressed.uri,
+          // The compressor always writes an MP4.
+          type: compressed.compressed ? "video/mp4" : selectedMediaAsset?.mimeType || "video/mp4",
+          name: compressed.compressed ? "story_video.mp4" : selectedMediaAsset?.fileName || "story_video.mp4",
         };
 
         formData.append("media_type", "video");

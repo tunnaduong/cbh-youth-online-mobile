@@ -145,6 +145,10 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Review fixes** (not run): `FastImage` only tracks loading for images big enough to show the shimmer (avatars in long lists no longer re-render on load); the fallback forum entry in `PostEditScreen` translates its category header; holding a gradient chip in `ProfileCustomizerScreen` removes that second colour (`profileTheme.gradientCleared` / `gradientClearHint`).
+
+- **Media is compressed on the device before upload** (not run): the API no longer compresses uploads. `app/utils/mediaCompression.js`: photos via `expo-image-manipulator` (1470px wide, quality 85); videos via **`react-native-compressor`, loaded optionally** (720p H.264, 4.7 Mbps) - the package is NOT installed yet: run `npx expo install react-native-compressor` and make a new native build, until then videos are uploaded as they are. On iOS the pickers already export 720p H.264 (`videoExportPreset`). Wired into create/edit post (HUD shows "Đang nén ảnh..." / "Đang nén video i/n..."), chat video messages (info toast) and video stories. Chat/comment photos were already re-encoded at quality 0.85.
+
 - **Post media: photos + videos as one block** (`PostItem.js`, not run): when a post has both, the videos now continue the photo collage edge to edge with square corners and a 3px gap (one video = full width 16:9; two = side by side; three or more scroll sideways at half width), instead of small rounded cards in a padded strip below it.
 
 - **Passkey login, server fonts, gradient colours, story styles, loading placeholders, category headers** (not run; needs the API's `main` and the web's `/auth/passkey` page from web PR 32):

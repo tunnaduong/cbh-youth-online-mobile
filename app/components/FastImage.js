@@ -56,6 +56,16 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, onLoad, onError
   // Support priority prop if it's in source
   const priority = (source && source.priority) ? source.priority.toLowerCase() : undefined;
 
+  // The placeholder needs a box of its own, so the image's style moves to a
+  // wrapper and the image fills it. Only done for styles with a fixed size,
+  // where that swap can't change the layout.
+  const flat = StyleSheet.flatten(style) || {};
+  const large =
+    typeof flat.width === "number" &&
+    typeof flat.height === "number" &&
+    flat.width >= SHIMMER_MIN_SIZE &&
+    flat.height >= SHIMMER_MIN_SIZE;
+
   const image = (imageStyle) => (
     <Image
       ref={ref}
@@ -67,25 +77,15 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, onLoad, onError
       style={imageStyle}
       {...props}
       onLoad={(event) => {
-        setSettled(true);
+        if (large) setSettled(true);
         onLoad?.(event);
       }}
       onError={(event) => {
-        setSettled(true);
+        if (large) setSettled(true);
         onError?.(event);
       }}
     />
   );
-
-  // The placeholder needs a box of its own, so the image's style moves to a
-  // wrapper and the image fills it. Only done for styles with a fixed size,
-  // where that swap can't change the layout.
-  const flat = StyleSheet.flatten(style) || {};
-  const large =
-    typeof flat.width === "number" &&
-    typeof flat.height === "number" &&
-    flat.width >= SHIMMER_MIN_SIZE &&
-    flat.height >= SHIMMER_MIN_SIZE;
 
   if (!large || !mappedSource) {
     return image(style);

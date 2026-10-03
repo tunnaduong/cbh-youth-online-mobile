@@ -292,6 +292,11 @@ export default function ProfileCustomizerScreen({ navigation }) {
             setPicker(key);
           }
         }}
+        onLongPress={() => {
+          if (!second) return;
+          update({ [key]: null });
+          Toast.show({ type: "info", text1: t("profileTheme.gradientCleared", "Đã bỏ màu chuyển sắc") });
+        }}
         style={[
           styles.gradientChip,
           { borderColor: theme.subText, borderStyle: second ? "solid" : "dashed" },
@@ -314,7 +319,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
   const gradientHint = (
     <Text style={[styles.gradientHint, { color: theme.subText }]}>
       {t("profileTheme.gradientColor", "Màu chuyển sắc")}
-      {gradientUnlocked ? "" : ` · ${editor.color_gradient?.required_points ?? 1500} ${t("profileTheme.milestones.pointsUnit", "điểm")}`}
+      {gradientUnlocked ? " · " + t("profileTheme.gradientClearHint", "giữ để bỏ") : ` · ${editor.color_gradient?.required_points ?? 1500} ${t("profileTheme.milestones.pointsUnit", "điểm")}`}
     </Text>
   );
 
