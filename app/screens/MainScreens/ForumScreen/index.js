@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
-  Dimensions,
   DeviceEventEmitter,
   Platform,
 } from "react-native";
@@ -27,8 +26,7 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
 import { storage } from "../../../global/storage";
-
-const { width } = Dimensions.get("window");
+import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
 
 
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
@@ -96,6 +94,10 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
 
 export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
+  // Reactive, unlike a module-level Dimensions read: the category pager's
+  // pages are exactly this wide, so on an iPad rotated or resized in split
+  // view a stale width left every page (and its section cards) offset.
+  const { width } = useResponsiveLayout();
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState(1);
   const { username } = useContext(AuthContext);
@@ -392,6 +394,12 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
             style={{ flex: 1, width, backgroundColor: theme.background }}
             contentContainerStyle={{
               backgroundColor: "transparent",
+              // Capped and centered on large screens like the feed: stretched
+              // across a tablet, each card's cover image was cropped down to
+              // a thin slice and its corner fade no longer lined up with it.
+              width: "100%",
+              maxWidth: CONTENT_MAX_WIDTH + 32,
+              alignSelf: "center",
               paddingHorizontal: 16,
               paddingBottom: 110 + insets.bottom,
               paddingTop: 8,
@@ -492,7 +500,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-    marginRight: 14,
   },
   sectionTitle: {
     fontSize: 17,
@@ -502,9 +509,13 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     fontSize: 13,
   },
+  // Was width "105%" with a fixed marginRight: 14 on the content to pull it
+  // back in - the overflow is 5% of the card, which only matched 14px on a
+  // phone; on wider screens the image and the chevron/latest box drifted
+  // further off the right edge. Plain full width with symmetric padding.
   sectionBackground: {
     padding: 14,
-    width: "105%",
+    width: "100%",
     borderRadius: 16,
     overflow: "hidden",
   },
@@ -519,7 +530,6 @@ const styles = StyleSheet.create({
   latestBox: {
     borderRadius: 12,
     padding: 10,
-    marginRight: 14
   },
   latestMetaRow: {
     flexDirection: "row",
