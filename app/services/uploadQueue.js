@@ -1,6 +1,7 @@
 import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import i18n from "../i18n";
+import { apiErrorMessage } from "../utils/apiMessage";
 
 /**
  * Uploads that keep going after the screen that started them is closed -
@@ -252,8 +253,6 @@ const reporter = (id) => {
   return report;
 };
 
-const pickMessage = (value) => (typeof value === "string" && value.trim() ? value : null);
-
 const succeed = (id) => {
   const job = find(id);
   if (!job || job.status !== "running") return;
@@ -282,9 +281,7 @@ const fail = (id, error, { canRetry = false } = {}) => {
   const message =
     typeof error === "string"
       ? error
-      : pickMessage(error?.response?.data?.message) ||
-        pickMessage(error?.response?.data?.error) ||
-        (error?.message === "Network Error" ? t("uploads.networkError") : null);
+      : apiErrorMessage(error, t("uploads.failedDesc"));
   const failed = patch(id, { status: "failed", progress: null, error: message, canRetry });
   showResultNotification(failed);
   // A job that can be retried waits for the user; the others clear themselves.

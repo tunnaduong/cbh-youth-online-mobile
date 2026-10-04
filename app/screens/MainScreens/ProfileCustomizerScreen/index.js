@@ -13,6 +13,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -224,7 +225,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
       console.error("Error saving profile theme:", error?.response?.data || error);
       Toast.show({
         type: "error",
-        text1: error?.response?.data?.message || t("profileTheme.saveError", "Có lỗi xảy ra khi lưu."),
+        text1: apiErrorMessage(error, t("profileTheme.saveError", "Có lỗi xảy ra khi lưu.")),
       });
     } finally {
       setSaving(false);

@@ -302,6 +302,14 @@
     "lastPost": "Last post",
     "noPostsInCategory": "No posts in this category yet."
   },
+  "apiError": {
+    "network": "No network connection. Please try again.",
+    "tooManyAttempts": "Too many attempts. Please try again later.",
+    "invalid": "What you entered is not correct. Check it and try again.",
+    "notAllowed": "You are not allowed to do this.",
+    "server": "The server is having trouble. Please try again later.",
+    "generic": "Something went wrong. Please try again."
+  },
   "uploads": {
     "channelName": "Uploads",
     "retry": "Retry",
@@ -2046,6 +2054,10 @@
     "regenerate": "Generate new recovery codes",
     "trustedDevices": "Remembered devices",
     "forgetDevices": "Forget remembered devices",
+    "methodDisabled": "Verification method turned off",
+    "devicesForgotten": "Remembered devices forgotten",
+    "socialSkipOn": "Google, Facebook and Apple logins will skip two-factor",
+    "socialSkipOff": "Google, Facebook and Apple logins will ask for two-factor too",
     "skipSocialLogin": "Skip for Google, Facebook and Apple logins",
     "skipSocialLoginDesc": "On: logging in through these services goes straight in. Off: a code is still required, as with a password login.",
     "disableDesc": "Confirm to turn off two-factor authentication. Your account will only be protected by your password.",

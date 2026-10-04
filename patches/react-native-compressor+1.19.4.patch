@@ -1,0 +1,28 @@
+diff --git a/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt b/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt
+index 6669a27..fe7941d 100644
+--- a/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt
++++ b/node_modules/react-native-compressor/android/src/main/java/com/reactnativecompressor/Video/VideoCompressorHelper.kt
+@@ -133,7 +133,8 @@ class VideoCompressorHelper {
+                 val height = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                 val width = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                 val bitrate = getMetadataInt(metaRetriever, MediaMetadataRetriever.METADATA_KEY_BITRATE)
+-                val frameRate = getSourceFrameRate(metaRetriever)
++                // CBH: uploads are capped at 30 fps (a 60 fps source drops every other frame).
++                val frameRate = getSourceFrameRate(metaRetriever).coerceAtMost(30)
+                 if (height <= 0 || width <= 0) {
+                     promise.reject(Throwable("Failed to read the input video dimensions"))
+                     return
+diff --git a/node_modules/react-native-compressor/ios/Video/VideoMain.swift b/node_modules/react-native-compressor/ios/Video/VideoMain.swift
+index 3e29497..b4dc515 100644
+--- a/node_modules/react-native-compressor/ios/Video/VideoMain.swift
++++ b/node_modules/react-native-compressor/ios/Video/VideoMain.swift
+@@ -166,7 +166,8 @@ class VideoCompressor {
+ 
+         // Cap at 60 fps. 30 fps cap silently halved 60 fps recordings and
+         // produced visibly choppy output.
+-        return min(max(nominalFrameRate, 1), 60)
++        // CBH: uploads are capped at 30 fps.
++        return min(max(nominalFrameRate, 1), 30)
+     }
+ 
+     func scaledDimensions(width: CGFloat, height: CGFloat, maxSize: CGFloat) -> (width: Int, height: Int) {

@@ -154,6 +154,10 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Toasts in the app's language; smaller uploads** (bundled by CI, not run on a device):
+  - `app/utils/apiMessage.js` → `apiErrorMessage(error, fallback)`: the API only writes Vietnamese, so its message is shown only when the app is in Vietnamese; otherwise the text comes from `apiError.*` (network, too many attempts, invalid input, not allowed, server) or the caller's translated fallback. Used by the two-factor, devices, two-factor challenge, passkey login and profile-appearance screens and by the upload bar. Success toasts on `TwoFactorScreen` use the app's own strings (`twoFactor.methodDisabled`, `devicesForgotten`, `socialSkipOn/Off`) instead of `res.data.message`. **Rule: never put `res.data.message` in a toast.**
+  - Compression (`app/utils/mediaCompression.js`): photos JPEG quality 80 (was 85), story snapshot 90 (was 100), videos 720p **at most 30 fps** at 2.5 Mbps (was 4.7). The 30 fps cap is a native patch, `patches/react-native-compressor+1.19.4.patch` (the library has no option and keeps 60 fps sources at 60) - it must be regenerated when the package is upgraded. Clips under 1 MB are sent as they are.
+
 - **Two-factor: option to skip it on Google/Facebook/Apple logins** (bundled by CI, not run on a device): a switch on `TwoFactorScreen`, shown while two-factor is on (`status.skip_social_login`, `setTwoFactorSocialLogin(skip)` → `PUT /v1.0/two-factor/social-login`; strings `twoFactor.skipSocialLogin*` in vi/en/ru). On by default on the API.
 
 - **Background uploads with a progress bar and notification** (bundled by CI, not run on a device):

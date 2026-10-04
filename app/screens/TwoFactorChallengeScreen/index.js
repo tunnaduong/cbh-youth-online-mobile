@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import { apiErrorMessage } from "../../utils/apiMessage";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import ProgressHUD from "../../components/ProgressHUD";
@@ -94,7 +95,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
       signIn(data.token, data.user);
     } catch (error) {
       const data = error.response?.data;
-      const message = data?.message || error.message || t("common.error");
+      const message = apiErrorMessage(error, t("common.error"));
       if (data?.challenge_expired) {
         handleExpired(message);
       } else {
@@ -117,11 +118,11 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
       });
       setEmailSent(true);
       if (!silent) {
-        Alert.alert(t("twoFactor.title"), response?.data?.message || t("twoFactor.codeSent"));
+        Alert.alert(t("twoFactor.title"), t("twoFactor.codeSent"));
       }
     } catch (error) {
       const data = error.response?.data;
-      const message = data?.message || error.message || t("common.error");
+      const message = apiErrorMessage(error, t("common.error"));
       if (data?.challenge_expired) {
         handleExpired(message);
       } else {

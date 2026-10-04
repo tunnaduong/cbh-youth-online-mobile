@@ -291,6 +291,14 @@
     "lastPost": "Bài viết cuối",
     "noPostsInCategory": "Chưa có bài viết nào trong chuyên mục này."
   },
+  "apiError": {
+    "network": "Không có kết nối mạng. Vui lòng thử lại.",
+    "tooManyAttempts": "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.",
+    "invalid": "Thông tin vừa nhập không đúng. Hãy kiểm tra và thử lại.",
+    "notAllowed": "Bạn không có quyền thực hiện thao tác này.",
+    "server": "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.",
+    "generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+  },
   "uploads": {
     "channelName": "Đang tải lên",
     "retry": "Thử lại",
@@ -2033,6 +2041,10 @@
     "regenerate": "Tạo mã khôi phục mới",
     "trustedDevices": "Thiết bị được ghi nhớ",
     "forgetDevices": "Xóa thiết bị được ghi nhớ",
+    "methodDisabled": "Đã tắt phương thức xác thực",
+    "devicesForgotten": "Đã xóa các thiết bị được ghi nhớ",
+    "socialSkipOn": "Đăng nhập bằng Google, Facebook, Apple sẽ không cần xác thực hai lớp",
+    "socialSkipOff": "Đăng nhập bằng Google, Facebook, Apple cũng sẽ cần xác thực hai lớp",
     "skipSocialLogin": "Bỏ qua khi đăng nhập bằng Google, Facebook, Apple",
     "skipSocialLoginDesc": "Bật: đăng nhập qua các dịch vụ này vào thẳng tài khoản. Tắt: vẫn phải nhập mã như khi đăng nhập bằng mật khẩu.",
     "disableDesc": "Xác nhận để tắt xác thực 2 yếu tố. Tài khoản sẽ chỉ còn được bảo vệ bằng mật khẩu.",

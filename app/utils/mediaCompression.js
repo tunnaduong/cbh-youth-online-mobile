@@ -22,13 +22,17 @@ try {
   VideoCompressor = null;
 }
 
-// Same limits the server job used for photos: 1470px wide, quality 85.
+// Photos: 1470px wide, JPEG quality 80 - visibly the same as 85 on a phone
+// screen, at roughly three quarters of the size.
 const IMAGE_MAX_WIDTH = 1470;
-const IMAGE_QUALITY = 0.85;
+const IMAGE_QUALITY = 0.8;
 
-// 720p H.264 at the bitrate ceiling the server job used.
+// Videos: 720p, at most 30 fps, H.264 at 2.5 Mbps - a good-looking 720p30
+// picture at about half the size of the 4.7 Mbps used before. The 30 fps cap
+// is in the native code (patches/react-native-compressor+1.19.4.patch): the
+// library has no option for it and otherwise keeps a 60 fps source at 60.
 const VIDEO_MAX_SIZE = 1280;
-const VIDEO_BITRATE = 4700000;
+const VIDEO_BITRATE = 2500000;
 
 export const canCompressVideo = () => !!VideoCompressor;
 
@@ -85,8 +89,8 @@ export async function compressVideoForUpload(uri, onProgress) {
         compressionMethod: "manual",
         maxSize: VIDEO_MAX_SIZE,
         bitrate: VIDEO_BITRATE,
-        // MB - tiny clips aren't worth re-encoding.
-        minimumFileSizeForCompress: 3,
+        // MB - below this the clip is sent as it is.
+        minimumFileSizeForCompress: 1,
       },
       (progress) => onProgress?.(progress)
     );

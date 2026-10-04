@@ -807,7 +807,9 @@ const CreateStoryScreen = ({ navigation }) => {
 
     return captureRef(imageWithOverlaysRef.current, {
       format: "jpg",
-      quality: 1,
+      // This file is the upload: 0.9 keeps text overlays crisp at a fraction
+      // of the size of a maximum-quality JPEG.
+      quality: 0.9,
       result: "file",
     });
   }, [viewReady]);

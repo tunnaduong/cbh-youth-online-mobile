@@ -2953,7 +2953,7 @@ const ConversationScreen = ({ navigation, route }) => {
       let normalizedUri = uris[i];
       try {
         const result = await manipulateAsync(uris[i], [], {
-          compress: 0.85,
+          compress: 0.8,
           format: SaveFormat.JPEG,
         });
         normalizedUri = result.uri;

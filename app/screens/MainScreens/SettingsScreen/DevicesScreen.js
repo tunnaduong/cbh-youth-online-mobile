@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -23,7 +24,8 @@ import {
   logoutOtherDeviceSessions,
 } from "../../../services/api/Api";
 
-const errorMessage = (error) => error.response?.data?.message || error.message;
+// In the app's language (the API only answers in Vietnamese).
+const errorMessage = (error) => apiErrorMessage(error);
 
 // "Logged-in devices": every device the account is signed in on, with a way
 // to sign the others out.

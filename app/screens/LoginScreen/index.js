@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
 import { loginWithPasskey } from "../../services/passkey";
+import { apiErrorMessage } from "../../utils/apiMessage";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -100,8 +101,7 @@ const LoginScreen = ({ navigation }) => {
       }
       signIn(data.token, data.user);
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || t("auth.passkeyLoginError");
+      const errorMessage = apiErrorMessage(error, t("auth.passkeyLoginError"));
       Alert.alert(t("auth.loginError"), errorMessage);
     } finally {
       setLoading(false);

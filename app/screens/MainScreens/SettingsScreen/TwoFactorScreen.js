@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import Toast from "react-native-toast-message";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
@@ -39,8 +40,8 @@ const METHODS = ["email", "totp"];
 
 const RECOVERY_FILE_NAME = "cbh-youth-online-recovery-codes.txt";
 
-const errorMessage = (error, fallback) =>
-  error.response?.data?.message || error.message || fallback;
+// In the app's language (the API only answers in Vietnamese).
+const errorMessage = (error, fallback) => apiErrorMessage(error, fallback);
 
 // These live at module level on purpose: defined inside the screen they
 // would be new component types on every render, so each keystroke or state
@@ -164,7 +165,7 @@ export default function TwoFactorScreen({ navigation }) {
         setFlow({ type: "recovery" });
       } else {
         reset();
-        Toast.show({ type: "success", text1: res.data.message || t("twoFactor.methodEnabled") });
+        Toast.show({ type: "success", text1: t("twoFactor.methodEnabled") });
       }
     });
   };
@@ -198,7 +199,7 @@ export default function TwoFactorScreen({ navigation }) {
       const res = await disableTwoFactor({ method: flow.method, ...identityParams() });
       setStatus(res.data.status);
       reset();
-      Toast.show({ type: "success", text1: res.data.message });
+      Toast.show({ type: "success", text1: t("twoFactor.methodDisabled") });
     });
 
   const confirmRegenerate = () =>
@@ -219,7 +220,7 @@ export default function TwoFactorScreen({ navigation }) {
     setSendingCode(true);
     try {
       const res = await sendTwoFactorEmailCode();
-      Toast.show({ type: "success", text1: res.data?.message || t("twoFactor.codeSent") });
+      Toast.show({ type: "success", text1: t("twoFactor.codeSent") });
     } catch (err) {
       Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
     } finally {
@@ -238,7 +239,10 @@ export default function TwoFactorScreen({ navigation }) {
     try {
       const res = await setTwoFactorSocialLogin(skip);
       setStatus(res.data.status);
-      Toast.show({ type: "success", text1: res.data.message });
+      Toast.show({
+        type: "success",
+        text1: t(skip ? "twoFactor.socialSkipOn" : "twoFactor.socialSkipOff"),
+      });
     } catch (err) {
       setStatus(before);
       Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
@@ -253,7 +257,7 @@ export default function TwoFactorScreen({ navigation }) {
     try {
       const res = await forgetTwoFactorTrustedDevices();
       setStatus(res.data.status);
-      Toast.show({ type: "success", text1: res.data.message });
+      Toast.show({ type: "success", text1: t("twoFactor.devicesForgotten") });
     } catch (err) {
       Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
     } finally {
