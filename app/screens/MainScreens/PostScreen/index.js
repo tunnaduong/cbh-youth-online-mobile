@@ -12,7 +12,6 @@ import {
   ScrollView,
   FlatList,
   TouchableOpacity,
-  Share,
   Alert,
   Text,
   Pressable,
@@ -33,7 +32,6 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
   commentPostWithImages,
-  deletePost,
   getPostDetail,
   incrementPostView,
   voteComment,
@@ -51,18 +49,14 @@ import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
-import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
 import Verified from "../../../assets/Verified";
 import StyledName from "../../../components/profile/StyledName";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
-import ReportModal from "../../../components/ReportModal";
-import { reportUser } from "../../../services/api/Api";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
-import { generatePostSlug } from "../../../utils/slugify";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
@@ -327,18 +321,6 @@ const PostScreen = ({ route, navigation }) => {
   const commentRefs = useRef({});
   const [highlightedCommentId, setHighlightedCommentId] = useState(null);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
-  const { showBottomSheet, hideBottomSheet } = useBottomSheet();
-  const isCurrentUser =
-    post?.is_owner === true ||
-    post?.topic?.is_owner === true ||
-    post?.author?.username === username ||
-    String(post?.author?.id) === String(userInfo?.id) ||
-    String(post?.user_id) === String(userInfo?.id) ||
-    String(post?.uid) === String(userInfo?.id) ||
-    String(post?.userid) === String(userInfo?.id) ||
-    post?.is_mine === true ||
-    post?.is_author === true;
-  const [reportModalVisible, setReportModalVisible] = useState(false);
   const [commentVotesModal, setCommentVotesModal] = useState({ visible: false, commentId: null, commentPreview: "" });
   const [imageViewer, setImageViewer] = useState({ visible: false, images: [], index: 0 });
   const insets = useSafeAreaInsets();
@@ -405,147 +387,10 @@ const PostScreen = ({ route, navigation }) => {
     }
   }, [post?.id]);
 
-  const handleOpenBottomSheet = () => {
-    showBottomSheet(
-      <View style={{ backgroundColor: theme.cardBackground }}>
-        <TouchableOpacity
-          onPress={() => {
-            handleSavePost(!isSaved);
-            hideBottomSheet();
-          }}
-        >
-          <View className="flex-row items-center">
-            <Ionicons
-              name={isSaved ? "bookmark" : "bookmark-outline"}
-              size={23}
-              color={isSaved ? theme.primary : theme.text}
-            />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {isSaved ? t("post.unsave") : t("post.save")}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            shareLink(
-              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`,
-            );
-            hideBottomSheet();
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {t("post.share")}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        {/*
-        {isCurrentUser && (
-          <TouchableOpacity onPress={() => {
-            navigation.navigate("PostEditScreen", { postId: post?.id });
-            hideBottomSheet();
-          }}>
-            <View className="flex-row items-center">
-              <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
-              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t('post.privacy')}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        */}
-        {isCurrentUser && (
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate("PostEditScreen", { postId: post?.id });
-              hideBottomSheet();
-            }}
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="create-outline" size={23} color={theme.text} />
-              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t("post.edit")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {!isCurrentUser && (
-          <TouchableOpacity
-            onPress={() => {
-              hideBottomSheet();
-              setReportModalVisible(true);
-            }}
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
-              <Text
-                style={{ padding: 12, fontSize: 17 }}
-                className="text-red-500"
-              >
-                {t("post.report")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {isCurrentUser && (
-          <TouchableOpacity onPress={handleDeletePost}>
-            <View className="flex-row items-center">
-              <Ionicons name="trash-outline" size={23} color={"#ef4444"} />
-              <Text
-                style={{ padding: 12, fontSize: 17 }}
-                className="text-red-500"
-              >
-                {t("post.delete")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      </View>,
-    );
-  };
-
-  const shareLink = async (link) => {
-    try {
-      await Share.share({
-        message: link,
-      });
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
-  };
-
-  const handleDeletePost = async () => {
-    Alert.alert(t("post.deleteConfirmTitle"), t("post.deleteConfirmBody"), [
-      {
-        text: t("post.deleteAction"),
-        style: "destructive",
-        onPress: async () => {
-          await deletePost(post.id);
-          // refresh the post list
-          setFeed((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
-          if (screenName)
-            setRecentPostsProfile((prevPosts) =>
-              prevPosts.filter((p) => p.id !== post.id),
-            );
-          hideBottomSheet();
-          navigation.goBack();
-        },
-      },
-      {
-        text: t("post.editAction"),
-        style: "default",
-        onPress: () => {
-          navigation.navigate("PostEditScreen", { postId: post.id });
-          hideBottomSheet();
-        },
-      },
-      {
-        text: t("settings.cancel"),
-        style: "cancel",
-      },
-    ]);
-  };
+  // The "…" menu is PostItem's own (see its optionsOpenerRef): one menu for
+  // the feed, profile, archive and this page, so an option added or changed
+  // there shows up everywhere.
+  const postOptionsRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -874,25 +719,6 @@ const PostScreen = ({ route, navigation }) => {
       );
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleReportSubmit = async (reason) => {
-    try {
-      const reportedUserId =
-        post?.author?.id || post?.user_id || post?.uid || post?.userid;
-      await reportUser({
-        reported_user_id: reportedUserId,
-        topic_id: post.id,
-        reason,
-      });
-      Alert.alert(t("post.reportSuccessTitle"), t("post.reportSuccessBody"));
-    } catch (e) {
-      Alert.alert(
-        t("profile.errorTitle"),
-        e.response?.data?.message || e.message || t("post.reportError"),
-      );
-      throw e;
     }
   };
 
@@ -1382,7 +1208,7 @@ const PostScreen = ({ route, navigation }) => {
                 size={44}
                 scrollY={scrollY}
                 providerId="PostScreen"
-                onPress={handleOpenBottomSheet}
+                onPress={() => postOptionsRef.current?.()}
               >
                 <Ionicons
                   name="ellipsis-horizontal"
@@ -1471,6 +1297,7 @@ const PostScreen = ({ route, navigation }) => {
                 onSave={handleSavePost}
                 screenName={screenName}
                 isActive={autoplayVideos}
+                optionsOpenerRef={postOptionsRef}
               />
               {/* comment section */}
               <View style={{ paddingHorizontal: 15 }}>
@@ -1523,11 +1350,6 @@ const PostScreen = ({ route, navigation }) => {
           }
         />
         </AndroidGlassBackdrop>
-        <ReportModal
-          visible={reportModalVisible}
-          onClose={() => setReportModalVisible(false)}
-          onSubmit={handleReportSubmit}
-        />
         <CommentVotesModal
           visible={commentVotesModal.visible}
           commentId={commentVotesModal.commentId}

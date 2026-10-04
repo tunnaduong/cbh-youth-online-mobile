@@ -279,6 +279,10 @@ const PostItem = ({
   onSave: onSaveCallback, // Callback for single view save updates
   isActive = true, // Whether this card is on-screen — drives inline video autoplay
   onArchiveChange, // (postId, archived) — lets a list (e.g. ArchiveScreen) drop the row
+  // PostScreen's header "…" button opens this post's options through here, so
+  // the detail page shows exactly the same menu (and actions) as the feed,
+  // profile and archive - there's only one copy of it, in this component.
+  optionsOpenerRef,
 }) => {
   const videoUrls = Array.isArray(item.video_urls)
     ? item.video_urls
@@ -364,6 +368,8 @@ const PostItem = ({
               );
             }
             hideBottomSheet();
+            // On the post's own page there's nothing left to show.
+            if (single) navigation?.goBack();
           },
         },
         {
@@ -686,6 +692,9 @@ const PostItem = ({
       </View>
     );
   };
+
+  // Always the latest menu (it closes over this render's state).
+  if (optionsOpenerRef) optionsOpenerRef.current = handleMoreOptions;
 
   const handleVote = async (voteValue) => {
     const existingVote = currentVotes.find(
