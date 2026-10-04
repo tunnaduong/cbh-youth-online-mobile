@@ -9,7 +9,6 @@ import {
   Platform,
   Switch,
   Animated,
-  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -34,31 +33,18 @@ import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
 import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
-import { autoEmbedYouTubeLinks, extractYouTubeId, buildYouTubePlayerHtml } from "../../../utils/youtubeShare";
+import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
 import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
-import { WebView } from "react-native-webview";
-import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
-import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
-import { getMentionSuggestions } from "../../../services/api/Api";
+import usePostEditor from "../../../components/PostEditor/usePostEditor";
+import {
+  PostEditorField,
+  PostEditorMentions,
+  PostEditorTabs,
+  PostEditorToolbar,
+} from "../../../components/PostEditor/PostEditorParts";
+import { TOOLBAR_HEIGHT } from "../../../components/PostEditor/MarkdownToolbar";
+import { hasPendingUploads } from "../../../utils/markdownEdit";
 
-// Bolds @mentions live while composing, but they're not clickable here -
-// only rendered posts (with backend-resolved mentions) link to a profile.
-// Posts don't support "@all" broadcast mentions (that's a comment/chat-only
-// feature), so unlike CommentBar's parser this one never special-cases it.
-function postMentionParser(input) {
-  "worklet";
-  try {
-    const ranges = [];
-    const regex = /@[\p{L}\p{N}\p{M}_.-]+/gu;
-    let match;
-    while ((match = regex.exec(input)) !== null) {
-      ranges.push({ start: match.index, length: match[0].length, type: "mention-user" });
-    }
-    return ranges;
-  } catch (e) {
-    return [];
-  }
-}
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LinearGradient } from "expo-linear-gradient";
@@ -76,34 +62,13 @@ const VIDEO_UPLOAD_TIMEOUT = 300000;
 const HEAVY_UPLOAD_TIMEOUT = 300000;
 
 const PostEditScreen = ({ navigation, route }) => {
-  const [postContent, setPostContent] = useState("");
   const [title, setTitle] = useState("");
-  const {
-    mentionProps: contentMentionProps,
-    suggestions: contentSuggestions,
-    loading: contentSuggestionsLoading,
-    onSelectMention: onSelectContentMention,
-    hasSuggestions: hasContentSuggestions,
-  } = useMentionInput({
-    value: postContent,
-    onChange: setPostContent,
-    fetchSuggestions: getMentionSuggestions,
-  });
-  const insets = useSafeAreaInsets();
-  // The mention-suggestions overlay is anchored to the bottom of the
-  // screen; without tracking the keyboard it stayed pinned to the safe-area
-  // bottom, which the on-screen keyboard covers as soon as the content
-  // input is focused (exactly when suggestions are shown) - hidden behind it.
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
   const { username, userInfo, profileName } = useContext(AuthContext);
+  // Same GitHub-style editor as CreatePostScreen (toolbar, preview, undo,
+  // mentions, inline images); filled in with the post once it has loaded.
+  const editor = usePostEditor({ initialContent: "", userId: userInfo?.id });
+  const { postContent } = editor;
+  const insets = useSafeAreaInsets();
   if (!userInfo) {
     return null;
   }
@@ -202,7 +167,7 @@ const PostEditScreen = ({ navigation, route }) => {
         setInitialPost(post);
 
         setTitle(post.title || "");
-        setPostContent(post.description || post.content || "");
+        editor.reset(post.description || post.content || "");
         setIsAnonymous(!!post.anonymous);
 
         const initialPrivacy = post.privacy || (post.visibility === 1 ? "private" : "public");
@@ -434,6 +399,19 @@ const PostEditScreen = ({ navigation, route }) => {
         text2: t('editPost.errorUpdateDesc'),
         autoHide: true,
         visibilityTime: 5000,
+        topOffset: 60,
+      });
+      return;
+    }
+
+    // A placeholder still in the text would be saved as literal text.
+    if (hasPendingUploads(editor.contentRef.current)) {
+      Toast.show({
+        type: "info",
+        text1: t('editPost.errorUpdateTitle'),
+        text2: t("createPost.uploadsPending"),
+        autoHide: true,
+        visibilityTime: 4000,
         topOffset: 60,
       });
       return;
@@ -693,7 +671,11 @@ const PostEditScreen = ({ navigation, route }) => {
       <AndroidGlassBackdrop providerId="PostEditScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
-        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingBottom: insets.bottom + 24 + (editor.toolbarVisible ? TOOLBAR_HEIGHT : 0),
+        }}
+        keyboardShouldPersistTaps="handled"
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
         scrollEventThrottle={16}
       >
@@ -744,63 +726,21 @@ const PostEditScreen = ({ navigation, route }) => {
               placeholderTextColor={theme.subText}
               value={title}
               onChangeText={setTitle}
+              returnKeyType="next"
+              onSubmitEditing={() => {
+                editor.setMode("write");
+                editor.inputRef.current?.focus();
+              }}
             />
             <View style={[styles.divider, { borderColor: theme.border }]} />
-            <MarkdownTextInput
-              style={[styles.contentInput, { color: theme.text }]}
-              parser={postMentionParser}
-              markdownStyle={{
-                mentionUser: { color: "#22c55e", fontWeight: "600", backgroundColor: "transparent", borderRadius: 0 },
-              }}
+            <PostEditorTabs editor={editor} style={styles.editorTabs} />
+            <PostEditorField
+              editor={editor}
               placeholder={t('editPost.placeholderContent')}
-              placeholderTextColor={theme.subText}
-              value={postContent}
-              onChangeText={contentMentionProps.onChangeText}
-              multiline
-              textAlignVertical="top"
+              inputStyle={styles.contentInput}
+              // Card margin + card padding + this group's padding, each side.
+              previewPadding={40}
             />
-            {/* YouTube embed preview — shown when content contains an iframe with a YouTube src */}
-            {(() => {
-              const ytId = extractYouTubeId(postContent);
-              if (!ytId) return null;
-              return (
-                <View style={{
-                  marginTop: 12,
-                  borderRadius: 12,
-                  overflow: "hidden",
-                  borderWidth: 1,
-                  borderColor: theme.border,
-                  backgroundColor: "#000",
-                }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 10, paddingVertical: 8, backgroundColor: isDarkMode ? "#1a1a1a" : "#f5f5f5" }}>
-                    <Ionicons name="logo-youtube" size={18} color="#FF0000" />
-                    <Text style={{ marginLeft: 6, fontSize: 12, color: theme.text, fontWeight: "600" }}>
-                      YouTube Embed
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => setPostContent("")}
-                      style={{ marginLeft: "auto" }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Ionicons name="close-circle" size={18} color={theme.subText} />
-                    </TouchableOpacity>
-                  </View>
-                  <WebView
-                    // The IFrame Player API validates the page's own origin against
-                    // the video's embed permissions - without baseUrl matching
-                    // youtube-nocookie.com, the WebView's HTML loads with no real
-                    // origin (file://) and the player rejects it as unauthorized
-                    // (YouTube error 153), even though CreatePostScreen's identical
-                    // markup plays fine because it sets this.
-                    source={{ html: buildYouTubePlayerHtml(ytId), baseUrl: "https://www.youtube-nocookie.com" }}
-                    style={{ width: "100%", height: 200 }}
-                    allowsFullscreenVideo
-                    javaScriptEnabled
-                    domStorageEnabled
-                  />
-                </View>
-              );
-            })()}
           </View>
 
           <View style={[styles.toggleCard, { backgroundColor: isDarkMode ? theme.surface : 'rgba(248,250,252,0.92)', borderWidth: 1, borderColor: isDarkMode ? theme.border : 'rgba(15,23,42,0.08)', opacity: 0.7 }]}> 
@@ -894,28 +834,8 @@ const PostEditScreen = ({ navigation, route }) => {
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
 
-      {/* Rendered outside the ScrollView - a FlatList (inside MentionSuggestions)
-          nested in a ScrollView of the same orientation doesn't get a usable
-          height and never shows anything, only warns. */}
-      {hasContentSuggestions && (
-        <View
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: (keyboardHeight || insets.bottom) + 16,
-            zIndex: 50,
-            elevation: 50,
-          }}
-          pointerEvents="box-none"
-        >
-          <MentionSuggestions
-            suggestions={contentSuggestions}
-            loading={contentSuggestionsLoading}
-            onSelect={onSelectContentMention}
-          />
-        </View>
-      )}
+      <PostEditorToolbar editor={editor} />
+      <PostEditorMentions editor={editor} />
     </View>
   );
 };
@@ -941,6 +861,7 @@ const styles = StyleSheet.create({
   titleInput: { minHeight: 44, paddingHorizontal: 8, paddingVertical: 8, fontSize: 16, fontWeight: '700' },
   divider: { height: 1, marginHorizontal: 8, marginVertical: 6 },
   contentInput: { minHeight: 180, paddingHorizontal: 8, paddingVertical: 6, fontSize: 15, lineHeight: 22 },
+  editorTabs: { marginHorizontal: 8, marginTop: 0, marginBottom: 8 },
   toggleCard: { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   toggleTitle: { fontWeight: '700', fontSize: 14, marginBottom: 2 },
   toggleText: { fontSize: 12, lineHeight: 17 },

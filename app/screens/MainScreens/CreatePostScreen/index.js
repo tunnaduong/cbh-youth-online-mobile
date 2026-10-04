@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,10 +7,9 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { KeyboardAwareScrollView, KeyboardStickyView } from "react-native-keyboard-controller";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Dropdown from "../../../components/Dropdown";
@@ -19,8 +18,6 @@ import {
   createPost,
   getSubforums,
   uploadFile,
-  uploadInlineImage,
-  MAX_INLINE_IMAGE_MB,
 } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
@@ -42,28 +39,16 @@ import {
 } from "../../../utils/videoUpload";
 import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
 import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
-import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
-import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
-import { getMentionSuggestions } from "../../../services/api/Api";
 import { CustomAlert } from "../../../components/CustomAlert";
-import MarkdownToolbar, { TOOLBAR_HEIGHT } from "../../../components/PostEditor/MarkdownToolbar";
-import PostPreview from "../../../components/PostEditor/PostPreview";
-import { postMarkdownParser } from "../../../utils/postMarkdownParser";
-import { hasClipboardImage, readClipboardImage } from "../../../utils/clipboardImage";
+import { TOOLBAR_HEIGHT } from "../../../components/PostEditor/MarkdownToolbar";
+import usePostEditor from "../../../components/PostEditor/usePostEditor";
 import {
-  continueListOnEnter,
-  createUploadToken,
-  hasPendingUploads,
-  insertCodeBlock,
-  insertImageTokens,
-  insertLink,
-  insertMentionTrigger,
-  replaceToken,
-  stripStaleUploadTokens,
-  toggleInlineCode,
-  toggleLinePrefix,
-  wrapSelection,
-} from "../../../utils/markdownEdit";
+  PostEditorField,
+  PostEditorMentions,
+  PostEditorTabs,
+  PostEditorToolbar,
+} from "../../../components/PostEditor/PostEditorParts";
+import { hasPendingUploads } from "../../../utils/markdownEdit";
 import { clearPostDraft, isDraftEmpty, loadPostDraft, savePostDraft } from "../../../utils/postDraft";
 
 // Large video/image/document uploads (up to 100MB) need more headroom than
@@ -71,11 +56,6 @@ import { clearPostDraft, isDraftEmpty, loadPostDraft, savePostDraft } from "../.
 const VIDEO_UPLOAD_TIMEOUT = 300000;
 const HEAVY_UPLOAD_TIMEOUT = 300000;
 
-const MONO = Platform.select({ ios: "Menlo", default: "monospace" });
-// Typing is grouped into one undo step per burst - a pause this long starts a
-// new one.
-const TYPING_BATCH_MS = 700;
-const MAX_UNDO_STEPS = 100;
 
 // What "has the author changed anything?" is measured against.
 const makeSnapshot = ({ title, content, subforum, privacy, anonymous }) =>
@@ -110,7 +90,6 @@ const CreatePostScreen = ({ navigation, route }) => {
   const pendingSubforumRef = useRef(restoredDraft?.subforum ?? null);
 
   const [title, setTitle] = useState(restoredDraft?.title ?? prefillTitle);
-  const [postContent, setPostContent] = useState(restoredDraft?.content ?? prefillContent);
   const [selected, setSelected] = useState(null);
   const [subforums, setSubforums] = useState([]);
   const view = [
@@ -128,301 +107,13 @@ const CreatePostScreen = ({ navigation, route }) => {
   const [selectedVideos, setSelectedVideos] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [uploadProgressText, setUploadProgressText] = useState(null);
-  const [mode, setMode] = useState("write");
 
-  // --- editor plumbing -------------------------------------------------
-  // The text/selection live in refs as well as state: async work (an image
-  // finishing its upload) has to patch the *current* text, not whatever a
-  // stale closure captured.
-  const inputRef = useRef(null);
-  const contentRef = useRef(postContent);
-  const selectionRef = useRef({ start: postContent.length, end: postContent.length });
-  const [forcedSelection, setForcedSelection] = useState(undefined);
-  const selectionTimerRef = useRef(null);
-  const historyRef = useRef([]);
-  const typingTimerRef = useRef(null);
-  const [canUndo, setCanUndo] = useState(false);
-  const pendingTokensRef = useRef(new Set());
-  const [uploadingImages, setUploadingImages] = useState(0);
-  const [contentFocused, setContentFocused] = useState(false);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      clearTimeout(selectionTimerRef.current);
-      clearTimeout(typingTimerRef.current);
-    };
-  }, []);
-
-  // The toolbar and the mention list ride on top of the keyboard, so they
-  // need to know where it is.
-  useEffect(() => {
-    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const show = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  // Applies text + selection from code (toolbar, upload result, undo).
-  // The controlled `selection` prop is only held briefly: left in place, it
-  // would pin the caret and fight the user's next keystroke.
-  const commit = (text, selection) => {
-    contentRef.current = text;
-    selectionRef.current = selection;
-    setPostContent(text);
-    setForcedSelection(selection);
-    clearTimeout(selectionTimerRef.current);
-    selectionTimerRef.current = setTimeout(() => setForcedSelection(undefined), 150);
-  };
-
-  // Undo steps are snapshots of the state *before* an edit.
-  const pushHistory = () => {
-    const stack = historyRef.current;
-    const snapshot = { text: contentRef.current, ...selectionRef.current };
-    if (stack.length > 0 && stack[stack.length - 1].text === snapshot.text) return;
-    stack.push(snapshot);
-    if (stack.length > MAX_UNDO_STEPS) stack.shift();
-    setCanUndo(true);
-  };
-
-  const endTypingBatch = () => {
-    clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = null;
-  };
-
-  const handleTextChange = (text) => {
-    if (!typingTimerRef.current) pushHistory(); // first keystroke of a burst
-    clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = setTimeout(() => {
-      typingTimerRef.current = null;
-    }, TYPING_BATCH_MS);
-
-    // Enter on a list/quote line carries the marker onto the next line.
-    const continued = continueListOnEnter(contentRef.current, text);
-    if (continued) {
-      commit(continued.text, { start: continued.caret, end: continued.caret });
-      contentMentionProps.onChangeText(continued.text);
-      return;
-    }
-
-    contentRef.current = text;
-    contentMentionProps.onChangeText(text);
-  };
-
-  // The mention hook rewrites the text itself when a suggestion is picked.
-  const {
-    mentionProps: contentMentionProps,
-    suggestions: contentSuggestions,
-    loading: contentSuggestionsLoading,
-    onSelectMention: onSelectContentMention,
-    hasSuggestions: hasContentSuggestions,
-  } = useMentionInput({
-    value: postContent,
-    onChange: (text) => {
-      contentRef.current = text;
-      setPostContent(text);
-    },
-    fetchSuggestions: getMentionSuggestions,
+  // --- editor: text, caret, toolbar, undo, mentions, inline images ------
+  const editor = usePostEditor({
+    initialContent: restoredDraft?.content ?? prefillContent,
+    userId,
   });
-
-  const handleSelectMention = (user) => {
-    endTypingBatch();
-    pushHistory();
-    onSelectContentMention(user);
-    // The hook appends "@username " at the end; put the caret after it.
-    const end = contentRef.current.length;
-    commit(contentRef.current, { start: end, end });
-  };
-
-  const runEdit = (transform, { mention = false } = {}) => {
-    endTypingBatch();
-    const current = { text: contentRef.current, ...selectionRef.current };
-    const next = transform(current);
-    if (next.text === current.text && next.start === current.start && next.end === current.end) return;
-    pushHistory();
-    commit(next.text, { start: next.start, end: next.end });
-    // "@" typed from the toolbar should open the suggestion list like a typed one.
-    if (mention) contentMentionProps.onChangeText(next.text);
-    inputRef.current?.focus();
-  };
-
-  const undo = () => {
-    endTypingBatch();
-    const stack = historyRef.current;
-    const previous = stack.pop();
-    setCanUndo(stack.length > 0);
-    if (!previous) return;
-    const text = stripStaleUploadTokens(previous.text, pendingTokensRef.current);
-    commit(text, {
-      start: Math.min(previous.start, text.length),
-      end: Math.min(previous.end, text.length),
-    });
-  };
-
-  // --- inline images ---------------------------------------------------
-  const resolveToken = (token, replacement) => {
-    pendingTokensRef.current.delete(token);
-    const next = replaceToken({ text: contentRef.current, ...selectionRef.current }, token, replacement);
-    if (next.text === contentRef.current) return; // author removed the placeholder
-    commit(next.text, { start: next.start, end: next.end });
-  };
-
-  const uploadInlineAsset = async (asset, token) => {
-    setUploadingImages((n) => n + 1);
-    try {
-      const url = await uploadInlineImage(asset, userId, { timeout: HEAVY_UPLOAD_TIMEOUT });
-      if (mountedRef.current) resolveToken(token, `![image](${url})`);
-    } catch (error) {
-      console.log("Error uploading inline image:", error?.response?.data || error?.message);
-      if (!mountedRef.current) return;
-      resolveToken(token, "");
-      Toast.show({
-        type: "error",
-        text1: t("createPost.imageUploadFailed"),
-        text2: error?.response?.data?.message || t("createPost.retry"),
-        autoHide: true,
-        visibilityTime: 4000,
-        topOffset: 60,
-      });
-    } finally {
-      if (mountedRef.current) setUploadingImages((n) => n - 1);
-    }
-  };
-
-  // Inline images: drop an "Uploading" placeholder at the caret for each one
-  // right away, and swap it for the real link when its upload lands.
-  const insertInlineImages = (picked) => {
-    const assets = [];
-    let skippedLarge = false;
-    for (const asset of picked) {
-      if (asset.fileSize && asset.fileSize > MAX_INLINE_IMAGE_MB * 1024 * 1024) {
-        skippedLarge = true;
-      } else {
-        assets.push(asset);
-      }
-    }
-    if (skippedLarge) {
-      Toast.show({
-        type: "error",
-        text1: t("createPost.pickImageError"),
-        text2: t("createPost.imageTooLarge", { mb: MAX_INLINE_IMAGE_MB }),
-        autoHide: true,
-        visibilityTime: 4000,
-        topOffset: 60,
-      });
-    }
-    if (assets.length === 0) return;
-
-    let probe = contentRef.current;
-    const jobs = assets.map((asset) => {
-      const token = createUploadToken(probe);
-      probe += token;
-      return { asset, token };
-    });
-
-    endTypingBatch();
-    const next = insertImageTokens(
-      { text: contentRef.current, ...selectionRef.current },
-      jobs.map((job) => job.token),
-    );
-    pushHistory();
-    jobs.forEach((job) => pendingTokensRef.current.add(job.token));
-    commit(next.text, { start: next.start, end: next.end });
-    inputRef.current?.focus();
-
-    jobs.forEach((job) => uploadInlineAsset(job.asset, job.token));
-  };
-
-  const reportImageError = (error) => {
-    console.log("Error getting image:", error);
-    Toast.show({
-      type: "error",
-      text1: t("createPost.pickImageError"),
-      text2: t("createPost.retry"),
-      autoHide: true,
-      visibilityTime: 3000,
-      topOffset: 60,
-    });
-  };
-
-  const pickFromLibrary = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.8,
-        allowsMultipleSelection: true,
-      });
-      if (!result.canceled && result.assets?.length) insertInlineImages(result.assets);
-    } catch (error) {
-      reportImageError(error);
-    }
-  };
-
-  const pasteFromClipboard = async () => {
-    try {
-      const asset = await readClipboardImage();
-      if (asset) insertInlineImages([asset]);
-    } catch (error) {
-      reportImageError(error);
-    }
-  };
-
-  // The Image button. Pasting can't be intercepted from the system menu in
-  // React Native, so the paste option lives here - offered only when the
-  // clipboard really holds an image.
-  const chooseImageSource = async () => {
-    if (!(await hasClipboardImage())) return pickFromLibrary();
-    CustomAlert.alert(
-      t("createPost.imageSourceTitle"),
-      "",
-      [
-        { text: t("createPost.pasteImage"), onPress: pasteFromClipboard },
-        { text: t("createPost.chooseFromLibrary"), onPress: pickFromLibrary },
-        { text: t("common.cancel"), style: "cancel" },
-      ],
-      { cancelable: true, stacked: true },
-    );
-  };
-
-  const handleToolbarAction = (key) => {
-    switch (key) {
-      case "bold":
-        return runEdit((s) => wrapSelection(s, "**"));
-      case "italic":
-        return runEdit((s) => wrapSelection(s, "_"));
-      case "link":
-        return runEdit(insertLink);
-      case "image":
-        return chooseImageSource();
-      case "mention":
-        return runEdit(insertMentionTrigger, { mention: true });
-      case "bulletList":
-        return runEdit((s) => toggleLinePrefix(s, "bullet"));
-      case "numberedList":
-        return runEdit((s) => toggleLinePrefix(s, "ordered"));
-      case "heading":
-        return runEdit((s) => toggleLinePrefix(s, "heading"));
-      case "strikethrough":
-        return runEdit((s) => wrapSelection(s, "~~"));
-      case "quote":
-        return runEdit((s) => toggleLinePrefix(s, "quote"));
-      case "code":
-        return runEdit(toggleInlineCode);
-      case "codeBlock":
-        return runEdit(insertCodeBlock);
-      case "undo":
-        return undo();
-      default:
-        return undefined;
-    }
-  };
+  const { postContent, mode, setMode, inputRef, contentRef } = editor;
 
   // --- leaving: unsaved-changes guard + draft ----------------------------
   const attachmentCount = selectedImages.length + selectedVideos.length + selectedDocuments.length;
@@ -517,12 +208,9 @@ const CreatePostScreen = ({ navigation, route }) => {
 
   const restartFromScratch = () => {
     clearPostDraft(userId);
-    endTypingBatch();
-    historyRef.current = [];
-    setCanUndo(false);
     pendingSubforumRef.current = null;
     setTitle("");
-    commit("", { start: 0, end: 0 });
+    editor.reset("");
     setSelected(null);
     setViewSelected(view[0]);
     setIsAnonymous(false);
@@ -954,41 +642,8 @@ const CreatePostScreen = ({ navigation, route }) => {
   };
 
   // --- rendering ---------------------------------------------------------
-  const markdownStyle = useMemo(() => {
-    const codeBackground = isDarkMode ? "#2C2C2C" : "#EEF0F2";
-    return {
-      syntax: { color: theme.subText },
-      link: { color: theme.primary },
-      h1: { fontSize: 20 },
-      blockquote: { borderColor: theme.border, borderWidth: 3, marginLeft: 0, paddingLeft: 8 },
-      code: {
-        fontFamily: MONO,
-        fontSize: 15,
-        color: theme.text,
-        backgroundColor: codeBackground,
-        borderWidth: 0,
-        borderRadius: 4,
-        padding: 0,
-      },
-      pre: {
-        fontFamily: MONO,
-        fontSize: 15,
-        color: theme.text,
-        backgroundColor: codeBackground,
-        borderWidth: 0,
-        borderRadius: 6,
-        padding: 2,
-      },
-      // The library's mentionUser default also sets a cyan backgroundColor +
-      // borderRadius (a solid highlighted chip) - override both so a mention
-      // is just colored/bold text, not dropped in a background box.
-      mentionUser: { color: "#22c55e", fontWeight: "600", backgroundColor: "transparent", borderRadius: 0 },
-    };
-  }, [theme, isDarkMode]);
 
-  // Not gated on the software keyboard being up: with a hardware keyboard
-  // (iPad) there is none, and the toolbar is still what the author wants.
-  const toolbarVisible = mode === "write" && contentFocused;
+  const { toolbarVisible } = editor;
   const chipBackground = isDarkMode ? theme.surface : "#F6F8FA";
 
   const submitDisabled = !canSubmit || loading;
@@ -1122,58 +777,8 @@ const CreatePostScreen = ({ navigation, route }) => {
           }}
         />
 
-        {/* GitHub-style underlined tabs. */}
-        <View style={[styles.tabsRow, { borderBottomColor: theme.border }]}>
-          {["write", "preview"].map((key) => (
-            <TouchableOpacity
-              key={key}
-              onPress={() => {
-                if (key === "preview") Keyboard.dismiss();
-                setMode(key);
-              }}
-              style={[styles.tab, mode === key && { borderBottomColor: theme.primary }]}
-            >
-              <Text
-                style={[
-                  styles.tabText,
-                  { color: mode === key ? theme.text : theme.subText },
-                  mode === key && { fontWeight: "700" },
-                ]}
-              >
-                {t(`createPost.${key}`)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Kept mounted (just hidden) while previewing so the caret position
-            and edit history survive a trip to the Preview tab. */}
-        <View style={mode === "write" ? styles.editorWrap : styles.hidden}>
-          <MarkdownTextInput
-            ref={inputRef}
-            style={[styles.contentInput, { color: theme.text }]}
-            parser={postMarkdownParser}
-            markdownStyle={markdownStyle}
-            placeholder={t("createPost.placeholderContent")}
-            placeholderTextColor={theme.subText}
-            value={postContent}
-            onChangeText={handleTextChange}
-            onSelectionChange={(e) => {
-              selectionRef.current = e.nativeEvent.selection;
-            }}
-            selection={forcedSelection}
-            onFocus={() => setContentFocused(true)}
-            onBlur={() => setContentFocused(false)}
-            multiline
-            textAlignVertical="top"
-          />
-        </View>
-
-        {mode === "preview" && (
-          <PostPreview
-            markdown={autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent))}
-          />
-        )}
+        <PostEditorTabs editor={editor} />
+        <PostEditorField editor={editor} placeholder={t("createPost.placeholderContent")} />
 
         <Text style={[styles.hintText, { color: theme.subText }]}>
           <Text style={styles.hintLink} onPress={() => navigateToHelp(865586194)}>
@@ -1258,54 +863,8 @@ const CreatePostScreen = ({ navigation, route }) => {
         )}
       </KeyboardAwareScrollView>
 
-      {/* Formatting toolbar, riding on top of the keyboard. Stays mounted so
-          it already tracks the keyboard when it becomes visible. */}
-      {mode === "write" && (
-        <KeyboardStickyView
-          style={styles.sticky}
-          pointerEvents={toolbarVisible ? "auto" : "none"}
-        >
-          <View
-            style={{
-              opacity: toolbarVisible ? 1 : 0,
-              // No keyboard to sit on: stay clear of the home indicator.
-              paddingBottom: keyboardHeight === 0 ? insets.bottom : 0,
-              backgroundColor: isDarkMode ? theme.surface : "#F2F3F5",
-            }}
-          >
-            <MarkdownToolbar
-              onAction={handleToolbarAction}
-              canUndo={canUndo}
-              imageBusy={uploadingImages > 0}
-            />
-          </View>
-        </KeyboardStickyView>
-      )}
-
-      {/* Rendered outside the ScrollView - a FlatList (inside MentionSuggestions)
-          nested in a ScrollView of the same orientation doesn't get a usable
-          height and never shows anything, only warns. */}
-      {hasContentSuggestions && (
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: toolbarVisible
-              ? (keyboardHeight || insets.bottom) + TOOLBAR_HEIGHT + 8
-              : (keyboardHeight || insets.bottom) + 16,
-            zIndex: 50,
-            elevation: 50,
-          }}
-          pointerEvents="box-none"
-        >
-          <MentionSuggestions
-            suggestions={contentSuggestions}
-            loading={contentSuggestionsLoading}
-            onSelect={handleSelectMention}
-          />
-        </View>
-      )}
+      <PostEditorToolbar editor={editor} />
+      <PostEditorMentions editor={editor} />
     </View>
   );
 };
@@ -1335,23 +894,11 @@ const styles = StyleSheet.create({
   },
   bannerText: { flex: 1, fontSize: 13 },
   titleInput: { fontSize: 22, fontWeight: "800", paddingVertical: 8, paddingHorizontal: 0 },
-  editorWrap: { minHeight: 240 },
-  hidden: { display: "none" },
-  contentInput: {
-    minHeight: 240,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    fontSize: 16,
-    lineHeight: 24,
-  },
   hintText: { fontSize: 12, marginTop: 12 },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
   pill: { borderWidth: 0, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, gap: 2 },
   pillText: { fontSize: 13, fontWeight: "600" },
   anonButton: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  tabsRow: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 4, marginBottom: 14 },
-  tab: { paddingVertical: 10, marginRight: 22, marginBottom: -StyleSheet.hairlineWidth, borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabText: { fontSize: 14, fontWeight: "500" },
   hintLink: { textDecorationLine: "underline" },
   attachBar: { flexDirection: "row", gap: 4, marginTop: 20, paddingTop: 6, paddingLeft: 0, borderTopWidth: StyleSheet.hairlineWidth, marginLeft: 0 },
   attachFirst: { marginLeft: -10 },
@@ -1379,7 +926,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     padding: 6,
   },
-  sticky: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 40 },
 });
 
 export default CreatePostScreen;
