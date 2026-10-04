@@ -18,6 +18,9 @@ import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
 import FastImage from "./FastImage";
 import AccountSwitcher from "./AccountSwitcher";
+import StyledName from "./profile/StyledName";
+import { AvatarFrameWrap } from "./profile/AvatarFrame";
+import { useOwnProfileTheme } from "../utils/ownProfileTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
@@ -87,6 +90,9 @@ const SidebarGlassWrapper = LiquidGlassView ?? View;
 
 const Sidebar = ({ providerId, isOpen }) => {
   const { signOut, username, profileName, userInfo } = useContext(AuthContext);
+  // The user's own profile appearance: avatar frame and name style, as on
+  // their profile. Refreshed when the sidebar is opened.
+  const ownTheme = useOwnProfileTheme(username, !!isOpen);
   const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
   // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
   // entirely, reading as a flat tinted panel instead of glass. Matches
@@ -254,18 +260,24 @@ const Sidebar = ({ providerId, isOpen }) => {
             }}
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={{ width: 60, height: 60, borderRadius: 30 }}
-            />
+            {/* The frame overflows the avatar a little, so the wrap keeps the
+                avatar's own size and isn't clipped. */}
+            <AvatarFrameWrap theme={ownTheme} size={60} style={{ alignSelf: "flex-start" }}>
+              <FastImage
+                source={{
+                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+                }}
+                style={{ width: 60, height: 60, borderRadius: 30 }}
+              />
+            </AvatarFrameWrap>
             <View>
-              <Text
+              <StyledName
+                theme={ownTheme}
+                variant="full"
                 style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}
               >
                 {profileName}
-              </Text>
+              </StyledName>
               <Text style={{ color: theme.subText }}>@{username}</Text>
             </View>
           </TouchableOpacity>

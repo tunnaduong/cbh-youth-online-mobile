@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { getProfile, updateProfile } from "../../../services/api/Api";
+import { setOwnProfileTheme } from "../../../utils/ownProfileTheme";
 import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -213,6 +214,8 @@ export default function ProfileCustomizerScreen({ navigation }) {
     try {
       setSaving(true);
       await updateProfile(username, { profile_theme: next });
+      // The sidebar shows the user's own appearance from this cache.
+      setOwnProfileTheme(username, next);
       const result = next || DEFAULT_THEME;
       setSaved(result);
       setDraft(result);
