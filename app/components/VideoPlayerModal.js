@@ -1,5 +1,6 @@
 import React from "react";
-import { ActivityIndicator, Modal, View, TouchableOpacity, StyleSheet } from "react-native";
+import { Modal, View, TouchableOpacity, StyleSheet } from "react-native";
+import CustomLoading from "./CustomLoading";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -101,7 +102,7 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
         ) : null}
         {loadingVideo && !!uri && (
           <View style={styles.loading} pointerEvents="none">
-            <ActivityIndicator size="large" color="#fff" />
+            <CustomLoading size={56} />
           </View>
         )}
       </View>

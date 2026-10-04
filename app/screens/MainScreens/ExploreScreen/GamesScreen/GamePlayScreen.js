@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import WebViewHeader from "../../../../components/WebViewHeader";
+import CustomLoading from "../../../../components/CustomLoading";
 import { parseUrlParts } from "../../../../utils/externalLink";
 import {
   sessionEntryUrl,
@@ -67,13 +68,13 @@ export default function GamePlayScreen({ navigation, route }) {
           startInLoadingState
           renderLoading={() => (
             <View style={[styles.loading, { backgroundColor: theme.background }]}>
-              <ActivityIndicator size="large" color={theme.primary} />
+              <CustomLoading size={56} />
             </View>
           )}
         />
       ) : (
         <View style={[styles.loading, { backgroundColor: theme.background }]}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoading size={56} />
         </View>
       )}
     </View>

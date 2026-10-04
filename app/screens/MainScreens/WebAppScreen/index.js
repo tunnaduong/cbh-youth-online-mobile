@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import WebViewHeader from "../../../components/WebViewHeader";
+import CustomLoading from "../../../components/CustomLoading";
 import { openInAppBrowser, parseUrlParts } from "../../../utils/externalLink";
 import {
   sessionEntryUrl,
@@ -130,7 +131,7 @@ export default function WebAppScreen({ navigation, route }) {
 
   const renderLoading = () => (
     <View style={[styles.overlay, { backgroundColor: theme.background }]}>
-      <ActivityIndicator size="large" color={theme.primary} />
+      <CustomLoading size={56} />
     </View>
   );
 

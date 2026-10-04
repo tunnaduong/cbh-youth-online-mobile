@@ -1,5 +1,6 @@
 import React from "react";
-import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { View, StyleSheet } from "react-native";
+import CustomLoading from "../../../components/CustomLoading";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -19,7 +20,7 @@ export default function EasterEggScreen({ navigation }) {
         startInLoadingState
         renderLoading={() => (
           <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", backgroundColor: theme.background }]}>
-            <ActivityIndicator size="large" color={theme.primary} />
+            <CustomLoading size={56} />
           </View>
         )}
       />
