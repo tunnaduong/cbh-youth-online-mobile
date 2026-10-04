@@ -29,6 +29,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The build number (iOS buildNumber, Android versionCode) is this
+      # workflow's run number, so build #N of the CI is build N of the app.
+      # The Android workflow commits it to the branch when it finishes.
+      - name: Set build number to the CI run number
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: node scripts/set-build-number.js "$BUILD_NUMBER"
+
+      # android/ and ios/ are not in git: generate the native project from
+      # app.json and the config plugins.
+      - name: Generate the native project (expo prebuild)
+        env:
+          CI: "1"
+        run: |
+          npx expo prebuild --platform android --no-install
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
@@ -119,6 +135,30 @@ jobs:
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Keeps app.json in git at the number of the last CI build, so a merge
+      # of this branch into main carries it along. Done at the end, on a
+      # fresh copy of the branch, so it can't change what was just built;
+      # [skip ci] stops the commit from starting another build.
+      - name: Commit the build number to the branch
+        if: always() && github.ref_type == 'branch'
+        continue-on-error: true
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+          node scripts/set-build-number.js "$BUILD_NUMBER"
+          git add app.json
+          if git diff --cached --quiet; then
+            echo "app.json already at build $BUILD_NUMBER"
+          else
+            git commit -m "chore: build number $BUILD_NUMBER [skip ci]"
+            git push origin "HEAD:$BRANCH"
+          fi
 
       # Tự động gửi thông báo an toàn qua Discord Webhook nhờ Python
       - name: Send Discord Notification

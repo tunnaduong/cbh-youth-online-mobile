@@ -45,7 +45,9 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 | `app/hooks/` | Hook tùy chỉnh như `useUnreadCounts`, `useCurrentRoute`, `useStatusBarUpdate`. |
 | `app/global/storage.js` | Instance MMKV cho cache/tùy chọn cục bộ. |
 | `app/utils/` | Hàm tiện ích: `formatTime`, `slugify`, lưu token/thông tin, mở link (`externalLink`), đăng nhập web từ app (`webSession`), bố cục màn hình lớn (`responsive`). |
-| `android/`, `ios/` | Dự án native cho build bare/Dev Client, cấu hình icon/splash riêng. |
+| `android/`, `ios/` | Dự án native, **không nằm trong git**: được tạo bằng `npx expo prebuild` từ `app.json` + các config plugin (xem "Tạo dự án native"). |
+| `plugins/withNativeTweaks.js` | Config plugin chứa các chỉnh sửa native trước đây sửa tay (deployment target của Pods, `resizeableActivity`, keystore ký APK). |
+| `keystores/debug.keystore` | Keystore dùng để ký APK ở CI, được plugin chép vào `android/app` sau mỗi lần prebuild để chữ ký không đổi. |
 | `patches/` | File patch cho `patch-package` nhằm vá thư viện (stories, markdown, snap carousel, html-entities, react-native-screens, gradle plugin); file `*.patch.old` không còn dùng. |
 
 ## Luồng chức năng trọng tâm
@@ -97,11 +99,11 @@ npm install
    - Cập nhật `projectId` cho dự án của bạn (`app.json -> expo.projectId` và `extra.eas.projectId`).
    - Thiết lập credential (Android FCM server key, Apple Push Key) trong Expo/EAS Dashboard.
 4. **Biểu tượng & Splash**:
-   - Tài nguyên trong `app/assets/` + `android/`, `ios/Images.xcassets`.
-   - Nếu đổi logo, cập nhật cả `app.json`, `android/app/src/main/res`, `ios` asset catalog.
+   - Tài nguyên trong `app/assets/`; icon/splash native được prebuild tạo ra từ `app.json`.
+   - Nếu đổi logo, chỉ cần cập nhật `app.json` rồi prebuild lại.
 5. **Expo Updates & EAS**:
    - Kiểm tra `eas.json` để đồng bộ profile (`development`, `preview` → channel `preview`, `production` → channel `production`).
-   - `appVersionSource` là `local`: tự tăng version/buildNumber trong `app.json` trước khi build.
+   - `appVersionSource` là `local`: tự tăng `version` trong `app.json` trước khi build. Với CI trên GitHub (`build-android.yml`, `build-ios.yml`), build number (`ios.buildNumber`, `android.versionCode`) được đặt bằng **số lần chạy của workflow** (run #N → build N); workflow Android commit lại số đó vào `app.json` trên nhánh (`chore: build number N [skip ci]`), nên khi merge vào `main` thì `main` mang đúng build number của lần CI cuối.
    - Đăng nhập `eas login` trước khi chạy build.
 6. **Phiên bản thư viện cố định**: `package.json -> expo.install.exclude` giữ nguyên `react-native-screens`, `react-native-gesture-handler`, `react-native-keyboard-controller`; không để `expo install --fix` nâng các gói này.
 
@@ -115,7 +117,23 @@ npm install
 | `npx expo start --clear` | Làm sạch cache Metro khi gặp lỗi bundler. |
 | `eas build --profile production --platform android` | Tạo build production (APK/AAB) qua EAS. |
 
-> **Lưu ý**: Dev Client yêu cầu đã cài app build từ `expo run:*` hoặc `eas build --profile development --local`. Không chạy `expo prebuild --clean` trừ khi thật sự cần và đã sao lưu.
+> **Lưu ý**: Dev Client yêu cầu đã cài app build từ `expo run:*` hoặc `eas build --profile development --local`.
+
+### Tạo dự án native (prebuild)
+`android/` và `ios/` không được commit. Tạo lại khi cần build native trên máy:
+
+```bash
+npm install
+npx expo prebuild --platform android   # tạo android/
+npx expo prebuild --platform ios       # tạo ios/ và chạy pod install (chỉ trên macOS)
+npm run android                        # hoặc: npm run ios
+```
+
+- `expo run:android` / `expo run:ios` tự chạy prebuild nếu thư mục native chưa có.
+- Sau khi thêm/bỏ thư viện native hoặc sửa `app.json`/plugin: `npx expo prebuild --clean` (xoá và tạo lại hai thư mục).
+- **Không sửa tay** trong `android/` hay `ios/`: lần prebuild sau sẽ mất. Đưa thay đổi vào `app.json` hoặc `plugins/withNativeTweaks.js`.
+- CI (`.github/workflows/build-android.yml`, `build-ios.yml`, `simu.yml`) tự chạy `npx expo prebuild --no-install` sau `npm ci`.
+
 
 ## Quy ước mã nguồn & kiến trúc
 - **Styling**: ưu tiên `tailwindcss-react-native` (`className`) kết hợp StyleSheet khi cần hiệu năng cao hoặc animation; màu lấy từ `useTheme()` để hỗ trợ sáng/tối.
@@ -152,7 +170,7 @@ Luôn đồng bộ response shape với backend (`response.data` hoặc `respons
 - **OAuth**:
   - Dùng Authorization Code + PKCE, deep link dạng `com.fatties.youth://oauth`.
   - `exchangeOAuthCode` gọi backend để đổi code -> token; backend phải lưu `code_verifier`.
-  - Nếu thay đổi scheme/bundleId, cập nhật cả cấu hình deep link phía backend và file native (`android/app/src/main/AndroidManifest.xml`, `ios/*/Info.plist`).
+  - Nếu thay đổi scheme/bundleId, cập nhật cả cấu hình deep link phía backend rồi prebuild lại (file native được tạo từ `app.json`).
 
 ## Kiểm thử & đảm bảo chất lượng
 Hiện dự án chưa có test tự động; khuyến nghị thực hiện thủ công các kịch bản sau trước khi phát hành:

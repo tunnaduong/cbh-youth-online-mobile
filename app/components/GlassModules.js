@@ -121,7 +121,7 @@ const glassTint = (isDarkMode) =>
 // off. There is no blur in that mode, so it has to be nearly opaque to read
 // as a panel - close to One UI's frosted bars/drawers.
 const flatSurface = (isDarkMode) =>
-  isDarkMode ? "rgba(24, 24, 26, 0.94)" : "rgba(250, 250, 252, 0.94)";
+  isDarkMode ? "rgba(24, 24, 26, 0.9)" : "rgba(250, 250, 252, 0.9)";
 
 // On Android 13+ the library renders its full AGSL refraction shader every
 // single frame for every mounted <LiquidGlassView> - capture backdrop -> GPU
