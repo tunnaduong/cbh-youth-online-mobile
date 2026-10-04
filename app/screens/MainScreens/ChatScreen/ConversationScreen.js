@@ -89,6 +89,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
+import { useResponsiveLayout } from "../../../utils/responsive";
 import {
   KeyboardChatScrollView,
   KeyboardStickyView,
@@ -721,6 +722,12 @@ const MessageRow = React.memo(({
   autoplayVideos,
   seenAvatars,
 }) => {
+  // A flat "75%" bubble width reads fine on a phone, but on a tablet 75% of
+  // the screen is still a very wide line of text - cap it in absolute
+  // pixels too so bubbles stay a comfortable reading width there.
+  const { width: screenWidth } = useResponsiveLayout();
+  const bubbleMaxWidth = Math.min(screenWidth * 0.75, 420);
+
   // For group chats, check if sender changed from previous message. Also
   // true for the AI in a private chat (isGroupChat is false there, but its
   // name should still show above its bubble like it does everywhere else -
@@ -946,7 +953,7 @@ const MessageRow = React.memo(({
         <View
           style={{
             position: "relative",
-            maxWidth: "75%",
+            maxWidth: bubbleMaxWidth,
             flexShrink: 1,
             alignSelf: item.is_myself ? "flex-end" : "flex-start",
             // The reaction badge hangs off the bottom corner of the bubble

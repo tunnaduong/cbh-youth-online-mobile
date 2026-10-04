@@ -136,7 +136,15 @@ export const CustomAlertProvider = () => {
                 </Text>
               ) : null}
 
-              <View style={styles.buttonContainer}>
+              <View
+                style={[
+                  styles.buttonContainer,
+                  // `stacked` puts each button on its own full-width row -
+                  // for 3+ actions or long labels that would otherwise wrap
+                  // awkwardly in the default single row.
+                  options.stacked && styles.buttonContainerStacked,
+                ]}
+              >
                 {buttons.map((btn, index) => {
                   const isCancel = btn.style === "cancel";
                   const isDestructive = btn.style === "destructive";
@@ -148,10 +156,22 @@ export const CustomAlertProvider = () => {
                     buttonTextColor = "#FF3B30";
                   }
 
+                  const stacked = !!options.stacked;
                   return (
                     <TouchableOpacity
                       key={index}
-                      style={styles.button}
+                      style={[
+                        styles.button,
+                        // Stacked: full-width rows with centred text and a
+                        // hairline between them, so labels of different
+                        // lengths line up instead of ragged right-aligned
+                        // pills.
+                        stacked && styles.buttonStacked,
+                        stacked && index > 0 && {
+                          borderTopWidth: StyleSheet.hairlineWidth,
+                          borderTopColor: theme.border,
+                        },
+                      ]}
                       onPress={() => {
                         hideDialog(() => {
                           if (btn.onPress) btn.onPress();
@@ -211,6 +231,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "flex-end",
     flexWrap: "wrap",
+  },
+  buttonContainerStacked: {
+    flexDirection: "column",
+    alignItems: "stretch",
+    // The base style wraps; in a column that shrinks the whole block to its
+    // widest label instead of letting the rows span the dialog.
+    flexWrap: "nowrap",
+  },
+  buttonStacked: {
+    marginLeft: 0,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    borderRadius: 0,
   },
   button: {
     paddingVertical: 10,

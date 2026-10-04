@@ -241,6 +241,57 @@ export const uploadStudentVerificationPhoto = async (imageUri, userId) => {
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 };
 
+export const MAX_INLINE_IMAGE_MB = 10;
+
+/**
+ * Uploads are served from the API host, but the backend builds the URL from
+ * APP_URL (the main site), so keep only the "/storage/..." part and re-host
+ * it - same normalisation the web client applies (src/utils/imageUpload.js).
+ */
+const toApiStorageUrl = (path) => {
+  const storagePath = String(path).replace(/^https?:\/\/[^/]+/, "");
+  const base = (axiosInstance.defaults.baseURL || "").replace(/\/$/, "");
+  return `${base}${storagePath.startsWith("/") ? "" : "/"}${storagePath}`;
+};
+
+/**
+ * Uploads one image for embedding in a post body (`![image](url)`) and
+ * resolves to its public URL. Unlike attachments (cdn_image_id), the image
+ * lives wherever the author put it in the text.
+ *
+ * @param {object} asset   expo-image-picker asset ({ uri, mimeType?, fileName? })
+ * @param {number} userId  Owner of the upload (the endpoint requires `uid`)
+ */
+export const uploadInlineImage = async (asset, userId, config = {}) => {
+  const mime = (asset.mimeType || "").toLowerCase();
+  const fromUri = (asset.uri.split("?")[0].split(".").pop() || "").toLowerCase();
+  // The backend files uploads by file extension, so the name has to carry a
+  // real image one (picker assets can come back as "IMG_1234.HEIC" or with a
+  // bare content:// uri) - otherwise it lands outside /storage/images and
+  // skips the compression job.
+  let ext = "jpg";
+  if (mime === "image/png" || fromUri === "png") ext = "png";
+  else if (mime === "image/gif" || fromUri === "gif") ext = "gif";
+  const type = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
+
+  const formData = new FormData();
+  formData.append("file", { uri: asset.uri, type, name: `image-${Date.now()}.${ext}` });
+  formData.append("uid", String(userId));
+
+  const response = await uploadFile(formData, config);
+  const path = response?.data?.path;
+  if (!path) throw new Error("Upload returned no path");
+  return toApiStorageUrl(path);
+};
+
+/**
+ * Server-rendered HTML + resolved @mentions for a post body, exactly as it
+ * would display once published - the editor's Preview tab.
+ */
+export const previewPostMarkdown = (markdown, config = {}) => {
+  return Api.postRequest("/v1.0/topics/preview", { markdown }, config);
+};
+
 // Study materials / marketplace
 export const getStudyMaterials = (params = {}) => {
   const query = new URLSearchParams(params).toString();

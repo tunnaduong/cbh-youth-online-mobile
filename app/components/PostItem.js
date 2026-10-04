@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   Alert,
-  Dimensions,
   ScrollView,
   Platform,
 } from "react-native";
@@ -38,6 +37,7 @@ import SharePostModal from "./SharePostModal";
 import GiftPointsModal from "./GiftPointsModal";
 import ImageView from "react-native-image-viewing";
 import { useBottomSheet } from "../contexts/BottomSheetContext";
+import { useResponsiveLayout } from "../utils/responsive";
 import { FeedContext } from "../contexts/FeedContext";
 import FBCollage from "react-native-fb-collage";
 import Toast from "react-native-toast-message";
@@ -108,7 +108,8 @@ export const YouTubeIframeRenderer = ({ tnode }) => {
   const isSoundCloud = !!src && src.includes("w.soundcloud.com");
 
   const videoId = src && !isSoundCloud ? extractYouTubeId(src) : null;
-  const width = Dimensions.get("window").width - 30;
+  const { contentWidth } = useResponsiveLayout();
+  const width = contentWidth - 30;
   const height = isSoundCloud ? 166 : (width * 9) / 16;
 
   // Declared before the early return below so hook order stays stable
@@ -298,6 +299,7 @@ const PostItem = ({
     : item.image_urls;
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
   const insets = useSafeAreaInsets();
+  const { contentWidth } = useResponsiveLayout();
   const { username, userInfo } = useContext(AuthContext);
   const { feed, setFeed, setRecentPostsProfile } = useContext(FeedContext);
   const [isArchived, setIsArchived] = useState(!!item.archived);
@@ -908,7 +910,7 @@ const PostItem = ({
       <Pressable onPress={handleExpandPost}>
         <View style={{ paddingHorizontal: 15 }}>
           <RenderHTML
-            contentWidth={Dimensions.get("window").width - 30}
+            contentWidth={contentWidth - 30}
             customHTMLElementModels={customHTMLElementModels}
             renderers={{ iframe: YouTubeIframeRenderer, a: AnchorRenderer }}
             renderersProps={{
@@ -1033,7 +1035,7 @@ const PostItem = ({
                   setIsVisible(index);
                 }}
                 height={350}
-                width={Dimensions.get("window").width}
+                width={contentWidth}
               />
               <ImageView
                 images={item.image_urls.map((url) => ({
@@ -1065,7 +1067,7 @@ const PostItem = ({
           )}
           {videoUrls && videoUrls.length > 0 && (() => {
             const hasImages = item.image_urls && item.image_urls.length > 0;
-            const screenWidth = Dimensions.get("window").width;
+            const screenWidth = contentWidth;
             if (!hasImages) {
               // Video only — full width edge to edge
               const videoW = screenWidth;
