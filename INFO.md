@@ -2,7 +2,8 @@
 
 > **For AI agents.** Project map for agents working in this repo: how it connects to the sibling repos, features, structure, setup, conventions and recent work. Humans: see `README.md`. Keep this file current - add to **Recent work** and update other sections whenever you change the repo.
 
-- **Default branch: `dhphuc`** - work, commit and push there unless the user names another branch; it reaches `main` through a PR.
+- **Development happens on `dhphuc`.** Always `git checkout dhphuc && git pull` before starting work (the repo may have been left on `main`), then commit and push there; `dhphuc` reaches `main` through a PR. Exception: an important/urgent patch the user wants shipped from `main` directly - afterwards merge `main` back into `dhphuc`.
+- **Find code via this file first**: check **Project structure** / **Features** below before grepping the repo by hand.
 
 Expo / React Native app for **CBH Youth Online (CYO)**, the student forum and social network of THPT Chuyên Biên Hòa (Hà Nam). Store name "CBH Online", bundle/package `com.fatties.youth`.
 
