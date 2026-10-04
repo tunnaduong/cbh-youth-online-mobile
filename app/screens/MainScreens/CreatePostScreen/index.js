@@ -419,7 +419,7 @@ const CreatePostScreen = ({ navigation, route }) => {
             timeout: HEAVY_UPLOAD_TIMEOUT,
             onUploadProgress: (progressEvent) => {
               if (!progressEvent.total) return;
-              report("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
+              report.progress("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
             },
           });
           cdnIds.push(uploadResponse.data.id);
@@ -442,7 +442,7 @@ const CreatePostScreen = ({ navigation, route }) => {
             timeout: HEAVY_UPLOAD_TIMEOUT,
             onUploadProgress: (progressEvent) => {
               if (!progressEvent.total) return;
-              report("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
+              report.progress("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
             },
           });
           docIds.push(uploadResponse.data.id);
@@ -463,7 +463,7 @@ const CreatePostScreen = ({ navigation, route }) => {
           // is the second half.
           report("compressingVideo", { ...count, progress: overall(0) });
           const compressed = await compressVideoForUpload(video.uri, (ratio) =>
-            report("compressingVideo", { ...count, progress: overall(ratio * 0.5) }),
+            report.progress("compressingVideo", { ...count, progress: overall(ratio * 0.5) }),
           );
 
           formData.append("uid", author.id);
@@ -482,7 +482,7 @@ const CreatePostScreen = ({ navigation, route }) => {
             onUploadProgress: (progressEvent) => {
               if (!progressEvent.total) return;
               const fileProgress = progressEvent.loaded / progressEvent.total;
-              report("uploadingVideo", { ...count, progress: overall(0.5 + fileProgress * 0.5) });
+              report.progress("uploadingVideo", { ...count, progress: overall(0.5 + fileProgress * 0.5) });
             },
           });
           videoIds.push(uploadResponse.data.id);

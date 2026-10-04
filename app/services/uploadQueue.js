@@ -168,8 +168,25 @@ const showProgressNotification = (job) => {
 
 const clearProgressNotification = (id) => {
   if (Platform.OS !== "android") return;
-  queueNotification(() => Notifications.dismissNotificationAsync(notificationId(id)));
+  const dismiss = () => queueNotification(() => Notifications.dismissNotificationAsync(notificationId(id)));
+  dismiss();
+  // Scheduling resolves before Android has shown the notification: an update
+  // sent just before the job ended can appear after the dismiss above.
+  setTimeout(dismiss, 1500);
 };
+
+// A progress notification outlives the app when the process is killed in the
+// middle of an upload (the job dies with it). Clear what a previous run left.
+if (Platform.OS === "android") {
+  queueNotification(async () => {
+    const presented = await Notifications.getPresentedNotificationsAsync();
+    await Promise.all(
+      presented
+        .filter((item) => item.request?.content?.data?.type === UPLOAD_PROGRESS_NOTIFICATION)
+        .map((item) => Notifications.dismissNotificationAsync(item.request.identifier))
+    );
+  });
+}
 
 // The bar already says it while the app is on screen.
 const showResultNotification = (job) => {
@@ -195,18 +212,7 @@ const showResultNotification = (job) => {
 
 class UploadCancelled extends Error {}
 
-const report = (id) => (stage, extra = {}) => {
-  const job = find(id);
-  // Thrown inside the task, so it stops before its next request - used when
-  // the account changes mid-upload (see cancelAllUploads). Only on a change
-  // of stage, which happens in the task's own flow: the same stage again is
-  // a progress callback, where a throw would go nowhere useful.
-  if (!job || job.cancelled) {
-    if (!job || job.stage !== stage) throw new UploadCancelled();
-    return;
-  }
-  if (job.status !== "running") return;
-
+const applyProgress = (id, stage, extra) => {
   const next = patch(id, {
     stage,
     progress: typeof extra.progress === "number" ? Math.min(1, Math.max(0, extra.progress)) : null,
@@ -216,13 +222,45 @@ const report = (id) => (stage, extra = {}) => {
   showProgressNotification(next);
 };
 
+/**
+ * What a task reports with.
+ *
+ *   report(stage, extra)           in the task's own flow, before each step.
+ *                                  Throws once the job is cancelled (account
+ *                                  changed, see cancelAllUploads), which
+ *                                  stops the task before its next request.
+ *   report.progress(stage, extra)  from progress callbacks (axios upload
+ *                                  progress, the video compressor). Never
+ *                                  throws - an exception there would be
+ *                                  uncaught - and ignores an event from a
+ *                                  stage the task has already left.
+ */
+const reporter = (id) => {
+  const report = (stage, extra = {}) => {
+    const job = find(id);
+    if (!job || job.cancelled) throw new UploadCancelled();
+    if (job.status !== "running") return;
+    applyProgress(id, stage, extra);
+  };
+
+  report.progress = (stage, extra = {}) => {
+    const job = find(id);
+    if (!job || job.cancelled || job.status !== "running" || job.stage !== stage) return;
+    applyProgress(id, stage, extra);
+  };
+
+  return report;
+};
+
+const pickMessage = (value) => (typeof value === "string" && value.trim() ? value : null);
+
 const succeed = (id) => {
   const job = find(id);
   if (!job || job.status !== "running") return;
   clearProgressNotification(id);
 
   // Chat attachments have their own bubble; no "sent" banner for each one.
-  if (job.quiet) {
+  if (job.quiet || job.cancelled) {
     remove(id);
     return;
   }
@@ -244,7 +282,9 @@ const fail = (id, error, { canRetry = false } = {}) => {
   const message =
     typeof error === "string"
       ? error
-      : error?.response?.data?.message || (error?.message === "Network Error" ? t("uploads.networkError") : null);
+      : pickMessage(error?.response?.data?.message) ||
+        pickMessage(error?.response?.data?.error) ||
+        (error?.message === "Network Error" ? t("uploads.networkError") : null);
   const failed = patch(id, { status: "failed", progress: null, error: message, canRetry });
   showResultNotification(failed);
   // A job that can be retried waits for the user; the others clear themselves.
@@ -257,7 +297,7 @@ const run = async (id) => {
   const started = patch(id, { status: "running", stage: "preparing", progress: null, error: null });
   showProgressNotification(started);
   try {
-    await task(report(id));
+    await task(reporter(id));
     succeed(id);
   } catch (error) {
     if (!(error instanceof UploadCancelled)) console.log("[Upload] failed:", error?.message || error);
@@ -297,12 +337,11 @@ export const beginUpload = ({ kind, quiet = true }) => {
   const id = create({ kind, quiet });
   showProgressNotification(find(id));
   return {
-    report: (stage, extra) => {
-      try {
-        report(id)(stage, extra);
-      } catch {
-        // Cancelled: a handle has no task to stop, the caller carries on.
-      }
+    // A handle has no task to stop, so reporting never throws here.
+    report: (stage, extra = {}) => {
+      const job = find(id);
+      if (!job || job.cancelled || job.status !== "running") return;
+      applyProgress(id, stage, extra);
     },
     succeed: () => succeed(id),
     fail: (error) => fail(id, error),
@@ -335,6 +374,6 @@ export const cancelAllUploads = () => {
       clearProgressNotification(job.id);
     }
   });
-  jobs = jobs.filter((job) => job.status === "running");
+  jobs.filter((job) => job.status !== "running").forEach((job) => remove(job.id));
   emit();
 };

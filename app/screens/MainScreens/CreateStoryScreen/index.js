@@ -913,7 +913,7 @@ const CreateStoryScreen = ({ navigation }) => {
           // it): first half of the bar, the upload is the second half.
           report("compressingVideo", { progress: 0 });
           const compressed = await compressVideoForUpload(story.mediaUri, (ratio) =>
-            report("compressingVideo", { progress: ratio * 0.5 }),
+            report.progress("compressingVideo", { progress: ratio * 0.5 }),
           );
           const storyFile = {
             uri: compressed.uri,
@@ -965,7 +965,7 @@ const CreateStoryScreen = ({ navigation }) => {
           await createStory(formData, {
             onUploadProgress: (progressEvent) => {
               if (!progressEvent.total) return;
-              report(stage, {
+              report.progress(stage, {
                 progress: base + (progressEvent.loaded / progressEvent.total) * (1 - base),
               });
             },

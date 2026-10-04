@@ -65,7 +65,12 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
     const subscription = player.addListener("statusChange", ({ status }) =>
       setLoadingVideo(status === "loading")
     );
-    return () => subscription?.remove?.();
+    return () => {
+      // The player may already be released by the cleanup above.
+      try {
+        subscription?.remove?.();
+      } catch {}
+    };
   }, [player]);
 
   // ensure the VideoView remounts if the underlying player reference changes
