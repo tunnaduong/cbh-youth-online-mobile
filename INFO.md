@@ -154,6 +154,7 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Merged `main` into `dhphuc` (PR #32)**: brings the GitHub-style post editor (PR #31: markdown toolbar, preview, drafts in `utils/postDraft.js`, pasted/inline images), `EXPO_PUBLIC_API_URL` for pointing a dev build at a local API, and the bottom-sheet backdrop fix. In `CreatePostScreen`, `handlePost` keeps `dhphuc`'s background upload queue (`startUpload`) and adds the editor's checks: no posting while an inline upload placeholder is pending, the saved draft is cleared once the post is created (inside the task), and the unsaved-changes guard is switched off before the composer closes. New native dep `expo-clipboard` → `npm install` + dev-client rebuild.
 - **Sidebar shows the user's own profile appearance** (bundled by CI, not run on a device): the header in `Sidebar.js` wraps the avatar in `AvatarFrameWrap` and renders the name with `StyledName` (`variant="full"`). The theme comes from `app/utils/ownProfileTheme.js` (`useOwnProfileTheme(username, isOpen)`): cached per username in MMKV, refreshed from `GET /users/{username}/profile` when the sidebar opens (at most once a minute), and written by `ProfileCustomizerScreen` on save (`setOwnProfileTheme`).
 
 - **Toasts in the app's language; smaller uploads** (bundled by CI, not run on a device):

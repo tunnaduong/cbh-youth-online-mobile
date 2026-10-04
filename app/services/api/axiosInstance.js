@@ -10,7 +10,8 @@ const ONLINE_STATUS_INTERVAL = 60_000;
 
 // You can define the base URL here or make it dynamic
 const axiosInstance = axios.create({
-  baseURL: "https://api.chuyenbienhoa.com/", // Replace with your API's base URL
+  // EXPO_PUBLIC_API_URL (set in the git-ignored .env.local) points a dev build at a local backend; unset = production.
+  baseURL: process.env.EXPO_PUBLIC_API_URL || "https://api.chuyenbienhoa.com/",
   timeout: 30000, // 30s — enough headroom for weak mobile networks
   headers: {
     "Content-Type": "application/json",
