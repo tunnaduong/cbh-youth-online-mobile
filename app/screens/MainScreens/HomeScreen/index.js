@@ -51,6 +51,7 @@ import {
   markStoryAsViewed,
   unfollowUser,
 } from "../../../services/api/Api";
+import { STORY_POSTED_EVENT } from "../../../services/uploadQueue";
 import ReportModal from "../../../components/ReportModal";
 import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
@@ -1098,6 +1099,21 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       fetchStories();
     }
   }, [route.params?.refresh]);
+
+  // Stories are posted in the background (services/uploadQueue), after the
+  // editor has closed: reload the row when one has gone up.
+  const [storyPostedAt, setStoryPostedAt] = useState(0);
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(STORY_POSTED_EVENT, () =>
+      setStoryPostedAt(Date.now())
+    );
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
+    if (storyPostedAt) {
+      fetchStories();
+    }
+  }, [storyPostedAt]);
 
   // Handle story highlighting from notifications
   useEffect(() => {

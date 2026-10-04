@@ -28,6 +28,7 @@ import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import { compressImageForUpload, compressVideoForUpload } from "../../../utils/mediaCompression";
+import { startUpload } from "../../../services/uploadQueue";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
@@ -425,7 +426,7 @@ const PostEditScreen = ({ navigation, route }) => {
     );
   };
 
-  const handleUpdate = async () => {
+  const handleUpdate = () => {
     if (title.trim() === "" || postContent.trim() === "") {
       Toast.show({
         type: "error",
@@ -438,175 +439,182 @@ const PostEditScreen = ({ navigation, route }) => {
       return;
     }
 
-    try {
-      setLoading(true);
-      let newCdnIds = [];
-      let newDocIds = [];
+    // Saving runs in the background (services/uploadQueue), like posting:
+    // the editor closes right away and the upload bar / notification report
+    // compressing and uploading. Everything the task needs is read here.
+    const postId = route.params.postId;
+    const images = [...selectedImages];
+    const documents = [...selectedDocuments];
+    const videos = [...selectedVideos];
+    const author = userInfo;
+    const draft = {
+      title,
+      // Auto-wraps a bare youtube.com/youtu.be link typed into the post
+      // in the same <iframe> PostItem already knows how to render.
+      description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
+      subforum_id: selected?.value ?? null,
+      visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
+      privacy: viewSelected?.value,
+      anonymous: isAnonymous,
+    };
 
-      // Kept IDs
-      const keptImageIds = selectedImages.filter(img => img.id).map(img => img.id);
-      const keptDocumentIds = selectedDocuments.filter(doc => doc.id).map(doc => doc.id);
+    startUpload({
+      kind: "postEdit",
+      task: async (report) => {
+        // Kept IDs
+        const keptImageIds = images.filter((img) => img.id).map((img) => img.id);
+        const keptDocumentIds = documents.filter((doc) => doc.id).map((doc) => doc.id);
+        const keptVideoIds = videos.filter((video) => video.id).map((video) => video.id);
 
-      // Handle new images that need to be uploaded
-      const newImages = selectedImages.filter((img) => !img.id && img.uri);
-      for (const img of newImages) {
-        // Compressed on the device (the API no longer does it).
-        setUploadProgressText(t("createPost.compressingImage"));
-        const imageUri = await compressImageForUpload(img.uri);
-        setUploadProgressText("");
-        const formData = new FormData();
-        const fileExtension = imageUri?.split(".").pop() || "jpg";
-        let mimeType = "image/jpeg";
-        if (fileExtension === "png") {
-          mimeType = "image/png";
-        } else if (fileExtension === "gif") {
-          mimeType = "image/gif";
+        const newImages = images.filter((img) => !img.id && img.uri);
+        const newDocs = documents.filter((doc) => !doc.id && doc.uri);
+        const newVideos = videos.filter((video) => !video.id && video.uri);
+
+        // One bar for the whole save: each new file is an equal share of it.
+        const totalFiles = newImages.length + newDocs.length + newVideos.length;
+        let filesDone = 0;
+        const overall = (ratio) => (filesDone + ratio) / totalFiles;
+
+        const newCdnIds = [];
+        for (const img of newImages) {
+          // Compressed on the device (the API no longer does it).
+          report("compressingImage", { progress: overall(0) });
+          const imageUri = await compressImageForUpload(img.uri);
+          const formData = new FormData();
+          const fileExtension = imageUri?.split(".").pop() || "jpg";
+          let mimeType = "image/jpeg";
+          if (fileExtension === "png") {
+            mimeType = "image/png";
+          } else if (fileExtension === "gif") {
+            mimeType = "image/gif";
+          }
+
+          formData.append("uid", author.id);
+          formData.append("file", {
+            uri: imageUri,
+            name: `image.${fileExtension}`,
+            type: mimeType,
+          });
+
+          report("uploading", { progress: overall(0) });
+          const uploadResponse = await uploadFile(formData, {
+            timeout: HEAVY_UPLOAD_TIMEOUT,
+            onUploadProgress: (progressEvent) => {
+              if (!progressEvent.total) return;
+              report("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
+            },
+          });
+          newCdnIds.push(uploadResponse.data.id);
+          filesDone += 1;
         }
 
-        formData.append("uid", userInfo.id);
-        formData.append("file", {
-          uri: imageUri,
-          name: `image.${fileExtension}`,
-          type: mimeType,
+        const newDocIds = [];
+        for (const dock of newDocs) {
+          const formData = new FormData();
+
+          formData.append("uid", author.id);
+          formData.append("file", {
+            uri: dock.uri,
+            name: dock.name || `document.${dock.uri?.split(".").pop() || "bin"}`,
+            type: dock.mimeType || "application/octet-stream",
+          });
+
+          report("uploading", { progress: overall(0) });
+          const uploadResponse = await uploadFile(formData, {
+            timeout: HEAVY_UPLOAD_TIMEOUT,
+            onUploadProgress: (progressEvent) => {
+              if (!progressEvent.total) return;
+              report("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
+            },
+          });
+          newDocIds.push(uploadResponse.data.id);
+          filesDone += 1;
+        }
+
+        // New videos - same upload/kept-id pattern as images/documents
+        // above, with a longer timeout since they can be up to 100MB.
+        const newVideoIds = [];
+        for (let i = 0; i < newVideos.length; i++) {
+          const video = newVideos[i];
+          const count = { current: i + 1, total: newVideos.length };
+          const formData = new FormData();
+          const extension = getVideoExtension(video.fileName || video.uri) || "mp4";
+
+          // Compressed on the device to 720p H.264 (the API no longer does
+          // it): first half of this file's share of the bar, upload second.
+          report("compressingVideo", { ...count, progress: overall(0) });
+          const compressed = await compressVideoForUpload(video.uri, (ratio) =>
+            report("compressingVideo", { ...count, progress: overall(ratio * 0.5) }),
+          );
+
+          formData.append("uid", author.id);
+          formData.append("file", {
+            uri: compressed.uri,
+            // The compressor always writes an MP4.
+            name: compressed.compressed
+              ? `${(video.fileName || "video").replace(/\.[^.]*$/, "")}.mp4`
+              : video.fileName || `video.${extension}`,
+            type: compressed.compressed ? "video/mp4" : video.mimeType || getVideoMimeType(extension),
+          });
+
+          report("uploadingVideo", { ...count, progress: overall(0.5) });
+          const uploadResponse = await uploadFile(formData, {
+            timeout: VIDEO_UPLOAD_TIMEOUT,
+            onUploadProgress: (progressEvent) => {
+              if (!progressEvent.total) return;
+              const fileProgress = progressEvent.loaded / progressEvent.total;
+              report("uploadingVideo", { ...count, progress: overall(0.5 + fileProgress * 0.5) });
+            },
+          });
+          newVideoIds.push(uploadResponse.data.id);
+          filesDone += 1;
+        }
+
+        // Get existing CDN IDs from kept IDs or fallback to parsing from URLs
+        const urlImageIds = images
+          .filter((img) => !img.id && img.uri && img.uri.includes("api.chuyenbienhoa.com"))
+          .map((img) => img.uri.split("/").pop());
+        const allCdnIds = [...new Set([...keptImageIds, ...urlImageIds, ...newCdnIds])];
+
+        const urlDocIds = documents
+          .filter((doc) => !doc.id && doc.uri && doc.uri.includes("api.chuyenbienhoa.com"))
+          .map((doc) => doc.uri.split("/").pop());
+        const allDocIds = [...new Set([...keptDocumentIds, ...urlDocIds, ...newDocIds])];
+
+        const urlVideoIds = videos
+          .filter((video) => !video.id && video.uri && video.uri.includes("api.chuyenbienhoa.com"))
+          .map((video) => video.uri.split("/").pop());
+        const allVideoIds = [...new Set([...keptVideoIds, ...urlVideoIds, ...newVideoIds])];
+
+        report("finishing");
+        const response = await updatePost(postId, {
+          ...draft,
+          kept_image_ids: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
+          cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
+          kept_document_ids: allDocIds.length > 0 ? allDocIds.join(",") : null,
+          cdn_document_id: allDocIds.length > 0 ? allDocIds.join(",") : null,
+          kept_video_ids: allVideoIds.length > 0 ? allVideoIds.join(",") : null,
+          cdn_video_id: allVideoIds.length > 0 ? allVideoIds.join(",") : null,
         });
 
-        const uploadResponse = await uploadFile(formData, {
-          timeout: HEAVY_UPLOAD_TIMEOUT,
-        });
-        newCdnIds.push(uploadResponse.data.id);
-      }
-
-      // Handle new documents
-      const newDocs = selectedDocuments.filter((doc) => !doc.id && doc.uri);
-      for (const dock of newDocs) {
-        const formData = new FormData();
-
-        formData.append("uid", userInfo.id);
-        formData.append("file", {
-          uri: dock.uri,
-          name: dock.name || `document.${dock.uri?.split(".").pop() || "bin"}`,
-          type: dock.mimeType || "application/octet-stream",
-        });
-
-        const uploadResponse = await uploadFile(formData, {
-          timeout: HEAVY_UPLOAD_TIMEOUT,
-        });
-        newDocIds.push(uploadResponse.data.id);
-      }
-
-      // Handle new videos - same upload/kept-id pattern as images/documents
-      // above, just with a longer timeout and progress tracking given
-      // videos can be up to 100MB.
-      let newVideoIds = [];
-      const keptVideoIds = selectedVideos.filter((video) => video.id).map((video) => video.id);
-      const newVideos = selectedVideos.filter((video) => !video.id && video.uri);
-      for (let i = 0; i < newVideos.length; i++) {
-        const video = newVideos[i];
-        const formData = new FormData();
-        const extension = getVideoExtension(video.fileName || video.uri) || "mp4";
-
-        // Compressed on the device to 720p H.264 (the API no longer does it).
-        setUploadProgressText(
-          t("createPost.compressingVideo", { current: i + 1, total: newVideos.length }),
+        const updatedPostData = response.data?.post || response.data;
+        setFeed((prevPosts) =>
+          prevPosts?.map((post) =>
+            post.id === postId ? { ...post, ...updatedPostData, is_mine: true, is_author: true, author: { ...post.author, ...author, ...updatedPostData?.author }, anonymous: updatedPostData?.anonymous ?? draft.anonymous } : post
+          ) ?? prevPosts
         );
-        setUploadProgress(0);
-        const compressed = await compressVideoForUpload(video.uri, (ratio) =>
-          setUploadProgress(((i + ratio) / newVideos.length) * 100),
-        );
 
-        formData.append("uid", userInfo.id);
-        formData.append("file", {
-          uri: compressed.uri,
-          // The compressor always writes an MP4.
-          name: compressed.compressed
-            ? `${(video.fileName || "video").replace(/\.[^.]*$/, "")}.mp4`
-            : video.fileName || `video.${extension}`,
-          type: compressed.compressed ? "video/mp4" : video.mimeType || getVideoMimeType(extension),
-        });
+        return response;
+      },
+    });
 
-        setUploadProgressText(
-          t('editPost.uploadingVideo', { current: i + 1, total: newVideos.length }) ||
-            t('createPost.uploadingVideo', { current: i + 1, total: newVideos.length }),
-        );
-        setUploadProgress(0);
-
-        const uploadResponse = await uploadFile(formData, {
-          timeout: VIDEO_UPLOAD_TIMEOUT,
-          onUploadProgress: (progressEvent) => {
-            if (!progressEvent.total) return;
-            const fileProgress = progressEvent.loaded / progressEvent.total;
-            setUploadProgress(((i + fileProgress) / newVideos.length) * 100);
-          },
-        });
-        newVideoIds.push(uploadResponse.data.id);
-      }
-
-      setUploadProgress(null);
-      setUploadProgressText(null);
-
-      // Get existing CDN IDs from kept IDs or fallback to parsing from URLs
-      const urlImageIds = selectedImages
-        .filter((img) => !img.id && img.uri && img.uri.includes("api.chuyenbienhoa.com"))
-        .map((img) => img.uri.split("/").pop());
-      const allCdnIds = [...new Set([...keptImageIds, ...urlImageIds, ...newCdnIds])];
-
-      const urlDocIds = selectedDocuments
-        .filter((doc) => !doc.id && doc.uri && doc.uri.includes("api.chuyenbienhoa.com"))
-        .map((doc) => doc.uri.split("/").pop());
-      const allDocIds = [...new Set([...keptDocumentIds, ...urlDocIds, ...newDocIds])];
-
-      const urlVideoIds = selectedVideos
-        .filter((video) => !video.id && video.uri && video.uri.includes("api.chuyenbienhoa.com"))
-        .map((video) => video.uri.split("/").pop());
-      const allVideoIds = [...new Set([...keptVideoIds, ...urlVideoIds, ...newVideoIds])];
-
-      const response = await updatePost(route.params.postId, {
-        title,
-        // Auto-wraps a bare youtube.com/youtu.be link typed into the post
-        // in the same <iframe> PostItem already knows how to render.
-        description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
-        kept_image_ids: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
-        cdn_image_id: allCdnIds.length > 0 ? allCdnIds.join(",") : null,
-        kept_document_ids: allDocIds.length > 0 ? allDocIds.join(",") : null,
-        cdn_document_id: allDocIds.length > 0 ? allDocIds.join(",") : null,
-        kept_video_ids: allVideoIds.length > 0 ? allVideoIds.join(",") : null,
-        cdn_video_id: allVideoIds.length > 0 ? allVideoIds.join(",") : null,
-        subforum_id: selected?.value ?? null,
-        visibility: viewSelected?.value === "private" ? 1 : 0, // Fallback if needed
-        privacy: viewSelected?.value,
-        anonymous: isAnonymous,
-      });
-
-      const updatedPostData = response.data?.post || response.data;
-      setFeed((prevPosts) =>
-        prevPosts.map((post) =>
-          post.id === route.params.postId ? { ...post, ...updatedPostData, is_mine: true, is_author: true, author: { ...post.author, ...userInfo, ...updatedPostData?.author }, anonymous: updatedPostData?.anonymous ?? isAnonymous } : post
-        )
-      );
-
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [{ name: "MainScreens" }],
-        })
-      );
-
-      return response;
-    } catch (error) {
-      console.log("Error updating post:", error);
-      Toast.show({
-        type: "error",
-        text1: t('editPost.errorUpdateTitle'),
-        text2: error?.response?.data?.message || t('editPost.errorLoadDesc'),
-        autoHide: true,
-        visibilityTime: 5000,
-        topOffset: 60,
-      });
-    } finally {
-      setLoading(false);
-      setUploadProgress(null);
-      setUploadProgressText(null);
-    }
+    // Back to the feed while the changes are saved.
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: "MainScreens" }],
+      })
+    );
   };
 
   const navigateToHelp = (postId) => {

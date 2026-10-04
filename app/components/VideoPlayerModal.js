@@ -1,5 +1,5 @@
 import React from "react";
-import { Modal, View, TouchableOpacity, StyleSheet } from "react-native";
+import { ActivityIndicator, Modal, View, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -56,6 +56,18 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
     };
   }, [player, uri]);
 
+  // A spinner over the black screen until the first frame can play (and
+  // again whenever the player goes back to loading).
+  const [loadingVideo, setLoadingVideo] = React.useState(true);
+  React.useEffect(() => {
+    if (!player || typeof player.addListener !== "function") return;
+    setLoadingVideo(player.status === "loading" || player.status === "idle");
+    const subscription = player.addListener("statusChange", ({ status }) =>
+      setLoadingVideo(status === "loading")
+    );
+    return () => subscription?.remove?.();
+  }, [player]);
+
   // ensure the VideoView remounts if the underlying player reference changes
   const [playerKey, setPlayerKey] = React.useState(0);
   React.useEffect(() => {
@@ -82,6 +94,11 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
             nativeControls
           />
         ) : null}
+        {loadingVideo && !!uri && (
+          <View style={styles.loading} pointerEvents="none">
+            <ActivityIndicator size="large" color="#fff" />
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -103,6 +120,11 @@ const styles = StyleSheet.create({
   player: {
     width: "100%",
     height: "100%",
+  },
+  loading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

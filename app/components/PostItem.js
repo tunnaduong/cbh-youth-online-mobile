@@ -146,6 +146,8 @@ export const YouTubeIframeRenderer = ({ tnode }) => {
         <WebView
           source={source}
           style={{ width, height }}
+          startInLoadingState
+          renderLoading={() => <MediaShimmer dark />}
           javaScriptEnabled
           domStorageEnabled
           allowsInlineMediaPlayback
@@ -220,6 +222,8 @@ export const YouTubeIframeRenderer = ({ tnode }) => {
       <WebView
         source={source}
         style={{ width, height }}
+        startInLoadingState
+        renderLoading={() => <MediaShimmer dark />}
         javaScriptEnabled
         domStorageEnabled
         allowsFullscreenVideo

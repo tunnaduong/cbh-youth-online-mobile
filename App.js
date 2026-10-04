@@ -47,6 +47,8 @@ import {
 import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import PostEditScreen from "./app/screens/MainScreens/PostEditScreen";
 import Toast from "react-native-toast-message";
+import UploadStatusBar from "./app/components/UploadStatusBar";
+import { cancelAllUploads } from "./app/services/uploadQueue";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { joinGroupViaInvite } from "./app/services/api/Api";
 import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
@@ -1100,6 +1102,8 @@ const App = ({ skipSplash = false }) => {
       </NavigationContainer>
       {/* Shake the phone -> screenshot + feedback form (toggle in Settings) */}
       <ShakeToReport navigationRef={navigationRef} />
+      {/* Posts, stories and attachments going up in the background */}
+      <UploadStatusBar />
       <CustomAlertProvider />
     </>
   );
@@ -1111,7 +1115,11 @@ export default () => {
   // mounts them again from storage - a cold start without a native reload
   // (see SessionContext for why the native reload was dropped).
   const [sessionKey, setSessionKey] = useState(0);
-  const resetSession = useCallback(() => setSessionKey((k) => k + 1), []);
+  const resetSession = useCallback(() => {
+    // An upload still running would finish under the new account's token.
+    cancelAllUploads();
+    setSessionKey((k) => k + 1);
+  }, []);
 
   return (
     <TailwindProvider>

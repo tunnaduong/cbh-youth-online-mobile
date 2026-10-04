@@ -312,6 +312,41 @@
     "lastPost": "Последний пост",
     "noPostsInCategory": "В этой категории пока нет постов."
   },
+  "uploads": {
+    "channelName": "Загрузки",
+    "retry": "Повторить",
+    "dismiss": "Закрыть",
+    "failedDesc": "Что-то пошло не так. Попробуйте ещё раз.",
+    "networkError": "Нет подключения к сети. Попробуйте ещё раз.",
+    "title": {
+      "post": "Публикация записи",
+      "postEdit": "Сохранение записи",
+      "story": "Публикация истории",
+      "message": "Отправка сообщения"
+    },
+    "done": {
+      "post": "Запись опубликована",
+      "postEdit": "Запись сохранена",
+      "story": "История опубликована",
+      "message": "Сообщение отправлено"
+    },
+    "failed": {
+      "post": "Не удалось опубликовать запись",
+      "postEdit": "Не удалось сохранить запись",
+      "story": "Не удалось опубликовать историю",
+      "message": "Не удалось отправить сообщение"
+    },
+    "stage": {
+      "preparing": "Подготовка...",
+      "compressingImage": "Сжатие фото...",
+      "compressingVideo": "Сжатие видео...",
+      "compressingVideoCount": "Сжатие видео {{current}}/{{total}}...",
+      "uploading": "Загрузка...",
+      "uploadingVideo": "Загрузка видео...",
+      "uploadingVideoCount": "Загрузка видео {{current}}/{{total}}...",
+      "finishing": "Почти готово..."
+    }
+  },
   "createPost": {
     "compressingImage": "Сжатие фото...",
     "compressingVideo": "Сжатие видео {{current}}/{{total}}...",

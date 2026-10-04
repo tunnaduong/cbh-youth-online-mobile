@@ -84,7 +84,8 @@ import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
-import { canCompressVideo, compressVideoForUpload } from "../../../utils/mediaCompression";
+import { compressVideoForUpload } from "../../../utils/mediaCompression";
+import { beginUpload } from "../../../services/uploadQueue";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -1096,6 +1097,7 @@ const MessageRow = React.memo(({
                 ) : (
                   <FastImage
                     source={{ uri: displayImageUrl }}
+                    shimmer
                     style={
                       imageAspectRatio
                         ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
@@ -1148,6 +1150,7 @@ const MessageRow = React.memo(({
                   resolvedThumbnailUrl ? (
                     <FastImage
                       source={{ uri: resolvedThumbnailUrl }}
+                      shimmer
                       style={
                         imageAspectRatio
                           ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
@@ -2939,6 +2942,10 @@ const ConversationScreen = ({ navigation, route }) => {
   const sendImageMessage = async (imageUriOrUris) => {
     const uris = Array.isArray(imageUriOrUris) ? imageUriOrUris : [imageUriOrUris];
     const attachments = [];
+    // Shown in the upload bar / notification, so the user sees it even after
+    // leaving the conversation.
+    const upload = beginUpload({ kind: "message" });
+    upload.report("compressingImage");
     for (let i = 0; i < uris.length; i++) {
       // The picker can hand back non-JPEG originals (HEIC on iOS, PNG, etc.)
       // while we always declare image/jpeg - re-encode so the upload always
@@ -2960,15 +2967,21 @@ const ConversationScreen = ({ navigation, route }) => {
       });
     }
 
-    if (attachments.length > 1) {
-      await sendAttachmentMessage({ type: "image", attachments });
-    } else {
-      await sendAttachmentMessage({
-        uri: attachments[0].uri,
-        type: "image",
-        fileName: attachments[0].fileName,
-        fileType: attachments[0].fileType,
-      });
+    try {
+      if (attachments.length > 1) {
+        await sendAttachmentMessage({ type: "image", attachments, upload });
+      } else {
+        await sendAttachmentMessage({
+          uri: attachments[0].uri,
+          type: "image",
+          fileName: attachments[0].fileName,
+          fileType: attachments[0].fileType,
+          upload,
+        });
+      }
+    } finally {
+      // No-op when the send already closed it (sent or failed).
+      upload.end();
     }
   };
 
@@ -2978,17 +2991,19 @@ const ConversationScreen = ({ navigation, route }) => {
     const assets = Array.isArray(assetOrAssets) ? assetOrAssets : [assetOrAssets];
 
     // Compressed on the device to 720p H.264 before sending (the API no
-    // longer does it), with a notice while it runs.
-    const showNotice = canCompressVideo();
-    if (showNotice) {
-      Toast.show({ type: "info", text1: t("createPost.compressingVideoShort"), autoHide: false });
-    }
+    // longer does it). The upload bar / notification say so while it runs,
+    // also after the user has left the conversation.
+    const upload = beginUpload({ kind: "message" });
     const attachments = [];
     try {
       for (let i = 0; i < assets.length; i++) {
         const asset = assets[i];
         const originalName = asset.fileName || asset.uri.split("/").pop() || `video_${i}.mp4`;
-        const compressed = await compressVideoForUpload(asset.uri);
+        const count = { current: i + 1, total: assets.length };
+        upload.report("compressingVideo", { ...count, progress: i / assets.length });
+        const compressed = await compressVideoForUpload(asset.uri, (ratio) =>
+          upload.report("compressingVideo", { ...count, progress: (i + ratio) / assets.length }),
+        );
         attachments.push({
           uri: compressed.uri,
           // The compressor always writes an MP4.
@@ -2998,20 +3013,21 @@ const ConversationScreen = ({ navigation, route }) => {
           fileSize: compressed.compressed ? undefined : asset.fileSize,
         });
       }
+      if (attachments.length > 1) {
+        await sendAttachmentMessage({ type: "video", attachments, upload });
+      } else {
+        await sendAttachmentMessage({
+          uri: attachments[0].uri,
+          type: "video",
+          fileName: attachments[0].fileName,
+          fileType: attachments[0].fileType,
+          fileSize: attachments[0].fileSize,
+          upload,
+        });
+      }
     } finally {
-      if (showNotice) Toast.hide();
-    }
-
-    if (attachments.length > 1) {
-      await sendAttachmentMessage({ type: "video", attachments });
-    } else {
-      await sendAttachmentMessage({
-        uri: attachments[0].uri,
-        type: "video",
-        fileName: attachments[0].fileName,
-        fileType: attachments[0].fileType,
-        fileSize: attachments[0].fileSize,
-      });
+      // No-op when the send already closed it (sent or failed).
+      upload.end();
     }
   };
 
@@ -3026,6 +3042,9 @@ const ConversationScreen = ({ navigation, route }) => {
     // files[] instead of the singular file field; a single-entry array is
     // treated the same as the plain uri/fileName/fileType/fileSize params.
     attachments,
+    // Handle from beginUpload() when the caller already opened one (while
+    // compressing); otherwise one is opened here.
+    upload: givenUpload,
   }) => {
     const isMulti = Array.isArray(attachments) && attachments.length > 1;
     const primary = isMulti
@@ -3059,10 +3078,13 @@ const ConversationScreen = ({ navigation, route }) => {
     // Same reasoning as handleSendMessage: declared before try/catch so the
     // catch block can restore it on failure.
     const replySnapshot = replyingTo;
+    let upload = givenUpload || null;
     try {
       if (sending) return;
 
       setSending(true);
+      upload = upload || beginUpload({ kind: "message" });
+      upload.report(type === "video" ? "uploadingVideo" : "uploading", { progress: 0 });
 
       const now = new Date().toISOString();
 
@@ -3197,6 +3219,9 @@ const ConversationScreen = ({ navigation, route }) => {
           const total = progressEvent.total;
           if (!total) return;
           const percent = Math.round((progressEvent.loaded * 100) / total);
+          upload.report(type === "video" ? "uploadingVideo" : "uploading", {
+            progress: progressEvent.loaded / total,
+          });
           setMessages((prev) =>
             prev.map((m) =>
               typeof m.id === "string" && m.id.includes(tempId)
@@ -3259,6 +3284,8 @@ const ConversationScreen = ({ navigation, route }) => {
           uploadConfig,
         );
       }
+
+      upload.succeed();
 
       // Replace optimistic message with real one
       setMessages((prev) => {
@@ -3333,6 +3360,9 @@ const ConversationScreen = ({ navigation, route }) => {
       }
     } catch (error) {
       console.error(`Error sending ${type} attachment:`, error);
+      // The toast below tells the user; this only clears the bar and the
+      // notification.
+      upload?.end();
 
       // Remove optimistic message on error
       setMessages((prev) => {

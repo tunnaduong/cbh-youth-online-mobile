@@ -52,7 +52,7 @@ const GameCard = ({ game, width, t, onPress, theme, rank, badge }) => (
           <Text style={styles.newBadgeText}>{badge}</Text>
         </View>
       )}
-      <Image source={{ uri: game.image_url }} style={styles.cardImage} resizeMode="cover" />
+      <FastImage shimmer source={{ uri: game.image_url }} style={styles.cardImage} resizeMode="cover" />
     </View>
     <Text style={[styles.cardTitle, { color: theme.text }]} numberOfLines={1}>
       {game.name}

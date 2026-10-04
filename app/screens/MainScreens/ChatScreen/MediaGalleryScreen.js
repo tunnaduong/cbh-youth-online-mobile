@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import ImageView from "react-native-image-viewing";
+import FastImage from "../../../components/FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
@@ -398,7 +399,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         }}
         onLongPress={() => showMediaOptions(item)}
       >
-        <Image source={{ uri: thumbUri }} style={styles.gridImage} />
+        <FastImage shimmer source={{ uri: thumbUri }} style={styles.gridImage} />
         {isVideo && (
           <View style={styles.playIconOverlay}>
             <Ionicons name="play-circle" size={28} color="#fff" />

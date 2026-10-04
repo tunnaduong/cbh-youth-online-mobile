@@ -291,6 +291,41 @@
     "lastPost": "Bài viết cuối",
     "noPostsInCategory": "Chưa có bài viết nào trong chuyên mục này."
   },
+  "uploads": {
+    "channelName": "Đang tải lên",
+    "retry": "Thử lại",
+    "dismiss": "Đóng",
+    "failedDesc": "Đã xảy ra lỗi. Vui lòng thử lại.",
+    "networkError": "Mất kết nối mạng. Vui lòng thử lại.",
+    "title": {
+      "post": "Đang đăng bài viết",
+      "postEdit": "Đang lưu bài viết",
+      "story": "Đang đăng tin",
+      "message": "Đang gửi tin nhắn"
+    },
+    "done": {
+      "post": "Đã đăng bài viết",
+      "postEdit": "Đã lưu bài viết",
+      "story": "Đã đăng tin",
+      "message": "Đã gửi tin nhắn"
+    },
+    "failed": {
+      "post": "Không đăng được bài viết",
+      "postEdit": "Không lưu được bài viết",
+      "story": "Không đăng được tin",
+      "message": "Không gửi được tin nhắn"
+    },
+    "stage": {
+      "preparing": "Đang chuẩn bị...",
+      "compressingImage": "Đang nén ảnh...",
+      "compressingVideo": "Đang nén video...",
+      "compressingVideoCount": "Đang nén video {{current}}/{{total}}...",
+      "uploading": "Đang tải lên...",
+      "uploadingVideo": "Đang tải video lên...",
+      "uploadingVideoCount": "Đang tải video {{current}}/{{total}} lên...",
+      "finishing": "Sắp xong..."
+    }
+  },
   "createPost": {
     "compressingImage": "Đang nén ảnh...",
     "compressingVideo": "Đang nén video {{current}}/{{total}}...",

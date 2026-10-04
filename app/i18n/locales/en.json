@@ -302,6 +302,41 @@
     "lastPost": "Last post",
     "noPostsInCategory": "No posts in this category yet."
   },
+  "uploads": {
+    "channelName": "Uploads",
+    "retry": "Retry",
+    "dismiss": "Dismiss",
+    "failedDesc": "Something went wrong. Please try again.",
+    "networkError": "No network connection. Please try again.",
+    "title": {
+      "post": "Posting",
+      "postEdit": "Saving post",
+      "story": "Posting story",
+      "message": "Sending message"
+    },
+    "done": {
+      "post": "Post published",
+      "postEdit": "Post saved",
+      "story": "Story posted",
+      "message": "Message sent"
+    },
+    "failed": {
+      "post": "Couldn't publish the post",
+      "postEdit": "Couldn't save the post",
+      "story": "Couldn't post the story",
+      "message": "Couldn't send the message"
+    },
+    "stage": {
+      "preparing": "Preparing...",
+      "compressingImage": "Compressing photo...",
+      "compressingVideo": "Compressing video...",
+      "compressingVideoCount": "Compressing video {{current}}/{{total}}...",
+      "uploading": "Uploading...",
+      "uploadingVideo": "Uploading video...",
+      "uploadingVideoCount": "Uploading video {{current}}/{{total}}...",
+      "finishing": "Almost done..."
+    }
+  },
   "createPost": {
     "compressingImage": "Compressing photo...",
     "compressingVideo": "Compressing video {{current}}/{{total}}...",

@@ -21,7 +21,7 @@ const OWN_MEDIA_RE = /\/v1\.0\/users\/([^/?]+)\/(avatar|cover)(?:\?.*)?$/i;
 // are left as they were.
 const SHIMMER_MIN_SIZE = 100;
 
-const FastImage = React.forwardRef(({ source, resizeMode, style, onLoad, onError, ...props }, ref) => {
+const FastImage = React.forwardRef(({ source, resizeMode, style, onLoad, onError, shimmer = false, ...props }, ref) => {
   const [settled, setSettled] = useState(false);
   const { username, avatarVersion, coverVersion } = useAuthContext();
 
@@ -60,7 +60,10 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, onLoad, onError
   // wrapper and the image fills it. Only done for styles with a fixed size,
   // where that swap can't change the layout.
   const flat = StyleSheet.flatten(style) || {};
+  // `shimmer` forces it for a box the check below can't measure (aspect
+  // ratio, percentages, absolute fill) that the caller knows is a big one.
   const large =
+    shimmer ||
     typeof flat.width === "number" &&
     typeof flat.height === "number" &&
     flat.width >= SHIMMER_MIN_SIZE &&

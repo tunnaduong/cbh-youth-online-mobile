@@ -14,6 +14,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  DeviceEventEmitter,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -28,6 +29,7 @@ import { createStory } from "../../../services/api/Api";
 import { useTranslation } from "react-i18next";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { compressVideoForUpload } from "../../../utils/mediaCompression";
+import { startUpload, STORY_POSTED_EVENT } from "../../../services/uploadQueue";
 import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
 import DrawingCanvas from "./DrawingCanvas";
@@ -840,20 +842,13 @@ const CreateStoryScreen = ({ navigation }) => {
       return;
     }
 
+    // Only the snapshot of the canvas needs this screen. Compressing and
+    // uploading then run in the background (services/uploadQueue): the
+    // editor closes and the upload bar / notification report the progress.
+    let mediaUri = null;
+    let overlays = null;
     try {
       setIsUploading(true);
-
-      const formData = new FormData();
-      const contentText = textItems
-        .map((item) => item.text)
-        .join("\n")
-        .trim();
-
-      if (contentText) {
-        formData.append("content", contentText);
-      }
-
-      let mediaUri = null;
 
       if (isVideo) {
         mediaUri = originalImage;
@@ -871,94 +866,134 @@ const CreateStoryScreen = ({ navigation }) => {
         }
       }
 
-      if (isVideo) {
-        // Compressed on the device to 720p H.264 (the API no longer does it).
-        const compressed = await compressVideoForUpload(mediaUri);
-        const storyFile = {
-          uri: compressed.uri,
-          // The compressor always writes an MP4.
-          type: compressed.compressed ? "video/mp4" : selectedMediaAsset?.mimeType || "video/mp4",
-          name: compressed.compressed ? "story_video.mp4" : selectedMediaAsset?.fileName || "story_video.mp4",
-        };
-
-        formData.append("media_type", "video");
-        formData.append("media_file", storyFile);
-        formData.append("file", storyFile);
-        formData.append("is_muted", isMuted ? "true" : "false");
-      } else {
-        const storyFile = {
-          uri: mediaUri,
-          type: "image/jpeg",
-          name: isTextOnly ? "story_text.jpg" : "story_image.jpg",
-        };
-
-        formData.append("media_type", isTextOnly ? "text" : "image");
-        formData.append("media_file", storyFile);
-        formData.append("file", storyFile);
-
-        if (isTextOnly && textBackground?.length >= 2) {
-          formData.append("background_color", JSON.stringify(textBackground));
-        }
-
-        // Give a photo long enough on screen for its soundtrack to be worth
-        // playing, instead of the default 10 seconds.
-        if (music) {
-          formData.append("duration", String(Math.round(STORY_MUSIC_CLIP_MS / 1000)));
-        }
-      }
-
       // Overlays are always sent: for photos they only carry the tap targets
       // for mentions/links (the look is already flattened into the picture),
       // for videos they are what the viewer draws on top.
-      const overlays = buildOverlaysPayload(!isVideo);
-
-      if (overlays) {
-        formData.append("overlays", JSON.stringify(overlays));
-      }
-
-      if (music) {
-        formData.append("music", JSON.stringify(toStoryMusicPayload(music)));
-      }
-
-      formData.append("privacy", "public");
-
-      await createStory(formData);
-
-      Toast.show({
-        type: "success",
-        text1: t("story.postSuccess"),
-        text2: isTextOnly ? t("story.textStoryPosted") : t("story.storyPosted"),
-      });
-
-      navigation.reset({
-        index: 0,
-        routes: [
-          {
-            name: "MainScreens",
-            params: { screen: "Home", params: { refresh: Date.now() } },
-          },
-        ],
-      });
+      overlays = buildOverlaysPayload(!isVideo);
     } catch (error) {
-      const serverMessage =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.message;
-
-      console.error("[CreateStory] failed to post story", {
-        message: error?.message,
-        status: error?.response?.status,
-        data: error?.response?.data,
-      });
-
+      console.error("[CreateStory] failed to prepare story", { message: error?.message });
       Toast.show({
         type: "error",
         text1: t("story.postError"),
-        text2: typeof serverMessage === "string" ? serverMessage : t("story.postErrorDesc"),
+        text2: t("story.postErrorDesc"),
       });
+      return;
     } finally {
       setIsUploading(false);
     }
+
+    // Read once, so the task (and a retry of it) doesn't depend on this
+    // screen's state.
+    const story = {
+      mediaUri,
+      overlays,
+      isVideo,
+      isTextOnly,
+      isMuted,
+      music,
+      textBackground,
+      asset: selectedMediaAsset,
+      contentText: textItems
+        .map((item) => item.text)
+        .join("\n")
+        .trim(),
+    };
+
+    startUpload({
+      kind: "story",
+      task: async (report) => {
+        const formData = new FormData();
+
+        if (story.contentText) {
+          formData.append("content", story.contentText);
+        }
+
+        if (story.isVideo) {
+          // Compressed on the device to 720p H.264 (the API no longer does
+          // it): first half of the bar, the upload is the second half.
+          report("compressingVideo", { progress: 0 });
+          const compressed = await compressVideoForUpload(story.mediaUri, (ratio) =>
+            report("compressingVideo", { progress: ratio * 0.5 }),
+          );
+          const storyFile = {
+            uri: compressed.uri,
+            // The compressor always writes an MP4.
+            type: compressed.compressed ? "video/mp4" : story.asset?.mimeType || "video/mp4",
+            name: compressed.compressed ? "story_video.mp4" : story.asset?.fileName || "story_video.mp4",
+          };
+
+          formData.append("media_type", "video");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
+          formData.append("is_muted", story.isMuted ? "true" : "false");
+        } else {
+          const storyFile = {
+            uri: story.mediaUri,
+            type: "image/jpeg",
+            name: story.isTextOnly ? "story_text.jpg" : "story_image.jpg",
+          };
+
+          formData.append("media_type", story.isTextOnly ? "text" : "image");
+          formData.append("media_file", storyFile);
+          formData.append("file", storyFile);
+
+          if (story.isTextOnly && story.textBackground?.length >= 2) {
+            formData.append("background_color", JSON.stringify(story.textBackground));
+          }
+
+          // Give a photo long enough on screen for its soundtrack to be worth
+          // playing, instead of the default 10 seconds.
+          if (story.music) {
+            formData.append("duration", String(Math.round(STORY_MUSIC_CLIP_MS / 1000)));
+          }
+        }
+
+        if (story.overlays) {
+          formData.append("overlays", JSON.stringify(story.overlays));
+        }
+
+        if (story.music) {
+          formData.append("music", JSON.stringify(toStoryMusicPayload(story.music)));
+        }
+
+        formData.append("privacy", "public");
+
+        const base = story.isVideo ? 0.5 : 0;
+        const stage = story.isVideo ? "uploadingVideo" : "uploading";
+        report(stage, { progress: base });
+        try {
+          await createStory(formData, {
+            onUploadProgress: (progressEvent) => {
+              if (!progressEvent.total) return;
+              report(stage, {
+                progress: base + (progressEvent.loaded / progressEvent.total) * (1 - base),
+              });
+            },
+          });
+        } catch (error) {
+          console.error("[CreateStory] failed to post story", {
+            message: error?.message,
+            status: error?.response?.status,
+            data: error?.response?.data,
+          });
+          throw error;
+        }
+
+        // The home screen reloads its story row (it may not be mounted the
+        // same way it was when the editor closed, so no navigation here).
+        DeviceEventEmitter.emit(STORY_POSTED_EVENT);
+      },
+    });
+
+    navigation.reset({
+      index: 0,
+      routes: [
+        {
+          name: "MainScreens",
+          params: { screen: "Home" },
+        },
+      ],
+    });
   };
 
   // --- exit ----------------------------------------------------------------

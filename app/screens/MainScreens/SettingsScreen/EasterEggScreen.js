@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -16,6 +16,12 @@ export default function EasterEggScreen({ navigation }) {
         source={{ uri: "https://chuyenbienhoa.com/egg" }}
         style={styles.webview}
         containerStyle={styles.webviewContainer}
+        startInLoadingState
+        renderLoading={() => (
+          <View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center", backgroundColor: theme.background }]}>
+            <ActivityIndicator size="large" color={theme.primary} />
+          </View>
+        )}
       />
     </View>
   );

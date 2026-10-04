@@ -61,6 +61,11 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 - Stories tiêu chuẩn Instagram: `@birdwingo/react-native-instagram-stories`, reaction emoji (map sang API `stories/:id/react`), reply chuyển nhanh sang chat, xem người xem.
 - Hộp thoại nhắc xác minh email, refresh Lottie, trigger scroll-to-top khi bấm logo.
 
+### 2b. Đăng bài, tin và tệp ở chế độ nền
+- Khi đăng/sửa bài viết hoặc đăng tin, màn hình soạn đóng ngay; việc nén ảnh/video, tải lên và tạo nội dung chạy nền qua `app/services/uploadQueue.js`.
+- Thanh trạng thái nổi (`UploadStatusBar`) hiển thị từng bước: đang nén ảnh/video, đang tải lên kèm phần trăm, kết quả; nếu lỗi có nút **Thử lại**.
+- Android có thông báo tiến trình trong khay thông báo; iOS chỉ báo kết quả khi app không ở màn hình. Tải lên tiếp tục khi app ở nền chừng nào hệ điều hành còn giữ tiến trình (không tiếp tục nếu app bị tắt hẳn).
+
 ### 3. Chat & thông báo
 - `ChatScreen` + `ConversationScreen` tiêu thụ API `/chat/*`, nhận tin nhắn thời gian thực qua `ChatSocketContext` (Echo/Reverb); hook `useUnreadCounts` polling mỗi 30s & khi app foreground.
 - `NotificationContext` đăng ký Expo push token, đồng bộ backend (`/notifications/expo/*`), badge count và listener khi nhận/tap thông báo.

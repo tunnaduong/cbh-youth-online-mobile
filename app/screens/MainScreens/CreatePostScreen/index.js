@@ -27,6 +27,7 @@ import Toast from "react-native-toast-message";
 import { FeedContext } from "../../../contexts/FeedContext";
 import ProgressHUD from "../../../components/ProgressHUD";
 import { compressImageForUpload, compressVideoForUpload } from "../../../utils/mediaCompression";
+import { startUpload } from "../../../services/uploadQueue";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
 import FastImage from "../../../components/FastImage";
@@ -349,7 +350,7 @@ const CreatePostScreen = ({ navigation, route }) => {
     );
   };
 
-  const handlePost = async () => {
+  const handlePost = () => {
     if (title.trim() === "" || postContent.trim() === "") {
       Toast.show({
         type: "error",
@@ -362,18 +363,41 @@ const CreatePostScreen = ({ navigation, route }) => {
       return;
     }
 
-    try {
-      setLoading(true);
-      let cdnIds = [];
-      let docIds = [];
+    // Posting runs in the background (services/uploadQueue): the composer
+    // closes right away, and the upload bar / notification say what is
+    // happening - compressing, uploading, posting. Everything the task needs
+    // is read here, once, so it doesn't depend on this screen staying open
+    // (and gives the same result if the user taps "retry").
+    const images = [...selectedImages];
+    const documents = [...selectedDocuments];
+    const videos = [...selectedVideos];
+    const author = userInfo;
+    const privacy = viewSelected.value;
+    const draft = {
+      title,
+      // Auto-wraps a bare youtube.com/youtu.be link typed into the post
+      // in the same <iframe> PostItem already knows how to render, so
+      // users don't have to write the embed markup by hand.
+      description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
+      subforum_id: selected?.value ?? null,
+      visibility: 0,
+      privacy,
+      anonymous: isAnonymous,
+    };
 
-      if (selectedImages.length > 0) {
-        // Upload all images
-        for (const originalUri of selectedImages) {
+    startUpload({
+      kind: "post",
+      task: async (report) => {
+        // One bar for the whole post: each file is an equal share of it.
+        const totalFiles = images.length + documents.length + videos.length;
+        let filesDone = 0;
+        const overall = (ratio) => (filesDone + ratio) / totalFiles;
+
+        const cdnIds = [];
+        for (const originalUri of images) {
           // Compressed on the device (the API no longer does it).
-          setUploadProgressText(t("createPost.compressingImage"));
+          report("compressingImage", { progress: overall(0) });
           const imageUri = await compressImageForUpload(originalUri);
-          setUploadProgressText("");
           const formData = new FormData();
           const fileExtension = imageUri.split(".").pop();
           let mimeType = "image/jpeg";
@@ -383,60 +407,66 @@ const CreatePostScreen = ({ navigation, route }) => {
             mimeType = "image/gif";
           }
 
-          formData.append("uid", userInfo.id);
+          formData.append("uid", author.id);
           formData.append("file", {
             uri: imageUri,
             name: `image.${fileExtension}`,
             type: mimeType,
           });
 
+          report("uploading", { progress: overall(0) });
           const uploadResponse = await uploadFile(formData, {
             timeout: HEAVY_UPLOAD_TIMEOUT,
+            onUploadProgress: (progressEvent) => {
+              if (!progressEvent.total) return;
+              report("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
+            },
           });
           cdnIds.push(uploadResponse.data.id);
+          filesDone += 1;
         }
-      }
 
-      if (selectedDocuments.length > 0) {
-        // Upload all documents
-        for (const dock of selectedDocuments) {
+        const docIds = [];
+        for (const dock of documents) {
           const formData = new FormData();
 
-          formData.append("uid", userInfo.id);
+          formData.append("uid", author.id);
           formData.append("file", {
             uri: dock.uri,
             name: dock.name,
             type: dock.mimeType || "application/octet-stream",
           });
 
+          report("uploading", { progress: overall(0) });
           const uploadResponse = await uploadFile(formData, {
             timeout: HEAVY_UPLOAD_TIMEOUT,
+            onUploadProgress: (progressEvent) => {
+              if (!progressEvent.total) return;
+              report("uploading", { progress: overall(progressEvent.loaded / progressEvent.total) });
+            },
           });
           docIds.push(uploadResponse.data.id);
+          filesDone += 1;
         }
-      }
 
-      let videoIds = [];
-      if (selectedVideos.length > 0) {
-        // Upload all videos - same two-step (upload -> cdn id) pattern as
-        // images/documents above, just with a longer timeout and progress
-        // tracking given videos can be up to 100MB.
-        for (let i = 0; i < selectedVideos.length; i++) {
-          const video = selectedVideos[i];
+        // Videos: same two-step (upload -> cdn id) pattern as images and
+        // documents, with a longer timeout since they can be up to 100MB.
+        const videoIds = [];
+        for (let i = 0; i < videos.length; i++) {
+          const video = videos[i];
+          const count = { current: i + 1, total: videos.length };
           const formData = new FormData();
           const extension = getVideoExtension(video.fileName || video.uri) || "mp4";
 
           // Compressed on the device to 720p H.264 (the API no longer does
-          // it); the HUD says so while it runs.
-          setUploadProgressText(
-            t("createPost.compressingVideo", { current: i + 1, total: selectedVideos.length }),
-          );
-          setUploadProgress(0);
+          // it): the first half of this file's share of the bar, the upload
+          // is the second half.
+          report("compressingVideo", { ...count, progress: overall(0) });
           const compressed = await compressVideoForUpload(video.uri, (ratio) =>
-            setUploadProgress(((i + ratio) / selectedVideos.length) * 100),
+            report("compressingVideo", { ...count, progress: overall(ratio * 0.5) }),
           );
 
-          formData.append("uid", userInfo.id);
+          formData.append("uid", author.id);
           formData.append("file", {
             uri: compressed.uri,
             // The compressor always writes an MP4.
@@ -446,122 +476,82 @@ const CreatePostScreen = ({ navigation, route }) => {
             type: compressed.compressed ? "video/mp4" : video.mimeType || getVideoMimeType(extension),
           });
 
-          setUploadProgressText(
-            t("createPost.uploadingVideo", {
-              current: i + 1,
-              total: selectedVideos.length,
-            }),
-          );
-          setUploadProgress(0);
-
+          report("uploadingVideo", { ...count, progress: overall(0.5) });
           const uploadResponse = await uploadFile(formData, {
             timeout: VIDEO_UPLOAD_TIMEOUT,
             onUploadProgress: (progressEvent) => {
               if (!progressEvent.total) return;
               const fileProgress = progressEvent.loaded / progressEvent.total;
-              setUploadProgress(
-                ((i + fileProgress) / selectedVideos.length) * 100,
-              );
+              report("uploadingVideo", { ...count, progress: overall(0.5 + fileProgress * 0.5) });
             },
           });
           videoIds.push(uploadResponse.data.id);
+          filesDone += 1;
         }
-      }
 
-      setUploadProgress(null);
-      setUploadProgressText(null);
-
-      const response = await createPost({
-        title,
-        // Auto-wraps a bare youtube.com/youtu.be link typed into the post
-        // in the same <iframe> PostItem already knows how to render, so
-        // users don't have to write the embed markup by hand.
-        description: autoEmbedSoundCloudLinks(autoEmbedYouTubeLinks(postContent)),
-        cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
-        cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
-        cdn_video_id: videoIds.length > 0 ? videoIds.join(",") : null,
-        subforum_id: selected?.value ?? null,
-        visibility: 0,
-        privacy: viewSelected.value,
-        anonymous: isAnonymous,
-      });
-
-      // AI moderation can hold a post for a human reviewer instead of
-      // publishing it. Such a post is hidden server-side, so don't drop it
-      // into the feed optimistically - tell the author it's queued instead.
-      const isPendingModeration =
-        response.data?.moderation?.status === "pending";
-
-      if (isPendingModeration) {
-        Toast.show({
-          type: "info",
-          text1: t("createPost.pendingModeration"),
-          text2:
-            response.data?.moderation?.message ||
-            t("createPost.pendingModerationDesc"),
-          autoHide: true,
-          visibilityTime: 5000,
-          topOffset: 60,
+        report("finishing");
+        const response = await createPost({
+          ...draft,
+          cdn_image_id: cdnIds.length > 0 ? cdnIds.join(",") : null,
+          cdn_document_id: docIds.length > 0 ? docIds.join(",") : null,
+          cdn_video_id: videoIds.length > 0 ? videoIds.join(",") : null,
         });
-      }
 
-      if (viewSelected.value === "public" && !isPendingModeration) {
-        setFeed((prevPosts) => [
-          {
-            ...response.data,
-            is_mine: true,
-            is_author: true,
-            author: { ...userInfo, ...response.data?.author },
-            anonymous: response.data?.anonymous ?? isAnonymous,
-          },
-          ...prevPosts,
-        ]);
-      }
+        // AI moderation can hold a post for a human reviewer instead of
+        // publishing it. Such a post is hidden server-side, so don't drop it
+        // into the feed optimistically - tell the author it's queued instead.
+        const isPendingModeration =
+          response.data?.moderation?.status === "pending";
 
-      // Use a more defensive approach to navigation
-      if (navigation) {
-        try {
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: "MainScreens" }],
-            }),
-          );
-        } catch (navError) {
-          // If reset fails, try simple navigation
-          navigation.navigate("MainScreens");
-        }
-      } else {
-        // If navigation is not available, at least update the feed
-        // Skip when a pending-moderation toast already went up above, or the
-        // two stack on top of each other.
-        if (!isPendingModeration) {
+        if (isPendingModeration) {
           Toast.show({
-            type: "success",
-            text1: t("createPost.postedSuccess"),
-            text2: t("createPost.reloading"),
+            type: "info",
+            text1: t("createPost.pendingModeration"),
+            text2:
+              response.data?.moderation?.message ||
+              t("createPost.pendingModerationDesc"),
             autoHide: true,
-            visibilityTime: 2000,
+            visibilityTime: 5000,
             topOffset: 60,
           });
         }
-      }
 
-      return response;
-    } catch (error) {
-      console.log("Error creating post:", error);
-      Toast.show({
-        type: "error",
-        text1: t("createPost.cannotPost"),
-        text2: error?.response?.data?.message || t("createPost.tryAgainLater"),
-        autoHide: true,
-        visibilityTime: 5000,
-        topOffset: 60,
-      });
-    } finally {
-      setLoading(false);
-      setUploadProgress(null);
-      setUploadProgressText(null);
+        if (privacy === "public" && !isPendingModeration) {
+          setFeed((prevPosts) =>
+            // A feed that hasn't loaded yet stays that way: the home screen
+            // fetches it, new post included.
+            prevPosts
+              ? [
+                  {
+              ...response.data,
+              is_mine: true,
+              is_author: true,
+              author: { ...author, ...response.data?.author },
+              anonymous: response.data?.anonymous ?? draft.anonymous,
+                  },
+                  ...prevPosts,
+                ]
+              : prevPosts,
+          );
+        }
+
+        return response;
+      },
+    });
+
+    // Back to the feed while the post goes up.
+    if (navigation) {
+      try {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: "MainScreens" }],
+          }),
+        );
+      } catch (navError) {
+        // If reset fails, try simple navigation
+        navigation.navigate("MainScreens");
+      }
     }
   };
 

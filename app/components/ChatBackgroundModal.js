@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import FastImage from "./FastImage";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
@@ -217,7 +218,7 @@ const ChatBackgroundModal = ({ visible, conversationId, onClose, onBackgroundCha
                           { borderColor: entry.url === backgroundUrl ? "#22c55e" : "transparent" },
                         ]}
                       >
-                        <Image source={{ uri: entry.url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                        <FastImage shimmer source={{ uri: entry.url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                         {entry.url === backgroundUrl && (
                           <View style={styles.historyCheck}>
                             <Ionicons name="checkmark" size={14} color="#fff" />

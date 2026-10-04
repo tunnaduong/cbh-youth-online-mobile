@@ -536,8 +536,8 @@ export const getStories = () => {
   return Api.getRequest("/v1.0/stories");
 };
 
-export const createStory = (formData) => {
-  return Api.postFormDataRequest("/v1.0/stories", formData);
+export const createStory = (formData, config = {}) => {
+  return Api.postFormDataRequest("/v1.0/stories", formData, config);
 };
 
 export const deleteStory = (id) => {
