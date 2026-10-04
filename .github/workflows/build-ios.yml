@@ -100,7 +100,8 @@ jobs:
 
       # The build number (iOS buildNumber, Android versionCode) is this
       # workflow's run number, so build #N of the CI is build N of the app.
-      # The Android workflow commits it to the branch when it finishes.
+      # Only this checkout's app.json is patched; the number is committed by
+      # build-number.yml when the branch is merged into main.
       - name: Set build number to the CI run number
         env:
           BUILD_NUMBER: ${{ github.run_number }}

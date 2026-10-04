@@ -108,7 +108,7 @@ npm install
    - Nếu đổi logo, chỉ cần cập nhật `app.json` rồi prebuild lại.
 5. **Expo Updates & EAS**:
    - Kiểm tra `eas.json` để đồng bộ profile (`development`, `preview` → channel `preview`, `production` → channel `production`).
-   - `appVersionSource` là `local`: tự tăng `version` trong `app.json` trước khi build. Với CI trên GitHub (`build-android.yml`, `build-ios.yml`), build number (`ios.buildNumber`, `android.versionCode`) được đặt bằng **số lần chạy của workflow** (run #N → build N); workflow Android commit lại số đó vào `app.json` trên nhánh (`chore: build number N [skip ci]`), nên khi merge vào `main` thì `main` mang đúng build number của lần CI cuối.
+   - `appVersionSource` là `local`: tự tăng `version` trong `app.json` trước khi build. Với CI trên GitHub (`build-android.yml`, `build-ios.yml`), build number (`ios.buildNumber`, `android.versionCode`) được đặt bằng **số lần chạy của workflow** (run #N → build N); các bản build chỉ sửa `app.json` trong bản checkout của CI, không commit; số đó chỉ được commit vào `app.json` khi merge vào `main` (workflow `build-number.yml`, `chore: build number N [skip ci]`).
    - Đăng nhập `eas login` trước khi chạy build.
 6. **Phiên bản thư viện cố định**: `package.json -> expo.install.exclude` giữ nguyên `react-native-screens`, `react-native-gesture-handler`, `react-native-keyboard-controller`; không để `expo install --fix` nâng các gói này.
 
