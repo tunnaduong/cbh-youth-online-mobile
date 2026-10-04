@@ -154,6 +154,8 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Two-factor: option to skip it on Google/Facebook/Apple logins** (bundled by CI, not run on a device): a switch on `TwoFactorScreen`, shown while two-factor is on (`status.skip_social_login`, `setTwoFactorSocialLogin(skip)` → `PUT /v1.0/two-factor/social-login`; strings `twoFactor.skipSocialLogin*` in vi/en/ru). On by default on the API.
+
 - **Background uploads with a progress bar and notification** (bundled by CI, not run on a device):
   - `app/services/uploadQueue.js`: `startUpload({ kind, task })` runs a post / post edit / story in the background - the composer closes at once and the task (compress → upload → create) reports its stage through `report(stage, { progress, current, total })` in its own flow (throws once the job is cancelled) and `report.progress(...)` from progress callbacks (never throws). `beginUpload()` gives a handle for code that drives the upload itself (chat attachments, which keep their optimistic bubble). A failed post/story stays in the bar with **Retry** (the task is re-run from scratch, so it must only use values captured before the screen closed).
   - `app/components/UploadStatusBar.js` (mounted in `App.js`): floating bar with the step - "Đang nén ảnh…", "Đang nén video 1/2… 40%", "Đang tải lên… 70%", "Sắp xong…" - then the result. Strings: `uploads.*` (vi/en/ru). This is where the user now sees that media is being compressed.

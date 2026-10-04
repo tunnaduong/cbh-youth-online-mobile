@@ -31,6 +31,7 @@ import {
   disableTwoFactor,
   regenerateTwoFactorRecoveryCodes,
   forgetTwoFactorTrustedDevices,
+  setTwoFactorSocialLogin,
 } from "../../../services/api/Api";
 
 // Every method can be on at the same time; at login the user picks one.
@@ -223,6 +224,26 @@ export default function TwoFactorScreen({ navigation }) {
       Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
     } finally {
       setSendingCode(false);
+    }
+  };
+
+  // Whether Google/Facebook/Apple logins skip the second step. The switch
+  // flips at once and goes back if the API refuses.
+  const [savingSocial, setSavingSocial] = useState(false);
+  const toggleSocialLogin = async (skip) => {
+    if (savingSocial) return;
+    setSavingSocial(true);
+    const before = status;
+    setStatus({ ...status, skip_social_login: skip });
+    try {
+      const res = await setTwoFactorSocialLogin(skip);
+      setStatus(res.data.status);
+      Toast.show({ type: "success", text1: res.data.message });
+    } catch (err) {
+      setStatus(before);
+      Toast.show({ type: "error", text1: t("common.error"), text2: errorMessage(err) });
+    } finally {
+      setSavingSocial(false);
     }
   };
 
@@ -628,6 +649,22 @@ export default function TwoFactorScreen({ navigation }) {
                       <Text style={linkTextStyle}>{t("twoFactor.forgetDevices")}</Text>
                     </TouchableOpacity>
                   )}
+                  <View style={[styles.methodRow, { marginTop: 12 }]}>
+                    <View style={{ flex: 1, paddingRight: 12 }}>
+                      <Text style={[styles.row, { color: theme.text }]}>
+                        {t("twoFactor.skipSocialLogin")}
+                      </Text>
+                      <Text style={[styles.methodHint, { color: theme.subText }]}>
+                        {t("twoFactor.skipSocialLoginDesc")}
+                      </Text>
+                    </View>
+                    <Switch
+                      value={status.skip_social_login !== false}
+                      onValueChange={toggleSocialLogin}
+                      disabled={savingSocial}
+                      trackColor={{ true: theme.primary }}
+                    />
+                  </View>
                 </View>
               )}
 

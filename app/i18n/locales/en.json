@@ -2046,6 +2046,8 @@
     "regenerate": "Generate new recovery codes",
     "trustedDevices": "Remembered devices",
     "forgetDevices": "Forget remembered devices",
+    "skipSocialLogin": "Skip for Google, Facebook and Apple logins",
+    "skipSocialLoginDesc": "On: logging in through these services goes straight in. Off: a code is still required, as with a password login.",
     "disableDesc": "Confirm to turn off two-factor authentication. Your account will only be protected by your password.",
     "regenerateDesc": "Confirm to generate a new set of recovery codes. The old ones will stop working.",
     "codeOrRecovery": "Verification code or recovery code",

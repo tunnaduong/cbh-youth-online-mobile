@@ -508,6 +508,9 @@ export const regenerateTwoFactorRecoveryCodes = (params) =>
   Api.postRequest("/v1.0/two-factor/recovery-codes", params);
 export const forgetTwoFactorTrustedDevices = () =>
   Api.deleteRequest("/v1.0/two-factor/trusted-devices");
+// skip: true = logins through Google/Facebook/Apple need no second step.
+export const setTwoFactorSocialLogin = (skip) =>
+  Api.putRequest("/v1.0/two-factor/social-login", { skip });
 
 // Logged-in devices
 export const getDeviceSessions = () => Api.getRequest("/v1.0/sessions");

@@ -2033,6 +2033,8 @@
     "regenerate": "Tạo mã khôi phục mới",
     "trustedDevices": "Thiết bị được ghi nhớ",
     "forgetDevices": "Xóa thiết bị được ghi nhớ",
+    "skipSocialLogin": "Bỏ qua khi đăng nhập bằng Google, Facebook, Apple",
+    "skipSocialLoginDesc": "Bật: đăng nhập qua các dịch vụ này vào thẳng tài khoản. Tắt: vẫn phải nhập mã như khi đăng nhập bằng mật khẩu.",
     "disableDesc": "Xác nhận để tắt xác thực 2 yếu tố. Tài khoản sẽ chỉ còn được bảo vệ bằng mật khẩu.",
     "regenerateDesc": "Xác nhận để tạo bộ mã khôi phục mới. Các mã cũ sẽ không còn dùng được.",
     "codeOrRecovery": "Mã xác thực hoặc mã khôi phục",
