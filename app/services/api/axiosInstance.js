@@ -81,6 +81,48 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Set by AuthContext: called when the API rejects the active account's token
+// (Sanctum's "Unauthenticated." 401) - typically because that login was
+// logged out from the logged-in devices list on another device, or the
+// password was reset. Without this the app stayed "signed in", with every
+// request just failing.
+let sessionExpiredHandler = null;
+export const setSessionExpiredHandler = (handler) => {
+  sessionExpiredHandler = handler;
+};
+
+// Endpoints that answer 401 for reasons other than a dead token (wrong
+// password, wrong 2FA code, unknown passkey...) - never treated as the
+// session having ended.
+const AUTH_FLOW_PATHS = [
+  "/v1.0/login",
+  "/v1.0/register",
+  "/v1.0/oauth",
+  "/v1.0/two-factor",
+  "/v1.0/2fa",
+  "/v1.0/passkey",
+  "/v1.0/password",
+  "/v1.0/web-session/redeem",
+];
+
+const reportIfSessionExpired = async (error) => {
+  if (!sessionExpiredHandler || error?.response?.status !== 401) return;
+  // Laravel's auth middleware says exactly this when the token is invalid.
+  if (error.response.data?.message !== "Unauthenticated.") return;
+  const url = error.config?.url || "";
+  if (AUTH_FLOW_PATHS.some((path) => url.includes(path))) return;
+
+  // Only the token that is active now: a slow request from an account the
+  // user has since switched away from must not sign out the current one.
+  const sent = String(error.config?.headers?.Authorization || "");
+  const sentToken = sent.startsWith("Bearer ") ? sent.slice(7) : null;
+  if (!sentToken) return;
+  const currentToken = await AsyncStorage.getItem("auth_token");
+  if (sentToken !== currentToken) return;
+
+  sessionExpiredHandler(sentToken);
+};
+
 // Add response interceptor
 axiosInstance.interceptors.response.use(
   async (response) => {
@@ -184,6 +226,8 @@ axiosInstance.interceptors.response.use(
     } catch (e) {
       console.error("[API ERROR] failed to log error details", e?.message || e);
     }
+
+    reportIfSessionExpired(error).catch(() => {});
 
     return Promise.reject(error);
   }
