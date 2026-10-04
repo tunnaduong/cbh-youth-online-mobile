@@ -151,7 +151,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin "$BRANCH"
           git reset --hard "origin/$BRANCH"
-          node scripts/set-build-number.js "$BUILD_NUMBER"
+          node scripts/set-build-number.js "$BUILD_NUMBER" --if-higher
           git add app.json
           if git diff --cached --quiet; then
             echo "app.json already at build $BUILD_NUMBER"

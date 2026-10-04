@@ -14,6 +14,15 @@ if (!Number.isInteger(number) || number <= 0) {
 
 const file = path.join(__dirname, "..", "app.json");
 const before = fs.readFileSync(file, "utf8");
+
+// --if-higher: leave a newer number alone (an older CI run that finishes
+// after a newer one must not take the committed number backwards).
+const current = JSON.parse(before).expo.android.versionCode;
+if (process.argv.includes("--if-higher") && current >= number) {
+  console.log(`Build number already at ${current}, not lowering it to ${number}`);
+  process.exit(0);
+}
+
 const after = before
   .replace(/("buildNumber"\s*:\s*)"\d+"/, `$1"${number}"`)
   .replace(/("versionCode"\s*:\s*)\d+/, `$1${number}`);
