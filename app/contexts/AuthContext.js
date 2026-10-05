@@ -330,7 +330,7 @@ export const AuthProvider = ({ children }) => {
 
       for (const account of remaining) {
         try {
-          await switchAccount(account);
+          await switchAccount(account, { leavePrevious: false });
           return;
         } catch {
           // That session was revoked too - try the next one
