@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, StyleSheet, ActivityIndicator } from "react-native";
 import { WebView } from "react-native-webview";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,9 @@ import CustomLoading from "../../../../components/CustomLoading";
 import { parseUrlParts } from "../../../../utils/externalLink";
 import {
   sessionEntryUrl,
+  appHasAccount,
+  WEB_LOGIN_PAGE_MESSAGE,
+  WEB_SIGNED_OUT_MESSAGE,
   webViewBootScript,
   WEBVIEW_USER_AGENT_SUFFIX,
 } from "../../../../utils/webSession";
@@ -32,15 +35,31 @@ export default function GamePlayScreen({ navigation, route }) {
   const gameUrl = `https://www.chuyenbienhoa.com/explore/games/${slug}?app=true`;
   const [startUrl, setStartUrl] = useState(null);
 
+  // The page loaded signed out although the app is signed in: the handoff
+  // did not take (typically right after logging in, when its code came too
+  // late). Hand off again and load the page afresh, once per visit.
+  const [reloadKey, setReloadKey] = useState(0);
+  const forceHandoff = useRef(false);
+  const retriedHandoff = useRef(false);
+  const retryHandoff = useCallback(() => {
+    if (retriedHandoff.current) return;
+    retriedHandoff.current = true;
+    forceHandoff.current = true;
+    setReloadKey((key) => key + 1);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    sessionEntryUrl(gameUrl, parseUrlParts(gameUrl), "webview").then((url) => {
+    const force = forceHandoff.current;
+    forceHandoff.current = false;
+    setStartUrl(null);
+    sessionEntryUrl(gameUrl, parseUrlParts(gameUrl), "webview", { force }).then((url) => {
       if (!cancelled) setStartUrl(url);
     });
     return () => {
       cancelled = true;
     };
-  }, [gameUrl]);
+  }, [gameUrl, reloadKey]);
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -48,6 +67,7 @@ export default function GamePlayScreen({ navigation, route }) {
 
       {startUrl ? (
         <WebView
+          key={reloadKey}
           source={{ uri: startUrl }}
           applicationNameForUserAgent={WEBVIEW_USER_AGENT_SUFFIX}
           style={styles.webview}
@@ -63,6 +83,12 @@ export default function GamePlayScreen({ navigation, route }) {
           injectedJavaScriptBeforeContentLoaded={webViewBootScript({
             theme: isDarkMode ? "dark" : "light",
           })}
+          onMessage={(event) => {
+            const data = event.nativeEvent?.data;
+            if (data !== WEB_LOGIN_PAGE_MESSAGE && data !== WEB_SIGNED_OUT_MESSAGE) return;
+            // A guest plays signed out; only a signed-in app retries.
+            appHasAccount().then((signedIn) => signedIn && retryHandoff());
+          }}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           startInLoadingState

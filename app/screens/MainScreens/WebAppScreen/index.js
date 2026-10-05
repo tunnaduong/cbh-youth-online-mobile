@@ -20,6 +20,8 @@ import {
   sessionEntryUrl,
   isWebLoginUrl,
   WEB_LOGIN_PAGE_MESSAGE,
+  WEB_SIGNED_OUT_MESSAGE,
+  appHasAccount,
   webViewBootScript,
   WEBVIEW_USER_AGENT_SUFFIX,
 } from "../../../utils/webSession";
@@ -236,7 +238,13 @@ export default function WebAppScreen({ navigation, route }) {
               setCanGoBack(state.canGoBack);
             }}
             onMessage={(event) => {
-              if (event.nativeEvent?.data === WEB_LOGIN_PAGE_MESSAGE) retryHandoff();
+              const data = event.nativeEvent?.data;
+              if (data === WEB_LOGIN_PAGE_MESSAGE) retryHandoff();
+              // Loaded without a session: worth another handoff only when
+              // the app itself is signed in (a guest browses signed out).
+              if (data === WEB_SIGNED_OUT_MESSAGE) {
+                appHasAccount().then((signedIn) => signedIn && retryHandoff());
+              }
             }}
             onError={() => setLoadFailed(true)}
             allowsBackForwardNavigationGestures

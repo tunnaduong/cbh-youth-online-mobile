@@ -130,6 +130,20 @@ export function isWebLoginUrl(parts) {
 // the WebView's own navigation events do not always report.
 export const WEB_LOGIN_PAGE_MESSAGE = "cbh:login-page";
 
+// What a page posts when it has loaded without a session cookie. Pages that
+// work signed out too (a game) never show a login form, so this is how the
+// app learns that the handoff did not take there.
+export const WEB_SIGNED_OUT_MESSAGE = "cbh:signed-out";
+
+/** Is the app signed in? (Only then is a signed-out page worth a retry.) */
+export async function appHasAccount() {
+  try {
+    return !!(await AsyncStorage.getItem("auth_token"));
+  } catch {
+    return false;
+  }
+}
+
 /** sessionEntryUrl for the in-app browser. */
 export function withWebSession(url, parts) {
   return sessionEntryUrl(url, parts, "browser");
@@ -154,7 +168,8 @@ export const WEBVIEW_USER_AGENT_SUFFIX = `CBHYouthApp/${
  * - Drops a host-only auth_token: older app versions put the app's own token
  *   there; the real web session is the shared .chuyenbienhoa.com cookie that
  *   /auth/set-token sets (see sessionEntryUrl).
- * - Tells the app when the page ends up on a login form (see isWebLoginUrl).
+ * - Tells the app when the page ends up on a login form (see isWebLoginUrl)
+ *   or has loaded without a session (WEB_SIGNED_OUT_MESSAGE).
  */
 export function webViewBootScript({ theme }) {
   return `(function () {
@@ -178,6 +193,14 @@ export function webViewBootScript({ theme }) {
         window.ReactNativeWebView.postMessage(${JSON.stringify(WEB_LOGIN_PAGE_MESSAGE)});
       }
     }, 400);
+    // Once the page has settled. Not on /auth/ pages: /auth/set-token is
+    // where the session gets set.
+    setTimeout(function () {
+      if (!window.ReactNativeWebView || location.pathname.indexOf("/auth/") === 0) return;
+      if (("; " + document.cookie).indexOf("; auth_token=") === -1) {
+        window.ReactNativeWebView.postMessage(${JSON.stringify(WEB_SIGNED_OUT_MESSAGE)});
+      }
+    }, 1500);
   } catch (e) {}
 })();
 true;`;
