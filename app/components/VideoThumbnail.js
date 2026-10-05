@@ -79,8 +79,8 @@ const VideoThumbnail = ({
         </View>
       </TouchableOpacity>
       {onRemove && (
-        <TouchableOpacity onPress={onRemove} style={styles.removeButton}>
-          <Ionicons name="trash" size={16} color="#fff" />
+        <TouchableOpacity onPress={onRemove} style={styles.removeButton} hitSlop={6} accessibilityRole="button">
+          <Ionicons name="close" size={14} color="#fff" />
         </TouchableOpacity>
       )}
       {/* Only mount the modal (and the player it creates) once the user has
@@ -122,11 +122,15 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "#EF4444",
-    borderRadius: 999,
-    padding: 6,
+    // Same badge as the photo tiles next to it in the post composer.
+    top: 6,
+    right: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

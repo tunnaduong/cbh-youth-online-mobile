@@ -28,6 +28,9 @@ const Dropdown = ({
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
+  const isSelected = (item) =>
+    selectedValue != null && item.value !== undefined && item.value === selectedValue.value;
+
   const handleSelect = (value) => {
     onValueChange(value);
     setVisible(false);
@@ -93,7 +96,7 @@ const Dropdown = ({
           onPress={() => setVisible(false)}
           activeOpacity={1}
         >
-          <View style={[styles.modal, { backgroundColor: theme.cardBackground }, isGrouped && { maxHeight: "70%" }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
+          <View style={[styles.modal, { backgroundColor: theme.surface, borderColor: theme.border }, isGrouped && { maxHeight: "70%" }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}>
             {isGrouped ? (
               <SectionList
                 sections={sections}
@@ -103,11 +106,12 @@ const Dropdown = ({
                     style={styles.optionGrouped}
                     onPress={() => handleSelect(item)}
                   >
-                    <Text style={[styles.optionText, { color: theme.text }]}>{item.label}</Text>
+                    <Text style={[styles.optionText, { color: theme.text }, isSelected(item) && styles.optionTextSelected]}>{item.label}</Text>
+                    {isSelected(item) && <Ionicons name="checkmark" size={20} color={theme.primary} />}
                   </TouchableOpacity>
                 )}
                 renderSectionHeader={({ section: { title } }) => (
-                  <View style={[styles.sectionHeader, { backgroundColor: theme.cardBackground }]}>
+                  <View style={[styles.sectionHeader, { backgroundColor: theme.surface }]}>
                     <Text style={[styles.sectionHeaderText, { color: theme.subText }]}>{title}</Text>
                   </View>
                 )}
@@ -122,7 +126,8 @@ const Dropdown = ({
                     style={[styles.option, { borderBottomColor: theme.border }]}
                     onPress={() => handleSelect(item)}
                   >
-                    <Text style={[styles.optionText, { color: theme.text }]}>{item.label}</Text>
+                    <Text style={[styles.optionText, { color: theme.text }, isSelected(item) && styles.optionTextSelected]}>{item.label}</Text>
+                    {isSelected(item) && <Ionicons name="checkmark" size={20} color={theme.primary} />}
                   </TouchableOpacity>
                 )}
               />
@@ -161,8 +166,9 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   modal: {
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingVertical: 8,
     maxHeight: "60%", // Limit height
     shadowColor: "#000",
     shadowOffset: {
@@ -174,26 +180,34 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   option: {
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   optionGrouped: {
-    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 13,
     paddingHorizontal: 20, // More indent for grouped items
   },
   optionText: {
+    flex: 1,
     fontSize: 16,
+  },
+  optionTextSelected: {
+    fontWeight: "600",
   },
   sectionHeader: {
     paddingVertical: 8,
-    paddingHorizontal: 15,
-    marginTop: 5,
+    paddingHorizontal: 16,
+    marginTop: 4,
   },
   sectionHeaderText: {
     fontSize: 13,
-    color: "#999",
     fontWeight: "600",
+    letterSpacing: 0.5,
     textTransform: "uppercase",
   },
 });

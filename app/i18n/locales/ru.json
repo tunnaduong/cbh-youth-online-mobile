@@ -443,6 +443,10 @@
     "pasteImage": "Вставить из буфера обмена",
     "chooseFromLibrary": "Выбрать из галереи",
     "categoryShort": "Выбрать раздел",
+    "sectionSettings": "Настройки публикации",
+    "categoryLabel": "Раздел",
+    "privacyLabel": "Кто видит",
+    "removeAttachment": "Удалить вложение",
     "toolbar": {
       "bold": "Жирный",
       "italic": "Курсив",

@@ -7,6 +7,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { uploadInlineImage, MAX_INLINE_IMAGE_MB, getMentionSuggestions } from "../../services/api/Api";
 import { useMentionInput } from "../MentionSuggestions";
 import { CustomAlert } from "../CustomAlert";
+import { apiErrorMessage } from "../../utils/apiMessage";
 import { hasClipboardImage, readClipboardImage } from "../../utils/clipboardImage";
 import {
   continueListOnEnter,
@@ -201,7 +202,7 @@ export default function usePostEditor({ initialContent = "", userId }) {
       Toast.show({
         type: "error",
         text1: t("createPost.imageUploadFailed"),
-        text2: error?.response?.data?.message || t("createPost.retry"),
+        text2: apiErrorMessage(error, t("createPost.retry")),
         autoHide: true,
         visibilityTime: 4000,
         topOffset: 60,

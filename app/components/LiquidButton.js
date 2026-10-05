@@ -27,6 +27,7 @@ const LiquidButton = ({
   // Android they force the plain tinted fallback instead; iOS is untouched
   // since its glass is a cheap OS compositor effect, not a per-frame shader.
   forceNoGlass = false,
+  accessibilityLabel,
 }) => {
   const { isDarkMode } = useTheme();
   const defaultRadius = borderRadius ?? size / 2;
@@ -143,6 +144,8 @@ const LiquidButton = ({
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
       >
         {renderContent()}
       </TouchableOpacity>

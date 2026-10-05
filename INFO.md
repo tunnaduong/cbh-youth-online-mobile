@@ -153,6 +153,201 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ---
 
+## Design system
+
+**Mandatory for every new or changed screen.** This is how the app looks today; build from it instead of inventing a look or copying an old screen that predates it. Values are taken from the code - when in doubt, open the reference file named in each part and copy from there.
+
+Reference screens (newest, copy these): `SettingsScreen/DevicesScreen.js` (cards, chips, detail rows), `SettingsScreen/PasskeysScreen.js` (list card, inline form, primary button), `SettingsScreen/TwoFactorScreen.js` (switch rows, button pairs), `SettingsScreen/index.js` (section titles + setting rows), `FeedbackScreen/index.js` (modal form with a header action), `components/PostEditor/PostComposerLayout.js` (create/edit post: header action, cards, attachments).
+
+### Colours - theme tokens only
+
+`const { theme, isDarkMode, liquidGlassEnabled } = useTheme()` (`app/contexts/ThemeContext.js`). Never write a hex for something a token covers.
+
+| Token | Light | Dark | Use for |
+| --- | --- | --- | --- |
+| `background` | `#ffffff` | `#121212` | screen background; inset boxes inside a card |
+| `surface` | `#ffffff` | `#1e1e1e` | cards, panels, floating bars (`cardBackground` is the same value, older name) |
+| `sectionBackground` | `#FAFAFA` | `#1e1e1e` | bars docked to an edge (e.g. the editor toolbar above the keyboard) |
+| `text` | `#000000` | `#ffffff` | titles, body, values |
+| `subText` | `#666666` | `#A0A0A0` | descriptions, hints, timestamps, placeholders, inactive icons |
+| `primary` | `#319527` | `#4CAF50` | brand green: header title and header icons, links, active states, primary buttons, row icons |
+| `border` | `#E5E5E5` | `#2C2C2C` | hairline card borders and separators, input borders |
+| `iconBackground` | `#F1F1F1` | `#2C2C2C` | round icon holders, neutral chips, segmented-control track, pressed state, code/secret boxes |
+| `placeholder` | `#A0A0A0` | `#666666` | disabled icons |
+| `headerBackground`, `tabBarBackground` | `#ffffff` | `#1e1e1e` | solid bars only (`WebViewHeader`, tab bar) |
+
+Hard-coded colours that are allowed because they are the same in both themes:
+- Destructive: `#FF3B30` (text, outline or fill of "log out" / "remove" / "delete", inline error text).
+- Text and icons on a `primary` or destructive fill: `#fff`.
+- Badges on top of a photo/video: `rgba(0,0,0,0.6)` with a white icon.
+- Selected-option tint (a chosen radio card, an info banner): `isDarkMode ? "#1f3320" : "#EEF7ED"` with `borderColor: theme.primary`.
+- Brand logos (Facebook `#1877F2`, Discord `#5865F2`).
+
+**Dark mode rule**: a screen must look right in both themes with no extra work - which it does if every colour is a token. If you need `isDarkMode ? a : b`, first check that no token already is that pair.
+
+### Screen scaffold (native screens)
+
+Every native screen: `theme.background` container, a **floating transparent header**, and the content in a scroll view that starts under it.
+
+Header behaviour - exactly this, on every screen:
+- The header has **no background and no border**. It is `position: "absolute"` over the content (`zIndex: 10`, `pointerEvents="box-none"`), height `64 + insets.top`, `paddingTop: insets.top`, `paddingHorizontal: 16`, `paddingBottom: 8`.
+- **Title fades out as the content scrolls down**: `Animated.Text`, `fontSize: 18`, `fontWeight: "600"`, `color: theme.primary`, centred (`flex: 1, textAlign: "center"`), `numberOfLines={1}`, opacity `scrollY.interpolate({ inputRange: [0, 10, 50], outputRange: [1, 1, 0], extrapolate: "clamp" })`.
+- **Buttons are `LiquidButton size={44}` with `scrollY={scrollY}`**: at the top of the page they have no surface at all (just the icon); once the content has scrolled more than 20px under them they get their liquid-glass surface. Never fade or hide the buttons themselves. Back = `Ionicons "chevron-back"` 24 in `theme.primary`; a screen presented as a modal uses `"close"` instead.
+- Keep the title centred with a `width: 44` spacer on the side that has no button. A text action on the right (Save / Send / Post) is a second `LiquidButton` with `style={{ width: "auto", minWidth: 64, paddingHorizontal: 14 }}` and a `fontSize: 15, fontWeight: "700"` label in `theme.primary` (`theme.subText` while disabled); give the title `marginHorizontal: 12`.
+- The scroll view must feed `scrollY`: `Animated.ScrollView` with `scrollEventThrottle={16}` and `onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}`. A scroll view that is not React Native's `Animated` one (e.g. `KeyboardAwareScrollView`) uses `onScroll={(e) => scrollY.setValue(e.nativeEvent.contentOffset.y)}`.
+- Content: `contentContainerStyle={{ padding: 16, paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 24 }}`, `showsVerticalScrollIndicator={false}`, and `keyboardShouldPersistTaps="handled"` when there is an input. Wrap the scroll view in `<AndroidGlassBackdrop style={{ flex: 1 }}>`.
+- Modal screens (`presentation: "modal"`): `FeedbackScreen` uses `topInset = Platform.OS === "android" ? insets.top : 0`; the post composer uses the real `insets.top` on both platforms. Use the real inset unless the sheet is known to start below the status bar.
+- A screen that hosts a web page uses `WebViewHeader` (solid bar, `56 + insets.top`, hairline bottom border) instead - never floating glass over a WebView.
+- Call `useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", …)` on screens that manage the status bar.
+
+Skeleton:
+
+```jsx
+export default function ExampleScreen({ navigation }) {
+  const insets = useSafeAreaInsets();
+  const { theme } = useTheme();
+  const { t } = useTranslation();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50], outputRange: [1, 1, 0], extrapolate: "clamp",
+  });
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      <View pointerEvents="box-none" style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 8,
+                       paddingTop: insets.top, height: 64 + insets.top }}>
+          <View style={{ width: 44 }}>
+            <LiquidButton size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          </View>
+          <Animated.Text numberOfLines={1} style={{ flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600",
+                                                    color: theme.primary, opacity: headerTitleOpacity }}>
+            {t("example.title")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
+      </View>
+
+      <AndroidGlassBackdrop style={{ flex: 1 }}>
+        <Animated.ScrollView
+          contentContainerStyle={{ padding: 16, paddingTop: 64 + insets.top, paddingBottom: insets.bottom + 24 }}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: false })}
+        >
+          <Text style={{ fontSize: 14, lineHeight: 20, color: theme.subText, marginBottom: 16, marginHorizontal: 4 }}>
+            {t("example.description")}
+          </Text>
+          <View style={{ backgroundColor: theme.surface, borderColor: theme.border,
+                         borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: "hidden", marginBottom: 16 }}>
+            {/* rows */}
+          </View>
+        </Animated.ScrollView>
+      </AndroidGlassBackdrop>
+    </View>
+  );
+}
+```
+
+(`providerId` on `LiquidButton` / `AndroidGlassBackdrop` in older screens is a leftover no-op.)
+
+### Spacing, radii, borders, shadows
+
+- **Spacing scale**: 4, 8, 12, 16, 24. Screen padding 16. Between cards 12-16; between sections (title + card) 24. Card padding 16. Rows `paddingVertical: 13, paddingHorizontal: 16`. Gap between an icon holder and its text 12. Loose text above cards gets `marginHorizontal: 4` so it lines up with the card's rounded corner.
+- **Radii**: cards 16 (20 for a large stand-alone card such as a device card); boxes inside a card 12-14; media tiles 14; inputs 8 (12 for the filled style); full-width buttons 12; chips, pills and segmented controls 999; round buttons and icon holders = half their size.
+- **Borders**: `StyleSheet.hairlineWidth` in `theme.border` for cards and row separators (no separator after the last row). 1px only for inputs and outline buttons, 1.5px for a selectable card.
+- **Shadows**: cards have none - the hairline border separates them. Only floating elements (the upload bar, sheets, the picker dialog) have one: `shadowColor: "#000"`, offset `{0, 2-4}`, radius 4-12, opacity about 0.15 light / 0.4-0.5 dark, plus `elevation`. In dark mode set `elevation: 0, shadowOpacity: 0` on rounded Android surfaces (the black elevation shadow ignores the radius).
+
+### Typography
+
+System font everywhere (custom fonts only inside `StyledName` and story overlays). Sizes in use:
+
+| Size / weight | Use |
+| --- | --- |
+| 20 / `"700"` | title field of a composer, big headline |
+| 18 / `"600"` | header title |
+| 17 / `"700"` | title of a large card |
+| 16 / `"500"`-`"600"` | row title, card title, input text (16 / normal for a plain settings row) |
+| 15 / `"500"` | values, body rows; 15 / `"bold"` on full-width buttons; 15 / `"700"` header text action |
+| 14, `lineHeight: 20` | descriptions and intro paragraphs (`subText`), inline errors |
+| 13 | secondary lines under a title, hints; 13 / `"600"` uppercase with `letterSpacing: 0.5` for section titles |
+| 12 / `"600"` | chips and badges; 12 normal for small labels |
+| 11 | counters, tiny captions |
+
+Weights used: `"500"`, `"600"` (default emphasis), `"700"`/`"bold"` (titles, buttons), `"800"` only for display headlines.
+
+### Components
+
+- **Card**: `{ backgroundColor: theme.surface, borderColor: theme.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: 16, overflow: "hidden", marginBottom: 16 }`; `padding: 16` unless it holds rows.
+- **Section title** (above a card): 13 / `"600"`, uppercase, `letterSpacing: 0.5`, `theme.subText`, `marginBottom: 8, marginLeft: 4`.
+- **List row** (inside a card): row, `alignItems: "center"`, `paddingVertical: 13, paddingHorizontal: 16`, hairline bottom border except on the last. Left: a 34x34 circle in `theme.iconBackground` with an `Ionicons` 20 in `theme.primary` (48x48 with a 24 icon on a large card). Text block `marginLeft: 12`: title 16 in `theme.text`, optional second line 12-13 in `theme.subText`. Right: a chevron (`"chevron-forward"` 20-22, `subText`), a value in `subText` 15, a `Switch`, or a text action.
+- **Chips / badges**: `paddingHorizontal: 10, paddingVertical: 4` (6 when tappable), `borderRadius: 999`, text 12 / `"600"`. Neutral: `theme.iconBackground` with `theme.text`; highlighted: `theme.primary` with `#fff`. Wrap rows with `flexWrap: "wrap", gap: 6`.
+- **Segmented control** (2-3 choices): track `theme.iconBackground`, `borderRadius: 999`, `padding: 3`; each segment `paddingVertical: 6, paddingHorizontal: 16`, radius 999, the active one filled with `theme.background`; text 13 / `"600"`, active `theme.text`, inactive `theme.subText` (`PostEditorTabs`).
+- **Primary button** (one per screen or card): full width, `backgroundColor: theme.primary`, `borderRadius: 12`, `padding: 14`, label `#fff` 15 / `"bold"`, `activeOpacity={0.85}`; disabled or busy = `opacity: 0.6`; while busy the label is replaced by `<ActivityIndicator color="#fff" size="small" />`.
+- **Destructive button**: same shape filled with `#FF3B30` for the main destructive action of a screen; inside a card use the outline form - `borderWidth: 1, borderColor: "#FF3B30"`, `borderRadius: 999`, `paddingVertical: 12`, icon 18 + label 15 / `"600"` in `#FF3B30`.
+- **Secondary / link**: a text-only `TouchableOpacity` (`padding: 12`, centred, label `"600"` in `theme.subText` for "Cancel"; `theme.primary` for a link) or, for a small inline action in a row, plain text 14 / `"600"` with `hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}`. Two buttons side by side: `flexDirection: "row", gap: 10`, each `flex: 1`.
+- **Inputs**: outlined - `height: 44`, `borderWidth: 1`, `borderColor: theme.border`, `borderRadius: 8`, `paddingHorizontal: 10`, `fontSize: 16`, `color: theme.text`, `placeholderTextColor={theme.subText}`. Borderless inputs sit directly inside a card (the post title and body). Put a label (15 / `"700"`) or a hint (`subText`) above, and the inline error (14, `#FF3B30`) below.
+- **Switch**: React Native `Switch` with `trackColor={{ true: theme.primary }}`, in a row whose text block has `flex: 1, marginRight: 12` (title 16 + hint 13 `subText`).
+- **Pickers**: `components/Dropdown.js` (centred dialog on a dimmed backdrop, `theme.surface`, radius 16, a tick on the current choice). In a settings row pass `style={{ borderWidth: 0, paddingVertical: 0, paddingHorizontal: 0, borderRadius: 0, backgroundColor: "transparent" }}` and a right-aligned `textStyle` so only the value and the chevron show.
+- **Attachment tiles**: 104x104 (76x76 in a compact form), radius 14, hairline border; remove badge top-right = a 24x24 circle `rgba(0,0,0,0.6)` with `Ionicons "close"` 14 white. "Add" tile or button: `theme.iconBackground` fill or a dashed 1.5px `theme.border` outline, icon 22 + label 12 / `"600"`.
+- **Banners / notes inside a screen**: row, `gap: 8`, `borderWidth: 1`, `borderRadius: 12`, `padding: 10`, `borderColor: theme.primary`, an 18px icon in `theme.primary`, text 13 with `lineHeight: 18`.
+
+### Feedback
+
+- **Toasts**: `Toast.show({ type: "success" | "error" | "info", text1, text2 })` from `react-native-toast-message`, shown 60px from the top (`topOffset: 60`). **Toast text always comes from the locale files.** Never show `res.data.message` or `error.response.data.message`: the API only writes Vietnamese. For a failed request use `apiErrorMessage(error, t("…fallback"))` (`app/utils/apiMessage.js`); the usual error toast is `text1: t("common.error"), text2: apiErrorMessage(err)`.
+- **Confirmations**: `Alert.alert(title, message, [{ text: t("security.cancel"), style: "cancel" }, { text: …, style: "destructive", onPress }])` before anything destructive or hard to undo (log out a device, remove a passkey, discard a draft). `CustomAlert.alert` (`components/CustomAlert.js`) when more than two actions need to be stacked.
+- **Inline errors** for a form the user is still filling in (text under the field), a toast for the result of an action.
+
+### Loading, empty and error states
+
+- **Content that is loading** (a screen, a list, a preview): the app's own loader, `<CustomLoading size={…} />` (Lottie, `components/CustomLoading.js`), centred - not `ActivityIndicator`, not a blocking `ProgressHUD`. Keep the header on screen so the user can go back.
+- **Inside a button or a row** while its action runs: `<ActivityIndicator size="small" />` in the button's text colour, the control disabled.
+- **Media boxes** (image, video, embed still loading): `MediaShimmer` behind the media. `FastImage` (`components/FastImage.js`, the only image component to use for remote images) adds it automatically for images with a fixed size of at least 100x100; pass `shimmer` when the box is sized by aspect ratio or percentage.
+- **Pull to refresh**: `RefreshControl` with `tintColor={theme.primary}` and `progressViewOffset={64 + insets.top}` so the spinner appears below the floating header.
+- **Uploads** run in the background through `services/uploadQueue.js` and are shown by `UploadStatusBar` - do not add a blocking HUD for them.
+- **Empty**: centred `Ionicons` 50 in `theme.subText` + one line of `subText` text (`marginTop: 10`), or just the line in the description style when the page already has an intro.
+- **Load error**: one centred line in `theme.subText` (`marginTop: 24`), with pull-to-refresh or a retry pill (`borderWidth: 1`, `borderColor: theme.primary`, radius 999, label `"700"` in `theme.primary`).
+
+### Icons
+
+`Ionicons` from `@expo/vector-icons` (outline variants by default, the filled one for an active state). `MaterialCommunityIcons` only for the Markdown toolbar's formatting glyphs, `FontAwesome6` only for brand logos Ionicons lacks. Sizes: 24 in header buttons, 20 in a 34px holder, 24 in a 48px holder, 22 for stand-alone row/toolbar icons, 18 inside buttons and banners, 14 inside chips and badges. Colour: `theme.primary` for header and row icons, `theme.subText` for chevrons and inactive icons.
+
+### Liquid glass
+
+- Glass is for **floating chrome only**: header buttons (`LiquidButton`), the bottom tab bar and its "+" button, the sidebar, the comment bar, floating pills. Never for cards, lists or anything that scrolls with the content, and never over a WebView.
+- Use `LiquidGlassView` from `components/GlassModules.js` (never the library directly) with `variant="clear"`, `tintColor={glassTint(isDarkMode)}`, `borderRadius` and `{...androidGlassPerfProps}`; its content must be a real child of the glass view. `LiquidGlassView` is `null` when the native module is missing - fall back to a `View` with a translucent `rgba` surface.
+- The **"Liquid glass effect" setting** (off = `liquidGlassEnabled` false) is handled inside `LiquidGlassView`: the default tint becomes `flatSurface(isDarkMode)`, a 90% opaque panel. Call sites must not branch on the setting.
+- Keep the number of glass views on screen small on Android (each one is a per-frame shader); `LiquidButton forceNoGlass` exists for screens with many buttons.
+
+### Sheets and modals
+
+- Global sheet: `useBottomSheet().showBottomSheet(content)` (`contexts/BottomSheetContext.js`, `@gorhom/bottom-sheet`, 90% height, `theme.cardBackground`, handle in `theme.border`, 16 padding).
+- A custom sheet: top corners radius 20-24, `theme.surface`, a dimmed backdrop (`rgba(0,0,0,0.5)`, 0.7 in dark mode) that closes it on tap.
+- Whole screens that are a task (compose, feedback) are stack screens with `presentation: "modal"` and a `"close"` button.
+
+### Motion
+
+- Header: the fade and glass switch described above - nothing else moves.
+- Press feedback: `activeOpacity` 0.7 for rows and chips, 0.85 for filled buttons; `LiquidButton` springs to 0.92 scale on its own.
+- Expand/collapse inside a list: `LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)` (enable it on Android as `DevicesScreen` does).
+- Things that appear (bars, banners): 180-200ms opacity + a 12px slide, `useNativeDriver: true`. No decorative or looping animation besides the loader.
+
+### Text, language, accessibility
+
+- Every visible string and every `accessibilityLabel` goes through `t()` with the key added to **all three** of `app/i18n/locales/vi.json`, `en.json`, `ru.json` (insert the lines textually). No `t("key") || "Vietnamese fallback"`.
+- Russian and Vietnamese strings are longer than English: give text `flex: 1` / `flexShrink: 1` and `numberOfLines`, never a fixed width.
+- Tap targets at least 44x44, or add `hitSlop`. Icon-only buttons need an `accessibilityLabel` (`LiquidButton` accepts one); set `accessibilityRole` (`"button"`, `"switch"`, `"tab"`) and `accessibilityState` (`expanded`, `selected`, `checked`) on custom controls.
+- Use `useSafeAreaInsets()` for top and bottom padding; never a fixed status-bar or home-indicator height.
+- Phone-only assumptions break tablets: use `useResponsiveLayout` (`utils/responsive.js`) for anything sized from the screen width.
+
+### Keeping this section true
+
+Every new or changed screen must follow this section. If a screen you touch does not, bring the part you touch in line with it. When a deliberate, large redesign changes these rules (new header, new card style, new tokens), **update this section in the same commit** - it must always describe the app as it is, not as it was.
+
+---
+
 ## 6. Recent work (newest first, as of 2026-10)
 
 - **Two-factor by approval on a logged-in device** (method `device`; not run on a device):

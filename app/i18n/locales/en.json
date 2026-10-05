@@ -433,6 +433,10 @@
     "pasteImage": "Paste image from clipboard",
     "chooseFromLibrary": "Choose from library",
     "categoryShort": "Select category",
+    "sectionSettings": "Post settings",
+    "categoryLabel": "Category",
+    "privacyLabel": "Who can see it",
+    "removeAttachment": "Remove attachment",
     "toolbar": {
       "bold": "Bold",
       "italic": "Italic",

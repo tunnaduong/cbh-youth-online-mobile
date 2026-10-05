@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import { Text, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import CustomLoading from "../CustomLoading";
 import RenderHTML from "react-native-render-html";
 import { MarkdownIt } from "react-native-markdown-display";
 import { useTranslation } from "react-i18next";
@@ -115,7 +116,7 @@ const PostPreview = ({ markdown, horizontalPadding = 16 }) => {
   return (
     <View style={{ paddingTop: 4 }}>
       {loading && !data ? (
-        <ActivityIndicator style={{ marginTop: 24 }} color={theme.primary} />
+        <CustomLoading size={48} style={{ alignSelf: "center", marginTop: 24 }} />
       ) : failed && !data ? (
         <View style={{ alignItems: "center", paddingVertical: 32, gap: 12 }}>
           <Text style={{ color: theme.subText, fontSize: 14 }}>{t("createPost.previewError")}</Text>
