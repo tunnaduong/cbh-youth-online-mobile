@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useState, useEffect, useRef } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 // react-native-screens' enableFreeze(true) used to be on here - it pauses a
 // backgrounded screen's whole React tree (via react-freeze/Suspense) so it
@@ -320,6 +320,27 @@ const parseDeepLink = (url) => {
 // Main App component
 const App = ({ skipSplash = false }) => {
   const { theme, isDarkMode } = useTheme();
+  // React Navigation was never told the app's theme, so it ran with its
+  // default light one whatever the app showed. On iOS 26 the tab bar is the
+  // system's and is built from this: in a dark app it came up as a light bar
+  // (clear glass, dark icons - nearly invisible), most visibly after signing
+  // out and back in, when the whole navigator is built again. Only the dark
+  // flag and the colours that belong to the app are set; the rest stays
+  // React Navigation's own.
+  const navigationTheme = React.useMemo(() => {
+    const base = isDarkMode ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      dark: isDarkMode,
+      colors: {
+        ...base.colors,
+        primary: theme.primary,
+        background: theme.background,
+        text: theme.text,
+        border: theme.border,
+      },
+    };
+  }, [isDarkMode, theme]);
   const { barStyle, backgroundColor: statusBarColor } = useStatusBar();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -643,6 +664,7 @@ const App = ({ skipSplash = false }) => {
         animated={true}
       />
       <NavigationContainer
+        theme={navigationTheme}
         ref={navigationRef}
         onReady={handleNavigationReady}
         onStateChange={handleNavigationStateChange}
