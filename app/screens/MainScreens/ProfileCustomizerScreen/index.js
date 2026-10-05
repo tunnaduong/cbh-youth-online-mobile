@@ -64,7 +64,7 @@ const OPTION_FIELDS = [
 ];
 // Fields an API from before the Pro tier neither sends nor accepts: they
 // are only edited, and only sent, when the editor lists options for them.
-const PROMAX_FIELDS = ["name_icon", "username_style"];
+const PRO_FIELDS = ["name_icon", "username_style"];
 const GRADIENT_FIELDS = { primary_color_2: "primary_color", accent_color_2: "accent_color", banner_color_2: "banner_color" };
 
 const sameTheme = (a, b) =>
@@ -233,7 +233,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
       // Exactly the fields this API knows: it rejects unknown keys.
       const payload = next ? { ...next } : next;
       if (payload) {
-        PROMAX_FIELDS.forEach((field) => {
+        PRO_FIELDS.forEach((field) => {
           if (!editor?.options?.[field]) delete payload[field];
         });
       }

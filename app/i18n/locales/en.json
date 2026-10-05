@@ -2112,7 +2112,7 @@
     "distinguished": "Distinguished member",
     "veteran": "Veteran member",
     "premium": "Premium member",
-    "promax": "Pro member"
+    "pro": "Pro member"
   },
   "memberTierPerks": {
     "trainee": "Theme colours, banner colour and the basic avatar frames",
@@ -2120,7 +2120,7 @@
     "distinguished": "More fonts and name effects, the gold frame and snow",
     "veteran": "Rainbow frame, aurora, spinning neon and an animated GIF avatar",
     "premium": "Rainbow and outlined names, premium fonts, gradient colours",
-    "promax": "An icon next to your name, a username styled like your name, emoji and special characters in your name"
+    "pro": "An icon next to your name, a username styled like your name, emoji and special characters in your name"
   },
   "twoFactor": {
     "methodDevice": "Approve on a logged-in device",

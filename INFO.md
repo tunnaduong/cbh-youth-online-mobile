@@ -352,7 +352,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 ## 6. Recent work (newest first, as of 2026-10)
 
 - **"Pro" tier (2000 points), one-line names, appearance in more places, profile photo gallery** (bundled by CI, not run on a device):
-  - Tier id `promax`, shown as "Thành viên Pro" / "Pro member" / "Участник Pro": name icon (`profile_theme.name_icon`, glyph from the API's `name_icon_emoji`), `@username` drawn like the name (`username_style = name`), emoji / decorative Unicode in names. Editor: new "Name icon & username" section in `ProfileCustomizerScreen`; `EditProfileScreen` shows a hint and a translated error for `errors.profile_name`.
+  - Tier id `pro`, shown as "Thành viên Pro" / "Pro member" / "Участник Pro": name icon (`profile_theme.name_icon`, glyph from the API's `name_icon_emoji`), `@username` drawn like the name (`username_style = name`), emoji / decorative Unicode in names. Editor: new "Name icon & username" section in `ProfileCustomizerScreen`; `EditProfileScreen` shows a hint and a translated error for `errors.profile_name`.
   - `app/components/profile/UserNameRow.js` is **the** way to show a user's name: one line, the name truncates, then name icon, verified tick and trailing content never wrap (see Design system). With `NameIcon.js`, `StyledUsername.js`. Used in posts, comments, stories, chat, search, rankings, votes lists, followers, profile header, sidebar and the settings profile card.
   - Profile: a Posts / Photos switch; photos from `GET /users/{username}/photos` (`ProfilePhotoGallery.js`), full-screen viewer.
   - Still plain because the API sends no theme there: mention suggestions, blocked users, chat user search, reaction lists, game/quiz leaderboards.

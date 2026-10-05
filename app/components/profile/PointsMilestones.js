@@ -17,7 +17,7 @@ const TIER_COLORS = {
   distinguished: "#eab308",
   veteran: "#a855f7",
   premium: "#f43f5e",
-  promax: "#f97316",
+  pro: "#f97316",
 };
 
 const EFFECT_SYMBOLS = { sparkles: "✦", hearts: "♥", snow: "❄", aurora: "✺" };
