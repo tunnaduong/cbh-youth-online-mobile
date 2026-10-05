@@ -48,7 +48,7 @@ const DEFAULT_THEME = {
   avatar_frame: "none",
   profile_effect: "none",
   profile_frame: "none",
-  // Pro Max (2000 points).
+  // Pro (2000 points).
   name_icon: "none",
   username_style: "default",
 };
@@ -62,7 +62,7 @@ const OPTION_FIELDS = [
   "name_icon",
   "username_style",
 ];
-// Fields an API from before the Pro Max tier neither sends nor accepts: they
+// Fields an API from before the Pro tier neither sends nor accepts: they
 // are only edited, and only sent, when the editor lists options for them.
 const PROMAX_FIELDS = ["name_icon", "username_style"];
 const GRADIENT_FIELDS = { primary_color_2: "primary_color", accent_color_2: "accent_color", banner_color_2: "banner_color" };
@@ -370,7 +370,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
     })
   );
 
-  // Pro Max options: a name icon and the @username drawn like the name.
+  // Pro options: a name icon and the @username drawn like the name.
   const nameIconOptions = editor.options.name_icon || null;
   const firstNameIcon = nameIconOptions?.find((o) => o.key !== "none") || null;
   const usernameStyleOption = optionOf("username_style", "name") || null;

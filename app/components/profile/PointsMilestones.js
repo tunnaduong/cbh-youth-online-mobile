@@ -86,7 +86,7 @@ function Sample({ item, profileTheme, avatarUrl }) {
       </View>
     );
   }
-  // Pro Max: the glyph itself (sent by the API), an @ in the name's style,
+  // Pro: the glyph itself (sent by the API), an @ in the name's style,
   // and "emoji and special characters in the name".
   if (field === "name_icon") {
     return <Text style={[styles.sampleGlyph, { color: theme.text }]}>{item.icon}</Text>;

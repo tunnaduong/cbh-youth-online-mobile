@@ -6,7 +6,7 @@ import Verified from "../../assets/Verified";
 
 /**
  * One line holding a user's name and everything that belongs right after it:
- * their name icon (Pro Max), the verified tick, then whatever the caller
+ * their name icon (Pro), the verified tick, then whatever the caller
  * passes as children (date, role chip, "· 2h"...).
  *
  * The rule this component exists for: **the name is the only part that

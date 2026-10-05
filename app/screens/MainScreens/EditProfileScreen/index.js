@@ -66,7 +66,7 @@ const EditProfileScreen = ({ navigation }) => {
     profile_picture: "",
   });
 
-  // Emoji and decorative letters in the display name are a Pro Max perk
+  // Emoji and decorative letters in the display name are a Pro perk
   // (`theme_editor.fancy_name` = { required_points, unlocked }; null when an
   // older API doesn't send it). `nameError` is set when the API refused the
   // name for that reason.

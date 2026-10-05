@@ -4,7 +4,7 @@ import { getNameIcon } from "../../utils/profileTheme";
 import { useTheme } from "../../contexts/ThemeContext";
 
 /**
- * The small playful icon a Pro Max member (2000 points) picked to follow
+ * The small playful icon a Pro member (2000 points) picked to follow
  * their name. Renders nothing when the user has none.
  *
  * It is an emoji glyph drawn as text, on purpose: it must never be mistaken

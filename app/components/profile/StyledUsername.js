@@ -7,7 +7,7 @@ import { usernameFollowsName } from "../../utils/profileTheme";
  * A user's `@username`.
  *
  * Normally a plain <Text> in the given style. When the user's theme says
- * `username_style === "name"` (Pro Max, 2000 points) it is drawn through
+ * `username_style === "name"` (Pro, 2000 points) it is drawn through
  * StyledName, so it takes the same font and effect as their name.
  *
  * Props:

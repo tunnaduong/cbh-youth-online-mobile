@@ -63,7 +63,7 @@ export function normalizeTheme(theme) {
     avatar_frame: theme.avatar_frame || "none",
     profile_effect: theme.profile_effect || "none",
     profile_frame: theme.profile_frame || "none",
-    // Pro Max (2000 points). Older API responses have none of the three.
+    // Pro (2000 points). Older API responses have none of the three.
     // name_icon_emoji is the glyph of name_icon, sent by the API so the app
     // keeps no table of its own.
     name_icon: typeof theme.name_icon === "string" && theme.name_icon ? theme.name_icon : "none",
@@ -220,7 +220,7 @@ export function getAvatarFrame(theme) {
 }
 
 /**
- * The glyph shown right after the user's name (Pro Max), or null. Always the
+ * The glyph shown right after the user's name (Pro), or null. Always the
  * API's `name_icon_emoji` - a key the app has no glyph for shows nothing.
  */
 export function getNameIcon(theme) {
