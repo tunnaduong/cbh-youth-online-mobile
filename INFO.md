@@ -155,6 +155,8 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Devices screen redesigned as expandable cards, with the login method** (not run on a device): `DevicesScreen` shows one card per login - icon, device name, "platform version • last active", chips ("This device", login method) - and opens on tap to a boxed list (model, platform + version, login method, logged in, last active) with a "Log out" button. `login_method` / `login_two_factor` come from `GET /sessions`; strings `devices.methods.*`, `devices.model`, `platform`, `version`, `loginMethod`, `withTwoFactor`, `loggedInLabel`, `lastActiveLabel`, `neverActive`, `total` (vi/en/ru).
+
 - **Passkeys are native** (new native module: needs a new build; not run on a device):
   - `react-native-passkey` 3.6.2 shows the system's own sheet - iOS AuthenticationServices, Android Credential Manager. No browser and no web page any more: `app/services/passkey.js` (`loginWithPasskey`, `createPasskey(password)`, `getPasskeys`, `deletePasskey`, `passkeysSupported`, `PasskeyError` with a translated `message` and `cancelled`). The module is loaded in a try block and `NativeModules.Passkey` is checked, so JS that reaches an older binary just reports "not supported".
   - Login: the passkey button on `LoginScreen` calls `POST /login/passkey/options` → system sheet → `POST /login/passkey` (returns the normal login payload; the `app_challenge` / `redeem` hand-off is no longer used by the app). Manage: new `PasskeysScreen` (Settings → Security → Passkey): list, add on this device (asks the password unless the account is a social one), remove. Strings: `passkeys.*` in vi/en/ru.

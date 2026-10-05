@@ -2142,6 +2142,25 @@
     "recoveryFileNote": "Mỗi mã chỉ dùng được một lần. Hãy cất tệp này ở nơi an toàn."
   },
   "devices": {
+    "total": "Tổng số lượt đăng nhập: {{total}}",
+    "model": "Mẫu thiết bị",
+    "platform": "Nền tảng",
+    "version": "phiên bản {{version}}",
+    "loginMethod": "Phương thức đăng nhập",
+    "withTwoFactor": "xác thực hai lớp",
+    "loggedInLabel": "Đăng nhập lúc",
+    "lastActiveLabel": "Hoạt động lần cuối",
+    "neverActive": "Chưa hoạt động",
+    "methods": {
+      "password": "Mật khẩu",
+      "google": "Google",
+      "facebook": "Facebook",
+      "apple": "Apple",
+      "passkey": "Passkey",
+      "register": "Đăng ký tài khoản",
+      "app": "Mở từ ứng dụng di động",
+      "unknown": "Không rõ"
+    },
     "title": "Thiết bị đã đăng nhập",
     "description": "Những nơi tài khoản của bạn đang đăng nhập. Nếu thấy thiết bị lạ, hãy đăng xuất thiết bị đó và đổi mật khẩu.",
     "thisDevice": "Thiết bị này",

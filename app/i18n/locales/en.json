@@ -2155,6 +2155,25 @@
     "recoveryFileNote": "Each code works once. Keep this file somewhere safe."
   },
   "devices": {
+    "total": "Total logins: {{total}}",
+    "model": "Device model",
+    "platform": "Platform",
+    "version": "version {{version}}",
+    "loginMethod": "Login method",
+    "withTwoFactor": "two-factor",
+    "loggedInLabel": "Logged in",
+    "lastActiveLabel": "Last active",
+    "neverActive": "Not active yet",
+    "methods": {
+      "password": "Password",
+      "google": "Google",
+      "facebook": "Facebook",
+      "apple": "Apple",
+      "passkey": "Passkey",
+      "register": "Signed up here",
+      "app": "Opened from the mobile app",
+      "unknown": "Unknown"
+    },
     "title": "Logged-in devices",
     "description": "Where your account is currently logged in. If you see a device you don't recognise, log it out and change your password.",
     "thisDevice": "This device",
