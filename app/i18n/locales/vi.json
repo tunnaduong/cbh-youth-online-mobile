@@ -1058,8 +1058,9 @@
   "firstLaunchSettings": {
     "title": "Tuỳ chỉnh trải nghiệm",
     "subtitle": "Bạn có thể đổi lại các cài đặt này bất cứ lúc nào trong phần Cài đặt.",
-    "autoplayDescription": "Tự động phát video khi cuộn qua trong khung chat, không cần nhấn để phát.",
-    "liquidGlassDescription": "Hiệu ứng kính mờ hiện đại cho giao diện. Có thể gây giật/lag trên các thiết bị cấu hình thấp - có thể tắt nếu ứng dụng chạy không mượt.",
+    "autoplayDescription": "Tự động phát video khi bạn cuộn qua trong các đoạn chat và bài viết, không cần nhấn để phát.",
+    "liquidGlassDescription": "Hiệu ứng kính lỏng trong suốt cho các nút và thanh điều hướng, uốn cong và phản chiếu nội dung phía sau. Có thể gây giật/lag trên các thiết bị cấu hình thấp - có thể tắt nếu ứng dụng chạy không mượt.",
+    "shakeDescription": "Lắc điện thoại để báo lỗi hoặc gửi góp ý nhanh từ bất kỳ màn hình nào.",
     "continue": "Tiếp tục"
   },
   "settings": {

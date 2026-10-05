@@ -16,7 +16,15 @@ import { AndroidGlassBackdrop } from "../../components/GlassModules";
 // useTheme()'s setAutoplayVideos/setLiquidGlassEnabled (MMKV), same as
 // toggling them from Settings - nothing new to wire up for that.
 const FirstLaunchSettingsScreen = ({ navigation }) => {
-  const { theme, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled } = useTheme();
+  const {
+    theme,
+    autoplayVideos,
+    setAutoplayVideos,
+    liquidGlassEnabled,
+    setLiquidGlassEnabled,
+    shakeToReportEnabled,
+    setShakeToReportEnabled,
+  } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
@@ -78,7 +86,7 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            <View style={styles.optionRow}>
+            <View style={[styles.optionRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
               <View style={styles.optionHeaderRow}>
                 <View style={[styles.optionIcon, { backgroundColor: theme.iconBackground }]}>
                   <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
@@ -94,6 +102,25 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
               </View>
               <Text style={[styles.optionDescription, { color: theme.subText }]}>
                 {t("firstLaunchSettings.liquidGlassDescription")}
+              </Text>
+            </View>
+
+            <View style={styles.optionRow}>
+              <View style={styles.optionHeaderRow}>
+                <View style={[styles.optionIcon, { backgroundColor: theme.iconBackground }]}>
+                  <Ionicons name="bug-outline" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.optionLabel, { color: theme.text }]}>
+                  {t("settings.shakeToReport")}
+                </Text>
+                <Switch
+                  value={shakeToReportEnabled}
+                  onValueChange={setShakeToReportEnabled}
+                  trackColor={{ true: theme.primary }}
+                />
+              </View>
+              <Text style={[styles.optionDescription, { color: theme.subText }]}>
+                {t("firstLaunchSettings.shakeDescription")}
               </Text>
             </View>
           </View>

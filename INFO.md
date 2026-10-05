@@ -351,6 +351,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **"Customize your experience" screen** (`FirstLaunchSettingsScreen`): a third switch, shake to report (`shakeToReportEnabled`, same setting as in Settings), with its description (`firstLaunchSettings.shakeDescription`); the autoplay text now says chats **and posts**; the liquid glass text no longer calls it frosted glass (it is the see-through, refracting kind). vi/en/ru.
+
 - **Signing out of the app signs its WebViews out too** (not run on a device): the API now ends the web sessions the app handed over when the app logs out (see the API's INFO.md), and the app keeps its "this WebView / in-app browser holds a session" markers (`WEB_SESSION_KEYS`, `app/utils/webSession.js`) across the sign-out wipe in `AuthContext.clearSessionCaches()` - they used to be wiped with everything else, so a guest opening the gift shop afterwards was still signed in as the previous account. With the markers kept, the next page opened there goes through `/auth/set-token?logout=1` first.
 
 - **Videos autoplay by default**: `autoplayVideos` (`ThemeContext`) now starts **on** when nothing is stored; a user who switched it off keeps it off. People who never touched the switch (including on the first-launch settings screen) get autoplay with this build.

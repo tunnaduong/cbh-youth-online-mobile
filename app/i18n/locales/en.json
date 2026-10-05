@@ -1070,8 +1070,9 @@
   "firstLaunchSettings": {
     "title": "Customize your experience",
     "subtitle": "You can change these anytime in Settings.",
-    "autoplayDescription": "Automatically play videos as you scroll through chat, without needing to tap them first.",
-    "liquidGlassDescription": "A modern frosted-glass look for the interface. May lag on lower-end devices - turn it off if the app doesn't feel smooth.",
+    "autoplayDescription": "Automatically play videos as you scroll through chats and posts, without needing to tap them first.",
+    "liquidGlassDescription": "A fluid, see-through glass look for buttons and bars that bends and reflects what's behind it. May lag on lower-end devices - turn it off if the app doesn't feel smooth.",
+    "shakeDescription": "Shake your phone to quickly report a bug or send a suggestion from any screen.",
     "continue": "Continue"
   },
   "settings": {
