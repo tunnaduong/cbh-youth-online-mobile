@@ -155,10 +155,12 @@ export function withWebSession(url, parts) {
 
 // Appended to the user agent of the app's WebViews (applicationNameForUserAgent)
 // so the sites can tell the WebView apart - the devices list labels its
-// session "WebView trong ứng dụng CBH Youth".
+// session "WebView trong ứng dụng CBH Youth". The "(+url)" part follows
+// OpenStreetMap's tile policy, which wants a User-Agent that names the app
+// and how to reach it - the gift shop's map loads its tiles from OSM.
 export const WEBVIEW_USER_AGENT_SUFFIX = `CBHYouthApp/${
   Application.nativeApplicationVersion || "0"
-}`;
+} (+https://chuyenbienhoa.com)`;
 
 /**
  * Script for a react-native-webview's injectedJavaScriptBeforeContentLoaded
