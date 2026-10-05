@@ -55,6 +55,7 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 - `AuthContext` giữ `auth_token`, `user_info` trong AsyncStorage và xoá sạch khi đăng xuất (đồng thời gọi API `/logout`).
 - Hỗ trợ xác minh email và cập nhật `email_verified_at`.
 - OAuth sử dụng `expo-auth-session` (PKCE) + backend `/v1.0/oauth/*` để đổi code sang token.
+- Passkey chạy native bằng `react-native-passkey` (iOS: AuthenticationServices, Android: Credential Manager), không qua web: đăng nhập ở `LoginScreen`, quản lý ở Cài đặt → Bảo mật → Passkey (`PasskeysScreen`). Cần `chuyenbienhoa.com/.well-known/apple-app-site-association` và `assetlinks.json` (repo web) khớp với app - xem INFO.md.
 
 ### 2. Bảng tin & stories
 - `HomeScreen` lấy feed (`/v1.0/topics`), phân trang vô hạn, tự tăng view khi item hiển thị ≥ 50%.

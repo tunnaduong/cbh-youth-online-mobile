@@ -25,7 +25,6 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import { openInAppBrowser } from "../../../utils/externalLink";
 
 const SettingItem = ({
   icon,
@@ -431,7 +430,7 @@ export default function SecurityScreen({ navigation }) {
             icon="finger-print-outline"
             title={t('security.passkeys')}
             description={t('security.passkeysDesc')}
-            onPress={() => openInAppBrowser("https://chuyenbienhoa.com/settings?tab=account", theme)}
+            onPress={() => navigation.navigate("PasskeysScreen")}
             theme={theme}
           />
           <SettingItem

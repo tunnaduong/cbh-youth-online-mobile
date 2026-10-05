@@ -93,6 +93,7 @@ import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/Withdraw
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
 import TwoFactorScreen from "./app/screens/MainScreens/SettingsScreen/TwoFactorScreen";
 import DevicesScreen from "./app/screens/MainScreens/SettingsScreen/DevicesScreen";
+import PasskeysScreen from "./app/screens/MainScreens/SettingsScreen/PasskeysScreen";
 import TwoFactorChallengeScreen from "./app/screens/TwoFactorChallengeScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
@@ -816,6 +817,13 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="DevicesScreen"
                 component={DevicesScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="PasskeysScreen"
+                component={PasskeysScreen}
                 options={{
                   headerShown: false,
                 }}

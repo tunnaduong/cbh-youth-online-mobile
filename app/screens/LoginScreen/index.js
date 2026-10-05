@@ -19,7 +19,7 @@ import ProgressHUD from "../../components/ProgressHUD";
 import { Ionicons } from "@expo/vector-icons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
-import { loginWithPasskey } from "../../services/passkey";
+import { loginWithPasskey, PasskeyError } from "../../services/passkey";
 import { apiErrorMessage } from "../../utils/apiMessage";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -88,19 +88,23 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  // Passkey: the device's fingerprint/face/screen lock is the whole login -
-  // nothing to type and no two-factor step.
+  // Passkey: the system's own sheet, then fingerprint/face/screen lock - the
+  // whole login, nothing to type and no two-factor step.
   const handlePasskeyLogin = async () => {
     if (loading) return;
     setLoading(true);
     try {
       const data = await loginWithPasskey();
-      if (!data) return; // browser closed
       if (!data.token || !data.user) {
         throw new Error(t("auth.invalidServerResponse"));
       }
       signIn(data.token, data.user);
     } catch (error) {
+      if (error instanceof PasskeyError) {
+        // Closing the system sheet needs no message.
+        if (!error.cancelled) Alert.alert(t("auth.loginError"), error.message);
+        return;
+      }
       const errorMessage = apiErrorMessage(error, t("auth.passkeyLoginError"));
       Alert.alert(t("auth.loginError"), errorMessage);
     } finally {

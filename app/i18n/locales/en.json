@@ -302,6 +302,35 @@
     "lastPost": "Last post",
     "noPostsInCategory": "No posts in this category yet."
   },
+  "passkeys": {
+    "title": "Passkeys",
+    "description": "A passkey logs you in with just this device's fingerprint, face or screen lock - no password and no two-factor code.",
+    "empty": "You have no passkeys yet.",
+    "loadError": "Couldn't load your passkeys. Pull down to try again.",
+    "add": "Add a passkey on this device",
+    "create": "Create passkey",
+    "passwordHint": "Enter your account password to continue.",
+    "passwordPlaceholder": "Current password",
+    "added": "Passkey added",
+    "remove": "Remove",
+    "removeTitle": "Remove this passkey?",
+    "removeConfirm": "That device will no longer be able to log in with it.",
+    "removed": "Passkey removed",
+    "unnamed": "Passkey",
+    "createdAt": "Created {{time}}",
+    "lastUsed": "Last used {{time}}",
+    "neverUsed": "Never used",
+    "errors": {
+      "cancelled": "Cancelled.",
+      "noPasskey": "This device has no passkey for your account. Log in with your password, then add one in Settings → Security.",
+      "alreadyExists": "This device already has a passkey for your account.",
+      "noProvider": "This device has nowhere to store a passkey. Turn on a screen lock and a password manager (Google or iCloud), then try again.",
+      "notSupported": "This device doesn't support passkeys (iOS 15 or Android 9 and the latest app version are required).",
+      "notConfigured": "The app isn't linked to chuyenbienhoa.com yet, so passkeys can't be used. Please update the app or try again later.",
+      "interrupted": "The request was interrupted. Please try again.",
+      "failed": "The passkey couldn't be used. Please try again."
+    }
+  },
   "apiError": {
     "network": "No network connection. Please try again.",
     "tooManyAttempts": "Too many attempts. Please try again later.",
@@ -1069,7 +1098,7 @@
   },
   "security": {
     "passkeys": "Passkeys",
-    "passkeysDesc": "Sign in with your fingerprint or face, no password. Managed on the website.",
+    "passkeysDesc": "Log in with your fingerprint, face or screen lock - no password.",
     "title": "Security",
     "personalInfo": "Personal Information",
     "loginSecurity": "Login & Security",

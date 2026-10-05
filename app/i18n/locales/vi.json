@@ -291,6 +291,35 @@
     "lastPost": "Bài viết cuối",
     "noPostsInCategory": "Chưa có bài viết nào trong chuyên mục này."
   },
+  "passkeys": {
+    "title": "Passkey",
+    "description": "Passkey cho phép đăng nhập chỉ bằng vân tay, khuôn mặt hoặc khóa màn hình của thiết bị - không cần mật khẩu và không cần mã xác thực hai lớp.",
+    "empty": "Bạn chưa có passkey nào.",
+    "loadError": "Không tải được danh sách passkey. Kéo xuống để thử lại.",
+    "add": "Thêm passkey trên thiết bị này",
+    "create": "Tạo passkey",
+    "passwordHint": "Nhập mật khẩu tài khoản để tiếp tục.",
+    "passwordPlaceholder": "Mật khẩu hiện tại",
+    "added": "Đã thêm passkey",
+    "remove": "Xóa",
+    "removeTitle": "Xóa passkey này?",
+    "removeConfirm": "Thiết bị đó sẽ không còn đăng nhập được bằng passkey này.",
+    "removed": "Đã xóa passkey",
+    "unnamed": "Passkey",
+    "createdAt": "Tạo ngày {{time}}",
+    "lastUsed": "Dùng lần cuối {{time}}",
+    "neverUsed": "Chưa dùng",
+    "errors": {
+      "cancelled": "Đã hủy.",
+      "noPasskey": "Thiết bị này chưa có passkey của bạn. Hãy đăng nhập bằng mật khẩu rồi thêm passkey trong Cài đặt → Bảo mật.",
+      "alreadyExists": "Thiết bị này đã có passkey cho tài khoản của bạn.",
+      "noProvider": "Thiết bị chưa có nơi lưu passkey. Hãy bật khóa màn hình và trình quản lý mật khẩu (Google hoặc iCloud) rồi thử lại.",
+      "notSupported": "Thiết bị này không hỗ trợ passkey (cần iOS 15 hoặc Android 9 trở lên và bản ứng dụng mới nhất).",
+      "notConfigured": "Ứng dụng chưa được liên kết với chuyenbienhoa.com nên chưa dùng được passkey. Vui lòng cập nhật ứng dụng hoặc thử lại sau.",
+      "interrupted": "Thao tác bị gián đoạn. Vui lòng thử lại.",
+      "failed": "Không dùng được passkey. Vui lòng thử lại."
+    }
+  },
   "apiError": {
     "network": "Không có kết nối mạng. Vui lòng thử lại.",
     "tooManyAttempts": "Bạn đã thử quá nhiều lần. Vui lòng thử lại sau.",
@@ -1057,7 +1086,7 @@
   },
   "security": {
     "passkeys": "Passkey",
-    "passkeysDesc": "Đăng nhập bằng vân tay hoặc khuôn mặt, không cần mật khẩu. Quản lý trên trang web.",
+    "passkeysDesc": "Đăng nhập bằng vân tay, khuôn mặt hoặc khóa màn hình, không cần mật khẩu.",
     "title": "Bảo mật",
     "personalInfo": "Thông tin cá nhân",
     "loginSecurity": "Đăng nhập & Bảo mật",
