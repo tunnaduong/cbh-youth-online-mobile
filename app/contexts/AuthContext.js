@@ -13,6 +13,7 @@ import { getEcho } from "../services/echo/echo";
 import i18n from "../i18n";
 import { useSessionReset } from "./SessionContext";
 import { WEB_SESSION_KEYS } from "../utils/webSession";
+import { releasePushToken } from "../utils/pushToken";
 import {
   getSavedAccounts,
   upsertSavedAccount,
@@ -233,6 +234,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    // While the token still works: this phone must stop getting the
+    // account's push notifications (see utils/pushToken.js).
+    await releasePushToken();
+
     // Call logout API first (while token is still available) then clear local state
     try {
       await logoutRequest();
@@ -244,7 +249,7 @@ export const AuthProvider = ({ children }) => {
     const remaining = userInfo?.id ? await removeSavedAccount(userInfo.id) : await getSavedAccounts();
     for (const account of remaining) {
       try {
-        await switchAccount(account);
+        await switchAccount(account, { leavePrevious: false });
         return;
       } catch {
         // That session was revoked too - try the next one
@@ -267,9 +272,19 @@ export const AuthProvider = ({ children }) => {
     } catch {}
   };
 
-  const switchAccount = async (account) => {
+  // `leavePrevious: false` when the account being left is already logged out
+  // or revoked (sign-out falling back to another saved account): its token
+  // is dead, the API has ended everything itself, and a request with it
+  // would only be answered 401 - which reads as "session expired".
+  const switchAccount = async (account, { leavePrevious = true } = {}) => {
     const previousToken = await AsyncStorage.getItem("auth_token");
-    if (previousToken && previousToken !== account.token) await endHandedOverWebSessions();
+    if (leavePrevious && previousToken && previousToken !== account.token) {
+      // The account stays signed in on the device, but while it is not the
+      // active one this phone gets none of its pushes and its web sessions
+      // are ended.
+      await releasePushToken();
+      await endHandedOverWebSessions();
+    }
     await AsyncStorage.setItem("auth_token", account.token);
     let freshUser = account.user;
     try {
@@ -382,6 +397,7 @@ export const AuthProvider = ({ children }) => {
 
   // Keeps the current account signed in (saved) and shows the login screens.
   const addAccount = async () => {
+    await releasePushToken();
     await endHandedOverWebSessions();
     await clearLocalSession();
   };

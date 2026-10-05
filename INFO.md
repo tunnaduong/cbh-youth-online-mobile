@@ -351,6 +351,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Pushes only for the active account; "new login" push** (not run on a device):
+  - The Expo push token used to be unregistered from an effect that ran **after** the sign-out, when requests no longer carried a login - the API ignored it, and the account that was left kept pushing to the phone. `app/utils/pushToken.js` now holds the registered token (`rememberPushToken`, set by `NotificationContext`) and `releasePushToken()` gives it back while the account's token still works: in `signOut`, and in `switchAccount` / `addAccount` for the account being left (a saved account that is not the active one gets no pushes on this phone; it registers again when switched back to).
+  - `switchAccount(account, { leavePrevious: false })` is what sign-out's fallback to another saved account uses: the account just logged out has a dead token, so nothing is sent with it (a 401 there would look like an expired session).
+  - A push of type `new_login` ("someone just logged in to your account on ...", sent by the API on every login) opens `DevicesScreen` (`notificationRouting.js`).
+
 - **Buttons before login are the app's own** (not run on a device): the wide buttons of the welcome, login, sign-up, forgot-password and two-factor screens were plain `TouchableOpacity` boxes; they are now `AuthButton` (`app/components/AuthButton.js`), a `LiquidButton` underneath - `variant="primary"` (solid brand colour) for the screen's main action, `variant="secondary"` (liquid glass on iOS, plain outlined surface on Android) for passkey / Apple / Google / Facebook and the welcome screen's second button. It takes the button's old stylesheet entry as `style`. The two-factor screen's back button is the same round `LiquidButton` as the login screen's. **Design system:** new wide buttons on these screens use `AuthButton`, not `TouchableOpacity`.
 
 - **First-launch setup resumes; leaving an account ends its web sessions** (not run on a device):

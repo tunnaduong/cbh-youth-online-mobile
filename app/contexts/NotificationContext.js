@@ -14,6 +14,7 @@ import {
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
 import { resolveNotificationTarget } from '../utils/notificationRouting';
+import { rememberPushToken } from '../utils/pushToken';
 
 export const NotificationContext = createContext();
 
@@ -114,6 +115,8 @@ export const NotificationProvider = ({ children }) => {
 
       setExpoPushToken(token);
       registeredTokenRef.current = token;
+      // So it can be given back just before the account is left.
+      rememberPushToken(token);
 
       // Get device type
       const deviceType = getDeviceType();

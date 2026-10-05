@@ -85,6 +85,12 @@ export function resolveNotificationTarget({ type, data, actor }) {
   const materialId = data.material_id ?? data.materialId;
   const actorUsername = actor?.username;
 
+  // "Someone just logged in to your account": the logged-in devices list,
+  // where that login can be ended.
+  if (type === "new_login") {
+    return { screen: "DevicesScreen" };
+  }
+
   if (type === "system_message" && data?.message?.includes("Chào mừng")) {
     return { screen: "PostScreen", params: { postId: 173336279 } };
   }
