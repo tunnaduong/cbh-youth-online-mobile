@@ -58,7 +58,8 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const [autoplayVideos, setAutoplayVideosState] = useState(() => {
-    return storage.getBoolean("autoplayVideos") ?? false;
+    // On unless the user turned it off (the stored choice always wins).
+    return storage.getBoolean("autoplayVideos") ?? true;
   });
 
   // Liquid glass is on by default - this is the "turn it off" escape hatch
