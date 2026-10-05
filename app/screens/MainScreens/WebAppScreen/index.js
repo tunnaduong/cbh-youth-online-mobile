@@ -64,20 +64,40 @@ export default function WebAppScreen({ navigation, route }) {
   // Bumping this remounts the WebView back at homeUrl.
   const [reloadKey, setReloadKey] = useState(0);
 
+  // A page to open instead of the home page (`route.params.url`, e.g. from a
+  // notification) - only when it is on this site. Used until the user asks
+  // for the home page; a new url in the params is a new request.
+  const requestedUrl = route.params?.url;
+  const [useRequestedUrl, setUseRequestedUrl] = useState(true);
+  useEffect(() => {
+    setUseRequestedUrl(true);
+    setReloadKey((key) => key + 1);
+  }, [requestedUrl]);
+  const entryUrl = (() => {
+    if (!useRequestedUrl || typeof requestedUrl !== "string") return site.homeUrl;
+    const host = requestedUrl.match(/^https:\/\/([^/?#]+)/i)?.[1]?.toLowerCase();
+    if (!host || !site.hosts.includes(host)) return site.homeUrl;
+    // Same app mode as the home page.
+    return /[?&]app=true/.test(requestedUrl)
+      ? requestedUrl
+      : requestedUrl + (requestedUrl.includes("?") ? "&" : "?") + "app=true";
+  })();
+
   // Worked out again on every remount (home button, theme change); once the
   // WebView is signed in it's just homeUrl.
   useEffect(() => {
     let cancelled = false;
     setStartUrl(null);
-    sessionEntryUrl(site.homeUrl, parseUrlParts(site.homeUrl), "webview").then((url) => {
+    sessionEntryUrl(entryUrl, parseUrlParts(entryUrl), "webview").then((url) => {
       if (!cancelled) setStartUrl(url);
     });
     return () => {
       cancelled = true;
     };
-  }, [site.homeUrl, reloadKey, isDarkMode]);
+  }, [entryUrl, reloadKey, isDarkMode]);
 
   const goHome = useCallback(() => {
+    setUseRequestedUrl(false);
     setBlockedUrl(null);
     setLoadFailed(false);
     setCanGoBack(false);

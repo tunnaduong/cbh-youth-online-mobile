@@ -1126,11 +1126,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     if (!userWithStory) return;
 
-    const timer = setTimeout(() => {
+    // Once: the param would otherwise still be there the next time the story
+    // row reloads, and the story would pop up again after it was closed.
+    navigation.setParams({ highlightStoryId: undefined });
+
+    // No cleanup that cancels this: clearing the param above re-runs the
+    // effect, and a cleanup would cancel the open it has just scheduled.
+    setTimeout(() => {
       storyRef.current?.show?.(userWithStory.id);
     }, 500);
-
-    return () => clearTimeout(timer);
   }, [route.params?.highlightStoryId, userStories]);
 
   // Handle deep link: com.fatties.youth://story/<storyId>
@@ -1144,6 +1148,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const userWithStory = userStories.find((user) =>
       user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
     );
+
+    // Handled (or the story is gone): drop the param. It used to stay in the
+    // route, so each reload of the story row - which happens on its own -
+    // opened the story again after the user had closed it.
+    navigation.setParams({ openStoryId: undefined });
 
     if (userWithStory) {
       // Small delay to let the screen finish mounting before opening viewer
