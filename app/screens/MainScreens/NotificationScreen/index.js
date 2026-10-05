@@ -35,6 +35,8 @@ import { useTranslation } from "react-i18next";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
 import StyledName from "../../../components/profile/StyledName";
+import NameIcon from "../../../components/profile/NameIcon";
+import { getNameIcon } from "../../../utils/profileTheme";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 
@@ -489,7 +491,10 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               displayContent
             ) : (
               <>
-                <StyledName theme={actorTheme} variant="compact" style={[styles.name, { color: theme.text }]}>{userName}</StyledName> {displayContent}
+                <StyledName theme={actorTheme} variant="compact" style={[styles.name, { color: theme.text }]}>{userName}</StyledName>
+                {getNameIcon(actorTheme) ? " " : ""}
+                <NameIcon theme={actorTheme} size={14} />
+                {" "}{displayContent}
               </>
             )}
           </Text>

@@ -491,6 +491,15 @@ export const getUserLikedPosts = (username, page = 1, perPage = 10, sort = "newe
   );
 };
 
+// Flat photo gallery of a profile (every image of the user's posts), paged:
+// { data: [{ id, url, post_id, post_title, post_anonymous, created_at }],
+//   total, current_page, per_page, has_more }
+export const getUserPhotos = (username, page = 1, perPage = 30) => {
+  return Api.getRequest(
+    "/v1.0/users/" + username + "/photos?page=" + page + "&per_page=" + perPage
+  );
+};
+
 export const followUser = (username) => {
   return Api.postRequest("/v1.0/users/" + username + "/follow");
 };

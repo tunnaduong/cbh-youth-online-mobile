@@ -17,7 +17,6 @@ import RenderHTML, {
   getNativePropsForTNode,
 } from "react-native-render-html";
 import { WebView } from "react-native-webview";
-import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -52,7 +51,7 @@ import { findPreviewableUrlInHtml } from "../utils/linkPreview";
 import LinkPreviewCard from "./LinkPreviewCard";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
 import { openExternalLink, openInAppBrowser } from "../utils/externalLink";
-import StyledName from "./profile/StyledName";
+import UserNameRow from "./profile/UserNameRow";
 import { AvatarFrameWrap } from "./profile/AvatarFrame";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
@@ -1247,22 +1246,21 @@ const PostItem = ({
           )}
         </View>
         </AvatarFrameWrap>
-        <StyledName theme={authorTheme} variant="compact" style={{ fontWeight: "bold", color: theme.primary, marginLeft: 8, flexShrink: 1 }}>
-          {item.anonymous ? t('post.anonymousUser') : (item?.author?.profile_name || item?.author?.username || "")}
-          {item?.author?.verified && !item.anonymous && (
-            <View>
-              <Verified
-                width={15}
-                height={15}
-                color={theme.primary}
-                style={{ marginBottom: -3 }}
-              />
-            </View>
-          )}
-        </StyledName>
-        <Text style={{ color: theme.subText }}>
-          {" · "}{formatTime(item.created_at || item.time || item.created_at_human)}{item.is_edited ? ` (${t('post.edited')})` : ""}
-        </Text>
+        {/* One line: the name is cut with "…" so the icon, the tick and the
+            date always stay next to it. */}
+        <UserNameRow
+          name={item.anonymous ? t('post.anonymousUser') : (item?.author?.profile_name || item?.author?.username || "")}
+          theme={authorTheme}
+          verified={!!item?.author?.verified && !item.anonymous}
+          verifiedSize={15}
+          verifiedColor={theme.primary}
+          style={{ fontWeight: "bold", color: theme.primary }}
+          containerStyle={{ marginLeft: 8, flex: 1 }}
+        >
+          <Text style={{ color: theme.subText, flexShrink: 0 }} numberOfLines={1}>
+            {" · "}{formatTime(item.created_at || item.time || item.created_at_human)}{item.is_edited ? ` (${t('post.edited')})` : ""}
+          </Text>
+        </UserNameRow>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
         <View style={{ gap: single ? 16 : 12, flexDirection: "row", alignItems: "center", flex: 1 }}>

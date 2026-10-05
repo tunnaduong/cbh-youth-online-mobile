@@ -29,7 +29,8 @@ import InlineVideoPlayer from "../../../components/InlineVideoPlayer";
 import ImageView from "react-native-image-viewing";
 import { useVideoPlayer, VideoView } from "expo-video";
 import FastImage from "../../../components/FastImage";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
 import AvatarFrame, { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import {
   getConversationMessages,
@@ -936,15 +937,16 @@ const MessageRow = React.memo(({
       )}
       {/* Show sender name for group chats when sender changes, and always for Yoyo AI */}
       {(isGroupChat || item.sender?.is_ai) && !item.is_myself && senderChanged && (
-        <StyledName
-          theme={item.sender?.profile_theme}
-          variant="compact"
-          style={[styles.senderName, { color: theme.subText }]}
-        >
-          {item.sender?.profile_name ||
+        <UserNameRow
+          name={
+            item.sender?.profile_name ||
             item.sender?.username ||
-            t("chatConversation.anonymous")}
-        </StyledName>
+            t("chatConversation.anonymous")
+          }
+          theme={item.sender?.profile_theme}
+          style={[styles.senderNameText, { color: theme.subText }]}
+          containerStyle={styles.senderName}
+        />
       )}
       <View
         style={[
@@ -4243,26 +4245,35 @@ const ConversationScreen = ({ navigation, route }) => {
                 ) : null}
               </View>
               <View style={[styles.headerTextContainer, { flexShrink: 1, minWidth: 0 }]}>
-                <StyledName
+                <UserNameRow
+                  name={
+                    isNewConversation
+                      ? selectedUser.profile_name
+                      : currentConversation?.type === "group"
+                        ? isPublicGroupChat(currentConversation)
+                          ? t("chatConversation.casualGroupName")
+                          : currentConversation?.name || t("chatConversation.casualGroupName")
+                        : currentConversation?.participants[0]?.profile_name
+                  }
                   theme={otherUser?.profile_theme}
-                  variant="compact"
                   style={[styles.headerName, { color: theme.text }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {isNewConversation
-                    ? selectedUser.profile_name
-                    : currentConversation?.type === "group"
-                      ? isPublicGroupChat(currentConversation)
-                        ? t("chatConversation.casualGroupName")
-                        : currentConversation?.name || t("chatConversation.casualGroupName")
-                      : currentConversation?.participants[0]?.profile_name}
-                </StyledName>
-                <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
-                  {currentConversation?.type === "group"
-                    ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
-                    : otherUser?.username ? "@" + otherUser.username : ""}
-                </Text>
+                  containerStyle={{ maxWidth: "100%" }}
+                />
+                {currentConversation?.type !== "group" && otherUser?.username ? (
+                  <StyledUsername
+                    theme={otherUser?.profile_theme}
+                    username={otherUser.username}
+                    style={[styles.headerSubtitle, { color: theme.subText }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  />
+                ) : (
+                  <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
+                    {currentConversation?.type === "group"
+                      ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
+                      : ""}
+                  </Text>
+                )}
               </View>
             </LiquidButton>
           </View>
@@ -4319,12 +4330,16 @@ const ConversationScreen = ({ navigation, route }) => {
                     return (
                       <View style={styles.seenByParticipantRow}>
                         <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
-                          <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                          <AvatarFrameWrap theme={item.profile_theme} size={32}>
+                            <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                          </AvatarFrameWrap>
                         </TouchableOpacity>
-                        <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
-                          <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
-                            {item.profile_name || item.username}
-                          </Text>
+                        <TouchableOpacity style={{ flex: 1, minWidth: 0 }} activeOpacity={0.6} onPress={goToProfile}>
+                          <UserNameRow
+                            name={item.profile_name || item.username}
+                            theme={item.profile_theme}
+                            style={[styles.seenByParticipantName, { color: theme.text }]}
+                          />
                           <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
                             {formatTime(item.last_read_at)}
                           </Text>
@@ -5071,11 +5086,16 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
   },
+  // Row holding the sender's name (and name icon) above their first bubble.
   senderName: {
-    fontSize: 12,
     marginLeft: 48,
     marginBottom: 4,
     marginTop: 8,
+    alignSelf: "flex-start",
+    maxWidth: "80%",
+  },
+  senderNameText: {
+    fontSize: 12,
     fontWeight: "500",
   },
   groupMessageWrapper: {

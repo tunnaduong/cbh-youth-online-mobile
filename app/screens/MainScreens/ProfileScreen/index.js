@@ -37,18 +37,24 @@ import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedContext } from "../../../contexts/FeedContext";
 import FastImage from "../../../components/FastImage";
-import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
 import AvatarFrame, { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import ProfileEffect from "../../../components/profile/ProfileEffect";
 import ProfileFrame from "../../../components/profile/ProfileFrame";
 import { ThemedBanner, ThemedSurface } from "../../../components/profile/ProfilePreviewCard";
+import {
+  PhotoGridRow,
+  ProfilePhotoViewer,
+  photoRows,
+  useProfilePhotos,
+} from "../../../components/profile/ProfilePhotoGallery";
 
 const LIKED_SORT_OPTIONS = [
   { value: "newest", labelKey: "profile.sortNewest" },
@@ -90,6 +96,10 @@ const ProfileScreen = ({ route, navigation }) => {
   const { recentPostsProfile, setRecentPostsProfile } = useContext(FeedContext);
   const isCurrentUser = userId === username;
   const [activeTab, setActiveTab] = useState("posts");
+  // Photo gallery (as on the web profile): a view of the Posts tab, fetched
+  // the first time it is opened.
+  const photoGallery = useProfilePhotos(userId, activeTab === "photos");
+  const [photoViewer, setPhotoViewer] = useState({ visible: false, index: 0 });
   const [postsPage, setPostsPage] = useState(1);
   const [postsHasMore, setPostsHasMore] = useState(true);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
@@ -370,6 +380,9 @@ const ProfileScreen = ({ route, navigation }) => {
     if (activeTab === "likes") {
       fetchLikedPosts(1, likedSort);
     }
+    if (activeTab === "photos") {
+      photoGallery.reload();
+    }
 
     fetchUserData(userId).finally(() => {
       setTimeout(() => {
@@ -538,17 +551,19 @@ const ProfileScreen = ({ route, navigation }) => {
         <FastImage source={{ uri: user.profile_picture }} style={styles.userAvatar} />
       </AvatarFrameWrap>
       <View style={styles.userInfo}>
-        <StyledName
+        <UserNameRow
+          name={user.profile_name}
           theme={user.profile_theme}
-          variant="compact"
+          verified={!!user.verified}
+          verifiedColor={theme.primary}
           style={[styles.userName, { color: theme.text }]}
+        />
+        <StyledUsername
+          theme={user.profile_theme}
+          username={user.username}
+          style={[styles.userUsername, { color: theme.subText }]}
           numberOfLines={1}
-        >
-          {user.profile_name}
-        </StyledName>
-        <Text style={[styles.userUsername, { color: theme.subText }]} numberOfLines={1}>
-          @{user.username}
-        </Text>
+        />
       </View>
       {/* if is current user then hide the follow btn */}
       {user.username !== username && (
@@ -587,6 +602,12 @@ const ProfileScreen = ({ route, navigation }) => {
   const listData =
     activeTab === "posts"
       ? recentPostsProfile || []
+      : activeTab === "photos"
+      ? photoRows(
+          photoGallery.photos,
+          // Placeholders from the moment the tab opens until the first answer.
+          photoGallery.loading || (!photoGallery.loaded && !photoGallery.error)
+        )
       : activeTab === "likes"
       ? likedPosts || []
       : activeTab === "following"
@@ -596,9 +617,14 @@ const ProfileScreen = ({ route, navigation }) => {
   const isPostTab = activeTab === "posts" || activeTab === "likes";
 
   const listKeyExtractor = (item) =>
-    isPostTab ? `post-${item.id}` : `user-${item.id}`;
+    isPostTab ? `post-${item.id}` : activeTab === "photos" ? String(item.id) : `user-${item.id}`;
 
   const renderListItem = ({ item }) => {
+    if (activeTab === "photos") {
+      return (
+        <PhotoGridRow row={item} onPress={(index) => setPhotoViewer({ visible: true, index })} />
+      );
+    }
     if (isPostTab) {
       return (
         <PostItem
@@ -624,6 +650,30 @@ const ProfileScreen = ({ route, navigation }) => {
       : "profile.emptyFollowers";
 
   const renderListEmpty = () => (
+    activeTab === "photos" ? (
+      photoGallery.error ? (
+        <View style={{ alignItems: "center", paddingHorizontal: 16 }}>
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 24 }}>
+            {t("profile.photosError")}
+          </Text>
+          <TouchableOpacity
+            onPress={photoGallery.reload}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            style={{ marginTop: 12, borderWidth: 1, borderColor: theme.primary, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}
+          >
+            <Text style={{ color: theme.primary, fontWeight: "700" }}>{t("profile.photosRetry")}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ alignItems: "center", marginTop: 20, paddingHorizontal: 16 }}>
+          <Ionicons name="images-outline" size={50} color={theme.subText} />
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 10 }}>
+            {t("profile.emptyPhotos")}
+          </Text>
+        </View>
+      )
+    ) :
     activeTab === "likes" && loadingLiked ? null :
     <View>
       <Image
@@ -638,6 +688,21 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const renderListFooter = () => (
     <>
+      {activeTab === "photos" && photoGallery.hasMore && (
+        <TouchableOpacity
+          onPress={photoGallery.loadMore}
+          disabled={photoGallery.loadingMore}
+          style={{ alignItems: "center", paddingVertical: 16 }}
+        >
+          {photoGallery.loadingMore ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <Text style={{ color: theme.primary, fontWeight: "600" }}>
+              {t('profile.loadMorePhotos')}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
       {activeTab === "likes" && (likedHasMore || (loadingLiked && likedPosts.length === 0)) && (
         <TouchableOpacity
           onPress={loadMoreLikedPosts}
@@ -779,21 +844,24 @@ const ProfileScreen = ({ route, navigation }) => {
                 ) : null}
               </View>
               <View style={{ paddingBottom: 16, flex: 1 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 4 }}>
-                  <StyledName
-                    theme={profileTheme}
-                    style={[styles.name, { color: theme.text, marginTop: 0, flexShrink: 1 }]}
-                    numberOfLines={2}
-                  >
-                    {userData?.profile?.profile_name}
-                  </StyledName>
-                  {userData?.profile?.verified && (
-                    <Verified width={23} height={23} color={theme.primary} />
-                  )}
-                </View>
-                <Text style={[styles.username, { color: theme.subText }]} numberOfLines={1}>
-                  @{userData?.username}
-                </Text>
+                {/* One line: a long name ends in "…" so the name icon and
+                    the tick stay beside it. */}
+                <UserNameRow
+                  name={userData?.profile?.profile_name}
+                  theme={profileTheme}
+                  variant="full"
+                  verified={!!userData?.profile?.verified}
+                  verifiedSize={23}
+                  verifiedColor={theme.primary}
+                  style={[styles.name, { color: theme.text, marginTop: 0 }]}
+                />
+                <StyledUsername
+                  theme={profileTheme}
+                  username={userData?.username}
+                  variant="full"
+                  style={[styles.username, { color: theme.subText }]}
+                  numberOfLines={1}
+                />
               </View>
             </View>
           </View>
@@ -929,7 +997,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "posts" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
+                (activeTab === "posts" || activeTab === "photos") && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("posts")}
             >
@@ -988,6 +1056,56 @@ const ProfileScreen = ({ route, navigation }) => {
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Posts tab: the posts themselves, or every photo in them. */}
+          {(activeTab === "posts" || activeTab === "photos") && (
+            <View
+              style={{
+                marginTop: 16,
+                marginBottom: activeTab === "photos" ? 12 : 0,
+                alignSelf: "center",
+                flexDirection: "row",
+                backgroundColor: theme.iconBackground,
+                borderRadius: 999,
+                padding: 3,
+              }}
+            >
+              {[
+                { value: "posts", label: t("profile.postsTab") },
+                {
+                  value: "photos",
+                  label:
+                    photoGallery.loaded && photoGallery.total > 0
+                      ? t("profile.photosTabCount", { total: photoGallery.total })
+                      : t("profile.photosTab"),
+                },
+              ].map((segment) => {
+                const selected = activeTab === segment.value;
+                return (
+                  <TouchableOpacity
+                    key={segment.value}
+                    onPress={() => setActiveTab(segment.value)}
+                    activeOpacity={0.7}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected }}
+                    style={{
+                      paddingVertical: 6,
+                      paddingHorizontal: 16,
+                      borderRadius: 999,
+                      backgroundColor: selected ? theme.background : "transparent",
+                    }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontSize: 13, fontWeight: "600", color: selected ? theme.text : theme.subText }}
+                    >
+                      {segment.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           {activeTab === "likes" && (
             <View style={{ marginTop: 16, marginHorizontal: 16, gap: 10 }}>
@@ -1123,6 +1241,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   { id: "distinguished", name: "Tiêu biểu", min_points: 500, color: "#eab308" },
                   { id: "veteran", name: "Kỳ cựu", min_points: 1000, color: "#a855f7" },
                   { id: "premium", name: "Cao cấp", min_points: 1500, color: "#f43f5e" },
+                  { id: "promax", name: "Pro Max", min_points: 2000, color: "#f97316" },
                 ];
                 // The API sends an array of {id, name, min_points, achieved_at}
                 // (achieved_at already formatted as d/m/Y), not an id-keyed map.
@@ -1140,8 +1259,12 @@ const ProfileScreen = ({ route, navigation }) => {
                         <Text style={{ fontWeight: "800", fontSize: 13, color: tier.color }}>{tier.min_points}</Text>
                         <Text style={{ fontSize: 10, color: tier.color }}>điểm</Text>
                       </View>
-                      <View style={{ flex: 1, marginLeft: 10 }}>
+                      <View style={{ flex: 1, marginLeft: 10, marginRight: 8 }}>
                         <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text }}>{tier.name}</Text>
+                        {/* What the tier unlocks. */}
+                        <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2 }}>
+                          {t(`memberTierPerks.${tier.id}`)}
+                        </Text>
                       </View>
                       <Text style={{ fontSize: 12, color: theme.subText }}>
                         {m?.achieved_at || (achieved ? "Đã đạt" : "Chưa đạt")}
@@ -1153,6 +1276,17 @@ const ProfileScreen = ({ route, navigation }) => {
             </Pressable>
           </Pressable>
         </Modal>
+
+        <ProfilePhotoViewer
+          photos={photoGallery.photos}
+          index={photoViewer.index}
+          visible={photoViewer.visible}
+          onClose={() => setPhotoViewer((current) => ({ ...current, visible: false }))}
+          onOpenPost={(photo) => {
+            setPhotoViewer((current) => ({ ...current, visible: false }));
+            navigation.push("PostScreen", { postId: photo.post_id });
+          }}
+        />
 
         <ReportModal
           visible={reportModalVisible}

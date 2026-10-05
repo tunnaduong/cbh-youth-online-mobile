@@ -66,7 +66,7 @@ import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import Toast from "react-native-toast-message";
 import FastImage from "../../../components/FastImage";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { getAvatarFrame } from "../../../utils/profileTheme";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
@@ -2105,23 +2105,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       bottom: -90,
                     }}
                   />
-                  <StyledName
+                  <UserNameRow
+                    name={user.name}
                     theme={user.profileTheme}
-                    variant="compact"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
+                    containerStyle={{ padding: 6 }}
                     style={{
                       fontSize: 13,
                       fontWeight: "600",
                       color: "#fff",
-                      padding: 6,
                       textShadowColor: "rgba(0, 0, 0, 0.8)",
                       textShadowOffset: { width: 0, height: 0 },
                       textShadowRadius: 2,
                     }}
-                  >
-                    {user.name}
-                  </StyledName>
+                  />
                 </View>
               </View>
             </TouchableHighlight>
@@ -2785,14 +2781,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 style={{ position: 'absolute', left: 44, right: 44, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
               >
                 {name && (
-                  <StyledName
+                  <UserNameRow
+                    name={name}
                     theme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    style={{ color: '#fff', fontWeight: '600', textAlign: 'center' }}
-                  >
-                    {name}
-                  </StyledName>
+                    variant="full"
+                    containerStyle={{ maxWidth: '100%' }}
+                    style={{ color: '#fff', fontWeight: '600' }}
+                  />
                 )}
                 {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
               </View>

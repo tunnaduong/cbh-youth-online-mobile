@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import FastImage from "../FastImage";
 import { useTheme } from "../../contexts/ThemeContext";
 import { getBannerFill, getSurfaceColors } from "../../utils/profileTheme";
-import StyledName from "./StyledName";
+import UserNameRow from "./UserNameRow";
+import StyledUsername from "./StyledUsername";
 import { AvatarFrameWrap } from "./AvatarFrame";
 import ProfileEffect from "./ProfileEffect";
 import ProfileFrame from "./ProfileFrame";
@@ -77,10 +78,20 @@ export default function ProfilePreviewCard({
           />
         </AvatarFrameWrap>
 
-        <StyledName theme={profileTheme} style={[styles.name, { color: theme.text }]}>
-          {profileName}
-        </StyledName>
-        <Text style={[styles.username, { color: theme.subText }]}>@{username}</Text>
+        <UserNameRow
+          name={profileName}
+          theme={profileTheme}
+          variant="full"
+          style={[styles.name, { color: theme.text }]}
+          containerStyle={styles.nameRow}
+        />
+        <StyledUsername
+          theme={profileTheme}
+          username={username}
+          variant="full"
+          style={[styles.username, { color: theme.subText }]}
+          numberOfLines={1}
+        />
 
         {bio ? (
           <View style={styles.field}>
@@ -109,14 +120,11 @@ export default function ProfilePreviewCard({
             <FastImage source={{ uri: avatarUrl }} style={styles.smallAvatar} />
           </AvatarFrameWrap>
           <View style={styles.shrink}>
-            <StyledName
+            <UserNameRow
+              name={profileName}
               theme={profileTheme}
-              variant="compact"
               style={[styles.smallName, { color: theme.text }]}
-              numberOfLines={1}
-            >
-              {profileName}
-            </StyledName>
+            />
             <Text style={[styles.caption, { color: theme.subText }]}>
               {t("profileTheme.preview.inComments", "Trong bình luận")}
             </Text>
@@ -141,6 +149,7 @@ const styles = StyleSheet.create({
   avatarWrap: { marginTop: -48, marginBottom: 10 },
   avatar: { width: 96, height: 96, borderRadius: 48, borderWidth: 5, backgroundColor: "#fff" },
   name: { fontSize: 24, fontWeight: "bold" },
+  nameRow: { alignSelf: "flex-start", maxWidth: "100%" },
   username: { fontSize: 14, marginTop: 2 },
   field: { marginTop: 14 },
   row: { flexDirection: "row", gap: 28 },

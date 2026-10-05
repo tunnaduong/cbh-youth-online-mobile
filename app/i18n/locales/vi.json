@@ -1014,6 +1014,14 @@
     "followersTab": "N. theo dõi",
     "likesTab": "Lượt thích",
     "emptyLikes": "Chưa có bài viết nào được thích",
+    "photosTab": "Thư viện ảnh",
+    "photosTabCount": "Thư viện ảnh ({{total}})",
+    "emptyPhotos": "Chưa có ảnh nào",
+    "photosError": "Không tải được thư viện ảnh",
+    "photosRetry": "Thử lại",
+    "loadMorePhotos": "Xem thêm ảnh",
+    "photoLabel": "Ảnh bài viết",
+    "viewPost": "Xem bài viết",
     "likesSummary": "{{posts}} bài viết · {{likes}} lượt thích",
     "sortNewest": "Mới nhất",
     "sortOldest": "Cũ nhất",
@@ -1043,6 +1051,8 @@
     "successTitle": "Thành công",
     "successMessage": "Cập nhật thông tin thành công",
     "errorUpdate": "Không thể cập nhật thông tin",
+    "nameFancyHint": "Biểu tượng cảm xúc và ký tự đặc biệt trong tên mở khóa ở {{points}} điểm.",
+    "nameFancyLocked": "Tên chỉ được dùng chữ cái, chữ số và dấu cách. Biểu tượng cảm xúc và ký tự đặc biệt cần đạt {{points}} điểm.",
     "birthdayFormat": "{{day}} Tháng {{month}} {{year}}"
   },
   "firstLaunchSettings": {
@@ -1980,6 +1990,9 @@
   },
   "profileTheme": {
     "gradientColor": "Màu chuyển sắc",
+    "nameIconHint": "Biểu tượng hiện ngay sau tên của bạn · {{points}} điểm",
+    "usernameStyle": "Tên người dùng theo kiểu tên",
+    "usernameStyleHint": "@tên người dùng dùng cùng phông và hiệu ứng với tên · {{points}} điểm",
     "gradientLocked": "Màu chuyển sắc cần {{points}} điểm",
     "gradientPickBase": "Hãy chọn màu trước",
     "gradientCleared": "Đã bỏ màu chuyển sắc",
@@ -2021,14 +2034,17 @@
       "banner": "Ảnh bìa",
       "effects": "Hiệu ứng & Khung hồ sơ",
       "name": "Kiểu tên",
-      "colors": "Màu giao diện"
+      "colors": "Màu giao diện",
+      "nameExtras": "Biểu tượng tên & tên người dùng"
     },
     "groups": {
       "name_font": "Phông",
       "name_effect": "Hiệu ứng tên",
       "avatar_frame": "Khung ảnh đại diện",
       "profile_effect": "Hiệu ứng hồ sơ",
-      "profile_frame": "Khung hồ sơ"
+      "profile_frame": "Khung hồ sơ",
+      "name_icon": "Biểu tượng tên",
+      "username_style": "Kiểu tên người dùng"
     },
     "preview": {
       "about": "Giới thiệu",
@@ -2042,7 +2058,8 @@
       "next": "Còn {{points}} điểm tới {{tier}}",
       "all": "Đã mở khóa tất cả",
       "colors": "Màu giao diện & màu ảnh bìa",
-      "gif": "Avatar GIF động"
+      "gif": "Avatar GIF động",
+      "fancyName": "Biểu tượng cảm xúc và ký tự đặc biệt trong tên"
     },
     "fonts": {
       "default": "Mặc định",
@@ -2064,7 +2081,8 @@
       "avatar_frame": { "none": "Không", "theme": "Theo màu", "trainee": "Bạc", "active": "Băng", "distinguished": "Vàng", "veteran": "Cầu vồng" },
       "name_effect": { "none": "Không", "solid": "Một màu", "gradient": "Chuyển màu", "pop": "Nổi khối", "toon": "Hoạt hình", "neon": "Neon", "rainbow": "Cầu vồng", "outline": "Viền chữ" },
       "profile_effect": { "none": "Không", "sparkles": "Lấp lánh", "hearts": "Trái tim", "snow": "Tuyết rơi", "aurora": "Cực quang" },
-      "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay" }
+      "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay" },
+      "name_icon": { "none": "Không" }
     }
   },
   "webApp": {
@@ -2080,7 +2098,16 @@
     "active": "Thành viên tích cực",
     "distinguished": "Thành viên tiêu biểu",
     "veteran": "Thành viên kỳ cựu",
-    "premium": "Thành viên cao cấp"
+    "premium": "Thành viên cao cấp",
+    "promax": "Thành viên Pro Max"
+  },
+  "memberTierPerks": {
+    "trainee": "Màu giao diện, màu ảnh bìa và khung ảnh đại diện cơ bản",
+    "active": "Tên chuyển màu, hiệu ứng hồ sơ và khung hồ sơ đầu tiên",
+    "distinguished": "Thêm phông chữ, hiệu ứng tên, khung vàng và tuyết rơi",
+    "veteran": "Khung cầu vồng, cực quang, neon xoay và avatar GIF động",
+    "premium": "Tên cầu vồng và viền chữ, phông cao cấp, màu chuyển sắc",
+    "promax": "Biểu tượng cạnh tên, tên người dùng theo kiểu tên, biểu tượng cảm xúc và ký tự đặc biệt trong tên"
   },
   "twoFactor": {
     "methodDevice": "Xác nhận trên thiết bị đã đăng nhập",

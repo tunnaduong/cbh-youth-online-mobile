@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useContext, useEffect, useRef } from "react";
 import FastImage from "../../../components/FastImage";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import {
   View,
@@ -675,18 +676,18 @@ const GroupInfoScreen = ({ navigation, route }) => {
                   <FastImage source={{ uri: avatarUrl(item) }} style={styles.participantAvatar} />
                 </AvatarFrameWrap>
               </TouchableOpacity>
-              <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
-                <StyledName
+              <TouchableOpacity style={{ flex: 1, minWidth: 0 }} activeOpacity={0.6} onPress={goToProfile}>
+                <UserNameRow
+                  name={item.profile_name || item.username}
                   theme={item.profile_theme}
-                  variant="compact"
                   style={[styles.participantName, { color: theme.text }]}
+                />
+                <StyledUsername
+                  theme={item.profile_theme}
+                  username={item.username}
+                  style={[styles.participantHandle, { color: theme.subText }]}
                   numberOfLines={1}
-                >
-                  {item.profile_name || item.username}
-                </StyledName>
-                <Text style={[styles.participantHandle, { color: theme.subText }]} numberOfLines={1}>
-                  @{item.username}
-                </Text>
+                />
               </TouchableOpacity>
               {item.role === "owner" && (
                 <View style={[styles.roleBadge, { backgroundColor: theme.iconBackground }]}>

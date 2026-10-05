@@ -18,6 +18,8 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 const StoryViewersScreen = ({ route, navigation }) => {
   const { storyId } = route.params;
@@ -95,12 +97,20 @@ const StoryViewersScreen = ({ route, navigation }) => {
           });
         }}
       >
-        <FastImage
-          source={{ uri: item.profile_picture }}
-          style={styles.avatar}
-        />
+        <AvatarFrameWrap theme={item.profile_theme} size={50} style={{ marginRight: 12 }}>
+          <FastImage
+            source={{ uri: item.profile_picture }}
+            style={[styles.avatar, { marginRight: 0 }]}
+          />
+        </AvatarFrameWrap>
         <View style={styles.viewerInfo}>
-          <Text style={[styles.viewerName, { color: theme.text }]}>{item.profile_name}</Text>
+          <UserNameRow
+            name={item.profile_name}
+            theme={item.profile_theme}
+            verified={!!item.verified}
+            verifiedColor={theme.primary}
+            style={[styles.viewerName, { color: theme.text }]}
+          />
           {reactionDisplay ? (
             <View style={styles.reactionsContainer}>
               <Text style={[styles.reactionsText, { color: theme.subText }]}>{reactionDisplay}</Text>
@@ -213,6 +223,7 @@ const styles = StyleSheet.create({
   },
   viewerInfo: {
     flex: 1,
+    minWidth: 0,
   },
   reactionsContainer: {
     marginTop: 4,

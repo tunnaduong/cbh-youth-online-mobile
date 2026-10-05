@@ -17,10 +17,19 @@ const TIER_COLORS = {
   distinguished: "#eab308",
   veteran: "#a855f7",
   premium: "#f43f5e",
+  promax: "#f97316",
 };
 
 const EFFECT_SYMBOLS = { sparkles: "✦", hearts: "♥", snow: "❄", aurora: "✺" };
-const TRYABLE = ["name_font", "name_effect", "avatar_frame", "profile_effect", "profile_frame"];
+const TRYABLE = [
+  "name_font",
+  "name_effect",
+  "avatar_frame",
+  "profile_effect",
+  "profile_frame",
+  "name_icon",
+  "username_style",
+];
 
 /**
  * Where `points` sits on the milestone track, in %. Milestones are evenly
@@ -77,6 +86,24 @@ function Sample({ item, profileTheme, avatarUrl }) {
       </View>
     );
   }
+  // Pro Max: the glyph itself (sent by the API), an @ in the name's style,
+  // and "emoji and special characters in the name".
+  if (field === "name_icon") {
+    return <Text style={[styles.sampleGlyph, { color: theme.text }]}>{item.icon}</Text>;
+  }
+  if (field === "username_style") {
+    return (
+      <StyledName
+        theme={{ ...profileTheme, username_style: key }}
+        style={[styles.sampleText, { color: theme.text }]}
+      >
+        @
+      </StyledName>
+    );
+  }
+  if (field === "fancy_name") {
+    return <Text style={[styles.sampleGlyph, { color: theme.text }]}>𝓐✨</Text>;
+  }
   if (field === "theme_colors") {
     return <LinearGradient colors={themeColors(profileTheme)} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sampleFill} />;
   }
@@ -109,6 +136,9 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
     if (editor.required_points === minPoints) {
       items.push({ field: "theme_colors", key: "colors", label: t("profileTheme.milestones.colors", "Màu giao diện & màu ảnh bìa") });
     }
+    if (editor.fancy_name && editor.fancy_name.required_points === minPoints) {
+      items.push({ field: "fancy_name", key: "fancy", label: t("profileTheme.milestones.fancyName") });
+    }
     Object.entries(editor.options).forEach(([field, options]) => {
       options
         .filter((o) => o.required_points === minPoints && !["none", "default"].includes(o.key))
@@ -116,7 +146,14 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
           items.push({
             field,
             key: o.key,
-            label: `${t(`profileTheme.groups.${field}`, field)}: ${optionLabel(field, o.key)}`,
+            // The name icons have no names of their own: the glyph is the label.
+            icon: o.icon,
+            label:
+              field === "name_icon"
+                ? `${t("profileTheme.groups.name_icon")}: ${o.icon || o.key}`
+                : field === "username_style"
+                  ? t("profileTheme.usernameStyle")
+                  : `${t(`profileTheme.groups.${field}`, field)}: ${optionLabel(field, o.key)}`,
           })
         );
     });
@@ -283,6 +320,7 @@ const styles = StyleSheet.create({
   sampleText: { fontSize: 16, fontWeight: "bold" },
   sampleFill: { width: "100%", height: "100%", alignItems: "center", justifyContent: "center" },
   sampleSymbol: { color: "#fff", fontSize: 16 },
+  sampleGlyph: { fontSize: 20 },
   sampleFrame: { width: 32, height: 24, borderRadius: 4 },
   gif: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5 },
 });

@@ -16,7 +16,7 @@ import { getSavedPosts } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
@@ -52,13 +52,11 @@ const SavedPostItem = ({ item, navigation, onOptionsPress, t, theme }) => (
             <Text className="text-[13px] mx-1" style={{ color: theme.subText }}>•</Text>
           </>
         )}
-        <StyledName
+        <UserNameRow
+          name={item.topic.author.profile_name}
           theme={item.topic.anonymous ? null : item.topic.author.profile_theme}
-          variant="compact"
           style={{ fontSize: 13, color: theme.subText }}
-        >
-          {item.topic.author.profile_name}
-        </StyledName>
+        />
       </View>
       <Text className="text-[13px] mt-0.5" style={{ color: theme.subText }}>
         {t("savedPosts.savedTime", { time: item.created_at ? formatTime(item.created_at) : "" })}

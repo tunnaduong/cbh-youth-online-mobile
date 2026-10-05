@@ -30,7 +30,7 @@ import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import CustomLoading from "../../../components/CustomLoading";
 import FastImage from "../../../components/FastImage";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
 import AvatarFrame from "../../../components/profile/AvatarFrame";
 
 const formatMessageTime = (timestamp) => {
@@ -404,14 +404,11 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
         ) : null}
       </View>
       <View style={styles.info}>
-        <StyledName
+        <UserNameRow
+          name={getChatName(item)}
           theme={getProfileTheme(item)}
-          variant="compact"
           style={[styles.name, { color: theme.text }]}
-          numberOfLines={1}
-        >
-          {getChatName(item)}
-        </StyledName>
+        />
         <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
           {item.latest_message?.is_myself ? t('chat.you') : ""}
           {renderLastMessagePreview(item.latest_message)}

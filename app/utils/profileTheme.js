@@ -5,7 +5,8 @@
  * API trả `profile.theme` (trang cá nhân) / `profile_theme` (tác giả bài viết,
  * bình luận, chat, xếp hạng, thông báo) = null (giao diện mặc định) hoặc:
  *   { primary_color, accent_color, banner_color, name_font, name_effect,
- *     name_colors, avatar_frame, profile_effect, profile_frame }
+ *     name_colors, avatar_frame, profile_effect, profile_frame,
+ *     name_icon, name_icon_emoji, username_style }
  * Danh sách key hợp lệ và quyền mở khoá nằm ở App\Services\ProfileThemeService
  * phía API - thêm key mới phải thêm ở cả API, web và đây (font: nameFonts.js).
  */
@@ -62,6 +63,13 @@ export function normalizeTheme(theme) {
     avatar_frame: theme.avatar_frame || "none",
     profile_effect: theme.profile_effect || "none",
     profile_frame: theme.profile_frame || "none",
+    // Pro Max (2000 points). Older API responses have none of the three.
+    // name_icon_emoji is the glyph of name_icon, sent by the API so the app
+    // keeps no table of its own.
+    name_icon: typeof theme.name_icon === "string" && theme.name_icon ? theme.name_icon : "none",
+    name_icon_emoji:
+      typeof theme.name_icon_emoji === "string" && theme.name_icon_emoji ? theme.name_icon_emoji : null,
+    username_style: theme.username_style === "name" ? "name" : "default",
   };
 }
 
@@ -209,4 +217,19 @@ export function getAvatarFrame(theme) {
     sweep: !!frame.sweep,
     animated: !!frame.animated,
   };
+}
+
+/**
+ * The glyph shown right after the user's name (Pro Max), or null. Always the
+ * API's `name_icon_emoji` - a key the app has no glyph for shows nothing.
+ */
+export function getNameIcon(theme) {
+  const normalized = normalizeTheme(theme);
+  if (!normalized || normalized.name_icon === "none") return null;
+  return normalized.name_icon_emoji;
+}
+
+/** true when the @username is drawn with the name's font and effect. */
+export function usernameFollowsName(theme) {
+  return normalizeTheme(theme)?.username_style === "name";
 }

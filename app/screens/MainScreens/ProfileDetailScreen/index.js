@@ -24,6 +24,9 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 const ProfileDetailScreen = ({ navigation, route }) => {
   const {
@@ -302,14 +305,31 @@ const ProfileDetailScreen = ({ navigation, route }) => {
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={styles.avatar}
+          <AvatarFrameWrap theme={profileData?.theme} size={100} style={{ marginBottom: 8 }}>
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={[styles.avatar, { marginBottom: 0 }]}
+            />
+          </AvatarFrameWrap>
+          <UserNameRow
+            name={profileData?.profile_name}
+            theme={profileData?.theme}
+            variant="full"
+            verified={!!profileData?.verified}
+            verifiedSize={22}
+            verifiedColor={theme.primary}
+            style={[styles.profileName, { color: theme.text, marginBottom: 0 }]}
+            containerStyle={{ maxWidth: "100%", paddingHorizontal: 16, marginBottom: 4 }}
           />
-          <Text style={[styles.profileName, { color: theme.text }]}>{profileData?.profile_name}</Text>
-          <Text style={[styles.username, { color: theme.subText }]}>@{username}</Text>
+          <StyledUsername
+            theme={profileData?.theme}
+            username={username}
+            variant="full"
+            style={[styles.username, { color: theme.subText }]}
+            numberOfLines={1}
+          />
         </View>
 
         {/* Bio Section */}

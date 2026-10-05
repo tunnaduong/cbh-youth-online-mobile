@@ -18,7 +18,8 @@ import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
 import FastImage from "./FastImage";
 import AccountSwitcher from "./AccountSwitcher";
-import StyledName from "./profile/StyledName";
+import UserNameRow from "./profile/UserNameRow";
+import StyledUsername from "./profile/StyledUsername";
 import { AvatarFrameWrap } from "./profile/AvatarFrame";
 import { useOwnProfileTheme } from "../utils/ownProfileTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -271,14 +272,19 @@ const Sidebar = ({ providerId, isOpen }) => {
               />
             </AvatarFrameWrap>
             <View>
-              <StyledName
+              <UserNameRow
+                name={profileName}
                 theme={ownTheme}
                 variant="full"
                 style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}
-              >
-                {profileName}
-              </StyledName>
-              <Text style={{ color: theme.subText }}>@{username}</Text>
+              />
+              <StyledUsername
+                theme={ownTheme}
+                username={username}
+                variant="full"
+                style={{ color: theme.subText }}
+                numberOfLines={1}
+              />
             </View>
           </TouchableOpacity>
           <AccountSwitcher />

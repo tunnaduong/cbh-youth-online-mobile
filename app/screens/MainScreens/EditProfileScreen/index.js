@@ -66,6 +66,13 @@ const EditProfileScreen = ({ navigation }) => {
     profile_picture: "",
   });
 
+  // Emoji and decorative letters in the display name are a Pro Max perk
+  // (`theme_editor.fancy_name` = { required_points, unlocked }; null when an
+  // older API doesn't send it). `nameError` is set when the API refused the
+  // name for that reason.
+  const [fancyName, setFancyName] = useState(null);
+  const [nameError, setNameError] = useState(false);
+
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(new Date());
   const [birthdayChanged, setBirthdayChanged] = useState(false);
@@ -109,6 +116,7 @@ const EditProfileScreen = ({ navigation }) => {
         birthday: profile.birthday_raw || "",
         gender: profile.gender || "",
       });
+      setFancyName(profile.theme_editor?.fancy_name || null);
       // profile.birthday_raw is null when the user never set a birthday -
       // new Date(null) coerces to new Date(0) (1970-01-01) instead of an
       // "unset" state, which then got silently resubmitted on every save.
@@ -214,10 +222,17 @@ const EditProfileScreen = ({ navigation }) => {
       navigation.goBack();
     } catch (error) {
       console.error("Error updating profile:", error?.response?.data || error?.message);
+      // The name was refused (emoji / special characters below the tier):
+      // say so in the app's language, under the field and in the toast.
+      const nameRefused =
+        error?.response?.status === 422 && !!error.response.data?.errors?.profile_name;
+      setNameError(nameRefused);
       Toast.show({
         type: "error",
         text1: t('profile.errorTitle'),
-        text2: t('editProfile.errorUpdate'),
+        text2: nameRefused
+          ? t('editProfile.nameFancyLocked', { points: fancyName?.required_points ?? 2000 })
+          : t('editProfile.errorUpdate'),
         autoHide: true,
         visibilityTime: 5000,
         topOffset: 60,
@@ -373,12 +388,25 @@ const EditProfileScreen = ({ navigation }) => {
               <TextInput
                 style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.cardBackground }]}
                 value={profileData.profile_name}
-                onChangeText={(text) =>
-                  setProfileData((prev) => ({ ...prev, profile_name: text }))
-                }
+                onChangeText={(text) => {
+                  setNameError(false);
+                  setProfileData((prev) => ({ ...prev, profile_name: text }));
+                }}
                 placeholder={t('editProfile.displayNamePlaceholder')}
                 placeholderTextColor={theme.subText}
               />
+              {nameError ? (
+                <Text style={styles.fieldError}>
+                  {t('editProfile.nameFancyLocked', { points: fancyName?.required_points ?? 2000 })}
+                </Text>
+              ) : fancyName && !fancyName.unlocked ? (
+                <View style={styles.fieldHintRow}>
+                  <Ionicons name="lock-closed" size={12} color={theme.subText} />
+                  <Text style={[styles.fieldHint, { color: theme.subText }]}>
+                    {t('editProfile.nameFancyHint', { points: fancyName.required_points ?? 2000 })}
+                  </Text>
+                </View>
+              ) : null}
             </View>
 
             <View style={styles.inputGroup}>
@@ -557,6 +585,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#319527",
     marginBottom: 8,
+  },
+  fieldHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+  },
+  fieldHint: {
+    flex: 1,
+    fontSize: 13,
+  },
+  fieldError: {
+    fontSize: 14,
+    color: "#FF3B30",
+    marginTop: 6,
   },
   input: {
     borderWidth: 1,

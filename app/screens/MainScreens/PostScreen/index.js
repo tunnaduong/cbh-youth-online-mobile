@@ -50,8 +50,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
-import Verified from "../../../assets/Verified";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
@@ -128,14 +127,14 @@ const Comment = React.memo(React.forwardRef(
                 onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
                 disabled={!author.username || !!comment.is_anonymous}
               >
-                <StyledName theme={authorTheme} variant="compact" style={{ fontWeight: "bold", color: theme.primary }}>
-                  {comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || ""}
-                  {author.verified && !comment.is_anonymous && (
-                    <View>
-                      <Verified width={15} height={15} color={theme.primary} style={{ marginBottom: -3 }} />
-                    </View>
-                  )}
-                </StyledName>
+                <UserNameRow
+                  name={comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || ""}
+                  theme={authorTheme}
+                  verified={!!author.verified && !comment.is_anonymous}
+                  verifiedSize={15}
+                  verifiedColor={theme.primary}
+                  style={{ fontWeight: "bold", color: theme.primary }}
+                />
               </Pressable>
               {comment.target_author && (
                 <Text style={{ fontSize: 12, color: theme.subText, marginBottom: 2 }}>

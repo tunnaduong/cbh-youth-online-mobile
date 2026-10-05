@@ -26,6 +26,10 @@ import { changeLanguage } from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
+import { useOwnProfileTheme } from "../../../utils/ownProfileTheme";
 
 const SettingItem = ({
   icon,
@@ -93,6 +97,8 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
+  // The signed-in user's own appearance (cached; same source as the sidebar).
+  const ownTheme = useOwnProfileTheme(userInfo?.username);
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -221,13 +227,27 @@ export default function SettingsScreen({ navigation }) {
           onPress={() => navigation.navigate("ProfileScreen", { username: userInfo.username })}
           activeOpacity={0.8}
         >
-          <FastImage
-            source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar` }}
-            style={styles.avatar}
-          />
+          <AvatarFrameWrap theme={ownTheme} size={56}>
+            <FastImage
+              source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar` }}
+              style={styles.avatar}
+            />
+          </AvatarFrameWrap>
           <View style={styles.profileInfo}>
-            <Text style={[styles.profileName, { color: theme.text }]}>{userInfo.profile_name}</Text>
-            <Text style={[styles.profileUsername, { color: theme.subText }]}>@{userInfo.username}</Text>
+            <UserNameRow
+              name={userInfo.profile_name}
+              theme={ownTheme}
+              variant="full"
+              style={[styles.profileName, { color: theme.text, marginBottom: 0 }]}
+              containerStyle={{ marginBottom: 3 }}
+            />
+            <StyledUsername
+              theme={ownTheme}
+              username={userInfo.username}
+              variant="full"
+              style={[styles.profileUsername, { color: theme.subText }]}
+              numberOfLines={1}
+            />
           </View>
           <View style={[styles.profileChevronWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
             <Ionicons name="chevron-forward" size={18} color={theme.subText} />

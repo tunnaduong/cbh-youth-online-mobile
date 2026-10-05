@@ -1026,6 +1026,14 @@
     "followersTab": "Followers",
     "likesTab": "Likes",
     "emptyLikes": "No liked posts yet",
+    "photosTab": "Photos",
+    "photosTabCount": "Photos ({{total}})",
+    "emptyPhotos": "No photos yet",
+    "photosError": "Could not load the photo gallery",
+    "photosRetry": "Try again",
+    "loadMorePhotos": "Load more photos",
+    "photoLabel": "Post photo",
+    "viewPost": "View post",
     "likesSummary": "{{posts}} posts · {{likes}} likes",
     "sortNewest": "Newest",
     "sortOldest": "Oldest",
@@ -1055,6 +1063,8 @@
     "successTitle": "Success",
     "successMessage": "Profile updated successfully",
     "errorUpdate": "Could not update profile",
+    "nameFancyHint": "Emoji and special characters in your name unlock at {{points}} points.",
+    "nameFancyLocked": "Names can only use letters, digits and spaces. Emoji and special characters need {{points}} points.",
     "birthdayFormat": "{{month}}/{{day}}/{{year}}"
   },
   "firstLaunchSettings": {
@@ -1993,6 +2003,9 @@
   },
   "profileTheme": {
     "gradientColor": "Gradient colour",
+    "nameIconHint": "An icon shown right after your name · {{points}} points",
+    "usernameStyle": "Username follows the name style",
+    "usernameStyleHint": "Your @username uses the same font and effect as your name · {{points}} points",
     "gradientLocked": "Gradient colours need {{points}} points",
     "gradientPickBase": "Pick the colour first",
     "gradientCleared": "Gradient colour removed",
@@ -2034,14 +2047,17 @@
       "banner": "Banner",
       "effects": "Profile effect & Frame",
       "name": "Display name style",
-      "colors": "Profile theme"
+      "colors": "Profile theme",
+      "nameExtras": "Name icon & username"
     },
     "groups": {
       "name_font": "Font",
       "name_effect": "Name effect",
       "avatar_frame": "Avatar decoration",
       "profile_effect": "Profile effect",
-      "profile_frame": "Profile frame"
+      "profile_frame": "Profile frame",
+      "name_icon": "Name icon",
+      "username_style": "Username style"
     },
     "preview": {
       "about": "About me",
@@ -2055,7 +2071,8 @@
       "next": "{{points}} points to {{tier}}",
       "all": "Everything unlocked",
       "colors": "Theme & banner colors",
-      "gif": "Animated GIF avatar"
+      "gif": "Animated GIF avatar",
+      "fancyName": "Emoji and special characters in your name"
     },
     "fonts": {
       "default": "Default",
@@ -2077,7 +2094,8 @@
       "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow" },
       "name_effect": { "none": "None", "solid": "Solid", "gradient": "Gradient", "pop": "Pop", "toon": "Toon", "neon": "Neon", "rainbow": "Rainbow", "outline": "Outline" },
       "profile_effect": { "none": "None", "sparkles": "Sparkles", "hearts": "Hearts", "snow": "Snowfall", "aurora": "Aurora" },
-      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon" }
+      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon" },
+      "name_icon": { "none": "None" }
     }
   },
   "webApp": {
@@ -2093,7 +2111,16 @@
     "active": "Active member",
     "distinguished": "Distinguished member",
     "veteran": "Veteran member",
-    "premium": "Premium member"
+    "premium": "Premium member",
+    "promax": "Pro Max member"
+  },
+  "memberTierPerks": {
+    "trainee": "Theme colours, banner colour and the basic avatar frames",
+    "active": "Gradient names, profile effects and the first profile frame",
+    "distinguished": "More fonts and name effects, the gold frame and snow",
+    "veteran": "Rainbow frame, aurora, spinning neon and an animated GIF avatar",
+    "premium": "Rainbow and outlined names, premium fonts, gradient colours",
+    "promax": "An icon next to your name, a username styled like your name, emoji and special characters in your name"
   },
   "twoFactor": {
     "methodDevice": "Approve on a logged-in device",

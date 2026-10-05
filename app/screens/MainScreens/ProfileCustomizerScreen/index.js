@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -23,6 +24,8 @@ import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import ProfileEffect from "../../../components/profile/ProfileEffect";
 import ProfileFrame from "../../../components/profile/ProfileFrame";
@@ -45,9 +48,23 @@ const DEFAULT_THEME = {
   avatar_frame: "none",
   profile_effect: "none",
   profile_frame: "none",
+  // Pro Max (2000 points).
+  name_icon: "none",
+  username_style: "default",
 };
 
-const OPTION_FIELDS = ["name_font", "name_effect", "avatar_frame", "profile_effect", "profile_frame"];
+const OPTION_FIELDS = [
+  "name_font",
+  "name_effect",
+  "avatar_frame",
+  "profile_effect",
+  "profile_frame",
+  "name_icon",
+  "username_style",
+];
+// Fields an API from before the Pro Max tier neither sends nor accepts: they
+// are only edited, and only sent, when the editor lists options for them.
+const PROMAX_FIELDS = ["name_icon", "username_style"];
 const GRADIENT_FIELDS = { primary_color_2: "primary_color", accent_color_2: "accent_color", banner_color_2: "banner_color" };
 
 const sameTheme = (a, b) =>
@@ -59,7 +76,7 @@ const sameTheme = (a, b) =>
 const withoutLockedOptions = (theme, editor) =>
   OPTION_FIELDS.reduce(
     (result, field) => {
-      const option = editor.options[field].find((o) => o.key === theme[field]);
+      const option = (editor.options[field] || []).find((o) => o.key === theme[field]);
       if (editor.can_customize && option && !option.unlocked) {
         result[field] = DEFAULT_THEME[field];
       }
@@ -213,9 +230,26 @@ export default function ProfileCustomizerScreen({ navigation }) {
   const save = async (next) => {
     try {
       setSaving(true);
-      await updateProfile(username, { profile_theme: next });
-      // The sidebar shows the user's own appearance from this cache.
-      setOwnProfileTheme(username, next);
+      // Exactly the fields this API knows: it rejects unknown keys.
+      const payload = next ? { ...next } : next;
+      if (payload) {
+        PROMAX_FIELDS.forEach((field) => {
+          if (!editor?.options?.[field]) delete payload[field];
+        });
+      }
+      await updateProfile(username, { profile_theme: payload });
+      // The sidebar shows the user's own appearance from this cache. The
+      // glyph of the name icon is added as the API does for display.
+      setOwnProfileTheme(
+        username,
+        next
+          ? {
+              ...next,
+              name_icon_emoji:
+                (editor?.options?.name_icon || []).find((o) => o.key === next.name_icon)?.icon || null,
+            }
+          : next
+      );
       const result = next || DEFAULT_THEME;
       setSaved(result);
       setDraft(result);
@@ -266,7 +300,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
     );
   }
 
-  const optionOf = (field, key) => editor.options[field].find((o) => o.key === key);
+  const optionOf = (field, key) => (editor.options[field] || []).find((o) => o.key === key);
   const optionLabel = (field, key) =>
     field === "name_font"
       ? t(`profileTheme.fonts.${key}`, optionOf(field, key)?.label || key)
@@ -336,6 +370,15 @@ export default function ProfileCustomizerScreen({ navigation }) {
     })
   );
 
+  // Pro Max options: a name icon and the @username drawn like the name.
+  const nameIconOptions = editor.options.name_icon || null;
+  const firstNameIcon = nameIconOptions?.find((o) => o.key !== "none") || null;
+  const usernameStyleOption = optionOf("username_style", "name") || null;
+  const nameIconGlyph = optionOf("name_icon", draft.name_icon)?.icon || null;
+  // What the previews draw: the draft plus the glyph, which the API derives
+  // for display and never stores (so it must not be in the draft itself).
+  const previewTheme = { ...draft, name_icon_emoji: nameIconGlyph };
+
   const profileName = profile.profile?.profile_name || profile.username;
   const avatarUrl = getAvatarUrl ? getAvatarUrl(username) : profile.profile?.profile_picture;
   const coverUrl = profile.profile?.cover_photo_url ? (getCoverUrl ? getCoverUrl(username) : profile.profile.cover_photo_url) : null;
@@ -380,6 +423,26 @@ export default function ProfileCustomizerScreen({ navigation }) {
         </>
       ),
     },
+    // The glyphs come from the API (option.icon); "none" is the only tile
+    // with a label.
+    ...(nameIconOptions
+      ? {
+          name_icon: {
+            title: t("profileTheme.groups.name_icon"),
+            render: (key) => {
+              const glyph = optionOf("name_icon", key)?.icon;
+              return glyph ? (
+                <Text style={[styles.iconGlyph, { color: theme.text }]}>{glyph}</Text>
+              ) : (
+                <>
+                  <Ionicons name="ban-outline" size={28} color={theme.subText} />
+                  <Text style={[styles.tileLabel, { color: theme.text }]}>{t("profileTheme.options.name_icon.none")}</Text>
+                </>
+              );
+            },
+          },
+        }
+      : null),
   };
 
   return (
@@ -400,7 +463,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       >
         <ProfilePreviewCard
-          theme={draft}
+          theme={previewTheme}
           username={username}
           profileName={profileName}
           avatarUrl={avatarUrl}
@@ -501,11 +564,74 @@ export default function ProfileCustomizerScreen({ navigation }) {
 
           <Section title={t("profileTheme.sections.name", "Kiểu tên")}>
             <Slot label={t("profileTheme.sections.name", "Kiểu tên")} onPress={() => setPicker("name")} style={styles.nameSlot}>
-              <StyledName theme={draft} style={[styles.slotName, { color: theme.text }]} numberOfLines={1}>
-                {profileName}
-              </StyledName>
+              <UserNameRow
+                name={profileName}
+                theme={previewTheme}
+                variant="full"
+                style={[styles.slotName, { color: theme.text }]}
+                containerStyle={{ maxWidth: "100%" }}
+              />
             </Slot>
           </Section>
+
+          {nameIconOptions || usernameStyleOption ? (
+            <Section title={t("profileTheme.sections.nameExtras")}>
+              {nameIconOptions ? (
+                <>
+                  <Slot
+                    label={t("profileTheme.groups.name_icon")}
+                    onPress={() => setPicker("name_icon")}
+                    style={styles.nameSlot}
+                  >
+                    {nameIconGlyph ? (
+                      <Text style={[styles.iconGlyph, { color: theme.text }]}>{nameIconGlyph}</Text>
+                    ) : (
+                      <AddIcon />
+                    )}
+                  </Slot>
+                  <View style={styles.hintRow}>
+                    {firstNameIcon && !firstNameIcon.unlocked ? (
+                      <Ionicons name="lock-closed" size={11} color={theme.subText} />
+                    ) : null}
+                    <Text style={[styles.hint, { color: theme.subText, flex: 1 }]}>
+                      {t("profileTheme.nameIconHint", { points: firstNameIcon?.required_points ?? 2000 })}
+                    </Text>
+                  </View>
+                </>
+              ) : null}
+
+              {usernameStyleOption ? (
+                <View style={[styles.switchRow, nameIconOptions ? { marginTop: 14 } : null]}>
+                  <View style={styles.switchText}>
+                    <Text style={[styles.switchTitle, { color: theme.text }]}>
+                      {t("profileTheme.usernameStyle")}
+                    </Text>
+                    <View style={styles.hintRow}>
+                      {!usernameStyleOption.unlocked ? (
+                        <Ionicons name="lock-closed" size={11} color={theme.subText} />
+                      ) : null}
+                      <Text style={[styles.switchHint, { color: theme.subText, flex: 1 }]}>
+                        {t("profileTheme.usernameStyleHint", { points: usernameStyleOption.required_points ?? 2000 })}
+                      </Text>
+                    </View>
+                    <StyledUsername
+                      theme={previewTheme}
+                      username={username}
+                      variant="full"
+                      style={[styles.usernameSample, { color: theme.subText }]}
+                      numberOfLines={1}
+                    />
+                  </View>
+                  <Switch
+                    accessibilityLabel={t("profileTheme.usernameStyle")}
+                    value={draft.username_style === "name"}
+                    onValueChange={(on) => update({ username_style: on ? "name" : "default" })}
+                    trackColor={{ true: theme.primary }}
+                  />
+                </View>
+              ) : null}
+            </Section>
+          ) : null}
 
           <Section title={t("profileTheme.sections.colors", "Màu giao diện")} last={!editor.saved}>
             <View style={styles.colorRow}>
@@ -554,7 +680,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
 
         <PointsMilestones
           editor={editor}
-          theme={draft}
+          theme={previewTheme}
           avatarUrl={avatarUrl}
           onTry={(field, key) => update({ [field]: key })}
         />
@@ -867,6 +993,12 @@ const styles = StyleSheet.create({
   tile3: { width: "31.5%", minHeight: 90 },
   tileSample: { width: "100%", height: 58, borderRadius: 10, overflow: "hidden" },
   tileLabel: { fontSize: 12, textAlign: "center" },
+  iconGlyph: { fontSize: 30 },
+  switchRow: { flexDirection: "row", alignItems: "center" },
+  switchText: { flex: 1, marginRight: 12 },
+  switchTitle: { fontSize: 16 },
+  switchHint: { fontSize: 13 },
+  usernameSample: { fontSize: 14, marginTop: 6 },
   namePreview: { borderRadius: 14, paddingVertical: 20, paddingHorizontal: 12, alignItems: "center", marginBottom: 6 },
   namePreviewText: { fontSize: 28, fontWeight: "bold", textAlign: "center" },
   sheetLabel: { fontSize: 14, fontWeight: "600", marginTop: 14, marginBottom: 8 },

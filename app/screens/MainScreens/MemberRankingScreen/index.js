@@ -17,7 +17,8 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import StyledName from "../../../components/profile/StyledName";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 export default function MemberRankingScreen({ navigation }) {
@@ -91,9 +92,12 @@ export default function MemberRankingScreen({ navigation }) {
               style={styles.avatarTop2}
             />
           </AvatarFrameWrap>
-          <StyledName theme={second.profile_theme} variant="compact" style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
-            {second.profile_name}
-          </StyledName>
+          <UserNameRow
+            name={second.profile_name}
+            theme={second.profile_theme}
+            style={[styles.nameTop, { color: theme.text }]}
+            containerStyle={styles.nameTopRow}
+          />
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: second.total_points })}</Text>
         </TouchableOpacity>
 
@@ -120,17 +124,12 @@ export default function MemberRankingScreen({ navigation }) {
           <View style={[styles.rankBadge1, { borderColor: theme.background }]}>
             <Text style={styles.rankText}>1</Text>
           </View>
-          <StyledName
+          <UserNameRow
+            name={first.profile_name}
             theme={first.profile_theme}
-            variant="compact"
-            style={[
-              styles.nameTop,
-              { fontWeight: "bold", fontSize: 16, marginTop: 18, color: theme.text },
-            ]}
-            numberOfLines={1}
-          >
-            {first.profile_name}
-          </StyledName>
+            style={[styles.nameTop, { fontWeight: "bold", fontSize: 16, color: theme.text }]}
+            containerStyle={[styles.nameTopRow, { marginTop: 18 }]}
+          />
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: first.total_points })}</Text>
         </TouchableOpacity>
 
@@ -154,9 +153,12 @@ export default function MemberRankingScreen({ navigation }) {
               style={styles.avatarTop2}
             />
           </AvatarFrameWrap>
-          <StyledName theme={third.profile_theme} variant="compact" style={[styles.nameTop, { color: theme.text }]} numberOfLines={1}>
-            {third.profile_name}
-          </StyledName>
+          <UserNameRow
+            name={third.profile_name}
+            theme={third.profile_theme}
+            style={[styles.nameTop, { color: theme.text }]}
+            containerStyle={styles.nameTopRow}
+          />
           <Text style={[styles.pointsTop, { color: theme.primary }]}>{t('profile.points', { count: third.total_points })}</Text>
         </TouchableOpacity>
       </View>
@@ -185,8 +187,17 @@ export default function MemberRankingScreen({ navigation }) {
           />
         </AvatarFrameWrap>
         <View style={styles.itemInfo}>
-          <StyledName theme={item.profile_theme} variant="compact" style={[styles.itemName, { color: theme.text }]}>{item.profile_name}</StyledName>
-          <Text style={[styles.itemUsername, { color: theme.subText }]}>@{item.username}</Text>
+          <UserNameRow
+            name={item.profile_name}
+            theme={item.profile_theme}
+            style={[styles.itemName, { color: theme.text }]}
+          />
+          <StyledUsername
+            theme={item.profile_theme}
+            username={item.username}
+            style={[styles.itemUsername, { color: theme.subText }]}
+            numberOfLines={1}
+          />
         </View>
         <Text style={[styles.itemPoints, { color: theme.primary }]}>{t('profile.points', { count: item.total_points })}</Text>
       </TouchableOpacity>
@@ -302,6 +313,10 @@ const styles = StyleSheet.create({
   nameTop: {
     fontSize: 14,
     textAlign: "center",
+  },
+  // Centred under the avatar; the name inside is cut with "…" if too long.
+  nameTopRow: {
+    maxWidth: "100%",
     marginBottom: 2,
   },
   pointsTop: {
@@ -377,6 +392,7 @@ const styles = StyleSheet.create({
   },
   itemInfo: {
     flex: 1,
+    minWidth: 0,
   },
   itemName: {
     fontSize: 15,
