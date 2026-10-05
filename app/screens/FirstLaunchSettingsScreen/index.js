@@ -38,6 +38,20 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <AuthBackground />
+
+      {/* Back to the language screen. replace(), like the way here: these
+          setup screens replace each other, so there is nothing to pop - and
+          on a launch that resumed here this screen is the only one. */}
+      <View style={[styles.backRow, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
+        <LiquidButton
+          providerId="FirstLaunchSettingsScreen"
+          size={44}
+          onPress={() => navigation.replace("LanguageSelect")}
+        >
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+        </LiquidButton>
+      </View>
+
       <AndroidGlassBackdrop providerId="FirstLaunchSettingsScreen" style={{ flex: 1 }}>
         <View
           style={[
@@ -150,6 +164,13 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  backRow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    zIndex: 10,
+    paddingHorizontal: 16,
+  },
   content: {
     flex: 1,
     paddingHorizontal: 24,
