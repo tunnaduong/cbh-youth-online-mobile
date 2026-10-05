@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
 import FastImage from "../FastImage";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -10,15 +10,9 @@ import StyledName from "./StyledName";
 import { AvatarFrameWrap } from "./AvatarFrame";
 import ProfileFrame from "./ProfileFrame";
 
-// Same colors as the milestones sheet on ProfileScreen.
-const TIER_COLORS = {
-  trainee: "#6b7280",
-  active: "#3b82f6",
-  distinguished: "#eab308",
-  veteran: "#a855f7",
-  premium: "#f43f5e",
-  pro: "#f97316",
-};
+import TierIcon, { TIER_COLORS, TIER_ICONS } from "./TierIcon";
+
+export { TIER_ICONS };
 
 const EFFECT_SYMBOLS = { sparkles: "✦", hearts: "♥", snow: "❄", aurora: "✺" };
 const TRYABLE = [
@@ -89,6 +83,8 @@ function Sample({ item, profileTheme, avatarUrl }) {
   // Pro: the glyph itself (sent by the API), an @ in the name's style,
   // and "emoji and special characters in the name".
   if (field === "name_icon") {
+    // A tier's icon, or a preset glyph.
+    if (item.tier) return <TierIcon tierId={item.tier} size={22} />;
     return <Text style={[styles.sampleGlyph, { color: theme.text }]}>{item.icon}</Text>;
   }
   if (field === "username_style") {
@@ -148,6 +144,7 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
             key: o.key,
             // The name icons have no names of their own: the glyph is the label.
             icon: o.icon,
+            tier: o.tier,
             label:
               field === "name_icon"
                 ? `${t("profileTheme.groups.name_icon")}: ${o.icon || o.key}`
@@ -193,8 +190,8 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
                 },
               ]}
             >
-              <Ionicons
-                name="ribbon"
+              <MaterialCommunityIcons
+                name={TIER_ICONS[tier.id] || "medal"}
                 size={14}
                 color={tier.reached ? TIER_COLORS[tier.id] || theme.primary : theme.subText}
               />
@@ -237,7 +234,7 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
             >
               <View style={styles.tierHeader}>
                 <View style={styles.tierName}>
-                  <Ionicons name="ribbon" size={15} color={TIER_COLORS[tier.id] || theme.primary} />
+                  <MaterialCommunityIcons name={TIER_ICONS[tier.id] || "medal"} size={15} color={TIER_COLORS[tier.id] || theme.primary} />
                   <Text style={[styles.tierTitle, { color: theme.text }]} numberOfLines={1}>
                     {t(`memberTiers.${tier.id}`, tier.name)}
                   </Text>

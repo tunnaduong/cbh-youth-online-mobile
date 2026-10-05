@@ -351,6 +351,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Tier icon after every name; changeable from Pro** (not run on a device): each member tier has an icon (`app/components/profile/TierIcon.js`: star, bolt, trophy, shield, diamond, crown - same as the web). `NameIcon` (so every `UserNameRow`) shows, in this order: the preset glyph a Pro member picked (`name_icon_emoji`), the tier icon they picked (`name_icon_tier`), else the icon of the tier they are in (`profile_theme.member_tier`, or the row's `tier` prop where the tier comes separately, e.g. the profile header). Below Pro it cannot be changed. The editor's icon picker lists the six tier icons before the presets; the milestones card and the points sheet use the per-tier icons.
+
 - **"Pro" tier (2000 points), one-line names, appearance in more places, profile photo gallery** (bundled by CI, not run on a device):
   - Tier id `pro`, shown as "Thành viên Pro" / "Pro member" / "Участник Pro": name icon (`profile_theme.name_icon`, glyph from the API's `name_icon_emoji`), `@username` drawn like the name (`username_style = name`), emoji / decorative Unicode in names. Editor: new "Name icon & username" section in `ProfileCustomizerScreen`; `EditProfileScreen` shows a hint and a translated error for `errors.profile_name`.
   - `app/components/profile/UserNameRow.js` is **the** way to show a user's name: one line, the name truncates, then name icon, verified tick and trailing content never wrap (see Design system). With `NameIcon.js`, `StyledUsername.js`. Used in posts, comments, stories, chat, search, rankings, votes lists, followers, profile header, sidebar and the settings profile card.

@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, Text } from "react-native";
-import { getNameIcon } from "../../utils/profileTheme";
+import { getNameIcon, getNameIconTier } from "../../utils/profileTheme";
+import TierIcon from "./TierIcon";
 import { useTheme } from "../../contexts/ThemeContext";
 
 /**
@@ -20,10 +21,23 @@ import { useTheme } from "../../contexts/ThemeContext";
  * It is a <Text>, so it can sit in a row next to the name or be nested inside
  * another <Text> (where the margin is ignored - put a space before it).
  */
-const NameIcon = ({ theme, size = 14, style }) => {
+const NameIcon = ({ theme, tier, size = 14, style }) => {
   const { theme: appTheme } = useTheme();
   const glyph = getNameIcon(theme);
-  if (!glyph) return null;
+
+  // No glyph: the icon of a member tier - the one a Pro member picked, or
+  // by default the tier the member is in (`tier`: for places where it does
+  // not come inside the theme).
+  if (!glyph) {
+    const tierId = getNameIconTier(theme, tier);
+    return tierId ? (
+      <TierIcon
+        tierId={tierId}
+        size={Math.round(size * 0.95)}
+        style={[styles.icon, { marginLeft: Math.max(3, Math.round(size * 0.25)) }, style]}
+      />
+    ) : null;
+  }
 
   return (
     <Text

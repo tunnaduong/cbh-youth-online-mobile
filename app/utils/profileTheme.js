@@ -69,6 +69,10 @@ export function normalizeTheme(theme) {
     name_icon: typeof theme.name_icon === "string" && theme.name_icon ? theme.name_icon : "none",
     name_icon_emoji:
       typeof theme.name_icon_emoji === "string" && theme.name_icon_emoji ? theme.name_icon_emoji : null,
+    // A tier's own icon picked as the name icon ("veteran"...), and the tier
+    // the member is in - whose icon is shown when they picked none.
+    name_icon_tier: typeof theme.name_icon_tier === "string" ? theme.name_icon_tier : null,
+    member_tier: typeof theme.member_tier === "string" ? theme.member_tier : null,
     username_style: theme.username_style === "name" ? "name" : "default",
   };
 }
@@ -227,6 +231,18 @@ export function getNameIcon(theme) {
   const normalized = normalizeTheme(theme);
   if (!normalized || normalized.name_icon === "none") return null;
   return normalized.name_icon_emoji;
+}
+
+/**
+ * Which tier's icon follows the name when there is no glyph: the one the
+ * user picked (Pro), else the tier they are in (`fallback` for places where
+ * the tier comes separately from the theme, e.g. the profile).
+ */
+export function getNameIconTier(theme, fallback = null) {
+  const normalized = normalizeTheme(theme);
+  const own = typeof fallback === "string" ? fallback : fallback?.id || null;
+  if (!normalized) return own;
+  return normalized.name_icon_tier || normalized.member_tier || own;
 }
 
 /** true when the @username is drawn with the name's font and effect. */

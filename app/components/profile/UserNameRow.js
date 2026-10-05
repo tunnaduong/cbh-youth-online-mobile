@@ -37,6 +37,8 @@ const UserNameRow = ({
   verifiedSize,
   verifiedColor,
   showIcon = true,
+  // The member's tier (id or { id }) when it is not inside `theme`.
+  tier,
   style,
   containerStyle,
   children,
@@ -57,7 +59,7 @@ const UserNameRow = ({
       >
         {name ?? ""}
       </StyledName>
-      {showIcon && <NameIcon theme={theme} size={fontSize} />}
+      {showIcon && <NameIcon theme={theme} tier={tier} size={fontSize} />}
       {verified && (
         <Verified width={tick} height={tick} color={verifiedColor} style={styles.tick} />
       )}

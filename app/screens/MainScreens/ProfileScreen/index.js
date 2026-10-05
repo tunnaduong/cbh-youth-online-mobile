@@ -19,7 +19,8 @@ import {
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { TIER_ICONS } from "../../../components/profile/TierIcon";
 import { useFocusEffect, useNavigation, useIsFocused } from "@react-navigation/native";
 import CustomLoading from "../../../components/CustomLoading";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -849,6 +850,7 @@ const ProfileScreen = ({ route, navigation }) => {
                 <UserNameRow
                   name={userData?.profile?.profile_name}
                   theme={profileTheme}
+                  tier={userData?.member_tier}
                   variant="full"
                   verified={!!userData?.profile?.verified}
                   verifiedSize={23}
@@ -1260,7 +1262,10 @@ const ProfileScreen = ({ route, navigation }) => {
                         <Text style={{ fontSize: 10, color: tier.color }}>điểm</Text>
                       </View>
                       <View style={{ flex: 1, marginLeft: 10, marginRight: 8 }}>
-                        <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text }}>{tier.name}</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <MaterialCommunityIcons name={TIER_ICONS[tier.id] || "medal"} size={16} color={tier.color} />
+                          <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text, flexShrink: 1 }}>{tier.name}</Text>
+                        </View>
                         {/* What the tier unlocks. */}
                         <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2 }}>
                           {t(`memberTierPerks.${tier.id}`)}

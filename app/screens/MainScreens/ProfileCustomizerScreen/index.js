@@ -20,6 +20,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { getProfile, updateProfile } from "../../../services/api/Api";
 import { setOwnProfileTheme } from "../../../utils/ownProfileTheme";
+import TierIcon from "../../../components/profile/TierIcon";
 import FastImage from "../../../components/FastImage";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
@@ -247,6 +248,8 @@ export default function ProfileCustomizerScreen({ navigation }) {
               ...next,
               name_icon_emoji:
                 (editor?.options?.name_icon || []).find((o) => o.key === next.name_icon)?.icon || null,
+              name_icon_tier:
+                (editor?.options?.name_icon || []).find((o) => o.key === next.name_icon)?.tier || null,
             }
           : next
       );
@@ -377,7 +380,11 @@ export default function ProfileCustomizerScreen({ navigation }) {
   const nameIconGlyph = optionOf("name_icon", draft.name_icon)?.icon || null;
   // What the previews draw: the draft plus the glyph, which the API derives
   // for display and never stores (so it must not be in the draft itself).
-  const previewTheme = { ...draft, name_icon_emoji: nameIconGlyph };
+  const previewTheme = {
+    ...draft,
+    name_icon_emoji: nameIconGlyph,
+    name_icon_tier: optionOf("name_icon", draft.name_icon)?.tier || null,
+  };
 
   const profileName = profile.profile?.profile_name || profile.username;
   const avatarUrl = getAvatarUrl ? getAvatarUrl(username) : profile.profile?.profile_picture;
@@ -431,6 +438,18 @@ export default function ProfileCustomizerScreen({ navigation }) {
             title: t("profileTheme.groups.name_icon"),
             render: (key) => {
               const glyph = optionOf("name_icon", key)?.icon;
+              const tierId = optionOf("name_icon", key)?.tier;
+              // A member tier's own icon, with the tier's name under it.
+              if (tierId) {
+                return (
+                  <>
+                    <TierIcon tierId={tierId} size={30} />
+                    <Text style={[styles.tileLabel, { color: theme.text }]} numberOfLines={1}>
+                      {t(`memberTiers.${tierId}`)}
+                    </Text>
+                  </>
+                );
+              }
               return glyph ? (
                 <Text style={[styles.iconGlyph, { color: theme.text }]}>{glyph}</Text>
               ) : (
