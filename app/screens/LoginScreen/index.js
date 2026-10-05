@@ -26,6 +26,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
+import AuthButton from "../../components/AuthButton";
 import { SavedAccountList } from "../../components/AccountSwitcher";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
 
@@ -363,13 +364,12 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               {/* Login button */}
-              <TouchableOpacity
-                style={[styles.loginButton, { backgroundColor: theme.primary }]}
+              <AuthButton
+                style={styles.loginButton}
                 onPress={handleLogin}
-                activeOpacity={0.85}
               >
                 <Text style={styles.loginButtonText}>{t("auth.login")}</Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Divider */}
               <View style={styles.dividerRow}>
@@ -381,44 +381,35 @@ const LoginScreen = ({ navigation }) => {
               </View>
 
               {/* Passkey: one tap, no password */}
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
                 onPress={handlePasskeyLogin}
-                activeOpacity={0.8}
               >
                 <Ionicons name="finger-print" size={22} color={theme.primary} />
                 <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("auth.continueWithPasskey")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Social buttons */}
               {isAppleAuthAvailable && (
-                <TouchableOpacity
-                  style={[
-                    styles.socialButton,
-                    { backgroundColor: theme.surface, borderColor: theme.border },
-                  ]}
+                <AuthButton
+                  variant="secondary"
+                  style={styles.socialButton}
                   onPress={handleAppleLogin}
-                  activeOpacity={0.8}
                 >
                   <Ionicons name="logo-apple" size={22} color={theme.text} />
                   <Text style={[styles.socialButtonText, { color: theme.text }]}>
                     {t("auth.continueWithApple")}
                   </Text>
-                </TouchableOpacity>
+                </AuthButton>
               )}
 
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
                 onPress={handleGoogleLogin}
-                activeOpacity={0.8}
               >
                 <Image
                   source={require("../../assets/google.png")}
@@ -427,21 +418,18 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("auth.continueWithGoogle")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
                 onPress={handleFacebookLogin}
-                activeOpacity={0.8}
               >
                 <Ionicons name="logo-facebook" size={22} color="#1877F2" />
                 <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("auth.continueWithFacebook")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Sign up */}
               <TouchableOpacity

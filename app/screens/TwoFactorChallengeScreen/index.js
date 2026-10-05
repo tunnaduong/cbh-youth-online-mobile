@@ -21,6 +21,8 @@ import { AuthContext } from "../../contexts/AuthContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import ProgressHUD from "../../components/ProgressHUD";
 import AuthBackground from "../../components/AuthBackground";
+import AuthButton from "../../components/AuthButton";
+import LiquidButton from "../../components/LiquidButton";
 import {
   verifyTwoFactorLogin,
   resendTwoFactorLoginCode,
@@ -225,13 +227,9 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={[styles.container, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="chevron-back" size={26} color={theme.primary} />
-            </TouchableOpacity>
+            <LiquidButton size={44} onPress={() => navigation.goBack()} containerStyle={styles.backButton}>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
 
             <View style={styles.content}>
               <Text style={[styles.title, { color: theme.text }]}>
@@ -347,14 +345,13 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
               </View>
 
               {!isDevice && (
-              <TouchableOpacity
-                style={[styles.verifyButton, { backgroundColor: theme.primary }, !code.trim() && { opacity: 0.6 }]}
+              <AuthButton
+                style={styles.verifyButton}
                 onPress={handleVerify}
                 disabled={!code.trim()}
-                activeOpacity={0.85}
               >
                 <Text style={styles.verifyButtonText}>{t("twoFactor.verify")}</Text>
-              </TouchableOpacity>
+              </AuthButton>
               )}
 
               {isEmail && (
@@ -402,9 +399,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    justifyContent: "center",
+    alignSelf: "flex-start",
   },
   content: {
     flex: 1,

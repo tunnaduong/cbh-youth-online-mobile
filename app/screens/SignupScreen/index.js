@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
+import AuthButton from "../../components/AuthButton";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
 
 const SignupScreen = ({ navigation }) => {
@@ -261,28 +262,22 @@ const SignupScreen = ({ navigation }) => {
 
               {/* Social buttons First */}
               {isAppleAuthAvailable && (
-                <TouchableOpacity
-                  style={[
-                    styles.socialButton,
-                    { backgroundColor: theme.surface, borderColor: theme.border },
-                  ]}
+                <AuthButton
+                  variant="secondary"
+                  style={styles.socialButton}
                   onPress={handleAppleSignup}
-                  activeOpacity={0.8}
                 >
                   <Ionicons name="logo-apple" size={22} color={theme.text} />
                   <Text style={[styles.socialButtonText, { color: theme.text }]}>
                     {t("signup.apple")}
                   </Text>
-                </TouchableOpacity>
+                </AuthButton>
               )}
 
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
                 onPress={handleGoogleSignup}
-                activeOpacity={0.8}
               >
                 <Image
                   source={require("../../assets/google.png")}
@@ -291,21 +286,18 @@ const SignupScreen = ({ navigation }) => {
                 <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("signup.google")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
                 onPress={handleFacebookSignup}
-                activeOpacity={0.8}
               >
                 <Ionicons name="logo-facebook" size={22} color="#1877F2" />
                 <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("signup.facebook")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Divider */}
               <View style={styles.dividerRow}>
@@ -438,13 +430,12 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               {/* Signup Button */}
-              <TouchableOpacity
-                style={[styles.signUpButton, { backgroundColor: theme.primary }]}
+              <AuthButton
+                style={styles.signUpButton}
                 onPress={handleSignup}
-                activeOpacity={0.85}
               >
                 <Text style={styles.signUpButtonText}>{t("signup.createAccount")}</Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Login Prompt */}
               <View style={styles.loginPrompt}>
