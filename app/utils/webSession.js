@@ -45,6 +45,10 @@ const HANDED_OFF_KEYS = {
   webview: "webview_session_handed_off",
 };
 
+// Kept across a sign-out (AuthContext): they are what tells the next page
+// opened in that store to sign out first.
+export const WEB_SESSION_KEYS = Object.values(HANDED_OFF_KEYS);
+
 const tokenFingerprint = (token) => token.slice(-16);
 
 /**

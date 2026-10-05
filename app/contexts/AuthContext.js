@@ -12,6 +12,7 @@ import { setSessionExpiredHandler } from "../services/api/axiosInstance";
 import { getEcho } from "../services/echo/echo";
 import i18n from "../i18n";
 import { useSessionReset } from "./SessionContext";
+import { WEB_SESSION_KEYS } from "../utils/webSession";
 import {
   getSavedAccounts,
   upsertSavedAccount,
@@ -28,6 +29,14 @@ const clearSessionCaches = () => {
   if (storage.contains("autoplayVideos")) preserved.autoplayVideos = storage.getBoolean("autoplayVideos");
   if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
   if (storage.contains("shakeToReportEnabled")) preserved.shakeToReportEnabled = storage.getBoolean("shakeToReportEnabled");
+  // Which login the WebViews / in-app browser were signed in with (see
+  // utils/webSession.js). Wiping these made the app forget that they hold a
+  // session at all, so after a sign-out they stayed signed in as the old
+  // account; kept, the next page opened there goes through the site's
+  // sign-out first.
+  WEB_SESSION_KEYS.forEach((key) => {
+    if (storage.contains(key)) preserved[key] = storage.getString(key);
+  });
 
   storage.clearAll();
 
