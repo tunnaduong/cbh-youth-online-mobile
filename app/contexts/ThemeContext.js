@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useColorScheme } from "react-native";
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect } from "react";
+import { Appearance, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
 
 export const ThemeContext = createContext();
@@ -83,6 +83,24 @@ export const ThemeProvider = ({ children }) => {
       setIsDarkMode(systemColorScheme === "dark");
     }
   }, [systemColorScheme, useSystemTheme]);
+
+  // iOS draws its own surfaces - the system tab bar (liquid glass on iOS 26),
+  // action sheets, alerts, the keyboard - in the appearance of the window,
+  // which follows the phone's setting, not this app's theme: with the app set
+  // to dark on a phone in light mode the tab bar stayed light. Telling iOS
+  // the app's own choice makes all of them follow it; "unspecified" hands
+  // the decision back to the system when the theme is "follow the device".
+  //
+  // iOS only: Android has no system-drawn bar here, and changing its night
+  // mode can restart the activity. While the app's choice is forced,
+  // useColorScheme() above reports that choice rather than the phone's; it
+  // reports the phone's again as soon as the theme goes back to "system".
+  useLayoutEffect(() => {
+    if (Platform.OS !== "ios") return;
+    try {
+      Appearance.setColorScheme(useSystemTheme ? "unspecified" : isDarkMode ? "dark" : "light");
+    } catch {}
+  }, [useSystemTheme, isDarkMode]);
 
   const setThemeMode = (mode) => {
     if (mode === "system") {

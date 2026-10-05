@@ -351,6 +351,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **iOS system surfaces follow the app's theme** (not run on a device): on iOS 26 the tab bar is the system's own (liquid glass), and it was light when the app was set to dark on a phone in light mode (and the reverse) - iOS draws it in the window's appearance, which follows the phone. `ThemeContext` now tells iOS the app's choice with `Appearance.setColorScheme("dark" | "light")`, or `"unspecified"` when the theme is "follow the device". Action sheets, alerts and the keyboard follow too. iOS only. **Design system:** never read the phone's appearance to style something - use `useTheme()`; while a theme is forced, `useColorScheme()` reports the app's choice.
+
 - **Pushes only for the active account; "new login" push** (not run on a device):
   - The Expo push token used to be unregistered from an effect that ran **after** the sign-out, when requests no longer carried a login - the API ignored it, and the account that was left kept pushing to the phone. `app/utils/pushToken.js` now holds the registered token (`rememberPushToken`, set by `NotificationContext`) and `releasePushToken()` gives it back while the account's token still works: in `signOut`, and in `switchAccount` / `addAccount` for the account being left (a saved account that is not the active one gets no pushes on this phone; it registers again when switched back to).
   - `switchAccount(account, { leavePrevious: false })` is what sign-out's fallback to another saved account uses: the account just logged out has a dead token, so nothing is sent with it (a 401 there would look like an expired session).
