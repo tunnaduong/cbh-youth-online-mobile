@@ -1,7 +1,33 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, UIManager, View } from "react-native";
+import * as Application from "expo-application";
+import { LinearGradient } from "expo-linear-gradient";
 import { getNameEffect, normalizeTheme } from "../../utils/profileTheme";
 import { useNameFont } from "../../utils/nameFonts";
+
+// A real gradient across the name needs the text as a mask over a gradient:
+// `@react-native-masked-view/masked-view`. Optional on purpose - JavaScript
+// can reach a binary built before the package was added (an update over the
+// air), where using its view would show nothing. Builds are numbered by the
+// CI run (see INFO.md), and FIRST_BUILD_WITH_MASKED_VIEW is the first one
+// that contains it; without it names fall back to one colour per letter.
+const FIRST_BUILD_WITH_MASKED_VIEW = 908;
+let MaskedView = null;
+try {
+  MaskedView = require("@react-native-masked-view/masked-view").default;
+} catch {
+  MaskedView = null;
+}
+const maskedViewAvailable = () => {
+  if (!MaskedView) return false;
+  try {
+    if (UIManager.hasViewManagerConfig?.("RNCMaskedView")) return true;
+  } catch {}
+  return Number(Application.nativeBuildVersion) >= FIRST_BUILD_WITH_MASKED_VIEW;
+};
+
+// Emoji keep their own colours, which a mask would flatten into the gradient.
+const HAS_EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}\u{1F1E6}-\u{1F1FF}]/u;
 
 /**
  * Tên hiển thị theo kiểu tên (phông + hiệu ứng) trong theme của người dùng.
@@ -10,9 +36,9 @@ import { useNameFont } from "../../utils/nameFonts";
  * Props:
  *   theme   - `theme`/`profile_theme` của người dùng từ API, hoặc null
  *   variant - "full": phông + hiệu ứng (trang cá nhân, xem trước)
- *             "compact": chỉ phông - như cách Discord hiện tên trong danh
- *             sách dài (bài viết, bình luận, chat) cho đỡ rối mắt. Web hiện
- *             hiệu ứng khi rê chuột; điện thoại không có rê chuột.
+ *             "compact": phông + hiệu ứng ở dạng một <Text> duy nhất (bài
+ *             viết, bình luận, danh sách, chat) - chuyển màu theo từng chữ,
+ *             viền chữ/hoạt hình dùng màu + bóng chữ.
  *   style, numberOfLines, ...rest - như <Text>
  *
  * "compact" luôn là một <Text>, lồng được trong <Text> khác. "full" với hiệu
@@ -51,13 +77,32 @@ const StyledName = ({ theme, variant = "full", style, numberOfLines, children, .
         ...(font.letterSpacing ? { letterSpacing: font.letterSpacing } : null),
       }
     : null;
-  const effect = variant === "full" ? getNameEffect(normalized, fontSize) : null;
+  // Both variants show the effect. "compact" (posts, comments, lists) only
+  // uses the forms that are a single <Text>, so it can still sit inside
+  // another <Text>; "full" may use the layered forms below.
+  const effect = getNameEffect(normalized, fontSize);
+  const full = variant === "full";
   const textStyle = [style, fontStyle, effect?.style];
   const name = nameText(children);
 
-  // A gradient is painted letter by letter: each one gets its colour along
-  // the gradient. (Only for a plain string - anything else keeps the
-  // effect's single fallback colour.)
+  // A gradient across the whole name (full variant, when the build has the
+  // masked view and the name has no emoji)...
+  if (effect?.gradient && name !== null && full && !HAS_EMOJI.test(name) && maskedViewAvailable()) {
+    return (
+      <MaskedGradientName
+        textStyle={textStyle}
+        stops={gradientStops(effect.gradient)}
+        numberOfLines={numberOfLines}
+        {...rest}
+      >
+        {name}
+      </MaskedGradientName>
+    );
+  }
+
+  // ...otherwise letter by letter: each one gets its colour along the
+  // gradient. (Only for a plain string - anything else keeps the effect's
+  // single fallback colour.)
   if (effect?.gradient && name !== null) {
     return (
       <Text style={textStyle} numberOfLines={numberOfLines} {...rest}>
@@ -66,7 +111,7 @@ const StyledName = ({ theme, variant = "full", style, numberOfLines, children, .
     );
   }
 
-  if ((effect?.outline || effect?.toon) && name !== null) {
+  if ((effect?.outline || effect?.toon) && name !== null && full) {
     return (
       <LayeredName
         textStyle={textStyle}
@@ -164,10 +209,42 @@ export function colorAlong(stops, position) {
   );
 }
 
+// Two colours fade a -> b -> a (as the web's moving gradient does); a longer
+// list (rainbow) is spread evenly across the name.
+const gradientStops = (gradient) =>
+  gradient.length === 2 ? [gradient[0], gradient[1], gradient[0]] : gradient;
+
+/**
+ * The name as a mask over a left-to-right gradient: every colour of the
+ * gradient shows however short the name is. The hidden copy inside gives
+ * the gradient the name's own size, so the mask (laid out in that same box)
+ * wraps and truncates identically.
+ */
+function MaskedGradientName({ textStyle, stops, numberOfLines, children, ...rest }) {
+  return (
+    <MaskedView
+      style={styles.layered}
+      maskElement={
+        <Text
+          style={[textStyle, { color: "#000", textShadowColor: "transparent" }]}
+          numberOfLines={numberOfLines}
+        >
+          {children}
+        </Text>
+      }
+      {...rest}
+    >
+      <LinearGradient colors={stops} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}>
+        <Text style={[textStyle, { opacity: 0 }]} numberOfLines={numberOfLines}>
+          {children}
+        </Text>
+      </LinearGradient>
+    </MaskedView>
+  );
+}
+
 function gradientSpans(name, gradient) {
-  // Two colours fade a -> b -> a (as the web's moving gradient does); a
-  // longer list (rainbow) is spread evenly across the name.
-  const stops = gradient.length === 2 ? [gradient[0], gradient[1], gradient[0]] : gradient;
+  const stops = gradientStops(gradient);
   const clusters = splitGraphemes(name);
   // Spaces take no step of the gradient, so short words still show its range.
   const inked = clusters.filter((cluster) => cluster.trim() !== "").length;
