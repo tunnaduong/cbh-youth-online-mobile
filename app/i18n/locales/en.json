@@ -2004,8 +2004,8 @@
   "profileTheme": {
     "gradientColor": "Gradient colour",
     "nameIconHint": "An icon shown right after your name · {{points}} points",
-    "usernameStyle": "Username follows the name style",
-    "usernameStyleHint": "Your @username uses the same font and effect as your name · {{points}} points",
+    "usernameStyle": "Username style",
+    "usernameStyleHint": "A font, effect and colours of its own for your @username · {{points}} points",
     "gradientLocked": "Gradient colours need {{points}} points",
     "gradientPickBase": "Pick the colour first",
     "gradientCleared": "Gradient colour removed",

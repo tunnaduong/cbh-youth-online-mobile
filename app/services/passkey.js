@@ -46,8 +46,11 @@ export const passkeysSupported = () => {
  *   message   - what to tell the user, in the app's language
  */
 export class PasskeyError extends Error {
-  constructor(code, { cancelled = false } = {}) {
-    super(i18n.t(`passkeys.errors.${code}`));
+  constructor(code, { cancelled = false, detail = "" } = {}) {
+    // `detail`: what the system itself answered. Shown after the message for
+    // the failures we have no better words for, so a report from a user
+    // says what went wrong instead of only "try again".
+    super(i18n.t(`passkeys.errors.${code}`) + (detail ? ` (${detail})` : ""));
     this.name = "PasskeyError";
     this.code = code;
     this.cancelled = cancelled;
@@ -55,6 +58,12 @@ export class PasskeyError extends Error {
 }
 
 // react-native-passkey rejects with { error, message }.
+const detailOf = (error) =>
+  [error?.error, error?.message]
+    .filter((part) => typeof part === "string" && part)
+    .join(": ")
+    .slice(0, 200);
+
 const fromNative = (error, mode) => {
   switch (error?.error) {
     case "UserCancelled":
@@ -68,15 +77,17 @@ const fromNative = (error, mode) => {
     case "NotSupported":
       return new PasskeyError("notSupported");
     case "BadConfiguration":
-      return new PasskeyError("notConfigured");
+      return new PasskeyError("notConfigured", { detail: detailOf(error) });
     case "TimedOut":
     case "Interrupted":
       return new PasskeyError("interrupted");
     case "RequestFailed":
       // Android answers this way when there is nothing to pick from.
-      return new PasskeyError(mode === "login" ? "noPasskey" : "failed");
+      return mode === "login"
+        ? new PasskeyError("noPasskey")
+        : new PasskeyError("failed", { detail: detailOf(error) });
     default:
-      return new PasskeyError("failed");
+      return new PasskeyError("failed", { detail: detailOf(error) });
   }
 };
 

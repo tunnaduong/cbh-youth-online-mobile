@@ -42,8 +42,10 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 
 import {
   SafeAreaProvider,
+  SafeAreaInsetsContext,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { isIosSheet } from "./app/utils/modalSheet";
 import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import PostEditScreen from "./app/screens/MainScreens/PostEditScreen";
 import Toast from "react-native-toast-message";
@@ -114,6 +116,19 @@ import ShakeToReport from "./app/components/ShakeToReport";
 // during app startup is missed if dev mode is already enabled from a
 // previous session.
 initDevConsole();
+
+// A screen drawn as an iOS sheet (a modal, or anything opened on top of one)
+// already starts below the status bar, but the safe-area inset still reports
+// the notch - every header adding `insets.top` got an empty band above it.
+// Inside a sheet the top inset is 0 for everything that reads the context.
+const SheetAwareScreen = ({ navigation, route, children }) => {
+  const insets = useSafeAreaInsets();
+  const inSheet = isIosSheet(navigation, route);
+  const value = React.useMemo(() => ({ ...insets, top: 0 }), [insets]);
+
+  if (!inSheet) return children;
+  return <SafeAreaInsetsContext.Provider value={value}>{children}</SafeAreaInsetsContext.Provider>;
+};
 
 const Stack = createStackNavigator();
 
@@ -628,7 +643,8 @@ const App = ({ skipSplash = false }) => {
               ? "LanguageSelect"
               : undefined
           }
-          screenOptions={{
+          screenLayout={(props) => <SheetAwareScreen {...props} />}
+          screenOptions={({ navigation, route }) => ({
             headerStyle: {
               backgroundColor: theme.headerBackground,
               elevation: 0,
@@ -643,7 +659,9 @@ const App = ({ skipSplash = false }) => {
             headerTitleContainerStyle: {
               paddingVertical: 10,
             },
-          }}
+            // The stack's own header, same reason as SheetAwareScreen.
+            ...(isIosSheet(navigation, route) ? { headerStatusBarHeight: 0 } : null),
+          })}
         >
           {isLoggedIn ? (
             <>

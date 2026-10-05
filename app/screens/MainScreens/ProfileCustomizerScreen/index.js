@@ -52,6 +52,9 @@ const DEFAULT_THEME = {
   // Pro (2000 points).
   name_icon: "none",
   username_style: "default",
+  username_font: "default",
+  username_effect: "none",
+  username_colors: [DEFAULT_PRIMARY, DEFAULT_ACCENT],
 };
 
 const OPTION_FIELDS = [
@@ -62,10 +65,12 @@ const OPTION_FIELDS = [
   "profile_frame",
   "name_icon",
   "username_style",
+  "username_font",
+  "username_effect",
 ];
 // Fields an API from before the Pro tier neither sends nor accepts: they
 // are only edited, and only sent, when the editor lists options for them.
-const PRO_FIELDS = ["name_icon", "username_style"];
+const PRO_FIELDS = ["name_icon", "username_style", "username_font", "username_effect"];
 const GRADIENT_FIELDS = { primary_color_2: "primary_color", accent_color_2: "accent_color", banner_color_2: "banner_color" };
 
 const sameTheme = (a, b) =>
@@ -237,6 +242,8 @@ export default function ProfileCustomizerScreen({ navigation }) {
         PRO_FIELDS.forEach((field) => {
           if (!editor?.options?.[field]) delete payload[field];
         });
+        // The colours go with the username's font and effect.
+        if (!editor?.options?.username_font) delete payload.username_colors;
       }
       await updateProfile(username, { profile_theme: payload });
       // The sidebar shows the user's own appearance from this cache. The
@@ -373,10 +380,11 @@ export default function ProfileCustomizerScreen({ navigation }) {
     })
   );
 
-  // Pro options: a name icon and the @username drawn like the name.
+  // Pro options: a name icon and a style of its own for the @username.
   const nameIconOptions = editor.options.name_icon || null;
   const firstNameIcon = nameIconOptions?.find((o) => o.key !== "none") || null;
-  const usernameStyleOption = optionOf("username_style", "name") || null;
+  const usernameFontOptions = editor.options.username_font || null;
+  const firstUsernameFont = usernameFontOptions?.find((o) => o.key !== "default") || null;
   const nameIconGlyph = optionOf("name_icon", draft.name_icon)?.icon || null;
   // What the previews draw: the draft plus the glyph, which the API derives
   // for display and never stores (so it must not be in the draft itself).
@@ -593,7 +601,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
             </Slot>
           </Section>
 
-          {nameIconOptions || usernameStyleOption ? (
+          {nameIconOptions || usernameFontOptions ? (
             <Section title={t("profileTheme.sections.nameExtras")}>
               {nameIconOptions ? (
                 <>
@@ -619,20 +627,13 @@ export default function ProfileCustomizerScreen({ navigation }) {
                 </>
               ) : null}
 
-              {usernameStyleOption ? (
-                <View style={[styles.switchRow, nameIconOptions ? { marginTop: 14 } : null]}>
-                  <View style={styles.switchText}>
-                    <Text style={[styles.switchTitle, { color: theme.text }]}>
-                      {t("profileTheme.usernameStyle")}
-                    </Text>
-                    <View style={styles.hintRow}>
-                      {!usernameStyleOption.unlocked ? (
-                        <Ionicons name="lock-closed" size={11} color={theme.subText} />
-                      ) : null}
-                      <Text style={[styles.switchHint, { color: theme.subText, flex: 1 }]}>
-                        {t("profileTheme.usernameStyleHint", { points: usernameStyleOption.required_points ?? 2000 })}
-                      </Text>
-                    </View>
+              {usernameFontOptions ? (
+                <View style={nameIconOptions ? { marginTop: 14 } : null}>
+                  <Slot
+                    label={t("profileTheme.usernameStyle")}
+                    onPress={() => setPicker("username")}
+                    style={styles.nameSlot}
+                  >
                     <StyledUsername
                       theme={previewTheme}
                       username={username}
@@ -640,13 +641,15 @@ export default function ProfileCustomizerScreen({ navigation }) {
                       style={[styles.usernameSample, { color: theme.subText }]}
                       numberOfLines={1}
                     />
+                  </Slot>
+                  <View style={styles.hintRow}>
+                    {firstUsernameFont && !firstUsernameFont.unlocked ? (
+                      <Ionicons name="lock-closed" size={11} color={theme.subText} />
+                    ) : null}
+                    <Text style={[styles.hint, { color: theme.subText, flex: 1 }]}>
+                      {t("profileTheme.usernameStyleHint", { points: firstUsernameFont?.required_points ?? 2000 })}
+                    </Text>
                   </View>
-                  <Switch
-                    accessibilityLabel={t("profileTheme.usernameStyle")}
-                    value={draft.username_style === "name"}
-                    onValueChange={(on) => update({ username_style: on ? "name" : "default" })}
-                    trackColor={{ true: theme.primary }}
-                  />
                 </View>
               ) : null}
             </Section>
@@ -727,6 +730,20 @@ export default function ProfileCustomizerScreen({ navigation }) {
         onApply={update}
         onClose={() => setPicker(null)}
       />
+      {usernameFontOptions ? (
+        <NameStyleSheet
+          visible={picker === "username"}
+          prefix="username"
+          title={t("profileTheme.usernameStyle")}
+          theme={draft}
+          options={editor.options}
+          profileName={`@${username}`}
+          optionLabel={optionLabel}
+          // Its own style replaces the older "same as the name" setting.
+          onApply={(style) => update({ ...style, username_style: "default" })}
+          onClose={() => setPicker(null)}
+        />
+      ) : null}
       {["banner_color", "primary_color", "accent_color"].map((field) => (
         <ColorPickerSheet
           key={field}
@@ -832,33 +849,46 @@ function OptionPickerSheet({ visible, title, options, value, renderOption, onApp
   );
 }
 
-/** "Kiểu tên" (Display Name Style của Discord): phông, hiệu ứng và màu tên. */
-function NameStyleSheet({ visible, theme: draftTheme, options, profileName, optionLabel, onApply, onClose }) {
+/**
+ * "Kiểu tên" (Display Name Style của Discord): phông, hiệu ứng và màu tên.
+ * With prefix="username" the same sheet edits the @username's own style
+ * (username_font / username_effect / username_colors).
+ */
+function NameStyleSheet({ visible, theme: draftTheme, options, profileName, optionLabel, onApply, onClose, prefix = "name", title }) {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
   const [style, setStyle] = useState(null);
   const [colorIndex, setColorIndex] = useState(null);
+  const fontField = `${prefix}_font`;
+  const effectField = `${prefix}_effect`;
+  const colorsField = `${prefix}_colors`;
 
   useEffect(() => {
     if (visible) {
       setStyle({
-        name_font: draftTheme.name_font,
-        name_effect: draftTheme.name_effect,
-        name_colors: draftTheme.name_colors,
+        [fontField]: draftTheme[fontField],
+        [effectField]: draftTheme[effectField],
+        [colorsField]: draftTheme[colorsField],
       });
     }
-  }, [visible, draftTheme]);
+  }, [visible, draftTheme, fontField, effectField, colorsField]);
 
   if (!style) return null;
 
-  const preview = { ...draftTheme, ...style };
+  // The samples are drawn by StyledName, which reads the name_* fields.
+  const preview = {
+    ...draftTheme,
+    name_font: style[fontField],
+    name_effect: style[effectField],
+    name_colors: style[colorsField],
+  };
   const set = (patch) => setStyle((current) => ({ ...current, ...patch }));
 
   return (
     <>
       <ThemeSheet
         visible={visible && colorIndex === null}
-        title={t("profileTheme.sections.name", "Kiểu tên")}
+        title={title || t("profileTheme.sections.name", "Kiểu tên")}
         onClose={onClose}
         onApply={() => {
           onApply(style);
@@ -873,12 +903,12 @@ function NameStyleSheet({ visible, theme: draftTheme, options, profileName, opti
 
         <Text style={[styles.sheetLabel, { color: theme.text }]}>{t("profileTheme.font", "Phông chữ")}</Text>
         <View style={styles.grid3}>
-          {options.name_font.map((option) => (
+          {options[fontField].map((option) => (
             <OptionTile
               key={option.key}
               option={option}
-              selected={style.name_font === option.key}
-              onPress={() => set({ name_font: option.key })}
+              selected={style[fontField] === option.key}
+              onPress={() => set({ [fontField]: option.key })}
               style={styles.tile3}
             >
               <StyledName
@@ -894,12 +924,12 @@ function NameStyleSheet({ visible, theme: draftTheme, options, profileName, opti
 
         <Text style={[styles.sheetLabel, { color: theme.text }]}>{t("profileTheme.effect", "Hiệu ứng")}</Text>
         <View style={styles.grid3}>
-          {options.name_effect.map((option) => (
+          {options[effectField].map((option) => (
             <OptionTile
               key={option.key}
               option={option}
-              selected={style.name_effect === option.key}
-              onPress={() => set({ name_effect: option.key })}
+              selected={style[effectField] === option.key}
+              onPress={() => set({ [effectField]: option.key })}
               style={styles.tile3}
             >
               <StyledName theme={{ ...preview, name_effect: option.key }} style={[styles.effectSample, { color: theme.text }]}>
@@ -910,20 +940,20 @@ function NameStyleSheet({ visible, theme: draftTheme, options, profileName, opti
           ))}
         </View>
 
-        {style.name_effect !== "none" && style.name_effect !== "rainbow" ? (
+        {style[effectField] !== "none" && style[effectField] !== "rainbow" ? (
           <>
             <Text style={[styles.sheetLabel, { color: theme.text }]}>
-              {style.name_effect === "outline"
+              {style[effectField] === "outline"
                 ? t("profileTheme.outlineColors", "Màu chữ và màu viền")
                 : t("profileTheme.color", "Màu")}
             </Text>
             <View style={styles.nameColors}>
-              {(["gradient", "outline"].includes(style.name_effect) ? [0, 1] : [0]).map((index) => (
+              {(["gradient", "outline"].includes(style[effectField]) ? [0, 1] : [0]).map((index) => (
                 <TouchableOpacity
                   key={index}
                   accessibilityLabel={t("profileTheme.nameColor", "Chọn màu tên {{index}}", { index: index + 1 })}
                   onPress={() => setColorIndex(index)}
-                  style={[styles.nameColor, { backgroundColor: style.name_colors[index], borderColor: theme.border }]}
+                  style={[styles.nameColor, { backgroundColor: style[colorsField][index], borderColor: theme.border }]}
                 />
               ))}
             </View>
@@ -936,9 +966,9 @@ function NameStyleSheet({ visible, theme: draftTheme, options, profileName, opti
       <ColorPickerSheet
         visible={visible && colorIndex !== null}
         title={t("profileTheme.color", "Màu")}
-        value={style.name_colors[colorIndex ?? 0]}
+        value={style[colorsField][colorIndex ?? 0]}
         onApply={(hex) =>
-          set({ name_colors: style.name_colors.map((c, i) => (i === colorIndex ? hex : c)) })
+          set({ [colorsField]: style[colorsField].map((c, i) => (i === colorIndex ? hex : c)) })
         }
         onClose={() => setColorIndex(null)}
       />

@@ -22,7 +22,6 @@ const TRYABLE = [
   "profile_effect",
   "profile_frame",
   "name_icon",
-  "username_style",
 ];
 
 /**
@@ -136,6 +135,9 @@ export default function PointsMilestones({ editor, theme: profileTheme, avatarUr
       items.push({ field: "fancy_name", key: "fancy", label: t("profileTheme.milestones.fancyName") });
     }
     Object.entries(editor.options).forEach(([field, options]) => {
+      // The username's fonts and effects are the name's over again: the
+      // list says "username style" once (the username_style line).
+      if (field === "username_font" || field === "username_effect") return;
       options
         .filter((o) => o.required_points === minPoints && !["none", "default"].includes(o.key))
         .forEach((o) =>

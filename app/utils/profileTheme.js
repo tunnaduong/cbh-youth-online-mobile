@@ -6,7 +6,8 @@
  * bình luận, chat, xếp hạng, thông báo) = null (giao diện mặc định) hoặc:
  *   { primary_color, accent_color, banner_color, name_font, name_effect,
  *     name_colors, avatar_frame, profile_effect, profile_frame,
- *     name_icon, name_icon_emoji, username_style }
+ *     name_icon, name_icon_emoji, username_style,
+ *     username_font, username_effect, username_colors }
  * Danh sách key hợp lệ và quyền mở khoá nằm ở App\Services\ProfileThemeService
  * phía API - thêm key mới phải thêm ở cả API, web và đây (font: nameFonts.js).
  */
@@ -73,6 +74,15 @@ export function normalizeTheme(theme) {
     // the member is in - whose icon is shown when they picked none.
     name_icon_tier: typeof theme.name_icon_tier === "string" ? theme.name_icon_tier : null,
     member_tier: typeof theme.member_tier === "string" ? theme.member_tier : null,
+    // The @username's own style (Pro): same fonts and effects as the name,
+    // chosen separately. username_style ("name" = copy the name's style) is
+    // the older setting, only followed when the username has no style.
+    username_font: theme.username_font || "default",
+    username_effect: theme.username_effect || "none",
+    username_colors: [
+      color(theme.username_colors?.[0], DEFAULT_PRIMARY),
+      color(theme.username_colors?.[1], DEFAULT_ACCENT),
+    ],
     username_style: theme.username_style === "name" ? "name" : "default",
   };
 }
@@ -245,7 +255,24 @@ export function getNameIconTier(theme, fallback = null) {
   return normalized.name_icon_tier || normalized.member_tier || own;
 }
 
-/** true when the @username is drawn with the name's font and effect. */
-export function usernameFollowsName(theme) {
-  return normalizeTheme(theme)?.username_style === "name";
+/**
+ * The theme to draw the @username with (give it to StyledName), or null for
+ * a plain one. The username's own font / effect / colours are moved into the
+ * name_* fields StyledName reads.
+ */
+export function getUsernameTheme(theme) {
+  const normalized = normalizeTheme(theme);
+  if (!normalized) return null;
+
+  if (normalized.username_font !== "default" || normalized.username_effect !== "none") {
+    return {
+      ...normalized,
+      name_font: normalized.username_font,
+      name_effect: normalized.username_effect,
+      name_colors: normalized.username_colors,
+    };
+  }
+
+  // Saved before the username had options of its own.
+  return normalized.username_style === "name" ? normalized : null;
 }

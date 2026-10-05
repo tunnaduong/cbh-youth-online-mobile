@@ -351,6 +351,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Username style of its own, sheet headers on iOS, code blocks, passkey error details** (not run on a device):
+  - **The @username has its own style** (Pro): `username_font`, `username_effect`, `username_colors` in the profile theme - the same choices as the name's, picked separately. `getUsernameTheme()` (`app/utils/profileTheme.js`) turns them into the theme `StyledName` draws; `StyledUsername` uses it everywhere. In the customizer the "follow the name" switch is replaced by a "Kiểu tên người dùng" slot opening `NameStyleSheet` with `prefix="username"` (one sheet for both). The older `username_style: "name"` is only followed while the username has no style of its own, and is reset when one is applied.
+  - **No empty band above headers in iOS sheets**: a `presentation: "modal"` screen - and every screen opened on top of one - is a sheet below the status bar, yet `useSafeAreaInsets().top` still reported the notch. `App.js` wraps every stack screen in `SheetAwareScreen` (`screenLayout`), which sets the top inset to 0 inside a sheet (`isIosSheet()` in `app/utils/modalSheet.js`; **keep its `SCREEN_PRESENTATIONS` map in sync with the `presentation` options in App.js**), and the stack's own header gets `headerStatusBarHeight: 0`. Screens keep using `insets.top` as usual.
+  - **Code blocks keep their line breaks**: the HTML renderer collapsed whitespace inside `<pre>`; `preserveCodeBlocks()` (`app/utils/mentionRender.js`, applied by `linkifyMentionsInHtml`, so posts, comments and the composer preview all get it) turns newlines into `<br>` and indentation into non-breaking spaces.
+  - **Passkey failures say what the system answered**: `PasskeyError` appends the native error code and message to the "couldn't be used" / "not linked" texts, so a report tells us what failed.
+
 - **Login approval prompt on every app start** (not run on a device): `LoginApprovalPrompt` asks the API for waiting logins when the app opens (and once more 2.5s later), and reads `getLastNotificationResponseAsync()` so a cold start from the push notification opens the dialog straight away - the tap happens before any listener exists.
 
 - **Toasts follow the app theme; passkeys belong to `www.chuyenbienhoa.com`** (not run on a device):

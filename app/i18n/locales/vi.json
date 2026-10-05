@@ -1991,8 +1991,8 @@
   "profileTheme": {
     "gradientColor": "Màu chuyển sắc",
     "nameIconHint": "Biểu tượng hiện ngay sau tên của bạn · {{points}} điểm",
-    "usernameStyle": "Tên người dùng theo kiểu tên",
-    "usernameStyleHint": "@tên người dùng dùng cùng phông và hiệu ứng với tên · {{points}} điểm",
+    "usernameStyle": "Kiểu tên người dùng",
+    "usernameStyleHint": "Phông, hiệu ứng và màu riêng cho @tên người dùng · {{points}} điểm",
     "gradientLocked": "Màu chuyển sắc cần {{points}} điểm",
     "gradientPickBase": "Hãy chọn màu trước",
     "gradientCleared": "Đã bỏ màu chuyển sắc",

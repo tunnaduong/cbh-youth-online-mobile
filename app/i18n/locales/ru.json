@@ -2022,8 +2022,8 @@
   "profileTheme": {
     "gradientColor": "Градиент",
     "nameIconHint": "Значок сразу после вашего имени · {{points}} очков",
-    "usernameStyle": "Имя пользователя в стиле имени",
-    "usernameStyleHint": "Ваш @ник использует тот же шрифт и эффект, что и имя · {{points}} очков",
+    "usernameStyle": "Стиль имени пользователя",
+    "usernameStyleHint": "Свой шрифт, эффект и цвета для вашего @ника · {{points}} очков",
     "gradientLocked": "Для градиента нужно {{points}} очков",
     "gradientPickBase": "Сначала выберите цвет",
     "gradientCleared": "Градиент убран",

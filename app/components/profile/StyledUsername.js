@@ -1,14 +1,14 @@
 import React from "react";
 import { Text } from "react-native";
 import StyledName from "./StyledName";
-import { usernameFollowsName } from "../../utils/profileTheme";
+import { getUsernameTheme } from "../../utils/profileTheme";
 
 /**
  * A user's `@username`.
  *
- * Normally a plain <Text> in the given style. When the user's theme says
- * `username_style === "name"` (Pro, 2000 points) it is drawn through
- * StyledName, so it takes the same font and effect as their name.
+ * Normally a plain <Text> in the given style. A Pro member (2000 points)
+ * can give it a font, an effect and colours of its own - chosen separately
+ * from the name's - and then it is drawn through StyledName.
  *
  * Props:
  *   theme    - `theme`/`profile_theme` of the user from the API, or null
@@ -22,7 +22,8 @@ const StyledUsername = ({ theme, username, variant = "compact", prefix = "@", st
   if (!username) return null;
   const text = `${prefix}${username}`;
 
-  if (!usernameFollowsName(theme)) {
+  const usernameTheme = getUsernameTheme(theme);
+  if (!usernameTheme) {
     return (
       <Text style={style} numberOfLines={numberOfLines} {...rest}>
         {text}
@@ -31,7 +32,7 @@ const StyledUsername = ({ theme, username, variant = "compact", prefix = "@", st
   }
 
   return (
-    <StyledName theme={theme} variant={variant} style={style} numberOfLines={numberOfLines} {...rest}>
+    <StyledName theme={usernameTheme} variant={variant} style={style} numberOfLines={numberOfLines} {...rest}>
       {text}
     </StyledName>
   );
