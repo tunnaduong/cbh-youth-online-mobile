@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import {
   Animated,
+  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -118,7 +119,13 @@ export default function PostComposerLayout({
     extrapolate: "clamp",
   });
 
-  const headerHeight = HEADER_HEIGHT + insets.top;
+  // Both screens using this layout are opened with `presentation: "modal"`.
+  // On iOS that is a sheet which already starts below the status bar, while
+  // the safe-area inset still reports the notch - adding it left an empty
+  // band above the header. Android shows the modal full screen, so there the
+  // inset is real.
+  const topInset = Platform.OS === "ios" ? 0 : insets.top;
+  const headerHeight = HEADER_HEIGHT + topInset;
   const cardStyle = [styles.card, { backgroundColor: theme.surface, borderColor: theme.border }];
   const hasMedia = images.length > 0 || videos.length > 0;
   const actionDisabled = submitDisabled || loading;
@@ -133,7 +140,7 @@ export default function PostComposerLayout({
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
       <View pointerEvents="box-none" style={styles.headerWrap}>
-        <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]}>
+        <View style={[styles.header, { paddingTop: topInset, height: headerHeight }]}>
           <LiquidButton
             size={44}
             scrollY={scrollY}

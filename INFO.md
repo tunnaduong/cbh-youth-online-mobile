@@ -351,6 +351,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Create / edit post: no empty band above the header on iOS** (not run on a device): both screens are `presentation: "modal"`, which on iOS is a sheet that already starts below the status bar, yet `useSafeAreaInsets().top` still reports the notch. `PostComposerLayout` now uses a top inset of 0 on iOS (the real inset on Android, where the modal is full screen). Rule for any screen opened as an iOS modal sheet: do not add `insets.top`.
+
 - **Tier icon after every name; changeable from Pro** (not run on a device): each member tier has an icon (`app/components/profile/TierIcon.js`: star, bolt, trophy, shield, diamond, crown - same as the web). `NameIcon` (so every `UserNameRow`) shows, in this order: the preset glyph a Pro member picked (`name_icon_emoji`), the tier icon they picked (`name_icon_tier`), else the icon of the tier they are in (`profile_theme.member_tier`, or the row's `tier` prop where the tier comes separately, e.g. the profile header). Below Pro it cannot be changed. The editor's icon picker lists the six tier icons before the presets; the milestones card and the points sheet use the per-tier icons.
 
 - **"Pro" tier (2000 points), one-line names, appearance in more places, profile photo gallery** (bundled by CI, not run on a device):
