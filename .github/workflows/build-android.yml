@@ -7,6 +7,12 @@ on:
       - dhphuc
   workflow_dispatch: # Keeps the manual trigger option available
 
+# One build per branch at a time: a newer push cancels the older run, so two
+# runs never publish over each other's APK.
+concurrency:
+  group: build-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-android:
     name: Build Android APK
@@ -69,18 +75,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Cache Android build outputs (incremental)
-        uses: actions/cache@v4
-        with:
-          path: |
-            android/.gradle
-            android/app/build
-            android/build
-            ~/.android/build-cache
-          key: ${{ runner.os }}-android-build-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-android-build-${{ hashFiles('package-lock.json') }}-
-            ${{ runner.os }}-android-build-
+      # No cache of android/app/build: restoring the previous run's outputs
+      # (including its APK) let Gradle's incremental packaging update an old
+      # APK in place, and installs then failed with "SHA-256 digest of
+      # contents did not verify". Dependencies and task outputs still come
+      # from the Gradle caches above.
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
@@ -108,12 +107,25 @@ jobs:
           -x lintVitalRelease -x lintVitalAnalyzeRelease -x lintVitalReportRelease \
           --no-daemon
 
+      # Never publish an APK Android would refuse to install: check its
+      # signature the way the package installer does, and give it a
+      # per-build name so a download can't mix up two builds.
+      - name: Verify the APK signature
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          mkdir -p dist
+          cp "$APK" "dist/cbh-online-$BUILD_NUMBER.apk"
+          sha256sum "dist/cbh-online-$BUILD_NUMBER.apk" | tee "dist/cbh-online-$BUILD_NUMBER.apk.sha256"
+
       - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: app-apks
-          path: |
-            android/app/build/outputs/apk/release/*.apk
+          path: dist/*.apk
           retention-days: 7
 
       # Cập nhật đè / Khởi tạo bản Prerelease lên GitHub Releases cho Android
@@ -121,9 +133,12 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
+          # Drop the previous build's files: each build has its own name, so
+          # a link always points at exactly one, fully uploaded, APK.
+          removeArtifacts: true
           artifacts: |
-            android/app/build/outputs/apk/release/*.apk
-            android/app/build/outputs/apk/debug/*.apk
+            dist/cbh-online-${{ github.run_number }}.apk
+            dist/cbh-online-${{ github.run_number }}.apk.sha256
           tag: "dhphuc-android"
           name: "${{ github.sha }}"
           body: |
@@ -132,7 +147,7 @@ jobs:
             - **Branch:** `${{ github.ref_name }}`
             - **Changelog:** ${{ github.event.head_commit.message }}
             
-            Tải trực tiếp file APK (Release & Debug arm64-v8a) ở phần **Assets** bên dưới để cài đặt.
+            Tải file `cbh-online-${{ github.run_number }}.apk` (Release arm64-v8a) ở phần **Assets** bên dưới để cài đặt. File `.sha256` để kiểm tra file tải về có nguyên vẹn không.
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -167,8 +182,7 @@ jobs:
               color = 3066993
               description = (
                   "📥 **Nhấp vào liên kết bên dưới để tải file APK trực tiếp về máy:**\n\n"
-                  "🔹 [**TẢI BẢN RELEASE APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-release.apk)\n"
-                  "🔸 [**TẢI BẢN DEBUG APK**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-debug.apk)\n\n"
+                  f"🔹 [**TẢI BẢN RELEASE APK (#{run_number})**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/cbh-online-{run_number}.apk)\n\n"
                   "---\n"
                   "**Thông tin phiên bản:**\n"
                   f"- **Nhánh (Branch):** `{ref_name}`\n"
