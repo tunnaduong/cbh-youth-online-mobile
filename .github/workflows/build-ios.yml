@@ -7,6 +7,12 @@ on:
       - dhphuc
   workflow_dispatch:
 
+# One build per branch at a time: a newer push cancels the older run, so two
+# runs never publish over each other's IPA (same rule as the Android build).
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-ios-real:
     name: Build & Sign Real Device IPA
