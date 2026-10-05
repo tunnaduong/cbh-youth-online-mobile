@@ -108,8 +108,8 @@ jobs:
           --no-daemon
 
       # Never publish an APK Android would refuse to install: check its
-      # signature the way the package installer does, and give it a
-      # per-build name so a download can't mix up two builds.
+      # signature the way the package installer does. The .sha256 lets a
+      # download be checked against the file CI built.
       - name: Verify the APK signature
         env:
           BUILD_NUMBER: ${{ github.run_number }}
@@ -118,8 +118,9 @@ jobs:
           APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
           "$APKSIGNER" verify --verbose --print-certs "$APK"
           mkdir -p dist
-          cp "$APK" "dist/cbh-online-$BUILD_NUMBER.apk"
-          sha256sum "dist/cbh-online-$BUILD_NUMBER.apk" | tee "dist/cbh-online-$BUILD_NUMBER.apk.sha256"
+          cp "$APK" dist/app-release.apk
+          (cd dist && sha256sum app-release.apk | tee app-release.apk.sha256)
+          echo "Build $BUILD_NUMBER"
 
       - name: Upload APK Artifacts
         uses: actions/upload-artifact@v4
@@ -133,12 +134,11 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           allowUpdates: true
-          # Drop the previous build's files: each build has its own name, so
-          # a link always points at exactly one, fully uploaded, APK.
+          # Drop the previous build's files before uploading the new ones.
           removeArtifacts: true
           artifacts: |
-            dist/cbh-online-${{ github.run_number }}.apk
-            dist/cbh-online-${{ github.run_number }}.apk.sha256
+            dist/app-release.apk
+            dist/app-release.apk.sha256
           tag: "dhphuc-android"
           name: "${{ github.sha }}"
           body: |
@@ -147,7 +147,7 @@ jobs:
             - **Branch:** `${{ github.ref_name }}`
             - **Changelog:** ${{ github.event.head_commit.message }}
             
-            Tải file `cbh-online-${{ github.run_number }}.apk` (Release arm64-v8a) ở phần **Assets** bên dưới để cài đặt. File `.sha256` để kiểm tra file tải về có nguyên vẹn không.
+            Tải file `app-release.apk` (Release arm64-v8a, build #${{ github.run_number }}) ở phần **Assets** bên dưới để cài đặt. File `.sha256` để kiểm tra file tải về có nguyên vẹn không.
           prerelease: true
           makeLatest: false
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -182,7 +182,7 @@ jobs:
               color = 3066993
               description = (
                   "📥 **Nhấp vào liên kết bên dưới để tải file APK trực tiếp về máy:**\n\n"
-                  f"🔹 [**TẢI BẢN RELEASE APK (#{run_number})**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/cbh-online-{run_number}.apk)\n\n"
+                  f"🔹 [**TẢI BẢN RELEASE APK (#{run_number})**](https://github.com/tunnaduong/cbh-youth-online-mobile/releases/download/dhphuc-android/app-release.apk)\n\n"
                   "---\n"
                   "**Thông tin phiên bản:**\n"
                   f"- **Nhánh (Branch):** `{ref_name}`\n"
