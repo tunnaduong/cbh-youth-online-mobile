@@ -351,6 +351,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Toasts follow the app theme; passkeys belong to `www.chuyenbienhoa.com`** (not run on a device):
+  - `app/components/AppToast.js` is the toast host to mount (instead of the library's `<Toast />`): surface, border and text colours come from the app theme, light or dark; it also works above `ThemeProvider` (the root host in `App.js`). Showing a toast is still `Toast.show(...)`. All 14 hosts were switched. Design system rule: never mount the library's `<Toast />` directly.
+  - Passkeys: the API's relying party is now `www.chuyenbienhoa.com` (the bare domain redirects, so Android refused the app's passkey after the system sheet). `app.json` adds `webcredentials:www.chuyenbienhoa.com` - **iOS needs a new build for it**; Android works with the existing build once the API is deployed.
+
 - **Notifications open the right place** (not run on a device): `resolveWebNotificationTarget` in `app/utils/notificationRouting.js` sends a notification whose `data.url` is an admin page (`/admin/...`) to `AdminWebScreen` and a gift shop one (`/giftshop/...`, the shop's host, or a `shop_`/`order_` type) to `GiftShopScreen`, at that page: `WebAppScreen` now takes `route.params.url` (only when it is on the site's hosts; the home button still goes home). A story opened from a notification or a link no longer reopens by itself: `HomeScreen` clears `openStoryId` / `highlightStoryId` once handled (they used to stay in the route and fired again on every reload of the story row).
 
 - **Create / edit post: no empty band above the header on iOS** (not run on a device): both screens are `presentation: "modal"`, which on iOS is a sheet that already starts below the status bar, yet `useSafeAreaInsets().top` still reports the notch. `PostComposerLayout` now uses a top inset of 0 on iOS (the real inset on Android, where the modal is full screen). Rule for any screen opened as an iOS modal sheet: do not add `insets.top`.

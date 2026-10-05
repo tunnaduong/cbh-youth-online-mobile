@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -301,7 +302,7 @@ export default function PasskeysScreen({ navigation }) {
       </KeyboardAvoidingView>
       </AndroidGlassBackdrop>
 
-      <Toast topOffset={60} />
+      <AppToast topOffset={60} />
     </View>
   );
 }

@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getLikedPosts } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
@@ -256,7 +257,7 @@ const LikedPostsScreen = ({ navigation }) => {
         </View>
       )}
 
-      <Toast />
+      <AppToast />
     </View>
   );
 };

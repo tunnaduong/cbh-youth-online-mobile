@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import { deleteAccount, updateProfile, changePassword, getNotificationSettings, updateNotificationSettings } from "../../../services/api/Api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -541,7 +542,7 @@ export default function SecurityScreen({ navigation }) {
             </View>
           </View>
         </KeyboardAvoidingView>
-        <Toast topOffset={60} />
+        <AppToast topOffset={60} />
       </Modal>
 
       {/* Change Username Modal */}
@@ -592,7 +593,7 @@ export default function SecurityScreen({ navigation }) {
             </View>
           </View>
         </KeyboardAvoidingView>
-        <Toast topOffset={60} />
+        <AppToast topOffset={60} />
       </Modal>
 
       {/* Change Email Modal */}
@@ -644,7 +645,7 @@ export default function SecurityScreen({ navigation }) {
             </View>
           </View>
         </KeyboardAvoidingView>
-        <Toast topOffset={60} />
+        <AppToast topOffset={60} />
 
       </Modal>
 
@@ -716,10 +717,10 @@ export default function SecurityScreen({ navigation }) {
             </View>
           </View>
         </KeyboardAvoidingView>
-        <Toast topOffset={60} />
+        <AppToast topOffset={60} />
       </Modal>
 
-      <Toast topOffset={60} />
+      <AppToast topOffset={60} />
     </View>
   );
 }

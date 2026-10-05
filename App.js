@@ -47,6 +47,7 @@ import {
 import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import PostEditScreen from "./app/screens/MainScreens/PostEditScreen";
 import Toast from "react-native-toast-message";
+import AppToast from "./app/components/AppToast";
 import UploadStatusBar from "./app/components/UploadStatusBar";
 import LoginApprovalPrompt from "./app/components/LoginApprovalPrompt";
 import { cancelAllUploads } from "./app/services/uploadQueue";
@@ -1147,7 +1148,7 @@ export default () => {
             </SessionResetContext.Provider>
           </KeyboardProvider>
         </SafeAreaProvider>
-        <Toast topOffset={60} />
+        <AppToast topOffset={60} />
       </GestureHandlerRootView>
     </TailwindProvider>
   );

@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import { apiErrorMessage } from "../../../utils/apiMessage";
 import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
@@ -381,7 +382,7 @@ export default function DevicesScreen({ navigation }) {
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
 
-      <Toast topOffset={60} />
+      <AppToast topOffset={60} />
     </View>
   );
 }

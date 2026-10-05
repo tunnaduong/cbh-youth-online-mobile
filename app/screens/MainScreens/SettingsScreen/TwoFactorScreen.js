@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import { apiErrorMessage } from "../../../utils/apiMessage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
@@ -702,7 +703,7 @@ export default function TwoFactorScreen({ navigation }) {
       </KeyboardAvoidingView>
       </AndroidGlassBackdrop>
 
-      <Toast topOffset={60} />
+      <AppToast topOffset={60} />
     </View>
   );
 }

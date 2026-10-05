@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { storage } from "../global/storage";
 
-const ThemeContext = createContext();
+export const ThemeContext = createContext();
 
 export const colors = {
   light: {

@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import {
   deleteAccount,
   updateProfile,
@@ -270,7 +271,7 @@ export default function BlockedUsersScreen({ navigation }) {
         </Animated.ScrollView>
         </AndroidGlassBackdrop>
       )}
-      <Toast topOffset={60} />
+      <AppToast topOffset={60} />
     </View>
   );
 }

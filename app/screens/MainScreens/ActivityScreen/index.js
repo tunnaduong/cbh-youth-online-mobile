@@ -13,6 +13,7 @@ import {
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getActivities } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -333,7 +334,7 @@ const ActivityScreen = ({ navigation }) => {
           }}
         />
       </AndroidGlassBackdrop>
-      <Toast />
+      <AppToast />
     </View>
   );
 };

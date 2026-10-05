@@ -65,6 +65,7 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import FastImage from "../../../components/FastImage";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
@@ -2862,7 +2863,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               }
             }
           }}
-          toast={<Toast topOffset={60} />}
+          toast={<AppToast topOffset={60} />}
           footerComponent={
             // react-native-gesture-handler v2 requires a GestureHandlerRootView
             // ancestor for its PanGestureHandlers to receive touches at all -

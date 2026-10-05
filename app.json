@@ -44,7 +44,8 @@
       "associatedDomains": [
         "applinks:chuyenbienhoa.com",
         "applinks:www.chuyenbienhoa.com",
-        "webcredentials:chuyenbienhoa.com"
+        "webcredentials:chuyenbienhoa.com",
+        "webcredentials:www.chuyenbienhoa.com"
       ]
     },
     "android": {

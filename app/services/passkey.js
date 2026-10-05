@@ -13,7 +13,7 @@ import i18n from "../i18n";
  *
  * What makes the system agree to show the sheet for chuyenbienhoa.com (the
  * passkeys' relying party) lives outside this file:
- *   iOS      - `webcredentials:chuyenbienhoa.com` in app.json's
+ *   iOS      - `webcredentials:www.chuyenbienhoa.com` in app.json's
  *              associatedDomains, and the site's
  *              /.well-known/apple-app-site-association listing this app;
  *   Android  - the site's /.well-known/assetlinks.json listing this package

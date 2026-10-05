@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getSavedPosts } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
 import UserNameRow from "../../../components/profile/UserNameRow";
@@ -274,7 +275,7 @@ const SavedPostsScreen = ({ navigation }) => {
         </View>
       )}
 
-      <Toast />
+      <AppToast />
     </View>
   );
 };
