@@ -351,6 +351,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Login approval prompt on every app start** (not run on a device): `LoginApprovalPrompt` asks the API for waiting logins when the app opens (and once more 2.5s later), and reads `getLastNotificationResponseAsync()` so a cold start from the push notification opens the dialog straight away - the tap happens before any listener exists.
+
 - **Toasts follow the app theme; passkeys belong to `www.chuyenbienhoa.com`** (not run on a device):
   - `app/components/AppToast.js` is the toast host to mount (instead of the library's `<Toast />`): surface, border and text colours come from the app theme, light or dark; it also works above `ThemeProvider` (the root host in `App.js`). Showing a toast is still `Toast.show(...)`. All 14 hosts were switched. Design system rule: never mount the library's `<Toast />` directly.
   - Passkeys: the API's relying party is now `www.chuyenbienhoa.com` (the bare domain redirects, so Android refused the app's passkey after the system sheet). `app.json` adds `webcredentials:www.chuyenbienhoa.com` - **iOS needs a new build for it**; Android works with the existing build once the API is deployed.

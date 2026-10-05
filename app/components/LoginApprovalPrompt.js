@@ -58,7 +58,23 @@ export default function LoginApprovalPrompt() {
       return undefined;
     }
 
+    // On every start of the app, not only when a notification says so: a
+    // login waiting for an answer is a security matter, so it is shown as
+    // soon as the app opens. Asked again a moment later, for a cold start
+    // where the first request went out before the network was up.
     refresh();
+    const retry = setTimeout(refresh, 2500);
+
+    // Opened by tapping the notification while the app was closed: that tap
+    // happened before the listener below existed, so read it here.
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (isApprovalNotification(response?.notification)) {
+          snoozed.current = new Set();
+          refresh();
+        }
+      })
+      .catch(() => {});
 
     const appState = AppState.addEventListener("change", (state) => {
       if (state === "active") refresh();
@@ -84,6 +100,7 @@ export default function LoginApprovalPrompt() {
     }
 
     return () => {
+      clearTimeout(retry);
       appState.remove();
       received.remove();
       tapped.remove();
