@@ -1,6 +1,5 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from "react-native-svg";
 import { getNameEffect, normalizeTheme } from "../../utils/profileTheme";
 import { useNameFont } from "../../utils/nameFonts";
 
@@ -17,8 +16,15 @@ import { useNameFont } from "../../utils/nameFonts";
  *   style, numberOfLines, ...rest - như <Text>
  *
  * "compact" luôn là một <Text>, lồng được trong <Text> khác. "full" với hiệu
- * ứng chuyển màu/cầu vồng/hoạt hình/viền chữ là một <View> (chữ vẽ bằng SVG) - đặt nó đứng riêng,
- * không lồng trong <Text>.
+ * ứng viền chữ/hoạt hình là một <View> (nhiều lớp chữ chồng lên nhau) - đặt
+ * nó đứng riêng, không lồng trong <Text>.
+ *
+ * Every effect is drawn with plain <Text> only. An earlier version painted
+ * gradients and outlines with react-native-svg text, which draws any glyph it
+ * can't turn into a path (some letters with diacritics depending on the font,
+ * every emoji) in plain black - so part of a name, typically its second
+ * word, came out black. Text never has that problem, wraps and aligns like
+ * any other name, and shows emoji as emoji.
  */
 const StyledName = ({ theme, variant = "full", style, numberOfLines, children, ...rest }) => {
   const normalized = normalizeTheme(theme);
@@ -47,12 +53,33 @@ const StyledName = ({ theme, variant = "full", style, numberOfLines, children, .
     : null;
   const effect = variant === "full" ? getNameEffect(normalized, fontSize) : null;
   const textStyle = [style, fontStyle, effect?.style];
+  const name = nameText(children);
 
-  if (effect?.gradient || effect?.toon || effect?.outline) {
+  // A gradient is painted letter by letter: each one gets its colour along
+  // the gradient. (Only for a plain string - anything else keeps the
+  // effect's single fallback colour.)
+  if (effect?.gradient && name !== null) {
     return (
-      <SvgName textStyle={textStyle} effect={effect} numberOfLines={numberOfLines} {...rest}>
-        {children}
-      </SvgName>
+      <Text style={textStyle} numberOfLines={numberOfLines} {...rest}>
+        {gradientSpans(name, effect.gradient)}
+      </Text>
+    );
+  }
+
+  if ((effect?.outline || effect?.toon) && name !== null) {
+    return (
+      <LayeredName
+        textStyle={textStyle}
+        fontSize={fontSize * (font?.scale || 1)}
+        fill={effect.outline ? effect.outline.fill : effect.toon.fill}
+        stroke={effect.outline ? effect.outline.stroke : effect.toon.outline}
+        // "toon" sits on a hard drop shadow in the outline colour.
+        drop={effect.toon ? fontSize * 0.09 : 0}
+        numberOfLines={numberOfLines}
+        {...rest}
+      >
+        {name}
+      </LayeredName>
     );
   }
 
@@ -63,128 +90,150 @@ const StyledName = ({ theme, variant = "full", style, numberOfLines, children, .
   );
 };
 
-let gradientCounter = 0;
+/** The name as one string, or null when the children are something else. */
+function nameText(children) {
+  if (typeof children === "string") return children;
+  if (typeof children === "number") return String(children);
+  if (Array.isArray(children) && children.every((c) => typeof c === "string" || typeof c === "number")) {
+    return children.join("");
+  }
+  return null;
+}
+
+// Code points that belong to the letter before them: combining marks (a
+// Vietnamese name typed as base letter + accents), variation selectors,
+// emoji skin tones.
+const isCombining = (cp) =>
+  (cp >= 0x0300 && cp <= 0x036f) ||
+  (cp >= 0x1ab0 && cp <= 0x1aff) ||
+  (cp >= 0x1dc0 && cp <= 0x1dff) ||
+  (cp >= 0x20d0 && cp <= 0x20ff) ||
+  (cp >= 0xfe00 && cp <= 0xfe0f) ||
+  (cp >= 0xfe20 && cp <= 0xfe2f) ||
+  (cp >= 0x1f3fb && cp <= 0x1f3ff) ||
+  cp === 0x20e3;
+const ZWJ = 0x200d;
+const isRegionalIndicator = (cp) => cp >= 0x1f1e6 && cp <= 0x1f1ff;
 
 /**
- * Lays the name out as a normal (invisible) <Text> - so wrapping, alignment
- * and the parent's layout behave exactly as for any other name - then paints
- * each laid-out line on top with SVG, which can do what RN text can't: fill
- * with a gradient, or stroke an outline.
+ * Split into what a reader sees as one character each, so a colour change
+ * never lands between a letter and its accent or inside an emoji.
  */
-function SvgName({ textStyle, effect, numberOfLines, children, ...rest }) {
-  const [lines, setLines] = useState(null);
-  const [box, setBox] = useState(null);
-  const gradientId = useRef(`name-gradient-${++gradientCounter}`).current;
-  const flat = StyleSheet.flatten(textStyle) || {};
-  const fontSize = flat.fontSize || 14;
+export function splitGraphemes(text) {
+  const clusters = [];
+  let joinNext = false;
 
-  const svgFont = {
-    fontFamily: flat.fontFamily,
-    fontSize,
-    fontWeight: flat.fontWeight || "normal",
-    letterSpacing: flat.letterSpacing,
-  };
+  for (const char of Array.from(text)) {
+    const cp = char.codePointAt(0);
+    const last = clusters.length - 1;
+    const previous = last >= 0 ? clusters[last] : null;
+    // A flag is two regional indicators.
+    const completesFlag =
+      previous !== null &&
+      isRegionalIndicator(cp) &&
+      Array.from(previous).length === 1 &&
+      isRegionalIndicator(previous.codePointAt(0));
 
+    if (previous !== null && (joinNext || isCombining(cp) || cp === ZWJ || completesFlag)) {
+      clusters[last] = previous + char;
+    } else {
+      clusters.push(char);
+    }
+    joinNext = cp === ZWJ;
+  }
+
+  return clusters;
+}
+
+const channelsOf = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+
+/** The colour at `position` (0..1) along a list of evenly spaced stops. */
+export function colorAlong(stops, position) {
+  if (stops.length === 1) return stops[0];
+  const scaled = Math.min(Math.max(position, 0), 1) * (stops.length - 1);
+  const index = Math.min(Math.floor(scaled), stops.length - 2);
+  const ratio = scaled - index;
+  const from = channelsOf(stops[index]);
+  const to = channelsOf(stops[index + 1]);
+  return (
+    "#" +
+    from
+      .map((c, i) => Math.round(c + (to[i] - c) * ratio))
+      .map((c) => c.toString(16).padStart(2, "0"))
+      .join("")
+  );
+}
+
+function gradientSpans(name, gradient) {
   // Two colours fade a -> b -> a (as the web's moving gradient does); a
   // longer list (rainbow) is spread evenly across the name.
-  const gradientStops = effect.gradient
-    ? effect.gradient.length === 2
-      ? [effect.gradient[0], effect.gradient[1], effect.gradient[0]]
-      : effect.gradient
-    : [];
+  const stops = gradient.length === 2 ? [gradient[0], gradient[1], gradient[0]] : gradient;
+  const clusters = splitGraphemes(name);
+  // Spaces take no step of the gradient, so short words still show its range.
+  const inked = clusters.filter((cluster) => cluster.trim() !== "").length;
+  let step = 0;
 
-  const renderLines = (props, dy = 0) =>
-    lines.map((line, index) => (
-      <SvgText key={index} x={line.x} y={line.y + line.ascender + dy} {...svgFont} {...props}>
-        {line.text.replace(/\n$/, "")}
-      </SvgText>
-    ));
+  return clusters.map((cluster, index) => {
+    if (cluster.trim() === "") return cluster;
+    const color = colorAlong(stops, inked > 1 ? step / (inked - 1) : 0);
+    step += 1;
+    return (
+      <Text key={index} style={{ color }}>
+        {cluster}
+      </Text>
+    );
+  });
+}
+
+// Directions the outline copies are shifted in: a ring around the text.
+const RING = [
+  [1, 0], [-1, 0], [0, 1], [0, -1],
+  [0.7, 0.7], [-0.7, 0.7], [0.7, -0.7], [-0.7, -0.7],
+];
+
+/**
+ * A name with a border (and optionally a hard drop shadow): the same text
+ * stacked - copies in the border colour shifted in a ring, the fill on top.
+ * The copies are positioned over the visible text's own box, so they wrap
+ * and truncate exactly like it.
+ */
+function LayeredName({ textStyle, fontSize, fill, stroke, drop, numberOfLines, children, ...rest }) {
+  const width = Math.max(1, fontSize * 0.06);
+  const copy = (dx, dy, key) => (
+    <Text
+      key={key}
+      // Decoration only: screen readers read the top layer once.
+      accessible={false}
+      importantForAccessibility="no"
+      style={[
+        textStyle,
+        styles.layer,
+        { color: stroke, textShadowColor: "transparent", left: dx, right: -dx, top: dy },
+      ]}
+      numberOfLines={numberOfLines}
+    >
+      {children}
+    </Text>
+  );
 
   return (
-    <View style={styles.svgWrap} {...rest}>
+    <View style={styles.layered} {...rest}>
+      {drop > 0 && RING.map(([x, y], index) => copy(x * width, y * width + drop, `drop-${index}`))}
+      {RING.map(([x, y], index) => copy(x * width, y * width, `ring-${index}`))}
       <Text
-        style={[
-          textStyle,
-          { color: "transparent", textShadowColor: "transparent" },
-        ]}
+        style={[textStyle, { color: fill, textShadowColor: "transparent" }]}
         numberOfLines={numberOfLines}
-        onTextLayout={(e) => setLines(e.nativeEvent.lines)}
-        onLayout={(e) => setBox(e.nativeEvent.layout)}
       >
         {children}
       </Text>
-      {lines && box ? (
-        <Svg
-          pointerEvents="none"
-          style={StyleSheet.absoluteFill}
-          width={box.width}
-          height={box.height + fontSize * 0.2}
-        >
-          {effect.gradient ? (
-            <>
-              <Defs>
-                <LinearGradient
-                  id={gradientId}
-                  x1="0"
-                  y1="0"
-                  x2={box.width}
-                  y2="0"
-                  gradientUnits="userSpaceOnUse"
-                >
-                  {gradientStops.map((color, index) => (
-                    <Stop
-                      key={index}
-                      offset={String(index / (gradientStops.length - 1))}
-                      stopColor={color}
-                    />
-                  ))}
-                </LinearGradient>
-              </Defs>
-              {renderLines({ fill: `url(#${gradientId})` })}
-            </>
-          ) : effect.outline ? (
-            <>
-              {/* Border in the picked colour, then the fill on top so only
-                  the outer half of the stroke shows. */}
-              {renderLines({
-                fill: effect.outline.fill,
-                stroke: effect.outline.stroke,
-                strokeWidth: fontSize * 0.12,
-                strokeLinejoin: "round",
-              })}
-              {renderLines({ fill: effect.outline.fill })}
-            </>
-          ) : (
-            <>
-              {/* Drop shadow, then the outline, then the fill on top - the
-                  web's paint-order: stroke fill. */}
-              {renderLines(
-                {
-                  fill: effect.toon.outline,
-                  stroke: effect.toon.outline,
-                  strokeWidth: fontSize * 0.12,
-                  strokeLinejoin: "round",
-                },
-                fontSize * 0.09
-              )}
-              {renderLines({
-                fill: effect.toon.fill,
-                stroke: effect.toon.outline,
-                strokeWidth: fontSize * 0.12,
-                strokeLinejoin: "round",
-              })}
-              {renderLines({ fill: effect.toon.fill })}
-            </>
-          )}
-        </Svg>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   // Lets a long name shrink inside a row instead of pushing past it.
-  svgWrap: { flexShrink: 1, maxWidth: "100%" },
+  layered: { flexShrink: 1, maxWidth: "100%" },
+  layer: { position: "absolute" },
 });
 
 export default StyledName;
