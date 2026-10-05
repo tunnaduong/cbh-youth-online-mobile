@@ -17,32 +17,33 @@ import { autoEmbedSoundCloudLinks } from "../../utils/soundcloudShare";
 // toolbar and mention list must be rendered outside it, as siblings at the
 // bottom of the screen.
 
-// GitHub-style underlined Write / Preview tabs.
+// Write / Preview switch: a pill with two segments, like the app's other
+// segmented controls.
 export function PostEditorTabs({ editor, style }) {
   const { theme } = useTheme();
   const { t } = useTranslation();
   return (
-    <View style={[styles.tabsRow, { borderBottomColor: theme.border }, style]}>
-      {["write", "preview"].map((key) => (
-        <TouchableOpacity
-          key={key}
-          onPress={() => {
-            if (key === "preview") Keyboard.dismiss();
-            editor.setMode(key);
-          }}
-          style={[styles.tab, editor.mode === key && { borderBottomColor: theme.primary }]}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              { color: editor.mode === key ? theme.text : theme.subText },
-              editor.mode === key && { fontWeight: "700" },
-            ]}
+    <View style={[styles.tabsRow, { backgroundColor: theme.iconBackground }, style]}>
+      {["write", "preview"].map((key) => {
+        const active = editor.mode === key;
+        return (
+          <TouchableOpacity
+            key={key}
+            onPress={() => {
+              if (key === "preview") Keyboard.dismiss();
+              editor.setMode(key);
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            style={[styles.tab, active && { backgroundColor: theme.background }]}
           >
-            {t(`createPost.${key}`)}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            <Text style={[styles.tabText, { color: active ? theme.text : theme.subText }]}>
+              {t(`createPost.${key}`)}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -88,7 +89,7 @@ export function PostEditorField({ editor, placeholder, inputStyle, previewPaddin
 // Formatting toolbar, riding on top of the keyboard. Stays mounted so it
 // already tracks the keyboard when it becomes visible.
 export function PostEditorToolbar({ editor }) {
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   if (editor.mode !== "write") return null;
   return (
@@ -101,7 +102,7 @@ export function PostEditorToolbar({ editor }) {
           opacity: editor.toolbarVisible ? 1 : 0,
           // No keyboard to sit on: stay clear of the home indicator.
           paddingBottom: editor.keyboardHeight === 0 ? insets.bottom : 0,
-          backgroundColor: isDarkMode ? theme.surface : "#F2F3F5",
+          backgroundColor: theme.sectionBackground,
         }}
       >
         <MarkdownToolbar
@@ -146,14 +147,14 @@ export function PostEditorMentions({ editor }) {
 const styles = StyleSheet.create({
   hidden: { display: "none" },
   contentInput: {
-    minHeight: 240,
+    minHeight: 200,
     paddingHorizontal: 0,
     paddingVertical: 0,
     fontSize: 16,
     lineHeight: 24,
   },
-  tabsRow: { flexDirection: "row", borderBottomWidth: StyleSheet.hairlineWidth, marginTop: 4, marginBottom: 14 },
-  tab: { paddingVertical: 10, marginRight: 22, marginBottom: -StyleSheet.hairlineWidth, borderBottomWidth: 2, borderBottomColor: "transparent" },
-  tabText: { fontSize: 14, fontWeight: "500" },
+  tabsRow: { flexDirection: "row", alignSelf: "flex-start", borderRadius: 999, padding: 3, marginBottom: 12 },
+  tab: { paddingVertical: 6, paddingHorizontal: 16, borderRadius: 999 },
+  tabText: { fontSize: 13, fontWeight: "600" },
   sticky: { position: "absolute", left: 0, right: 0, bottom: 0, zIndex: 40 },
 });

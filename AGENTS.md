@@ -57,3 +57,6 @@ task here:
 - Every UI string goes in `app/i18n/locales/{en,vi,ru}.json` - all three.
 - Native screens use the floating `LiquidButton` + fading-title header;
   screens hosting a web page use `WebViewHeader`.
+- **UI work must follow INFO.md's "Design system" section** (tokens, header,
+  cards, buttons, loading, i18n). A large redesign updates that section in the
+  same commit.

@@ -422,6 +422,10 @@
     "pasteImage": "Dán ảnh từ clipboard",
     "chooseFromLibrary": "Chọn từ thư viện",
     "categoryShort": "Chọn chuyên mục",
+    "sectionSettings": "Thiết lập bài viết",
+    "categoryLabel": "Chuyên mục",
+    "privacyLabel": "Ai có thể xem",
+    "removeAttachment": "Xóa tệp đính kèm",
     "toolbar": {
       "bold": "In đậm",
       "italic": "In nghiêng",

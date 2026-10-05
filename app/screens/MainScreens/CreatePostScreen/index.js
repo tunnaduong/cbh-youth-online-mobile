@@ -1,18 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Platform,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Platform } from "react-native";
 import { AuthContext } from "../../../contexts/AuthContext";
-import Dropdown from "../../../components/Dropdown";
 import { getCategoryName } from "../../../utils/forumUtils";
 import {
   createPost,
@@ -26,8 +14,6 @@ import { compressImageForUpload, compressVideoForUpload } from "../../../utils/m
 import { startUpload } from "../../../services/uploadQueue";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import FastImage from "../../../components/FastImage";
-import VideoThumbnail from "../../../components/VideoThumbnail";
 import { CommonActions } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -40,14 +26,8 @@ import {
 import { autoEmbedYouTubeLinks } from "../../../utils/youtubeShare";
 import { autoEmbedSoundCloudLinks } from "../../../utils/soundcloudShare";
 import { CustomAlert } from "../../../components/CustomAlert";
-import { TOOLBAR_HEIGHT } from "../../../components/PostEditor/MarkdownToolbar";
 import usePostEditor from "../../../components/PostEditor/usePostEditor";
-import {
-  PostEditorField,
-  PostEditorMentions,
-  PostEditorTabs,
-  PostEditorToolbar,
-} from "../../../components/PostEditor/PostEditorParts";
+import PostComposerLayout from "../../../components/PostEditor/PostComposerLayout";
 import { hasPendingUploads } from "../../../utils/markdownEdit";
 import { clearPostDraft, isDraftEmpty, loadPostDraft, savePostDraft } from "../../../utils/postDraft";
 
@@ -66,7 +46,6 @@ const CreatePostScreen = ({ navigation, route }) => {
   const userId = userInfo?.id;
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const { setFeed } = useContext(FeedContext);
 
   useStatusBarStyle(
@@ -113,7 +92,7 @@ const CreatePostScreen = ({ navigation, route }) => {
     initialContent: restoredDraft?.content ?? prefillContent,
     userId,
   });
-  const { postContent, mode, setMode, inputRef, contentRef } = editor;
+  const { postContent, contentRef } = editor;
 
   // --- leaving: unsaved-changes guard + draft ----------------------------
   const attachmentCount = selectedImages.length + selectedVideos.length + selectedDocuments.length;
@@ -642,290 +621,60 @@ const CreatePostScreen = ({ navigation, route }) => {
   };
 
   // --- rendering ---------------------------------------------------------
-
-  const { toolbarVisible } = editor;
-  const chipBackground = isDarkMode ? theme.surface : "#F6F8FA";
-
-  const submitDisabled = !canSubmit || loading;
+  // The look (header, cards, toolbar) is PostComposerLayout, shared with the
+  // edit screen.
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <>
       <ProgressHUD
         loadText={uploadProgressText || t("createPost.posting")}
         visible={loading}
         progress={uploadProgress}
       />
 
-      <View
-        style={[
-          styles.header,
-          { paddingTop: insets.top + 6, borderBottomColor: theme.border, backgroundColor: theme.background },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.headerClose}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="close" size={26} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-          {t("createPost.title")}
-        </Text>
-        <TouchableOpacity
-          onPress={handlePost}
-          disabled={submitDisabled}
-          style={[
-            styles.submit,
-            { backgroundColor: submitDisabled ? theme.iconBackground : theme.primary },
-          ]}
-        >
-          <Text style={[styles.submitText, { color: submitDisabled ? theme.subText : "#FFFFFF" }]}>
-            {t("createPost.publish")}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <KeyboardAwareScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[
-          styles.body,
-          { paddingBottom: insets.bottom + 32 + (toolbarVisible ? TOOLBAR_HEIGHT : 0) },
-        ]}
-        bottomOffset={TOOLBAR_HEIGHT + 24}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {showDraftBanner && (
-          <View style={[styles.banner, { backgroundColor: theme.iconBackground }]}>
-            <Ionicons name="document-text-outline" size={18} color={theme.subText} />
-            <Text style={[styles.bannerText, { color: theme.text }]}>{t("createPost.draftRestored")}</Text>
-            <TouchableOpacity onPress={restartFromScratch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={{ color: theme.primary, fontWeight: "700", fontSize: 13 }}>
-                {t("createPost.draftRestart")}
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowDraftBanner(false)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="close" size={18} color={theme.subText} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Where it goes and who sees it - one compact line above the title,
-            like Reddit's community picker / X's audience pill. */}
-        <View style={styles.metaRow}>
-          <Dropdown
-            options={subforums}
-            placeholder={t("createPost.categoryShort")}
-            selectedValue={selected}
-            onValueChange={setSelected}
-            containerStyle={{ flex: 1, marginVertical: 0 }}
-            style={[styles.pill, { backgroundColor: theme.iconBackground }]}
-            leftIcon={<Ionicons name="albums-outline" size={14} color={theme.subText} />}
-            textStyle={styles.pillText}
-            arrowSize={14}
-          />
-          <Dropdown
-            options={
-              isAnonymous
-                ? view.filter((item) => item.value !== "followers")
-                : view
-            }
-            placeholder={t("createPost.privacyPublic")}
-            selectedValue={viewSelected}
-            onValueChange={setViewSelected}
-            containerStyle={{ marginVertical: 0 }}
-            style={[styles.pill, { backgroundColor: theme.iconBackground, alignSelf: "flex-start" }]}
-            leftIcon={<Ionicons name={viewSelected?.icon || "earth"} size={14} color={theme.subText} />}
-            textStyle={styles.pillText}
-            arrowSize={14}
-          />
-          <TouchableOpacity
-            onPress={() => setIsAnonymous(!isAnonymous)}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: isAnonymous }}
-            accessibilityLabel={t("createPost.anonymous")}
-            activeOpacity={0.7}
-            style={[
-              styles.anonButton,
-              { backgroundColor: isAnonymous ? theme.primary : theme.iconBackground },
-            ]}
-          >
-            <Ionicons
-              name={isAnonymous ? "eye-off" : "eye-off-outline"}
-              size={17}
-              color={isAnonymous ? "#FFFFFF" : theme.subText}
-            />
-          </TouchableOpacity>
-        </View>
-        {isAnonymous && (
-          <Text style={[styles.anonymousNote, { color: theme.subText }]}>{t("createPost.anonymousDesc")}</Text>
-        )}
-        <TextInput
-          style={[styles.titleInput, { color: theme.text }]}
-          placeholder={t("createPost.placeholderTitle")}
-          placeholderTextColor={theme.subText}
-          value={title}
-          onChangeText={setTitle}
-          returnKeyType="next"
-          onSubmitEditing={() => {
-            setMode("write");
-            inputRef.current?.focus();
-          }}
-        />
-
-        <PostEditorTabs editor={editor} />
-        <PostEditorField editor={editor} placeholder={t("createPost.placeholderContent")} />
-
-        <Text style={[styles.hintText, { color: theme.subText }]}>
-          <Text style={styles.hintLink} onPress={() => navigateToHelp(865586194)}>
-            {t("createPost.markdown")}
-          </Text>
-          {"   ·   "}
-          <Text style={styles.hintLink} onPress={() => navigateToHelp(173336279)}>
-            {t("createPost.rules")}
-          </Text>
-        </Text>
-
-        {/* Attachments: icons only (X / Facebook composer style); the
-            thumbnails and files appear below once something is added. */}
-        <View style={[styles.attachBar, { borderTopColor: theme.border }]}>
-          {[
-            { key: "image", icon: "image-outline", label: t("createPost.addImage"), onPress: pickImage },
-            { key: "video", icon: "videocam-outline", label: t("createPost.addVideo"), onPress: pickVideo },
-            { key: "doc", icon: "document-attach-outline", label: t("createPost.addDocument"), onPress: pickDocument },
-          ].map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              onPress={item.onPress}
-              accessibilityRole="button"
-              accessibilityLabel={item.label}
-              style={[styles.attachButton, item.key === "image" && styles.attachFirst]}
-            >
-              <Ionicons name={item.icon} size={24} color={theme.primary} />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {selectedDocuments.length > 0 && (
-          <View style={styles.fileList}>
-            {selectedDocuments.map((doc, index) => (
-              <View
-                key={index}
-                style={[styles.fileItem, { backgroundColor: chipBackground, borderColor: theme.border }]}
-              >
-                <Ionicons name="document-text-outline" size={20} color={theme.primary} />
-                <Text style={[styles.fileName, { color: theme.text }]} numberOfLines={1}>
-                  {doc.name}
-                </Text>
-                <TouchableOpacity onPress={() => removeDocument(index)}>
-                  <Ionicons name="close-circle" size={20} color={theme.subText} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {(selectedImages.length > 0 || selectedVideos.length > 0) && (
-          // Photos and videos share one media row so attaching either feels
-          // like the same action.
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.mediaRow}
-            keyboardShouldPersistTaps="handled"
-          >
-            {selectedImages.map((uri, index) => (
-              <View key={`image-${index}-${uri}`} style={styles.mediaThumb}>
-                <FastImage
-                  source={{ uri }}
-                  style={[styles.mediaImage, { borderColor: theme.border }]}
-                />
-                <TouchableOpacity onPress={() => removeImage(index)} style={styles.removeButton}>
-                  <Ionicons name="trash" size={16} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            ))}
-            {selectedVideos.map((video, index) => (
-              <VideoThumbnail
-                key={`video-${index}-${video.uri}`}
-                uri={video.uri}
-                width={130}
-                height={130}
-                style={styles.mediaThumb}
-                onRemove={() => removeVideo(index)}
-              />
-            ))}
-          </ScrollView>
-        )}
-      </KeyboardAwareScrollView>
-
-      <PostEditorToolbar editor={editor} />
-      <PostEditorMentions editor={editor} />
-    </View>
+      <PostComposerLayout
+        editor={editor}
+        headerTitle={t("createPost.title")}
+        onClose={() => navigation.goBack()}
+        submitLabel={t("createPost.publish")}
+        onSubmit={handlePost}
+        submitDisabled={!canSubmit || loading}
+        banner={
+          showDraftBanner
+            ? {
+                text: t("createPost.draftRestored"),
+                actionLabel: t("createPost.draftRestart"),
+                onAction: restartFromScratch,
+                onDismiss: () => setShowDraftBanner(false),
+              }
+            : null
+        }
+        title={title}
+        onChangeTitle={setTitle}
+        titlePlaceholder={t("createPost.placeholderTitle")}
+        contentPlaceholder={t("createPost.placeholderContent")}
+        onMarkdownHelp={() => navigateToHelp(865586194)}
+        onRulesHelp={() => navigateToHelp(173336279)}
+        categoryOptions={subforums}
+        category={selected}
+        onChangeCategory={setSelected}
+        privacyOptions={isAnonymous ? view.filter((item) => item.value !== "followers") : view}
+        privacy={viewSelected}
+        onChangePrivacy={setViewSelected}
+        anonymous={isAnonymous}
+        onToggleAnonymous={setIsAnonymous}
+        images={selectedImages.map((uri) => ({ uri }))}
+        videos={selectedVideos}
+        documents={selectedDocuments}
+        onPickImage={pickImage}
+        onPickVideo={pickVideo}
+        onPickDocument={pickDocument}
+        onRemoveImage={removeImage}
+        onRemoveVideo={removeVideo}
+        onRemoveDocument={removeDocument}
+      />
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  headerClose: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 16, fontWeight: "700", marginHorizontal: 8 },
-  submit: { minWidth: 76, height: 36, paddingHorizontal: 16, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  submitText: { fontSize: 14, fontWeight: "700" },
-  body: { paddingHorizontal: 16, paddingTop: 12 },
-  banner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  bannerText: { flex: 1, fontSize: 13 },
-  titleInput: { fontSize: 22, fontWeight: "800", paddingVertical: 8, paddingHorizontal: 0 },
-  hintText: { fontSize: 12, marginTop: 12 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 },
-  pill: { borderWidth: 0, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, gap: 2 },
-  pillText: { fontSize: 13, fontWeight: "600" },
-  anonButton: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  hintLink: { textDecorationLine: "underline" },
-  attachBar: { flexDirection: "row", gap: 4, marginTop: 20, paddingTop: 6, paddingLeft: 0, borderTopWidth: StyleSheet.hairlineWidth, marginLeft: 0 },
-  attachFirst: { marginLeft: -10 },
-  attachButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  anonymousNote: { fontSize: 12, lineHeight: 17, marginTop: 8 },
-  fileList: { gap: 8, marginTop: 12 },
-  fileItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  fileName: { flex: 1, fontSize: 13 },
-  mediaRow: { paddingTop: 12, paddingBottom: 4 },
-  mediaThumb: { position: "relative", marginRight: 8 },
-  mediaImage: { width: 130, height: 130, borderRadius: 16, borderWidth: 1 },
-  removeButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "#EF4444",
-    borderRadius: 999,
-    padding: 6,
-  },
-});
 
 export default CreatePostScreen;
