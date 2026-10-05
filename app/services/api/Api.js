@@ -552,6 +552,17 @@ export const resendTwoFactorLoginCode = (params) => {
 export const getTwoFactorStatus = () => Api.getRequest("/v1.0/two-factor");
 export const setupTwoFactorTotp = (params) => Api.postRequest("/v1.0/two-factor/totp", params);
 export const setupTwoFactorEmail = (params) => Api.postRequest("/v1.0/two-factor/email", params);
+// Two-factor by approval on a device that is already logged in.
+export const setupTwoFactorDevice = (params) => Api.postRequest("/v1.0/two-factor/device", params);
+// The device logging in: ask for an approval (shows a number), then poll.
+export const startLoginApproval = (params) =>
+  Api.postRequest("/v1.0/login/two-factor/approval", params);
+export const getLoginApprovalStatus = (params) =>
+  Api.postRequest("/v1.0/login/two-factor/approval/status", params);
+// A logged-in device: the logins waiting for an answer, and answering one.
+export const getLoginApprovals = () => Api.getRequest("/v1.0/two-factor/approvals");
+export const respondLoginApproval = (id, params) =>
+  Api.postRequest(`/v1.0/two-factor/approvals/${id}`, params);
 export const sendTwoFactorEmailCode = () => Api.postRequest("/v1.0/two-factor/email/send");
 export const confirmTwoFactor = (params) => Api.postRequest("/v1.0/two-factor/confirm", params);
 export const disableTwoFactor = (params) => Api.postRequest("/v1.0/two-factor/disable", params);

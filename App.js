@@ -48,6 +48,7 @@ import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import PostEditScreen from "./app/screens/MainScreens/PostEditScreen";
 import Toast from "react-native-toast-message";
 import UploadStatusBar from "./app/components/UploadStatusBar";
+import LoginApprovalPrompt from "./app/components/LoginApprovalPrompt";
 import { cancelAllUploads } from "./app/services/uploadQueue";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { joinGroupViaInvite } from "./app/services/api/Api";
@@ -1112,6 +1113,8 @@ const App = ({ skipSplash = false }) => {
       <ShakeToReport navigationRef={navigationRef} />
       {/* Posts, stories and attachments going up in the background */}
       <UploadStatusBar />
+      {/* A login on another device waiting to be approved here (2FA) */}
+      <LoginApprovalPrompt />
       <CustomAlertProvider />
     </>
   );

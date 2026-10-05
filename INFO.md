@@ -155,6 +155,12 @@ There are no automated tests; verify on device. Quick syntax check for a file:
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Two-factor by approval on a logged-in device** (method `device`; not run on a device):
+  - Settings: `TwoFactorScreen` has a third switch (`twoFactor.methodDevice`); turning it on asks the password and needs no code (`setupTwoFactorDevice`).
+  - Device logging in: `TwoFactorChallengeScreen` shows a two-digit number and waits (`startLoginApproval`, then `getLoginApprovalStatus` every 2.5s until approved / denied / expired), with "send again" and "use a recovery code".
+  - Logged-in device: `app/components/LoginApprovalPrompt.js` (mounted in `App.js`) shows a modal with the requesting device, three numbers to pick from, "Not me - deny" and "Later". It refreshes from `GET /two-factor/approvals` on app foreground, on the realtime event `.login.approval` (user channel) and on a push with `data.type = login_approval`.
+  - Strings `twoFactor.methodDevice*`, `challengeDevice`, `challengeRecovery`, `approval*`, `useRecoveryCode`, `prompt*` (vi/en/ru).
+
 - **Devices screen redesigned as expandable cards, with the login method** (not run on a device): `DevicesScreen` shows one card per login - icon, device name, "platform version • last active", chips ("This device", login method) - and opens on tap to a boxed list (model, platform + version, login method, logged in, last active) with a "Log out" button. `login_method` / `login_two_factor` come from `GET /sessions`; strings `devices.methods.*`, `devices.model`, `platform`, `version`, `loginMethod`, `withTwoFactor`, `loggedInLabel`, `lastActiveLabel`, `neverActive`, `total` (vi/en/ru).
 
 - **Passkeys are native** (new native module: needs a new build; not run on a device):

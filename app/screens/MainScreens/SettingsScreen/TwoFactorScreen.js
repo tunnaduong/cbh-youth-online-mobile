@@ -27,6 +27,7 @@ import {
   getTwoFactorStatus,
   setupTwoFactorTotp,
   setupTwoFactorEmail,
+  setupTwoFactorDevice,
   sendTwoFactorEmailCode,
   confirmTwoFactor,
   disableTwoFactor,
@@ -36,7 +37,7 @@ import {
 } from "../../../services/api/Api";
 
 // Every method can be on at the same time; at login the user picks one.
-const METHODS = ["email", "totp"];
+const METHODS = ["email", "totp", "device"];
 
 const RECOVERY_FILE_NAME = "cbh-youth-online-recovery-codes.txt";
 
@@ -114,7 +115,11 @@ export default function TwoFactorScreen({ navigation }) {
   const enabledMethods = status?.methods || [];
   const isOn = (method) => enabledMethods.includes(method);
   const methodLabel = (method) =>
-    method === "email" ? t("twoFactor.methodEmail") : t("twoFactor.methodTotp");
+    method === "email"
+      ? t("twoFactor.methodEmail")
+      : method === "device"
+        ? t("twoFactor.methodDevice")
+        : t("twoFactor.methodTotp");
 
   const reset = () => {
     setFlow(null);
@@ -141,6 +146,22 @@ export default function TwoFactorScreen({ navigation }) {
 
   const startSetup = (method) =>
     run(async () => {
+      // Approving on a logged-in device has no code to confirm: the password
+      // was the proof, so it is on as soon as the API answers.
+      if (method === "device") {
+        const res = await setupTwoFactorDevice({ password });
+        setStatus(res.data.status);
+        setPassword("");
+        if (res.data.recovery_codes?.length) {
+          setRecoveryCodes(res.data.recovery_codes);
+          setFlow({ type: "recovery" });
+        } else {
+          reset();
+          Toast.show({ type: "success", text1: t("twoFactor.methodEnabled") });
+        }
+        return;
+      }
+
       const request = method === "totp" ? setupTwoFactorTotp : setupTwoFactorEmail;
       const res = await request({ password });
       setSetup(res.data);
@@ -443,7 +464,9 @@ export default function TwoFactorScreen({ navigation }) {
                     ? t("twoFactor.emailNotVerified")
                     : method === "email"
                       ? status.email || t("twoFactor.methodEmailDesc")
-                      : t("twoFactor.methodTotpDesc");
+                      : method === "device"
+                        ? t("twoFactor.methodDeviceDesc")
+                        : t("twoFactor.methodTotpDesc");
 
                   return (
                     <View

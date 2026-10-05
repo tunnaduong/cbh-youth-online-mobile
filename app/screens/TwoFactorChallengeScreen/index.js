@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
   Switch,
   Keyboard,
   TouchableWithoutFeedback,
@@ -23,6 +24,8 @@ import AuthBackground from "../../components/AuthBackground";
 import {
   verifyTwoFactorLogin,
   resendTwoFactorLoginCode,
+  startLoginApproval,
+  getLoginApprovalStatus,
 } from "../../services/api/Api";
 import {
   getDeviceName,
@@ -57,6 +60,77 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
 
   const isEmail = method === "email";
 
+  // "device": approve this login on a device that is already logged in. This
+  // screen shows a number; the other device shows three and the user picks
+  // this one. `useRecovery` switches to typing a recovery code instead.
+  const [useRecovery, setUseRecovery] = useState(false);
+  const isDevice = method === "device" && !useRecovery;
+  // { status: "starting" | "pending" | "denied" | "expired" | "error", number, message }
+  const [approval, setApproval] = useState(null);
+  const rememberRef = useRef(rememberDevice);
+  rememberRef.current = rememberDevice;
+
+  const startApproval = async () => {
+    setApproval({ status: "starting" });
+    try {
+      const response = await startLoginApproval({ challenge_token: challenge.challenge_token });
+      setApproval({ status: "pending", number: response.data.number });
+    } catch (error) {
+      const message = apiErrorMessage(error, t("common.error"));
+      if (error.response?.data?.challenge_expired) {
+        handleExpired(message);
+      } else {
+        setApproval({ status: "error", message });
+      }
+    }
+  };
+
+  // Ask as soon as the method is shown.
+  useEffect(() => {
+    if (isDevice && approval === null) startApproval();
+  }, [isDevice]);
+
+  // Wait for the answer from the other device.
+  useEffect(() => {
+    if (!isDevice || approval?.status !== "pending") return undefined;
+    let stopped = false;
+
+    const timer = setInterval(async () => {
+      try {
+        const response = await getLoginApprovalStatus({
+          challenge_token: challenge.challenge_token,
+          remember_device: rememberRef.current,
+          device_name: getDeviceName(),
+          device_token: (await getTwoFactorDeviceToken()) || undefined,
+        });
+        if (stopped) return;
+
+        const data = response?.data;
+        if (data?.status === "approved" && data.token && data.user) {
+          stopped = true;
+          clearInterval(timer);
+          await setTwoFactorDeviceToken(data.device_token);
+          signIn(data.token, data.user);
+        } else if (data?.status === "denied" || data?.status === "expired") {
+          setApproval((current) => ({ ...current, status: data.status }));
+        }
+      } catch (error) {
+        if (stopped) return;
+        if (error.response?.data?.challenge_expired) {
+          stopped = true;
+          clearInterval(timer);
+          handleExpired(apiErrorMessage(error, t("common.error")));
+        }
+        // Anything else (a network blip): keep waiting, the next poll retries.
+      }
+    }, 2500);
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+    };
+  }, [isDevice, approval?.status]);
+
   // Expired or out of attempts: the only way forward is logging in again.
   const handleExpired = (message) => {
     Alert.alert(t("auth.loginError"), message, [
@@ -72,7 +146,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
       const response = await verifyTwoFactorLogin({
         challenge_token: challenge.challenge_token,
         code: code.trim(),
-        method: method || undefined,
+        method: method && method !== "device" ? method : undefined,
         remember_device: rememberDevice,
         device_name: getDeviceName(),
         device_token: (await getTwoFactorDeviceToken()) || undefined,
@@ -136,6 +210,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
   const chooseMethod = (next) => {
     if (next === method || loading) return;
     setMethod(next);
+    setUseRecovery(false);
     setCode("");
     if (next === "email" && !emailSent) handleResend(true);
   };
@@ -177,7 +252,11 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
                           style={[styles.methodTabText, { color: selected ? "#fff" : theme.text }]}
                           numberOfLines={1}
                         >
-                          {item === "email" ? t("twoFactor.methodEmail") : t("twoFactor.methodTotp")}
+                          {item === "email"
+                            ? t("twoFactor.methodEmail")
+                            : item === "device"
+                              ? t("twoFactor.methodDeviceShort")
+                              : t("twoFactor.methodTotp")}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -185,11 +264,52 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
                 </View>
               )}
               <Text style={[styles.subtitle, { color: theme.subText }]}>
-                {isEmail
-                  ? t("twoFactor.challengeEmail", { email: challenge.email || "email" })
-                  : t("twoFactor.challengeTotp")}
+                {isDevice
+                  ? t("twoFactor.challengeDevice")
+                  : method === "device"
+                    ? t("twoFactor.challengeRecovery")
+                    : isEmail
+                      ? t("twoFactor.challengeEmail", { email: challenge.email || "email" })
+                      : t("twoFactor.challengeTotp")}
               </Text>
 
+              {isDevice && (
+                <View style={[styles.approvalCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  {approval?.status === "pending" ? (
+                    <>
+                      <Text style={[styles.approvalNumber, { color: theme.primary }]}>
+                        {approval.number}
+                      </Text>
+                      <View style={styles.approvalWaiting}>
+                        <ActivityIndicator size="small" color={theme.subText} />
+                        <Text style={[styles.approvalText, { color: theme.subText }]}>
+                          {t("twoFactor.approvalWaiting")}
+                        </Text>
+                      </View>
+                    </>
+                  ) : approval?.status === "denied" || approval?.status === "expired" || approval?.status === "error" ? (
+                    <>
+                      <Ionicons name="close-circle-outline" size={40} color="#FF3B30" />
+                      <Text style={[styles.approvalText, { color: theme.text, marginTop: 8 }]}>
+                        {approval.status === "denied"
+                          ? t("twoFactor.approvalDenied")
+                          : approval.status === "expired"
+                            ? t("twoFactor.approvalExpired")
+                            : approval.message}
+                      </Text>
+                      <TouchableOpacity style={styles.linkButton} onPress={startApproval} activeOpacity={0.7}>
+                        <Text style={[styles.linkText, { color: theme.primary }]}>
+                          {t("twoFactor.approvalRetry")}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <ActivityIndicator color={theme.primary} />
+                  )}
+                </View>
+              )}
+
+              {!isDevice && (
               <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
                 <Ionicons
                   name="shield-checkmark-outline"
@@ -213,6 +333,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
                   onSubmitEditing={handleVerify}
                 />
               </View>
+              )}
 
               <View style={styles.rememberRow}>
                 <Text style={[styles.rememberText, { color: theme.text }]}>
@@ -225,6 +346,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
                 />
               </View>
 
+              {!isDevice && (
               <TouchableOpacity
                 style={[styles.verifyButton, { backgroundColor: theme.primary }, !code.trim() && { opacity: 0.6 }]}
                 onPress={handleVerify}
@@ -233,6 +355,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
               >
                 <Text style={styles.verifyButtonText}>{t("twoFactor.verify")}</Text>
               </TouchableOpacity>
+              )}
 
               {isEmail && (
                 <TouchableOpacity
@@ -247,9 +370,24 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
                 </TouchableOpacity>
               )}
 
-              <Text style={[styles.hint, { color: theme.subText }]}>
-                {t("twoFactor.recoveryHint")}
-              </Text>
+              {method === "device" ? (
+                <TouchableOpacity
+                  style={styles.linkButton}
+                  onPress={() => {
+                    setCode("");
+                    setUseRecovery((value) => !value);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.linkText, { color: theme.primary }]}>
+                    {useRecovery ? t("twoFactor.approvalBack") : t("twoFactor.useRecoveryCode")}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <Text style={[styles.hint, { color: theme.subText }]}>
+                  {t("twoFactor.recoveryHint")}
+                </Text>
+              )}
             </View>
           </View>
         </TouchableWithoutFeedback>
@@ -309,6 +447,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 18,
     height: 60,
+  },
+  approvalCard: {
+    borderRadius: 24,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+    paddingHorizontal: 18,
+    minHeight: 150,
+  },
+  approvalNumber: {
+    fontSize: 56,
+    fontWeight: "800",
+    letterSpacing: 4,
+  },
+  approvalWaiting: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  approvalText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
   inputIcon: {
     marginRight: 12,
