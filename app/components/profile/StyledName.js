@@ -219,9 +219,20 @@ const gradientStops = (gradient) =>
  * gradient shows however short the name is. The hidden copy inside gives
  * the gradient the name's own size, so the mask (laid out in that same box)
  * wraps and truncates identically.
+ *
+ * The gradient must be exactly as wide as the text. On its own the masked
+ * view stretches to the width of a column parent, and a short text (an
+ * @username under the name) then only covered the first part of the
+ * gradient: a rainbow showed as plain red. The row around it lets it be as
+ * narrow as its text wherever it is placed; the text's own alignment
+ * decides where it sits in that row.
  */
 function MaskedGradientName({ textStyle, stops, numberOfLines, children, ...rest }) {
+  const align = StyleSheet.flatten(textStyle)?.textAlign;
+  const justifyContent = align === "center" ? "center" : align === "right" ? "flex-end" : "flex-start";
+
   return (
+    <View style={[styles.gradientRow, { justifyContent }]} {...rest}>
     <MaskedView
       style={styles.layered}
       maskElement={
@@ -232,7 +243,6 @@ function MaskedGradientName({ textStyle, stops, numberOfLines, children, ...rest
           {children}
         </Text>
       }
-      {...rest}
     >
       <LinearGradient colors={stops} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}>
         <Text style={[textStyle, { opacity: 0 }]} numberOfLines={numberOfLines}>
@@ -240,6 +250,7 @@ function MaskedGradientName({ textStyle, stops, numberOfLines, children, ...rest
         </Text>
       </LinearGradient>
     </MaskedView>
+    </View>
   );
 }
 
@@ -311,6 +322,7 @@ const styles = StyleSheet.create({
   // Lets a long name shrink inside a row instead of pushing past it.
   layered: { flexShrink: 1, maxWidth: "100%" },
   layer: { position: "absolute" },
+  gradientRow: { flexDirection: "row", flexShrink: 1, maxWidth: "100%" },
 });
 
 export default StyledName;
