@@ -18,6 +18,8 @@ import CustomLoading from "../../../components/CustomLoading";
 import { openInAppBrowser, parseUrlParts } from "../../../utils/externalLink";
 import {
   sessionEntryUrl,
+  isWebLoginUrl,
+  WEB_LOGIN_PAGE_MESSAGE,
   webViewBootScript,
   WEBVIEW_USER_AGENT_SUFFIX,
 } from "../../../utils/webSession";
@@ -69,7 +71,14 @@ export default function WebAppScreen({ navigation, route }) {
   // for the home page; a new url in the params is a new request.
   const requestedUrl = route.params?.url;
   const [useRequestedUrl, setUseRequestedUrl] = useState(true);
+  const firstRequestedUrl = useRef(true);
   useEffect(() => {
+    // Not on mount: the screen is already loading this url, and a remount
+    // here asked the API for a second handoff code for nothing.
+    if (firstRequestedUrl.current) {
+      firstRequestedUrl.current = false;
+      return;
+    }
     setUseRequestedUrl(true);
     setReloadKey((key) => key + 1);
   }, [requestedUrl]);
@@ -83,12 +92,32 @@ export default function WebAppScreen({ navigation, route }) {
       : requestedUrl + (requestedUrl.includes("?") ? "&" : "?") + "app=true";
   })();
 
+  // The page showed a login form although the app is signed in: the handoff
+  // did not take (seen on the first visit right after logging in - the code
+  // came too late, so the page was opened signed out). Hand off again and
+  // start over, once per visit so a page that really needs a login can show
+  // its form.
+  const forceHandoff = useRef(false);
+  const retriedHandoff = useRef(false);
+  const retryHandoff = useCallback(() => {
+    if (retriedHandoff.current) return false;
+    retriedHandoff.current = true;
+    forceHandoff.current = true;
+    setBlockedUrl(null);
+    setLoadFailed(false);
+    setCanGoBack(false);
+    setReloadKey((key) => key + 1);
+    return true;
+  }, []);
+
   // Worked out again on every remount (home button, theme change); once the
   // WebView is signed in it's just homeUrl.
   useEffect(() => {
     let cancelled = false;
+    const force = forceHandoff.current;
+    forceHandoff.current = false;
     setStartUrl(null);
-    sessionEntryUrl(entryUrl, parseUrlParts(entryUrl), "webview").then((url) => {
+    sessionEntryUrl(entryUrl, parseUrlParts(entryUrl), "webview", { force }).then((url) => {
       if (!cancelled) setStartUrl(url);
     });
     return () => {
@@ -135,6 +164,10 @@ export default function WebAppScreen({ navigation, route }) {
       if (url.startsWith("about:")) return true;
 
       const parts = parseUrlParts(url);
+      // Sent to a login page (the gift shop sends signed-out visitors to the
+      // main site's): sign the WebView in instead.
+      if (isWebLoginUrl(parts) && retryHandoff()) return false;
+
       const onSite =
         parts && parts.scheme === "https" && site.hosts.includes(parts.hostname);
       if (onSite) return true;
@@ -146,7 +179,7 @@ export default function WebAppScreen({ navigation, route }) {
       }
       return false;
     },
-    [site, theme]
+    [site, theme, retryHandoff]
   );
 
   const renderLoading = () => (
@@ -198,7 +231,13 @@ export default function WebAppScreen({ navigation, route }) {
             // Android: target="_blank" / window.open load here instead of a
             // new window, so they go through the check above too.
             setSupportMultipleWindows={false}
-            onNavigationStateChange={(state) => setCanGoBack(state.canGoBack)}
+            onNavigationStateChange={(state) => {
+              if (isWebLoginUrl(parseUrlParts(state.url)) && retryHandoff()) return;
+              setCanGoBack(state.canGoBack);
+            }}
+            onMessage={(event) => {
+              if (event.nativeEvent?.data === WEB_LOGIN_PAGE_MESSAGE) retryHandoff();
+            }}
             onError={() => setLoadFailed(true)}
             allowsBackForwardNavigationGestures
             pullToRefreshEnabled

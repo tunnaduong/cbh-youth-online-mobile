@@ -29,7 +29,11 @@ const WEB_HOSTS = [
   "www.chuyenbienhoa.com",
   "giftshop.chuyenbienhoa.com",
 ];
-const HANDOFF_TIMEOUT_MS = 4000;
+// How long to wait for the code. The in-app browser opens the page signed out
+// rather than keep the user waiting; a WebView screen shows its own spinner
+// meanwhile and is useless signed out, so it waits longer (the first request
+// after a login competes with everything else the app loads then).
+const HANDOFF_TIMEOUT_MS = { browser: 4000, webview: 15000 };
 
 // Each redeemed code mints a new web token, so only hand off once per app
 // login rather than on every page. Remembers which token was handed off
@@ -50,8 +54,11 @@ const tokenFingerprint = (token) => token.slice(-16);
  * account yet, its ?logout=1 when the app has no account but the store may
  * still hold a session, otherwise `url` unchanged. Never throws - any failure
  * just opens the plain URL.
+ *
+ * `force`: hand off even though this store is remembered as signed in - for
+ * when the page turned out not to be (see isWebLoginUrl).
  */
-export async function sessionEntryUrl(url, parts, store = "browser") {
+export async function sessionEntryUrl(url, parts, store = "browser", { force = false } = {}) {
   try {
     if (!parts || parts.scheme !== "https" || parts.userInfo) return url;
     if (!WEB_HOSTS.includes(parts.hostname)) return url;
@@ -69,12 +76,12 @@ export async function sessionEntryUrl(url, parts, store = "browser") {
       storage.delete(key);
       return `${setTokenUrl}?logout=1&return=${returnPath}`;
     }
-    if (handedOff === tokenFingerprint(token)) return url;
+    if (!force && handedOff === tokenFingerprint(token)) return url;
 
     let code = null;
     try {
       const response = await axiosInstance.post("/v1.0/web-session/handoff", null, {
-        timeout: HANDOFF_TIMEOUT_MS,
+        timeout: HANDOFF_TIMEOUT_MS[store] || HANDOFF_TIMEOUT_MS.browser,
       });
       code = response?.data?.code || null;
     } catch {}
@@ -94,6 +101,34 @@ export async function sessionEntryUrl(url, parts, store = "browser") {
     return url;
   }
 }
+
+// The main site's login page: a page load that ends there is a signed-out
+// visitor (the gift shop sends its own there too).
+const LOGIN_PATH = /^\/login\/?$/;
+// Login pages as the page itself sees them. /admin/login is also passed
+// through for a moment by a signed-in admin, so the page only reports it
+// after staying there (see webViewBootScript).
+const LOGIN_PAGE_PATH = /^\/(admin\/)?login\/?$/;
+
+/**
+ * Is this one of our sites' login pages? A WebView of a signed-in app that
+ * lands there was not signed in by the handoff (the code never arrived, or
+ * the page lost its session): the screen hands off again instead of showing
+ * a login form to someone who is already logged in.
+ */
+export function isWebLoginUrl(parts) {
+  return (
+    !!parts &&
+    parts.scheme === "https" &&
+    WEB_HOSTS.includes(parts.hostname) &&
+    LOGIN_PATH.test(parts.path || "")
+  );
+}
+
+// What a page posts to the WebView when it finds itself on a login page (see
+// webViewBootScript): the sites move there without loading a new page, which
+// the WebView's own navigation events do not always report.
+export const WEB_LOGIN_PAGE_MESSAGE = "cbh:login-page";
 
 /** sessionEntryUrl for the in-app browser. */
 export function withWebSession(url, parts) {
@@ -119,6 +154,7 @@ export const WEBVIEW_USER_AGENT_SUFFIX = `CBHYouthApp/${
  * - Drops a host-only auth_token: older app versions put the app's own token
  *   there; the real web session is the shared .chuyenbienhoa.com cookie that
  *   /auth/set-token sets (see sessionEntryUrl).
+ * - Tells the app when the page ends up on a login form (see isWebLoginUrl).
  */
 export function webViewBootScript({ theme }) {
   return `(function () {
@@ -128,6 +164,20 @@ export function webViewBootScript({ theme }) {
     sessionStorage.setItem("cbh_app_mode", "1");
     localStorage.setItem("theme", ${JSON.stringify(theme)});
     localStorage.setItem("giftshop_theme", ${JSON.stringify(theme)});
+  } catch (e) {}
+  try {
+    var told = false;
+    var seen = 0;
+    var loginPath = new RegExp(${JSON.stringify(LOGIN_PAGE_PATH.source)});
+    setInterval(function () {
+      if (told || !window.ReactNativeWebView) return;
+      // Still there after a second: not just passing through.
+      seen = loginPath.test(location.pathname) ? seen + 1 : 0;
+      if (seen >= 3) {
+        told = true;
+        window.ReactNativeWebView.postMessage(${JSON.stringify(WEB_LOGIN_PAGE_MESSAGE)});
+      }
+    }, 400);
   } catch (e) {}
 })();
 true;`;

@@ -351,6 +351,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **WebView screens sign in on the first visit** (not run on a device): opening Admin / the gift shop right after logging in showed the site's login form; leaving and coming back worked. The handoff code (`POST /web-session/handoff`) had 4 seconds to arrive and otherwise the page was opened signed out - too short for the first request after a login. Now: a WebView waits up to 15s (`HANDOFF_TIMEOUT_MS` in `app/utils/webSession.js`; the in-app browser keeps 4s), and `WebAppScreen` **hands off again when the page ends up on a login form** (`retryHandoff`, once per visit): a load of the main site's `/login` (`isWebLoginUrl`, which is also where the gift shop sends signed-out visitors) or the page itself reporting that it stayed on `/login` / `/admin/login` for a second (`WEB_LOGIN_PAGE_MESSAGE`, posted by `webViewBootScript` - the sites move there without a page load). `sessionEntryUrl(..., { force: true })` skips the "already handed off" shortcut for that. The screen also no longer asks for two codes when it opens.
+
 - **A gradient name is as wide as its text** (not run on a device): `StyledName`'s masked gradient (`MaskedGradientName`, the "full" variant) stretched to the width of a column parent, so a short text - an @username under the name - only covered the start of the gradient and a rainbow looked plain red. The masked view now sits in a row (`styles.gradientRow`) that lets it be as narrow as its text; `textAlign` of the text decides where it sits. Applies to names and usernames alike.
 
 - **Username style of its own, sheet headers on iOS, code blocks, passkey error details** (not run on a device):
