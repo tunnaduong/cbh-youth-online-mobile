@@ -10,6 +10,7 @@ import { getLocales } from "expo-localization";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../contexts/ThemeContext";
 import { changeLanguage } from "../../i18n";
+import { markOnboardingSettingsPending } from "../../utils/onboarding";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
@@ -56,6 +57,9 @@ const LanguageSelectScreen = ({ navigation }) => {
   const screenText = SCREEN_TEXT[selected] || SCREEN_TEXT.vi;
 
   const handleContinue = async () => {
+    // Before the language is saved: from then on a launch no longer starts
+    // here, and must start on the next setup screen until that one is done.
+    await markOnboardingSettingsPending();
     await changeLanguage(selected);
     navigation.replace("FirstLaunchSettings");
   };

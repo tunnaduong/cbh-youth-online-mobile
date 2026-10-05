@@ -7,6 +7,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
+import { finishOnboardingSettings } from "../../utils/onboarding";
 
 // Shown once, right after LanguageSelectScreen, for a signed-out user who's
 // never been through onboarding - lets them pick autoplay/liquid-glass up
@@ -29,6 +30,8 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
 
   const handleContinue = () => {
+    // Setup is complete: the next launch starts on the welcome screen.
+    finishOnboardingSettings();
     navigation.replace("Welcome");
   };
 

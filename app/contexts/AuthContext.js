@@ -8,7 +8,7 @@ import {
   getBlockedUsers,
 } from "../services/api/Api";
 import { storage } from "../global/storage";
-import { setSessionExpiredHandler } from "../services/api/axiosInstance";
+import axiosInstance, { setSessionExpiredHandler } from "../services/api/axiosInstance";
 import { getEcho } from "../services/echo/echo";
 import i18n from "../i18n";
 import { useSessionReset } from "./SessionContext";
@@ -255,8 +255,21 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Throws "SESSION_EXPIRED" (and forgets the account) if its token was revoked.
+  // Ends the web sessions the active account handed to the app's WebViews and
+  // in-app browser, while its token is still the one being sent. Leaving the
+  // account (switching, adding another) must not leave those signed in as it:
+  // their cookie stops working now, and the next page opened there is signed
+  // in as whoever is active then (see utils/webSession.js). The account itself
+  // stays signed in on the device. Best effort - never blocks the switch.
+  const endHandedOverWebSessions = async () => {
+    try {
+      await axiosInstance.post("/v1.0/web-session/revoke", null, { timeout: 5000 });
+    } catch {}
+  };
+
   const switchAccount = async (account) => {
     const previousToken = await AsyncStorage.getItem("auth_token");
+    if (previousToken && previousToken !== account.token) await endHandedOverWebSessions();
     await AsyncStorage.setItem("auth_token", account.token);
     let freshUser = account.user;
     try {
@@ -369,6 +382,7 @@ export const AuthProvider = ({ children }) => {
 
   // Keeps the current account signed in (saved) and shows the login screens.
   const addAccount = async () => {
+    await endHandedOverWebSessions();
     await clearLocalSession();
   };
 

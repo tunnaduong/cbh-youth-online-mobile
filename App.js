@@ -16,6 +16,7 @@ import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 import { SessionResetContext } from "./app/contexts/SessionContext";
 import i18n, { hasChosenLanguage } from "./app/i18n";
+import { onboardingSettingsPending } from "./app/utils/onboarding";
 import { getSavedAccounts } from "./app/utils/savedAccounts";
 
 if (Platform.OS === "android") {
@@ -350,6 +351,15 @@ const App = ({ skipSplash = false }) => {
   useEffect(() => {
     hasChosenLanguage().then(setLanguageChosen);
   }, []);
+  // The language was picked but the app was closed on the next setup screen
+  // ("customize your experience"): reopen that screen instead of skipping it
+  // (see app/utils/onboarding.js). null while unknown.
+  const [settingsPending, setSettingsPending] = useState(null);
+  // Read again when the login state flips: the flag is cleared during the
+  // session, and a later sign-out must not find the value read at boot.
+  useEffect(() => {
+    onboardingSettingsPending().then(setSettingsPending);
+  }, [isLoggedIn]);
   // Adding/switching an account signs the device out momentarily. That is not
   // a first launch, so it must not drag the person back through language and
   // preference onboarding - any saved account means they've been here before.
@@ -607,7 +617,7 @@ const App = ({ skipSplash = false }) => {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (isLoading || languageChosen === null || hasSavedAccounts === null) {
+  if (isLoading || languageChosen === null || hasSavedAccounts === null || settingsPending === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
         <LottieView
@@ -639,8 +649,10 @@ const App = ({ skipSplash = false }) => {
       >
         <Stack.Navigator
           initialRouteName={
-            !isLoggedIn && languageChosen === false && hasSavedAccounts === false
+            !isLoggedIn && hasSavedAccounts === false && languageChosen === false
               ? "LanguageSelect"
+              : !isLoggedIn && hasSavedAccounts === false && settingsPending
+              ? "FirstLaunchSettings"
               : undefined
           }
           screenLayout={(props) => <SheetAwareScreen {...props} />}

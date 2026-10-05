@@ -351,6 +351,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **First-launch setup resumes; leaving an account ends its web sessions** (not run on a device):
+  - Closing the app on "customize your experience" (`FirstLaunchSettingsScreen`) no longer skips it: `app/utils/onboarding.js` keeps an `onboarding_settings_pending` flag from the moment the language is picked until that screen's Continue, and `App.js` starts a signed-out launch on `FirstLaunchSettings` while it is set. It marks "in progress", not "done", so devices set up earlier are not sent through the screen again.
+  - `switchAccount` and `addAccount` (`AuthContext`) first call `POST /v1.0/web-session/revoke` with the account being left, which ends the web sessions it handed to the WebViews / in-app browser (the account itself stays signed in on the device). Their cookie is dead at once; the next page opened there is handed the new account's session as before.
+
 - **"Customize your experience" screen** (`FirstLaunchSettingsScreen`): a third switch, shake to report (`shakeToReportEnabled`, same setting as in Settings), with its description (`firstLaunchSettings.shakeDescription`); the autoplay text now says chats **and posts**; the liquid glass text no longer calls it frosted glass (it is the see-through, refracting kind). vi/en/ru.
 
 - **Signing out of the app signs its WebViews out too** (not run on a device): the API now ends the web sessions the app handed over when the app logs out (see the API's INFO.md), and the app keeps its "this WebView / in-app browser holds a session" markers (`WEB_SESSION_KEYS`, `app/utils/webSession.js`) across the sign-out wipe in `AuthContext.clearSessionCaches()` - they used to be wiped with everything else, so a guest opening the gift shop afterwards was still signed in as the previous account. With the markers kept, the next page opened there goes through `/auth/set-token?logout=1` first.
