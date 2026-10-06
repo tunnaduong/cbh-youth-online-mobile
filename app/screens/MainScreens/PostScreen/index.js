@@ -735,6 +735,13 @@ const PostScreen = ({ route, navigation }) => {
   };
 
   const handleCommentVote = React.useCallback(async (commentId, voteValue) => {
+    // Tapping the arrow you already chose removes the vote. The API removes a
+    // comment vote only for vote_value 0 - sending the same value again kept
+    // the vote on the server while the screen showed it gone (back on refresh).
+    const current = findCommentById(commentsRef.current, commentId);
+    const alreadyVoted = (current?.votes ?? []).some(
+      (vote) => vote.username === username && vote.vote_value === voteValue,
+    );
     try {
       // Optimistically update the UI
       setComments((prevComments) => {
@@ -789,7 +796,7 @@ const PostScreen = ({ route, navigation }) => {
 
       // Call the API to update the vote
       await voteComment(commentId, {
-        vote_value: voteValue,
+        vote_value: alreadyVoted ? 0 : voteValue,
       });
 
       // If the API call is successful, the optimistic update is correct
