@@ -38,15 +38,58 @@ const copy = async (text) => {
   } catch {}
 };
 
+// Facts about the native side, appended to the error so a report shows what
+// was missing - e.g. on iOS 15 the native modules could not be found at all.
+// Every probe is guarded: this runs when something is already broken.
+const diagnostics = () => {
+  const lines = [];
+  const probe = (label, fn) => {
+    try {
+      lines.push(`${label}: ${fn()}`);
+    } catch (e) {
+      lines.push(`${label}: threw ${e?.message ?? e}`);
+    }
+  };
+  const RN = require("react-native");
+  probe("OS", () => `${RN.Platform.OS} ${RN.Platform.Version}`);
+  probe("App", () => {
+    const app = require("expo-application");
+    return `${app.nativeApplicationVersion} (${app.nativeBuildVersion})`;
+  });
+  probe("Bridgeless", () => String(global.RN$Bridgeless));
+  probe("__turboModuleProxy", () => typeof global.__turboModuleProxy);
+  probe("nativeModuleProxy", () => typeof global.nativeModuleProxy);
+  probe("expo.modules", () =>
+    global.expo?.modules ? Object.keys(global.expo.modules).length + " modules" : "missing"
+  );
+  for (const name of [
+    "PlatformConstants",
+    "SourceCode",
+    "DeviceInfo",
+    "ImageLoader",
+    "WorkletsModule",
+    "ReanimatedModule",
+  ]) {
+    probe(`TurboModule ${name}`, () => (RN.TurboModuleRegistry.get(name) ? "found" : "null"));
+  }
+  probe("NativeModules", () => Object.keys(RN.NativeModules ?? {}).length + " keys");
+  return lines.join("\n");
+};
+
 export default function StartupErrorScreen({ error }) {
   const dark = useColorScheme() === "dark";
   const [copied, setCopied] = React.useState(false);
-  const details = [
-    error?.name && error?.message ? `${error.name}: ${error.message}` : String(error ?? ""),
-    error?.stack || "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  const details = React.useMemo(
+    () =>
+      [
+        error?.name && error?.message ? `${error.name}: ${error.message}` : String(error ?? ""),
+        error?.stack || "",
+        diagnostics(),
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+    [error]
+  );
 
   const fg = dark ? "#fff" : "#111";
   const sub = dark ? "#aaa" : "#555";
