@@ -6,6 +6,7 @@ const path = require("path");
 const {
   AndroidConfig,
   withAndroidManifest,
+  withAppDelegate,
   withDangerousMod,
 } = require("expo/config-plugins");
 
@@ -77,5 +78,50 @@ const withStableDebugKeystore = (config) =>
     },
   ]);
 
+const IMAGE_CLASSES_MARKER = "[withNativeTweaks] image module classes";
+
+// React Native's image modules ("ImageLoader", ...) are not in the class table
+// open-source builds use, so the TurboModule manager finds them by name:
+// NSClassFromString("ImageLoader") first, "RCTImageLoader" only if that is nil.
+// On iOS 15 the first lookup returns some other class called ImageLoader, the
+// module is then reported as "could not be found", and the app failed at
+// launch (React Native's Image needs it; iOS 16+ was fine). Naming the classes
+// in the app's delegate skips that lookup. A plain @objc method, not an
+// override: Swift does not see RCTTurboModuleManagerDelegate (C++ only), but
+// React Native calls the selector at runtime.
+const IMAGE_CLASSES_METHOD = `
+  // ${IMAGE_CLASSES_MARKER}
+  @objc(getModuleClassFromName:)
+  func getModuleClassFromName(_ name: UnsafePointer<CChar>) -> AnyClass? {
+    switch String(cString: name) {
+    case "ImageLoader": return NSClassFromString("RCTImageLoader")
+    case "ImageStoreManager": return NSClassFromString("RCTImageStoreManager")
+    case "ImageEditingManager": return NSClassFromString("RCTImageEditingManager")
+    case "LocalAssetImageLoader": return NSClassFromString("RCTLocalAssetImageLoader")
+    case "GIFImageDecoder": return NSClassFromString("RCTGIFImageDecoder")
+    default: return nil
+    }
+  }
+`;
+
+const withImageModuleClasses = (config) =>
+  withAppDelegate(config, (cfg) => {
+    const delegate = cfg.modResults;
+    if (delegate.language !== "swift" || delegate.contents.includes(IMAGE_CLASSES_MARKER)) return cfg;
+
+    const next = delegate.contents.replace(
+      /(class ReactNativeDelegate: ExpoReactNativeFactoryDelegate \{\n)/,
+      `$1${IMAGE_CLASSES_METHOD}`
+    );
+    if (next === delegate.contents) {
+      console.warn("[withNativeTweaks] ReactNativeDelegate not found in AppDelegate.swift; image module classes not added");
+      return cfg;
+    }
+    delegate.contents = next;
+    return cfg;
+  });
+
 module.exports = (config) =>
-  withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)));
+  withImageModuleClasses(
+    withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+  );
