@@ -780,7 +780,12 @@ const App = ({ skipSplash = false }) => {
                   headerShown: false,
                   presentation: "modal",
                   gestureEnabled: true,
-                  animation: "slide_from_bottom",
+                  // No custom animation: with one, iOS shows the modal full
+                  // screen instead of as a sheet, while SheetAwareScreen still
+                  // treats it as a sheet (top inset 0), which put the header
+                  // buttons under the status bar. A sheet slides up anyway;
+                  // Android, where a modal is not a sheet, keeps the slide.
+                  animation: Platform.OS === "android" ? "slide_from_bottom" : "default",
                 }}
                 component={EditProfileScreen}
               />
