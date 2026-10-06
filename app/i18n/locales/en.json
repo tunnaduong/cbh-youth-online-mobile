@@ -1,4 +1,11 @@
 {
+  "startupError": {
+    "title": "The app ran into a problem while starting",
+    "body": "Try opening it again. If it keeps happening, copy the text below and send it to the CBH Youth Online team.",
+    "copy": "Copy error",
+    "copied": "Copied",
+    "reload": "Open again"
+  },
   "time": {
     "justNow": "Just now",
     "secondAgo": "{{count}} second ago",

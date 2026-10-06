@@ -53,6 +53,7 @@ How they connect:
 ## 3. Project structure
 
 ```
+index.js                   Entry: catches launch errors and shows StartupErrorScreen instead of crashing
 App.js                     Root: providers, navigation stacks (logged-in + auth), deep-link handling, screen registry
 index.js                   Expo entry
 app.json / eas.json        Expo config (version, icons, plugins, deep links) / EAS build profiles
@@ -351,6 +352,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Launch crash on iOS 15: error screen instead of abort** (not tried on a device; root cause still unknown): the iOS 15.8 crash of build 941 (iPhone 7) was symbolicated against that build's binary (UUID matched): the abort comes from **expo-updates' `ErrorRecovery`**, which re-raises a fatal error from launch when there is no older update to fall back to, and the report loses the original message. `index.js` now catches launch errors (modules `require`d in a `try`, a root error boundary, and a global handler for fatal errors in release builds) and renders `app/components/StartupErrorScreen.js` (plain React Native; strings `startupError.*`, falls back to Vietnamese if i18n itself failed) with the message, **Copy error** and **Open again**. Next step: read the message on an iOS 15 device and fix the module behind it. If the failure is native rather than JS, this screen will not appear.
 - **Comment votes can be taken back** (not tried on a device): tapping the arrow you had already chosen cleared the vote on screen but sent the same `vote_value` again, so the server kept it and a refresh brought it back. `handleCommentVote` (`PostScreen`) now sends `vote_value: 0` for an undo, which the API's `voteOnComment` treats as removing the vote.
 - **Archive: the Posts / Stories tabs scroll with the page** (not tried on a device): the tab bar sat in the see-through floating header and stayed on screen over the archived posts. A first fix (`9ca9a78`) slid it away with `Animated.diffClamp`, but the tabs still floated over the content on Android and iOS. They are now the first item of each list (`tabBar` in `ListHeaderComponent`, above the privacy notice) and scroll away with it; the loading / empty states show them on top (`renderState`). The floating header holds only the back button and title, and the status bar area fills in once content scrolls under it.
 - **Story viewer header: name and time no longer pile up** (not tried on a device): the centred name/date in `renderStoryHeader` (`HomeScreen`) was inset a fixed 44px each side, under the ~100px mute + settings + close cluster, so on iOS the text was squeezed and its lines wrapped over each other. The inset now follows the cluster's measured width (`storyHeaderInset`), the row is at least 40px tall, and the time stays on one line.

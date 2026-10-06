@@ -1,4 +1,11 @@
 {
+  "startupError": {
+    "title": "Ứng dụng gặp lỗi khi khởi động",
+    "body": "Hãy thử mở lại. Nếu lỗi vẫn còn, sao chép nội dung bên dưới và gửi cho đội ngũ CBH Youth Online.",
+    "copy": "Sao chép lỗi",
+    "copied": "Đã sao chép",
+    "reload": "Mở lại"
+  },
   "time": {
     "justNow": "Vừa xong",
     "secondsAgo": "{{count}} giây trước",
