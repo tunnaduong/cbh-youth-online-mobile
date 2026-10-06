@@ -125,6 +125,14 @@ const ProfileScreen = ({ route, navigation }) => {
     outputRange: [0, 0, 0],
     extrapolate: "clamp",
   });
+  // The header stays see-through for the glass buttons, but the strip behind
+  // the status bar fills in once content scrolls under it - otherwise the
+  // profile's text runs into the clock and battery icons (iOS).
+  const statusBarBgOpacity = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 10, 50],
     outputRange: [1, 1, 0],
@@ -1176,6 +1184,14 @@ const ProfileScreen = ({ route, navigation }) => {
               position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
               backgroundColor: theme.background,
               opacity: headerBgOpacity,
+            }}
+          />
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: insets.top,
+              backgroundColor: theme.background,
+              opacity: statusBarBgOpacity,
             }}
           />
 
