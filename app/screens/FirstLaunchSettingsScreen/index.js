@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Switch, StyleSheet } from "react-native";
+import { ScrollView, View, Text, Switch, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,8 +53,11 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
       </View>
 
       <AndroidGlassBackdrop providerId="FirstLaunchSettingsScreen" style={{ flex: 1 }}>
-        <View
-          style={[
+        {/* Scrolls when the content is taller than the screen (small iPhones,
+            larger text); otherwise the spacer keeps the button at the bottom. */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
             styles.content,
             { paddingTop: Math.max(insets.top + 60, 96), paddingBottom: insets.bottom + 32 },
           ]}
@@ -157,7 +160,7 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
             <Text style={styles.continueButtonText}>{t("firstLaunchSettings.continue")}</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
           </LiquidButton>
-        </View>
+        </ScrollView>
       </AndroidGlassBackdrop>
     </View>
   );
@@ -172,7 +175,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
   },
   headerText: {

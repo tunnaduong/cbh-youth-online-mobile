@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
 import {
+  ScrollView,
   View,
   Text,
   TextInput,
@@ -8,8 +9,6 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
-  Keyboard,
-  TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -225,8 +224,14 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={[styles.container, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}>
+        {/* Scrolls when it doesn't fit (small iPhones with the keyboard up,
+            larger text); dragging it dismisses the keyboard. */}
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[styles.container, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 24 }]}
+        >
             <LiquidButton size={44} onPress={() => navigation.goBack()} containerStyle={styles.backButton}>
               <Ionicons name="chevron-back" size={24} color={theme.primary} />
             </LiquidButton>
@@ -386,8 +391,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
                 </Text>
               )}
             </View>
-          </View>
-        </TouchableWithoutFeedback>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -395,7 +399,7 @@ const TwoFactorChallengeScreen = ({ navigation, route }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
   },
   backButton: {
