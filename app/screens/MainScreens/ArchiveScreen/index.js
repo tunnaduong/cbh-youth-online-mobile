@@ -62,6 +62,24 @@ const ArchiveScreen = ({ route, navigation }) => {
     outputRange: [1, 1, 0],
     extrapolate: "clamp",
   });
+  // The tab bar slides away while scrolling down and comes back on any scroll
+  // up (diffClamp), instead of sitting over the posts. Bounce at the top
+  // (negative offsets on iOS) counts as 0.
+  const tabBarOffset = Animated.diffClamp(
+    scrollY.interpolate({ inputRange: [0, 1], outputRange: [0, 1], extrapolateLeft: "clamp" }),
+    0,
+    TAB_BAR_HEIGHT
+  );
+  const tabBarTranslateY = tabBarOffset.interpolate({
+    inputRange: [0, TAB_BAR_HEIGHT],
+    outputRange: [0, -TAB_BAR_HEIGHT],
+  });
+  // Fills the status bar area once content scrolls under it.
+  const statusBarBgOpacity = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
   const handleScroll = Animated.event(
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     { useNativeDriver: false }
@@ -474,6 +492,10 @@ const ArchiveScreen = ({ route, navigation }) => {
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
       <View pointerEvents="box-none" style={styles.floatingHeader}>
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.background, opacity: statusBarBgOpacity }}
+        />
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: titleBarHeight }}>
           <View style={{ width: 44 }}>
             <LiquidButton providerId="ArchiveScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
@@ -488,7 +510,9 @@ const ArchiveScreen = ({ route, navigation }) => {
           </Animated.Text>
           <View style={{ width: 44 }} />
         </View>
-        <View style={{ flexDirection: "row", height: TAB_BAR_HEIGHT, paddingHorizontal: 16 }}>
+        {/* Clipped, so the bar disappears as it slides up rather than over the title. */}
+        <View style={{ height: TAB_BAR_HEIGHT, overflow: "hidden" }}>
+        <Animated.View style={{ flexDirection: "row", height: TAB_BAR_HEIGHT, paddingHorizontal: 16, backgroundColor: theme.background, transform: [{ translateY: tabBarTranslateY }] }}>
           {[
             { key: "posts", label: t('archive.tabPosts') },
             { key: "stories", label: t('archive.tabStories') },
@@ -497,7 +521,11 @@ const ArchiveScreen = ({ route, navigation }) => {
             return (
               <TouchableOpacity
                 key={tab.key}
-                onPress={() => setActiveTab(tab.key)}
+                onPress={() => {
+                  // The other tab's list starts at the top: show the bar again.
+                  scrollY.setValue(0);
+                  setActiveTab(tab.key);
+                }}
                 style={{
                   flex: 1,
                   alignItems: "center",
@@ -518,6 +546,7 @@ const ArchiveScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             );
           })}
+        </Animated.View>
         </View>
       </View>
 
