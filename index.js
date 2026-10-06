@@ -11,7 +11,10 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // with no older update to fall back to - aborts the app (SIGABRT on its own
 // queue, the original message lost). That is how the app crashed on launch on
 // iOS 15. Fatal errors are caught here instead and shown on screen, so the
-// app stays open and the message can be read and reported.
+// app stays open and the message can be read and reported. This covers any
+// fatal JS error at any time - at launch or later while the app is in use -
+// and any component that throws while rendering. A crash inside native code
+// never reaches JS and still closes the app.
 let fatalError = null;
 const fatalListeners = new Set();
 const showFatal = (error) => {
@@ -35,6 +38,10 @@ global.ErrorUtils?.setGlobalHandler?.((error, isFatal) => {
 // error thrown while the app's modules load must land in this try.
 let App = null;
 try {
+  // Reanimated first: when it fails to start, libraries that load it lazily
+  // (Skia's ReanimatedProxy) replace its error with "react-native-reanimated
+  // is not installed!" - loading it here shows the real one.
+  require("react-native-reanimated");
   require("./app/i18n");
   App = require("./App").default;
 
