@@ -971,6 +971,9 @@ const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode })
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
+  // Side inset of the story viewer's centred name/date: the width of the
+  // header's icon cluster, measured (see renderStoryHeader).
+  const [storyHeaderInset, setStoryHeaderInset] = React.useState(44);
   const refreshIndicatorOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(refreshIndicatorOpacity, {
@@ -2751,7 +2754,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           storyAnimationDuration={300}
           storyAvatarSize={30}
           renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId }) => (
-            <View style={{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ width: SCREEN_WIDTH - 40, minHeight: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Pressable
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 onPress={() => {
@@ -2788,7 +2791,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   taps it visually sits between. */}
               <View
                 pointerEvents="none"
-                style={{ position: 'absolute', left: 44, right: 44, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
+                style={{ position: 'absolute', left: storyHeaderInset, right: storyHeaderInset, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
               >
                 {name && (
                   <UserNameRow
@@ -2799,9 +2802,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                     style={{ color: '#fff', fontWeight: '600' }}
                   />
                 )}
-                {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
+                {date && <Text numberOfLines={1} style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                // The centred name/date keeps clear of this cluster on both
+                // sides. A fixed 44px inset sat under the mute + settings +
+                // close icons (~100px), so the name was squeezed and the lines
+                // wrapped over each other (seen on iOS).
+                onLayout={(e) => {
+                  const inset = Math.max(44, Math.ceil(e.nativeEvent.layout.width) + 8);
+                  setStoryHeaderInset((prev) => (prev === inset ? prev : inset));
+                }}
+              >
                 {(() => {
                   try {
                     const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
