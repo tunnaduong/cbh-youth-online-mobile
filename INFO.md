@@ -353,6 +353,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Fewer re-renders across the app** (small, behaviour-neutral changes; not profiled on a device):
+  - Context values are memoized with stable setters in `ThemeContext` (read by nearly every component), `StatusBarContext`, `FeedContext` and `BottomSheetContext` - a value rebuilt on each provider render re-rendered every consumer. `AuthContext` and `NotificationContext` are left as they are (their functions are rebuilt each render; memoizing them needs each function made stable first).
+  - Home feed: `ListHeaderComponent` / `ListFooterComponent` are passed as elements (`ListHeader()`), not functions - the functions are redefined each render, so the header (feed tabs, story tray, email alert) was unmounted and mounted again on every state change of the screen.
+  - `extraData` is a memoized object in the chat list, forum, notifications and profile lists (as in the home feed).
+  - `utils/devConsole.js`: with dev mode on, logs are written to storage at most once a second (it serialised up to 500 entries on every log line); in a release build with dev mode off, plain `console.log` is skipped (warnings and errors still go to the native log; turn dev mode on to see everything, including in logcat).
+  - **Rule:** pass list headers/footers as elements, memoize `extraData`, and give a new context a memoized value.
 - **Blur glass on iOS below 26; feed rows re-render less** (new native package `expo-blur`: needs a new build; not tried on a device):
   - With "Liquid glass effect" on, iOS 15-25 (no system liquid glass there) now draws every glass surface as `BlurGlassView` in `GlassModules.js`: an `expo-blur` system material (`systemUltraThinMaterialLight` / `Dark`, intensity 70 / 60) under a thin tint, a top highlight gradient and a hairline bright edge. Nothing animates, so it costs the OS compositor only. iOS 26+ keeps the real glass, Android its shader, and the setting off keeps the flat panel. `expo-blur` is loaded in a try block after checking its native view (`expo.getViewConfig("ExpoBlur", "ExpoBlurView")`), so JS on an older build keeps the library's own fallback.
   - `PostItem` is memoized (`MemoPostItem` behind `PostItemContainer`, which hands the card stable callbacks that always call the parent's latest ones - parents may keep passing inline arrows), and the home feed's `extraData` is a memoized object. Before, any state change on the home screen re-rendered every visible post.

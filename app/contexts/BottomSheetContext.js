@@ -1,4 +1,4 @@
-import React, { createContext, useRef, useState, useContext } from "react";
+import React, { createContext, useCallback, useMemo, useRef, useState, useContext } from "react";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetView,
@@ -23,18 +23,23 @@ export const BottomSheetProvider = ({ children }) => {
 
   const snapPoints = ["90%"];
 
-  const showBottomSheet = (sheetContent) => {
+  // Both only touch a ref and state setters, so they can be stable - and the
+  // value with them: opening or closing the sheet re-renders this provider,
+  // which used to re-render every screen that calls useBottomSheet().
+  const showBottomSheet = useCallback((sheetContent) => {
     setContent(sheetContent);
     setIsOpen(true);
     bottomSheetRef.current?.snapToIndex(0);
-  };
+  }, []);
 
-  const hideBottomSheet = () => {
+  const hideBottomSheet = useCallback(() => {
     bottomSheetRef.current?.close();
-  };
+  }, []);
+
+  const value = useMemo(() => ({ showBottomSheet, hideBottomSheet }), [showBottomSheet, hideBottomSheet]);
 
   return (
-    <BottomSheetContext.Provider value={{ showBottomSheet, hideBottomSheet }}>
+    <BottomSheetContext.Provider value={value}>
       {children}
 
       {/* Absolutely positioned BottomSheet to sit above everything */}

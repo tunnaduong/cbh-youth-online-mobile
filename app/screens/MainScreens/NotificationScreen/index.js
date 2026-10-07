@@ -199,6 +199,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const [hasMore, setHasMore] = useState(true);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -671,7 +674,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           ref={flatListRef}
           onScroll={handleScroll}
           data={notifications}
-          extraData={{ t, theme, isDarkMode }}
+          extraData={listExtraData}
           keyExtractor={(item) => item.id.toString()}
           initialNumToRender={10}
           maxToRenderPerBatch={10}

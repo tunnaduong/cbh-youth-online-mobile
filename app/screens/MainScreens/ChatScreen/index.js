@@ -54,6 +54,9 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers, username } = useContext(AuthContext);
@@ -495,7 +498,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       <FlatList
         ref={flatListRef}
         data={filteredConversations}
-        extraData={{ t, theme, isDarkMode }}
+        extraData={listExtraData}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         onScroll={handleScroll}

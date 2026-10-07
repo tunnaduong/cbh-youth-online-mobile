@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useLayoutEffect } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useLayoutEffect } from "react";
 import { Appearance, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
 
@@ -102,7 +102,10 @@ export const ThemeProvider = ({ children }) => {
     } catch {}
   }, [useSystemTheme, isDarkMode]);
 
-  const setThemeMode = (mode) => {
+  // Stable setters + a memoized context value: nearly every component reads
+  // this context, and a value rebuilt on each render of the provider made all
+  // of them re-render even when nothing about the theme had changed.
+  const setThemeMode = useCallback((mode) => {
     if (mode === "system") {
       setUseSystemTheme(true);
       setIsDarkMode(systemColorScheme === "dark");
@@ -111,48 +114,64 @@ export const ThemeProvider = ({ children }) => {
       setIsDarkMode(mode === "dark");
     }
     storage.set("theme", mode);
-  };
+  }, [systemColorScheme]);
 
-  const setHideTabLabels = (value) => {
+  const setHideTabLabels = useCallback((value) => {
     setHideTabLabelsState(value);
     storage.set("hideTabLabels", value);
-  };
+  }, []);
 
-  const setAutoplayVideos = (value) => {
+  const setAutoplayVideos = useCallback((value) => {
     setAutoplayVideosState(value);
     storage.set("autoplayVideos", value);
-  };
+  }, []);
 
-  const setLiquidGlassEnabled = (value) => {
+  const setLiquidGlassEnabled = useCallback((value) => {
     setLiquidGlassEnabledState(value);
     storage.set("liquidGlassEnabled", value);
-  };
+  }, []);
 
-  const setShakeToReportEnabled = (value) => {
+  const setShakeToReportEnabled = useCallback((value) => {
     setShakeToReportEnabledState(value);
     storage.set("shakeToReportEnabled", value);
-  };
+  }, []);
 
   const theme = isDarkMode ? colors.dark : colors.light;
 
+  const value = useMemo(
+    () => ({
+      isDarkMode,
+      theme,
+      setThemeMode,
+      useSystemTheme,
+      setUseSystemTheme,
+      hideTabLabels,
+      setHideTabLabels,
+      autoplayVideos,
+      setAutoplayVideos,
+      liquidGlassEnabled,
+      setLiquidGlassEnabled,
+      shakeToReportEnabled,
+      setShakeToReportEnabled,
+    }),
+    [
+      isDarkMode,
+      theme,
+      setThemeMode,
+      useSystemTheme,
+      hideTabLabels,
+      setHideTabLabels,
+      autoplayVideos,
+      setAutoplayVideos,
+      liquidGlassEnabled,
+      setLiquidGlassEnabled,
+      shakeToReportEnabled,
+      setShakeToReportEnabled,
+    ]
+  );
+
   return (
-    <ThemeContext.Provider
-      value={{
-        isDarkMode,
-        theme,
-        setThemeMode,
-        useSystemTheme,
-        setUseSystemTheme,
-        hideTabLabels,
-        setHideTabLabels,
-        autoplayVideos,
-        setAutoplayVideos,
-        liquidGlassEnabled,
-        setLiquidGlassEnabled,
-        shakeToReportEnabled,
-        setShakeToReportEnabled,
-      }}
-    >
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

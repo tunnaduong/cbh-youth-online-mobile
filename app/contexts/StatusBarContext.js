@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 const StatusBarContext = createContext();
 
@@ -14,14 +14,13 @@ export const StatusBarProvider = ({ children }) => {
     setBackgroundColor(bgColor);
   }, []);
 
+  const value = useMemo(
+    () => ({ barStyle, backgroundColor, updateStatusBar }),
+    [barStyle, backgroundColor, updateStatusBar]
+  );
+
   return (
-    <StatusBarContext.Provider
-      value={{
-        barStyle,
-        backgroundColor,
-        updateStatusBar,
-      }}
-    >
+    <StatusBarContext.Provider value={value}>
       {children}
     </StatusBarContext.Provider>
   );

@@ -1,4 +1,4 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useMemo, useState } from "react";
 
 // Create a Context
 export const FeedContext = createContext(null);
@@ -8,10 +8,14 @@ export function FeedProvider({ children }) {
   const [feed, setFeed] = useState(null);
   const [recentPostsProfile, setRecentPostsProfile] = useState(null);
 
+  // Rebuilt only when the data changes (the setters never do).
+  const value = useMemo(
+    () => ({ feed, setFeed, recentPostsProfile, setRecentPostsProfile }),
+    [feed, recentPostsProfile]
+  );
+
   return (
-    <FeedContext.Provider
-      value={{ feed, setFeed, recentPostsProfile, setRecentPostsProfile }}
-    >
+    <FeedContext.Provider value={value}>
       {children}
     </FeedContext.Provider>
   );

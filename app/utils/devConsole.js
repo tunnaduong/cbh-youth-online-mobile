@@ -24,8 +24,15 @@ const notifyListeners = () => {
   listeners.forEach((fn) => fn(logs));
 };
 
+// Written at most once a second: serialising up to 500 entries and writing
+// them on every single log line made the app stutter with dev mode on.
+let persistTimer = null;
 const persistLogs = () => {
-  AsyncStorage.setItem(LOGS_KEY, JSON.stringify(logs)).catch(() => {});
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    AsyncStorage.setItem(LOGS_KEY, JSON.stringify(logs)).catch(() => {});
+  }, 1000);
 };
 
 const stringifyArg = (arg) => {
@@ -62,6 +69,11 @@ const patchConsole = () => {
     error: console.error,
   };
   console.log = (...args) => {
+    // In a release build with dev mode off nobody reads plain logs, yet each
+    // call still formats its arguments (whole API responses in places) and
+    // sends them to the native logger. Skipped there; warnings and errors
+    // below always go through, and dev mode on restores everything.
+    if (!__DEV__ && !devModeEnabled) return;
     originalConsole.log(...args);
     addLog("log", args);
   };

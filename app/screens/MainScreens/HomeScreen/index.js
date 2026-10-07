@@ -2689,8 +2689,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               }}
             />
           }
-          ListFooterComponent={ListEndLoader}
-          ListHeaderComponent={ListHeader}
+          // Elements, not the functions: both are redefined on every render,
+          // and FlatList renders a function as a component - a new type each
+          // time, so the whole header (tabs, story tray) was unmounted and
+          // mounted again on every state change of this screen.
+          ListFooterComponent={ListEndLoader()}
+          ListHeaderComponent={ListHeader()}
         />
 
         <InstagramStories

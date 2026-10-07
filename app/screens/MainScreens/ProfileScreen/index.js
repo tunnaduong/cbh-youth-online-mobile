@@ -116,6 +116,9 @@ const ProfileScreen = ({ route, navigation }) => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ activePostId, isFocused, autoplayVideos }), [activePostId, isFocused, autoplayVideos]);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Scroll-driven header: title START visible at top, fade OUT quickly as user begins scrolling
@@ -1362,7 +1365,7 @@ const ProfileScreen = ({ route, navigation }) => {
           }
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          extraData={{ activePostId, isFocused, autoplayVideos }}
+          extraData={listExtraData}
         />
         </AndroidGlassBackdrop>
       </View>

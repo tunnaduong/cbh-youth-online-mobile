@@ -99,6 +99,9 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   // view a stale width left every page (and its section cards) offset.
   const { width } = useResponsiveLayout();
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
   const [activeCategory, setActiveCategory] = useState(1);
   const { username } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
@@ -352,7 +355,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       <FlatList
         ref={flatListRef}
         data={categories}
-        extraData={{ t, theme, isDarkMode }}
+        extraData={listExtraData}
         horizontal
         pagingEnabled
         scrollEnabled={scrollEnabled}
