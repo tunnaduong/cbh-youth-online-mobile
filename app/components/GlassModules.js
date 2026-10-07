@@ -172,15 +172,23 @@ const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
 // Every call site already passes tintColor as the intended surface color,
 // so reusing it as a flat backgroundColor here is a faithful "glass off"
 // look, not an approximation cobbled together separately per screen.
-// Android only. The library's shader bends the picture behind the glass like
-// a lens (`thickness`), and near the edges that lens pulls in what is AROUND
-// the glass: the row above the tab bar, the text next to a button, the
-// photos above the gallery's bar showed up mirrored inside it. With no
-// thickness the glass only blurs and tints what is directly behind it. Put
-// last on the view so no call site can switch the lens back on. iOS is not
-// touched (its glass is the system's).
-// A hair above zero rather than zero itself, in case the shader divides by it.
-const ANDROID_NO_REFRACTION = Platform.OS === "android" ? { thickness: 0.001 } : null;
+// Android only: no edge reflection.
+//
+// What showed "the content above" inside a glass surface is one specific part
+// of the library's shader, named in its source (v1.0.0,
+// LiquidGlassmorphismView.kt): the EDGE-REFLECTION BAND - "a lens band at the
+// rim that folds the sample back on itself, so content near the edge appears
+// mirrored - the inverted echo". It is broad (the outer third of the surface)
+// and on a tab bar or a button it mirrors the rows right next to it.
+//
+// The library has a prop for exactly this: `edgeReflectionStrength`, 0 (off)
+// to 1 (default), which "scales ONLY this reflection band - independent of
+// thickness - so the upside-down edge echo can be calmed ... without
+// flattening the whole lens". So the lens (`thickness`) stays as it was and
+// only the mirror is switched off. Spread last on the view, so no call site
+// can turn it back on. iOS is not touched (its glass is the system's).
+const ANDROID_NO_EDGE_REFLECTION =
+  Platform.OS === "android" ? { edgeReflectionStrength: 0 } : null;
 
 const GatedLiquidGlassView = ({
   tintColor,
@@ -206,7 +214,7 @@ const GatedLiquidGlassView = ({
         style={style}
         borderRadius={borderRadius}
         {...rest}
-        {...ANDROID_NO_REFRACTION}
+        {...ANDROID_NO_EDGE_REFLECTION}
       >
         {children}
       </RealLiquidGlassView>
@@ -284,11 +292,13 @@ const flatSurface = (isDarkMode) =>
 // Pinned back to 1.0.0 (from 1.2.1) - even after tuning every new-in-1.1.0+
 // knob (blurRadius, rim, specular, edgeReflectionStrength all dropped/off),
 // 1.2.1 still ran more per-frame shader work than the plain 1.0.0 build did
-// at its own defaults. Only intensity/thickness exist as props on 1.0.0 -
-// blurRadius/rim/specular/edgeReflectionStrength don't exist on this version
-// at all, so they're removed here rather than passed as dead props.
+// at its own defaults. 1.0.0 has intensity, thickness and
+// edgeReflectionStrength (checked in its source); blurRadius/rim/specular
+// do not exist on this version, so they are not passed.
 const androidGlassPerfProps =
-  Platform.OS === "android" ? { intensity: 7, thickness: 0.001 } : {};
+  Platform.OS === "android"
+    ? { intensity: 7, thickness: 0.4, edgeReflectionStrength: 0 }
+    : {};
 
 export {
   LiquidGlassView,
