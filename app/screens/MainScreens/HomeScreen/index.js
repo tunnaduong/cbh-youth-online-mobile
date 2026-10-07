@@ -38,6 +38,7 @@ import {
   getPersonalizedFeed,
   getLatestFeed,
   getFollowingFeed,
+  getNewsFeed,
   getStories,
   incrementPostView,
   resendVerificationEmail,
@@ -1000,6 +1001,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [feedMode, setFeedMode] = React.useState("personalized");
   const [latestPage, setLatestPage] = React.useState(1);
   const [followingPage, setFollowingPage] = React.useState(1);
+  const [newsPage, setNewsPage] = React.useState(1);
   const deliveredIdsRef = useRef(new Set());
   const viewedPosts = useRef(new Set());
   const [activePostId, setActivePostId] = React.useState(null);
@@ -1263,6 +1265,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           setFeed(validPosts);
         })
         .catch(() => setFeed([]));
+    } else if (mode === "news") {
+      setFeedMode("news");
+      setNewsPage(2);
+      getNewsFeed(1)
+        .then((response) => {
+          // An API older than this tab ignores the mode and answers with the
+          // ordinary feed: show nothing rather than the wrong posts.
+          const posts = response?.data?.mode === "news" ? response?.data?.data : [];
+          const validPosts = Array.isArray(posts) ? posts : [];
+          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+          setFeed(validPosts);
+          if (validPosts.length === 0) setHasMore(false);
+        })
+        .catch(() => setFeed([]));
     } else {
       setFeedMode("personalized");
       setCurrentPage(2);
@@ -1294,8 +1310,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       return;
     }
 
-    if (feedMode === "following") {
-      getFollowingFeed(followingPage)
+    if (feedMode === "following" || feedMode === "news") {
+      (feedMode === "news" ? getNewsFeed(newsPage) : getFollowingFeed(followingPage))
         .then((response) => {
           const newPosts = response?.data?.data;
           if (!Array.isArray(newPosts) || newPosts.length === 0) {
@@ -1307,7 +1323,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           if (freshPosts.length > 0) {
             setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
           }
-          setFollowingPage((prevPage) => prevPage + 1);
+          if (feedMode === "news") {
+            setNewsPage((prevPage) => prevPage + 1);
+          } else {
+            setFollowingPage((prevPage) => prevPage + 1);
+          }
         })
         .catch((error) => {
           console.error("Error loading more posts:", error);
@@ -1969,6 +1989,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             { mode: "personalized", label: t('home.forYou'), icon: "sparkles" },
             { mode: "latest", label: t('home.latest'), icon: "flash" },
             { mode: "following", label: t('home.following'), icon: "people" },
+            { mode: "news", label: t('home.youthNews'), icon: "newspaper" },
           ].map(({ mode, label, icon }) => (
             <FeedModeChip
               key={mode}
@@ -2206,9 +2227,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     if (feed == null) {
       // Cold start / previously empty or errored feed: full load for the active tab.
-      if (feedMode === "latest" || feedMode === "following") {
+      if (feedMode === "latest" || feedMode === "following" || feedMode === "news") {
         deliveredIdsRef.current = new Set();
-        const fetchPage1 = feedMode === "latest" ? getLatestFeed(1) : getFollowingFeed(1);
+        const fetchPage1 =
+          feedMode === "latest" ? getLatestFeed(1) : feedMode === "news" ? getNewsFeed(1) : getFollowingFeed(1);
         fetchPage1
           .then((response) => {
             const posts = response?.data?.data;
@@ -2217,6 +2239,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
             if (feedMode === "latest") {
               setLatestPage(2);
+            } else if (feedMode === "news") {
+              setNewsPage(2);
             } else {
               setFollowingPage(2);
             }
@@ -2238,7 +2262,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       ? getLatestFeed(latestPage)
       : feedMode === "following"
         ? getFollowingFeed(followingPage)
-        : getPersonalizedFeed(currentPage);
+        : feedMode === "news"
+          ? getNewsFeed(newsPage)
+          : getPersonalizedFeed(currentPage);
 
     loadNextPage
       .then((response) => {
@@ -2260,6 +2286,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setLatestPage((p) => p + 1);
           } else if (feedMode === "following") {
             setFollowingPage((p) => p + 1);
+          } else if (feedMode === "news") {
+            setNewsPage((p) => p + 1);
           } else {
             setCurrentPage((p) => p + 1);
           }
@@ -2274,7 +2302,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         console.log("Error loading next feed page on refresh:", error);
       })
       .finally(finishRefresh);
-  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage, followingPage]);
+  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage, followingPage, newsPage]);
 
   // Function to scroll to top or reload
   const scrollToTopOrReload = React.useCallback(() => {
