@@ -32,11 +32,12 @@ import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsiv
 // The veil over a section's picture, in the card's own background colour:
 // fully solid over the left half (the text sits on plain background, as in
 // the original design), then fading out to the bare picture at the
-// right edge. (The same colour at falling opacities - fading to plain
+// right edge - which keeps a 45% tint of that colour (dark or light with the
+// theme), never the bare picture. (The same colour at falling opacities - fading to plain
 // "transparent" would pass through grey.)
 const sectionVeil = (background) => {
   const hex = /^#[0-9a-fA-F]{6}$/.test(background) ? background : "#121212";
-  return [`${hex}FF`, `${hex}FF`, `${hex}99`, `${hex}00`];
+  return [`${hex}FF`, `${hex}FF`, `${hex}B3`, `${hex}73`];
 };
 
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
@@ -65,7 +66,7 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
           hard edge next to what looked like a black bar. */}
       <LinearGradient
         colors={sectionVeil(theme.background)}
-        locations={[0, 0.45, 0.72, 0.95]}
+        locations={[0, 0.45, 0.72, 1]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.35 }}
         style={StyleSheet.absoluteFill}
