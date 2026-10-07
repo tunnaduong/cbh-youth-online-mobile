@@ -172,6 +172,15 @@ const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
 // Every call site already passes tintColor as the intended surface color,
 // so reusing it as a flat backgroundColor here is a faithful "glass off"
 // look, not an approximation cobbled together separately per screen.
+// Android only. The library's shader bends the picture behind the glass like
+// a lens (`thickness`), and near the edges that lens pulls in what is AROUND
+// the glass: the row above the tab bar, the text next to a button, the
+// photos above the gallery's bar showed up mirrored inside it. With no
+// thickness the glass only blurs and tints what is directly behind it. Put
+// last on the view so no call site can switch the lens back on. iOS is not
+// touched (its glass is the system's).
+const ANDROID_NO_REFRACTION = Platform.OS === "android" ? { thickness: 0 } : null;
+
 const GatedLiquidGlassView = ({
   tintColor,
   style,
@@ -196,6 +205,7 @@ const GatedLiquidGlassView = ({
         style={style}
         borderRadius={borderRadius}
         {...rest}
+        {...ANDROID_NO_REFRACTION}
       >
         {children}
       </RealLiquidGlassView>
@@ -277,7 +287,7 @@ const flatSurface = (isDarkMode) =>
 // blurRadius/rim/specular/edgeReflectionStrength don't exist on this version
 // at all, so they're removed here rather than passed as dead props.
 const androidGlassPerfProps =
-  Platform.OS === "android" ? { intensity: 7, thickness: 0.4 } : {};
+  Platform.OS === "android" ? { intensity: 7, thickness: 0 } : {};
 
 export {
   LiquidGlassView,

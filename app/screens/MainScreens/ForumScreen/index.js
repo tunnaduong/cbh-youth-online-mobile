@@ -29,6 +29,14 @@ import { storage } from "../../../global/storage";
 import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
 
 
+// The veil over a section's picture, in the card's own background colour:
+// strong under the title on the left, thin on the right. (The same colour at
+// three opacities - fading to plain "transparent" would pass through grey.)
+const sectionVeil = (background) => {
+  const hex = /^#[0-9a-fA-F]{6}$/.test(background) ? background : "#121212";
+  return [`${hex}F0`, `${hex}B3`, `${hex}73`];
+};
+
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <TouchableOpacity
     onPress={() => navigation.navigate("CategoryScreen", { categoryId: section.id })}
@@ -47,14 +55,18 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
       style={styles.sectionBackground}
       imageStyle={styles.sectionBackgroundImage}
     >
+      {/* The section's picture fills the whole card (cover); this veil keeps
+          the text readable. It covers exactly the card at any width and only
+          thins out towards the right, so the picture is visible across the
+          whole card - most on the right, like the web's section banner.
+          The old veil was a rotated box with a fixed shift: nearly opaque,
+          and on a wide card (iPad) it left a bare triangle of picture with a
+          hard edge next to what looked like a black bar. */}
       <LinearGradient
-        colors={[theme.background, "transparent"]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 3, y: 0 }}
-        // Exactly the card, whatever its width. It used to be a rotated box
-        // shifted by a fixed 150: on a card wider than a phone's (iPad) it
-        // no longer reached the corner, so the picture showed through as a
-        // triangle with a hard edge and the rest looked like a dark bar.
+        colors={sectionVeil(theme.background)}
+        locations={[0, 0.5, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
         style={StyleSheet.absoluteFill}
       />
         <View style={styles.sectionHeader}>
