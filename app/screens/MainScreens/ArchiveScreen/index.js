@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBar } from "../../../contexts/StatusBarContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import StoryViewerOverlay from "../../../components/StoryOverlays/StoryViewerOverlay";
@@ -46,6 +47,15 @@ const ArchiveScreen = ({ route, navigation }) => {
   const [archivedPosts, setArchivedPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [selectedStories, setSelectedStories] = useState(null);
+
+  // The story viewer is black: light status bar icons while it is open,
+  // whatever the theme; back to the theme's own when it closes.
+  const { updateStatusBar } = useStatusBar();
+  useEffect(() => {
+    if (!selectedStories) return undefined;
+    updateStatusBar("light-content", "#000000");
+    return () => updateStatusBar(null, null);
+  }, [selectedStories, updateStatusBar]);
   const [activeArchiveStoryId, setActiveArchiveStoryId] = useState(null);
   const [isArchiveStoryPaused, setIsArchiveStoryPaused] = useState(false);
   const storyRef = React.useRef(null);
@@ -632,6 +642,9 @@ const ArchiveScreen = ({ route, navigation }) => {
           stories={[selectedStories]}
           hideAvatarList={true}
           showName={false}
+          // Below the status bar / island on every iPhone (see HomeScreen).
+          progressContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 8 : 16 }}
+          headerContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 24 : 32 }}
           backgroundColor="#000000"
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           // Letterbox the 9:16 frame so archived stories show exactly what

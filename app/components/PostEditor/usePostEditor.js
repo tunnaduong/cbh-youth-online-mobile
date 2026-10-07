@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, Platform } from "react-native";
+import { trackAndroidKeyboardResize } from "../../utils/keyboardResize";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
@@ -80,9 +81,12 @@ export default function usePostEditor({ initialContent = "", userId }) {
     const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const show = Keyboard.addListener(showEvent, (e) => setKeyboardHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    // Android says nothing when an open keyboard changes height.
+    const offResize = trackAndroidKeyboardResize(setKeyboardHeight);
     return () => {
       show.remove();
       hide.remove();
+      offResize();
     };
   }, []);
 

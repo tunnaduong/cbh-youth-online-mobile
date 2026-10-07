@@ -51,7 +51,11 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
         colors={[theme.background, "transparent"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 3, y: 0 }}
-        style={{ position: "absolute", width: "150%", height: "400%", transform: [{rotate: '-35deg'}, {translateY: -150}] }}
+        // Exactly the card, whatever its width. It used to be a rotated box
+        // shifted by a fixed 150: on a card wider than a phone's (iPad) it
+        // no longer reached the corner, so the picture showed through as a
+        // triangle with a hard edge and the rest looked like a dark bar.
+        style={StyleSheet.absoluteFill}
       />
         <View style={styles.sectionHeader}>
           <View style={{ flex: 1 }}>

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { View, StyleSheet, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, BackHandler } from "react-native";
 import { WebView } from "react-native-webview";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
@@ -61,14 +63,48 @@ export default function GamePlayScreen({ navigation, route }) {
     };
   }, [gameUrl, reloadKey]);
 
+  // Same header as the gift shop / admin screens (WebAppScreen): back walks
+  // back through the page first, X leaves, and there is a reload button.
+  const webViewRef = useRef(null);
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  const handleBack = useCallback(() => {
+    if (canGoBack && webViewRef.current) {
+      webViewRef.current.goBack();
+      return true;
+    }
+    return false;
+  }, [canGoBack]);
+
+  // Android's back button does the same before leaving the screen.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", handleBack);
+      return () => sub.remove();
+    }, [handleBack])
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <WebViewHeader title={name || t("games.title")} onBack={() => navigation.goBack()} />
+      <WebViewHeader
+        title={name || t("games.title")}
+        onBack={() => {
+          if (!handleBack()) navigation.goBack();
+        }}
+        onClose={() => navigation.goBack()}
+        right={
+          <TouchableOpacity hitSlop={8} onPress={() => webViewRef.current?.reload()}>
+            <Ionicons name="refresh" size={22} color={theme.primary} />
+          </TouchableOpacity>
+        }
+      />
 
       {startUrl ? (
         <WebView
           key={reloadKey}
+          ref={webViewRef}
           source={{ uri: startUrl }}
+          onNavigationStateChange={(state) => setCanGoBack(state.canGoBack)}
           applicationNameForUserAgent={WEBVIEW_USER_AGENT_SUFFIX}
           style={styles.webview}
           containerStyle={styles.webviewContainer}

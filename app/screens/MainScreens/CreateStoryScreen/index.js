@@ -32,6 +32,7 @@ import { compressVideoForUpload } from "../../../utils/mediaCompression";
 import { startUpload, STORY_POSTED_EVENT } from "../../../services/uploadQueue";
 import Video from "react-native-video";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import DrawingCanvas from "./DrawingCanvas";
 import MoveableItem from "./MoveableItem";
 import TextEditorOverlay from "./TextEditorOverlay";
@@ -244,6 +245,8 @@ const ToolsBar = ({
 const CreateStoryScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme, isDarkMode } = useTheme();
+  // The editor is black whatever the theme.
+  useStatusBarStyle("light-content", "#000000");
   const insets = useSafeAreaInsets();
 
   // Media

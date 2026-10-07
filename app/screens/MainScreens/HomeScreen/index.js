@@ -1025,25 +1025,26 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     blockedUsers,
     blockUser: blockUserInContext,
   } = useContext(AuthContext);
-  const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
+  const { updateStatusBar } = useStatusBar();
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const insets = useSafeAreaInsets();
-  const previousStatusBarStyle = useRef({
-    barStyle: "dark-content",
-    backgroundColor: "#ffffff",
-  });
-
-  // Re-apply Home's own status bar style whenever this tab regains focus,
-  // so a style left over from another tab doesn't stick around after
-  // switching back (only when the story viewer isn't overriding it).
+  // The status bar follows the theme by itself (App.js) whenever the
+  // StatusBarContext holds nothing; the context is only for real overrides,
+  // such as the black story viewer below. Home used to write the THEME's
+  // style into it on focus, and App.js re-applies the context after every
+  // navigation: once the theme changed, or the story viewer had restored an
+  // old snapshot, that stored value was stale and every screen without a
+  // style of its own (Settings after coming back from About...) got the
+  // wrong icons on Android until Home was focused again. So on focus Home
+  // now only clears what another tab may have left.
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       if (!isStoryVisible) {
-        updateStatusBar(isDarkMode ? "light-content" : "dark-content", theme.background);
+        updateStatusBar(null, null);
       }
     });
     return unsubscribe;
-  }, [navigation, isDarkMode, theme.background, isStoryVisible, updateStatusBar]);
+  }, [navigation, isStoryVisible, updateStatusBar]);
 
   const [verificationModalVisible, setVerificationModalVisible] =
     useState(false);
@@ -1447,8 +1448,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleStoryShow = (userId) => {
     setIsStoryVisible(true);
-    // Save current status bar style so we can restore it on hide
-    previousStatusBarStyle.current = { barStyle, backgroundColor };
     if (Platform.OS === "android") {
       StatusBar.setHidden(false);
       updateStatusBar("light-content", "#000000");
@@ -1486,11 +1485,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const handleStoryHide = () => {
     setIsStoryVisible(false);
     if (Platform.OS === "android") StatusBar.setHidden(false);
-    // Restore previous status bar style
-    updateStatusBar(
-      previousStatusBarStyle.current.barStyle,
-      previousStatusBarStyle.current.backgroundColor
-    );
+    // Back to the theme's own style (see the focus listener above).
+    updateStatusBar(null, null);
     // userStories is only fetched once on mount/blockedUsers change, so the
     // view count shown on the outer story bubble stays stale even though
     // markStoryAsViewed (and any other viewer's view, recorded server-side
@@ -2714,6 +2710,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           hideAvatarList={true}
           showName={true}
           statusBarTranslucent={false}
+          // The library puts the progress bars 44pt and the header 60pt from
+          // the top on iOS - fine under a 20pt status bar, inside the island
+          // on newer phones. Both follow the real inset instead (same 16pt
+          // between them). On Android its container already starts below the
+          // status bar, so its own 16 / 32 stay.
+          progressContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 8 : 16 }}
+          headerContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 24 : 32 }}
           backgroundColor="#000000"
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           imageProps={{ resizeMode: "contain" }}

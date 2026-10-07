@@ -61,6 +61,7 @@ import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsiv
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
+import { trackAndroidKeyboardResize } from "../../../utils/keyboardResize";
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
 
@@ -362,7 +363,9 @@ const PostScreen = ({ route, navigation }) => {
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
-    return () => { show.remove(); hide.remove(); };
+    // Android says nothing when an open keyboard changes height.
+    const offResize = trackAndroidKeyboardResize(setKeyboardHeight);
+    return () => { show.remove(); hide.remove(); offResize(); };
   }, []);
 
   const scrollY = useRef(new Animated.Value(0)).current;

@@ -10,6 +10,7 @@ import {
   Keyboard,
   Platform,
 } from "react-native";
+import { trackAndroidKeyboardResize } from "../../../utils/keyboardResize";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import Slider from "@react-native-community/slider";
 import { useTranslation } from "react-i18next";
@@ -51,10 +52,13 @@ const TextEditorOverlay = ({ item, canvasWidth, onCancel, onDone }) => {
       setKeyboardHeight(event.endCoordinates?.height || 0)
     );
     const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    // Android says nothing when an open keyboard changes height.
+    const offResize = trackAndroidKeyboardResize(setKeyboardHeight);
 
     return () => {
       showSub.remove();
       hideSub.remove();
+      offResize();
     };
   }, []);
 

@@ -101,7 +101,10 @@ import {
   KeyboardChatScrollView,
   KeyboardStickyView,
   KeyboardGestureArea,
+  KeyboardController,
+  AndroidSoftInputModes,
 } from "react-native-keyboard-controller";
+import { trackAndroidKeyboardResize } from "../../../utils/keyboardResize";
 
 // Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
 // local optimistic messages use file:// or content:// URIs, and http(s) may
@@ -1508,8 +1511,29 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => setChatKeyboardHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener("keyboardDidHide", () => setChatKeyboardHeight(0));
-    return () => { show.remove(); hide.remove(); };
+    const offResize = trackAndroidKeyboardResize(setChatKeyboardHeight);
+    return () => { show.remove(); hide.remove(); offResize(); };
   }, []);
+
+  // Android: the message bar is a KeyboardStickyView, moved by
+  // react-native-keyboard-controller. The app's window is in "pan" mode
+  // (app.json), in which the library is not told when an OPEN keyboard
+  // changes height - so the bar stayed where the taller keyboard had put it.
+  // "Resize" is the mode the library is built for; it is switched on for
+  // this screen only and handed back when leaving. iOS has no such mode.
+  useFocusEffect(
+    React.useCallback(() => {
+      if (Platform.OS !== "android") return undefined;
+      try {
+        KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_RESIZE);
+      } catch {}
+      return () => {
+        try {
+          KeyboardController.setDefaultMode();
+        } catch {}
+      };
+    }, [])
+  );
 
   useEffect(() => {
     dayjs.locale(i18n.language || "vi");

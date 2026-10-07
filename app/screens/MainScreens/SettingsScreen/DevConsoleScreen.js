@@ -51,13 +51,6 @@ export default function DevConsoleScreen({ navigation }) {
     return unsubscribe;
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
-      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
-    }, [isDarkMode, theme.background])
-  );
-
   const filteredLogs =
     filter === "all"
       ? logs
