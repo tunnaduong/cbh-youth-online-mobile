@@ -968,6 +968,10 @@ const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode })
   );
 };
 
+// One object for the feed list: FlatList must not be given a new
+// viewabilityConfig on every render.
+const FEED_VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 50 };
+
 // Shown after the time on the author's own story while it is held by
 // moderation (nobody else is sent a held story).
 const heldStorySuffix = (story, t) =>
@@ -1948,7 +1952,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const ListHeader = () => {
     return (
       <>
-        <EmailVerificationAlert />
+        {EmailVerificationAlert()}
         {/* Dành cho bạn / Mới nhất / Đang theo dõi tab toggle — sits above stories */}
         <ScrollView
           horizontal
@@ -2160,15 +2164,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     isScrollingRef.current = false;
     DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
 
-    // Auto hide bottom tab bar
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
 
     // If scrolled to top during manual scroll, reset processing flag
@@ -2678,7 +2673,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
           onViewableItemsChanged={handleViewableItemsChanged}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+          viewabilityConfig={FEED_VIEWABILITY_CONFIG}
           refreshControl={
             <RefreshControl
               tintColor="transparent"
@@ -2968,7 +2963,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           music={currentStoryMusic}
           paused={!isStoryVisible || isStoryPaused}
         />
-        <ResendVerificationModal />
+        {ResendVerificationModal()}
       </View>
     </>
   );

@@ -239,7 +239,7 @@ export default function MemberRankingScreen({ navigation }) {
         renderItem={renderItem}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        ListHeaderComponent={renderTop3}
+        ListHeaderComponent={renderTop3()}
         contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: 20 + (insets?.bottom || 0) }]}
         refreshControl={
           <RefreshControl

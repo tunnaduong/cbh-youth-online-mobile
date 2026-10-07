@@ -67,6 +67,15 @@ export const customHTMLElementModels = {
   }),
 };
 
+// Constant RenderHTML props of a post row (see postHtmlSource in PostItem).
+
+const POST_HTML_CLASSES_STYLES = {
+  "mention-tag": {
+    color: "#22c55e",
+    fontWeight: "600",
+  },
+};
+
 // Handles youtube.com/embed/<id>, youtube.com/watch?v=<id>, and youtu.be/<id>.
 const extractYouTubeId = (url) => {
   const match = url.match(/(?:embed\/|[?&]v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
@@ -811,161 +820,26 @@ const PostItem = ({
   // "/username" links come from linkifyMentionsInHtml (mention-tag class)
   // and open the mentioned user's profile instead. Anything else (autolinked
   // URLs) goes through the link-safety screen before the browser.
-  const handleContentLinkPress = (event, href) => {
-    const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
-    if (hashtagMatch) {
-      const tag = decodeURIComponent(hashtagMatch[1]);
-      navigation?.navigate("SearchScreen", {
-        initialQuery: tag,
-        initialFilter: "hashtag",
-      });
-      return;
-    }
-    const mentionMatch = href?.match(/^\/([\w.-]{3,21})$/);
-    if (mentionMatch) {
-      navigation?.navigate("ProfileScreen", { username: mentionMatch[1] });
-      return;
-    }
-    // Outbound links stop at the link-safety screen first: the post author
-    // writes both the link text and its destination, so the two can disagree.
-    openExternalLink(navigation, href, theme);
-  };
-
-  // The post body sits inside the collapse/expand Pressable (onPress =
-  // handleExpandPost below). A plain Text-in-Text onPress on a link
-  // (mention/hashtag/URL) loses the touch to that ancestor before its own
-  // onPress fires - the same class of bug the YouTube embed above already
-  // had to work around - so tagged users never actually navigated to their
-  // profile. Claiming the responder here for any touch starting on a link,
-  // and refusing to hand it back, keeps link taps local instead of also
-  // triggering handleExpandPost.
-  const handleContentLinkPressRef = useRef(handleContentLinkPress);
-  handleContentLinkPressRef.current = handleContentLinkPress;
-  const AnchorRenderer = useMemo(
-    () =>
-      function AnchorRenderer(props) {
-        const nativeProps = getNativePropsForTNode(props);
-        const href = props.tnode?.attributes?.href;
-        return (
-          <Text
-            {...nativeProps}
-            onStartShouldSetResponder={() => true}
-            onResponderTerminationRequest={() => false}
-            onResponderRelease={(event) =>
-              handleContentLinkPressRef.current(event, href)
-            }
-          />
-        );
-      },
-    []
+  // What RenderHTML is given. Each of these used to be a new object on every
+  // render of the row, which makes the library run the mention / embed
+  // regexes again and rebuild its whole tree for a post that has not
+  // changed. Same values, computed once per input.
+  const postHtmlSource = useMemo(
+    () => ({
+      html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
+        linkifyMentionsInHtml(
+          isExpanded || !item.content || item.content.length <= 300
+            ? item.content || ""
+            : truncatedContent,
+          validMentions
+        )
+      )),
+    }),
+    [item.content, isExpanded, truncatedContent, validMentions]
   );
-
-  return (
-    <View
-      style={{
-        borderBottomWidth: single ? 15 : 10,
-        borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
-        backgroundColor: theme.background,
-      }}
-    >
-      {isArchived && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            alignSelf: "flex-start",
-            marginHorizontal: 15,
-            marginTop: single ? 0 : 15,
-            marginBottom: single ? 8 : 0,
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-            borderRadius: 999,
-            backgroundColor: theme.surface,
-          }}
-        >
-          <Ionicons name="archive-outline" size={12} color={theme.subText} />
-          <Text style={{ fontSize: 12, color: theme.subText, marginLeft: 4 }}>
-            {t('post.archivedBadge')}
-          </Text>
-        </View>
-      )}
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        {single ? (
-          // Single view: no navigation, just show title
-          <Text style={{
-            fontWeight: "bold",
-            fontSize: 28,
-            paddingHorizontal: 15,
-            marginTop: 0,
-            marginBottom: 10,
-            flex: 1,
-            color: theme.text
-          }}>
-            {item.title}
-          </Text>
-        ) : (
-          // Feed view: clickable title that navigates to detail
-          <>
-            <Pressable
-              onPress={() =>
-                navigation?.navigate("PostScreen", {
-                  postId: item.id,
-                  item,
-                  screenName,
-                })
-              }
-              style={{ flex: 1 }}
-            >
-              <Text style={{
-                fontWeight: "bold",
-                fontSize: 21,
-                paddingHorizontal: 15,
-                marginTop: 15,
-                flex: 1,
-                color: theme.text
-              }}>
-                {item.title}
-              </Text>
-            </Pressable>
-            <TouchableOpacity
-              style={{ marginRight: 12, marginTop: 12 }}
-              onPress={handleMoreOptions}
-            >
-              <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-      <Pressable onPress={handleExpandPost}>
-        <View style={{ paddingHorizontal: 15 }}>
-          <RenderHTML
-            contentWidth={contentWidth - 30}
-            customHTMLElementModels={customHTMLElementModels}
-            renderers={{ iframe: YouTubeIframeRenderer, a: AnchorRenderer }}
-            renderersProps={{
-              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
-            }}
-            source={{
-              html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
-                linkifyMentionsInHtml(
-                  isExpanded || !item.content || item.content.length <= 300
-                    ? item.content || ""
-                    : truncatedContent,
-                  validMentions
-                )
-              )),
-            }}
-            baseStyle={{
-              fontSize: 16,
-              color: theme.text,
-            }}
-            classesStyles={{
-              "mention-tag": {
-                color: "#22c55e",
-                fontWeight: "600",
-              },
-            }}
-            tagsStyles={{
+  const postBaseStyle = useMemo(() => ({ fontSize: 16, color: theme.text }), [theme.text]);
+  const postTagsStyles = useMemo(
+    () => ({
               h1: {
                 fontSize: 24,
                 fontWeight: "bold",
@@ -1050,7 +924,153 @@ const PostItem = ({
                 color: theme.primary,
                 textDecorationLine: "underline",
               },
+    }),
+    [theme, isDarkMode]
+  );
+
+  const handleContentLinkPress = (event, href) => {
+    const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
+    if (hashtagMatch) {
+      const tag = decodeURIComponent(hashtagMatch[1]);
+      navigation?.navigate("SearchScreen", {
+        initialQuery: tag,
+        initialFilter: "hashtag",
+      });
+      return;
+    }
+    const mentionMatch = href?.match(/^\/([\w.-]{3,21})$/);
+    if (mentionMatch) {
+      navigation?.navigate("ProfileScreen", { username: mentionMatch[1] });
+      return;
+    }
+    // Outbound links stop at the link-safety screen first: the post author
+    // writes both the link text and its destination, so the two can disagree.
+    openExternalLink(navigation, href, theme);
+  };
+
+  // The post body sits inside the collapse/expand Pressable (onPress =
+  // handleExpandPost below). A plain Text-in-Text onPress on a link
+  // (mention/hashtag/URL) loses the touch to that ancestor before its own
+  // onPress fires - the same class of bug the YouTube embed above already
+  // had to work around - so tagged users never actually navigated to their
+  // profile. Claiming the responder here for any touch starting on a link,
+  // and refusing to hand it back, keeps link taps local instead of also
+  // triggering handleExpandPost.
+  const handleContentLinkPressRef = useRef(handleContentLinkPress);
+  handleContentLinkPressRef.current = handleContentLinkPress;
+  const AnchorRenderer = useMemo(
+    () =>
+      function AnchorRenderer(props) {
+        const nativeProps = getNativePropsForTNode(props);
+        const href = props.tnode?.attributes?.href;
+        return (
+          <Text
+            {...nativeProps}
+            onStartShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
+            onResponderRelease={(event) =>
+              handleContentLinkPressRef.current(event, href)
+            }
+          />
+        );
+      },
+    []
+  );
+
+  const postRenderers = useMemo(
+    () => ({ iframe: YouTubeIframeRenderer, a: AnchorRenderer }),
+    [AnchorRenderer]
+  );
+
+  return (
+    <View
+      style={{
+        borderBottomWidth: single ? 15 : 10,
+        borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
+        backgroundColor: theme.background,
+      }}
+    >
+      {isArchived && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            marginHorizontal: 15,
+            marginTop: single ? 0 : 15,
+            marginBottom: single ? 8 : 0,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 999,
+            backgroundColor: theme.surface,
+          }}
+        >
+          <Ionicons name="archive-outline" size={12} color={theme.subText} />
+          <Text style={{ fontSize: 12, color: theme.subText, marginLeft: 4 }}>
+            {t('post.archivedBadge')}
+          </Text>
+        </View>
+      )}
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        {single ? (
+          // Single view: no navigation, just show title
+          <Text style={{
+            fontWeight: "bold",
+            fontSize: 28,
+            paddingHorizontal: 15,
+            marginTop: 0,
+            marginBottom: 10,
+            flex: 1,
+            color: theme.text
+          }}>
+            {item.title}
+          </Text>
+        ) : (
+          // Feed view: clickable title that navigates to detail
+          <>
+            <Pressable
+              onPress={() =>
+                navigation?.navigate("PostScreen", {
+                  postId: item.id,
+                  item,
+                  screenName,
+                })
+              }
+              style={{ flex: 1 }}
+            >
+              <Text style={{
+                fontWeight: "bold",
+                fontSize: 21,
+                paddingHorizontal: 15,
+                marginTop: 15,
+                flex: 1,
+                color: theme.text
+              }}>
+                {item.title}
+              </Text>
+            </Pressable>
+            <TouchableOpacity
+              style={{ marginRight: 12, marginTop: 12 }}
+              onPress={handleMoreOptions}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+      <Pressable onPress={handleExpandPost}>
+        <View style={{ paddingHorizontal: 15 }}>
+          <RenderHTML
+            contentWidth={contentWidth - 30}
+            customHTMLElementModels={customHTMLElementModels}
+            renderers={postRenderers}
+            renderersProps={{
+              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
             }}
+            source={postHtmlSource}
+            baseStyle={postBaseStyle}
+            classesStyles={POST_HTML_CLASSES_STYLES}
+            tagsStyles={postTagsStyles}
           />
         </View>
       </Pressable>

@@ -722,7 +722,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
       )}
       </AndroidGlassBackdrop>
 
-      <ActionMenu />
+      {ActionMenu()}
     </View>
   );
 }

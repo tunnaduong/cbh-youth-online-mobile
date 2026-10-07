@@ -127,19 +127,19 @@ const reportIfSessionExpired = async (error) => {
 axiosInstance.interceptors.response.use(
   async (response) => {
     try {
-      // Check if user is authenticated before updating online status
-      const token = await AsyncStorage.getItem("auth_token");
-
       // Don't call updateOnlineStatus if the current request is already updating online status
       // or if the user is not authenticated
       const now = Date.now();
-      if (
-        token &&
+      // The cheap checks first: the token is only read from storage when the
+      // 60-second window has actually passed, not on every response.
+      const due =
+        now - lastOnlineStatusAt >= ONLINE_STATUS_INTERVAL &&
         !response.config.url.includes("/v1.0/online-status") &&
         !response.config.url.includes("/v1.0/login") &&
-        !response.config.url.includes("/v1.0/register") &&
-        now - lastOnlineStatusAt >= ONLINE_STATUS_INTERVAL
-      ) {
+        !response.config.url.includes("/v1.0/register");
+      // Check if user is authenticated before updating online status
+      const token = due ? await AsyncStorage.getItem("auth_token") : null;
+      if (token) {
         lastOnlineStatusAt = now;
         axiosInstance.post("/v1.0/online-status").catch(() => {});
       }

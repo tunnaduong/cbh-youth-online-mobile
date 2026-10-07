@@ -1145,7 +1145,7 @@ const PostScreen = ({ route, navigation }) => {
   const bounceValue = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (post == null) {
-      Animated.loop(
+      const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(bounceValue, {
             toValue: -20,
@@ -1158,8 +1158,13 @@ const PostScreen = ({ route, navigation }) => {
             useNativeDriver: true,
           }),
         ]),
-      ).start();
+      );
+      loop.start();
+      // It kept ticking for as long as the screen lived, long after the
+      // loader it animates was gone.
+      return () => loop.stop();
     }
+    return undefined;
   }, [post]);
 
   if (loadingPost) {

@@ -33,14 +33,14 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
   }, [isFocused, player]);
 
   React.useEffect(() => {
-    console.debug("[VideoPlayerModal] player mounted/changed", { uri, player });
+    console.log("[VideoPlayerModal] player mounted/changed", { uri, player });
     return () => {
       if (!player) return;
       try {
         if (typeof player.playing !== "undefined" ? player.playing === true : false) {
           if (typeof player.pause === "function") {
             player.pause();
-            console.debug("[VideoPlayerModal] paused player during cleanup", { uri });
+            console.log("[VideoPlayerModal] paused player during cleanup", { uri });
           }
         }
       } catch (e) {
@@ -49,7 +49,7 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
       try {
         if (typeof player.release === "function") {
           player.release();
-          console.debug("[VideoPlayerModal] released player during cleanup", { uri });
+          console.log("[VideoPlayerModal] released player during cleanup", { uri });
         }
       } catch (e) {
         console.warn("[VideoPlayerModal] error releasing player during cleanup", e);

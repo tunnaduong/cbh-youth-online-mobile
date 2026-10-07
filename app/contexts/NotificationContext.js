@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform, DeviceEventEmitter } from 'react-native';
+import { Platform, DeviceEventEmitter, AppState } from 'react-native';
 import {
   getExpoPushToken,
   setupNotificationListeners,
@@ -92,7 +92,10 @@ export const NotificationProvider = ({ children }) => {
     updateBadgeCount();
 
     // Update every 30 seconds
-    const interval = setInterval(updateBadgeCount, 30000);
+    // Not while the app is in the background.
+    const interval = setInterval(() => {
+      if (AppState.currentState === "active") updateBadgeCount();
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [isLoggedIn]);

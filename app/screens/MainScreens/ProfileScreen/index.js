@@ -489,10 +489,6 @@ const ProfileScreen = ({ route, navigation }) => {
     }
   };
 
-  useEffect(() => {
-    fetchUserData(userId);
-  }, []);
-
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>

@@ -145,8 +145,9 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   useFocusEffect(
     React.useCallback(() => {
+      // fetchConversations refreshes the unread count itself when it
+      // succeeds; asking again here fetched the whole list a second time.
       fetchConversations();
-      refreshChatCount();
     }, [refreshChatCount])
   );
 

@@ -251,14 +251,14 @@ export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) =
   }, [isFocused, player]);
 
   useEffect(() => {
-    console.debug("[VideoViewerModal] player mounted/changed", { uri, player });
+    console.log("[VideoViewerModal] player mounted/changed", { uri, player });
     return () => {
       if (!player) return;
       try {
         if (typeof player.playing !== "undefined" ? player.playing === true : false) {
           if (typeof player.pause === "function") {
             player.pause();
-            console.debug("[VideoViewerModal] paused player during cleanup", { uri });
+            console.log("[VideoViewerModal] paused player during cleanup", { uri });
           }
         }
       } catch (e) {
@@ -267,7 +267,7 @@ export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) =
       try {
         if (typeof player.release === "function") {
           player.release();
-          console.debug("[VideoViewerModal] released player during cleanup", { uri });
+          console.log("[VideoViewerModal] released player during cleanup", { uri });
         }
       } catch (e) {
         console.warn("[VideoViewerModal] error releasing player during cleanup", e);
