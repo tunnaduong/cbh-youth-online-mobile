@@ -1350,6 +1350,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
   };
 
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const feedExtraData = React.useMemo(
+    () => ({ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos }),
+    [t, theme, isDarkMode, activePostId, isFocused, autoplayVideos]
+  );
+
   const handleExpandPost = (index) => {
     if (flatListRef.current) {
       flatListRef.current.scrollToIndex({
@@ -2633,7 +2640,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={filteredFeed}
-          extraData={{ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos }}
+          extraData={feedExtraData}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           initialNumToRender={5}
           maxToRenderPerBatch={5}

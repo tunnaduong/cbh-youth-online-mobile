@@ -1412,4 +1412,36 @@ const PostItem = ({
   );
 };
 
-export default PostItem;
+// A feed re-renders on every scroll-driven state change (active video,
+// header, refresh), and each row is this large component. It is memoized, so
+// a row only re-renders when its own post or state changes. Parents pass
+// fresh arrow functions each render (`onExpand={() => handleExpandPost(index)}`),
+// which would defeat the memo - and comparing them away would leave stale
+// closures - so the card gets stable functions that always call the latest
+// ones.
+const MemoPostItem = React.memo(PostItem);
+const CALLBACK_PROPS = ["onExpand", "onVoteUpdate", "onSaveUpdate", "onVote", "onSave", "onArchiveChange"];
+
+const PostItemContainer = (props) => {
+  const latestProps = React.useRef(props);
+  latestProps.current = props;
+
+  const stableCallbacks = React.useRef(null);
+  if (!stableCallbacks.current) {
+    stableCallbacks.current = {};
+    CALLBACK_PROPS.forEach((name) => {
+      stableCallbacks.current[name] = (...args) => latestProps.current[name]?.(...args);
+    });
+  }
+
+  // A callback the parent did not pass stays undefined: the card checks for
+  // their presence (`onExpand && ...`).
+  const callbacks = {};
+  CALLBACK_PROPS.forEach((name) => {
+    callbacks[name] = props[name] ? stableCallbacks.current[name] : undefined;
+  });
+
+  return <MemoPostItem {...props} {...callbacks} />;
+};
+
+export default PostItemContainer;

@@ -1,5 +1,6 @@
 import React from "react";
-import { Platform, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
@@ -34,6 +35,84 @@ try {
   console.log("[GlassModules] react-native-liquid-glassmorphism: NOT available");
 }
 
+// ---------------------------------------------------------------------------
+// iOS below 26 has no system liquid glass, and the library's fallback there is
+// a plain frosted UIBlurEffect. With "Liquid glass effect" on, those versions
+// get this instead: an expo-blur system material (Gaussian blur, drawn by the
+// OS compositor - no per-frame work in JS) under a light tint, a soft
+// highlight from the top and a hairline bright edge, which is what makes a
+// blurred panel read as glass. Nothing in it animates, so scrolling stays
+// smooth. iOS 26+ keeps the real UIGlassEffect, Android keeps its shader.
+//
+// expo-blur is loaded in a try block and its native view is looked up first:
+// JS that reaches a build made before the package was added keeps the
+// library's fallback instead of crashing on a missing view.
+// ---------------------------------------------------------------------------
+let BlurView = null;
+if (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26) {
+  try {
+    const hasNativeView = !!globalThis.expo?.getViewConfig?.("ExpoBlur", "ExpoBlurView");
+    if (hasNativeView) {
+      BlurView = require("expo-blur").BlurView;
+    }
+  } catch (error) {
+    BlurView = null;
+  }
+}
+
+const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
+  const { isDarkMode } = useTheme();
+  const flat = StyleSheet.flatten(style) || {};
+  const radius = borderRadius ?? flat.borderRadius ?? 0;
+  // The default glass tint is tuned for real glass; over a blur it would
+  // double up with the material's own tint, so it is thinned here. A custom
+  // tint (a LiquidButton's own colour) is the surface the caller asked for.
+  const isDefaultTint = tintColor == null || tintColor === glassTint(isDarkMode);
+  const overlay = isDefaultTint
+    ? isDarkMode ? "rgba(22, 22, 24, 0.30)" : "rgba(255, 255, 255, 0.24)"
+    : tintColor;
+
+  return (
+    <View
+      style={[
+        style,
+        { overflow: "hidden", backgroundColor: "transparent" },
+        borderRadius != null && { borderRadius },
+      ]}
+    >
+      <BlurView
+        pointerEvents="none"
+        intensity={isDarkMode ? 60 : 70}
+        tint={isDarkMode ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"}
+        style={StyleSheet.absoluteFill}
+      />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: overlay }]} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={
+          isDarkMode
+            ? ["rgba(255,255,255,0.10)", "rgba(255,255,255,0.02)", "rgba(255,255,255,0)"]
+            : ["rgba(255,255,255,0.55)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0)"]
+        }
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: radius,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDarkMode ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.65)",
+          },
+        ]}
+      />
+      {children}
+    </View>
+  );
+};
+
 // Settings' "Liquid glass effect" toggle (default on) reads/writes here, so
 // this one component is the only place that needs to know about it - every
 // call site across the app just keeps rendering <LiquidGlassView ...> with
@@ -52,6 +131,14 @@ const GatedLiquidGlassView = ({
   ...rest
 }) => {
   const { liquidGlassEnabled, isDarkMode } = useTheme();
+
+  if (liquidGlassEnabled && BlurView) {
+    return (
+      <BlurGlassView tintColor={tintColor} style={style} borderRadius={borderRadius}>
+        {children}
+      </BlurGlassView>
+    );
+  }
 
   if (liquidGlassEnabled) {
     return (
