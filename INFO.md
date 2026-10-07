@@ -352,6 +352,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Media gallery: native tab bar on iOS 26** (not tried on a device): on an iPhone with iOS 26+ the gallery's Photos / Files / Links switcher (`ChatScreen/MediaGalleryScreen.js`) is a nested `createBottomTabNavigator` with no custom `tabBar`, so React Navigation draws the system's own liquid-glass tab bar with SF Symbol icons, like the home screen (`USE_NATIVE_TABS`, `GalleryTab`, `renderList(tabKey)`; a tab's `focus` listener sets `activeTab`, which loading and paging follow). Android, iPad and iOS < 26 keep the floating pill (`GalleryTabBar`).
 - **Moderation notices, comment reports, real violation reports** (not tried on a device; needs the API's `main`):
   - Notifications `content_warning` and `content_deleted` (system, no actor): one sentence per content type (`notifications.contentWarning.*` / `contentDeleted.*`: topic, comment, message, story, other) so the noun reads right in vi/ru; the admin's note (`notifications.moderatorNote`) or else the content excerpt shows as a second line. Tapping a warning opens the content (`resolveContentWarningTarget` in `notificationRouting.js`: post, comment highlighted, chat message highlighted, story); a deleted-content notice opens nothing. Both are handled before the web-page and actor rules.
   - Comments can be reported: long-pressing someone else's comment in `PostScreen` offers `post.reportComment` → `ReportModal` → `reportUser({ comment_id, reason })`.
