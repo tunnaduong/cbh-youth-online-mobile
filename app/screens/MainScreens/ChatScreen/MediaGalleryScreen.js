@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   View,
   Text,
@@ -72,6 +73,19 @@ const TABS = [
     iconFocused: "link",
   },
 ];
+
+// iPhone on iOS 26+: the tabs are a nested tab navigator with React
+// Navigation's native bottom bar - the system's own liquid-glass tab bar,
+// same as the home screen (MainScreens/index.js). Android, iPad and older
+// iOS keep the floating pill below, also like the home screen.
+const USE_NATIVE_TABS =
+  Platform.OS === "ios" && !Platform.isPad && parseInt(Platform.Version, 10) >= 26;
+const GalleryTab = createBottomTabNavigator();
+const SF_SYMBOLS = {
+  image: ["photo.fill.on.rectangle.fill", "photo.on.rectangle"],
+  file: ["doc.text.fill", "doc.text"],
+  link: ["link", "link"],
+};
 
 const NAV_HEIGHT = 49;
 const NAV_RADIUS = 24.5;
@@ -456,8 +470,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     </TouchableOpacity>
   );
 
-  const currentItems = itemsByTab[activeTab];
-
   // react-native-image-viewing's default header positions its close button
   // with RN's own <SafeAreaView>, which is an iOS-only no-op - on Android it
   // applies no top inset at all, so the button sits right under (behind) the
@@ -499,7 +511,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   };
 
   const sharedListProps = {
-    data: currentItems,
     keyExtractor: (item, index) => `${item.message_id}-${index}`,
     onEndReached: loadMore,
     onEndReachedThreshold: 0.5,
@@ -512,6 +523,24 @@ const MediaGalleryScreen = ({ route, navigation }) => {
       <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary} />
     ) : null,
   };
+
+  const renderList = (tabKey) =>
+    tabKey === "image" ? (
+      <Animated.FlatList
+        key="image-grid"
+        {...sharedListProps}
+        data={itemsByTab.image}
+        renderItem={renderPhotoVideoItem}
+        numColumns={3}
+      />
+    ) : (
+      <Animated.FlatList
+        key={`list-${tabKey}`}
+        {...sharedListProps}
+        data={itemsByTab[tabKey]}
+        renderItem={tabKey === "file" ? renderFileItem : renderLinkItem}
+      />
+    );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -539,22 +568,40 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      {activeTab === "image" ? (
-        <Animated.FlatList
-          key="image-grid"
-          {...sharedListProps}
-          renderItem={renderPhotoVideoItem}
-          numColumns={3}
-        />
+      {USE_NATIVE_TABS ? (
+        <GalleryTab.Navigator
+          screenOptions={{
+            headerShown: false,
+            lazy: true,
+            tabBarActiveTintColor: theme.primary,
+            tabBarInactiveTintColor: isDarkMode ? "#EBEBF5" : "#1C1C1E",
+            tabBarMinimizeBehavior: "onScrollDown",
+          }}
+        >
+          {TABS.map((tab) => (
+            <GalleryTab.Screen
+              key={tab.key}
+              name={`gallery-${tab.key}`}
+              options={{
+                title: t(tab.labelKey, tab.fallback),
+                tabBarIcon: ({ focused }) => ({
+                  type: "sfSymbol",
+                  name: SF_SYMBOLS[tab.key][focused ? 0 : 1],
+                }),
+              }}
+              // Loading, paging and the empty state follow activeTab.
+              listeners={{ focus: () => setActiveTab(tab.key) }}
+            >
+              {() => renderList(tab.key)}
+            </GalleryTab.Screen>
+          ))}
+        </GalleryTab.Navigator>
       ) : (
-        <Animated.FlatList
-          key="single-column-list"
-          {...sharedListProps}
-          renderItem={activeTab === "file" ? renderFileItem : renderLinkItem}
-        />
+        <>
+          {renderList(activeTab)}
+          <GalleryTabBar tabs={TABS} activeTab={activeTab} onSelect={setActiveTab} t={t} />
+        </>
       )}
-
-      <GalleryTabBar tabs={TABS} activeTab={activeTab} onSelect={setActiveTab} t={t} />
 
       <ImageView
         images={imageViewer.items.map((m) => ({ uri: m.file_url }))}
