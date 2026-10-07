@@ -522,6 +522,8 @@
     "optionsTitle": "Tùy chọn",
     "selectAction": "Chọn hành động",
     "editComment": "Chỉnh sửa bình luận",
+    "reportComment": "Báo cáo bình luận",
+    "reportCommentSuccess": "Cảm ơn bạn đã báo cáo. Quản trị viên sẽ xem xét bình luận này.",
     "deleteComment": "Xóa bình luận",
     "deleteCommentConfirm": "Bạn có chắc chắn muốn xóa bình luận này?",
     "deleteCommentError": "Không thể xóa bình luận. Vui lòng thử lại.",
@@ -848,7 +850,22 @@
     "contentApprovedComment": "Bình luận của bạn đã được duyệt và hiển thị công khai",
     "contentRejectedPost": "Bài viết của bạn không được duyệt",
     "contentRejectedComment": "Bình luận của bạn không được duyệt",
-    "mentionedInStory": "đã nhắc đến bạn trong một tin"
+    "mentionedInStory": "đã nhắc đến bạn trong một tin",
+    "contentWarning": {
+      "topic": "Cảnh cáo: bài viết gần đây của bạn có nội dung không phù hợp với tiêu chuẩn cộng đồng. Hãy chỉnh sửa hoặc gỡ bỏ để tránh bị khóa tài khoản.",
+      "comment": "Cảnh cáo: bình luận gần đây của bạn có nội dung không phù hợp với tiêu chuẩn cộng đồng. Hãy chỉnh sửa hoặc gỡ bỏ để tránh bị khóa tài khoản.",
+      "message": "Cảnh cáo: tin nhắn gần đây của bạn có nội dung không phù hợp với tiêu chuẩn cộng đồng. Hãy gỡ bỏ để tránh bị khóa tài khoản.",
+      "story": "Cảnh cáo: tin gần đây của bạn có nội dung không phù hợp với tiêu chuẩn cộng đồng. Hãy gỡ bỏ để tránh bị khóa tài khoản.",
+      "other": "Cảnh cáo: nội dung gần đây của bạn không phù hợp với tiêu chuẩn cộng đồng. Hãy chỉnh sửa hoặc gỡ bỏ để tránh bị khóa tài khoản."
+    },
+    "contentDeleted": {
+      "topic": "Bài viết của bạn đã bị xóa vì vi phạm tiêu chuẩn cộng đồng",
+      "comment": "Bình luận của bạn đã bị xóa vì vi phạm tiêu chuẩn cộng đồng",
+      "message": "Tin nhắn của bạn đã bị xóa vì vi phạm tiêu chuẩn cộng đồng",
+      "story": "Tin của bạn đã bị xóa vì vi phạm tiêu chuẩn cộng đồng",
+      "other": "Nội dung của bạn đã bị xóa vì vi phạm tiêu chuẩn cộng đồng"
+    },
+    "moderatorNote": "Ghi chú của quản trị viên: {{note}}"
   },
   "chatBackground": {
     "title": "Hình nền đoạn chat",
@@ -884,6 +901,7 @@
     "reasonPlaceholder": "Nhập lý do báo cáo (tối thiểu 10 ký tự)...",
     "cancel": "Hủy",
     "submit": "Gửi báo cáo",
+    "submitError": "Không gửi được báo cáo. Vui lòng thử lại.",
     "violationType": "Lỗi vi phạm",
     "studentName": "Họ tên học sinh",
     "studentNamePlaceholder": "Trần Phương Linh",

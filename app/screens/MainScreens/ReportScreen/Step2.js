@@ -210,10 +210,21 @@ export default function Step2({ navigation, route }) {
     bottomSheetRef.current?.snapToIndex(0);
   };
 
+  // The API takes the date as YYYY-MM-DD in the reporter's own calendar day
+  // (toISOString would shift it to UTC and can land on the day before).
+  const isoDate = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
   const handleSubmit = () => {
     navigation.navigate("Step3", {
+      type: selectedViolationType,
       studentName: selectedViolationType === "class" ? className : studentName,
       reportDate: formatDate(reportDate),
+      reportDateIso: isoDate(reportDate),
+      // Positions in report.cleanliness / report.uniformStatus, so Step3 can
+      // turn the (translated) choice into the API's yes/no.
+      cleanlinessIndex: Array.isArray(CLEANLINESS_STATUS) ? CLEANLINESS_STATUS.indexOf(cleanliness) : -1,
+      uniformIndex: Array.isArray(UNIFORM_STATUS) ? UNIFORM_STATUS.indexOf(uniform) : -1,
       violationType: selectedTags[0] || violationType,
       notes,
       absences: absences || "0",

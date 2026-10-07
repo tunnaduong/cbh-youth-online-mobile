@@ -67,8 +67,44 @@ export function resolveWebNotificationTarget(type, data) {
   return null;
 }
 
+function resolveContentWarningTarget(data) {
+  const topicId = data.topic_id ?? data.topicId;
+  const commentId = data.comment_id ?? data.commentId;
+  const conversationId = data.conversation_id ?? data.conversationId;
+  const messageId = data.message_id ?? data.messageId;
+  const storyId = data.story_id ?? data.storyId;
+
+  switch (data.content_type) {
+    case "comment":
+      if (topicId) {
+        return { screen: "PostScreen", params: { postId: topicId, highlightCommentId: commentId } };
+      }
+      return null;
+    case "message":
+      if (conversationId) {
+        return { screen: "ConversationScreen", params: { conversationId, highlightMessageId: messageId } };
+      }
+      return null;
+    case "story":
+      if (storyId) {
+        return { screen: "MainScreens", params: { screen: "Home", params: { openStoryId: storyId } } };
+      }
+      return null;
+    default:
+      if (topicId) return { screen: "PostScreen", params: { postId: topicId } };
+      return null;
+  }
+}
+
 export function resolveNotificationTarget({ type, data, actor }) {
   data = data || {};
+
+  // Moderation notices come from the system, not a person. A warning opens
+  // the content it is about; a deleted item no longer exists, so there is
+  // nowhere to go. Handled before the web and actor rules so their `url`
+  // (the content's page, or "/") is never mistaken for a site page.
+  if (type === "content_deleted") return null;
+  if (type === "content_warning") return resolveContentWarningTarget(data);
 
   // Admin and gift shop pages first: such a notification may also name a
   // post or a conversation, but the page to act on is the one in its url.

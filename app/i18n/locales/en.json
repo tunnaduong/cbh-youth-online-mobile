@@ -533,6 +533,8 @@
     "optionsTitle": "Options",
     "selectAction": "Select an action",
     "editComment": "Edit comment",
+    "reportComment": "Report comment",
+    "reportCommentSuccess": "Thanks for letting us know. The moderators will review this comment.",
     "deleteComment": "Delete comment",
     "deleteCommentConfirm": "Are you sure you want to delete this comment?",
     "deleteCommentError": "Cannot delete comment. Please try again.",
@@ -859,7 +861,22 @@
     "contentApprovedComment": "Your comment was approved and is now public",
     "contentRejectedPost": "Your post was not approved",
     "contentRejectedComment": "Your comment was not approved",
-    "mentionedInStory": "mentioned you in a story"
+    "mentionedInStory": "mentioned you in a story",
+    "contentWarning": {
+      "topic": "Warning: one of your recent posts doesn't meet our community standards. Please edit or remove it to avoid having your account suspended.",
+      "comment": "Warning: one of your recent comments doesn't meet our community standards. Please edit or remove it to avoid having your account suspended.",
+      "message": "Warning: one of your recent messages doesn't meet our community standards. Please remove it to avoid having your account suspended.",
+      "story": "Warning: one of your recent stories doesn't meet our community standards. Please remove it to avoid having your account suspended.",
+      "other": "Warning: some of your recent content doesn't meet our community standards. Please edit or remove it to avoid having your account suspended."
+    },
+    "contentDeleted": {
+      "topic": "Your post was removed for violating our community standards",
+      "comment": "Your comment was removed for violating our community standards",
+      "message": "Your message was removed for violating our community standards",
+      "story": "Your story was removed for violating our community standards",
+      "other": "Your content was removed for violating our community standards"
+    },
+    "moderatorNote": "Moderator's note: {{note}}"
   },
   "chatBackground": {
     "title": "Chat background",
@@ -895,6 +912,7 @@
     "reasonPlaceholder": "Enter a reason for reporting (at least 10 characters)...",
     "cancel": "Cancel",
     "submit": "Send report",
+    "submitError": "Couldn't send the report. Please try again.",
     "violationType": "Violation type",
     "studentName": "Student name",
     "studentNamePlaceholder": "Tran Phuong Linh",

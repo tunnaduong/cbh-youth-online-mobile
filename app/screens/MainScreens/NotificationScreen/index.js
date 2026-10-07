@@ -40,6 +40,21 @@ import { getNameIcon } from "../../../utils/profileTheme";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 
+const MODERATED_CONTENT_TYPES = ["topic", "comment", "message", "story"];
+const contentTypeKey = (contentType) =>
+  MODERATED_CONTENT_TYPES.includes(contentType) ? contentType : "other";
+
+// Second line under a moderation notice: the admin's note when there is one,
+// otherwise a short excerpt of the content so the user knows which one.
+const moderationDetail = (notification, t) => {
+  const { type, data } = notification;
+  if (type !== "content_warning" && type !== "content_deleted") return null;
+  const note = typeof data?.note === "string" ? data.note.trim() : "";
+  if (note) return t('notifications.moderatorNote', { note });
+  const excerpt = typeof data?.excerpt === "string" ? data.excerpt.trim() : "";
+  return excerpt || null;
+};
+
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification, t) => {
   const { type, data, actor } = notification;
@@ -77,6 +92,14 @@ const formatNotificationMessage = (notification, t) => {
             : 'notifications.moderationPendingPost',
           { username: data?.author_username || "" }
         );
+      // Moderation notices about the user's own content. One sentence per
+      // content type rather than a label slotted into a template: Russian
+      // (and Vietnamese at the start of a sentence) need the noun's own
+      // gender / casing.
+      case "content_warning":
+        return t(`notifications.contentWarning.${contentTypeKey(data?.content_type)}`);
+      case "content_deleted":
+        return t(`notifications.contentDeleted.${contentTypeKey(data?.content_type)}`);
       case "topic_pinned":
         return `${t('notifications.pinnedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
       case "topic_moved":
@@ -441,6 +464,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
         : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
     const actorTheme = isSystemMessage || isAnonymous ? null : item.actor?.profile_theme;
     const displayContent = formatNotificationMessage(item.raw || item, t);
+    const moderationText = moderationDetail(item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
     return (
@@ -498,6 +522,11 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               </>
             )}
           </Text>
+          {moderationText && (
+            <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={3}>
+              {moderationText}
+            </Text>
+          )}
           {item.type === "story_replied" && item.data?.message_excerpt && (
             <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={2}>
               {item.data.message_excerpt}

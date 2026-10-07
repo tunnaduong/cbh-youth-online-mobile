@@ -888,6 +888,13 @@ export const reportUser = (params) => {
   return Api.postRequest("/v1.0/reports", params);
 };
 
+// Student / class violation report (ReportScreen flow): { type: "student" |
+// "class", subject_name, violation_type?, report_date? (YYYY-MM-DD), notes?,
+// absences?, cleanliness?, uniform? }
+export const submitViolationReport = (params) => {
+  return Api.postRequest("/v1.0/violation-reports", params);
+};
+
 // In-app feedback (bug reports & suggestions)
 export const submitFeedback = (params) => {
   return Api.postRequest("/v1.0/feedback", params);

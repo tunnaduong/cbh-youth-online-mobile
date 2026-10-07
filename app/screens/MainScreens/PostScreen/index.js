@@ -38,7 +38,11 @@ import {
   updateComment,
   deleteComment,
   getMentionSuggestions,
+  reportUser,
 } from "../../../services/api/Api";
+import ReportModal from "../../../components/ReportModal";
+import Toast from "react-native-toast-message";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import CommentBar from "../../../components/CommentBar";
 import FastImage from "../../../components/FastImage";
 import MentionText from "../../../components/MentionText";
@@ -313,6 +317,8 @@ const PostScreen = ({ route, navigation }) => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
+  // Comment being reported (its ReportModal is open while this is set).
+  const [reportCommentId, setReportCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [selectedCommentImages, setSelectedCommentImages] = useState([]);
   const commentInputRef = useRef(null);
@@ -874,7 +880,37 @@ const PostScreen = ({ route, navigation }) => {
     if (!comment) return;
 
     const isCommentOwner = comment.author?.username === username;
-    if (!isCommentOwner) return;
+    // Someone else's comment (anonymous ones included - the API finds the
+    // author from the comment id) can only be reported.
+    if (!isCommentOwner) {
+      if (Platform.OS === "ios") {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: [t("settings.cancel"), t("post.reportComment")],
+            destructiveButtonIndex: 1,
+            cancelButtonIndex: 0,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 1) setReportCommentId(commentId);
+          },
+        );
+      } else {
+        Alert.alert(
+          t("post.optionsTitle"),
+          t("post.selectAction"),
+          [
+            { text: t("settings.cancel"), style: "cancel" },
+            {
+              text: t("post.reportComment"),
+              style: "destructive",
+              onPress: () => setReportCommentId(commentId),
+            },
+          ],
+          { cancelable: true },
+        );
+      }
+      return;
+    }
 
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -936,6 +972,23 @@ const PostScreen = ({ route, navigation }) => {
       );
     }
   }, [username, t]);
+
+  const handleReportCommentSubmit = async (reason) => {
+    try {
+      await reportUser({ comment_id: reportCommentId, reason });
+      Toast.show({
+        type: "success",
+        text1: t("post.reportSuccessTitle"),
+        text2: t("post.reportCommentSuccess"),
+      });
+    } catch (e) {
+      // An Alert, not a toast: ReportModal stays open on failure and a
+      // toast would be drawn behind it.
+      Alert.alert(t("common.error"), apiErrorMessage(e, t("post.reportError")));
+      // Keeps ReportModal open so the reason can be sent again.
+      throw e;
+    }
+  };
 
   const handleDeleteComment = async (commentId) => {
     Alert.alert(t("post.deleteComment"), t("post.deleteCommentConfirm"), [
@@ -1356,6 +1409,12 @@ const PostScreen = ({ route, navigation }) => {
           }
         />
         </AndroidGlassBackdrop>
+        <ReportModal
+          visible={reportCommentId !== null}
+          title={t("post.reportComment")}
+          onClose={() => setReportCommentId(null)}
+          onSubmit={handleReportCommentSubmit}
+        />
         <CommentVotesModal
           visible={commentVotesModal.visible}
           commentId={commentVotesModal.commentId}

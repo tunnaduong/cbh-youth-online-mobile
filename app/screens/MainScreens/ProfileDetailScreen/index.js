@@ -15,7 +15,10 @@ import {
   getProfile,
   blockUser as blockUserApi,
   unblockUser as unblockUserApi,
+  reportUser,
 } from "../../../services/api/Api";
+import ReportModal from "../../../components/ReportModal";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
@@ -43,6 +46,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const isCurrentUser = username === currentUsername;
   const insets = useSafeAreaInsets();
   const isBlocked = blockedUsers?.includes(username);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t, i18n } = useTranslation();
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -198,34 +202,25 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     );
   };
 
-  const handleReportUser = () => {
-    // Navigate to ReportScreen but maybe we need a simpler flow for user reporting
-    // Since ReportScreen is currently tailored for school violations, we can use a simpler
-    // reporting mechanism or direct to a specific flow.
-    // For now, let's use a Toast to simulate reporting as per requirement "Blocking should also notify...".
-    // But since this is a separate "Report" action:
-    Alert.alert(
-      t('profile.reportTitle'),
-      t('profile.reportConfirm'),
-      [
-        {
-          text: t('profile.cancel'),
-          style: "cancel",
-        },
-        {
-          text: t('profile.reportAction'),
-          onPress: () => {
-            // Simulate report API call
-            console.log(`[Safety] User reported: ${username}`);
-            Toast.show({
-              type: "success",
-              text1: t('profile.reportSuccessTitle'),
-              text2: t('profile.reportSuccessMessage'),
-            });
-          },
-        },
-      ]
-    );
+  // Same flow as ProfileScreen: the reason is written in ReportModal and sent
+  // to the API, so the report reaches the moderators.
+  const handleReportUser = () => setReportModalVisible(true);
+
+  const handleReportSubmit = async (reason) => {
+    try {
+      await reportUser({ reported_user_id: profileUserId, reason });
+      Toast.show({
+        type: "success",
+        text1: t('profile.reportSuccessTitle'),
+        text2: t('profile.reportSuccessMessage'),
+      });
+    } catch (e) {
+      // An Alert, not a toast: ReportModal stays open on failure and a
+      // toast would be drawn behind it.
+      Alert.alert(t('common.error'), apiErrorMessage(e, t('post.reportError')));
+      // Keeps ReportModal open so the reason can be sent again.
+      throw e;
+    }
   };
 
   const showOptions = () => {
@@ -378,6 +373,11 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         </View>
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
     </View>
   );
 };
