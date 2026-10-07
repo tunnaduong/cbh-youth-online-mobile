@@ -121,7 +121,7 @@ export const getLatestFeed = (page = 1) => {
 
 // The "Tin tức Đoàn" tab: the youth union news subforum, in the feed's post shape.
 export const getNewsFeed = (page = 1) => {
-  return Api.getRequest("/v1.0/topics/feed?mode=news&page=" + page);
+  return Api.getRequest("/v1.0/topics/feed?mode=youth-news&page=" + page);
 };
 
 export const getFollowingFeed = (page = 1) => {

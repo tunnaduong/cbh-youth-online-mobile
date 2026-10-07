@@ -1265,14 +1265,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           setFeed(validPosts);
         })
         .catch(() => setFeed([]));
-    } else if (mode === "news") {
-      setFeedMode("news");
+    } else if (mode === "youth-news") {
+      setFeedMode("youth-news");
       setNewsPage(2);
       getNewsFeed(1)
         .then((response) => {
           // An API older than this tab ignores the mode and answers with the
           // ordinary feed: show nothing rather than the wrong posts.
-          const posts = response?.data?.mode === "news" ? response?.data?.data : [];
+          const posts = response?.data?.mode === "youth-news" ? response?.data?.data : [];
           const validPosts = Array.isArray(posts) ? posts : [];
           validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
           setFeed(validPosts);
@@ -1310,8 +1310,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       return;
     }
 
-    if (feedMode === "following" || feedMode === "news") {
-      (feedMode === "news" ? getNewsFeed(newsPage) : getFollowingFeed(followingPage))
+    if (feedMode === "following" || feedMode === "youth-news") {
+      (feedMode === "youth-news" ? getNewsFeed(newsPage) : getFollowingFeed(followingPage))
         .then((response) => {
           const newPosts = response?.data?.data;
           if (!Array.isArray(newPosts) || newPosts.length === 0) {
@@ -1323,7 +1323,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           if (freshPosts.length > 0) {
             setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
           }
-          if (feedMode === "news") {
+          if (feedMode === "youth-news") {
             setNewsPage((prevPage) => prevPage + 1);
           } else {
             setFollowingPage((prevPage) => prevPage + 1);
@@ -1989,7 +1989,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             { mode: "personalized", label: t('home.forYou'), icon: "sparkles" },
             { mode: "latest", label: t('home.latest'), icon: "flash" },
             { mode: "following", label: t('home.following'), icon: "people" },
-            { mode: "news", label: t('home.youthNews'), icon: "newspaper" },
+            { mode: "youth-news", label: t('home.youthNews'), icon: "newspaper" },
           ].map(({ mode, label, icon }) => (
             <FeedModeChip
               key={mode}
@@ -2227,10 +2227,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     if (feed == null) {
       // Cold start / previously empty or errored feed: full load for the active tab.
-      if (feedMode === "latest" || feedMode === "following" || feedMode === "news") {
+      if (feedMode === "latest" || feedMode === "following" || feedMode === "youth-news") {
         deliveredIdsRef.current = new Set();
         const fetchPage1 =
-          feedMode === "latest" ? getLatestFeed(1) : feedMode === "news" ? getNewsFeed(1) : getFollowingFeed(1);
+          feedMode === "latest" ? getLatestFeed(1) : feedMode === "youth-news" ? getNewsFeed(1) : getFollowingFeed(1);
         fetchPage1
           .then((response) => {
             const posts = response?.data?.data;
@@ -2239,7 +2239,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
             if (feedMode === "latest") {
               setLatestPage(2);
-            } else if (feedMode === "news") {
+            } else if (feedMode === "youth-news") {
               setNewsPage(2);
             } else {
               setFollowingPage(2);
@@ -2262,7 +2262,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       ? getLatestFeed(latestPage)
       : feedMode === "following"
         ? getFollowingFeed(followingPage)
-        : feedMode === "news"
+        : feedMode === "youth-news"
           ? getNewsFeed(newsPage)
           : getPersonalizedFeed(currentPage);
 
@@ -2286,7 +2286,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setLatestPage((p) => p + 1);
           } else if (feedMode === "following") {
             setFollowingPage((p) => p + 1);
-          } else if (feedMode === "news") {
+          } else if (feedMode === "youth-news") {
             setNewsPage((p) => p + 1);
           } else {
             setCurrentPage((p) => p + 1);

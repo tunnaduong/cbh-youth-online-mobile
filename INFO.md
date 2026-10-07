@@ -353,7 +353,7 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
-- **Home feed: "Tin tức Đoàn" tab** (not run on a device; **needs the API's `GET /topics/feed?mode=news`**, pushed to its `main`): a fourth chip beside For you / Latest / Following (`home.youthNews`, vi/en/ru) shows the youth union news subforum, newest first, with the same post cards, load-more and pull-to-refresh as the other tabs (`getNewsFeed`, `feedMode === "news"`, its own `newsPage`). Works for guests. Against an API without that mode (it would answer with the ordinary feed) the tab stays empty instead of showing the wrong posts - it checks `mode: "news"` in the first answer.
+- **Home feed: "Tin tức Đoàn" tab** (not run on a device; **needs the API's `GET /topics/feed?mode=youth-news`**, pushed to its `main`): a fourth chip beside For you / Latest / Following (`home.youthNews`, vi/en/ru) shows the youth union news subforum, newest first, with the same post cards, load-more and pull-to-refresh as the other tabs (`getNewsFeed`, `feedMode === "youth-news"`, its own `newsPage`). Works for guests. Against an API without that mode (it would answer with the ordinary feed) the tab stays empty instead of showing the wrong posts - it checks `mode: "youth-news"` in the first answer.
 
 - **Violation reports: several violation types; always sent in Vietnamese** (not run on a device; no API change):
   - `ReportScreen/Step2.js`: the type chips toggle (`selectedTypes`), and "Other" adds any number of typed or suggested ones (`selectedTags`) - at most `MAX_VIOLATION_TYPES` (8) together. Step 3 shows them comma-separated in the app's language.
