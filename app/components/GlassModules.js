@@ -39,37 +39,67 @@ try {
 // iOS below 26 has no system liquid glass, and the library's fallback there is
 // a plain frosted UIBlurEffect. With "Liquid glass effect" on, those versions
 // get this instead: an expo-blur system material (Gaussian blur, drawn by the
-// OS compositor - no per-frame work in JS) under a light tint, a soft
-// highlight from the top and a hairline bright edge, which is what makes a
+// OS compositor - no per-frame work in JS), kept light and nearly untinted,
+// with a sheen and a bright rim (see BlurGlassView), which is what makes a
 // blurred panel read as glass. Nothing in it animates, so scrolling stays
 // smooth. iOS 26+ keeps the real UIGlassEffect, Android keeps its shader.
 //
-// expo-blur is loaded in a try block and its native view is looked up first:
+// expo-blur is loaded in a try block and its native side is looked up first:
 // JS that reaches a build made before the package was added keeps the
 // library's fallback instead of crashing on a missing view.
+//
+// The lookup accepts any of the ways the module can show up. It used to ask
+// only for a view named "ExpoBlurView"; a module registers its one view as
+// its default view, so that lookup can come back empty on a build that does
+// have expo-blur - and then this whole blur glass was silently never used.
 // ---------------------------------------------------------------------------
+const hasNativeBlur = () => {
+  const expo = globalThis.expo;
+  if (!expo) return false;
+  try {
+    if (expo.modules?.ExpoBlur) return true;
+  } catch (error) {}
+  try {
+    if (expo.getViewConfig?.("ExpoBlur")) return true;
+  } catch (error) {}
+  try {
+    if (expo.getViewConfig?.("ExpoBlur", "ExpoBlurView")) return true;
+  } catch (error) {}
+  return false;
+};
+
 let BlurView = null;
 if (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26) {
   try {
-    const hasNativeView = !!globalThis.expo?.getViewConfig?.("ExpoBlur", "ExpoBlurView");
-    if (hasNativeView) {
+    if (hasNativeBlur()) {
       BlurView = require("expo-blur").BlurView;
     }
   } catch (error) {
     BlurView = null;
   }
 }
+console.log(`[GlassModules] blur glass (iOS < 26): ${BlurView ? "on" : "off"}`);
 
+// What makes this read as liquid glass rather than a frosted panel, without
+// the refraction only the system can do:
+//   - a light blur (low intensity on the thinnest system material), so what
+//     is behind stays recognisable instead of turning into a flat fog;
+//   - almost no tint over it - the surface is mostly what is behind it;
+//   - light caught on the edges: a bright rim on the top / left where light
+//     would hit, a faint one on the bottom / right, over a hairline outline;
+//   - a soft sheen falling off from the top-left corner.
+// All static layers drawn by the compositor - nothing here animates.
 const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
   const { isDarkMode } = useTheme();
   const flat = StyleSheet.flatten(style) || {};
   const radius = borderRadius ?? flat.borderRadius ?? 0;
   // The default glass tint is tuned for real glass; over a blur it would
-  // double up with the material's own tint, so it is thinned here. A custom
-  // tint (a LiquidButton's own colour) is the surface the caller asked for.
+  // double up with the material's own tint, so it is nearly dropped here. A
+  // custom tint (a LiquidButton's own colour) is the surface the caller asked
+  // for and is kept.
   const isDefaultTint = tintColor == null || tintColor === glassTint(isDarkMode);
   const overlay = isDefaultTint
-    ? isDarkMode ? "rgba(22, 22, 24, 0.30)" : "rgba(255, 255, 255, 0.24)"
+    ? isDarkMode ? "rgba(20, 20, 22, 0.16)" : "rgba(255, 255, 255, 0.10)"
     : tintColor;
 
   return (
@@ -82,21 +112,40 @@ const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
     >
       <BlurView
         pointerEvents="none"
-        intensity={isDarkMode ? 60 : 70}
+        intensity={isDarkMode ? 34 : 38}
         tint={isDarkMode ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"}
         style={StyleSheet.absoluteFill}
       />
       <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: overlay }]} />
+      {/* Sheen: light from the top-left, gone by the middle. */}
       <LinearGradient
         pointerEvents="none"
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         colors={
           isDarkMode
-            ? ["rgba(255,255,255,0.10)", "rgba(255,255,255,0.02)", "rgba(255,255,255,0)"]
-            : ["rgba(255,255,255,0.55)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0)"]
+            ? ["rgba(255,255,255,0.14)", "rgba(255,255,255,0.03)", "rgba(255,255,255,0)", "rgba(255,255,255,0.04)"]
+            : ["rgba(255,255,255,0.42)", "rgba(255,255,255,0.10)", "rgba(255,255,255,0)", "rgba(255,255,255,0.12)"]
         }
-        locations={[0, 0.45, 1]}
+        locations={[0, 0.3, 0.65, 1]}
         style={StyleSheet.absoluteFill}
       />
+      {/* Rim: bright where light lands (top, left), faint opposite. */}
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: radius,
+            borderWidth: 1,
+            borderTopColor: isDarkMode ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.85)",
+            borderLeftColor: isDarkMode ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.60)",
+            borderRightColor: isDarkMode ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.28)",
+            borderBottomColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.22)",
+          },
+        ]}
+      />
+      {/* Outline that keeps the shape readable over any background. */}
       <View
         pointerEvents="none"
         style={[
@@ -104,7 +153,7 @@ const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
           {
             borderRadius: radius,
             borderWidth: StyleSheet.hairlineWidth,
-            borderColor: isDarkMode ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.65)",
+            borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
           },
         ]}
       />
