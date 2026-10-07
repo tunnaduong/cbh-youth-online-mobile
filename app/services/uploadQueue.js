@@ -281,7 +281,7 @@ const fail = (id, error, { canRetry = false } = {}) => {
   const message =
     typeof error === "string"
       ? error
-      : apiErrorMessage(error, t("uploads.failedDesc"));
+      : error?.userMessage || apiErrorMessage(error, t("uploads.failedDesc"));
   const failed = patch(id, { status: "failed", progress: null, error: message, canRetry });
   showResultNotification(failed);
   // A job that can be retried waits for the user; the others clear themselves.
@@ -298,7 +298,8 @@ const run = async (id) => {
     succeed(id);
   } catch (error) {
     if (!(error instanceof UploadCancelled)) console.log("[Upload] failed:", error?.message || error);
-    fail(id, error, { canRetry: true });
+    // `noRetry`: trying again cannot help (the content itself was refused).
+    fail(id, error, { canRetry: !error?.noRetry });
   }
 };
 

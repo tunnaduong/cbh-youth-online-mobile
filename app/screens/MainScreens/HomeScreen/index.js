@@ -968,6 +968,15 @@ const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode })
   );
 };
 
+// Shown after the time on the author's own story while it is held by
+// moderation (nobody else is sent a held story).
+const heldStorySuffix = (story, t) =>
+  story?.moderation_status === "pending"
+    ? ` · ${t("story.pendingBadge")}`
+    : story?.moderation_status === "rejected"
+      ? ` · ${t("story.rejectedBadge")}`
+      : "";
+
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -1890,7 +1899,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               storyRef={storyRef}
             />
           ),
-          date: formatTime(story.created_at || story.created_at_human),
+          date: formatTime(story.created_at || story.created_at_human) + heldStorySuffix(story, t),
+          moderation_status: story.moderation_status,
           created_at: story.created_at,
           created_at_human: story.created_at_human,
           onStoryItemPress: () => {
@@ -2551,7 +2561,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       ...user,
       stories: user.stories.map((story) => ({
         ...story,
-        date: formatTime(story.created_at || story.created_at_human || ""),
+        date: formatTime(story.created_at || story.created_at_human || "") + heldStorySuffix(story, t),
         renderFooter: () => (
           <ReplyBar
             storyId={story.storyId}

@@ -964,7 +964,7 @@ const CreateStoryScreen = ({ navigation }) => {
         const stage = story.isVideo ? "uploadingVideo" : "uploading";
         report(stage, { progress: base });
         try {
-          await createStory(formData, {
+          const response = await createStory(formData, {
             onUploadProgress: (progressEvent) => {
               if (!progressEvent.total) return;
               report.progress(stage, {
@@ -972,7 +972,30 @@ const CreateStoryScreen = ({ navigation }) => {
               });
             },
           });
+
+          // A story with a photo or video waits for a moderator before
+          // anyone else sees it - say so, or its author wonders why nobody
+          // has viewed it.
+          if (response?.data?.moderation?.status === "pending") {
+            Toast.show({
+              type: "info",
+              text1: t("story.pendingReviewTitle"),
+              text2: t("story.pendingReviewBody"),
+              visibilityTime: 6000,
+            });
+          }
         } catch (error) {
+          // Refused by moderation: our own words (not the API's), and no
+          // "retry" - the same story would be refused again.
+          if (
+            error?.response?.status === 422 &&
+            error.response.data?.moderation?.status === "rejected"
+          ) {
+            const refused = new Error("story rejected by moderation");
+            refused.userMessage = t("story.rejectedBody");
+            refused.noRetry = true;
+            throw refused;
+          }
           console.error("[CreateStory] failed to post story", {
             message: error?.message,
             status: error?.response?.status,

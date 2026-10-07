@@ -353,6 +353,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Stories are moderated** (not run on a device; API side in the API's INFO.md): a story with a photo or video is held until an admin approves it in the web `/admin/moderation`; meanwhile only its author is sent it.
+  - `CreateStoryScreen`: after the upload, `moderation.status === "pending"` in the answer shows an info toast (`story.pendingReviewTitle` / `pendingReviewBody`). A story the check refuses (422, `moderation.status === "rejected"`) fails its upload with `story.rejectedBody` and **no retry**: `uploadQueue` now honours `error.userMessage` and `error.noRetry` on what a task throws.
+  - `HomeScreen`: the author's own held story shows "· Đang chờ duyệt" / "· Không được duyệt" after its time (`heldStorySuffix`, from the story's `moderation_status`).
+  - `NotificationScreen`: the pending / approved / rejected notices and the admins' queue alert have a story wording (`notifications.content…Story`, `moderationPendingStory`) when `data.content_type === "story"`.
+  - Strings in vi / en / ru. Admins' own posts, comments and stories are never held.
+
 - **Fewer re-renders across the app** (small, behaviour-neutral changes; not profiled on a device):
   - Context values are memoized with stable setters in `ThemeContext` (read by nearly every component), `StatusBarContext`, `FeedContext` and `BottomSheetContext` - a value rebuilt on each provider render re-rendered every consumer. `AuthContext` and `NotificationContext` are left as they are (their functions are rebuilt each render; memoizing them needs each function made stable first).
   - Home feed: `ListHeaderComponent` / `ListFooterComponent` are passed as elements (`ListHeader()`), not functions - the functions are redefined each render, so the header (feed tabs, story tray, email alert) was unmounted and mounted again on every state change of the screen.
