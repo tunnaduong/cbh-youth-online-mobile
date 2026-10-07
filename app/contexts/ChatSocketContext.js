@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useRef, useCallback, useEffect } from "react";
+import React, { createContext, useContext, useRef, useCallback, useEffect, useMemo } from "react";
 import { AppState } from "react-native";
 import { getEcho, disconnectEcho, reconnectEchoIfNeeded } from "../services/echo/echo";
 import { useAuthContext } from "./AuthContext";
@@ -186,16 +186,30 @@ export const ChatSocketProvider = ({ children }) => {
     };
   }, [leaveChannel]);
 
-  const value = {
-    onMessageSent,
-    onMessageRead,
-    onMessageDeleted,
-    onMessageReacted,
-    onMessageRecalled,
-    onMessageEdited,
-    onTyping,
-    sendTyping,
-  };
+  // One object for as long as the callbacks are the same: a new one on every
+  // render re-rendered every chat screen along with this provider.
+  const value = useMemo(
+    () => ({
+      onMessageSent,
+      onMessageRead,
+      onMessageDeleted,
+      onMessageReacted,
+      onMessageRecalled,
+      onMessageEdited,
+      onTyping,
+      sendTyping,
+    }),
+    [
+      onMessageSent,
+      onMessageRead,
+      onMessageDeleted,
+      onMessageReacted,
+      onMessageRecalled,
+      onMessageEdited,
+      onTyping,
+      sendTyping,
+    ]
+  );
 
   return (
     <ChatSocketContext.Provider value={value}>{children}</ChatSocketContext.Provider>

@@ -219,11 +219,18 @@ const injectTimeHeaders = (messages, t) => {
     // through this function (e.g. re-merged on scroll-up pagination) have `type`
     // set to "message" already, so fall back to their existing `content_type`
     // instead of overwriting it.
-    result.push({
-      ...msg,
-      type: "message",
-      content_type: msg.content_type ?? msg.type,
-    });
+    // Already in that shape: keep the very same object. Rows are memoized on
+    // it, and a fresh copy of every message on every call re-rendered the
+    // whole list each time one message arrived.
+    result.push(
+      msg.type === "message" && msg.content_type !== undefined
+        ? msg
+        : {
+            ...msg,
+            type: "message",
+            content_type: msg.content_type ?? msg.type,
+          },
+    );
   });
 
   return result;
@@ -856,6 +863,8 @@ const MessageRow = React.memo(({
   }, [displayImageUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
 
   const handleSwipeReply = () => {
+    // Still sending: it has no real id to reply to yet.
+    if (item.is_sending) return;
     const contentType =
       item.type === "image" || item.type === "video" || item.type === "file"
         ? item.type
@@ -1099,14 +1108,18 @@ const MessageRow = React.memo(({
             ) : !item.is_recalled && isImageMessage && item.file_url ? (
               <>
                 {mediaLoadError ? (
-                  <View style={[styles.messageImage, styles.mediaErrorFallback]}>
-                    <Ionicons name="image-outline" size={28} color="#fff" />
+                  // Tap to try again (one failure used to be final for the
+                  // whole visit). The native reason stays in the log only.
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => onImageError(item.id, null)}
+                    style={[styles.messageImage, styles.mediaErrorFallback]}
+                  >
+                    <Ionicons name="refresh" size={28} color="#fff" />
                     <Text style={styles.mediaErrorText} numberOfLines={2}>
                       {t("chatConversation.loadImageError", "Không tải được ảnh")}
-                      {"\n"}
-                      {mediaLoadError}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ) : (
                   <FastImage
                     source={{ uri: displayImageUrl }}
@@ -1570,6 +1583,12 @@ const ConversationScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  // The same two values for code that runs across several awaits (loading
+  // page after page while looking for a message): state is frozen in the
+  // closure that started the loop, so it asked for the same page every time.
+  // fetchMessages reads and writes these; the state mirrors them for the UI.
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(true);
   // Every loaded message is always rendered - unlike the old approach here
   // (manually slicing `messages` to a JS-estimated "window" based on scroll
   // position, unmounting/remounting rows as that estimate crossed
@@ -1632,6 +1651,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // event, instead of after just the first one - see onContentSizeChange.
   const pendingLoadMoreAdjustTimeoutRef = useRef(null);
   const isFocused = useIsFocused();
+  // For handlers that outlive a render (socket, timers, AppState).
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
@@ -1719,22 +1741,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // Keep the header visually light until the user scrolls enough.
   // This mirrors the other screens: the back button stays visible, while the
   // profile/title area fades in only after scrolling.
-  const scrollY = useRef(new Animated.Value(0)).current;
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollContentHeightRef = useRef(0);
   const scrollViewHeightRef = useRef(0);
-
-  const headerBgOpacity = scrollY.interpolate({
-    inputRange: [0, 60],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const centerOpacity = scrollY.interpolate({
-    inputRange: [0, 60],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -2243,6 +2252,9 @@ const ConversationScreen = ({ navigation, route }) => {
 
     let cancelled = false;
     const fetchSeen = () => {
+      // Not while another screen covers the chat or the app is in the
+      // background; the next tick after returning catches up.
+      if (!isFocusedRef.current || AppState.currentState !== "active") return;
       getGroupSeenReceipts(activeId)
         .then((res) => {
           if (cancelled) return;
@@ -2327,6 +2339,7 @@ const ConversationScreen = ({ navigation, route }) => {
         const parsedData = JSON.parse(cachedData);
         const transformed = injectTimeHeaders(parsedData, t);
         setMessages(preserveRecentReactions(transformed));
+        pageRef.current = 2;
         setPage(2); // Set page to 2 since we loaded the first page from cache
 
         // Fetch fresh data in background
@@ -2340,18 +2353,23 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const fetchMessages = async (isRefresh = false, isBackground = false) => {
+    // How many messages this call brought back (0 also when it failed).
+    let loadedCount = 0;
     try {
       if (isRefresh && !isBackground) {
+        pageRef.current = 1;
+        hasMoreRef.current = true;
         setPage(1);
         setHasMore(true);
       }
 
-      if (!hasMore && !isRefresh) return;
+      if (!hasMoreRef.current && !isRefresh) return;
 
       const response = await getConversationMessages(
         currentConversationId || conversationId,
-        isRefresh ? 1 : page,
+        isRefresh ? 1 : pageRef.current,
       );
+      loadedCount = Array.isArray(response.data?.data) ? response.data.data.length : 0;
 
       const newMessages = Array.isArray(response.data?.data)
         ? response.data.data
@@ -2387,8 +2405,10 @@ const ConversationScreen = ({ navigation, route }) => {
           const dedupedOlder = newMessages.filter((m) => !existingIds.has(m.id));
           return injectTimeHeaders([...dedupedOlder, ...existingMessages], t);
         });
-        setHasMore(response.data.current_page < response.data.last_page);
-        setPage((prev) => (isRefresh ? 2 : prev + 1));
+        hasMoreRef.current = response.data.current_page < response.data.last_page;
+        pageRef.current = isRefresh ? 2 : pageRef.current + 1;
+        setHasMore(hasMoreRef.current);
+        setPage(pageRef.current);
       } else if (JSON.stringify(newMessages) !== previousCache) {
         // Update UI only if new data is different from what was cached before this refresh.
         // This background refresh always fetches page 1 (the newest tail of
@@ -2420,6 +2440,11 @@ const ConversationScreen = ({ navigation, route }) => {
       }
       if (!isBackground && !isRefresh) {
         loadingMoreRef.current = false;
+        // Nothing was added (empty page, or the request failed): forget the
+        // "keep the scroll position" note taken before loading. Left set, the
+        // next thing that made the list taller - a new message, the typing
+        // bubble - was treated as that older page and yanked the scroll up.
+        if (loadedCount === 0) pendingLoadMoreAdjustRef.current = null;
       }
     }
   };
@@ -2433,6 +2458,14 @@ const ConversationScreen = ({ navigation, route }) => {
 
   // Realtime: refresh messages the instant the backend pushes a chat event for this
   // conversation, replacing the old 5s poll.
+  // Read through a ref by the realtime effect below. As a dependency it made
+  // that effect tear itself down whenever this callback changed (when the
+  // conversation's details load, after the first message of a new chat) -
+  // and its cleanup clears the typing timers and the pending refresh, which
+  // left a "typing..." bubble stuck and dropped a reconcile fetch.
+  const refreshOtherUserOnlineStatusRef = useRef(refreshOtherUserOnlineStatus);
+  refreshOtherUserOnlineStatusRef.current = refreshOtherUserOnlineStatus;
+
   useEffect(() => {
     const activeId = currentConversationId || conversationId;
     if (isNewConversation || !activeId) return undefined;
@@ -2529,8 +2562,11 @@ const ConversationScreen = ({ navigation, route }) => {
       // debounced (see scheduleBackgroundRefresh) so a burst of messages
       // coalesces into one fetch instead of one each.
       scheduleBackgroundRefresh(isNearBottom);
-      // The screen is already open, so this new message is immediately read too -
-      // dispatch a read receipt so the sender's "seen" status keeps updating live.
+      // The screen is open and in front, so this new message is read at once -
+      // send a read receipt so the sender's "seen" status keeps updating live.
+      // Not when another screen covers this one or the app is in the
+      // background: the user has not seen it (it is marked when they return).
+      if (isFocusedRef.current && AppState.currentState === "active")
       markConversationAsRead(activeId).catch((error) => {
         console.log(
           "[ConversationScreen] Error marking conversation as read:",
@@ -2538,7 +2574,7 @@ const ConversationScreen = ({ navigation, route }) => {
         );
       });
       // Any incoming activity from the other user is a good moment to re-check their online dot.
-      refreshOtherUserOnlineStatus();
+      refreshOtherUserOnlineStatusRef.current();
     };
     const handleTyping = (data) => {
       if (!data?.user_id) return;
@@ -2635,7 +2671,6 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageRecalled,
     onMessageEdited,
     onTyping,
-    refreshOtherUserOnlineStatus,
   ]);
 
   // Reconnecting the socket (see ChatSocketContext's AppState listener) only
@@ -2651,10 +2686,25 @@ const ConversationScreen = ({ navigation, route }) => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         fetchMessagesRef.current(true, true);
+        // What arrived while the app was away is read now.
+        if (isFocusedRef.current) markConversationAsRead(activeId).catch(() => {});
       }
     });
     return () => subscription.remove();
   }, [isNewConversation, currentConversationId, conversationId]);
+
+  // Coming back to this screen (from a profile, group info...) reads what
+  // arrived meanwhile. Not on the first focus: opening the conversation
+  // already marks it.
+  const wasFocusedRef = useRef(isFocused);
+  useEffect(() => {
+    const was = wasFocusedRef.current;
+    wasFocusedRef.current = isFocused;
+    if (!isFocused || was) return;
+    const activeId = currentConversationId || conversationId;
+    if (isNewConversation || !activeId) return;
+    markConversationAsRead(activeId).catch(() => {});
+  }, [isFocused, isNewConversation, currentConversationId, conversationId]);
 
   const scrollToLatestMessage = () => {
     requestAnimationFrame(() => {
@@ -2726,8 +2776,10 @@ const ConversationScreen = ({ navigation, route }) => {
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      if (!hasMore) break;
-      await fetchMessages(false);
+      // Through the refs: `hasMore` / `fetchMessages` here belong to the
+      // render that started this loop and never change during it.
+      if (!hasMoreRef.current) break;
+      await fetchMessagesRef.current(false);
       // Let onLayout populate messageLayoutOffsetsRef for the newly
       // prepended messages before checking again.
       await new Promise((resolve) => setTimeout(resolve, 80));
@@ -2779,7 +2831,6 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const handleMessagesScroll = ({ nativeEvent }) => {
     const offsetY = nativeEvent.contentOffset.y;
-    scrollY.setValue(offsetY);
     const isNearTop = offsetY <= 40;
     if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
@@ -3268,13 +3319,17 @@ const ConversationScreen = ({ navigation, route }) => {
           upload.report(type === "video" ? "uploadingVideo" : "uploading", {
             progress: progressEvent.loaded / total,
           });
-          setMessages((prev) =>
-            prev.map((m) =>
+          setMessages((prev) => {
+            // Many events report the same rounded percentage; mapping the
+            // whole list for each of them was all wasted.
+            const current = prev.find((m) => typeof m.id === "string" && m.id.includes(tempId));
+            if (!current || current.upload_progress === percent) return prev;
+            return prev.map((m) =>
               typeof m.id === "string" && m.id.includes(tempId)
                 ? { ...m, upload_progress: percent }
                 : m,
-            ),
-          );
+            );
+          });
         },
       };
 
@@ -3336,6 +3391,9 @@ const ConversationScreen = ({ navigation, route }) => {
       // Replace optimistic message with real one
       setMessages((prev) => {
         const baseMessages = prev.filter((msg) => {
+          // Already here under its real id (a refresh landed first): it is
+          // appended below, so this copy goes.
+          if (msg && msg.type === "message" && msg.id === response.data.id) return false;
           if (!msg || !msg.id || typeof msg.id !== "string") return true;
           return !msg.id.includes(tempId);
         });
@@ -3596,6 +3654,9 @@ const ConversationScreen = ({ navigation, route }) => {
       // Replace optimistic message with real one and update storage
       setMessages((prev) => {
         const baseMessages = prev.filter((msg) => {
+          // Already here under its real id (a refresh landed first): it is
+          // appended below, so this copy goes.
+          if (msg && msg.type === "message" && msg.id === response.data.id) return false;
           if (!msg || !msg.id || typeof msg.id !== "string") return true;
           return !msg.id.includes(tempId);
         });
@@ -3920,7 +3981,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleEditMessageAction = () => {
     const item = reactionPicker.message;
     closeReactionPicker();
-    if (!item || item.is_recalled) return;
+    if (!item || item.is_recalled || item.is_sending) return;
     setEditingMessage({ id: item.id, originalContent: item.content });
     setMessage(item.content || "");
     inputRef.current?.focus?.();
@@ -3940,7 +4001,9 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const handleSubmitEdit = async () => {
-    const trimmed = message.trim();
+    // The ref first, like sending: on Android the last word being composed
+    // reaches it before it reaches state.
+    const trimmed = (latestMessageRef.current || message).trim();
     if (!trimmed || sending) return;
     const { id, originalContent } = editingMessage;
 
@@ -4124,7 +4187,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // applies no top inset at all, so the button sits right under (behind) the
   // status bar and can't be tapped. Supply our own header using the safe
   // area insets we already have.
-  const ImageViewerHeader = () => (
+  // useCallback: as a plain arrow it was a new component type on every
+  // render, so the viewer remounted its header with each keystroke.
+  const ImageViewerHeader = React.useCallback(() => (
     <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
       <TouchableOpacity
         onPress={() => setImageViewer({ visible: false, uris: [], index: 0 })}
@@ -4134,6 +4199,12 @@ const ConversationScreen = ({ navigation, route }) => {
         <Ionicons name="close" size={22} color="#fff" />
       </TouchableOpacity>
     </View>
+  ), [insets.top]);
+
+  // One array per set of pictures, not a new one on every render.
+  const imageViewerImages = useMemo(
+    () => imageViewer.uris.map((u) => ({ uri: u })),
+    [imageViewer.uris],
   );
 
   // Downloads a file attachment and hands it to the native share sheet, the
@@ -4424,7 +4495,7 @@ const ConversationScreen = ({ navigation, route }) => {
       </Modal>
 
       <ImageView
-        images={imageViewer.uris.map((u) => ({ uri: u }))}
+        images={imageViewerImages}
         imageIndex={imageViewer.index}
         visible={imageViewer.visible}
         onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}

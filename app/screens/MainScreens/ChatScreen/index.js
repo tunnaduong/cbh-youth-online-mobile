@@ -232,7 +232,13 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     const ids = conversationIdsKey ? conversationIdsKey.split(",") : [];
     if (ids.length === 0) return undefined;
 
-    const refresh = () => fetchConversationsRef.current?.();
+    // Debounced: a burst of events (a busy group, several chats at once) is
+    // one list fetch 400 ms after the last one, not one fetch per event.
+    let refreshTimer = null;
+    const refresh = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => fetchConversationsRef.current?.(), 400);
+    };
     const unsubscribers = ids.flatMap((id) => {
       const numId = Number(id);
       const handleRecalled = (data) => {
@@ -264,8 +270,19 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       ].filter(Boolean);
     });
 
-    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+    return () => {
+      clearTimeout(refreshTimer);
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
   }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited]);
+
+  // One component for the list's separators: defined inline it was a new
+  // component type on every render, so every separator was rebuilt with each
+  // keystroke in the search box.
+  const renderSeparator = React.useCallback(
+    () => <View style={{ height: 1, backgroundColor: theme.border, marginLeft: 80 }} />,
+    [theme.border]
+  );
 
   const filteredConversations = conversations.filter((item) => {
     if (
@@ -546,11 +563,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             </View>
           </>
         }
-        ItemSeparatorComponent={() => (
-          <View
-            style={{ height: 1, backgroundColor: theme.border, marginLeft: 80 }}
-          />
-        )}
+        ItemSeparatorComponent={renderSeparator}
         ListEmptyComponent={
           <View style={{ flex: 1, marginTop: 44 }}>
             <View style={styles.emptyContainer}>
