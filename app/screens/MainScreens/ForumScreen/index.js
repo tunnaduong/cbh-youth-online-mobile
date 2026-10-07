@@ -30,11 +30,12 @@ import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsiv
 
 
 // The veil over a section's picture, in the card's own background colour:
-// strong under the title on the left, thin on the right. (The same colour at
-// three opacities - fading to plain "transparent" would pass through grey.)
+// solid under the title on the left, fading out to the bare picture at the
+// right edge. (The same colour at falling opacities - fading to plain
+// "transparent" would pass through grey.)
 const sectionVeil = (background) => {
   const hex = /^#[0-9a-fA-F]{6}$/.test(background) ? background : "#121212";
-  return [`${hex}F0`, `${hex}B3`, `${hex}73`];
+  return [`${hex}FA`, `${hex}D9`, `${hex}66`, `${hex}00`];
 };
 
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
@@ -56,17 +57,16 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
       imageStyle={styles.sectionBackgroundImage}
     >
       {/* The section's picture fills the whole card (cover); this veil keeps
-          the text readable. It covers exactly the card at any width and only
-          thins out towards the right, so the picture is visible across the
-          whole card - most on the right, like the web's section banner.
+          the text readable. It covers exactly the card at any width: solid
+          on the left, fading out diagonally to the bare picture on the right.
           The old veil was a rotated box with a fixed shift: nearly opaque,
           and on a wide card (iPad) it left a bare triangle of picture with a
           hard edge next to what looked like a black bar. */}
       <LinearGradient
         colors={sectionVeil(theme.background)}
-        locations={[0, 0.5, 1]}
+        locations={[0, 0.4, 0.75, 1]}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
+        end={{ x: 1, y: 0.5 }}
         style={StyleSheet.absoluteFill}
       />
         <View style={styles.sectionHeader}>
@@ -534,7 +534,13 @@ const styles = StyleSheet.create({
   // further off the right edge. Plain full width with symmetric padding.
   sectionBackground: {
     padding: 14,
-    width: "100%",
+    // No `width` here. ImageBackground copies this style's width onto its
+    // picture, and a percentage on that absolutely positioned picture is
+    // measured against the box INSIDE the padding - so "100%" left the
+    // picture 28 short of the card's right edge on every device (the reason
+    // for the old "105%"). Without it the picture is pinned to all four
+    // edges; the card still stretches to the full width by itself.
+    alignSelf: "stretch",
     borderRadius: 16,
     overflow: "hidden",
   },
