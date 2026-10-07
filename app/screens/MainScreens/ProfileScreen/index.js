@@ -64,7 +64,13 @@ const LIKED_SORT_OPTIONS = [
   { value: "least_liked", labelKey: "profile.sortLeastLiked" },
 ];
 
+// FeedContext holds ONE list of profile posts for every ProfileScreen that
+// is mounted (a profile opened from another profile shares it). This is the
+// instance whose posts are in it right now - see fetchUserData.
+let profilePostsOwner = null;
+
 const ProfileScreen = ({ route, navigation }) => {
+  const instanceToken = useRef({}).current;
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const isFocused = useIsFocused();
   // Facebook-style autoplay: only one post's video should ever be playing
@@ -95,6 +101,8 @@ const ProfileScreen = ({ route, navigation }) => {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
   const { recentPostsProfile, setRecentPostsProfile } = useContext(FeedContext);
+  const recentPostsRef = useRef(recentPostsProfile);
+  recentPostsRef.current = recentPostsProfile;
   const isCurrentUser = userId === username;
   const [activeTab, setActiveTab] = useState("posts");
   // Photo gallery (as on the web profile): a view of the Posts tab, fetched
@@ -144,8 +152,9 @@ const ProfileScreen = ({ route, navigation }) => {
 
   useFocusEffect(
     React.useCallback(() => {
-      // Fetch updated data for the profile when the screen comes into focus
-      fetchUserData(userId);
+      // Fetch updated data for the profile when the screen comes into focus.
+      // The pages of posts already loaded are kept (see fetchUserData).
+      fetchUserData(userId, { keepLoadedPosts: true });
     }, [userId])
   );
 
@@ -404,7 +413,12 @@ const ProfileScreen = ({ route, navigation }) => {
   };
 
   // Fetch user data from API
-  const fetchUserData = async (userId) => {
+  // keepLoadedPosts (the refetch on focus): the first page is merged into the
+  // posts already on screen instead of replacing them. Replacing cut a list
+  // of several loaded pages back to its first 10 posts every time the screen
+  // got focus again (back from a post, a profile, the editor...), so the
+  // reader was thrown back up to posts they had already passed.
+  const fetchUserData = async (userId, { keepLoadedPosts = false } = {}) => {
     try {
       const response = await getProfile(userId);
       setUserData(response.data);
@@ -433,6 +447,24 @@ const ProfileScreen = ({ route, navigation }) => {
       const visiblePosts = (postsResponse.data?.data || []).filter(
         (post) => isCurrentUser ? true : (!post.anonymous && !post.is_anonymous)
       );
+      // Only when the list in the context is still this screen's: another
+      // profile opened on top of this one has put its own posts there.
+      if (keepLoadedPosts && profilePostsOwner === instanceToken) {
+        const freshIds = new Set(visiblePosts.map((post) => post.id));
+        setRecentPostsProfile((prev) =>
+          Array.isArray(prev) && prev.length > visiblePosts.length
+            ? [...visiblePosts, ...prev.filter((post) => !freshIds.has(post.id))]
+            : visiblePosts
+        );
+        // Page and "has more" still describe the pages that were kept;
+        // with nothing beyond the first page they are that page's.
+        if ((recentPostsRef.current?.length || 0) <= visiblePosts.length) {
+          setPostsPage(1);
+          setPostsHasMore(Boolean(postsResponse.data?.has_more));
+        }
+        return;
+      }
+      profilePostsOwner = instanceToken;
       setRecentPostsProfile(visiblePosts);
       setPostsPage(1);
       setPostsHasMore(Boolean(postsResponse.data?.has_more));
@@ -1327,8 +1359,14 @@ const ProfileScreen = ({ route, navigation }) => {
           data={listData}
           keyExtractor={listKeyExtractor}
           renderItem={renderListItem}
-          ListEmptyComponent={renderListEmpty}
-          ListFooterComponent={renderListFooter}
+          // Elements too, for the same reason: as functions the footer (the
+          // "load more" button and the activity section) was unmounted and
+          // mounted again on every render - and the list re-renders each
+          // time another post becomes the visible one while scrolling. Near
+          // the end of the list that made the content shorter for a moment,
+          // and the scroll position jumped back up.
+          ListEmptyComponent={renderListEmpty()}
+          ListFooterComponent={renderListFooter()}
           // Pass the header as an element, not the function: FlatList renders
           // a function as `<ListHeaderComponent />`, and renderListHeader is
           // a new function every render - so every re-render (useIsFocused

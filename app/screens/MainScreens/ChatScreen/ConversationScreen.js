@@ -899,7 +899,9 @@ const MessageRow = React.memo(({
           onPress={() => {
             const storyId = item.metadata?.story_id ?? item.metadata?.storyId;
             if (storyId) {
-              navigation.navigate("MainScreens", {
+              // popTo, not navigate: navigate would push a second copy of
+              // the tabs (and of the home feed) on top of this chat.
+              navigation.popTo("MainScreens", {
                 screen: "Home",
                 params: { openStoryId: storyId },
               });
