@@ -1,3 +1,21 @@
+// The HTML renderer collapses the line breaks and indentation inside
+// <pre> (a fenced code block came out as one long line), so they are turned
+// into what it does keep: <br> and non-breaking spaces.
+export function preserveCodeBlocks(html) {
+  if (!html || html.indexOf("<pre") === -1) return html;
+
+  return html.replace(/(<pre\b[^>]*>)([\s\S]*?)(<\/pre>)/gi, (match, open, body, close) => {
+    const kept = body
+      .replace(/\r\n?/g, "\n")
+      // The newline Markdown leaves before </code></pre> is not a line.
+      .replace(/\n(<\/code>)?\s*$/, "$1")
+      .replace(/\t/g, "  ")
+      .replace(/(^|\n) +| {2,}/g, (run) => run.replace(/ /g, "&nbsp;"))
+      .replace(/\n/g, "<br>");
+    return open + kept + close;
+  });
+}
+
 // Replace @username in post/comment HTML text nodes with clickable profile
 // links, matching the web client's src/utils/mentionRender.js.
 //
@@ -30,5 +48,5 @@ export function linkifyMentionsInHtml(html, validMentions = null, { allowBroadca
     if (validMentions == null || !validMentions.has(username.toLowerCase())) return match;
     return `<a href="/${username}" class="mention-tag">@${username}</a>`;
   });
-  return result;
+  return preserveCodeBlocks(result);
 }

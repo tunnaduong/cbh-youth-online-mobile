@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import {
   View,
   Text,
@@ -13,12 +14,12 @@ import {
   Clipboard,
   Animated,
   Easing,
-  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
 import ImageView from "react-native-image-viewing";
+import FastImage from "../../../components/FastImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
@@ -46,6 +47,9 @@ import ForwardMessageModal from "../../../components/ForwardMessageModal";
 // (MainScreens/index.js CustomTabBar): same 49pt height, 24.5 radius, same
 // surface/border/indicator colors, same sliding indicator. It is scoped to
 // this screen only and has no "+" button - there is nothing to create here.
+// Unlike the main nav it hugs its three buttons, centered, instead of
+// stretching edge to edge - three tabs spread across a whole phone (or iPad)
+// width looked sparse.
 const TABS = [
   {
     key: "image",
@@ -70,8 +74,22 @@ const TABS = [
   },
 ];
 
+// iPhone on iOS 26+: the tabs are a nested tab navigator with React
+// Navigation's native bottom bar - the system's own liquid-glass tab bar,
+// same as the home screen (MainScreens/index.js). Android, iPad and older
+// iOS keep the floating pill below, also like the home screen.
+const USE_NATIVE_TABS =
+  Platform.OS === "ios" && !Platform.isPad && parseInt(Platform.Version, 10) >= 26;
+const GalleryTab = createBottomTabNavigator();
+const SF_SYMBOLS = {
+  image: ["photo.fill.on.rectangle.fill", "photo.on.rectangle"],
+  file: ["doc.text.fill", "doc.text"],
+  link: ["link", "link"],
+};
+
 const NAV_HEIGHT = 49;
 const NAV_RADIUS = 24.5;
+const NAV_BUTTON_WIDTH = 76;
 
 // Bottom nav pill - mirrors CustomTabBar's structure so the two read as the
 // same control. Kept local to this file because it is gallery-only.
@@ -79,10 +97,9 @@ const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const insets = useSafeAreaInsets();
   const slideAnim = useRef(new Animated.Value(0)).current;
-  const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 40);
 
   const activeIndex = Math.max(0, tabs.findIndex((tab) => tab.key === activeTab));
-  const buttonWidth = pillWidth / Math.max(1, tabs.length);
+  const buttonWidth = NAV_BUTTON_WIDTH;
 
   useEffect(() => {
     Animated.timing(slideAnim, {
@@ -113,13 +130,10 @@ const GalleryTabBar = ({ tabs, activeTab, onSelect, t }) => {
             }
           : {})}
         renderToHardwareTextureAndroid
-        onLayout={(e) => {
-          const w = e.nativeEvent.layout.width;
-          if (w && w !== pillWidth) setPillWidth(w);
-        }}
         style={[
           styles.navPill,
           {
+            width: buttonWidth * tabs.length,
             backgroundColor: LiquidGlassView ? "transparent" : surface,
             borderColor: border,
           },
@@ -399,7 +413,7 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         }}
         onLongPress={() => showMediaOptions(item)}
       >
-        <Image source={{ uri: thumbUri }} style={styles.gridImage} />
+        <FastImage shimmer source={{ uri: thumbUri }} style={styles.gridImage} />
         {isVideo && (
           <View style={styles.playIconOverlay}>
             <Ionicons name="play-circle" size={28} color="#fff" />
@@ -456,8 +470,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
     </TouchableOpacity>
   );
 
-  const currentItems = itemsByTab[activeTab];
-
   // react-native-image-viewing's default header positions its close button
   // with RN's own <SafeAreaView>, which is an iOS-only no-op - on Android it
   // applies no top inset at all, so the button sits right under (behind) the
@@ -499,7 +511,6 @@ const MediaGalleryScreen = ({ route, navigation }) => {
   };
 
   const sharedListProps = {
-    data: currentItems,
     keyExtractor: (item, index) => `${item.message_id}-${index}`,
     onEndReached: loadMore,
     onEndReachedThreshold: 0.5,
@@ -512,6 +523,24 @@ const MediaGalleryScreen = ({ route, navigation }) => {
       <ActivityIndicator style={{ marginVertical: 16 }} color={theme.primary} />
     ) : null,
   };
+
+  const renderList = (tabKey) =>
+    tabKey === "image" ? (
+      <Animated.FlatList
+        key="image-grid"
+        {...sharedListProps}
+        data={itemsByTab.image}
+        renderItem={renderPhotoVideoItem}
+        numColumns={3}
+      />
+    ) : (
+      <Animated.FlatList
+        key={`list-${tabKey}`}
+        {...sharedListProps}
+        data={itemsByTab[tabKey]}
+        renderItem={tabKey === "file" ? renderFileItem : renderLinkItem}
+      />
+    );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
@@ -539,22 +568,40 @@ const MediaGalleryScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      {activeTab === "image" ? (
-        <Animated.FlatList
-          key="image-grid"
-          {...sharedListProps}
-          renderItem={renderPhotoVideoItem}
-          numColumns={3}
-        />
+      {USE_NATIVE_TABS ? (
+        <GalleryTab.Navigator
+          screenOptions={{
+            headerShown: false,
+            lazy: true,
+            tabBarActiveTintColor: theme.primary,
+            tabBarInactiveTintColor: isDarkMode ? "#EBEBF5" : "#1C1C1E",
+            tabBarMinimizeBehavior: "onScrollDown",
+          }}
+        >
+          {TABS.map((tab) => (
+            <GalleryTab.Screen
+              key={tab.key}
+              name={`gallery-${tab.key}`}
+              options={{
+                title: t(tab.labelKey, tab.fallback),
+                tabBarIcon: ({ focused }) => ({
+                  type: "sfSymbol",
+                  name: SF_SYMBOLS[tab.key][focused ? 0 : 1],
+                }),
+              }}
+              // Loading, paging and the empty state follow activeTab.
+              listeners={{ focus: () => setActiveTab(tab.key) }}
+            >
+              {() => renderList(tab.key)}
+            </GalleryTab.Screen>
+          ))}
+        </GalleryTab.Navigator>
       ) : (
-        <Animated.FlatList
-          key="single-column-list"
-          {...sharedListProps}
-          renderItem={activeTab === "file" ? renderFileItem : renderLinkItem}
-        />
+        <>
+          {renderList(activeTab)}
+          <GalleryTabBar tabs={TABS} activeTab={activeTab} onSelect={setActiveTab} t={t} />
+        </>
       )}
-
-      <GalleryTabBar tabs={TABS} activeTab={activeTab} onSelect={setActiveTab} t={t} />
 
       <ImageView
         images={imageViewer.items.map((m) => ({ uri: m.file_url }))}
@@ -636,10 +683,10 @@ const styles = StyleSheet.create({
     right: 20,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     zIndex: 99,
   },
   navPill: {
-    flex: 1,
     height: NAV_HEIGHT,
     borderRadius: NAV_RADIUS,
     borderWidth: 1,
@@ -652,7 +699,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 12,
   },
-  navButton: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 4 },
+  navButton: { width: NAV_BUTTON_WIDTH, alignItems: "center", justifyContent: "center", paddingVertical: 4 },
   navLabel: { fontSize: 9, fontWeight: "bold", marginTop: 2 },
   gridItem: { width: `${100 / 3}%`, aspectRatio: 1, padding: 1 },
   gridImage: { width: "100%", height: "100%", backgroundColor: "#ddd" },

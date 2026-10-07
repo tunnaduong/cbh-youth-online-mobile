@@ -29,6 +29,9 @@ import InlineVideoPlayer from "../../../components/InlineVideoPlayer";
 import ImageView from "react-native-image-viewing";
 import { useVideoPlayer, VideoView } from "expo-video";
 import FastImage from "../../../components/FastImage";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
+import AvatarFrame, { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import {
   getConversationMessages,
   getConversations,
@@ -54,6 +57,8 @@ import {
 } from "../../../services/api/Api";
 import MentionText from "../../../components/MentionText";
 import SharedPostCard from "../../../components/SharedPostCard";
+import LinkPreviewCard from "../../../components/LinkPreviewCard";
+import { findPreviewableUrl } from "../../../utils/linkPreview";
 import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
 import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
@@ -80,6 +85,8 @@ import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import { compressVideoForUpload } from "../../../utils/mediaCompression";
+import { beginUpload } from "../../../services/uploadQueue";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
@@ -94,7 +101,10 @@ import {
   KeyboardChatScrollView,
   KeyboardStickyView,
   KeyboardGestureArea,
+  KeyboardController,
+  AndroidSoftInputModes,
 } from "react-native-keyboard-controller";
+import { trackAndroidKeyboardResize } from "../../../utils/keyboardResize";
 
 // Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
 // local optimistic messages use file:// or content:// URIs, and http(s) may
@@ -209,11 +219,18 @@ const injectTimeHeaders = (messages, t) => {
     // through this function (e.g. re-merged on scroll-up pagination) have `type`
     // set to "message" already, so fall back to their existing `content_type`
     // instead of overwriting it.
-    result.push({
-      ...msg,
-      type: "message",
-      content_type: msg.content_type ?? msg.type,
-    });
+    // Already in that shape: keep the very same object. Rows are memoized on
+    // it, and a fresh copy of every message on every call re-rendered the
+    // whole list each time one message arrived.
+    result.push(
+      msg.type === "message" && msg.content_type !== undefined
+        ? msg
+        : {
+            ...msg,
+            type: "message",
+            content_type: msg.content_type ?? msg.type,
+          },
+    );
   });
 
   return result;
@@ -241,14 +258,14 @@ export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) =
   }, [isFocused, player]);
 
   useEffect(() => {
-    console.debug("[VideoViewerModal] player mounted/changed", { uri, player });
+    console.log("[VideoViewerModal] player mounted/changed", { uri, player });
     return () => {
       if (!player) return;
       try {
         if (typeof player.playing !== "undefined" ? player.playing === true : false) {
           if (typeof player.pause === "function") {
             player.pause();
-            console.debug("[VideoViewerModal] paused player during cleanup", { uri });
+            console.log("[VideoViewerModal] paused player during cleanup", { uri });
           }
         }
       } catch (e) {
@@ -257,7 +274,7 @@ export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) =
       try {
         if (typeof player.release === "function") {
           player.release();
-          console.debug("[VideoViewerModal] released player during cleanup", { uri });
+          console.log("[VideoViewerModal] released player during cleanup", { uri });
         }
       } catch (e) {
         console.warn("[VideoViewerModal] error releasing player during cleanup", e);
@@ -395,13 +412,14 @@ const MessagesListContent = React.memo(({
               y: e.nativeEvent.layout.y,
               height: e.nativeEvent.layout.height,
             };
-            if (pendingHighlightMessageIdRef.current === value.id) {
+            if (String(pendingHighlightMessageIdRef.current) === String(value.id)) {
               attemptScrollToHighlightRef.current();
             }
           }
         }}
         style={
-          value.id === highlightedMessageId
+          // String(): an id that came with a notification is a string.
+          highlightedMessageId != null && String(value.id) === String(highlightedMessageId)
             ? {
                 backgroundColor: isDarkMode
                   ? "rgba(250,204,21,0.15)"
@@ -470,7 +488,14 @@ const MessagesListContent = React.memo(({
             handlersRef={messageHandlersRef}
             onImageError={onImageError}
             seenAvatars={value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined}
-            activeInlineVideoId={activeInlineVideoId}
+            // Only the row that IS the active video is given the id; every
+            // other row gets null. A row only ever compares the id with its
+            // own, so nothing changes for it - but with the raw id as a prop,
+            // one video starting or stopping mid-scroll changed a prop of
+            // every message and re-rendered the whole list.
+            activeInlineVideoId={
+              String(value.id) === String(activeInlineVideoId) ? activeInlineVideoId : null
+            }
             autoplayVideos={autoplayVideos}
           />
         )}
@@ -782,6 +807,15 @@ const MessageRow = React.memo(({
   const isImageMessage = item.type === "image" || item.content_type === "image";
   const isVideoMessage = item.type === "video" || item.content_type === "video";
   const isFileMessage = item.type === "file" || item.content_type === "file";
+  // Any other link pasted or typed into a text message gets a preview card
+  // under the text, the way a shared post does.
+  const linkPreviewUrl = useMemo(
+    () =>
+      sharedTopic || item.is_recalled || isImageMessage || isVideoMessage || isFileMessage
+        ? null
+        : findPreviewableUrl(item.content),
+    [sharedTopic, item.is_recalled, isImageMessage, isVideoMessage, isFileMessage, item.content]
+  );
   const resolvedFileUrl = resolveMediaUrl(item.file_url);
   const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
   // Small (480px) muted preview clip for autoplay - see
@@ -829,6 +863,8 @@ const MessageRow = React.memo(({
   }, [displayImageUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
 
   const handleSwipeReply = () => {
+    // Still sending: it has no real id to reply to yet.
+    if (item.is_sending) return;
     const contentType =
       item.type === "image" || item.type === "video" || item.type === "file"
         ? item.type
@@ -921,11 +957,16 @@ const MessageRow = React.memo(({
       )}
       {/* Show sender name for group chats when sender changes, and always for Yoyo AI */}
       {(isGroupChat || item.sender?.is_ai) && !item.is_myself && senderChanged && (
-        <Text style={[styles.senderName, { color: theme.subText }]}>
-          {item.sender?.profile_name ||
+        <UserNameRow
+          name={
+            item.sender?.profile_name ||
             item.sender?.username ||
-            t("chatConversation.anonymous")}
-        </Text>
+            t("chatConversation.anonymous")
+          }
+          theme={item.sender?.profile_theme}
+          style={[styles.senderNameText, { color: theme.subText }]}
+          containerStyle={styles.senderName}
+        />
       )}
       <View
         style={[
@@ -940,14 +981,20 @@ const MessageRow = React.memo(({
             activeOpacity={0.7}
             onPress={() => handlersRef.current.openSenderActions?.(item.sender)}
           >
-            <FastImage
-              source={{
-                uri:
-                  item.sender?.avatar_url ||
-                  "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-              }}
-              style={styles.messageAvatar}
-            />
+            <AvatarFrameWrap
+              theme={item.sender?.profile_theme}
+              size={32}
+              style={styles.messageAvatarWrap}
+            >
+              <FastImage
+                source={{
+                  uri:
+                    item.sender?.avatar_url ||
+                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
+                }}
+                style={styles.messageAvatar}
+              />
+            </AvatarFrameWrap>
           </TouchableOpacity>
         )}
         <View
@@ -1061,17 +1108,22 @@ const MessageRow = React.memo(({
             ) : !item.is_recalled && isImageMessage && item.file_url ? (
               <>
                 {mediaLoadError ? (
-                  <View style={[styles.messageImage, styles.mediaErrorFallback]}>
-                    <Ionicons name="image-outline" size={28} color="#fff" />
+                  // Tap to try again (one failure used to be final for the
+                  // whole visit). The native reason stays in the log only.
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => onImageError(item.id, null)}
+                    style={[styles.messageImage, styles.mediaErrorFallback]}
+                  >
+                    <Ionicons name="refresh" size={28} color="#fff" />
                     <Text style={styles.mediaErrorText} numberOfLines={2}>
                       {t("chatConversation.loadImageError", "Không tải được ảnh")}
-                      {"\n"}
-                      {mediaLoadError}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 ) : (
                   <FastImage
                     source={{ uri: displayImageUrl }}
+                    shimmer
                     style={
                       imageAspectRatio
                         ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
@@ -1124,6 +1176,7 @@ const MessageRow = React.memo(({
                   resolvedThumbnailUrl ? (
                     <FastImage
                       source={{ uri: resolvedThumbnailUrl }}
+                      shimmer
                       style={
                         imageAspectRatio
                           ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
@@ -1250,6 +1303,9 @@ const MessageRow = React.memo(({
               >
                 {item.content}
               </MentionText>
+            ) : null}
+            {linkPreviewUrl ? (
+              <LinkPreviewCard url={linkPreviewUrl} compact style={{ marginTop: 8 }} />
             ) : null}
           </Pressable>
           <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} />
@@ -1476,8 +1532,29 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => setChatKeyboardHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener("keyboardDidHide", () => setChatKeyboardHeight(0));
-    return () => { show.remove(); hide.remove(); };
+    const offResize = trackAndroidKeyboardResize(setChatKeyboardHeight);
+    return () => { show.remove(); hide.remove(); offResize(); };
   }, []);
+
+  // Android: the message bar is a KeyboardStickyView, moved by
+  // react-native-keyboard-controller. The app's window is in "pan" mode
+  // (app.json), in which the library is not told when an OPEN keyboard
+  // changes height - so the bar stayed where the taller keyboard had put it.
+  // "Resize" is the mode the library is built for; it is switched on for
+  // this screen only and handed back when leaving. iOS has no such mode.
+  useFocusEffect(
+    React.useCallback(() => {
+      if (Platform.OS !== "android") return undefined;
+      try {
+        KeyboardController.setInputMode(AndroidSoftInputModes.SOFT_INPUT_ADJUST_RESIZE);
+      } catch {}
+      return () => {
+        try {
+          KeyboardController.setDefaultMode();
+        } catch {}
+      };
+    }, [])
+  );
 
   useEffect(() => {
     dayjs.locale(i18n.language || "vi");
@@ -1506,6 +1583,12 @@ const ConversationScreen = ({ navigation, route }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  // The same two values for code that runs across several awaits (loading
+  // page after page while looking for a message): state is frozen in the
+  // closure that started the loop, so it asked for the same page every time.
+  // fetchMessages reads and writes these; the state mirrors them for the UI.
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(true);
   // Every loaded message is always rendered - unlike the old approach here
   // (manually slicing `messages` to a JS-estimated "window" based on scroll
   // position, unmounting/remounting rows as that estimate crossed
@@ -1568,6 +1651,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // event, instead of after just the first one - see onContentSizeChange.
   const pendingLoadMoreAdjustTimeoutRef = useRef(null);
   const isFocused = useIsFocused();
+  // For handlers that outlive a render (socket, timers, AppState).
+  const isFocusedRef = useRef(isFocused);
+  isFocusedRef.current = isFocused;
   const pendingHighlightMessageIdRef = useRef(highlightMessageId ?? null);
   const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [sending, setSending] = useState(false);
@@ -1655,22 +1741,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // Keep the header visually light until the user scrolls enough.
   // This mirrors the other screens: the back button stays visible, while the
   // profile/title area fades in only after scrolling.
-  const scrollY = useRef(new Animated.Value(0)).current;
   const [showScrollButton, setShowScrollButton] = useState(false);
   const scrollContentHeightRef = useRef(0);
   const scrollViewHeightRef = useRef(0);
-
-  const headerBgOpacity = scrollY.interpolate({
-    inputRange: [0, 60],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const centerOpacity = scrollY.interpolate({
-    inputRange: [0, 60],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
 
   // Logic to identify the other user in private chat
   const otherUser = isNewConversation
@@ -2171,15 +2244,26 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     const activeId = currentConversationId || conversationId;
     if (isNewConversation || !activeId || !isGroupConversation) {
-      setSeenParticipants([]);
+      // Keep the same (already empty) array: a new [] on every run is a new
+      // prop for the message list, which then walks every message again.
+      setSeenParticipants((prev) => (prev.length ? [] : prev));
       return undefined;
     }
 
     let cancelled = false;
     const fetchSeen = () => {
+      // Not while another screen covers the chat or the app is in the
+      // background; the next tick after returning catches up.
+      if (!isFocusedRef.current || AppState.currentState !== "active") return;
       getGroupSeenReceipts(activeId)
         .then((res) => {
-          if (!cancelled) setSeenParticipants(res.data?.participants || []);
+          if (cancelled) return;
+          const next = res.data?.participants || [];
+          // The 15-second poll usually returns what is already shown; keep
+          // the array we have then, so the message list is left alone.
+          setSeenParticipants((prev) =>
+            JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+          );
         })
         .catch(() => {});
     };
@@ -2255,6 +2339,7 @@ const ConversationScreen = ({ navigation, route }) => {
         const parsedData = JSON.parse(cachedData);
         const transformed = injectTimeHeaders(parsedData, t);
         setMessages(preserveRecentReactions(transformed));
+        pageRef.current = 2;
         setPage(2); // Set page to 2 since we loaded the first page from cache
 
         // Fetch fresh data in background
@@ -2268,18 +2353,23 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const fetchMessages = async (isRefresh = false, isBackground = false) => {
+    // How many messages this call brought back (0 also when it failed).
+    let loadedCount = 0;
     try {
       if (isRefresh && !isBackground) {
+        pageRef.current = 1;
+        hasMoreRef.current = true;
         setPage(1);
         setHasMore(true);
       }
 
-      if (!hasMore && !isRefresh) return;
+      if (!hasMoreRef.current && !isRefresh) return;
 
       const response = await getConversationMessages(
         currentConversationId || conversationId,
-        isRefresh ? 1 : page,
+        isRefresh ? 1 : pageRef.current,
       );
+      loadedCount = Array.isArray(response.data?.data) ? response.data.data.length : 0;
 
       const newMessages = Array.isArray(response.data?.data)
         ? response.data.data
@@ -2315,8 +2405,10 @@ const ConversationScreen = ({ navigation, route }) => {
           const dedupedOlder = newMessages.filter((m) => !existingIds.has(m.id));
           return injectTimeHeaders([...dedupedOlder, ...existingMessages], t);
         });
-        setHasMore(response.data.current_page < response.data.last_page);
-        setPage((prev) => (isRefresh ? 2 : prev + 1));
+        hasMoreRef.current = response.data.current_page < response.data.last_page;
+        pageRef.current = isRefresh ? 2 : pageRef.current + 1;
+        setHasMore(hasMoreRef.current);
+        setPage(pageRef.current);
       } else if (JSON.stringify(newMessages) !== previousCache) {
         // Update UI only if new data is different from what was cached before this refresh.
         // This background refresh always fetches page 1 (the newest tail of
@@ -2348,6 +2440,11 @@ const ConversationScreen = ({ navigation, route }) => {
       }
       if (!isBackground && !isRefresh) {
         loadingMoreRef.current = false;
+        // Nothing was added (empty page, or the request failed): forget the
+        // "keep the scroll position" note taken before loading. Left set, the
+        // next thing that made the list taller - a new message, the typing
+        // bubble - was treated as that older page and yanked the scroll up.
+        if (loadedCount === 0) pendingLoadMoreAdjustRef.current = null;
       }
     }
   };
@@ -2361,6 +2458,14 @@ const ConversationScreen = ({ navigation, route }) => {
 
   // Realtime: refresh messages the instant the backend pushes a chat event for this
   // conversation, replacing the old 5s poll.
+  // Read through a ref by the realtime effect below. As a dependency it made
+  // that effect tear itself down whenever this callback changed (when the
+  // conversation's details load, after the first message of a new chat) -
+  // and its cleanup clears the typing timers and the pending refresh, which
+  // left a "typing..." bubble stuck and dropped a reconcile fetch.
+  const refreshOtherUserOnlineStatusRef = useRef(refreshOtherUserOnlineStatus);
+  refreshOtherUserOnlineStatusRef.current = refreshOtherUserOnlineStatus;
+
   useEffect(() => {
     const activeId = currentConversationId || conversationId;
     if (isNewConversation || !activeId) return undefined;
@@ -2457,8 +2562,11 @@ const ConversationScreen = ({ navigation, route }) => {
       // debounced (see scheduleBackgroundRefresh) so a burst of messages
       // coalesces into one fetch instead of one each.
       scheduleBackgroundRefresh(isNearBottom);
-      // The screen is already open, so this new message is immediately read too -
-      // dispatch a read receipt so the sender's "seen" status keeps updating live.
+      // The screen is open and in front, so this new message is read at once -
+      // send a read receipt so the sender's "seen" status keeps updating live.
+      // Not when another screen covers this one or the app is in the
+      // background: the user has not seen it (it is marked when they return).
+      if (isFocusedRef.current && AppState.currentState === "active")
       markConversationAsRead(activeId).catch((error) => {
         console.log(
           "[ConversationScreen] Error marking conversation as read:",
@@ -2466,7 +2574,7 @@ const ConversationScreen = ({ navigation, route }) => {
         );
       });
       // Any incoming activity from the other user is a good moment to re-check their online dot.
-      refreshOtherUserOnlineStatus();
+      refreshOtherUserOnlineStatusRef.current();
     };
     const handleTyping = (data) => {
       if (!data?.user_id) return;
@@ -2563,7 +2671,6 @@ const ConversationScreen = ({ navigation, route }) => {
     onMessageRecalled,
     onMessageEdited,
     onTyping,
-    refreshOtherUserOnlineStatus,
   ]);
 
   // Reconnecting the socket (see ChatSocketContext's AppState listener) only
@@ -2579,10 +2686,25 @@ const ConversationScreen = ({ navigation, route }) => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       if (nextState === "active") {
         fetchMessagesRef.current(true, true);
+        // What arrived while the app was away is read now.
+        if (isFocusedRef.current) markConversationAsRead(activeId).catch(() => {});
       }
     });
     return () => subscription.remove();
   }, [isNewConversation, currentConversationId, conversationId]);
+
+  // Coming back to this screen (from a profile, group info...) reads what
+  // arrived meanwhile. Not on the first focus: opening the conversation
+  // already marks it.
+  const wasFocusedRef = useRef(isFocused);
+  useEffect(() => {
+    const was = wasFocusedRef.current;
+    wasFocusedRef.current = isFocused;
+    if (!isFocused || was) return;
+    const activeId = currentConversationId || conversationId;
+    if (isNewConversation || !activeId) return;
+    markConversationAsRead(activeId).catch(() => {});
+  }, [isFocused, isNewConversation, currentConversationId, conversationId]);
 
   const scrollToLatestMessage = () => {
     requestAnimationFrame(() => {
@@ -2654,8 +2776,10 @@ const ConversationScreen = ({ navigation, route }) => {
 
     const MAX_ATTEMPTS = 8;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      if (!hasMore) break;
-      await fetchMessages(false);
+      // Through the refs: `hasMore` / `fetchMessages` here belong to the
+      // render that started this loop and never change during it.
+      if (!hasMoreRef.current) break;
+      await fetchMessagesRef.current(false);
       // Let onLayout populate messageLayoutOffsetsRef for the newly
       // prepended messages before checking again.
       await new Promise((resolve) => setTimeout(resolve, 80));
@@ -2707,7 +2831,6 @@ const ConversationScreen = ({ navigation, route }) => {
 
   const handleMessagesScroll = ({ nativeEvent }) => {
     const offsetY = nativeEvent.contentOffset.y;
-    scrollY.setValue(offsetY);
     const isNearTop = offsetY <= 40;
     if (isNearTop && hasMore && !refreshing && !loadingMoreRef.current) {
       loadingMoreRef.current = true;
@@ -2769,11 +2892,15 @@ const ConversationScreen = ({ navigation, route }) => {
         result = await ImagePicker.launchCameraAsync({
           mediaTypes: source === "camera_video" ? ["videos"] : ["images"],
           quality: 0.8,
+          // iOS exports video as 720p H.264 (ignored on Android).
+          videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
         });
       } else {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ["images", "videos"],
           quality: 0.8,
+          // iOS exports video as 720p H.264 (ignored on Android).
+          videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
           allowsMultipleSelection: true,
           selectionLimit: 10,
         });
@@ -2908,6 +3035,10 @@ const ConversationScreen = ({ navigation, route }) => {
   const sendImageMessage = async (imageUriOrUris) => {
     const uris = Array.isArray(imageUriOrUris) ? imageUriOrUris : [imageUriOrUris];
     const attachments = [];
+    // Shown in the upload bar / notification, so the user sees it even after
+    // leaving the conversation.
+    const upload = beginUpload({ kind: "message" });
+    upload.report("compressingImage");
     for (let i = 0; i < uris.length; i++) {
       // The picker can hand back non-JPEG originals (HEIC on iOS, PNG, etc.)
       // while we always declare image/jpeg - re-encode so the upload always
@@ -2915,7 +3046,7 @@ const ConversationScreen = ({ navigation, route }) => {
       let normalizedUri = uris[i];
       try {
         const result = await manipulateAsync(uris[i], [], {
-          compress: 0.85,
+          compress: 0.8,
           format: SaveFormat.JPEG,
         });
         normalizedUri = result.uri;
@@ -2929,15 +3060,21 @@ const ConversationScreen = ({ navigation, route }) => {
       });
     }
 
-    if (attachments.length > 1) {
-      await sendAttachmentMessage({ type: "image", attachments });
-    } else {
-      await sendAttachmentMessage({
-        uri: attachments[0].uri,
-        type: "image",
-        fileName: attachments[0].fileName,
-        fileType: attachments[0].fileType,
-      });
+    try {
+      if (attachments.length > 1) {
+        await sendAttachmentMessage({ type: "image", attachments, upload });
+      } else {
+        await sendAttachmentMessage({
+          uri: attachments[0].uri,
+          type: "image",
+          fileName: attachments[0].fileName,
+          fileType: attachments[0].fileType,
+          upload,
+        });
+      }
+    } finally {
+      // No-op when the send already closed it (sent or failed).
+      upload.end();
     }
   };
 
@@ -2945,23 +3082,45 @@ const ConversationScreen = ({ navigation, route }) => {
   // assets (multi-select, up to 10) - same split as sendImageMessage above.
   const sendVideoMessage = async (assetOrAssets) => {
     const assets = Array.isArray(assetOrAssets) ? assetOrAssets : [assetOrAssets];
-    const attachments = assets.map((asset, i) => ({
-      uri: asset.uri,
-      fileName: asset.fileName || asset.uri.split("/").pop() || `video_${i}.mp4`,
-      fileType: asset.mimeType || "video/mp4",
-      fileSize: asset.fileSize,
-    }));
 
-    if (attachments.length > 1) {
-      await sendAttachmentMessage({ type: "video", attachments });
-    } else {
-      await sendAttachmentMessage({
-        uri: attachments[0].uri,
-        type: "video",
-        fileName: attachments[0].fileName,
-        fileType: attachments[0].fileType,
-        fileSize: attachments[0].fileSize,
-      });
+    // Compressed on the device to 720p H.264 before sending (the API no
+    // longer does it). The upload bar / notification say so while it runs,
+    // also after the user has left the conversation.
+    const upload = beginUpload({ kind: "message" });
+    const attachments = [];
+    try {
+      for (let i = 0; i < assets.length; i++) {
+        const asset = assets[i];
+        const originalName = asset.fileName || asset.uri.split("/").pop() || `video_${i}.mp4`;
+        const count = { current: i + 1, total: assets.length };
+        upload.report("compressingVideo", { ...count, progress: i / assets.length });
+        const compressed = await compressVideoForUpload(asset.uri, (ratio) =>
+          upload.report("compressingVideo", { ...count, progress: (i + ratio) / assets.length }),
+        );
+        attachments.push({
+          uri: compressed.uri,
+          // The compressor always writes an MP4.
+          fileName: compressed.compressed ? `${originalName.replace(/\.[^.]*$/, "")}.mp4` : originalName,
+          fileType: compressed.compressed ? "video/mp4" : asset.mimeType || "video/mp4",
+          // Unknown after compression; the size check already passed on the original.
+          fileSize: compressed.compressed ? undefined : asset.fileSize,
+        });
+      }
+      if (attachments.length > 1) {
+        await sendAttachmentMessage({ type: "video", attachments, upload });
+      } else {
+        await sendAttachmentMessage({
+          uri: attachments[0].uri,
+          type: "video",
+          fileName: attachments[0].fileName,
+          fileType: attachments[0].fileType,
+          fileSize: attachments[0].fileSize,
+          upload,
+        });
+      }
+    } finally {
+      // No-op when the send already closed it (sent or failed).
+      upload.end();
     }
   };
 
@@ -2976,6 +3135,9 @@ const ConversationScreen = ({ navigation, route }) => {
     // files[] instead of the singular file field; a single-entry array is
     // treated the same as the plain uri/fileName/fileType/fileSize params.
     attachments,
+    // Handle from beginUpload() when the caller already opened one (while
+    // compressing); otherwise one is opened here.
+    upload: givenUpload,
   }) => {
     const isMulti = Array.isArray(attachments) && attachments.length > 1;
     const primary = isMulti
@@ -3009,10 +3171,14 @@ const ConversationScreen = ({ navigation, route }) => {
     // Same reasoning as handleSendMessage: declared before try/catch so the
     // catch block can restore it on failure.
     const replySnapshot = replyingTo;
+    let upload = givenUpload || null;
+    // Outside `try`: its `finally` clears the sending flag, which must not
+    // happen for a send that never started.
+    if (sending) return;
     try {
-      if (sending) return;
-
       setSending(true);
+      upload = upload || beginUpload({ kind: "message" });
+      upload.report(type === "video" ? "uploadingVideo" : "uploading", { progress: 0 });
 
       const now = new Date().toISOString();
 
@@ -3052,7 +3218,10 @@ const ConversationScreen = ({ navigation, route }) => {
       const optimisticMessage = {
         id: tempId,
         content: type === "image" ? "" : primary.fileName,
-        type,
+        // Same reason as the text message above: without type "message" the
+        // sending bubble vanished whenever another message arrived mid-upload.
+        type: "message",
+        content_type: type,
         file_url: primary.uri, // Use local URI temporarily
         // Optimistic multi-attachment preview: local file:// URIs so the
         // sending bubble's grid shows every picked asset immediately, same
@@ -3147,13 +3316,20 @@ const ConversationScreen = ({ navigation, route }) => {
           const total = progressEvent.total;
           if (!total) return;
           const percent = Math.round((progressEvent.loaded * 100) / total);
-          setMessages((prev) =>
-            prev.map((m) =>
+          upload.report(type === "video" ? "uploadingVideo" : "uploading", {
+            progress: progressEvent.loaded / total,
+          });
+          setMessages((prev) => {
+            // Many events report the same rounded percentage; mapping the
+            // whole list for each of them was all wasted.
+            const current = prev.find((m) => typeof m.id === "string" && m.id.includes(tempId));
+            if (!current || current.upload_progress === percent) return prev;
+            return prev.map((m) =>
               typeof m.id === "string" && m.id.includes(tempId)
                 ? { ...m, upload_progress: percent }
                 : m,
-            ),
-          );
+            );
+          });
         },
       };
 
@@ -3210,9 +3386,14 @@ const ConversationScreen = ({ navigation, route }) => {
         );
       }
 
+      upload.succeed();
+
       // Replace optimistic message with real one
       setMessages((prev) => {
         const baseMessages = prev.filter((msg) => {
+          // Already here under its real id (a refresh landed first): it is
+          // appended below, so this copy goes.
+          if (msg && msg.type === "message" && msg.id === response.data.id) return false;
           if (!msg || !msg.id || typeof msg.id !== "string") return true;
           return !msg.id.includes(tempId);
         });
@@ -3283,6 +3464,9 @@ const ConversationScreen = ({ navigation, route }) => {
       }
     } catch (error) {
       console.error(`Error sending ${type} attachment:`, error);
+      // The toast below tells the user; this only clears the bar and the
+      // notification.
+      upload?.end();
 
       // Remove optimistic message on error
       setMessages((prev) => {
@@ -3312,6 +3496,9 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
+  // True from the tap until the request settles (see handleSendNewMessage).
+  const sendingRef = useRef(false);
+
   const handleSendNewMessage = async () => {
     scrollToLatestMessageAnimated();
     const tempId = Date.now().toString();
@@ -3319,11 +3506,15 @@ const ConversationScreen = ({ navigation, route }) => {
     // still in scope if something throws before it would otherwise be set -
     // catch needs it to restore the reply state on failure.
     const replySnapshot = replyingTo;
+    // Guards outside `try` (its `finally` clears the sending flag), and on a
+    // ref: `sending` is state, so two quick taps both saw it false and sent
+    // the message twice.
+    if (sendingRef.current || sending) return;
+    const rawMessage = latestMessageRef.current || message;
+    if (!rawMessage.trim()) return;
+    const trimmedMessage = rawMessage.trim();
+    sendingRef.current = true;
     try {
-      const rawMessage = latestMessageRef.current || message;
-      if (!rawMessage.trim() || sending) return;
-
-      const trimmedMessage = rawMessage.trim();
       latestMessageRef.current = "";
       const now = new Date().toISOString();
 
@@ -3463,6 +3654,9 @@ const ConversationScreen = ({ navigation, route }) => {
       // Replace optimistic message with real one and update storage
       setMessages((prev) => {
         const baseMessages = prev.filter((msg) => {
+          // Already here under its real id (a refresh landed first): it is
+          // appended below, so this copy goes.
+          if (msg && msg.type === "message" && msg.id === response.data.id) return false;
           if (!msg || !msg.id || typeof msg.id !== "string") return true;
           return !msg.id.includes(tempId);
         });
@@ -3511,7 +3705,17 @@ const ConversationScreen = ({ navigation, route }) => {
           }
         }
 
-        messagesToAdd.push(response.data);
+        // The same shape every other message in the list has (see
+        // injectTimeHeaders): type "message" + content_type. Pushed raw it
+        // kept the API's type ("text"), and everything that looks for
+        // type === "message" skipped it until the next refetch - reactions
+        // on it did not show, and it dropped out of the list when the next
+        // message arrived.
+        messagesToAdd.push({
+          ...response.data,
+          type: "message",
+          content_type: response.data.content_type ?? response.data.type,
+        });
         return [...baseMessages, ...messagesToAdd];
       });
 
@@ -3554,12 +3758,20 @@ const ConversationScreen = ({ navigation, route }) => {
       // re-selecting what to reply to.
       if (replySnapshot) setReplyingTo(replySnapshot);
 
+      // And the text: it was cleared from the input when the send started.
+      // Only if nothing new was typed meanwhile.
+      if (!latestMessageRef.current) {
+        latestMessageRef.current = trimmedMessage;
+        setMessage((current) => current || trimmedMessage);
+      }
+
       Toast.show({
         type: "error",
         text1: t("common.error"),
         text2: t("chatConversation.sendMessageError"),
       });
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };
@@ -3695,11 +3907,21 @@ const ConversationScreen = ({ navigation, route }) => {
     if (!item) return;
 
     const isVideo = item.content_type === "video" || item.type === "video";
-    const url = item.file_url;
-    if (!url) return;
+    // Multi-attachment messages only ever carry `file_url` as the FIRST
+    // attachment's uri (see sendAttachmentMessage's `primary = attachments[0]`
+    // above) - downloading just that one silently dropped every other
+    // attached photo/video. `file_urls` (plural) has the full set.
+    const urls = Array.isArray(item.file_urls) && item.file_urls.length > 0
+      ? item.file_urls
+      : item.file_url
+        ? [item.file_url]
+        : [];
+    if (urls.length === 0) return;
 
     try {
-      await downloadMediaToLibrary(url, isVideo ? "video" : "image");
+      for (const url of urls) {
+        await downloadMediaToLibrary(url, isVideo ? "video" : "image");
+      }
       Toast.show({ type: "success", text1: t("chatConversation.downloadSuccess", "Đã lưu vào thư viện") });
     } catch (error) {
       const message = error?.message === "PERMISSION_DENIED"
@@ -3759,7 +3981,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const handleEditMessageAction = () => {
     const item = reactionPicker.message;
     closeReactionPicker();
-    if (!item || item.is_recalled) return;
+    if (!item || item.is_recalled || item.is_sending) return;
     setEditingMessage({ id: item.id, originalContent: item.content });
     setMessage(item.content || "");
     inputRef.current?.focus?.();
@@ -3779,7 +4001,9 @@ const ConversationScreen = ({ navigation, route }) => {
   };
 
   const handleSubmitEdit = async () => {
-    const trimmed = message.trim();
+    // The ref first, like sending: on Android the last word being composed
+    // reaches it before it reaches state.
+    const trimmed = (latestMessageRef.current || message).trim();
     if (!trimmed || sending) return;
     const { id, originalContent } = editingMessage;
 
@@ -3963,7 +4187,9 @@ const ConversationScreen = ({ navigation, route }) => {
   // applies no top inset at all, so the button sits right under (behind) the
   // status bar and can't be tapped. Supply our own header using the safe
   // area insets we already have.
-  const ImageViewerHeader = () => (
+  // useCallback: as a plain arrow it was a new component type on every
+  // render, so the viewer remounted its header with each keystroke.
+  const ImageViewerHeader = React.useCallback(() => (
     <View style={{ paddingTop: insets.top + 8, paddingRight: 12, alignItems: "flex-end" }}>
       <TouchableOpacity
         onPress={() => setImageViewer({ visible: false, uris: [], index: 0 })}
@@ -3973,6 +4199,12 @@ const ConversationScreen = ({ navigation, route }) => {
         <Ionicons name="close" size={22} color="#fff" />
       </TouchableOpacity>
     </View>
+  ), [insets.top]);
+
+  // One array per set of pictures, not a new one on every render.
+  const imageViewerImages = useMemo(
+    () => imageViewer.uris.map((u) => ({ uri: u })),
+    [imageViewer.uris],
   );
 
   // Downloads a file attachment and hands it to the native share sheet, the
@@ -4147,29 +4379,41 @@ const ConversationScreen = ({ navigation, route }) => {
                     style={styles.headerAvatarLarge}
                   />
                 </View>
+                <AvatarFrame theme={otherUser?.profile_theme} size={40} />
                 {currentConversation?.type !== "group" && isOtherUserOnline ? (
                   <View style={styles.headerOnlineDot} />
                 ) : null}
               </View>
               <View style={[styles.headerTextContainer, { flexShrink: 1, minWidth: 0 }]}>
-                <Text
+                <UserNameRow
+                  name={
+                    isNewConversation
+                      ? selectedUser.profile_name
+                      : currentConversation?.type === "group"
+                        ? isPublicGroupChat(currentConversation)
+                          ? t("chatConversation.casualGroupName")
+                          : currentConversation?.name || t("chatConversation.casualGroupName")
+                        : currentConversation?.participants[0]?.profile_name
+                  }
+                  theme={otherUser?.profile_theme}
                   style={[styles.headerName, { color: theme.text }]}
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                >
-                  {isNewConversation
-                    ? selectedUser.profile_name
-                    : currentConversation?.type === "group"
-                      ? isPublicGroupChat(currentConversation)
-                        ? t("chatConversation.casualGroupName")
-                        : currentConversation?.name || t("chatConversation.casualGroupName")
-                      : currentConversation?.participants[0]?.profile_name}
-                </Text>
-                <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
-                  {currentConversation?.type === "group"
-                    ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
-                    : otherUser?.username ? "@" + otherUser.username : ""}
-                </Text>
+                  containerStyle={{ maxWidth: "100%" }}
+                />
+                {currentConversation?.type !== "group" && otherUser?.username ? (
+                  <StyledUsername
+                    theme={otherUser?.profile_theme}
+                    username={otherUser.username}
+                    style={[styles.headerSubtitle, { color: theme.subText }]}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  />
+                ) : (
+                  <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
+                    {currentConversation?.type === "group"
+                      ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
+                      : ""}
+                  </Text>
+                )}
               </View>
             </LiquidButton>
           </View>
@@ -4226,12 +4470,16 @@ const ConversationScreen = ({ navigation, route }) => {
                     return (
                       <View style={styles.seenByParticipantRow}>
                         <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
-                          <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                          <AvatarFrameWrap theme={item.profile_theme} size={32}>
+                            <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
+                          </AvatarFrameWrap>
                         </TouchableOpacity>
-                        <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.6} onPress={goToProfile}>
-                          <Text style={[styles.seenByParticipantName, { color: theme.text }]} numberOfLines={1}>
-                            {item.profile_name || item.username}
-                          </Text>
+                        <TouchableOpacity style={{ flex: 1, minWidth: 0 }} activeOpacity={0.6} onPress={goToProfile}>
+                          <UserNameRow
+                            name={item.profile_name || item.username}
+                            theme={item.profile_theme}
+                            style={[styles.seenByParticipantName, { color: theme.text }]}
+                          />
                           <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
                             {formatTime(item.last_read_at)}
                           </Text>
@@ -4247,7 +4495,7 @@ const ConversationScreen = ({ navigation, route }) => {
       </Modal>
 
       <ImageView
-        images={imageViewer.uris.map((u) => ({ uri: u }))}
+        images={imageViewerImages}
         imageIndex={imageViewer.index}
         visible={imageViewer.visible}
         onRequestClose={() => setImageViewer({ visible: false, uris: [], index: 0 })}
@@ -4539,7 +4787,7 @@ const ConversationScreen = ({ navigation, route }) => {
           // absorbs it, so the bar renders 20px below the keyboard's top
           // edge. Drop the offset to 0 there so it lifts exactly to the
           // keyboard's edge instead.
-          offset={{ opened: insets.bottom > 0 ? 20 : 0 }}
+          offset={{ opened: Math.min(20, Math.max(0, insets.bottom)) }}
         >
           {showScrollButton && (
             <TouchableOpacity
@@ -4794,11 +5042,13 @@ const styles = StyleSheet.create({
   theirMessageContainer: {
     justifyContent: "flex-start",
   },
+  messageAvatarWrap: {
+    marginRight: 8,
+  },
   messageAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    marginRight: 8,
   },
   messageBubble: {
     maxWidth: "75%",
@@ -4976,11 +5226,16 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     overflow: "hidden",
   },
+  // Row holding the sender's name (and name icon) above their first bubble.
   senderName: {
-    fontSize: 12,
     marginLeft: 48,
     marginBottom: 4,
     marginTop: 8,
+    alignSelf: "flex-start",
+    maxWidth: "80%",
+  },
+  senderNameText: {
+    fontSize: 12,
     fontWeight: "500",
   },
   groupMessageWrapper: {

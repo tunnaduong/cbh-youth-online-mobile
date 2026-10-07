@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  ScrollView,
   View,
   Text,
   TouchableOpacity,
@@ -10,6 +11,7 @@ import { getLocales } from "expo-localization";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../contexts/ThemeContext";
 import { changeLanguage } from "../../i18n";
+import { markOnboardingSettingsPending } from "../../utils/onboarding";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
@@ -56,6 +58,9 @@ const LanguageSelectScreen = ({ navigation }) => {
   const screenText = SCREEN_TEXT[selected] || SCREEN_TEXT.vi;
 
   const handleContinue = async () => {
+    // Before the language is saved: from then on a launch no longer starts
+    // here, and must start on the next setup screen until that one is done.
+    await markOnboardingSettingsPending();
     await changeLanguage(selected);
     navigation.replace("FirstLaunchSettings");
   };
@@ -64,8 +69,11 @@ const LanguageSelectScreen = ({ navigation }) => {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <AuthBackground />
       <AndroidGlassBackdrop providerId="LanguageSelectScreen" style={{ flex: 1 }}>
-        <View
-          style={[
+        {/* Scrolls when the content is taller than the screen (small iPhones,
+            larger text); otherwise the spacer keeps the button at the bottom. */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
             styles.content,
             { paddingTop: Math.max(insets.top + 60, 96), paddingBottom: insets.bottom + 32 },
           ]}
@@ -143,7 +151,7 @@ const LanguageSelectScreen = ({ navigation }) => {
             <Text style={styles.continueButtonText}>{screenText.continueText}</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
           </LiquidButton>
-        </View>
+        </ScrollView>
       </AndroidGlassBackdrop>
     </View>
   );
@@ -151,7 +159,7 @@ const LanguageSelectScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
   },
   headerText: {

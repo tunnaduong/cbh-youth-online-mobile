@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import CustomLoading from "../../../components/CustomLoading";
 import CustomRefreshControl from "../../../components/CustomRefreshControl";
@@ -202,19 +204,25 @@ const CategoryScreen = ({ navigation, route }) => {
     >
       <View style={styles.threadContentRow}>
         <View style={styles.threadMetaRow}>
-          <FastImage
-            source={{ uri: thread?.author?.avatar }}
-            style={styles.avatar}
-          />
-          <Text style={[styles.metaText, { color: theme.text }]} numberOfLines={1}>
-            {thread?.author?.profile_name}
-          </Text>
-          {thread?.author?.verified && (
-            <Ionicons name="checkmark-circle" size={14} color={theme.primary} style={styles.metaIcon} />
-          )}
-          <Text style={[styles.metaText, { color: theme.subText }]} numberOfLines={1}>
-            · {thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
-          </Text>
+          <AvatarFrameWrap theme={thread?.author?.profile_theme} size={20} style={{ marginRight: 8 }}>
+            <FastImage
+              source={{ uri: thread?.author?.avatar }}
+              style={[styles.avatar, { marginRight: 0 }]}
+            />
+          </AvatarFrameWrap>
+          <UserNameRow
+            name={thread?.author?.profile_name}
+            theme={thread?.author?.profile_theme}
+            verified={!!thread?.author?.verified}
+            verifiedSize={14}
+            verifiedColor={theme.primary}
+            style={[styles.metaName, { color: theme.text }]}
+            containerStyle={{ flex: 1 }}
+          >
+            <Text style={[styles.metaDate, { color: theme.subText }]} numberOfLines={1}>
+              {" · "}{thread?.created_at ? formatTime(thread?.created_at) : ""}{thread?.is_edited ? ` (${t('post.edited')})` : ""}
+            </Text>
+          </UserNameRow>
         </View>
         <View style={styles.threadRight}>
           <Text style={[styles.threadLatestName, { color: theme.subText }]} numberOfLines={1}>
@@ -373,7 +381,6 @@ const styles = StyleSheet.create({
     minWidth: 0,
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
   },
   avatar: {
     width: 20,
@@ -386,6 +393,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
     minWidth: 0,
     flexShrink: 1,
+  },
+  // Author line: the name truncates, the date after it never does.
+  metaName: {
+    fontSize: 14,
+  },
+  metaDate: {
+    fontSize: 14,
+    flexShrink: 0,
   },
   threadTitle: {
     fontSize: 16,

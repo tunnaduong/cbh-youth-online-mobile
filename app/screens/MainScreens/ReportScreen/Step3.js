@@ -1,4 +1,4 @@
-import React, { useContext, useRef } from "react";
+import React, { useContext, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -6,7 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
+  ActivityIndicator,
 } from "react-native";
+import Toast from "react-native-toast-message";
+import { submitViolationReport } from "../../../services/api/Api";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -113,13 +117,19 @@ export default function Step3({ navigation, route }) {
     studentName,
     reportDate,
     violationType,
+    violationTypeVi,
     notes,
     absences,
     cleanliness,
     uniform,
+    type,
+    reportDateIso,
+    cleanlinessIndex,
+    uniformIndex,
   } = route.params;
   const insets = useSafeAreaInsets();
-  const isClassViolation = Boolean(cleanliness || uniform);
+  const isClassViolation = type ? type === "class" : Boolean(cleanliness || uniform);
+  const [submitting, setSubmitting] = useState(false);
   const { userInfo } = useContext(AuthContext);
   const { theme, isDarkMode } = useTheme();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
@@ -134,6 +144,48 @@ export default function Step3({ navigation, route }) {
     outputRange: [1, 0],
     extrapolate: "clamp",
   });
+
+  // The form picks from graded lists (report.cleanliness: clean / fairly
+  // clean / dirty / very dirty; report.uniformStatus: complete / fairly
+  // complete / missing) but the API stores yes/no, so the first two grades
+  // count as "ok". -1 (nothing picked) sends nothing.
+  const passed = (index) => (typeof index === "number" && index >= 0 ? index <= 1 : null);
+
+  const handleSubmit = async () => {
+    if (submitting) return;
+    const payload = {
+      type: isClassViolation ? "class" : "student",
+      subject_name: (studentName || "").trim(),
+    };
+    // Always the Vietnamese names (violationTypeVi), whatever language the
+    // app is in - staff read these. Several types are one comma-separated
+    // field, cut at the API's 255 characters.
+    const violationForServer = violationTypeVi || violationType;
+    if (violationForServer) payload.violation_type = violationForServer.slice(0, 255);
+    if (reportDateIso) payload.report_date = reportDateIso;
+    if (notes && notes.trim()) payload.notes = notes.trim().slice(0, 2000);
+    if (isClassViolation) {
+      const absentCount = parseInt(absences, 10);
+      if (!isNaN(absentCount)) payload.absences = absentCount;
+      const clean = passed(cleanlinessIndex);
+      if (clean !== null) payload.cleanliness = clean;
+      const uniformOk = passed(uniformIndex);
+      if (uniformOk !== null) payload.uniform = uniformOk;
+    }
+
+    setSubmitting(true);
+    try {
+      await submitViolationReport(payload);
+      navigation.reset({ index: 0, routes: [{ name: "Success" }] });
+    } catch (err) {
+      Toast.show({
+        type: "error",
+        text1: t("common.error"),
+        text2: apiErrorMessage(err, t("report.submitError")),
+      });
+      setSubmitting(false);
+    }
+  };
 
   if (!userInfo) return null;
 
@@ -359,13 +411,25 @@ export default function Step3({ navigation, route }) {
         ]}
       >
         <TouchableOpacity
-          style={[styles.submitButton, { backgroundColor: theme.primary }]}
-          onPress={() =>
-            navigation.reset({ index: 0, routes: [{ name: "Success" }] })
-          }
+          style={[
+            styles.submitButton,
+            { backgroundColor: theme.primary },
+            submitting && { opacity: 0.6 },
+          ]}
+          onPress={handleSubmit}
+          disabled={submitting}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityState={{ busy: submitting, disabled: submitting }}
         >
-          <Text style={styles.submitButtonText}>{t("report.submit")}</Text>
-          <Ionicons name="send" size={20} color="#fff" />
+          {submitting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Text style={styles.submitButtonText}>{t("report.submit")}</Text>
+              <Ionicons name="send" size={20} color="#fff" />
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </View>

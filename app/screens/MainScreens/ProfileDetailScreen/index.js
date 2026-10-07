@@ -15,7 +15,10 @@ import {
   getProfile,
   blockUser as blockUserApi,
   unblockUser as unblockUserApi,
+  reportUser,
 } from "../../../services/api/Api";
+import ReportModal from "../../../components/ReportModal";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import CustomLoading from "../../../components/CustomLoading";
 import Toast from "react-native-toast-message";
 import { useFocusEffect } from "@react-navigation/native";
@@ -24,6 +27,9 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 const ProfileDetailScreen = ({ navigation, route }) => {
   const {
@@ -40,6 +46,7 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const isCurrentUser = username === currentUsername;
   const insets = useSafeAreaInsets();
   const isBlocked = blockedUsers?.includes(username);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
   const { t, i18n } = useTranslation();
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -47,6 +54,14 @@ const ProfileDetailScreen = ({ navigation, route }) => {
   const headerBgOpacity = scrollY.interpolate({
     inputRange: [0, 10, 60],
     outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  // The header stays see-through for the glass buttons, but the strip behind
+  // the status bar fills in once content scrolls under it - otherwise the
+  // profile's text runs into the clock and battery icons (iOS).
+  const statusBarBgOpacity = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [0, 1],
     extrapolate: "clamp",
   });
   const headerTitleOpacity = scrollY.interpolate({
@@ -187,34 +202,25 @@ const ProfileDetailScreen = ({ navigation, route }) => {
     );
   };
 
-  const handleReportUser = () => {
-    // Navigate to ReportScreen but maybe we need a simpler flow for user reporting
-    // Since ReportScreen is currently tailored for school violations, we can use a simpler
-    // reporting mechanism or direct to a specific flow.
-    // For now, let's use a Toast to simulate reporting as per requirement "Blocking should also notify...".
-    // But since this is a separate "Report" action:
-    Alert.alert(
-      t('profile.reportTitle'),
-      t('profile.reportConfirm'),
-      [
-        {
-          text: t('profile.cancel'),
-          style: "cancel",
-        },
-        {
-          text: t('profile.reportAction'),
-          onPress: () => {
-            // Simulate report API call
-            console.log(`[Safety] User reported: ${username}`);
-            Toast.show({
-              type: "success",
-              text1: t('profile.reportSuccessTitle'),
-              text2: t('profile.reportSuccessMessage'),
-            });
-          },
-        },
-      ]
-    );
+  // Same flow as ProfileScreen: the reason is written in ReportModal and sent
+  // to the API, so the report reaches the moderators.
+  const handleReportUser = () => setReportModalVisible(true);
+
+  const handleReportSubmit = async (reason) => {
+    try {
+      await reportUser({ reported_user_id: profileUserId, reason });
+      Toast.show({
+        type: "success",
+        text1: t('profile.reportSuccessTitle'),
+        text2: t('profile.reportSuccessMessage'),
+      });
+    } catch (e) {
+      // An Alert, not a toast: ReportModal stays open on failure and a
+      // toast would be drawn behind it.
+      Alert.alert(t('common.error'), apiErrorMessage(e, t('post.reportError')));
+      // Keeps ReportModal open so the reason can be sent again.
+      throw e;
+    }
   };
 
   const showOptions = () => {
@@ -262,6 +268,14 @@ const ProfileDetailScreen = ({ navigation, route }) => {
             opacity: headerBgOpacity,
           }}
         />
+        <Animated.View
+          pointerEvents="none"
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, height: insets.top,
+            backgroundColor: theme.background,
+            opacity: statusBarBgOpacity,
+          }}
+        />
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top, justifyContent: 'space-between' }}>
           <LiquidButton providerId="ProfileDetailScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
@@ -302,14 +316,31 @@ const ProfileDetailScreen = ({ navigation, route }) => {
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <FastImage
-            source={{
-              uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-            }}
-            style={styles.avatar}
+          <AvatarFrameWrap theme={profileData?.theme} size={100} style={{ marginBottom: 8 }}>
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={[styles.avatar, { marginBottom: 0 }]}
+            />
+          </AvatarFrameWrap>
+          <UserNameRow
+            name={profileData?.profile_name}
+            theme={profileData?.theme}
+            variant="full"
+            verified={!!profileData?.verified}
+            verifiedSize={22}
+            verifiedColor={theme.primary}
+            style={[styles.profileName, { color: theme.text, marginBottom: 0 }]}
+            containerStyle={{ maxWidth: "100%", paddingHorizontal: 16, marginBottom: 4 }}
           />
-          <Text style={[styles.profileName, { color: theme.text }]}>{profileData?.profile_name}</Text>
-          <Text style={[styles.username, { color: theme.subText }]}>@{username}</Text>
+          <StyledUsername
+            theme={profileData?.theme}
+            username={username}
+            variant="full"
+            style={[styles.username, { color: theme.subText }]}
+            numberOfLines={1}
+          />
         </View>
 
         {/* Bio Section */}
@@ -342,6 +373,11 @@ const ProfileDetailScreen = ({ navigation, route }) => {
         </View>
       </Animated.ScrollView>
       </AndroidGlassBackdrop>
+      <ReportModal
+        visible={reportModalVisible}
+        onClose={() => setReportModalVisible(false)}
+        onSubmit={handleReportSubmit}
+      />
     </View>
   );
 };

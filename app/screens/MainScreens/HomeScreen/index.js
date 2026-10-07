@@ -38,6 +38,7 @@ import {
   getPersonalizedFeed,
   getLatestFeed,
   getFollowingFeed,
+  getNewsFeed,
   getStories,
   incrementPostView,
   resendVerificationEmail,
@@ -51,6 +52,7 @@ import {
   markStoryAsViewed,
   unfollowUser,
 } from "../../../services/api/Api";
+import { STORY_POSTED_EVENT } from "../../../services/uploadQueue";
 import ReportModal from "../../../components/ReportModal";
 import StoryViewersSheet from "../../../components/StoryViewersSheet";
 import formatTime from "../../../utils/formatTime";
@@ -64,7 +66,11 @@ import { FeedContext } from "../../../contexts/FeedContext";
 import { useStatusBar } from "../../../contexts/StatusBarContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import FastImage from "../../../components/FastImage";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
+import { getAvatarFrame } from "../../../utils/profileTheme";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
@@ -963,9 +969,25 @@ const FeedModeChip = ({ mode, label, icon, active, onPress, theme, isDarkMode })
   );
 };
 
+// One object for the feed list: FlatList must not be given a new
+// viewabilityConfig on every render.
+const FEED_VIEWABILITY_CONFIG = { itemVisiblePercentThreshold: 50 };
+
+// Shown after the time on the author's own story while it is held by
+// moderation (nobody else is sent a held story).
+const heldStorySuffix = (story, t) =>
+  story?.moderation_status === "pending"
+    ? ` · ${t("story.pendingBadge")}`
+    : story?.moderation_status === "rejected"
+      ? ` · ${t("story.rejectedBadge")}`
+      : "";
+
 const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const { t } = useTranslation();
   const [refreshing, setRefreshing] = React.useState(false);
+  // Side inset of the story viewer's centred name/date: the width of the
+  // header's icon cluster, measured (see renderStoryHeader).
+  const [storyHeaderInset, setStoryHeaderInset] = React.useState(44);
   const refreshIndicatorOpacity = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.timing(refreshIndicatorOpacity, {
@@ -979,6 +1001,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [feedMode, setFeedMode] = React.useState("personalized");
   const [latestPage, setLatestPage] = React.useState(1);
   const [followingPage, setFollowingPage] = React.useState(1);
+  const [newsPage, setNewsPage] = React.useState(1);
   const deliveredIdsRef = useRef(new Set());
   const viewedPosts = useRef(new Set());
   const [activePostId, setActivePostId] = React.useState(null);
@@ -1008,25 +1031,26 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     blockedUsers,
     blockUser: blockUserInContext,
   } = useContext(AuthContext);
-  const { updateStatusBar, barStyle, backgroundColor } = useStatusBar();
+  const { updateStatusBar } = useStatusBar();
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const insets = useSafeAreaInsets();
-  const previousStatusBarStyle = useRef({
-    barStyle: "dark-content",
-    backgroundColor: "#ffffff",
-  });
-
-  // Re-apply Home's own status bar style whenever this tab regains focus,
-  // so a style left over from another tab doesn't stick around after
-  // switching back (only when the story viewer isn't overriding it).
+  // The status bar follows the theme by itself (App.js) whenever the
+  // StatusBarContext holds nothing; the context is only for real overrides,
+  // such as the black story viewer below. Home used to write the THEME's
+  // style into it on focus, and App.js re-applies the context after every
+  // navigation: once the theme changed, or the story viewer had restored an
+  // old snapshot, that stored value was stale and every screen without a
+  // style of its own (Settings after coming back from About...) got the
+  // wrong icons on Android until Home was focused again. So on focus Home
+  // now only clears what another tab may have left.
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", () => {
       if (!isStoryVisible) {
-        updateStatusBar(isDarkMode ? "light-content" : "dark-content", theme.background);
+        updateStatusBar(null, null);
       }
     });
     return unsubscribe;
-  }, [navigation, isDarkMode, theme.background, isStoryVisible, updateStatusBar]);
+  }, [navigation, isStoryVisible, updateStatusBar]);
 
   const [verificationModalVisible, setVerificationModalVisible] =
     useState(false);
@@ -1096,6 +1120,21 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
   }, [route.params?.refresh]);
 
+  // Stories are posted in the background (services/uploadQueue), after the
+  // editor has closed: reload the row when one has gone up.
+  const [storyPostedAt, setStoryPostedAt] = useState(0);
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener(STORY_POSTED_EVENT, () =>
+      setStoryPostedAt(Date.now())
+    );
+    return () => subscription.remove();
+  }, []);
+  useEffect(() => {
+    if (storyPostedAt) {
+      fetchStories();
+    }
+  }, [storyPostedAt]);
+
   // Handle story highlighting from notifications
   useEffect(() => {
     if (!route.params?.highlightStoryId || userStories.length === 0) return;
@@ -1107,11 +1146,15 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     if (!userWithStory) return;
 
-    const timer = setTimeout(() => {
+    // Once: the param would otherwise still be there the next time the story
+    // row reloads, and the story would pop up again after it was closed.
+    navigation.setParams({ highlightStoryId: undefined });
+
+    // No cleanup that cancels this: clearing the param above re-runs the
+    // effect, and a cleanup would cancel the open it has just scheduled.
+    setTimeout(() => {
       storyRef.current?.show?.(userWithStory.id);
     }, 500);
-
-    return () => clearTimeout(timer);
   }, [route.params?.highlightStoryId, userStories]);
 
   // Handle deep link: com.fatties.youth://story/<storyId>
@@ -1125,6 +1168,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     const userWithStory = userStories.find((user) =>
       user.stories.some((story) => String(story.storyId ?? story.id) === targetId)
     );
+
+    // Handled (or the story is gone): drop the param. It used to stay in the
+    // route, so each reload of the story row - which happens on its own -
+    // opened the story again after the user had closed it.
+    navigation.setParams({ openStoryId: undefined });
 
     if (userWithStory) {
       // Small delay to let the screen finish mounting before opening viewer
@@ -1217,6 +1265,20 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           setFeed(validPosts);
         })
         .catch(() => setFeed([]));
+    } else if (mode === "youth-news") {
+      setFeedMode("youth-news");
+      setNewsPage(2);
+      getNewsFeed(1)
+        .then((response) => {
+          // An API older than this tab ignores the mode and answers with the
+          // ordinary feed: show nothing rather than the wrong posts.
+          const posts = response?.data?.mode === "youth-news" ? response?.data?.data : [];
+          const validPosts = Array.isArray(posts) ? posts : [];
+          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+          setFeed(validPosts);
+          if (validPosts.length === 0) setHasMore(false);
+        })
+        .catch(() => setFeed([]));
     } else {
       setFeedMode("personalized");
       setCurrentPage(2);
@@ -1248,8 +1310,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       return;
     }
 
-    if (feedMode === "following") {
-      getFollowingFeed(followingPage)
+    if (feedMode === "following" || feedMode === "youth-news") {
+      (feedMode === "youth-news" ? getNewsFeed(newsPage) : getFollowingFeed(followingPage))
         .then((response) => {
           const newPosts = response?.data?.data;
           if (!Array.isArray(newPosts) || newPosts.length === 0) {
@@ -1261,7 +1323,11 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           if (freshPosts.length > 0) {
             setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
           }
-          setFollowingPage((prevPage) => prevPage + 1);
+          if (feedMode === "youth-news") {
+            setNewsPage((prevPage) => prevPage + 1);
+          } else {
+            setFollowingPage((prevPage) => prevPage + 1);
+          }
         })
         .catch((error) => {
           console.error("Error loading more posts:", error);
@@ -1317,6 +1383,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       );
     }
   };
+
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const feedExtraData = React.useMemo(
+    () => ({ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos }),
+    [t, theme, isDarkMode, activePostId, isFocused, autoplayVideos]
+  );
 
   const handleExpandPost = (index) => {
     if (flatListRef.current) {
@@ -1399,8 +1472,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
   const handleStoryShow = (userId) => {
     setIsStoryVisible(true);
-    // Save current status bar style so we can restore it on hide
-    previousStatusBarStyle.current = { barStyle, backgroundColor };
     if (Platform.OS === "android") {
       StatusBar.setHidden(false);
       updateStatusBar("light-content", "#000000");
@@ -1438,11 +1509,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const handleStoryHide = () => {
     setIsStoryVisible(false);
     if (Platform.OS === "android") StatusBar.setHidden(false);
-    // Restore previous status bar style
-    updateStatusBar(
-      previousStatusBarStyle.current.barStyle,
-      previousStatusBarStyle.current.backgroundColor
-    );
+    // Back to the theme's own style (see the focus listener above).
+    updateStatusBar(null, null);
     // userStories is only fetched once on mount/blockedUsers change, so the
     // view count shown on the outer story bubble stays stale even though
     // markStoryAsViewed (and any other viewer's view, recorded server-side
@@ -1687,6 +1755,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         id: user.username,
         name: user.name,
         isFollowed: user.is_following,
+        // Name style + avatar frame of the author (drawn on the tray and viewer)
+        profileTheme: user.profile_theme || null,
         avatarSource: {
           uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
         },
@@ -1849,7 +1919,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               storyRef={storyRef}
             />
           ),
-          date: formatTime(story.created_at || story.created_at_human),
+          date: formatTime(story.created_at || story.created_at_human) + heldStorySuffix(story, t),
+          moderation_status: story.moderation_status,
           created_at: story.created_at,
           created_at_human: story.created_at_human,
           onStoryItemPress: () => {
@@ -1901,7 +1972,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const ListHeader = () => {
     return (
       <>
-        <EmailVerificationAlert />
+        {EmailVerificationAlert()}
         {/* Dành cho bạn / Mới nhất / Đang theo dõi tab toggle — sits above stories */}
         <ScrollView
           horizontal
@@ -1918,6 +1989,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             { mode: "personalized", label: t('home.forYou'), icon: "sparkles" },
             { mode: "latest", label: t('home.latest'), icon: "flash" },
             { mode: "following", label: t('home.following'), icon: "people" },
+            { mode: "youth-news", label: t('home.youthNews'), icon: "newspaper" },
           ].map(({ mode, label, icon }) => (
             <FeedModeChip
               key={mode}
@@ -2045,16 +2117,30 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   />
                 )}
 
-                {/* Avatar */}
+                {/* Avatar: the author's avatar frame (Khung) if they picked
+                    one, otherwise the plain ring as before */}
                 <View style={{ position: "absolute", top: 8, left: 8 }}>
-                  <View style={{ borderRadius: 100, padding: 2, borderWidth: 2, borderColor: theme.primary }}>
-                    <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden" }}>
-                      <FastImage
-                        source={{ uri: user.avatarSource.uri }}
-                        style={{ width: 24, height: 24 }}
-                      />
+                  {getAvatarFrame(user.profileTheme) ? (
+                    <View style={{ margin: 3 }}>
+                      <AvatarFrameWrap theme={user.profileTheme} size={26}>
+                        <View style={{ width: 26, height: 26, borderRadius: 13, overflow: "hidden" }}>
+                          <FastImage
+                            source={{ uri: user.avatarSource.uri }}
+                            style={{ width: 26, height: 26 }}
+                          />
+                        </View>
+                      </AvatarFrameWrap>
                     </View>
-                  </View>
+                  ) : (
+                    <View style={{ borderRadius: 100, padding: 2, borderWidth: 2, borderColor: theme.primary }}>
+                      <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden" }}>
+                        <FastImage
+                          source={{ uri: user.avatarSource.uri }}
+                          style={{ width: 24, height: 24 }}
+                        />
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 {/* Gradient + Title */}
@@ -2070,18 +2156,19 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                       bottom: -90,
                     }}
                   />
-                  <Text
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                    className="text-[13px] font-semibold text-white p-1.5"
+                  <UserNameRow
+                    name={user.name}
+                    theme={user.profileTheme}
+                    containerStyle={{ padding: 6 }}
                     style={{
+                      fontSize: 13,
+                      fontWeight: "600",
+                      color: "#fff",
                       textShadowColor: "rgba(0, 0, 0, 0.8)",
                       textShadowOffset: { width: 0, height: 0 },
                       textShadowRadius: 2,
                     }}
-                  >
-                    {user.name}
-                  </Text>
+                  />
                 </View>
               </View>
             </TouchableHighlight>
@@ -2098,15 +2185,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     isScrollingRef.current = false;
     DeviceEventEmitter.emit("HOME_SCROLL", offsetY);
 
-    // Auto hide bottom tab bar
-    const diff = offsetY - lastScrollYRef.current;
-    if (offsetY < 50) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    } else if (diff > 15) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", false);
-    } else if (diff < -10) {
-      DeviceEventEmitter.emit("SET_TABBAR_VISIBLE", true);
-    }
     lastScrollYRef.current = offsetY;
 
     // If scrolled to top during manual scroll, reset processing flag
@@ -2149,9 +2227,10 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
 
     if (feed == null) {
       // Cold start / previously empty or errored feed: full load for the active tab.
-      if (feedMode === "latest" || feedMode === "following") {
+      if (feedMode === "latest" || feedMode === "following" || feedMode === "youth-news") {
         deliveredIdsRef.current = new Set();
-        const fetchPage1 = feedMode === "latest" ? getLatestFeed(1) : getFollowingFeed(1);
+        const fetchPage1 =
+          feedMode === "latest" ? getLatestFeed(1) : feedMode === "youth-news" ? getNewsFeed(1) : getFollowingFeed(1);
         fetchPage1
           .then((response) => {
             const posts = response?.data?.data;
@@ -2160,6 +2239,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
             if (feedMode === "latest") {
               setLatestPage(2);
+            } else if (feedMode === "youth-news") {
+              setNewsPage(2);
             } else {
               setFollowingPage(2);
             }
@@ -2181,7 +2262,9 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       ? getLatestFeed(latestPage)
       : feedMode === "following"
         ? getFollowingFeed(followingPage)
-        : getPersonalizedFeed(currentPage);
+        : feedMode === "youth-news"
+          ? getNewsFeed(newsPage)
+          : getPersonalizedFeed(currentPage);
 
     loadNextPage
       .then((response) => {
@@ -2203,6 +2286,8 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             setLatestPage((p) => p + 1);
           } else if (feedMode === "following") {
             setFollowingPage((p) => p + 1);
+          } else if (feedMode === "youth-news") {
+            setNewsPage((p) => p + 1);
           } else {
             setCurrentPage((p) => p + 1);
           }
@@ -2217,7 +2302,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
         console.log("Error loading next feed page on refresh:", error);
       })
       .finally(finishRefresh);
-  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage, followingPage]);
+  }, [isLoggedIn, refreshUserInfo, feed, feedMode, currentPage, latestPage, followingPage, newsPage]);
 
   // Function to scroll to top or reload
   const scrollToTopOrReload = React.useCallback(() => {
@@ -2495,7 +2580,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       ...user,
       stories: user.stories.map((story) => ({
         ...story,
-        date: formatTime(story.created_at || story.created_at_human || ""),
+        date: formatTime(story.created_at || story.created_at_human || "") + heldStorySuffix(story, t),
         renderFooter: () => (
           <ReplyBar
             storyId={story.storyId}
@@ -2584,7 +2669,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           ref={flatListRef}
           showsVerticalScrollIndicator={false}
           data={filteredFeed}
-          extraData={{ t, theme, isDarkMode, activePostId, isFocused, autoplayVideos }}
+          extraData={feedExtraData}
           keyExtractor={(item, index) => `key-${item.id + "-" + index}`}
           initialNumToRender={5}
           maxToRenderPerBatch={5}
@@ -2616,7 +2701,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           onEndReached={onEndReached}
           onEndReachedThreshold={0.2}
           onViewableItemsChanged={handleViewableItemsChanged}
-          viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
+          viewabilityConfig={FEED_VIEWABILITY_CONFIG}
           refreshControl={
             <RefreshControl
               tintColor="transparent"
@@ -2633,8 +2718,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               }}
             />
           }
-          ListFooterComponent={ListEndLoader}
-          ListHeaderComponent={ListHeader}
+          // Elements, not the functions: both are redefined on every render,
+          // and FlatList renders a function as a component - a new type each
+          // time, so the whole header (tabs, story tray) was unmounted and
+          // mounted again on every state change of this screen.
+          ListFooterComponent={ListEndLoader()}
+          ListHeaderComponent={ListHeader()}
         />
 
         <InstagramStories
@@ -2644,6 +2733,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           hideAvatarList={true}
           showName={true}
           statusBarTranslucent={false}
+          // The library puts the progress bars 44pt and the header 60pt from
+          // the top on iOS - fine under a 20pt status bar, inside the island
+          // on newer phones. Both follow the real inset instead (same 16pt
+          // between them). On Android its container already starts below the
+          // status bar, so its own 16 / 32 stay.
+          progressContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 8 : 16 }}
+          headerContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 24 : 32 }}
           backgroundColor="#000000"
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           imageProps={{ resizeMode: "contain" }}
@@ -2705,7 +2801,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           storyAnimationDuration={300}
           storyAvatarSize={30}
           renderStoryHeader={({ avatarSource, name, date, onClose, onMore, userId }) => (
-            <View style={{ width: SCREEN_WIDTH - 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View style={{ width: SCREEN_WIDTH - 40, minHeight: 40, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Pressable
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 onPress={() => {
@@ -2723,9 +2819,14 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                 }}
               >
                 {avatarSource && (
-                  <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
-                    <FastImage source={avatarSource} style={{ width: 28, height: 28 }} />
-                  </View>
+                  <AvatarFrameWrap
+                    theme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
+                    size={28}
+                  >
+                    <View style={{ width: 28, height: 28, borderRadius: 14, overflow: 'hidden' }}>
+                      <FastImage source={avatarSource} style={{ width: 28, height: 28 }} />
+                    </View>
+                  </AvatarFrameWrap>
                 )}
               </Pressable>
               {/* Absolutely centered across the full header width (not just
@@ -2737,12 +2838,30 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
                   taps it visually sits between. */}
               <View
                 pointerEvents="none"
-                style={{ position: 'absolute', left: 44, right: 44, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
+                style={{ position: 'absolute', left: storyHeaderInset, right: storyHeaderInset, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}
               >
-                {name && <Text numberOfLines={1} ellipsizeMode="tail" style={{ color: '#fff', fontWeight: '600', textAlign: 'center' }}>{name}</Text>}
-                {date && <Text style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
+                {name && (
+                  <UserNameRow
+                    name={name}
+                    theme={userStories.find((u) => u.id === userId || u.uid === userId)?.profileTheme}
+                    variant="full"
+                    containerStyle={{ maxWidth: '100%' }}
+                    style={{ color: '#fff', fontWeight: '600' }}
+                  />
+                )}
+                {date && <Text numberOfLines={1} style={{ color: '#fff', opacity: 0.8, fontSize: 12, textAlign: 'center' }}>{date}</Text>}
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                // The centred name/date keeps clear of this cluster on both
+                // sides. A fixed 44px inset sat under the mute + settings +
+                // close icons (~100px), so the name was squeezed and the lines
+                // wrapped over each other (seen on iOS).
+                onLayout={(e) => {
+                  const inset = Math.max(44, Math.ceil(e.nativeEvent.layout.width) + 8);
+                  setStoryHeaderInset((prev) => (prev === inset ? prev : inset));
+                }}
+              >
                 {(() => {
                   try {
                     const u = userStories.find((u) => u.stories.some((s) => String(s.storyId) === String(currentStory) || String(s.id) === String(currentStory)));
@@ -2804,7 +2923,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               }
             }
           }}
-          toast={<Toast topOffset={60} />}
+          toast={<AppToast topOffset={60} />}
           footerComponent={
             // react-native-gesture-handler v2 requires a GestureHandlerRootView
             // ancestor for its PanGestureHandlers to receive touches at all -
@@ -2872,7 +2991,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
           music={currentStoryMusic}
           paused={!isStoryVisible || isStoryPaused}
         />
-        <ResendVerificationModal />
+        {ResendVerificationModal()}
       </View>
     </>
   );

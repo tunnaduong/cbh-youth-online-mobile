@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Platform, DeviceEventEmitter } from 'react-native';
+import { Platform, DeviceEventEmitter, AppState } from 'react-native';
 import {
   getExpoPushToken,
   setupNotificationListeners,
@@ -14,6 +14,7 @@ import {
 } from '../services/api/Api';
 import { AuthContext } from './AuthContext';
 import { resolveNotificationTarget } from '../utils/notificationRouting';
+import { rememberPushToken } from '../utils/pushToken';
 
 export const NotificationContext = createContext();
 
@@ -91,7 +92,10 @@ export const NotificationProvider = ({ children }) => {
     updateBadgeCount();
 
     // Update every 30 seconds
-    const interval = setInterval(updateBadgeCount, 30000);
+    // Not while the app is in the background.
+    const interval = setInterval(() => {
+      if (AppState.currentState === "active") updateBadgeCount();
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [isLoggedIn]);
@@ -114,6 +118,8 @@ export const NotificationProvider = ({ children }) => {
 
       setExpoPushToken(token);
       registeredTokenRef.current = token;
+      // So it can be given back just before the account is left.
+      rememberPushToken(token);
 
       // Get device type
       const deviceType = getDeviceType();

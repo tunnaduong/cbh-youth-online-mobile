@@ -19,11 +19,14 @@ import ProgressHUD from "../../components/ProgressHUD";
 import { Ionicons } from "@expo/vector-icons";
 import { loginRequest, loginWithOAuth } from "../../services/api/Api";
 import { loginWithGoogle, loginWithFacebook } from "../../services/oauth";
+import { loginWithPasskey, PasskeyError } from "../../services/passkey";
+import { apiErrorMessage } from "../../utils/apiMessage";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
+import AuthButton from "../../components/AuthButton";
 import { SavedAccountList } from "../../components/AccountSwitcher";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
 
@@ -56,6 +59,10 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
     try {
       const response = await loginRequest({ username: email, password });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (!response?.data?.token || !response?.data?.user) {
         throw new Error(t("auth.invalidServerResponse"));
       }
@@ -82,6 +89,30 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
+  // Passkey: the system's own sheet, then fingerprint/face/screen lock - the
+  // whole login, nothing to type and no two-factor step.
+  const handlePasskeyLogin = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const data = await loginWithPasskey();
+      if (!data.token || !data.user) {
+        throw new Error(t("auth.invalidServerResponse"));
+      }
+      signIn(data.token, data.user);
+    } catch (error) {
+      if (error instanceof PasskeyError) {
+        // Closing the system sheet needs no message.
+        if (!error.cancelled) Alert.alert(t("auth.loginError"), error.message);
+        return;
+      }
+      const errorMessage = apiErrorMessage(error, t("auth.passkeyLoginError"));
+      Alert.alert(t("auth.loginError"), errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     if (loading) return;
     setLoading(true);
@@ -93,6 +124,10 @@ const LoginScreen = ({ navigation }) => {
         idToken: oauthResult.idToken,
         profile: oauthResult.profile,
       });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
@@ -121,6 +156,10 @@ const LoginScreen = ({ navigation }) => {
         idToken: oauthResult.idToken,
         profile: oauthResult.profile,
       });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
@@ -156,6 +195,10 @@ const LoginScreen = ({ navigation }) => {
         fullName: credential.fullName,
         user: credential.user,
       });
+      if (response.data?.two_factor_required) {
+        navigation.navigate("TwoFactorChallenge", { challenge: response.data });
+        return;
+      }
       if (response.data && response.data.token) {
         signIn(response.data.token, response.data.user);
       } else {
@@ -321,13 +364,12 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
 
               {/* Login button */}
-              <TouchableOpacity
-                style={[styles.loginButton, { backgroundColor: theme.primary }]}
+              <AuthButton
+                style={styles.loginButton}
                 onPress={handleLogin}
-                activeOpacity={0.85}
               >
                 <Text style={styles.loginButtonText}>{t("auth.login")}</Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Divider */}
               <View style={styles.dividerRow}>
@@ -338,30 +380,36 @@ const LoginScreen = ({ navigation }) => {
                 <View style={[styles.dividerLine, { backgroundColor: theme.border }]} />
               </View>
 
+              {/* Passkey: one tap, no password */}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
+                onPress={handlePasskeyLogin}
+              >
+                <Ionicons name="finger-print" size={22} color={theme.primary} />
+                <Text style={[styles.socialButtonText, { color: theme.text }]}>
+                  {t("auth.continueWithPasskey")}
+                </Text>
+              </AuthButton>
+
               {/* Social buttons */}
               {isAppleAuthAvailable && (
-                <TouchableOpacity
-                  style={[
-                    styles.socialButton,
-                    { backgroundColor: theme.surface, borderColor: theme.border },
-                  ]}
+                <AuthButton
+                  variant="secondary"
+                  style={styles.socialButton}
                   onPress={handleAppleLogin}
-                  activeOpacity={0.8}
                 >
                   <Ionicons name="logo-apple" size={22} color={theme.text} />
                   <Text style={[styles.socialButtonText, { color: theme.text }]}>
                     {t("auth.continueWithApple")}
                   </Text>
-                </TouchableOpacity>
+                </AuthButton>
               )}
 
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
                 onPress={handleGoogleLogin}
-                activeOpacity={0.8}
               >
                 <Image
                   source={require("../../assets/google.png")}
@@ -370,21 +418,18 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("auth.continueWithGoogle")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
-              <TouchableOpacity
-                style={[
-                  styles.socialButton,
-                  { backgroundColor: theme.surface, borderColor: theme.border },
-                ]}
+              <AuthButton
+                variant="secondary"
+                style={styles.socialButton}
                 onPress={handleFacebookLogin}
-                activeOpacity={0.8}
               >
                 <Ionicons name="logo-facebook" size={22} color="#1877F2" />
                 <Text style={[styles.socialButtonText, { color: theme.text }]}>
                   {t("auth.continueWithFacebook")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Sign up */}
               <TouchableOpacity

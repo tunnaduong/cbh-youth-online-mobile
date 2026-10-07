@@ -21,6 +21,7 @@ import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
 import SegmentedControl from "../../../../components/SegmentedControl";
+import { apiErrorMessage } from "../../../../utils/apiMessage";
 import {
   startQuiz,
   answerQuizQuestion,
@@ -111,8 +112,7 @@ const QuizScreen = ({ navigation, route }) => {
         Toast.show({
           type: "error",
           text1:
-            error?.response?.data?.message ||
-            t("quiz.joinError", "Không thể tham gia bài đố vui này."),
+            apiErrorMessage(error, t("quiz.joinError", "Không thể tham gia bài đố vui này.")),
         });
       } finally {
         if (!cancelled) setJoiningShared(false);
@@ -226,8 +226,7 @@ const QuizScreen = ({ navigation, route }) => {
       Toast.show({
         type: "error",
         text1:
-          error?.response?.data?.message ||
-          t("quiz.startError", "Không thể tạo câu hỏi lúc này, vui lòng thử lại."),
+          apiErrorMessage(error, t("quiz.startError", "Không thể tạo câu hỏi lúc này, vui lòng thử lại.")),
       });
     } finally {
       setLoading(false);
@@ -269,8 +268,7 @@ const QuizScreen = ({ navigation, route }) => {
       Toast.show({
         type: "error",
         text1:
-          error?.response?.data?.message ||
-          t("quiz.answerError", "Không thể ghi nhận câu trả lời, vui lòng thử lại."),
+          apiErrorMessage(error, t("quiz.answerError", "Không thể ghi nhận câu trả lời, vui lòng thử lại.")),
       });
     } finally {
       setAnswering(false);
@@ -316,7 +314,7 @@ const QuizScreen = ({ navigation, route }) => {
     } catch (error) {
       Toast.show({
         type: "error",
-        text1: error?.response?.data?.message || t("quiz.restartError", "Không thể làm lại bài đố vui này."),
+        text1: apiErrorMessage(error, t("quiz.restartError", "Không thể làm lại bài đố vui này.")),
       });
     } finally {
       setRetrying(false);

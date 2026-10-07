@@ -77,7 +77,9 @@ export const useUnreadCounts = () => {
 
     // Set up polling every 30 seconds
     const interval = setInterval(() => {
-      fetchAllCounts();
+      // Not while the app is in the background: the effect below refreshes
+      // the moment it comes back.
+      if (AppState.currentState === "active") fetchAllCounts();
     }, 30000);
 
     return () => clearInterval(interval);

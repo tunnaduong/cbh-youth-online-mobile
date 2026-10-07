@@ -33,13 +33,6 @@ export default function AboutScreen({ navigation }) {
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
-  useFocusEffect(
-    React.useCallback(() => {
-      StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
-      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
-    }, [isDarkMode, theme.background])
-  );
-
   const headerBgOpacity = scrollY.interpolate({
     inputRange: [0, 10, 60],
     outputRange: [0, 0, 0],

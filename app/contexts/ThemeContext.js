@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useColorScheme } from "react-native";
+import React, { createContext, useCallback, useContext, useMemo, useState, useEffect, useLayoutEffect } from "react";
+import { Appearance, Platform, useColorScheme } from "react-native";
 import { storage } from "../global/storage";
 
-const ThemeContext = createContext();
+export const ThemeContext = createContext();
 
 export const colors = {
   light: {
@@ -58,7 +58,8 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const [autoplayVideos, setAutoplayVideosState] = useState(() => {
-    return storage.getBoolean("autoplayVideos") ?? false;
+    // On unless the user turned it off (the stored choice always wins).
+    return storage.getBoolean("autoplayVideos") ?? true;
   });
 
   // Liquid glass is on by default - this is the "turn it off" escape hatch
@@ -83,7 +84,28 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [systemColorScheme, useSystemTheme]);
 
-  const setThemeMode = (mode) => {
+  // iOS draws its own surfaces - the system tab bar (liquid glass on iOS 26),
+  // action sheets, alerts, the keyboard - in the appearance of the window,
+  // which follows the phone's setting, not this app's theme: with the app set
+  // to dark on a phone in light mode the tab bar stayed light. Telling iOS
+  // the app's own choice makes all of them follow it; "unspecified" hands
+  // the decision back to the system when the theme is "follow the device".
+  //
+  // iOS only: Android has no system-drawn bar here, and changing its night
+  // mode can restart the activity. While the app's choice is forced,
+  // useColorScheme() above reports that choice rather than the phone's; it
+  // reports the phone's again as soon as the theme goes back to "system".
+  useLayoutEffect(() => {
+    if (Platform.OS !== "ios") return;
+    try {
+      Appearance.setColorScheme(useSystemTheme ? "unspecified" : isDarkMode ? "dark" : "light");
+    } catch {}
+  }, [useSystemTheme, isDarkMode]);
+
+  // Stable setters + a memoized context value: nearly every component reads
+  // this context, and a value rebuilt on each render of the provider made all
+  // of them re-render even when nothing about the theme had changed.
+  const setThemeMode = useCallback((mode) => {
     if (mode === "system") {
       setUseSystemTheme(true);
       setIsDarkMode(systemColorScheme === "dark");
@@ -92,48 +114,64 @@ export const ThemeProvider = ({ children }) => {
       setIsDarkMode(mode === "dark");
     }
     storage.set("theme", mode);
-  };
+  }, [systemColorScheme]);
 
-  const setHideTabLabels = (value) => {
+  const setHideTabLabels = useCallback((value) => {
     setHideTabLabelsState(value);
     storage.set("hideTabLabels", value);
-  };
+  }, []);
 
-  const setAutoplayVideos = (value) => {
+  const setAutoplayVideos = useCallback((value) => {
     setAutoplayVideosState(value);
     storage.set("autoplayVideos", value);
-  };
+  }, []);
 
-  const setLiquidGlassEnabled = (value) => {
+  const setLiquidGlassEnabled = useCallback((value) => {
     setLiquidGlassEnabledState(value);
     storage.set("liquidGlassEnabled", value);
-  };
+  }, []);
 
-  const setShakeToReportEnabled = (value) => {
+  const setShakeToReportEnabled = useCallback((value) => {
     setShakeToReportEnabledState(value);
     storage.set("shakeToReportEnabled", value);
-  };
+  }, []);
 
   const theme = isDarkMode ? colors.dark : colors.light;
 
+  const value = useMemo(
+    () => ({
+      isDarkMode,
+      theme,
+      setThemeMode,
+      useSystemTheme,
+      setUseSystemTheme,
+      hideTabLabels,
+      setHideTabLabels,
+      autoplayVideos,
+      setAutoplayVideos,
+      liquidGlassEnabled,
+      setLiquidGlassEnabled,
+      shakeToReportEnabled,
+      setShakeToReportEnabled,
+    }),
+    [
+      isDarkMode,
+      theme,
+      setThemeMode,
+      useSystemTheme,
+      hideTabLabels,
+      setHideTabLabels,
+      autoplayVideos,
+      setAutoplayVideos,
+      liquidGlassEnabled,
+      setLiquidGlassEnabled,
+      shakeToReportEnabled,
+      setShakeToReportEnabled,
+    ]
+  );
+
   return (
-    <ThemeContext.Provider
-      value={{
-        isDarkMode,
-        theme,
-        setThemeMode,
-        useSystemTheme,
-        setUseSystemTheme,
-        hideTabLabels,
-        setHideTabLabels,
-        autoplayVideos,
-        setAutoplayVideos,
-        liquidGlassEnabled,
-        setLiquidGlassEnabled,
-        shakeToReportEnabled,
-        setShakeToReportEnabled,
-      }}
-    >
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

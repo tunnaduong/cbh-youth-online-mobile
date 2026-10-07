@@ -5,6 +5,7 @@ import LoginCarousel from "../../components/LoginCarousel";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
 import AuthBackground from "../../components/AuthBackground";
+import AuthButton from "../../components/AuthButton";
 
 const WelcomeScreen = ({ navigation }) => {
   const { t } = useTranslation();
@@ -17,24 +18,23 @@ const WelcomeScreen = ({ navigation }) => {
         <LoginCarousel />
       </View>
       <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          style={[styles.primaryButton, { backgroundColor: theme.primary }]}
+        <AuthButton
+          style={styles.primaryButton}
           onPress={() => navigation.navigate("Login")}
-          activeOpacity={0.85}
         >
           <Text style={styles.primaryButtonText}>
             {t("signup.login")}
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </AuthButton>
+        <AuthButton
+          variant="secondary"
           style={styles.secondaryButton}
           onPress={() => navigation.navigate("Signup")}
-          activeOpacity={0.7}
         >
           <Text style={[styles.secondaryButtonText, { color: theme.primary }]}>
             {t("signup.createAccount")}
           </Text>
-        </TouchableOpacity>
+        </AuthButton>
       </View>
     </SafeAreaView>
   );
@@ -68,7 +68,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   secondaryButton: {
-    paddingVertical: 12,
+    // A full button now (AuthButton), so it needs air below the main one.
+    marginTop: 12,
     alignItems: "center",
   },
   secondaryButtonText: {

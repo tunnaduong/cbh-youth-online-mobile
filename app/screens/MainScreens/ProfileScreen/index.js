@@ -19,7 +19,8 @@ import {
   Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { TIER_ICONS } from "../../../components/profile/TierIcon";
 import { useFocusEffect, useNavigation, useIsFocused } from "@react-navigation/native";
 import CustomLoading from "../../../components/CustomLoading";
 import { AuthContext } from "../../../contexts/AuthContext";
@@ -37,13 +38,24 @@ import PostItem from "../../../components/PostItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FeedContext } from "../../../contexts/FeedContext";
 import FastImage from "../../../components/FastImage";
-import Verified from "../../../assets/Verified";
 import ReportModal from "../../../components/ReportModal";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { Alert, ActionSheetIOS, Platform } from "react-native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
+import AvatarFrame, { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
+import ProfileEffect from "../../../components/profile/ProfileEffect";
+import ProfileFrame from "../../../components/profile/ProfileFrame";
+import { ThemedBanner, ThemedSurface } from "../../../components/profile/ProfilePreviewCard";
+import {
+  PhotoGridRow,
+  ProfilePhotoViewer,
+  photoRows,
+  useProfilePhotos,
+} from "../../../components/profile/ProfilePhotoGallery";
 
 const LIKED_SORT_OPTIONS = [
   { value: "newest", labelKey: "profile.sortNewest" },
@@ -71,6 +83,9 @@ const ProfileScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [messagePressLoading, setMessagePressLoading] = useState(false);
   const [userData, setUserData] = useState(null);
+  // Discord-style profile theme (null = default look) - see ProfileCustomizerScreen.
+  const profileTheme = userData?.profile?.theme || null;
+  const tabColor = profileTheme?.primary_color || theme.primary;
   // True when the API says this profile doesn't exist - which is also what
   // it answers for someone blocked in either direction.
   const [notFound, setNotFound] = useState(false);
@@ -82,6 +97,10 @@ const ProfileScreen = ({ route, navigation }) => {
   const { recentPostsProfile, setRecentPostsProfile } = useContext(FeedContext);
   const isCurrentUser = userId === username;
   const [activeTab, setActiveTab] = useState("posts");
+  // Photo gallery (as on the web profile): a view of the Posts tab, fetched
+  // the first time it is opened.
+  const photoGallery = useProfilePhotos(userId, activeTab === "photos");
+  const [photoViewer, setPhotoViewer] = useState({ visible: false, index: 0 });
   const [postsPage, setPostsPage] = useState(1);
   const [postsHasMore, setPostsHasMore] = useState(true);
   const [loadingMorePosts, setLoadingMorePosts] = useState(false);
@@ -97,6 +116,9 @@ const ProfileScreen = ({ route, navigation }) => {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [showMilestonesModal, setShowMilestonesModal] = useState(false);
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ activePostId, isFocused, autoplayVideos }), [activePostId, isFocused, autoplayVideos]);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   // Scroll-driven header: title START visible at top, fade OUT quickly as user begins scrolling
@@ -104,6 +126,14 @@ const ProfileScreen = ({ route, navigation }) => {
   const headerBgOpacity = scrollY.interpolate({
     inputRange: [0, 10, 60],
     outputRange: [0, 0, 0],
+    extrapolate: "clamp",
+  });
+  // The header stays see-through for the glass buttons, but the strip behind
+  // the status bar fills in once content scrolls under it - otherwise the
+  // profile's text runs into the clock and battery icons (iOS).
+  const statusBarBgOpacity = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [0, 1],
     extrapolate: "clamp",
   });
   const headerTitleOpacity = scrollY.interpolate({
@@ -362,6 +392,9 @@ const ProfileScreen = ({ route, navigation }) => {
     if (activeTab === "likes") {
       fetchLikedPosts(1, likedSort);
     }
+    if (activeTab === "photos") {
+      photoGallery.reload();
+    }
 
     fetchUserData(userId).finally(() => {
       setTimeout(() => {
@@ -456,10 +489,6 @@ const ProfileScreen = ({ route, navigation }) => {
     }
   };
 
-  useEffect(() => {
-    fetchUserData(userId);
-  }, []);
-
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: insets.top }]}>
@@ -526,14 +555,23 @@ const ProfileScreen = ({ route, navigation }) => {
         });
       }}
     >
-      <FastImage source={{ uri: user.profile_picture }} style={styles.userAvatar} />
+      <AvatarFrameWrap theme={user.profile_theme} size={50}>
+        <FastImage source={{ uri: user.profile_picture }} style={styles.userAvatar} />
+      </AvatarFrameWrap>
       <View style={styles.userInfo}>
-        <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
-          {user.profile_name}
-        </Text>
-        <Text style={[styles.userUsername, { color: theme.subText }]} numberOfLines={1}>
-          @{user.username}
-        </Text>
+        <UserNameRow
+          name={user.profile_name}
+          theme={user.profile_theme}
+          verified={!!user.verified}
+          verifiedColor={theme.primary}
+          style={[styles.userName, { color: theme.text }]}
+        />
+        <StyledUsername
+          theme={user.profile_theme}
+          username={user.username}
+          style={[styles.userUsername, { color: theme.subText }]}
+          numberOfLines={1}
+        />
       </View>
       {/* if is current user then hide the follow btn */}
       {user.username !== username && (
@@ -572,6 +610,12 @@ const ProfileScreen = ({ route, navigation }) => {
   const listData =
     activeTab === "posts"
       ? recentPostsProfile || []
+      : activeTab === "photos"
+      ? photoRows(
+          photoGallery.photos,
+          // Placeholders from the moment the tab opens until the first answer.
+          photoGallery.loading || (!photoGallery.loaded && !photoGallery.error)
+        )
       : activeTab === "likes"
       ? likedPosts || []
       : activeTab === "following"
@@ -581,9 +625,14 @@ const ProfileScreen = ({ route, navigation }) => {
   const isPostTab = activeTab === "posts" || activeTab === "likes";
 
   const listKeyExtractor = (item) =>
-    isPostTab ? `post-${item.id}` : `user-${item.id}`;
+    isPostTab ? `post-${item.id}` : activeTab === "photos" ? String(item.id) : `user-${item.id}`;
 
   const renderListItem = ({ item }) => {
+    if (activeTab === "photos") {
+      return (
+        <PhotoGridRow row={item} onPress={(index) => setPhotoViewer({ visible: true, index })} />
+      );
+    }
     if (isPostTab) {
       return (
         <PostItem
@@ -609,6 +658,30 @@ const ProfileScreen = ({ route, navigation }) => {
       : "profile.emptyFollowers";
 
   const renderListEmpty = () => (
+    activeTab === "photos" ? (
+      photoGallery.error ? (
+        <View style={{ alignItems: "center", paddingHorizontal: 16 }}>
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 24 }}>
+            {t("profile.photosError")}
+          </Text>
+          <TouchableOpacity
+            onPress={photoGallery.reload}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            style={{ marginTop: 12, borderWidth: 1, borderColor: theme.primary, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 8 }}
+          >
+            <Text style={{ color: theme.primary, fontWeight: "700" }}>{t("profile.photosRetry")}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ alignItems: "center", marginTop: 20, paddingHorizontal: 16 }}>
+          <Ionicons name="images-outline" size={50} color={theme.subText} />
+          <Text style={{ textAlign: "center", color: theme.subText, marginTop: 10 }}>
+            {t("profile.emptyPhotos")}
+          </Text>
+        </View>
+      )
+    ) :
     activeTab === "likes" && loadingLiked ? null :
     <View>
       <Image
@@ -623,6 +696,21 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const renderListFooter = () => (
     <>
+      {activeTab === "photos" && photoGallery.hasMore && (
+        <TouchableOpacity
+          onPress={photoGallery.loadMore}
+          disabled={photoGallery.loadingMore}
+          style={{ alignItems: "center", paddingVertical: 16 }}
+        >
+          {photoGallery.loadingMore ? (
+            <ActivityIndicator color={theme.primary} />
+          ) : (
+            <Text style={{ color: theme.primary, fontWeight: "600" }}>
+              {t('profile.loadMorePhotos')}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
       {activeTab === "likes" && (likedHasMore || (loadingLiked && likedPosts.length === 0)) && (
         <TouchableOpacity
           onPress={loadMoreLikedPosts}
@@ -718,26 +806,32 @@ const ProfileScreen = ({ route, navigation }) => {
 
   const renderListHeader = () => (
     <>
-          {userData?.profile?.cover_photo_url ? (
-            <FastImage
-              source={{ uri: isCurrentUser ? getCoverUrl(userId) : userData.profile.cover_photo_url }}
-              style={{
-                height: 170,
-                borderRadius: 15,
-                margin: 16,
-                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
-              }}
+          {/* Cover: the photo, or (without one) the profile theme's banner
+              color / gradient. Profile effect + frame play over it. */}
+          <View
+            style={{
+              height: 170,
+              borderRadius: 15,
+              margin: 16,
+              overflow: "hidden",
+              backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
+            }}
+          >
+            <ThemedBanner
+              theme={profileTheme}
+              coverUrl={
+                userData?.profile?.cover_photo_url
+                  ? isCurrentUser
+                    ? getCoverUrl(userId)
+                    : userData.profile.cover_photo_url
+                  : null
+              }
+              style={StyleSheet.absoluteFill}
+              fallbackColor={isDarkMode ? "#374151" : "#d1d1d1"}
             />
-          ) : (
-            <View
-              style={{
-                height: 170,
-                backgroundColor: isDarkMode ? "#374151" : "#d1d1d1",
-                borderRadius: 15,
-                margin: 16,
-              }}
-            />
-          )}
+            <ProfileEffect theme={profileTheme} />
+            <ProfileFrame theme={profileTheme} radius={15} />
+          </View>
 
           {/* Avatar row: avatar overlaps cover, name beside it */}
           <View style={{ paddingHorizontal: 16, marginTop: -40 }}>
@@ -749,6 +843,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   }}
                   style={[styles.avatar, { borderColor: theme.background }]}
                 />
+                <AvatarFrame theme={profileTheme} size={120} />
                 {/* Online status */}
                 {userData?.stats?.is_online ? (
                   <View style={{ backgroundColor: theme.background, borderRadius: 999, width: 20, height: 20, position: "absolute", bottom: 4, right: 4, justifyContent: "center", alignItems: "center" }}>
@@ -757,36 +852,48 @@ const ProfileScreen = ({ route, navigation }) => {
                 ) : null}
               </View>
               <View style={{ paddingBottom: 16, flex: 1 }}>
-                <Text style={[styles.name, { color: theme.text, marginTop: 0 }]} numberOfLines={2}>
-                  {userData?.profile?.profile_name}
-                  {userData?.profile?.verified && (
-                    <View>
-                      <Verified
-                        width={23}
-                        height={23}
-                        color={theme.primary}
-                        style={{ marginBottom: -5 }}
-                      />
-                    </View>
-                  )}
-                </Text>
-                <Text style={[styles.username, { color: theme.subText }]} numberOfLines={1}>
-                  @{userData?.username}
-                </Text>
+                {/* One line: a long name ends in "…" so the name icon and
+                    the tick stay beside it. */}
+                <UserNameRow
+                  name={userData?.profile?.profile_name}
+                  theme={profileTheme}
+                  tier={userData?.member_tier}
+                  variant="full"
+                  verified={!!userData?.profile?.verified}
+                  verifiedSize={23}
+                  verifiedColor={theme.primary}
+                  style={[styles.name, { color: theme.text, marginTop: 0 }]}
+                />
+                <StyledUsername
+                  theme={profileTheme}
+                  username={userData?.username}
+                  variant="full"
+                  style={[styles.username, { color: theme.subText }]}
+                  numberOfLines={1}
+                />
               </View>
             </View>
           </View>
 
           <View style={{ marginTop: 12, paddingHorizontal: 16 }}>
             {isCurrentUser ? (
-              <TouchableOpacity
-                onPress={() => navigation.navigate("EditProfileScreen")}
-                style={{ backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999 }}
-              >
-                <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
-                  {t('follow.editProfile')}
-                </Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("EditProfileScreen")}
+                  style={{ flex: 1, backgroundColor: "transparent", borderWidth: 1.5, padding: 12, borderColor: theme.primary, borderRadius: 999 }}
+                >
+                  <Text style={{ textAlign: "center", fontWeight: "600", color: theme.primary }}>
+                    {t('follow.editProfile')}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => navigation.navigate("ProfileCustomizerScreen")}
+                  accessibilityLabel={t("profileTheme.title", "Giao diện hồ sơ")}
+                  style={{ width: 47, height: 47, borderRadius: 999, borderWidth: 1.5, borderColor: theme.primary, alignItems: "center", justifyContent: "center" }}
+                >
+                  <Ionicons name="color-palette-outline" size={20} color={theme.primary} />
+                </TouchableOpacity>
+              </View>
             ) : (
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {followed ? (
@@ -835,6 +942,7 @@ const ProfileScreen = ({ route, navigation }) => {
           </View>
 
           <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: theme.surface, padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border }}>
+            <ThemedSurface theme={profileTheme} radius={16} />
             <Text style={{ fontWeight: "600", fontSize: 18, color: theme.text }}>{t('profile.title')}</Text>
             {userData?.profile?.bio && (
               <Text style={{ color: theme.subText, fontSize: 14, marginTop: 8, marginBottom: 12 }}>
@@ -898,7 +1006,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "posts" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                (activeTab === "posts" || activeTab === "photos") && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("posts")}
             >
@@ -911,7 +1019,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "following" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                activeTab === "following" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("following")}
             >
@@ -924,7 +1032,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "followers" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                activeTab === "followers" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("followers")}
             >
@@ -937,7 +1045,7 @@ const ProfileScreen = ({ route, navigation }) => {
             <TouchableOpacity
               style={[
                 { gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" },
-                activeTab === "likes" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: theme.primary }
+                activeTab === "likes" && { backgroundColor: isDarkMode ? "#1e2e1c" : "#C7F0C2", borderColor: tabColor }
               ]}
               onPress={() => setActiveTab("likes")}
             >
@@ -948,15 +1056,65 @@ const ProfileScreen = ({ route, navigation }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6 }}
+              style={{ gap: 2, justifyContent: "center", alignItems: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 1.2, borderColor: "transparent" }}
               onPress={() => setShowMilestonesModal(true)}
             >
               <Text style={{ fontWeight: "600", fontSize: 11, color: theme.text }}>{t('profile.pointsTab')}</Text>
-              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.primary }}>
+              <Text style={{ fontWeight: "800", fontSize: 18, color: theme.text }}>
                 {userData?.stats?.activity_points}
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Posts tab: the posts themselves, or every photo in them. */}
+          {(activeTab === "posts" || activeTab === "photos") && (
+            <View
+              style={{
+                marginTop: 16,
+                marginBottom: activeTab === "photos" ? 12 : 0,
+                alignSelf: "center",
+                flexDirection: "row",
+                backgroundColor: theme.iconBackground,
+                borderRadius: 999,
+                padding: 3,
+              }}
+            >
+              {[
+                { value: "posts", label: t("profile.postsTab") },
+                {
+                  value: "photos",
+                  label:
+                    photoGallery.loaded && photoGallery.total > 0
+                      ? t("profile.photosTabCount", { total: photoGallery.total })
+                      : t("profile.photosTab"),
+                },
+              ].map((segment) => {
+                const selected = activeTab === segment.value;
+                return (
+                  <TouchableOpacity
+                    key={segment.value}
+                    onPress={() => setActiveTab(segment.value)}
+                    activeOpacity={0.7}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected }}
+                    style={{
+                      paddingVertical: 6,
+                      paddingHorizontal: 16,
+                      borderRadius: 999,
+                      backgroundColor: selected ? theme.background : "transparent",
+                    }}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontSize: 13, fontWeight: "600", color: selected ? theme.text : theme.subText }}
+                    >
+                      {segment.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
 
           {activeTab === "likes" && (
             <View style={{ marginTop: 16, marginHorizontal: 16, gap: 10 }}>
@@ -1027,6 +1185,14 @@ const ProfileScreen = ({ route, navigation }) => {
               opacity: headerBgOpacity,
             }}
           />
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: insets.top,
+              backgroundColor: theme.background,
+              opacity: statusBarBgOpacity,
+            }}
+          />
 
           {/* Header content */}
           <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 64 + insets.top }}>
@@ -1080,7 +1246,7 @@ const ProfileScreen = ({ route, navigation }) => {
               onPress={() => {}}
             >
               <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <Text style={{ fontWeight: "700", fontSize: 16, color: theme.primary }}>Điểm thành tích</Text>
+                <Text style={{ fontWeight: "700", fontSize: 16, color: theme.text }}>Điểm thành tích</Text>
                 <TouchableOpacity onPress={() => setShowMilestonesModal(false)}>
                   <Ionicons name="close" size={22} color={theme.subText} />
                 </TouchableOpacity>
@@ -1091,22 +1257,37 @@ const ProfileScreen = ({ route, navigation }) => {
                   { id: "active", name: "Tích cực", min_points: 150, color: "#3b82f6" },
                   { id: "distinguished", name: "Tiêu biểu", min_points: 500, color: "#eab308" },
                   { id: "veteran", name: "Kỳ cựu", min_points: 1000, color: "#a855f7" },
+                  { id: "premium", name: "Cao cấp", min_points: 1500, color: "#f43f5e" },
+                  { id: "pro", name: "Pro", min_points: 2000, color: "#f97316" },
                 ];
-                const milestones = userData?.points_milestones || {};
-                return TIERS.map((tier) => {
-                  const m = milestones[tier.id];
-                  const achieved = m?.achieved_at;
+                // The API sends an array of {id, name, min_points, achieved_at}
+                // (achieved_at already formatted as d/m/Y), not an id-keyed map.
+                const raw = userData?.points_milestones;
+                const list = Array.isArray(raw) ? raw : Object.values(raw || {});
+                const milestones = Object.fromEntries(list.filter(Boolean).map((m) => [m.id, m]));
+                const points = Number(userData?.stats?.activity_points) || 0;
+                return TIERS.map((base) => {
+                  const m = milestones[base.id];
+                  const tier = { ...base, name: t(`memberTiers.${base.id}`, m?.name ?? base.name), min_points: m?.min_points ?? base.min_points };
+                  const achieved = !!m?.achieved_at || points >= tier.min_points;
                   return (
                     <View key={tier.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? "#2a2a2a" : "#f0f0f0", opacity: achieved ? 1 : 0.4 }}>
                       <View style={{ width: 52, alignItems: "center" }}>
                         <Text style={{ fontWeight: "800", fontSize: 13, color: tier.color }}>{tier.min_points}</Text>
                         <Text style={{ fontSize: 10, color: tier.color }}>điểm</Text>
                       </View>
-                      <View style={{ flex: 1, marginLeft: 10 }}>
-                        <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text }}>{tier.name}</Text>
+                      <View style={{ flex: 1, marginLeft: 10, marginRight: 8 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <MaterialCommunityIcons name={TIER_ICONS[tier.id] || "medal"} size={16} color={tier.color} />
+                          <Text style={{ fontWeight: "700", fontSize: 14, color: theme.text, flexShrink: 1 }}>{tier.name}</Text>
+                        </View>
+                        {/* What the tier unlocks. */}
+                        <Text style={{ fontSize: 12, color: theme.subText, marginTop: 2 }}>
+                          {t(`memberTierPerks.${tier.id}`)}
+                        </Text>
                       </View>
                       <Text style={{ fontSize: 12, color: theme.subText }}>
-                        {achieved ? new Date(achieved).toLocaleDateString("vi-VN") : "Chưa đạt"}
+                        {m?.achieved_at || (achieved ? "Đã đạt" : "Chưa đạt")}
                       </Text>
                     </View>
                   );
@@ -1115,6 +1296,17 @@ const ProfileScreen = ({ route, navigation }) => {
             </Pressable>
           </Pressable>
         </Modal>
+
+        <ProfilePhotoViewer
+          photos={photoGallery.photos}
+          index={photoViewer.index}
+          visible={photoViewer.visible}
+          onClose={() => setPhotoViewer((current) => ({ ...current, visible: false }))}
+          onOpenPost={(photo) => {
+            setPhotoViewer((current) => ({ ...current, visible: false }));
+            navigation.push("PostScreen", { postId: photo.post_id });
+          }}
+        />
 
         <ReportModal
           visible={reportModalVisible}
@@ -1137,7 +1329,15 @@ const ProfileScreen = ({ route, navigation }) => {
           renderItem={renderListItem}
           ListEmptyComponent={renderListEmpty}
           ListFooterComponent={renderListFooter}
-          ListHeaderComponent={renderListHeader}
+          // Pass the header as an element, not the function: FlatList renders
+          // a function as `<ListHeaderComponent />`, and renderListHeader is
+          // a new function every render - so every re-render (useIsFocused
+          // flipping on push/pop, the focus refetch, onLayout...) unmounted
+          // and remounted the whole header. That restarted the profile
+          // effect, re-created the Skia frame/avatar-ring canvases (blank
+          // until re-measured) and re-faded the cover image - the "effects
+          // flicker when entering/leaving the profile" bug.
+          ListHeaderComponent={renderListHeader()}
           showsVerticalScrollIndicator={false}
           scrollEventThrottle={16}
           onScroll={Animated.event(
@@ -1161,7 +1361,7 @@ const ProfileScreen = ({ route, navigation }) => {
           }
           onViewableItemsChanged={handleViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
-          extraData={{ activePostId, isFocused, autoplayVideos }}
+          extraData={listExtraData}
         />
         </AndroidGlassBackdrop>
       </View>

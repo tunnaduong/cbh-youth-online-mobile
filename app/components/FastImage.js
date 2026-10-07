@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { Image } from "expo-image";
+import MediaShimmer from "./MediaShimmer";
 import { useAuthContext } from "../contexts/AuthContext";
 
 // Matches .../v1.0/users/<username>/avatar or /cover, with or without an
@@ -14,7 +16,13 @@ import { useAuthContext } from "../contexts/AuthContext";
 // the URL (its cache key) never changed.
 const OWN_MEDIA_RE = /\/v1\.0\/users\/([^/?]+)\/(avatar|cover)(?:\?.*)?$/i;
 
-const FastImage = React.forwardRef(({ source, resizeMode, style, ...props }, ref) => {
+// An image with a side known to be shorter than this - avatars, icons, which
+// fill long lists - loads without a placeholder. Everything else that comes
+// from the network gets one (MediaShimmer: the app's loading indicator).
+const SHIMMER_MIN_SIZE = 100;
+
+const FastImage = React.forwardRef(({ source, resizeMode, style, onLoad, onError, shimmer = false, ...props }, ref) => {
+  const [settled, setSettled] = useState(false);
   const { username, avatarVersion, coverVersion } = useAuthContext();
 
   // map resizeMode to contentFit
@@ -48,7 +56,31 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, ...props }, ref
   // Support priority prop if it's in source
   const priority = (source && source.priority) ? source.priority.toLowerCase() : undefined;
 
-  return (
+  // The placeholder needs a box of its own, so the image's style moves to a
+  // wrapper and the image fills it.
+  const flat = StyleSheet.flatten(style) || {};
+  const uri = mappedSource && typeof mappedSource === "object" ? mappedSource.uri : null;
+  const remote = typeof uri === "string" && /^https?:/i.test(uri);
+  const knownSmall =
+    (typeof flat.width === "number" && flat.width < SHIMMER_MIN_SIZE) ||
+    (typeof flat.height === "number" && flat.height < SHIMMER_MIN_SIZE);
+  // Something in the style has to give the wrapper its size: a remote image
+  // has none of its own before it loads.
+  const hasBox =
+    flat.width != null ||
+    flat.height != null ||
+    flat.flex != null ||
+    flat.aspectRatio != null ||
+    flat.position === "absolute";
+  // `shimmer` forces it where the caller knows better than this check.
+  const large = shimmer || (remote && !knownSmall && hasBox);
+
+  // A recycled list row shows a different picture in the same component.
+  useEffect(() => {
+    setSettled(false);
+  }, [uri]);
+
+  const image = (imageStyle) => (
     <Image
       ref={ref}
       source={mappedSource}
@@ -56,9 +88,31 @@ const FastImage = React.forwardRef(({ source, resizeMode, style, ...props }, ref
       priority={priority}
       cachePolicy="memory-disk"
       transition={200}
-      style={style}
+      style={imageStyle}
       {...props}
+      onLoad={(event) => {
+        if (large) setSettled(true);
+        onLoad?.(event);
+      }}
+      onError={(event) => {
+        if (large) setSettled(true);
+        onError?.(event);
+      }}
     />
+  );
+
+  if (!large || !mappedSource) {
+    return image(style);
+  }
+
+  // These only mean something on an image; a View warns about them.
+  const { tintColor, resizeMode: _resizeMode, objectFit: _objectFit, ...boxStyle } = flat;
+
+  return (
+    <View style={[boxStyle, { overflow: "hidden" }]}>
+      {!settled && <MediaShimmer />}
+      {image(tintColor ? [StyleSheet.absoluteFill, { tintColor }] : StyleSheet.absoluteFill)}
+    </View>
   );
 });
 

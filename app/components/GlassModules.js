@@ -1,5 +1,6 @@
 import React from "react";
-import { Platform, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../contexts/ThemeContext";
 
 // ---------------------------------------------------------------------------
@@ -34,6 +35,133 @@ try {
   console.log("[GlassModules] react-native-liquid-glassmorphism: NOT available");
 }
 
+// ---------------------------------------------------------------------------
+// iOS below 26 has no system liquid glass, and the library's fallback there is
+// a plain frosted UIBlurEffect. With "Liquid glass effect" on, those versions
+// get this instead: an expo-blur system material (Gaussian blur, drawn by the
+// OS compositor - no per-frame work in JS), kept light and nearly untinted,
+// with a sheen and a bright rim (see BlurGlassView), which is what makes a
+// blurred panel read as glass. Nothing in it animates, so scrolling stays
+// smooth. iOS 26+ keeps the real UIGlassEffect, Android keeps its shader.
+//
+// expo-blur is loaded in a try block and its native side is looked up first:
+// JS that reaches a build made before the package was added keeps the
+// library's fallback instead of crashing on a missing view.
+//
+// The lookup accepts any of the ways the module can show up. It used to ask
+// only for a view named "ExpoBlurView"; a module registers its one view as
+// its default view, so that lookup can come back empty on a build that does
+// have expo-blur - and then this whole blur glass was silently never used.
+// ---------------------------------------------------------------------------
+const hasNativeBlur = () => {
+  const expo = globalThis.expo;
+  if (!expo) return false;
+  try {
+    if (expo.modules?.ExpoBlur) return true;
+  } catch (error) {}
+  try {
+    if (expo.getViewConfig?.("ExpoBlur")) return true;
+  } catch (error) {}
+  try {
+    if (expo.getViewConfig?.("ExpoBlur", "ExpoBlurView")) return true;
+  } catch (error) {}
+  return false;
+};
+
+let BlurView = null;
+if (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26) {
+  try {
+    if (hasNativeBlur()) {
+      BlurView = require("expo-blur").BlurView;
+    }
+  } catch (error) {
+    BlurView = null;
+  }
+}
+console.log(`[GlassModules] blur glass (iOS < 26): ${BlurView ? "on" : "off"}`);
+
+// What makes this read as liquid glass rather than a frosted panel, without
+// the refraction only the system can do:
+//   - a light blur (low intensity on the thinnest system material), so what
+//     is behind stays recognisable instead of turning into a flat fog;
+//   - almost no tint over it - the surface is mostly what is behind it;
+//   - light caught on the edges: a bright rim on the top / left where light
+//     would hit, a faint one on the bottom / right, over a hairline outline;
+//   - a soft sheen falling off from the top-left corner.
+// All static layers drawn by the compositor - nothing here animates.
+const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
+  const { isDarkMode } = useTheme();
+  const flat = StyleSheet.flatten(style) || {};
+  const radius = borderRadius ?? flat.borderRadius ?? 0;
+  // The default glass tint is tuned for real glass; over a blur it would
+  // double up with the material's own tint, so it is nearly dropped here. A
+  // custom tint (a LiquidButton's own colour) is the surface the caller asked
+  // for and is kept.
+  const isDefaultTint = tintColor == null || tintColor === glassTint(isDarkMode);
+  const overlay = isDefaultTint
+    ? isDarkMode ? "rgba(20, 20, 22, 0.16)" : "rgba(255, 255, 255, 0.10)"
+    : tintColor;
+
+  return (
+    <View
+      style={[
+        style,
+        { overflow: "hidden", backgroundColor: "transparent" },
+        borderRadius != null && { borderRadius },
+      ]}
+    >
+      <BlurView
+        pointerEvents="none"
+        intensity={isDarkMode ? 34 : 38}
+        tint={isDarkMode ? "systemUltraThinMaterialDark" : "systemUltraThinMaterialLight"}
+        style={StyleSheet.absoluteFill}
+      />
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: overlay }]} />
+      {/* Sheen: light from the top-left, gone by the middle. */}
+      <LinearGradient
+        pointerEvents="none"
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        colors={
+          isDarkMode
+            ? ["rgba(255,255,255,0.14)", "rgba(255,255,255,0.03)", "rgba(255,255,255,0)", "rgba(255,255,255,0.04)"]
+            : ["rgba(255,255,255,0.42)", "rgba(255,255,255,0.10)", "rgba(255,255,255,0)", "rgba(255,255,255,0.12)"]
+        }
+        locations={[0, 0.3, 0.65, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Rim: bright where light lands (top, left), faint opposite. */}
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: radius,
+            borderWidth: 1,
+            borderTopColor: isDarkMode ? "rgba(255,255,255,0.30)" : "rgba(255,255,255,0.85)",
+            borderLeftColor: isDarkMode ? "rgba(255,255,255,0.18)" : "rgba(255,255,255,0.60)",
+            borderRightColor: isDarkMode ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.28)",
+            borderBottomColor: isDarkMode ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.22)",
+          },
+        ]}
+      />
+      {/* Outline that keeps the shape readable over any background. */}
+      <View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: radius,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.06)",
+          },
+        ]}
+      />
+      {children}
+    </View>
+  );
+};
+
 // Settings' "Liquid glass effect" toggle (default on) reads/writes here, so
 // this one component is the only place that needs to know about it - every
 // call site across the app just keeps rendering <LiquidGlassView ...> with
@@ -44,6 +172,24 @@ try {
 // Every call site already passes tintColor as the intended surface color,
 // so reusing it as a flat backgroundColor here is a faithful "glass off"
 // look, not an approximation cobbled together separately per screen.
+// Android only: no edge reflection.
+//
+// What showed "the content above" inside a glass surface is one specific part
+// of the library's shader, named in its source (v1.0.0,
+// LiquidGlassmorphismView.kt): the EDGE-REFLECTION BAND - "a lens band at the
+// rim that folds the sample back on itself, so content near the edge appears
+// mirrored - the inverted echo". It is broad (the outer third of the surface)
+// and on a tab bar or a button it mirrors the rows right next to it.
+//
+// The library has a prop for exactly this: `edgeReflectionStrength`, 0 (off)
+// to 1 (default), which "scales ONLY this reflection band - independent of
+// thickness - so the upside-down edge echo can be calmed ... without
+// flattening the whole lens". So the lens (`thickness`) stays as it was and
+// only the mirror is switched off. Spread last on the view, so no call site
+// can turn it back on. iOS is not touched (its glass is the system's).
+const ANDROID_NO_EDGE_REFLECTION =
+  Platform.OS === "android" ? { edgeReflectionStrength: 0 } : null;
+
 const GatedLiquidGlassView = ({
   tintColor,
   style,
@@ -51,7 +197,15 @@ const GatedLiquidGlassView = ({
   children,
   ...rest
 }) => {
-  const { liquidGlassEnabled } = useTheme();
+  const { liquidGlassEnabled, isDarkMode } = useTheme();
+
+  if (liquidGlassEnabled && BlurView) {
+    return (
+      <BlurGlassView tintColor={tintColor} style={style} borderRadius={borderRadius}>
+        {children}
+      </BlurGlassView>
+    );
+  }
 
   if (liquidGlassEnabled) {
     return (
@@ -60,6 +214,7 @@ const GatedLiquidGlassView = ({
         style={style}
         borderRadius={borderRadius}
         {...rest}
+        {...ANDROID_NO_EDGE_REFLECTION}
       >
         {children}
       </RealLiquidGlassView>
@@ -72,11 +227,20 @@ const GatedLiquidGlassView = ({
   // overrides the style's own radius and squares the view off - that's what
   // put a hard-cornered box behind the round "+" tab button whenever the
   // Liquid glass setting was turned off. Only override when actually given.
+  // Without the blur behind it, glassTint's 0.4 alpha reads as a see-through
+  // smear rather than a surface. Swap the default glass tint for a mostly
+  // opaque panel (One UI-style frosted surface); custom tints such as a
+  // LiquidButton's own backgroundColor are kept as given.
+  const fallbackColor =
+    tintColor == null || tintColor === glassTint(isDarkMode)
+      ? flatSurface(isDarkMode)
+      : tintColor;
+
   return (
     <View
       style={[
         style,
-        { backgroundColor: tintColor },
+        { backgroundColor: fallbackColor },
         borderRadius != null && { borderRadius },
       ]}
     >
@@ -108,6 +272,12 @@ const AndroidGlassBackdrop = ({ style, children }) => (
 const glassTint = (isDarkMode) =>
   isDarkMode ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.4)";
 
+// Flat surface used in place of glassTint when the user turns Liquid glass
+// off. There is no blur in that mode, so it has to be nearly opaque to read
+// as a panel - close to One UI's frosted bars/drawers.
+const flatSurface = (isDarkMode) =>
+  isDarkMode ? "rgba(24, 24, 26, 0.9)" : "rgba(250, 250, 252, 0.9)";
+
 // On Android 13+ the library renders its full AGSL refraction shader every
 // single frame for every mounted <LiquidGlassView> - capture backdrop -> GPU
 // blur -> refraction, regardless of whether anyone is touching it. With
@@ -122,17 +292,20 @@ const glassTint = (isDarkMode) =>
 // Pinned back to 1.0.0 (from 1.2.1) - even after tuning every new-in-1.1.0+
 // knob (blurRadius, rim, specular, edgeReflectionStrength all dropped/off),
 // 1.2.1 still ran more per-frame shader work than the plain 1.0.0 build did
-// at its own defaults. Only intensity/thickness exist as props on 1.0.0 -
-// blurRadius/rim/specular/edgeReflectionStrength don't exist on this version
-// at all, so they're removed here rather than passed as dead props.
+// at its own defaults. 1.0.0 has intensity, thickness and
+// edgeReflectionStrength (checked in its source); blurRadius/rim/specular
+// do not exist on this version, so they are not passed.
 const androidGlassPerfProps =
-  Platform.OS === "android" ? { intensity: 7, thickness: 0.4 } : {};
+  Platform.OS === "android"
+    ? { intensity: 7, thickness: 0.4, edgeReflectionStrength: 0 }
+    : {};
 
 export {
   LiquidGlassView,
   isGlassAvailable,
   AndroidGlassBackdrop,
   glassTint,
+  flatSurface,
   androidGlassPerfProps,
 };
 
@@ -141,5 +314,6 @@ export default {
   isGlassAvailable,
   AndroidGlassBackdrop,
   glassTint,
+  flatSurface,
   androidGlassPerfProps,
 };

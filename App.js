@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useState, useEffect, useRef } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 // react-native-screens' enableFreeze(true) used to be on here - it pauses a
 // backgrounded screen's whole React tree (via react-freeze/Suspense) so it
@@ -16,6 +16,7 @@ import { CustomAlert, CustomAlertProvider } from "./app/components/CustomAlert";
 import { AuthContext } from "./app/contexts/AuthContext";
 import { SessionResetContext } from "./app/contexts/SessionContext";
 import i18n, { hasChosenLanguage } from "./app/i18n";
+import { onboardingSettingsPending } from "./app/utils/onboarding";
 import { getSavedAccounts } from "./app/utils/savedAccounts";
 
 if (Platform.OS === "android") {
@@ -42,11 +43,17 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 
 import {
   SafeAreaProvider,
+  SafeAreaInsetsContext,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import { isIosSheet } from "./app/utils/modalSheet";
 import CreatePostScreen from "./app/screens/MainScreens/CreatePostScreen";
 import PostEditScreen from "./app/screens/MainScreens/PostEditScreen";
 import Toast from "react-native-toast-message";
+import AppToast from "./app/components/AppToast";
+import UploadStatusBar from "./app/components/UploadStatusBar";
+import LoginApprovalPrompt from "./app/components/LoginApprovalPrompt";
+import { cancelAllUploads } from "./app/services/uploadQueue";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { joinGroupViaInvite } from "./app/services/api/Api";
 import EditProfileScreen from "./app/screens/MainScreens/EditProfileScreen";
@@ -84,12 +91,18 @@ import StoryViewersScreen from "./app/screens/MainScreens/StoryViewersScreen";
 import ArchiveScreen from "./app/screens/MainScreens/ArchiveScreen";
 import MemberRankingScreen from "./app/screens/MainScreens/MemberRankingScreen";
 import PointWalletScreen from "./app/screens/MainScreens/PointWalletScreen";
+import WebAppScreen from "./app/screens/MainScreens/WebAppScreen";
 import DepositScreen from "./app/screens/MainScreens/PointWalletScreen/DepositScreen";
 import WithdrawScreen from "./app/screens/MainScreens/PointWalletScreen/WithdrawScreen";
 
 import SecurityScreen from "./app/screens/MainScreens/SettingsScreen/SecurityScreen";
+import TwoFactorScreen from "./app/screens/MainScreens/SettingsScreen/TwoFactorScreen";
+import DevicesScreen from "./app/screens/MainScreens/SettingsScreen/DevicesScreen";
+import PasskeysScreen from "./app/screens/MainScreens/SettingsScreen/PasskeysScreen";
+import TwoFactorChallengeScreen from "./app/screens/TwoFactorChallengeScreen";
 import NotificationSettingsScreen from "./app/screens/MainScreens/SettingsScreen/NotificationSettingsScreen";
 import BlockedUsersScreen from "./app/screens/MainScreens/SettingsScreen/BlockedUsersScreen";
+import ProfileCustomizerScreen from "./app/screens/MainScreens/ProfileCustomizerScreen";
 import StudentVerificationScreen from "./app/screens/MainScreens/SettingsScreen/StudentVerificationScreen";
 
 import { useTheme } from "./app/contexts/ThemeContext";
@@ -104,6 +117,19 @@ import ShakeToReport from "./app/components/ShakeToReport";
 // during app startup is missed if dev mode is already enabled from a
 // previous session.
 initDevConsole();
+
+// A screen drawn as an iOS sheet (a modal, or anything opened on top of one)
+// already starts below the status bar, but the safe-area inset still reports
+// the notch - every header adding `insets.top` got an empty band above it.
+// Inside a sheet the top inset is 0 for everything that reads the context.
+const SheetAwareScreen = ({ navigation, route, children }) => {
+  const insets = useSafeAreaInsets();
+  const inSheet = isIosSheet(navigation, route);
+  const value = React.useMemo(() => ({ ...insets, top: 0 }), [insets]);
+
+  if (!inSheet) return children;
+  return <SafeAreaInsetsContext.Provider value={value}>{children}</SafeAreaInsetsContext.Provider>;
+};
 
 const Stack = createStackNavigator();
 
@@ -294,6 +320,27 @@ const parseDeepLink = (url) => {
 // Main App component
 const App = ({ skipSplash = false }) => {
   const { theme, isDarkMode } = useTheme();
+  // React Navigation was never told the app's theme, so it ran with its
+  // default light one whatever the app showed. On iOS 26 the tab bar is the
+  // system's and is built from this: in a dark app it came up as a light bar
+  // (clear glass, dark icons - nearly invisible), most visibly after signing
+  // out and back in, when the whole navigator is built again. Only the dark
+  // flag and the colours that belong to the app are set; the rest stays
+  // React Navigation's own.
+  const navigationTheme = React.useMemo(() => {
+    const base = isDarkMode ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      dark: isDarkMode,
+      colors: {
+        ...base.colors,
+        primary: theme.primary,
+        background: theme.background,
+        text: theme.text,
+        border: theme.border,
+      },
+    };
+  }, [isDarkMode, theme]);
   const { barStyle, backgroundColor: statusBarColor } = useStatusBar();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -325,6 +372,15 @@ const App = ({ skipSplash = false }) => {
   useEffect(() => {
     hasChosenLanguage().then(setLanguageChosen);
   }, []);
+  // The language was picked but the app was closed on the next setup screen
+  // ("customize your experience"): reopen that screen instead of skipping it
+  // (see app/utils/onboarding.js). null while unknown.
+  const [settingsPending, setSettingsPending] = useState(null);
+  // Read again when the login state flips: the flag is cleared during the
+  // session, and a later sign-out must not find the value read at boot.
+  useEffect(() => {
+    onboardingSettingsPending().then(setSettingsPending);
+  }, [isLoggedIn]);
   // Adding/switching an account signs the device out momentarily. That is not
   // a first launch, so it must not drag the person back through language and
   // preference onboarding - any saved account means they've been here before.
@@ -582,7 +638,7 @@ const App = ({ skipSplash = false }) => {
     return <SplashScreen onFinish={handleSplashFinish} />;
   }
 
-  if (isLoading || languageChosen === null || hasSavedAccounts === null) {
+  if (isLoading || languageChosen === null || hasSavedAccounts === null || settingsPending === null) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}>
         <LottieView
@@ -608,17 +664,21 @@ const App = ({ skipSplash = false }) => {
         animated={true}
       />
       <NavigationContainer
+        theme={navigationTheme}
         ref={navigationRef}
         onReady={handleNavigationReady}
         onStateChange={handleNavigationStateChange}
       >
         <Stack.Navigator
           initialRouteName={
-            !isLoggedIn && languageChosen === false && hasSavedAccounts === false
+            !isLoggedIn && hasSavedAccounts === false && languageChosen === false
               ? "LanguageSelect"
+              : !isLoggedIn && hasSavedAccounts === false && settingsPending
+              ? "FirstLaunchSettings"
               : undefined
           }
-          screenOptions={{
+          screenLayout={(props) => <SheetAwareScreen {...props} />}
+          screenOptions={({ navigation, route }) => ({
             headerStyle: {
               backgroundColor: theme.headerBackground,
               elevation: 0,
@@ -633,7 +693,9 @@ const App = ({ skipSplash = false }) => {
             headerTitleContainerStyle: {
               paddingVertical: 10,
             },
-          }}
+            // The stack's own header, same reason as SheetAwareScreen.
+            ...(isIosSheet(navigation, route) ? { headerStatusBarHeight: 0 } : null),
+          })}
         >
           {isLoggedIn ? (
             <>
@@ -718,7 +780,12 @@ const App = ({ skipSplash = false }) => {
                   headerShown: false,
                   presentation: "modal",
                   gestureEnabled: true,
-                  animation: "slide_from_bottom",
+                  // No custom animation: with one, iOS shows the modal full
+                  // screen instead of as a sheet, while SheetAwareScreen still
+                  // treats it as a sheet (top inset 0), which put the header
+                  // buttons under the status bar. A sheet slides up anyway;
+                  // Android, where a modal is not a sheet, keeps the slide.
+                  animation: Platform.OS === "android" ? "slide_from_bottom" : "default",
                 }}
                 component={EditProfileScreen}
               />
@@ -800,6 +867,34 @@ const App = ({ skipSplash = false }) => {
                 }}
               />
               <Stack.Screen
+                name="TwoFactorScreen"
+                component={TwoFactorScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="DevicesScreen"
+                component={DevicesScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="PasskeysScreen"
+                component={PasskeysScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="ProfileCustomizerScreen"
+                component={ProfileCustomizerScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
                 name="BlockedUsersScreen"
                 component={BlockedUsersScreen}
                 options={{
@@ -864,6 +959,18 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="PointWalletScreen"
                 component={PointWalletScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="GiftShopScreen"
+                component={WebAppScreen}
+                initialParams={{ site: "giftshop" }}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="AdminWebScreen"
+                component={WebAppScreen}
+                initialParams={{ site: "admin" }}
                 options={{ headerShown: false }}
               />
               <Stack.Screen
@@ -1031,6 +1138,11 @@ const App = ({ skipSplash = false }) => {
                 component={ForgotPasswordScreen}
               />
               <Stack.Screen
+                name="TwoFactorChallenge"
+                options={{ title: "Xác thực hai lớp", headerShown: false }}
+                component={TwoFactorChallengeScreen}
+              />
+              <Stack.Screen
                 name="TermsOfServiceScreen"
                 component={TermsOfServiceScreen}
                 options={{
@@ -1057,6 +1169,10 @@ const App = ({ skipSplash = false }) => {
       </NavigationContainer>
       {/* Shake the phone -> screenshot + feedback form (toggle in Settings) */}
       <ShakeToReport navigationRef={navigationRef} />
+      {/* Posts, stories and attachments going up in the background */}
+      <UploadStatusBar />
+      {/* A login on another device waiting to be approved here (2FA) */}
+      <LoginApprovalPrompt />
       <CustomAlertProvider />
     </>
   );
@@ -1068,21 +1184,28 @@ export default () => {
   // mounts them again from storage - a cold start without a native reload
   // (see SessionContext for why the native reload was dropped).
   const [sessionKey, setSessionKey] = useState(0);
-  const resetSession = useCallback(() => setSessionKey((k) => k + 1), []);
+  const resetSession = useCallback(() => {
+    // An upload still running would finish under the new account's token.
+    cancelAllUploads();
+    setSessionKey((k) => k + 1);
+  }, []);
 
   return (
     <TailwindProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <SessionResetContext.Provider value={resetSession}>
-          <MultiContextProvider key={sessionKey}>
-            <SafeAreaProvider>
-              <KeyboardProvider>
+        {/* SafeAreaProvider and KeyboardProvider hold native state, not
+            per-account state, so they stay outside the keyed subtree and
+            are not torn down and recreated on every account switch. */}
+        <SafeAreaProvider>
+          <KeyboardProvider>
+            <SessionResetContext.Provider value={resetSession}>
+              <MultiContextProvider key={sessionKey}>
                 <App skipSplash={sessionKey > 0} />
-              </KeyboardProvider>
-            </SafeAreaProvider>
-          </MultiContextProvider>
-        </SessionResetContext.Provider>
-        <Toast topOffset={60} />
+              </MultiContextProvider>
+            </SessionResetContext.Provider>
+          </KeyboardProvider>
+        </SafeAreaProvider>
+        <AppToast topOffset={60} />
       </GestureHandlerRootView>
     </TailwindProvider>
   );

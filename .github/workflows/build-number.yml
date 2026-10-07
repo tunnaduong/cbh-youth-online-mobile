@@ -1,0 +1,59 @@
+name: Commit build number
+
+# Builds on dhphuc only patch app.json in their own checkout. The number is
+# written to git here, once the work reaches main.
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  commit-build-number:
+    name: Commit the build number to main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The app's build number is the run number of the build workflows, so
+      # take the highest one they have reached.
+      - name: Read the last CI build number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          latest=0
+          for workflow in build-android.yml build-ios.yml; do
+            number=$(gh api "repos/$REPO/actions/workflows/$workflow/runs?per_page=1" --jq '.workflow_runs[0].run_number // 0')
+            echo "$workflow: run #$number"
+            if [ "$number" -gt "$latest" ]; then latest=$number; fi
+          done
+          if [ "$latest" -le 0 ]; then
+            echo "No build run found"
+            exit 1
+          fi
+          echo "BUILD_NUMBER=$latest" >> "$GITHUB_ENV"
+
+      # --if-higher: never takes the committed number backwards. [skip ci]
+      # keeps the commit from starting any workflow.
+      - name: Commit the build number
+        run: |
+          node scripts/set-build-number.js "$BUILD_NUMBER" --if-higher
+          git add app.json
+          if git diff --cached --quiet; then
+            echo "app.json already at build $BUILD_NUMBER"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: build number $BUILD_NUMBER [skip ci]"
+            git push origin "HEAD:main"
+          fi

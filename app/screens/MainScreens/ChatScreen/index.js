@@ -30,9 +30,18 @@ import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
 import CustomLoading from "../../../components/CustomLoading";
 import FastImage from "../../../components/FastImage";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import AvatarFrame from "../../../components/profile/AvatarFrame";
 
+// Time of a conversation's last message, short enough for the row: the hour
+// for today, the date otherwise. (It was an empty placeholder that returned
+// nothing, so the list showed no time at all.)
 const formatMessageTime = (timestamp) => {
-  // ... same formatMessageTime function ...
+  const time = dayjs(timestamp);
+  if (!time.isValid()) return "";
+  const now = dayjs();
+  if (time.isSame(now, "day")) return time.format("HH:mm");
+  return time.isSame(now, "year") ? time.format("DD/MM") : time.format("DD/MM/YY");
 };
 
 export default function ChatScreen({ navigation, scrollTriggerRef }) {
@@ -52,9 +61,15 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
-  const { blockedUsers } = useContext(AuthContext);
+  const { blockedUsers, username } = useContext(AuthContext);
+  // Per account: a request still in flight during an account switch could
+  // otherwise write the previous account's list into the next one's cache.
+  const conversationsCacheKey = `conversations_${username}`;
   const { onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited } = useChatSocket();
   const flatListRef = useRef(null);
   const scrollPositionRef = useRef(0);
@@ -137,13 +152,14 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   useFocusEffect(
     React.useCallback(() => {
+      // fetchConversations refreshes the unread count itself when it
+      // succeeds; asking again here fetched the whole list a second time.
       fetchConversations();
-      refreshChatCount();
     }, [refreshChatCount])
   );
 
   useEffect(() => {
-    const cached = storage.getString("conversations");
+    const cached = storage.getString(conversationsCacheKey);
     if (cached) {
       setConversations(JSON.parse(cached));
     }
@@ -157,7 +173,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     try {
       const response = await getConversations();
       setConversations(response.data);
-      storage.set("conversations", JSON.stringify(response.data));
+      storage.set(conversationsCacheKey, JSON.stringify(response.data));
       refreshChatCount();
       fetchOnlineStatuses(response.data);
     } catch (error) {
@@ -216,7 +232,13 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     const ids = conversationIdsKey ? conversationIdsKey.split(",") : [];
     if (ids.length === 0) return undefined;
 
-    const refresh = () => fetchConversationsRef.current?.();
+    // Debounced: a burst of events (a busy group, several chats at once) is
+    // one list fetch 400 ms after the last one, not one fetch per event.
+    let refreshTimer = null;
+    const refresh = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => fetchConversationsRef.current?.(), 400);
+    };
     const unsubscribers = ids.flatMap((id) => {
       const numId = Number(id);
       const handleRecalled = (data) => {
@@ -248,8 +270,19 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       ].filter(Boolean);
     });
 
-    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+    return () => {
+      clearTimeout(refreshTimer);
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
   }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited]);
+
+  // One component for the list's separators: defined inline it was a new
+  // component type on every render, so every separator was rebuilt with each
+  // keystroke in the search box.
+  const renderSeparator = React.useCallback(
+    () => <View style={{ height: 1, backgroundColor: theme.border, marginLeft: 80 }} />,
+    [theme.border]
+  );
 
   const filteredConversations = conversations.filter((item) => {
     if (
@@ -291,6 +324,10 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     }
     return conversation.avatar_url || null;
   };
+
+  // Only 1-1 chats show a person; group names/images stay unstyled.
+  const getProfileTheme = (conversation) =>
+    conversation.type === "private" ? conversation.participants[0]?.profile_theme : null;
 
   const renderLastMessagePreview = (latestMessage) => {
     if (!latestMessage) return t("chat.noMessages");
@@ -389,14 +426,17 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             style={[styles.avatar, { backgroundColor: theme.border }]}
           />
         )}
+        <AvatarFrame theme={getProfileTheme(item)} size={48} />
         {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
           <View style={styles.onlineDot} />
         ) : null}
       </View>
       <View style={styles.info}>
-        <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
-          {getChatName(item)}
-        </Text>
+        <UserNameRow
+          name={getChatName(item)}
+          theme={getProfileTheme(item)}
+          style={[styles.name, { color: theme.text }]}
+        />
         <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
           {item.latest_message?.is_myself ? t('chat.you') : ""}
           {renderLastMessagePreview(item.latest_message)}
@@ -483,7 +523,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       <FlatList
         ref={flatListRef}
         data={filteredConversations}
-        extraData={{ t, theme, isDarkMode }}
+        extraData={listExtraData}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderItem}
         onScroll={handleScroll}
@@ -523,11 +563,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
             </View>
           </>
         }
-        ItemSeparatorComponent={() => (
-          <View
-            style={{ height: 1, backgroundColor: theme.border, marginLeft: 80 }}
-          />
-        )}
+        ItemSeparatorComponent={renderSeparator}
         ListEmptyComponent={
           <View style={{ flex: 1, marginTop: 44 }}>
             <View style={styles.emptyContainer}>

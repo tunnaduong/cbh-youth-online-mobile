@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import { AppState } from "react-native";
+import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   logoutRequest,
@@ -6,7 +8,12 @@ import {
   getBlockedUsers,
 } from "../services/api/Api";
 import { storage } from "../global/storage";
+import axiosInstance, { setSessionExpiredHandler } from "../services/api/axiosInstance";
+import { getEcho } from "../services/echo/echo";
+import i18n from "../i18n";
 import { useSessionReset } from "./SessionContext";
+import { WEB_SESSION_KEYS } from "../utils/webSession";
+import { releasePushToken } from "../utils/pushToken";
 import {
   getSavedAccounts,
   upsertSavedAccount,
@@ -23,6 +30,14 @@ const clearSessionCaches = () => {
   if (storage.contains("autoplayVideos")) preserved.autoplayVideos = storage.getBoolean("autoplayVideos");
   if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
   if (storage.contains("shakeToReportEnabled")) preserved.shakeToReportEnabled = storage.getBoolean("shakeToReportEnabled");
+  // Which login the WebViews / in-app browser were signed in with (see
+  // utils/webSession.js). Wiping these made the app forget that they hold a
+  // session at all, so after a sign-out they stayed signed in as the old
+  // account; kept, the next page opened there goes through the site's
+  // sign-out first.
+  WEB_SESSION_KEYS.forEach((key) => {
+    if (storage.contains(key)) preserved[key] = storage.getString(key);
+  });
 
   storage.clearAll();
 
@@ -219,6 +234,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    // While the token still works: this phone must stop getting the
+    // account's push notifications (see utils/pushToken.js).
+    await releasePushToken();
+
     // Call logout API first (while token is still available) then clear local state
     try {
       await logoutRequest();
@@ -230,7 +249,7 @@ export const AuthProvider = ({ children }) => {
     const remaining = userInfo?.id ? await removeSavedAccount(userInfo.id) : await getSavedAccounts();
     for (const account of remaining) {
       try {
-        await switchAccount(account);
+        await switchAccount(account, { leavePrevious: false });
         return;
       } catch {
         // That session was revoked too - try the next one
@@ -241,8 +260,31 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Throws "SESSION_EXPIRED" (and forgets the account) if its token was revoked.
-  const switchAccount = async (account) => {
+  // Ends the web sessions the active account handed to the app's WebViews and
+  // in-app browser, while its token is still the one being sent. Leaving the
+  // account (switching, adding another) must not leave those signed in as it:
+  // their cookie stops working now, and the next page opened there is signed
+  // in as whoever is active then (see utils/webSession.js). The account itself
+  // stays signed in on the device. Best effort - never blocks the switch.
+  const endHandedOverWebSessions = async () => {
+    try {
+      await axiosInstance.post("/v1.0/web-session/revoke", null, { timeout: 5000 });
+    } catch {}
+  };
+
+  // `leavePrevious: false` when the account being left is already logged out
+  // or revoked (sign-out falling back to another saved account): its token
+  // is dead, the API has ended everything itself, and a request with it
+  // would only be answered 401 - which reads as "session expired".
+  const switchAccount = async (account, { leavePrevious = true } = {}) => {
     const previousToken = await AsyncStorage.getItem("auth_token");
+    if (leavePrevious && previousToken && previousToken !== account.token) {
+      // The account stays signed in on the device, but while it is not the
+      // active one this phone gets none of its pushes and its web sessions
+      // are ended.
+      await releasePushToken();
+      await endHandedOverWebSessions();
+    }
     await AsyncStorage.setItem("auth_token", account.token);
     let freshUser = account.user;
     try {
@@ -263,8 +305,100 @@ export const AuthProvider = ({ children }) => {
     restartSession();
   };
 
+  // The API no longer accepts the active account's token - it was logged out
+  // from the logged-in devices list on another device (or its password was
+  // reset). Forget that account on this device and fall back to another
+  // signed-in one, or the login screen - the same as a sign-out, minus the
+  // logout call (the token is already gone).
+  const handlingRevokeRef = useRef(false);
+  const handleSessionRevoked = async (revokedToken) => {
+    if (handlingRevokeRef.current) return;
+    handlingRevokeRef.current = true;
+    try {
+      if ((await AsyncStorage.getItem("auth_token")) !== revokedToken) return;
+
+      const saved = await getSavedAccounts();
+      const revoked = saved.find((account) => account.token === revokedToken);
+      let remaining = saved;
+      if (revoked) {
+        remaining = await removeSavedAccount(revoked.user.id);
+      } else if (userInfo?.id) {
+        remaining = await removeSavedAccount(userInfo.id);
+      }
+
+      Toast.show({ type: "error", text1: i18n.t("sidebar.sessionExpired") });
+
+      for (const account of remaining) {
+        try {
+          await switchAccount(account, { leavePrevious: false });
+          return;
+        } catch {
+          // That session was revoked too - try the next one
+        }
+      }
+      await clearLocalSession();
+    } finally {
+      handlingRevokeRef.current = false;
+    }
+  };
+
+  // Always the latest closure, so the long-lived listeners below don't act
+  // on a stale userInfo.
+  const handleSessionRevokedRef = useRef(handleSessionRevoked);
+  handleSessionRevokedRef.current = handleSessionRevoked;
+
+  // Any API call rejected with "Unauthenticated." for the active token (see
+  // axiosInstance) ends the session.
+  useEffect(() => {
+    setSessionExpiredHandler((token) => handleSessionRevokedRef.current(token));
+    return () => setSessionExpiredHandler(null);
+  }, []);
+
+  // Instant: the API broadcasts "session.revoked" on the user's private
+  // channel when logins are revoked from the devices list. A Sanctum token's
+  // id is the number before "|", so the app can tell whether it's one of them.
+  useEffect(() => {
+    if (!isLoggedIn || !userInfo?.id) return undefined;
+    let channel = null;
+    try {
+      channel = getEcho().private(`App.Models.User.${userInfo.id}`);
+      channel.listen(".session.revoked", async (event) => {
+        const token = await AsyncStorage.getItem("auth_token");
+        const tokenId = parseInt(String(token || "").split("|")[0], 10);
+        const revokedIds = Array.isArray(event?.token_ids) ? event.token_ids.map(Number) : [];
+        if (token && revokedIds.includes(tokenId)) {
+          handleSessionRevokedRef.current(token);
+        }
+      });
+    } catch (e) {
+      console.warn("[Auth] session.revoked listener failed:", e?.message || e);
+    }
+    return () => {
+      try {
+        channel?.stopListening(".session.revoked");
+      } catch {}
+    };
+  }, [isLoggedIn, userInfo?.id]);
+
+  // Fallback for a missed broadcast (socket down while in the background):
+  // check the session when the app comes back to the foreground - a revoked
+  // token answers 401 and the handler above takes over.
+  useEffect(() => {
+    let lastCheck = 0;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active" || Date.now() - lastCheck < 60_000) return;
+      lastCheck = Date.now();
+      AsyncStorage.getItem("auth_token").then((token) => {
+        if (token) getCurrentUser().catch(() => {});
+      });
+    });
+    return () => subscription.remove();
+  }, []);
+
   // Keeps the current account signed in (saved) and shows the login screens.
   const addAccount = async () => {
+    await releasePushToken();
+    await endHandedOverWebSessions();
     await clearLocalSession();
   };
 

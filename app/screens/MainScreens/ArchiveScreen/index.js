@@ -25,6 +25,7 @@ import { useTranslation } from "react-i18next";
 import dayjs from "dayjs";
 import formatTime from "../../../utils/formatTime";
 import { useTheme } from "../../../contexts/ThemeContext";
+import { useStatusBar } from "../../../contexts/StatusBarContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import StoryViewerOverlay from "../../../components/StoryOverlays/StoryViewerOverlay";
@@ -46,6 +47,15 @@ const ArchiveScreen = ({ route, navigation }) => {
   const [archivedPosts, setArchivedPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [selectedStories, setSelectedStories] = useState(null);
+
+  // The story viewer is black: light status bar icons while it is open,
+  // whatever the theme; back to the theme's own when it closes.
+  const { updateStatusBar } = useStatusBar();
+  useEffect(() => {
+    if (!selectedStories) return undefined;
+    updateStatusBar("light-content", "#000000");
+    return () => updateStatusBar(null, null);
+  }, [selectedStories, updateStatusBar]);
   const [activeArchiveStoryId, setActiveArchiveStoryId] = useState(null);
   const [isArchiveStoryPaused, setIsArchiveStoryPaused] = useState(false);
   const storyRef = React.useRef(null);
@@ -54,12 +64,16 @@ const ArchiveScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const scrollY = useRef(new Animated.Value(0)).current;
-  // The tab bar sits inside the floating header, so content has to clear both.
   const titleBarHeight = 64 + insets.top;
-  const headerHeight = titleBarHeight + TAB_BAR_HEIGHT;
   const headerTitleOpacity = scrollY.interpolate({
     inputRange: [0, 10, 50],
     outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
+  // Fills the status bar area once content scrolls under it.
+  const statusBarBgOpacity = scrollY.interpolate({
+    inputRange: [0, 20],
+    outputRange: [0, 1],
     extrapolate: "clamp",
   });
   const handleScroll = Animated.event(
@@ -470,10 +484,63 @@ const ArchiveScreen = ({ route, navigation }) => {
     );
   };
 
+  // The Posts / Stories tabs are the first thing in the content, not part of
+  // the floating header: in the header they stayed on screen over the posts
+  // while scrolling. Here they scroll away with the list like the rest of the
+  // page.
+  const tabBar = (
+    <View style={{ flexDirection: "row", height: TAB_BAR_HEIGHT, paddingHorizontal: 16 }}>
+      {[
+        { key: "posts", label: t('archive.tabPosts') },
+        { key: "stories", label: t('archive.tabStories') },
+      ].map((tab) => {
+        const isActive = activeTab === tab.key;
+        return (
+          <TouchableOpacity
+            key={tab.key}
+            onPress={() => {
+              // The other tab's list starts at the top.
+              scrollY.setValue(0);
+              setActiveTab(tab.key);
+            }}
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              borderBottomWidth: 2,
+              borderBottomColor: isActive ? theme.primary : "transparent",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: isActive ? "700" : "500",
+                color: isActive ? theme.primary : theme.subText,
+              }}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+  // Loading / empty states keep the tabs on top so the other tab stays reachable.
+  const renderState = (containerStyle, children) => (
+    <View style={{ flex: 1, paddingTop: titleBarHeight, backgroundColor: theme.background }}>
+      {tabBar}
+      <View style={[containerStyle, { backgroundColor: theme.background }]}>{children}</View>
+    </View>
+  );
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Floating header */}
       <View pointerEvents="box-none" style={styles.floatingHeader}>
+        <Animated.View
+          pointerEvents="none"
+          style={{ position: "absolute", top: 0, left: 0, right: 0, height: insets.top, backgroundColor: theme.background, opacity: statusBarBgOpacity }}
+        />
         <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: titleBarHeight }}>
           <View style={{ width: 44 }}>
             <LiquidButton providerId="ArchiveScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
@@ -488,50 +555,19 @@ const ArchiveScreen = ({ route, navigation }) => {
           </Animated.Text>
           <View style={{ width: 44 }} />
         </View>
-        <View style={{ flexDirection: "row", height: TAB_BAR_HEIGHT, paddingHorizontal: 16 }}>
-          {[
-            { key: "posts", label: t('archive.tabPosts') },
-            { key: "stories", label: t('archive.tabStories') },
-          ].map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                onPress={() => setActiveTab(tab.key)}
-                style={{
-                  flex: 1,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderBottomWidth: 2,
-                  borderBottomColor: isActive ? theme.primary : "transparent",
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 15,
-                    fontWeight: isActive ? "700" : "500",
-                    color: isActive ? theme.primary : theme.subText,
-                  }}
-                >
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
       </View>
 
       <AndroidGlassBackdrop providerId="ArchiveScreen" style={{ flex: 1 }}>
         {activeTab === "posts" ? (
           postsLoading ? (
-            <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+            renderState(styles.loadingContainer, (<>
               <ActivityIndicator size="large" color="#319527" />
-            </View>
+            </>))
           ) : archivedPosts.length === 0 ? (
-            <View style={[styles.emptyContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+            renderState(styles.emptyContainer, (<>
               <Ionicons name="document-text-outline" size={64} color={theme.placeholder} />
               <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.emptyPosts')}</Text>
-            </View>
+            </>))
           ) : (
             <FlatList
               data={archivedPosts}
@@ -551,25 +587,28 @@ const ArchiveScreen = ({ route, navigation }) => {
               windowSize={5}
               removeClippedSubviews={Platform.OS === 'android'}
               ListHeaderComponent={
-                <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-                  <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
-                  <Text style={[styles.privacyText, { color: theme.subText }]}>
-                    {t('archive.postsPrivacyNotice')}
-                  </Text>
-                </View>
+                <>
+                  {tabBar}
+                  <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                    <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
+                    <Text style={[styles.privacyText, { color: theme.subText }]}>
+                      {t('archive.postsPrivacyNotice')}
+                    </Text>
+                  </View>
+                </>
               }
-              contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }}
+              contentContainerStyle={{ paddingTop: titleBarHeight, paddingBottom: insets.bottom + 16 }}
             />
           )
         ) : loading ? (
-          <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+          renderState(styles.loadingContainer, (<>
             <ActivityIndicator size="large" color="#319527" />
-          </View>
+          </>))
         ) : archiveData.length === 0 ? (
-          <View style={[styles.emptyContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
+          renderState(styles.emptyContainer, (<>
             <Ionicons name="archive-outline" size={64} color={theme.placeholder} />
             <Text style={[styles.emptyText, { color: theme.subText }]}>{t('archive.empty')}</Text>
-          </View>
+          </>))
         ) : (
           <FlatList
             data={archiveData}
@@ -582,14 +621,17 @@ const ArchiveScreen = ({ route, navigation }) => {
             windowSize={5}
             removeClippedSubviews={Platform.OS === 'android'}
             ListHeaderComponent={
-              <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
-                <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
-                <Text style={[styles.privacyText, { color: theme.subText }]}>
-                  {t('archive.privacyNotice')}
-                </Text>
-              </View>
+              <>
+                {tabBar}
+                <View style={[styles.privacyNotice, { backgroundColor: theme.surface, borderBottomColor: theme.border }]}>
+                  <Ionicons name="lock-closed-outline" size={16} color={theme.subText} />
+                  <Text style={[styles.privacyText, { color: theme.subText }]}>
+                    {t('archive.privacyNotice')}
+                  </Text>
+                </View>
+              </>
             }
-            contentContainerStyle={[styles.listContent, { paddingTop: headerHeight, paddingBottom: insets.bottom + 16 }]}
+            contentContainerStyle={[styles.listContent, { paddingTop: titleBarHeight, paddingBottom: insets.bottom + 16 }]}
           />
         )}
       </AndroidGlassBackdrop>
@@ -600,6 +642,9 @@ const ArchiveScreen = ({ route, navigation }) => {
           stories={[selectedStories]}
           hideAvatarList={true}
           showName={false}
+          // Below the status bar / island on every iPhone (see HomeScreen).
+          progressContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 8 : 16 }}
+          headerContainerStyle={{ top: Platform.OS === "ios" ? insets.top + 24 : 32 }}
           backgroundColor="#000000"
           mediaContainerStyle={{ backgroundColor: "#000000" }}
           // Letterbox the 9:16 frame so archived stories show exactly what

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useIsFocused } from "@react-navigation/native";
 import { View, TouchableOpacity, StyleSheet } from "react-native";
+import MediaShimmer from "./MediaShimmer";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import VideoPlayerModal from "./VideoPlayerModal";
@@ -30,14 +31,14 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen, interactive }) =
   });
 
   useEffect(() => {
-    console.debug("[InlineVideoPlayer] player changed", { uri, player });
+    console.log("[InlineVideoPlayer] player changed", { uri, player });
     return () => {
       if (!player) return;
       try {
         if (typeof player.playing !== "undefined" ? player.playing === true : false) {
           if (typeof player.pause === "function") {
             player.pause();
-            console.debug("[InlineVideoPlayer] paused player during cleanup", { uri });
+            console.log("[InlineVideoPlayer] paused player during cleanup", { uri });
           }
         }
       } catch (e) {
@@ -46,7 +47,7 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen, interactive }) =
       try {
         if (typeof player.release === "function") {
           player.release();
-          console.debug("[InlineVideoPlayer] released player during cleanup", { uri });
+          console.log("[InlineVideoPlayer] released player during cleanup", { uri });
         }
       } catch (e) {
         console.warn("[InlineVideoPlayer] error releasing player during cleanup", e);
@@ -92,6 +93,8 @@ const ActiveVideoTile = ({ uri, borderRadius, onOpenFullscreen, interactive }) =
   return (
     <>
       <Tile style={[styles.tile, { borderRadius }]} {...tileProps}>
+        {/* Shows while the player is being set up, instead of plain black */}
+        <MediaShimmer dark />
         {player && typeof player === "object" ? (
           <VideoView
             key={playerKey}

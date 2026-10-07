@@ -34,7 +34,26 @@ import { storage } from "../../../global/storage";
 import { useTranslation } from "react-i18next";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import LiquidButton from "../../../components/LiquidButton";
+import StyledName from "../../../components/profile/StyledName";
+import NameIcon from "../../../components/profile/NameIcon";
+import { getNameIcon } from "../../../utils/profileTheme";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
+
+const MODERATED_CONTENT_TYPES = ["topic", "comment", "message", "story"];
+const contentTypeKey = (contentType) =>
+  MODERATED_CONTENT_TYPES.includes(contentType) ? contentType : "other";
+
+// Second line under a moderation notice: the admin's note when there is one,
+// otherwise a short excerpt of the content so the user knows which one.
+const moderationDetail = (notification, t) => {
+  const { type, data } = notification;
+  if (type !== "content_warning" && type !== "content_deleted") return null;
+  const note = typeof data?.note === "string" ? data.note.trim() : "";
+  if (note) return t('notifications.moderatorNote', { note });
+  const excerpt = typeof data?.excerpt === "string" ? data.excerpt.trim() : "";
+  return excerpt || null;
+};
 
 // Helper function to format notification message based on type and data
 const formatNotificationMessage = (notification, t) => {
@@ -54,25 +73,41 @@ const formatNotificationMessage = (notification, t) => {
     switch (type) {
       // The author's own content changing moderation state.
       case "content_pending_review":
-        return t(data?.comment_id
-          ? 'notifications.contentPendingReviewComment'
-          : 'notifications.contentPendingReviewPost');
+        return t(data?.content_type === "story"
+          ? 'notifications.contentPendingReviewStory'
+          : data?.comment_id
+            ? 'notifications.contentPendingReviewComment'
+            : 'notifications.contentPendingReviewPost');
       case "content_approved":
-        return t(data?.comment_id
-          ? 'notifications.contentApprovedComment'
-          : 'notifications.contentApprovedPost');
+        return t(data?.content_type === "story"
+          ? 'notifications.contentApprovedStory'
+          : data?.comment_id
+            ? 'notifications.contentApprovedComment'
+            : 'notifications.contentApprovedPost');
       case "content_rejected":
-        return t(data?.comment_id
-          ? 'notifications.contentRejectedComment'
-          : 'notifications.contentRejectedPost');
+        return t(data?.content_type === "story"
+          ? 'notifications.contentRejectedStory'
+          : data?.comment_id
+            ? 'notifications.contentRejectedComment'
+            : 'notifications.contentRejectedPost');
       // Admin-only alert: something is sitting in the moderation queue.
       case "moderation_pending":
         return t(
-          data?.content_type === "comment"
-            ? 'notifications.moderationPendingComment'
-            : 'notifications.moderationPendingPost',
+          data?.content_type === "story"
+            ? 'notifications.moderationPendingStory'
+            : data?.content_type === "comment"
+              ? 'notifications.moderationPendingComment'
+              : 'notifications.moderationPendingPost',
           { username: data?.author_username || "" }
         );
+      // Moderation notices about the user's own content. One sentence per
+      // content type rather than a label slotted into a template: Russian
+      // (and Vietnamese at the start of a sentence) need the noun's own
+      // gender / casing.
+      case "content_warning":
+        return t(`notifications.contentWarning.${contentTypeKey(data?.content_type)}`);
+      case "content_deleted":
+        return t(`notifications.contentDeleted.${contentTypeKey(data?.content_type)}`);
       case "topic_pinned":
         return `${t('notifications.pinnedPost')} "${data?.topic_title || ""}" ${t('notifications.ofYours')}`;
       case "topic_moved":
@@ -172,6 +207,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
   const [hasMore, setHasMore] = useState(true);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -435,7 +473,9 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
       : isAnonymous
         ? (item.actor?.profile_name || t('createPost.anonymousUser') || "Ẩn danh")
         : (item.actor?.profile_name || item.actor?.username || t('notifications.user'));
+    const actorTheme = isSystemMessage || isAnonymous ? null : item.actor?.profile_theme;
     const displayContent = formatNotificationMessage(item.raw || item, t);
+    const moderationText = moderationDetail(item, t);
     const displayTime = item.created_at ? formatTime(item.created_at) : item.time;
 
     return (
@@ -463,16 +503,22 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 24 }}>?</Text>
           </View>
         ) : (
-          <FastImage
-            source={
-              !isSystemMessage
-                ? {
-                  uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
-                }
-                : require("../../../assets/logo.png")
-            }
-            style={[styles.avatar, { alignSelf: "flex-start", borderColor: theme.border }]}
-          />
+          <AvatarFrameWrap
+            theme={actorTheme}
+            size={48}
+            style={{ alignSelf: "flex-start", marginRight: 12 }}
+          >
+            <FastImage
+              source={
+                !isSystemMessage
+                  ? {
+                    uri: item.user?.avatar || `https://api.chuyenbienhoa.com/v1.0/users/${item.actor?.username}/avatar`,
+                  }
+                  : require("../../../assets/logo.png")
+              }
+              style={[styles.avatar, { marginRight: 0, borderColor: theme.border }]}
+            />
+          </AvatarFrameWrap>
         )}
         <View style={styles.content}>
           <Text style={[styles.message, { color: theme.text }]}>
@@ -480,10 +526,18 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
               displayContent
             ) : (
               <>
-                <Text style={[styles.name, { color: theme.text }]}>{userName}</Text> {displayContent}
+                <StyledName theme={actorTheme} variant="compact" style={[styles.name, { color: theme.text }]}>{userName}</StyledName>
+                {getNameIcon(actorTheme) ? " " : ""}
+                <NameIcon theme={actorTheme} size={14} />
+                {" "}{displayContent}
               </>
             )}
           </Text>
+          {moderationText && (
+            <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={3}>
+              {moderationText}
+            </Text>
+          )}
           {item.type === "story_replied" && item.data?.message_excerpt && (
             <Text style={[styles.excerpt, { color: theme.subText }]} numberOfLines={2}>
               {item.data.message_excerpt}
@@ -628,7 +682,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
           ref={flatListRef}
           onScroll={handleScroll}
           data={notifications}
-          extraData={{ t, theme, isDarkMode }}
+          extraData={listExtraData}
           keyExtractor={(item) => item.id.toString()}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
@@ -668,7 +722,7 @@ export default function NotificationScreen({ navigation, scrollTriggerRef }) {
       )}
       </AndroidGlassBackdrop>
 
-      <ActionMenu />
+      {ActionMenu()}
     </View>
   );
 }

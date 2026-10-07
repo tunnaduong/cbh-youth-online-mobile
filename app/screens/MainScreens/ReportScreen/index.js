@@ -105,8 +105,11 @@ function StepIndicator({ currentStep, theme, isDarkMode, t }) {
   );
 }
 
-export default function ReportScreen({ navigation }) {
-  const [selectedType, setSelectedType] = useState(null);
+export default function ReportScreen({ navigation, route }) {
+  const initialType = route?.params?.type;
+  const [selectedType, setSelectedType] = useState(
+    VIOLATION_TYPES.some((type) => type.id === initialType) ? initialType : null
+  );
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");

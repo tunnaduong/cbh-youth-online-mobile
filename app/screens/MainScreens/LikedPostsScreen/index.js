@@ -13,12 +13,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getLikedPosts } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import UserNameRow from "../../../components/profile/UserNameRow";
 
 const PostItem = ({ item, navigation, theme }) => {
   return (
@@ -48,11 +50,15 @@ const PostItem = ({ item, navigation, theme }) => {
           {item.topic.title}
         </Text>
         <View className="flex-row items-center mt-1">
-          <Text className="text-[13px]" style={{ color: theme.subText }}>
-            {item.topic.author.profile_name}
-          </Text>
-          <Text className="mx-1" style={{ color: theme.subText }}>•</Text>
-          <Text className="text-[13px]" style={{ color: theme.subText }}>{item.updated_at}</Text>
+          {/* profile_theme is shown when the API sends it for this list. */}
+          <UserNameRow
+            name={item.topic.author.profile_name}
+            theme={item.topic.anonymous ? null : item.topic.author.profile_theme}
+            style={{ fontSize: 13, color: theme.subText }}
+          >
+            <Text style={{ color: theme.subText, marginHorizontal: 4, flexShrink: 0 }}>•</Text>
+            <Text style={{ fontSize: 13, color: theme.subText, flexShrink: 0 }}>{item.updated_at}</Text>
+          </UserNameRow>
         </View>
       </View>
     </TouchableOpacity>
@@ -251,7 +257,7 @@ const LikedPostsScreen = ({ navigation }) => {
         </View>
       )}
 
-      <Toast />
+      <AppToast />
     </View>
   );
 };

@@ -1,11 +1,18 @@
 import * as Api from "./ApiByAxios";
 import axiosInstance from "./axiosInstance";
 import i18n from "../../i18n";
+import { getTwoFactorDeviceToken } from "../../utils/deviceInfo";
+
+// Lets a device the user chose to remember skip the two-factor step
+const withDeviceToken = async (params) => {
+  const deviceToken = await getTwoFactorDeviceToken();
+  return deviceToken ? { ...params, device_token: deviceToken } : params;
+};
 
 // Authentication
 export const loginRequest = async (params) => {
   try {
-    const response = await Api.postRequest("/v1.0/login", params);
+    const response = await Api.postRequest("/v1.0/login", await withDeviceToken(params));
     return response;
   } catch (error) {
     // console.error("Full error object:", error); // Log the full error object
@@ -35,7 +42,7 @@ export const signupRequest = (params) => {
 
 export const loginWithOAuth = async (params) => {
   try {
-    const response = await Api.postRequest("/v1.0/login/oauth", params);
+    const response = await Api.postRequest("/v1.0/login/oauth", await withDeviceToken(params));
     return response;
   } catch (error) {
     if (error.response && error.response.data && error.response.data.error) {
@@ -110,6 +117,11 @@ export const getFeedRefreshCheck = () => {
 
 export const getLatestFeed = (page = 1) => {
   return Api.getRequest("/v1.0/topics/feed?mode=latest&page=" + page);
+};
+
+// The "Tin tức Đoàn" tab: the youth union news subforum, in the feed's post shape.
+export const getNewsFeed = (page = 1) => {
+  return Api.getRequest("/v1.0/topics/feed?mode=youth-news&page=" + page);
 };
 
 export const getFollowingFeed = (page = 1) => {
@@ -484,6 +496,15 @@ export const getUserLikedPosts = (username, page = 1, perPage = 10, sort = "newe
   );
 };
 
+// Flat photo gallery of a profile (every image of the user's posts), paged:
+// { data: [{ id, url, post_id, post_title, post_anonymous, created_at }],
+//   total, current_page, per_page, has_more }
+export const getUserPhotos = (username, page = 1, perPage = 30) => {
+  return Api.getRequest(
+    "/v1.0/users/" + username + "/photos?page=" + page + "&per_page=" + perPage
+  );
+};
+
 export const followUser = (username) => {
   return Api.postRequest("/v1.0/users/" + username + "/follow");
 };
@@ -530,6 +551,49 @@ export const changePassword = (params) => {
   return Api.postRequest("/v1.0/password/change", params);
 };
 
+// Two-factor authentication
+// Login: when /login (or /login/oauth) answers `two_factor_required`, the
+// token is only issued after the code is checked here.
+export const verifyTwoFactorLogin = (params) => {
+  return Api.postRequest("/v1.0/login/two-factor", params);
+};
+
+export const resendTwoFactorLoginCode = (params) => {
+  return Api.postRequest("/v1.0/login/two-factor/resend", params);
+};
+
+// Settings
+export const getTwoFactorStatus = () => Api.getRequest("/v1.0/two-factor");
+export const setupTwoFactorTotp = (params) => Api.postRequest("/v1.0/two-factor/totp", params);
+export const setupTwoFactorEmail = (params) => Api.postRequest("/v1.0/two-factor/email", params);
+// Two-factor by approval on a device that is already logged in.
+export const setupTwoFactorDevice = (params) => Api.postRequest("/v1.0/two-factor/device", params);
+// The device logging in: ask for an approval (shows a number), then poll.
+export const startLoginApproval = (params) =>
+  Api.postRequest("/v1.0/login/two-factor/approval", params);
+export const getLoginApprovalStatus = (params) =>
+  Api.postRequest("/v1.0/login/two-factor/approval/status", params);
+// A logged-in device: the logins waiting for an answer, and answering one.
+export const getLoginApprovals = () => Api.getRequest("/v1.0/two-factor/approvals");
+export const respondLoginApproval = (id, params) =>
+  Api.postRequest(`/v1.0/two-factor/approvals/${id}`, params);
+export const sendTwoFactorEmailCode = () => Api.postRequest("/v1.0/two-factor/email/send");
+export const confirmTwoFactor = (params) => Api.postRequest("/v1.0/two-factor/confirm", params);
+export const disableTwoFactor = (params) => Api.postRequest("/v1.0/two-factor/disable", params);
+export const regenerateTwoFactorRecoveryCodes = (params) =>
+  Api.postRequest("/v1.0/two-factor/recovery-codes", params);
+export const forgetTwoFactorTrustedDevices = () =>
+  Api.deleteRequest("/v1.0/two-factor/trusted-devices");
+// skip: true = logins through Google/Facebook/Apple need no second step.
+export const setTwoFactorSocialLogin = (skip) =>
+  Api.putRequest("/v1.0/two-factor/social-login", { skip });
+
+// Logged-in devices
+export const getDeviceSessions = () => Api.getRequest("/v1.0/sessions");
+export const logoutDeviceSession = (id) => Api.deleteRequest(`/v1.0/sessions/${id}`);
+// Logs out every device except this one
+export const logoutOtherDeviceSessions = () => Api.deleteRequest("/v1.0/sessions");
+
 
 export const getSavedPosts = () => {
   return Api.getRequest("/v1.0/user/saved-topics");
@@ -551,8 +615,8 @@ export const getStories = () => {
   return Api.getRequest("/v1.0/stories");
 };
 
-export const createStory = (formData) => {
-  return Api.postFormDataRequest("/v1.0/stories", formData);
+export const createStory = (formData, config = {}) => {
+  return Api.postFormDataRequest("/v1.0/stories", formData, config);
 };
 
 export const deleteStory = (id) => {
@@ -827,6 +891,13 @@ export const getExpoPushTokens = () => {
 
 export const reportUser = (params) => {
   return Api.postRequest("/v1.0/reports", params);
+};
+
+// Student / class violation report (ReportScreen flow): { type: "student" |
+// "class", subject_name, violation_type?, report_date? (YYYY-MM-DD), notes?,
+// absences?, cleanliness?, uniform? }
+export const submitViolationReport = (params) => {
+  return Api.postRequest("/v1.0/violation-reports", params);
 };
 
 // In-app feedback (bug reports & suggestions)

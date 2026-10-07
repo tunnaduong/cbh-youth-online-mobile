@@ -10,13 +10,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
+import MediaShimmer from "./MediaShimmer";
 import RenderHTML, {
   HTMLElementModel,
   HTMLContentModel,
   getNativePropsForTNode,
 } from "react-native-render-html";
 import { WebView } from "react-native-webview";
-import Verified from "../assets/Verified";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { AuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -47,8 +47,12 @@ import formatTime from "../utils/formatTime";
 import InlineVideoPlayer from "./InlineVideoPlayer";
 import { buildYouTubePlayerHtml, appendYouTubeEmbedBelow } from "../utils/youtubeShare";
 import { appendSoundCloudEmbedBelow } from "../utils/soundcloudShare";
+import { findPreviewableUrlInHtml } from "../utils/linkPreview";
+import LinkPreviewCard from "./LinkPreviewCard";
 import { linkifyMentionsInHtml } from "../utils/mentionRender";
 import { openExternalLink, openInAppBrowser } from "../utils/externalLink";
+import UserNameRow from "./profile/UserNameRow";
+import { AvatarFrameWrap } from "./profile/AvatarFrame";
 
 // react-native-render-html doesn't know about <iframe> by default (it's not
 // a real HTML content tag), so it has to be registered as a custom element
@@ -61,6 +65,15 @@ export const customHTMLElementModels = {
     tagName: "iframe",
     contentModel: HTMLContentModel.block,
   }),
+};
+
+// Constant RenderHTML props of a post row (see postHtmlSource in PostItem).
+
+const POST_HTML_CLASSES_STYLES = {
+  "mention-tag": {
+    color: "#22c55e",
+    fontWeight: "600",
+  },
 };
 
 // Handles youtube.com/embed/<id>, youtube.com/watch?v=<id>, and youtu.be/<id>.
@@ -141,6 +154,8 @@ export const YouTubeIframeRenderer = ({ tnode }) => {
         <WebView
           source={source}
           style={{ width, height }}
+          startInLoadingState
+          renderLoading={() => <MediaShimmer dark />}
           javaScriptEnabled
           domStorageEnabled
           allowsInlineMediaPlayback
@@ -215,6 +230,8 @@ export const YouTubeIframeRenderer = ({ tnode }) => {
       <WebView
         source={source}
         style={{ width, height }}
+        startInLoadingState
+        renderLoading={() => <MediaShimmer dark />}
         javaScriptEnabled
         domStorageEnabled
         allowsFullscreenVideo
@@ -270,6 +287,10 @@ const PostItem = ({
   onSave: onSaveCallback, // Callback for single view save updates
   isActive = true, // Whether this card is on-screen — drives inline video autoplay
   onArchiveChange, // (postId, archived) — lets a list (e.g. ArchiveScreen) drop the row
+  // PostScreen's header "…" button opens this post's options through here, so
+  // the detail page shows exactly the same menu (and actions) as the feed,
+  // profile and archive - there's only one copy of it, in this component.
+  optionsOpenerRef,
 }) => {
   const videoUrls = Array.isArray(item.video_urls)
     ? item.video_urls
@@ -297,6 +318,17 @@ const PostItem = ({
   const displayImageUrls = Array.isArray(item.image_urls)
     ? item.image_urls.map((url, i) => imageThumbnailUrls[i] || url)
     : item.image_urls;
+  // A post that's just text plus a link gets the link's preview card, like
+  // Facebook. Skipped when the post has its own media - that's what the
+  // author wants front and centre.
+  const hasAttachedMedia =
+    (Array.isArray(item.image_urls) && item.image_urls.length > 0) ||
+    videoUrls.length > 0 ||
+    (Array.isArray(item.document_urls) && item.document_urls.length > 0);
+  const linkPreviewUrl = useMemo(
+    () => (hasAttachedMedia ? null : findPreviewableUrlInHtml(item.content)),
+    [hasAttachedMedia, item.content]
+  );
   const [isExpanded, setIsExpanded] = useState(single); // Start expanded for single view, but allow toggling
   const insets = useSafeAreaInsets();
   const { contentWidth } = useResponsiveLayout();
@@ -311,6 +343,7 @@ const PostItem = ({
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+  const authorTheme = item?.anonymous ? null : item?.author?.profile_theme;
   const isCurrentUser = item?.is_owner === true || item?.topic?.is_owner === true || item?.author?.username === username || String(item?.author?.id) === String(userInfo?.id) || String(item?.user_id) === String(userInfo?.id) || String(item?.uid) === String(userInfo?.id) || String(item?.userid) === String(userInfo?.id) || item?.is_mine === true || item?.is_author === true;
 
   // Use external state if provided (for single view), otherwise use item props
@@ -343,6 +376,8 @@ const PostItem = ({
               );
             }
             hideBottomSheet();
+            // On the post's own page there's nothing left to show.
+            if (single) navigation?.goBack();
           },
         },
         {
@@ -666,6 +701,9 @@ const PostItem = ({
     );
   };
 
+  // Always the latest menu (it closes over this render's state).
+  if (optionsOpenerRef) optionsOpenerRef.current = handleMoreOptions;
+
   const handleVote = async (voteValue) => {
     const existingVote = currentVotes.find(
       (vote) => vote?.username === username
@@ -782,161 +820,26 @@ const PostItem = ({
   // "/username" links come from linkifyMentionsInHtml (mention-tag class)
   // and open the mentioned user's profile instead. Anything else (autolinked
   // URLs) goes through the link-safety screen before the browser.
-  const handleContentLinkPress = (event, href) => {
-    const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
-    if (hashtagMatch) {
-      const tag = decodeURIComponent(hashtagMatch[1]);
-      navigation?.navigate("SearchScreen", {
-        initialQuery: tag,
-        initialFilter: "hashtag",
-      });
-      return;
-    }
-    const mentionMatch = href?.match(/^\/([\w.-]{3,21})$/);
-    if (mentionMatch) {
-      navigation?.navigate("ProfileScreen", { username: mentionMatch[1] });
-      return;
-    }
-    // Outbound links stop at the link-safety screen first: the post author
-    // writes both the link text and its destination, so the two can disagree.
-    openExternalLink(navigation, href, theme);
-  };
-
-  // The post body sits inside the collapse/expand Pressable (onPress =
-  // handleExpandPost below). A plain Text-in-Text onPress on a link
-  // (mention/hashtag/URL) loses the touch to that ancestor before its own
-  // onPress fires - the same class of bug the YouTube embed above already
-  // had to work around - so tagged users never actually navigated to their
-  // profile. Claiming the responder here for any touch starting on a link,
-  // and refusing to hand it back, keeps link taps local instead of also
-  // triggering handleExpandPost.
-  const handleContentLinkPressRef = useRef(handleContentLinkPress);
-  handleContentLinkPressRef.current = handleContentLinkPress;
-  const AnchorRenderer = useMemo(
-    () =>
-      function AnchorRenderer(props) {
-        const nativeProps = getNativePropsForTNode(props);
-        const href = props.tnode?.attributes?.href;
-        return (
-          <Text
-            {...nativeProps}
-            onStartShouldSetResponder={() => true}
-            onResponderTerminationRequest={() => false}
-            onResponderRelease={(event) =>
-              handleContentLinkPressRef.current(event, href)
-            }
-          />
-        );
-      },
-    []
+  // What RenderHTML is given. Each of these used to be a new object on every
+  // render of the row, which makes the library run the mention / embed
+  // regexes again and rebuild its whole tree for a post that has not
+  // changed. Same values, computed once per input.
+  const postHtmlSource = useMemo(
+    () => ({
+      html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
+        linkifyMentionsInHtml(
+          isExpanded || !item.content || item.content.length <= 300
+            ? item.content || ""
+            : truncatedContent,
+          validMentions
+        )
+      )),
+    }),
+    [item.content, isExpanded, truncatedContent, validMentions]
   );
-
-  return (
-    <View
-      style={{
-        borderBottomWidth: single ? 15 : 10,
-        borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
-        backgroundColor: theme.background,
-      }}
-    >
-      {isArchived && (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            alignSelf: "flex-start",
-            marginHorizontal: 15,
-            marginTop: single ? 0 : 15,
-            marginBottom: single ? 8 : 0,
-            paddingHorizontal: 8,
-            paddingVertical: 3,
-            borderRadius: 999,
-            backgroundColor: theme.surface,
-          }}
-        >
-          <Ionicons name="archive-outline" size={12} color={theme.subText} />
-          <Text style={{ fontSize: 12, color: theme.subText, marginLeft: 4 }}>
-            {t('post.archivedBadge')}
-          </Text>
-        </View>
-      )}
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        {single ? (
-          // Single view: no navigation, just show title
-          <Text style={{
-            fontWeight: "bold",
-            fontSize: 28,
-            paddingHorizontal: 15,
-            marginTop: 0,
-            marginBottom: 10,
-            flex: 1,
-            color: theme.text
-          }}>
-            {item.title}
-          </Text>
-        ) : (
-          // Feed view: clickable title that navigates to detail
-          <>
-            <Pressable
-              onPress={() =>
-                navigation?.navigate("PostScreen", {
-                  postId: item.id,
-                  item,
-                  screenName,
-                })
-              }
-              style={{ flex: 1 }}
-            >
-              <Text style={{
-                fontWeight: "bold",
-                fontSize: 21,
-                paddingHorizontal: 15,
-                marginTop: 15,
-                flex: 1,
-                color: theme.text
-              }}>
-                {item.title}
-              </Text>
-            </Pressable>
-            <TouchableOpacity
-              style={{ marginRight: 12, marginTop: 12 }}
-              onPress={handleMoreOptions}
-            >
-              <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
-      <Pressable onPress={handleExpandPost}>
-        <View style={{ paddingHorizontal: 15 }}>
-          <RenderHTML
-            contentWidth={contentWidth - 30}
-            customHTMLElementModels={customHTMLElementModels}
-            renderers={{ iframe: YouTubeIframeRenderer, a: AnchorRenderer }}
-            renderersProps={{
-              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
-            }}
-            source={{
-              html: appendSoundCloudEmbedBelow(appendYouTubeEmbedBelow(
-                linkifyMentionsInHtml(
-                  isExpanded || !item.content || item.content.length <= 300
-                    ? item.content || ""
-                    : truncatedContent,
-                  validMentions
-                )
-              )),
-            }}
-            baseStyle={{
-              fontSize: 16,
-              color: theme.text,
-            }}
-            classesStyles={{
-              "mention-tag": {
-                color: "#22c55e",
-                fontWeight: "600",
-              },
-            }}
-            tagsStyles={{
+  const postBaseStyle = useMemo(() => ({ fontSize: 16, color: theme.text }), [theme.text]);
+  const postTagsStyles = useMemo(
+    () => ({
               h1: {
                 fontSize: 24,
                 fontWeight: "bold",
@@ -1021,12 +924,159 @@ const PostItem = ({
                 color: theme.primary,
                 textDecorationLine: "underline",
               },
+    }),
+    [theme, isDarkMode]
+  );
+
+  const handleContentLinkPress = (event, href) => {
+    const hashtagMatch = href?.match(/[?&]type=hashtag&(?:.*&)?q=([^&]+)/);
+    if (hashtagMatch) {
+      const tag = decodeURIComponent(hashtagMatch[1]);
+      navigation?.navigate("SearchScreen", {
+        initialQuery: tag,
+        initialFilter: "hashtag",
+      });
+      return;
+    }
+    const mentionMatch = href?.match(/^\/([\w.-]{3,21})$/);
+    if (mentionMatch) {
+      navigation?.navigate("ProfileScreen", { username: mentionMatch[1] });
+      return;
+    }
+    // Outbound links stop at the link-safety screen first: the post author
+    // writes both the link text and its destination, so the two can disagree.
+    openExternalLink(navigation, href, theme);
+  };
+
+  // The post body sits inside the collapse/expand Pressable (onPress =
+  // handleExpandPost below). A plain Text-in-Text onPress on a link
+  // (mention/hashtag/URL) loses the touch to that ancestor before its own
+  // onPress fires - the same class of bug the YouTube embed above already
+  // had to work around - so tagged users never actually navigated to their
+  // profile. Claiming the responder here for any touch starting on a link,
+  // and refusing to hand it back, keeps link taps local instead of also
+  // triggering handleExpandPost.
+  const handleContentLinkPressRef = useRef(handleContentLinkPress);
+  handleContentLinkPressRef.current = handleContentLinkPress;
+  const AnchorRenderer = useMemo(
+    () =>
+      function AnchorRenderer(props) {
+        const nativeProps = getNativePropsForTNode(props);
+        const href = props.tnode?.attributes?.href;
+        return (
+          <Text
+            {...nativeProps}
+            onStartShouldSetResponder={() => true}
+            onResponderTerminationRequest={() => false}
+            onResponderRelease={(event) =>
+              handleContentLinkPressRef.current(event, href)
+            }
+          />
+        );
+      },
+    []
+  );
+
+  const postRenderers = useMemo(
+    () => ({ iframe: YouTubeIframeRenderer, a: AnchorRenderer }),
+    [AnchorRenderer]
+  );
+
+  return (
+    <View
+      style={{
+        borderBottomWidth: single ? 15 : 10,
+        borderBottomColor: isDarkMode ? "#000" : "#E6E6E6",
+        backgroundColor: theme.background,
+      }}
+    >
+      {isArchived && (
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            alignSelf: "flex-start",
+            marginHorizontal: 15,
+            marginTop: single ? 0 : 15,
+            marginBottom: single ? 8 : 0,
+            paddingHorizontal: 8,
+            paddingVertical: 3,
+            borderRadius: 999,
+            backgroundColor: theme.surface,
+          }}
+        >
+          <Ionicons name="archive-outline" size={12} color={theme.subText} />
+          <Text style={{ fontSize: 12, color: theme.subText, marginLeft: 4 }}>
+            {t('post.archivedBadge')}
+          </Text>
+        </View>
+      )}
+      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+        {single ? (
+          // Single view: no navigation, just show title
+          <Text style={{
+            fontWeight: "bold",
+            fontSize: 28,
+            paddingHorizontal: 15,
+            marginTop: 0,
+            marginBottom: 10,
+            flex: 1,
+            color: theme.text
+          }}>
+            {item.title}
+          </Text>
+        ) : (
+          // Feed view: clickable title that navigates to detail
+          <>
+            <Pressable
+              onPress={() =>
+                navigation?.navigate("PostScreen", {
+                  postId: item.id,
+                  item,
+                  screenName,
+                })
+              }
+              style={{ flex: 1 }}
+            >
+              <Text style={{
+                fontWeight: "bold",
+                fontSize: 21,
+                paddingHorizontal: 15,
+                marginTop: 15,
+                flex: 1,
+                color: theme.text
+              }}>
+                {item.title}
+              </Text>
+            </Pressable>
+            <TouchableOpacity
+              style={{ marginRight: 12, marginTop: 12 }}
+              onPress={handleMoreOptions}
+            >
+              <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+      <Pressable onPress={handleExpandPost}>
+        <View style={{ paddingHorizontal: 15 }}>
+          <RenderHTML
+            contentWidth={contentWidth - 30}
+            customHTMLElementModels={customHTMLElementModels}
+            renderers={postRenderers}
+            renderersProps={{
+              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
             }}
+            source={postHtmlSource}
+            baseStyle={postBaseStyle}
+            classesStyles={POST_HTML_CLASSES_STYLES}
+            tagsStyles={postTagsStyles}
           />
         </View>
       </Pressable>
       {((item.image_urls && item.image_urls.length > 0) || (videoUrls && videoUrls.length > 0)) && (
         <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
+          <MediaShimmer />
           {item.image_urls && item.image_urls.length > 0 && (
             <>
               <FBCollage
@@ -1093,30 +1143,48 @@ const PostItem = ({
                 </ScrollView>
               );
             }
-            // Has images alongside — keep compact size
-            return (
+            // Photos + videos: the videos continue the photo collage as one
+            // block - edge to edge, square corners and the same thin gap as
+            // between the photos - instead of small rounded cards floating
+            // in a padded strip under it.
+            const GAP = 3;
+            const count = videoUrls.length;
+            // One video spans the width; two or more sit side by side at
+            // half width (three or more scroll sideways).
+            const tileW = count === 1 ? screenWidth : Math.floor((screenWidth - GAP) / 2);
+            const tileH = count === 1 ? Math.round((screenWidth * 9) / 16) : Math.round(tileW * 0.75);
+            const tiles = videoUrls.map((url, index) => (
+              <InlineVideoPlayer
+                key={`${url}-${index}`}
+                uri={videoPreviewUrls[index] || url}
+                fullscreenUri={url}
+                thumbnailUri={videoThumbnailUrls[index]}
+                width={tileW}
+                height={tileH}
+                borderRadius={0}
+                isActive={isActive}
+              />
+            ));
+
+            return count <= 2 ? (
+              <View style={{ flexDirection: "row", gap: GAP, marginTop: GAP }}>{tiles}</View>
+            ) : (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ paddingHorizontal: 15, paddingVertical: 10, gap: 8 }}
+                style={{ marginTop: GAP }}
+                contentContainerStyle={{ gap: GAP }}
               >
-                {videoUrls.map((url, index) => (
-                  <InlineVideoPlayer
-                    key={`${url}-${index}`}
-                    uri={videoPreviewUrls[index] || url}
-                    fullscreenUri={url}
-                    thumbnailUri={videoThumbnailUrls[index]}
-                    width={single ? 260 : 220}
-                    height={single ? 180 : 150}
-                    borderRadius={12}
-                    isActive={isActive}
-                  />
-                ))}
+                {tiles}
               </ScrollView>
             );
           })()}
         </View>
       )}
+
+      {linkPreviewUrl ? (
+        <LinkPreviewCard url={linkPreviewUrl} style={{ marginHorizontal: 15, marginTop: 10 }} />
+      ) : null}
 
       {/* Document attachment display */}
       {item.document_urls && item.document_urls.length > 0 && (
@@ -1168,6 +1236,7 @@ const PostItem = ({
         style={{ paddingHorizontal: 15, flexDirection: "row", alignItems: "center" }}
         disabled={!navigation || !item?.author?.username || !!item.anonymous}
       >
+        <AvatarFrameWrap theme={authorTheme} size={42}>
         <View
           style={{
             backgroundColor: theme.cardBackground,
@@ -1196,22 +1265,22 @@ const PostItem = ({
             )
           )}
         </View>
-        <Text style={{ fontWeight: "bold", color: theme.primary, marginLeft: 8, flexShrink: 1 }}>
-          {item.anonymous ? t('post.anonymousUser') : (item?.author?.profile_name || item?.author?.username || "")}
-          {item?.author?.verified && !item.anonymous && (
-            <View>
-              <Verified
-                width={15}
-                height={15}
-                color={theme.primary}
-                style={{ marginBottom: -3 }}
-              />
-            </View>
-          )}
-        </Text>
-        <Text style={{ color: theme.subText }}>
-          {" · "}{formatTime(item.created_at || item.time || item.created_at_human)}{item.is_edited ? ` (${t('post.edited')})` : ""}
-        </Text>
+        </AvatarFrameWrap>
+        {/* One line: the name is cut with "…" so the icon, the tick and the
+            date always stay next to it. */}
+        <UserNameRow
+          name={item.anonymous ? t('post.anonymousUser') : (item?.author?.profile_name || item?.author?.username || "")}
+          theme={authorTheme}
+          verified={!!item?.author?.verified && !item.anonymous}
+          verifiedSize={15}
+          verifiedColor={theme.primary}
+          style={{ fontWeight: "bold", color: theme.primary }}
+          containerStyle={{ marginLeft: 8, flex: 1 }}
+        >
+          <Text style={{ color: theme.subText, flexShrink: 0 }} numberOfLines={1}>
+            {" · "}{formatTime(item.created_at || item.time || item.created_at_human)}{item.is_edited ? ` (${t('post.edited')})` : ""}
+          </Text>
+        </UserNameRow>
       </Pressable>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 15, marginVertical: 16 }}>
         <View style={{ gap: single ? 16 : 12, flexDirection: "row", alignItems: "center", flex: 1 }}>
@@ -1363,4 +1432,36 @@ const PostItem = ({
   );
 };
 
-export default PostItem;
+// A feed re-renders on every scroll-driven state change (active video,
+// header, refresh), and each row is this large component. It is memoized, so
+// a row only re-renders when its own post or state changes. Parents pass
+// fresh arrow functions each render (`onExpand={() => handleExpandPost(index)}`),
+// which would defeat the memo - and comparing them away would leave stale
+// closures - so the card gets stable functions that always call the latest
+// ones.
+const MemoPostItem = React.memo(PostItem);
+const CALLBACK_PROPS = ["onExpand", "onVoteUpdate", "onSaveUpdate", "onVote", "onSave", "onArchiveChange"];
+
+const PostItemContainer = (props) => {
+  const latestProps = React.useRef(props);
+  latestProps.current = props;
+
+  const stableCallbacks = React.useRef(null);
+  if (!stableCallbacks.current) {
+    stableCallbacks.current = {};
+    CALLBACK_PROPS.forEach((name) => {
+      stableCallbacks.current[name] = (...args) => latestProps.current[name]?.(...args);
+    });
+  }
+
+  // A callback the parent did not pass stays undefined: the card checks for
+  // their presence (`onExpand && ...`).
+  const callbacks = {};
+  CALLBACK_PROPS.forEach((name) => {
+    callbacks[name] = props[name] ? stableCallbacks.current[name] : undefined;
+  });
+
+  return <MemoPostItem {...props} {...callbacks} />;
+};
+
+export default PostItemContainer;

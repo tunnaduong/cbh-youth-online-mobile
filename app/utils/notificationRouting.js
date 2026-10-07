@@ -25,8 +25,91 @@ export function isAnonymousNotificationActor(type, data, actor) {
  * @param {object|null} [params.actor] - { id, username, profile_name, avatar_url } | null
  * @returns {{ screen: string, params?: object } | null}
  */
+const WEB_ORIGIN = "https://www.chuyenbienhoa.com";
+const SHOP_ORIGIN = "https://giftshop.chuyenbienhoa.com";
+
+/**
+ * Notifications about the admin area or the gift shop carry the page they
+ * are about in `data.url` ("/admin/moderation", "/giftshop/orders/12", or a
+ * full link). Those pages live on the web, so they open in the app's own web
+ * screen for that site, at that page. Null for any other url.
+ */
+export function resolveWebNotificationTarget(type, data) {
+  const raw = typeof data?.url === "string" ? data.url.trim() : "";
+  let path = raw;
+  let host = "";
+
+  const absolute = raw.match(/^https?:\/\/([^/?#]+)(.*)$/i);
+  if (absolute) {
+    host = absolute[1].toLowerCase();
+    path = absolute[2] || "/";
+  }
+
+  const isShopHost = host === "giftshop.chuyenbienhoa.com";
+  const isMainHost = host === "" || host === "chuyenbienhoa.com" || host === "www.chuyenbienhoa.com";
+
+  // Gift shop: its own host, a "/giftshop/..." path, or an order/shop type.
+  if (isShopHost || (isMainHost && /^\/giftshop(\/|$|\?)/.test(path)) || /^(shop_|order_)/.test(type || "")) {
+    let shopPath = isShopHost ? path : path.replace(/^\/giftshop/, "") || "/";
+    // The shop lists orders on one page; there is no page per order.
+    shopPath = shopPath.replace(/^\/orders\/[^/?#]+/, "/orders");
+    if (!shopPath.startsWith("/")) shopPath = "/";
+    return { screen: "GiftShopScreen", params: { site: "giftshop", url: SHOP_ORIGIN + shopPath } };
+  }
+
+  // Admin area (system alerts, moderation queue, deposits, reports...).
+  if (isMainHost && /^\/admin(\/|$|\?)/.test(path)) {
+    // "/admin/dashboard" is what older alerts say; the dashboard is "/admin".
+    const adminPath = path.replace(/^\/admin\/dashboard(?=$|[/?#])/, "/admin");
+    return { screen: "AdminWebScreen", params: { site: "admin", url: WEB_ORIGIN + adminPath } };
+  }
+
+  return null;
+}
+
+function resolveContentWarningTarget(data) {
+  const topicId = data.topic_id ?? data.topicId;
+  const commentId = data.comment_id ?? data.commentId;
+  const conversationId = data.conversation_id ?? data.conversationId;
+  const messageId = data.message_id ?? data.messageId;
+  const storyId = data.story_id ?? data.storyId;
+
+  switch (data.content_type) {
+    case "comment":
+      if (topicId) {
+        return { screen: "PostScreen", params: { postId: topicId, highlightCommentId: commentId } };
+      }
+      return null;
+    case "message":
+      if (conversationId) {
+        return { screen: "ConversationScreen", params: { conversationId, highlightMessageId: messageId } };
+      }
+      return null;
+    case "story":
+      if (storyId) {
+        return { screen: "MainScreens", params: { screen: "Home", params: { openStoryId: storyId } } };
+      }
+      return null;
+    default:
+      if (topicId) return { screen: "PostScreen", params: { postId: topicId } };
+      return null;
+  }
+}
+
 export function resolveNotificationTarget({ type, data, actor }) {
   data = data || {};
+
+  // Moderation notices come from the system, not a person. A warning opens
+  // the content it is about; a deleted item no longer exists, so there is
+  // nowhere to go. Handled before the web and actor rules so their `url`
+  // (the content's page, or "/") is never mistaken for a site page.
+  if (type === "content_deleted") return null;
+  if (type === "content_warning") return resolveContentWarningTarget(data);
+
+  // Admin and gift shop pages first: such a notification may also name a
+  // post or a conversation, but the page to act on is the one in its url.
+  const webTarget = resolveWebNotificationTarget(type, data);
+  if (webTarget) return webTarget;
   const isAnonymous = isAnonymousNotificationActor(type, data, actor);
 
   const topicId = data.topic_id ?? data.topicId ?? data.post_id ?? data.postId;
@@ -37,6 +120,12 @@ export function resolveNotificationTarget({ type, data, actor }) {
     data.reply_message_id ?? data.replyMessageId ?? data.message_id ?? data.messageId;
   const materialId = data.material_id ?? data.materialId;
   const actorUsername = actor?.username;
+
+  // "Someone just logged in to your account": the logged-in devices list,
+  // where that login can be ended.
+  if (type === "new_login") {
+    return { screen: "DevicesScreen" };
+  }
 
   if (type === "system_message" && data?.message?.includes("Chào mừng")) {
     return { screen: "PostScreen", params: { postId: 173336279 } };

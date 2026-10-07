@@ -12,7 +12,6 @@ import {
   ScrollView,
   FlatList,
   TouchableOpacity,
-  Share,
   Alert,
   Text,
   Pressable,
@@ -33,14 +32,17 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import {
   commentPost,
   commentPostWithImages,
-  deletePost,
   getPostDetail,
   incrementPostView,
   voteComment,
   updateComment,
   deleteComment,
   getMentionSuggestions,
+  reportUser,
 } from "../../../services/api/Api";
+import ReportModal from "../../../components/ReportModal";
+import Toast from "react-native-toast-message";
+import { apiErrorMessage } from "../../../utils/apiMessage";
 import CommentBar from "../../../components/CommentBar";
 import FastImage from "../../../components/FastImage";
 import MentionText from "../../../components/MentionText";
@@ -51,17 +53,15 @@ import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import CustomLoading from "../../../components/CustomLoading";
 import { FeedContext } from "../../../contexts/FeedContext";
-import { useBottomSheet } from "../../../contexts/BottomSheetContext";
 import PostItem, { customHTMLElementModels, YouTubeIframeRenderer } from "../../../components/PostItem";
-import Verified from "../../../assets/Verified";
-import ReportModal from "../../../components/ReportModal";
-import { reportUser } from "../../../services/api/Api";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
-import { generatePostSlug } from "../../../utils/slugify";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
+import { trackAndroidKeyboardResize } from "../../../utils/keyboardResize";
 import CommentVotesModal from "../../../components/CommentVotesModal";
 import ImageView from "react-native-image-viewing";
 
@@ -78,6 +78,7 @@ const Comment = React.memo(React.forwardRef(
 
     const votes = comment.votes ?? [];
     const author = comment.author ?? {};
+    const authorTheme = comment.is_anonymous ? null : author.profile_theme;
     const content = comment.content ?? "";
     const contentHtml = comment.comment ?? "";
     const validMentions = Array.isArray(comment.mentions)
@@ -114,29 +115,31 @@ const Comment = React.memo(React.forwardRef(
               onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
               disabled={!author.username || !!comment.is_anonymous}
             >
-              <View style={{ backgroundColor: theme.background, width: 42, height: 42, borderRadius: 21, overflow: "hidden", borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
-                {comment.is_anonymous ? (
-                  <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
-                  </View>
-                ) : author.username ? (
-                  <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
-                ) : null}
-              </View>
+              <AvatarFrameWrap theme={authorTheme} size={42}>
+                <View style={{ backgroundColor: theme.background, width: 42, height: 42, borderRadius: 21, overflow: "hidden", borderWidth: 1, borderColor: theme.border, alignItems: "center", justifyContent: "center" }}>
+                  {comment.is_anonymous ? (
+                    <View style={{ width: "100%", height: "100%", backgroundColor: theme.iconBackground, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ color: theme.text, fontWeight: "bold", fontSize: 20 }}>?</Text>
+                    </View>
+                  ) : author.username ? (
+                    <FastImage source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${author.username}/avatar` }} style={{ width: 40, height: 40, borderRadius: 30 }} />
+                  ) : null}
+                </View>
+              </AvatarFrameWrap>
             </Pressable>
             <View style={{ flexShrink: 1 }}>
               <Pressable
                 onPress={() => author.username && !comment.is_anonymous && navigation.navigate("ProfileScreen", { username: author.username })}
                 disabled={!author.username || !!comment.is_anonymous}
               >
-                <Text style={{ fontWeight: "bold", color: theme.primary }}>
-                  {comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || ""}
-                  {author.verified && !comment.is_anonymous && (
-                    <View>
-                      <Verified width={15} height={15} color={theme.primary} style={{ marginBottom: -3 }} />
-                    </View>
-                  )}
-                </Text>
+                <UserNameRow
+                  name={comment.is_anonymous ? t("post.anonymousUser") : author.profile_name || author.username || ""}
+                  theme={authorTheme}
+                  verified={!!author.verified && !comment.is_anonymous}
+                  verifiedSize={15}
+                  verifiedColor={theme.primary}
+                  style={{ fontWeight: "bold", color: theme.primary }}
+                />
               </Pressable>
               {comment.target_author && (
                 <Text style={{ fontSize: 12, color: theme.subText, marginBottom: 2 }}>
@@ -315,6 +318,8 @@ const PostScreen = ({ route, navigation }) => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState(null);
+  // Comment being reported (its ReportModal is open while this is set).
+  const [reportCommentId, setReportCommentId] = useState(null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [selectedCommentImages, setSelectedCommentImages] = useState([]);
   const commentInputRef = useRef(null);
@@ -322,18 +327,6 @@ const PostScreen = ({ route, navigation }) => {
   const commentRefs = useRef({});
   const [highlightedCommentId, setHighlightedCommentId] = useState(null);
   const { setFeed, setRecentPostsProfile } = useContext(FeedContext);
-  const { showBottomSheet, hideBottomSheet } = useBottomSheet();
-  const isCurrentUser =
-    post?.is_owner === true ||
-    post?.topic?.is_owner === true ||
-    post?.author?.username === username ||
-    String(post?.author?.id) === String(userInfo?.id) ||
-    String(post?.user_id) === String(userInfo?.id) ||
-    String(post?.uid) === String(userInfo?.id) ||
-    String(post?.userid) === String(userInfo?.id) ||
-    post?.is_mine === true ||
-    post?.is_author === true;
-  const [reportModalVisible, setReportModalVisible] = useState(false);
   const [commentVotesModal, setCommentVotesModal] = useState({ visible: false, commentId: null, commentPreview: "" });
   const [imageViewer, setImageViewer] = useState({ visible: false, images: [], index: 0 });
   const insets = useSafeAreaInsets();
@@ -370,7 +363,9 @@ const PostScreen = ({ route, navigation }) => {
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", (e) => setKeyboardHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardHeight(0));
-    return () => { show.remove(); hide.remove(); };
+    // Android says nothing when an open keyboard changes height.
+    const offResize = trackAndroidKeyboardResize(setKeyboardHeight);
+    return () => { show.remove(); hide.remove(); offResize(); };
   }, []);
 
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -400,147 +395,10 @@ const PostScreen = ({ route, navigation }) => {
     }
   }, [post?.id]);
 
-  const handleOpenBottomSheet = () => {
-    showBottomSheet(
-      <View style={{ backgroundColor: theme.cardBackground }}>
-        <TouchableOpacity
-          onPress={() => {
-            handleSavePost(!isSaved);
-            hideBottomSheet();
-          }}
-        >
-          <View className="flex-row items-center">
-            <Ionicons
-              name={isSaved ? "bookmark" : "bookmark-outline"}
-              size={23}
-              color={isSaved ? theme.primary : theme.text}
-            />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {isSaved ? t("post.unsave") : t("post.save")}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            shareLink(
-              `https://chuyenbienhoa.com/${post?.author?.id}/posts/${generatePostSlug(post?.id, post?.title)}?source=share`,
-            );
-            hideBottomSheet();
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <Ionicons name="share-outline" size={23} color={theme.text} />
-            <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-              {t("post.share")}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        {/*
-        {isCurrentUser && (
-          <TouchableOpacity onPress={() => {
-            navigation.navigate("PostEditScreen", { postId: post?.id });
-            hideBottomSheet();
-          }}>
-            <View className="flex-row items-center">
-              <Ionicons name="lock-closed-outline" size={23} color={theme.text} />
-              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t('post.privacy')}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        */}
-        {isCurrentUser && (
-          <TouchableOpacity
-            onPress={() => {
-              navigation.navigate("PostEditScreen", { postId: post?.id });
-              hideBottomSheet();
-            }}
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="create-outline" size={23} color={theme.text} />
-              <Text style={{ padding: 12, fontSize: 17, color: theme.text }}>
-                {t("post.edit")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {!isCurrentUser && (
-          <TouchableOpacity
-            onPress={() => {
-              hideBottomSheet();
-              setReportModalVisible(true);
-            }}
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="flag-outline" size={23} color={"#ef4444"} />
-              <Text
-                style={{ padding: 12, fontSize: 17 }}
-                className="text-red-500"
-              >
-                {t("post.report")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-        {isCurrentUser && (
-          <TouchableOpacity onPress={handleDeletePost}>
-            <View className="flex-row items-center">
-              <Ionicons name="trash-outline" size={23} color={"#ef4444"} />
-              <Text
-                style={{ padding: 12, fontSize: 17 }}
-                className="text-red-500"
-              >
-                {t("post.delete")}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-      </View>,
-    );
-  };
-
-  const shareLink = async (link) => {
-    try {
-      await Share.share({
-        message: link,
-      });
-    } catch (error) {
-      console.error("Error sharing:", error);
-    }
-  };
-
-  const handleDeletePost = async () => {
-    Alert.alert(t("post.deleteConfirmTitle"), t("post.deleteConfirmBody"), [
-      {
-        text: t("post.deleteAction"),
-        style: "destructive",
-        onPress: async () => {
-          await deletePost(post.id);
-          // refresh the post list
-          setFeed((prevPosts) => prevPosts.filter((p) => p.id !== post.id));
-          if (screenName)
-            setRecentPostsProfile((prevPosts) =>
-              prevPosts.filter((p) => p.id !== post.id),
-            );
-          hideBottomSheet();
-          navigation.goBack();
-        },
-      },
-      {
-        text: t("post.editAction"),
-        style: "default",
-        onPress: () => {
-          navigation.navigate("PostEditScreen", { postId: post.id });
-          hideBottomSheet();
-        },
-      },
-      {
-        text: t("settings.cancel"),
-        style: "cancel",
-      },
-    ]);
-  };
+  // The "…" menu is PostItem's own (see its optionsOpenerRef): one menu for
+  // the feed, profile, archive and this page, so an option added or changed
+  // there shows up everywhere.
+  const postOptionsRef = useRef(null);
 
   const fetchData = async () => {
     try {
@@ -872,25 +730,6 @@ const PostScreen = ({ route, navigation }) => {
     }
   };
 
-  const handleReportSubmit = async (reason) => {
-    try {
-      const reportedUserId =
-        post?.author?.id || post?.user_id || post?.uid || post?.userid;
-      await reportUser({
-        reported_user_id: reportedUserId,
-        topic_id: post.id,
-        reason,
-      });
-      Alert.alert(t("post.reportSuccessTitle"), t("post.reportSuccessBody"));
-    } catch (e) {
-      Alert.alert(
-        t("profile.errorTitle"),
-        e.response?.data?.message || e.message || t("post.reportError"),
-      );
-      throw e;
-    }
-  };
-
   // Define this outside the onSubmit function
   const roundToNearestFive = (count) => {
     if (count <= 5) {
@@ -905,6 +744,13 @@ const PostScreen = ({ route, navigation }) => {
   };
 
   const handleCommentVote = React.useCallback(async (commentId, voteValue) => {
+    // Tapping the arrow you already chose removes the vote. The API removes a
+    // comment vote only for vote_value 0 - sending the same value again kept
+    // the vote on the server while the screen showed it gone (back on refresh).
+    const current = findCommentById(commentsRef.current, commentId);
+    const alreadyVoted = (current?.votes ?? []).some(
+      (vote) => vote.username === username && vote.vote_value === voteValue,
+    );
     try {
       // Optimistically update the UI
       setComments((prevComments) => {
@@ -959,7 +805,7 @@ const PostScreen = ({ route, navigation }) => {
 
       // Call the API to update the vote
       await voteComment(commentId, {
-        vote_value: voteValue,
+        vote_value: alreadyVoted ? 0 : voteValue,
       });
 
       // If the API call is successful, the optimistic update is correct
@@ -1037,7 +883,37 @@ const PostScreen = ({ route, navigation }) => {
     if (!comment) return;
 
     const isCommentOwner = comment.author?.username === username;
-    if (!isCommentOwner) return;
+    // Someone else's comment (anonymous ones included - the API finds the
+    // author from the comment id) can only be reported.
+    if (!isCommentOwner) {
+      if (Platform.OS === "ios") {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: [t("settings.cancel"), t("post.reportComment")],
+            destructiveButtonIndex: 1,
+            cancelButtonIndex: 0,
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 1) setReportCommentId(commentId);
+          },
+        );
+      } else {
+        Alert.alert(
+          t("post.optionsTitle"),
+          t("post.selectAction"),
+          [
+            { text: t("settings.cancel"), style: "cancel" },
+            {
+              text: t("post.reportComment"),
+              style: "destructive",
+              onPress: () => setReportCommentId(commentId),
+            },
+          ],
+          { cancelable: true },
+        );
+      }
+      return;
+    }
 
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
@@ -1099,6 +975,23 @@ const PostScreen = ({ route, navigation }) => {
       );
     }
   }, [username, t]);
+
+  const handleReportCommentSubmit = async (reason) => {
+    try {
+      await reportUser({ comment_id: reportCommentId, reason });
+      Toast.show({
+        type: "success",
+        text1: t("post.reportSuccessTitle"),
+        text2: t("post.reportCommentSuccess"),
+      });
+    } catch (e) {
+      // An Alert, not a toast: ReportModal stays open on failure and a
+      // toast would be drawn behind it.
+      Alert.alert(t("common.error"), apiErrorMessage(e, t("post.reportError")));
+      // Keeps ReportModal open so the reason can be sent again.
+      throw e;
+    }
+  };
 
   const handleDeleteComment = async (commentId) => {
     Alert.alert(t("post.deleteComment"), t("post.deleteCommentConfirm"), [
@@ -1252,7 +1145,7 @@ const PostScreen = ({ route, navigation }) => {
   const bounceValue = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (post == null) {
-      Animated.loop(
+      const loop = Animated.loop(
         Animated.sequence([
           Animated.timing(bounceValue, {
             toValue: -20,
@@ -1265,8 +1158,13 @@ const PostScreen = ({ route, navigation }) => {
             useNativeDriver: true,
           }),
         ]),
-      ).start();
+      );
+      loop.start();
+      // It kept ticking for as long as the screen lived, long after the
+      // loader it animates was gone.
+      return () => loop.stop();
     }
+    return undefined;
   }, [post]);
 
   if (loadingPost) {
@@ -1377,7 +1275,7 @@ const PostScreen = ({ route, navigation }) => {
                 size={44}
                 scrollY={scrollY}
                 providerId="PostScreen"
-                onPress={handleOpenBottomSheet}
+                onPress={() => postOptionsRef.current?.()}
               >
                 <Ionicons
                   name="ellipsis-horizontal"
@@ -1466,6 +1364,7 @@ const PostScreen = ({ route, navigation }) => {
                 onSave={handleSavePost}
                 screenName={screenName}
                 isActive={autoplayVideos}
+                optionsOpenerRef={postOptionsRef}
               />
               {/* comment section */}
               <View style={{ paddingHorizontal: 15 }}>
@@ -1519,9 +1418,10 @@ const PostScreen = ({ route, navigation }) => {
         />
         </AndroidGlassBackdrop>
         <ReportModal
-          visible={reportModalVisible}
-          onClose={() => setReportModalVisible(false)}
-          onSubmit={handleReportSubmit}
+          visible={reportCommentId !== null}
+          title={t("post.reportComment")}
+          onClose={() => setReportCommentId(null)}
+          onSubmit={handleReportCommentSubmit}
         />
         <CommentVotesModal
           visible={commentVotesModal.visible}

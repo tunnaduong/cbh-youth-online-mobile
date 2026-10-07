@@ -20,6 +20,7 @@ import { useTranslation } from "react-i18next";
 import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
+import AuthButton from "../../components/AuthButton";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
 import { useRef } from "react";
 
@@ -142,15 +143,14 @@ const ForgotPasswordScreen = ({ navigation }) => {
               </View>
 
               {/* Submit button */}
-              <TouchableOpacity
-                style={[styles.submitButton, { backgroundColor: theme.primary }]}
+              <AuthButton
+                style={styles.submitButton}
                 onPress={handleSendResetLink}
-                activeOpacity={0.85}
               >
                 <Text style={styles.submitButtonText}>
                   {t("forgotPassword.sendLink")}
                 </Text>
-              </TouchableOpacity>
+              </AuthButton>
 
               {/* Back to login */}
               <TouchableOpacity

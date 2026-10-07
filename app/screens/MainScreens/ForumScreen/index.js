@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   Animated,
   FlatList,
-  Dimensions,
   DeviceEventEmitter,
   Platform,
 } from "react-native";
@@ -27,9 +26,19 @@ import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
 import { getCategoryName } from "../../../utils/forumUtils";
 import { storage } from "../../../global/storage";
+import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
 
-const { width } = Dimensions.get("window");
 
+// The veil over a section's picture, in the card's own background colour:
+// fully solid over the left half (the text sits on plain background, as in
+// the original design), then fading out to the bare picture at the
+// right edge - which keeps a 45% tint of that colour (dark or light with the
+// theme), never the bare picture. (The same colour at falling opacities - fading to plain
+// "transparent" would pass through grey.)
+const sectionVeil = (background) => {
+  const hex = /^#[0-9a-fA-F]{6}$/.test(background) ? background : "#121212";
+  return [`${hex}FF`, `${hex}FF`, `${hex}B3`, `${hex}73`];
+};
 
 const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
   <TouchableOpacity
@@ -49,11 +58,18 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
       style={styles.sectionBackground}
       imageStyle={styles.sectionBackgroundImage}
     >
+      {/* The section's picture fills the whole card (cover); this veil keeps
+          the text readable. It covers exactly the card at any width: solid
+          on the left, fading out diagonally to the bare picture on the right.
+          The old veil was a rotated box with a fixed shift: nearly opaque,
+          and on a wide card (iPad) it left a bare triangle of picture with a
+          hard edge next to what looked like a black bar. */}
       <LinearGradient
-        colors={[theme.background, "transparent"]}
-        start={{ x: 0.5, y: 0 }}
-        end={{ x: 3, y: 0 }}
-        style={{ position: "absolute", width: "150%", height: "400%", transform: [{rotate: '-35deg'}, {translateY: -150}] }}
+        colors={sectionVeil(theme.background)}
+        locations={[0, 0.45, 0.72, 1]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0.35 }}
+        style={StyleSheet.absoluteFill}
       />
         <View style={styles.sectionHeader}>
           <View style={{ flex: 1 }}>
@@ -96,7 +112,14 @@ const ForumSection = ({ section, navigation, theme, isDarkMode, t }) => (
 
 export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const { theme, isDarkMode } = useTheme();
+  // Reactive, unlike a module-level Dimensions read: the category pager's
+  // pages are exactly this wide, so on an iPad rotated or resized in split
+  // view a stale width left every page (and its section cards) offset.
+  const { width } = useResponsiveLayout();
   const { t } = useTranslation();
+  // One object per real change: a new one on every render made the list
+  // re-render all of its rows each time anything on this screen changed.
+  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
   const [activeCategory, setActiveCategory] = useState(1);
   const { username } = useContext(AuthContext);
   const [categories, setCategories] = useState([]);
@@ -350,7 +373,7 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       <FlatList
         ref={flatListRef}
         data={categories}
-        extraData={{ t, theme, isDarkMode }}
+        extraData={listExtraData}
         horizontal
         pagingEnabled
         scrollEnabled={scrollEnabled}
@@ -392,6 +415,12 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
             style={{ flex: 1, width, backgroundColor: theme.background }}
             contentContainerStyle={{
               backgroundColor: "transparent",
+              // Capped and centered on large screens like the feed: stretched
+              // across a tablet, each card's cover image was cropped down to
+              // a thin slice and its corner fade no longer lined up with it.
+              width: "100%",
+              maxWidth: CONTENT_MAX_WIDTH + 32,
+              alignSelf: "center",
               paddingHorizontal: 16,
               paddingBottom: 110 + insets.bottom,
               paddingTop: 8,
@@ -492,7 +521,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
-    marginRight: 14,
   },
   sectionTitle: {
     fontSize: 17,
@@ -502,9 +530,19 @@ const styles = StyleSheet.create({
   sectionSubtitle: {
     fontSize: 13,
   },
+  // Was width "105%" with a fixed marginRight: 14 on the content to pull it
+  // back in - the overflow is 5% of the card, which only matched 14px on a
+  // phone; on wider screens the image and the chevron/latest box drifted
+  // further off the right edge. Plain full width with symmetric padding.
   sectionBackground: {
     padding: 14,
-    width: "105%",
+    // No `width` here. ImageBackground copies this style's width onto its
+    // picture, and a percentage on that absolutely positioned picture is
+    // measured against the box INSIDE the padding - so "100%" left the
+    // picture 28 short of the card's right edge on every device (the reason
+    // for the old "105%"). Without it the picture is pinned to all four
+    // edges; the card still stretches to the full width by itself.
+    alignSelf: "stretch",
     borderRadius: 16,
     overflow: "hidden",
   },
@@ -519,7 +557,6 @@ const styles = StyleSheet.create({
   latestBox: {
     borderRadius: 12,
     padding: 10,
-    marginRight: 14
   },
   latestMetaRow: {
     flexDirection: "row",

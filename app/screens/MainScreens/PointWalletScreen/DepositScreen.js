@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import FastImage from "../../../components/FastImage";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
@@ -150,7 +151,7 @@ export default function DepositScreen({ navigation }) {
                 <Text style={[styles.expectedText, { color: "#FFFFFF" }]}> {t("wallet.depositScreen.expectedPoints", { value: formatNumber(depositInfo.expected_points || expectedPoints, lang) })}</Text>
               </LinearGradient>
               <View style={[styles.qrBox, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.04)" : "#FFFFFF" }]}> 
-                <Image source={{ uri: `https://qr.sepay.vn/img?acc=${BANK_ACCOUNT}&bank=${BANK_NAME}&amount=${depositInfo.amount_vnd}&des=${depositInfo.deposit_code}&template=compact` }} style={styles.qr} />
+                <FastImage shimmer source={{ uri: `https://qr.sepay.vn/img?acc=${BANK_ACCOUNT}&bank=${BANK_NAME}&amount=${depositInfo.amount_vnd}&des=${depositInfo.deposit_code}&template=compact` }} style={styles.qr} />
               </View>
               <Text style={[styles.qrCaption, { color: theme.subText }]}>{t("wallet.depositScreen.qrCaption")}</Text>
               <TransferRow theme={theme} label={t("wallet.depositScreen.bankLabel")} value={BANK_NAME} />

@@ -18,6 +18,10 @@ import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
 import FastImage from "./FastImage";
 import AccountSwitcher from "./AccountSwitcher";
+import UserNameRow from "./profile/UserNameRow";
+import StyledUsername from "./profile/StyledUsername";
+import { AvatarFrameWrap } from "./profile/AvatarFrame";
+import { useOwnProfileTheme } from "../utils/ownProfileTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
@@ -86,8 +90,11 @@ const CollapsibleMenuItem = ({
 const SidebarGlassWrapper = LiquidGlassView ?? View;
 
 const Sidebar = ({ providerId, isOpen }) => {
-  const { signOut, username, profileName } = useContext(AuthContext);
-  const { theme, isDarkMode } = useTheme();
+  const { signOut, username, profileName, userInfo } = useContext(AuthContext);
+  // The user's own profile appearance: avatar frame and name style, as on
+  // their profile. Refreshed when the sidebar is opened.
+  const ownTheme = useOwnProfileTheme(username, !!isOpen);
+  const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
   // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
   // entirely, reading as a flat tinted panel instead of glass. Matches
   // glassTint's ratio (see GlassModules.js) used everywhere else in the app.
@@ -211,6 +218,15 @@ const Sidebar = ({ providerId, isOpen }) => {
           : {})}
         style={[
           { flex: 1, borderTopRightRadius: 24, borderBottomRightRadius: 24 },
+          // Glass off: GlassModules paints the near-opaque flat surface; add
+          // the same hairline edge the no-library fallback has.
+          LiquidGlassView && !liquidGlassEnabled && {
+            overflow: "hidden",
+            borderRightWidth: 1,
+            borderColor: isDarkMode
+              ? "rgba(255,255,255,0.08)"
+              : "rgba(0,0,0,0.06)",
+          },
           !LiquidGlassView && {
             backgroundColor: sidebarTint,
             borderRightWidth: Platform.OS === "android" ? 1 : 0,
@@ -226,7 +242,9 @@ const Sidebar = ({ providerId, isOpen }) => {
           // Same sidebarTint that used to be a separate absoluteFill overlay
           // sibling over the glass - now just this content wrapper's own
           // background, which composites correctly since it's a real child.
-          backgroundColor: LiquidGlassView ? sidebarTint : "transparent",
+          // Only over real glass - in glass-off mode it would stack a second
+          // see-through layer on the flat surface.
+          backgroundColor: LiquidGlassView && liquidGlassEnabled ? sidebarTint : "transparent",
           paddingTop: insets.top,
         }}
       >
@@ -243,19 +261,30 @@ const Sidebar = ({ providerId, isOpen }) => {
             }}
             onPress={() => navigation.navigate("ProfileScreen", { username })}
           >
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={{ width: 60, height: 60, borderRadius: 30 }}
-            />
+            {/* The frame overflows the avatar a little, so the wrap keeps the
+                avatar's own size and isn't clipped. */}
+            <AvatarFrameWrap theme={ownTheme} size={60} style={{ alignSelf: "flex-start" }}>
+              <FastImage
+                source={{
+                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+                }}
+                style={{ width: 60, height: 60, borderRadius: 30 }}
+              />
+            </AvatarFrameWrap>
             <View>
-              <Text
+              <UserNameRow
+                name={profileName}
+                theme={ownTheme}
+                variant="full"
                 style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}
-              >
-                {profileName}
-              </Text>
-              <Text style={{ color: theme.subText }}>@{username}</Text>
+              />
+              <StyledUsername
+                theme={ownTheme}
+                username={username}
+                variant="full"
+                style={{ color: theme.subText }}
+                numberOfLines={1}
+              />
             </View>
           </TouchableOpacity>
           <AccountSwitcher />
@@ -430,6 +459,58 @@ const Sidebar = ({ providerId, isOpen }) => {
                 />
               )}
             />
+            <List.Item
+              title={t("sidebar.giftShop")}
+              titleStyle={{ color: theme.text }}
+              onPress={() => navigation.navigate("GiftShopScreen")}
+              left={() => (
+                <Ionicons
+                  name="gift-outline"
+                  size={24}
+                  color={theme.text}
+                  style={{ marginLeft: 14, marginRight: -5 }}
+                />
+              )}
+              right={() => (
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={20}
+                  color={theme.subText}
+                  style={{
+                    marginRight: -10,
+                    marginTop: 3,
+                    transform: [{ rotate: "-90deg" }],
+                  }}
+                />
+              )}
+            />
+            {userInfo?.role === "admin" && (
+              <List.Item
+                title={t("sidebar.admin")}
+                titleStyle={{ color: theme.text }}
+                onPress={() => navigation.navigate("AdminWebScreen")}
+                left={() => (
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={24}
+                    color={theme.text}
+                    style={{ marginLeft: 14, marginRight: -5 }}
+                  />
+                )}
+                right={() => (
+                  <Ionicons
+                    name="chevron-down-outline"
+                    size={20}
+                    color={theme.subText}
+                    style={{
+                      marginRight: -10,
+                      marginTop: 3,
+                      transform: [{ rotate: "-90deg" }],
+                    }}
+                  />
+                )}
+              />
+            )}
           </List.Section>
           <List.Section>
             <List.Subheader

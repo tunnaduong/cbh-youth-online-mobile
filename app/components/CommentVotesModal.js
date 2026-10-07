@@ -10,6 +10,9 @@ import {
   ScrollView,
 } from "react-native";
 import FastImage from "./FastImage";
+import UserNameRow from "./profile/UserNameRow";
+import StyledUsername from "./profile/StyledUsername";
+import { AvatarFrameWrap } from "./profile/AvatarFrame";
 import ActionSheet from "react-native-actions-sheet";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -89,25 +92,31 @@ export default function CommentVotesModal({ visible, onClose, commentId, comment
         }}
         style={[styles.voteItem, { borderColor: theme.border, backgroundColor: theme.cardBackground }]}
       >
-        <View style={[styles.avatarContainer, { backgroundColor: theme.iconBackground }]}>
-          {avatarUri ? (
-            <FastImage source={{ uri: avatarUri }} style={styles.avatarImage} />
-          ) : (
-            <Text style={[styles.avatarFallback, { color: theme.text }]}>{getInitials(profileName)}</Text>
-          )}
-        </View>
+        {/* The frame shows when the API sends profile_theme for this list. */}
+        <AvatarFrameWrap theme={item.profile_theme} size={44} style={{ marginRight: 12 }}>
+          <View style={[styles.avatarContainer, { backgroundColor: theme.iconBackground, marginRight: 0 }]}>
+            {avatarUri ? (
+              <FastImage source={{ uri: avatarUri }} style={styles.avatarImage} />
+            ) : (
+              <Text style={[styles.avatarFallback, { color: theme.text }]}>{getInitials(profileName)}</Text>
+            )}
+          </View>
+        </AvatarFrameWrap>
         <View style={styles.voteContent}>
           <View style={styles.voteHeader}>
-            <Text style={[styles.voteName, { color: theme.text }]} numberOfLines={1}>
-              {profileName}
-            </Text>
+            <UserNameRow
+              name={profileName}
+              theme={item.profile_theme}
+              style={[styles.voteNameText, { color: theme.text }]}
+              containerStyle={styles.voteName}
+            />
             <View style={[styles.voteTag, isUpvote ? styles.upvoteTag : styles.downvoteTag]}>
               <Text style={[styles.voteTagText, isUpvote ? styles.upvoteTagText : styles.downvoteTagText]}>
                 {isUpvote ? t("voteModal.upvote") : t("voteModal.downvote")}
               </Text>
             </View>
           </View>
-          <Text style={[styles.voteUsername, { color: theme.subText }]}>@{item.username}</Text>
+          <StyledUsername theme={item.profile_theme} username={item.username} style={[styles.voteUsername, { color: theme.subText }]} numberOfLines={1} />
         </View>
       </Pressable>
     );
@@ -209,7 +218,8 @@ const styles = StyleSheet.create({
   avatarFallback: { fontSize: 16, fontWeight: "700" },
   voteContent: { flex: 1, minWidth: 0 },
   voteHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
-  voteName: { fontSize: 15, fontWeight: "700", flex: 1, marginRight: 8 },
+  voteName: { flex: 1, marginRight: 8 },
+  voteNameText: { fontSize: 15, fontWeight: "700" },
   voteUsername: { fontSize: 13 },
   voteTag: { borderRadius: 999, paddingVertical: 4, paddingHorizontal: 10, borderWidth: 1 },
   voteTagText: { fontSize: 11, fontWeight: "700" },

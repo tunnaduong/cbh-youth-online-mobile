@@ -39,15 +39,6 @@ const LinkSafetyScreen = ({ navigation, route }) => {
   );
   const parts = useMemo(() => (url ? parseUrlParts(url) : null), [url]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
-      if (StatusBar.setBackgroundColor) {
-        StatusBar.setBackgroundColor(theme.background, true);
-      }
-    }, [isDarkMode, theme.background])
-  );
-
   const isInsecure = parts?.scheme === "http";
   // "xn--" means the hostname holds non-ASCII characters, which is how
   // look-alike domains are built (a Cyrillic "а" standing in for "a").

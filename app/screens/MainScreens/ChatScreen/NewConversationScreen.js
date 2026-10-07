@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import FastImage from "../../../components/FastImage";
 import {
   View,
@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ScrollView,
+  Animated,
   Image,
   ActivityIndicator,
 } from "react-native";
@@ -18,8 +18,11 @@ import {
 } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
+import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 const NewConversationScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -27,8 +30,14 @@ const NewConversationScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [isHeaderElevated, setIsHeaderElevated] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
   const { t } = useTranslation();
+  const { username } = useContext(AuthContext);
 
   // Each keystroke used to fire its own request, so a fast typist could get
   // an older response landing after a newer one. Debounce, and ignore any
@@ -67,7 +76,7 @@ const NewConversationScreen = ({ navigation }) => {
       // If there's an existing conversation, navigate to it directly
       if (existingConversationId) {
         // Try to get the conversation from cache first
-        const cachedConversations = storage.getString("conversations");
+        const cachedConversations = storage.getString(`conversations_${username}`);
         if (cachedConversations) {
           const conversations = JSON.parse(cachedConversations);
           const existingConversation = conversations.find(
@@ -162,30 +171,33 @@ const NewConversationScreen = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Header */}
-      <View
-        style={[
-          styles.header,
-          {
-            paddingTop: insets.top,
-            height: 50 + insets.top,
-            backgroundColor: theme.background,
-            borderBottomColor: theme.border,
-            borderBottomWidth: isHeaderElevated ? StyleSheet.hairlineWidth : 0,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.primary} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]}>
-          {t("chat.newMessage")}
-        </Text>
-        <View style={{ width: 24 }} />
+      {/* Floating header: glass back button appears once content scrolls under it */}
+      <View pointerEvents="box-none" style={styles.headerWrap}>
+        <View style={[styles.header, { paddingTop: insets.top, height: 64 + insets.top }]}>
+          <LiquidButton size={44} scrollY={scrollY} providerId="NewConversationScreen" onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={theme.primary} />
+          </LiquidButton>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]}
+            numberOfLines={1}
+          >
+            {t("chat.newMessage")}
+          </Animated.Text>
+          <View style={{ width: 44 }} />
+        </View>
       </View>
+
+      <AndroidGlassBackdrop providerId="NewConversationScreen" style={{ flex: 1 }}>
+      <Animated.ScrollView
+        style={styles.resultsContainer}
+        contentContainerStyle={[styles.resultsContentContainer, { paddingTop: 64 + insets.top }]}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
 
       {/* Search Bar */}
       <View
@@ -227,16 +239,6 @@ const NewConversationScreen = ({ navigation }) => {
       </View>
 
       {/* Results */}
-      <ScrollView
-        style={styles.resultsContainer}
-        contentContainerStyle={styles.resultsContentContainer}
-        onScroll={(event) =>
-          setIsHeaderElevated(event.nativeEvent.contentOffset.y > 4)
-        }
-        scrollEventThrottle={16}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
         {searchResult?.user ? (
           // Results sit directly under the search bar; only the placeholder
           // states below are centred in the empty space.
@@ -265,7 +267,8 @@ const NewConversationScreen = ({ navigation }) => {
             </Text>
           </View>
         )}
-      </ScrollView>
+      </Animated.ScrollView>
+      </AndroidGlassBackdrop>
     </View>
   );
 };
@@ -274,6 +277,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -281,15 +285,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "600",
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 4,
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 14,

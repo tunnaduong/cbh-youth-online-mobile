@@ -1,5 +1,6 @@
 import React from "react";
 import { Modal, View, TouchableOpacity, StyleSheet } from "react-native";
+import CustomLoading from "./CustomLoading";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,14 +33,14 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
   }, [isFocused, player]);
 
   React.useEffect(() => {
-    console.debug("[VideoPlayerModal] player mounted/changed", { uri, player });
+    console.log("[VideoPlayerModal] player mounted/changed", { uri, player });
     return () => {
       if (!player) return;
       try {
         if (typeof player.playing !== "undefined" ? player.playing === true : false) {
           if (typeof player.pause === "function") {
             player.pause();
-            console.debug("[VideoPlayerModal] paused player during cleanup", { uri });
+            console.log("[VideoPlayerModal] paused player during cleanup", { uri });
           }
         }
       } catch (e) {
@@ -48,13 +49,30 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
       try {
         if (typeof player.release === "function") {
           player.release();
-          console.debug("[VideoPlayerModal] released player during cleanup", { uri });
+          console.log("[VideoPlayerModal] released player during cleanup", { uri });
         }
       } catch (e) {
         console.warn("[VideoPlayerModal] error releasing player during cleanup", e);
       }
     };
   }, [player, uri]);
+
+  // A spinner over the black screen until the first frame can play (and
+  // again whenever the player goes back to loading).
+  const [loadingVideo, setLoadingVideo] = React.useState(true);
+  React.useEffect(() => {
+    if (!player || typeof player.addListener !== "function") return;
+    setLoadingVideo(player.status === "loading" || player.status === "idle");
+    const subscription = player.addListener("statusChange", ({ status }) =>
+      setLoadingVideo(status === "loading")
+    );
+    return () => {
+      // The player may already be released by the cleanup above.
+      try {
+        subscription?.remove?.();
+      } catch {}
+    };
+  }, [player]);
 
   // ensure the VideoView remounts if the underlying player reference changes
   const [playerKey, setPlayerKey] = React.useState(0);
@@ -82,6 +100,11 @@ const VideoPlayerModal = ({ visible, uri, onClose }) => {
             nativeControls
           />
         ) : null}
+        {loadingVideo && !!uri && (
+          <View style={styles.loading} pointerEvents="none">
+            <CustomLoading size={56} />
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -103,6 +126,11 @@ const styles = StyleSheet.create({
   player: {
     width: "100%",
     height: "100%",
+  },
+  loading: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

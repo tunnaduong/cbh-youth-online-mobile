@@ -14,8 +14,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { getSavedPosts } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
+import AppToast from "../../../components/AppToast";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import FastImage from "../../../components/FastImage";
+import UserNameRow from "../../../components/profile/UserNameRow";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../contexts/ThemeContext";
 import formatTime from "../../../utils/formatTime";
@@ -51,9 +53,11 @@ const SavedPostItem = ({ item, navigation, onOptionsPress, t, theme }) => (
             <Text className="text-[13px] mx-1" style={{ color: theme.subText }}>•</Text>
           </>
         )}
-        <Text className="text-[13px]" style={{ color: theme.subText }}>
-          {item.topic.author.profile_name}
-        </Text>
+        <UserNameRow
+          name={item.topic.author.profile_name}
+          theme={item.topic.anonymous ? null : item.topic.author.profile_theme}
+          style={{ fontSize: 13, color: theme.subText }}
+        />
       </View>
       <Text className="text-[13px] mt-0.5" style={{ color: theme.subText }}>
         {t("savedPosts.savedTime", { time: item.created_at ? formatTime(item.created_at) : "" })}
@@ -271,7 +275,7 @@ const SavedPostsScreen = ({ navigation }) => {
         </View>
       )}
 
-      <Toast />
+      <AppToast />
     </View>
   );
 };

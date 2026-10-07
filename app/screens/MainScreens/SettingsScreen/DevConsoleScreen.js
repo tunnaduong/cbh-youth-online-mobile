@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   Animated,
   StatusBar,
   Alert,
@@ -17,6 +16,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import LiquidButton from "../../../components/LiquidButton";
 import {
   getLogs,
   clearLogs,
@@ -34,6 +34,12 @@ const LEVEL_COLORS = {
 
 export default function DevConsoleScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
 
@@ -44,13 +50,6 @@ export default function DevConsoleScreen({ navigation }) {
     const unsubscribe = subscribeDevConsole(setLogs);
     return unsubscribe;
   }, []);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
-      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
-    }, [isDarkMode, theme.background])
-  );
 
   const filteredLogs =
     filter === "all"
@@ -99,52 +98,54 @@ export default function DevConsoleScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 64 + insets.top }}>
-        <View style={{ width: 44 }}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}
-            hitSlop={8}
-          >
+      {/* Floating header: glass buttons appear once the log list scrolls under it */}
+      <View pointerEvents="box-none" style={styles.headerWrap}>
+        <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, gap: 8, height: 64 + insets.top }}>
+          <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={() => navigation.goBack()}>
             <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </TouchableOpacity>
+          </LiquidButton>
+          <Animated.Text style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center", opacity: headerTitleOpacity }]} numberOfLines={1}>
+            {t("devConsole.title")}
+          </Animated.Text>
+          <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={handleCopyAll}>
+            <Ionicons name="copy-outline" size={20} color={theme.text} />
+          </LiquidButton>
+          <LiquidButton size={44} scrollY={scrollY} providerId="DevConsoleScreen" onPress={handleClear}>
+            <Ionicons name="trash-outline" size={22} color={theme.text} />
+          </LiquidButton>
         </View>
-        <Text style={[styles.headerTitle, { color: theme.primary, flex: 1, textAlign: "center" }]} numberOfLines={1}>
-          {t("devConsole.title")}
-        </Text>
-        <TouchableOpacity onPress={handleCopyAll} style={{ width: 32, alignItems: "center" }}>
-          <Ionicons name="copy-outline" size={20} color={theme.text} />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={handleClear} style={{ width: 32, alignItems: "flex-end" }}>
-          <Ionicons name="trash-outline" size={22} color={theme.text} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.filterRow}>
-        {FILTERS.map((f) => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => setFilter(f)}
-            style={[
-              styles.filterChip,
-              {
-                backgroundColor: filter === f ? theme.primary : theme.iconBackground,
-                borderColor: theme.border,
-              },
-            ]}
-          >
-            <Text style={{ color: filter === f ? "#fff" : theme.text, fontSize: 13, fontWeight: "600" }}>
-              {t(`devConsole.filter_${f}`)}
-            </Text>
-          </TouchableOpacity>
-        ))}
       </View>
 
       <AndroidGlassBackdrop providerId="DevConsoleScreen" style={{ flex: 1 }}>
-        <FlatList
+        <Animated.FlatList
           data={filteredLogs}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24, paddingTop: 8 }}
+          scrollEventThrottle={16}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: false,
+          })}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24, paddingTop: 64 + insets.top }}
+          ListHeaderComponent={
+            <View style={styles.filterRow}>
+              {FILTERS.map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => setFilter(f)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: filter === f ? theme.primary : theme.iconBackground,
+                      borderColor: theme.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: filter === f ? "#fff" : theme.text, fontSize: 13, fontWeight: "600" }}>
+                    {t(`devConsole.filter_${f}`)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="terminal-outline" size={40} color={theme.subText} />
@@ -187,11 +188,11 @@ export default function DevConsoleScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   headerTitle: { fontSize: 18, fontWeight: "600" },
   filterRow: {
     flexDirection: "row",
     gap: 8,
-    paddingHorizontal: 16,
     paddingBottom: 8,
   },
   filterChip: {

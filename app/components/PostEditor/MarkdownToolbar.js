@@ -30,7 +30,7 @@ const BUTTONS = [
 // input (that would collapse the keyboard and lose the selection the action
 // is about to operate on), hence keyboardShouldPersistTaps="always".
 const MarkdownToolbar = ({ onAction, canUndo, imageBusy }) => {
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useTranslation();
 
   return (
@@ -38,7 +38,7 @@ const MarkdownToolbar = ({ onAction, canUndo, imageBusy }) => {
       style={[
         styles.bar,
         {
-          backgroundColor: isDarkMode ? theme.surface : "#F2F3F5",
+          backgroundColor: theme.sectionBackground,
           borderTopColor: theme.border,
         },
       ]}
@@ -64,7 +64,7 @@ const MarkdownToolbar = ({ onAction, canUndo, imageBusy }) => {
               hitSlop={4}
               style={({ pressed }) => [
                 styles.button,
-                pressed && { backgroundColor: isDarkMode ? "#2C2C2C" : "#E4E6EA" },
+                pressed && { backgroundColor: theme.iconBackground },
               ]}
             >
               {key === "image" && imageBusy ? (
@@ -73,7 +73,7 @@ const MarkdownToolbar = ({ onAction, canUndo, imageBusy }) => {
                 <MaterialCommunityIcons
                   name={icon}
                   size={22}
-                  color={disabled ? theme.border : theme.text}
+                  color={disabled ? theme.placeholder : theme.text}
                 />
               )}
             </Pressable>

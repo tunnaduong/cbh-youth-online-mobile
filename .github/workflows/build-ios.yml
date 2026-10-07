@@ -7,6 +7,12 @@ on:
       - dhphuc
   workflow_dispatch:
 
+# One build per branch at a time: a newer push cancels the older run, so two
+# runs never publish over each other's IPA (same rule as the Android build).
+concurrency:
+  group: build-ios-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-ios-real:
     name: Build & Sign Real Device IPA
@@ -29,7 +35,6 @@ jobs:
       - name: Configure Node path for Xcode build phases
         run: |
           sudo ln -sf $(which node) /usr/local/bin/node
-          echo "export NODE_BINARY=$(which node)" > ios/.xcode.env.local
 
       - name: Install Apple Certificate and Provisioning Profiles
         env:
@@ -99,11 +104,67 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The build number (iOS buildNumber, Android versionCode) is this
+      # workflow's run number, so build #N of the CI is build N of the app.
+      # Only this checkout's app.json is patched; the number is committed by
+      # build-number.yml when the branch is merged into main.
+      - name: Set build number to the CI run number
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: node scripts/set-build-number.js "$BUILD_NUMBER"
+
+      # android/ and ios/ are not in git: generate the native project from
+      # app.json and the config plugins.
+      - name: Generate the native project (expo prebuild)
+        env:
+          CI: "1"
+        run: |
+          npx expo prebuild --platform ios --no-install
+          echo "export NODE_BINARY=$(which node)" > ios/.xcode.env.local
+
+      # Compiler cache. Most of an iOS build is compiling the pods (React
+      # Native, Expo modules...), the same code on every run; ccache keeps the
+      # compiled objects between runs, so only what changed is compiled.
+      # React Native's Podfile wires it in when apple.ccacheEnabled is set -
+      # done here, for CI only, so a local build does not need ccache.
+      - name: Set up ccache
+        run: |
+          which ccache || brew install ccache
+          # Xcode's build phases do not see Homebrew's PATH.
+          sudo ln -sf "$(which ccache)" /usr/local/bin/ccache
+          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          node -e '
+            const fs = require("fs");
+            const file = "ios/Podfile.properties.json";
+            const props = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : {};
+            props["apple.ccacheEnabled"] = "true";
+            fs.writeFileSync(file, JSON.stringify(props, null, 2) + "\n");
+          '
+
+      - name: Cache ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          # Saved under a new key every run (a cache is immutable), restored
+          # from the most recent one.
+          key: ${{ runner.os }}-ccache-device-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-device-
+
+      # Before "Install Pods", which is what downloads into it.
+      - name: Cache CocoaPods downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-cocoapods-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-cocoapods-
+
       - name: Cache Pods
         uses: actions/cache@v4
         with:
           path: ios/Pods
-          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          key: ${{ runner.os }}-pods-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-pods-
 
@@ -115,22 +176,27 @@ jobs:
           cd ios
           pod install || (pod update hermes-engine --no-repo-update && pod install)
 
-      - name: Cache Xcode DerivedData
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Developer/Xcode/DerivedData
-          key: ${{ runner.os }}-deriveddata-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-deriveddata-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}-
-            ${{ runner.os }}-deriveddata-
-
-      - name: Cache CocoaPods build cache
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-cocoapods-${{ hashFiles('ios/Podfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cocoapods-
+      # With ccache on, React Native's Podfile points the whole project's
+      # compiler and linker at $(REACT_NATIVE_PATH)/scripts/xcode/ccache-clang.sh,
+      # and REACT_NATIVE_PATH is built from PODS_ROOT. A target that links no
+      # pods (the share extension) has no PODS_ROOT, so for it the path came
+      # out as "/../../node_modules/react-native/..." and the build stopped
+      # with "unable to spawn process". Give every target both values.
+      - name: Point every target at the ccache wrappers
+        run: |
+          cd ios
+          gem list -i xcodeproj > /dev/null || gem install xcodeproj --no-document
+          ruby -rxcodeproj -e '
+            project = Xcodeproj::Project.open(Dir["*.xcodeproj"].first)
+            project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings["PODS_ROOT"] ||= "$(SRCROOT)/Pods"
+                config.build_settings["REACT_NATIVE_PATH"] ||= "$(SRCROOT)/../node_modules/react-native"
+              end
+            end
+            project.save
+          '
+          test -f ../node_modules/react-native/scripts/xcode/ccache-clang.sh
 
       - name: Detect iOS Project Name
         run: |
@@ -138,8 +204,9 @@ jobs:
           WORKSPACE_NAME=$(basename *.xcworkspace .xcworkspace)
           echo "APP_NAME=$WORKSPACE_NAME" >> $GITHUB_ENV
 
+      # Already on GitHub's macOS images; installed only if it is missing.
       - name: Install xcbeautify
-        run: brew install xcbeautify
+        run: which xcbeautify || brew install xcbeautify
 
       # xcodebuild's command-line KEY=value overrides (as used below) apply to
       # EVERY target in the build, not just the main app - there's no
@@ -214,6 +281,10 @@ jobs:
             SUPPORTED_PLATFORMS="iphoneos" \
             EXCLUDED_ARCHS="x86_64 i386" \
             | xcbeautify --quiet --renderer github-actions
+
+      - name: ccache statistics
+        if: always()
+        run: ccache --show-stats || true
 
       - name: Export IPA
         run: |

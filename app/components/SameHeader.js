@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Animated,
   DeviceEventEmitter,
+  useWindowDimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import { useTheme } from "../contexts/ThemeContext";
@@ -55,9 +56,16 @@ const FeatureHeader = ({
     extrapolate: "clamp",
   });
 
+  // Room for the logo + title: what is left between the two 44pt buttons
+  // (15pt page padding each side, a little air). It used to be a fixed 160
+  // with the two lines at 120 each - "Chuyên Biên Hòa" in bold sits right at
+  // 120, so a slightly larger text size cut it to "…" even on the widest
+  // phones. It is a maximum now: the title takes its own width.
+  const { width: windowWidth } = useWindowDimensions();
+  const logoMaxWidth = Math.max(160, windowWidth - 30 - 88 - 16);
   const logoWidth = scrollAnim.interpolate({
     inputRange: [0, 50],
-    outputRange: [160, 0],
+    outputRange: [logoMaxWidth, 0],
     extrapolate: "clamp",
   });
 
@@ -80,7 +88,7 @@ const FeatureHeader = ({
           marginTop: -4, 
           opacity: logoOpacity, 
           transform: [{ translateY: logoTranslateY }],
-          width: logoWidth,
+          maxWidth: logoWidth,
           overflow: "hidden"
         }}>
           <TouchableOpacity
@@ -96,10 +104,10 @@ const FeatureHeader = ({
               resizeMode="contain"
             />
             <View style={{ marginLeft: 4 }}>
-              <Text style={{ color: theme.primary, fontWeight: "300", width: 120 }} numberOfLines={1}>
+              <Text style={{ color: theme.primary, fontWeight: "300" }} numberOfLines={1}>
                 Diễn đàn học sinh
               </Text>
-              <Text style={{ color: theme.primary, fontWeight: "bold", marginTop: -2, width: 120 }} numberOfLines={1}>
+              <Text style={{ color: theme.primary, fontWeight: "bold", marginTop: -2 }} numberOfLines={1}>
                 Chuyên Biên Hòa
               </Text>
             </View>

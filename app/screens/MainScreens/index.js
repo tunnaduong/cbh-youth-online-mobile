@@ -39,7 +39,7 @@ const ANDROID_ICON_MAP = {
 // render prop) and driven directly by MainScreens' own `currentRoute` state
 // and navigation.
 const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
-  const { theme, isDarkMode, hideTabLabels } = useTheme();
+  const { theme, isDarkMode, hideTabLabels, liquidGlassEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -79,6 +79,10 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
   // blurred backdrop, and so `interactive` (the touch-following specular
   // "dynamic" glass look) has real touches to react to.
   const NavGlassWrapper = LiquidGlassView ?? View;
+  // Glass off: the wrapper becomes a plain flat View, and an elevation
+  // shadow on a View clipped by its parent shows through as a dark smudge
+  // inside the circle/pill, so no shadow in that mode.
+  const flatGlass = !!LiquidGlassView && !liquidGlassEnabled;
 
   return (
     <View style={{ position: "absolute", bottom: bottomOffset, left: 20, right: 20, flexDirection: "row", alignItems: "center", zIndex: 99 }}>
@@ -102,7 +106,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
         // Android's `elevation` shadow always renders dark/black and ignores
         // borderRadius clipping, poking a square corner out past this pill's
         // rounded edge against the dark theme background.
-        isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
+        (isDarkMode || flatGlass) && { elevation: 0, shadowOpacity: 0 }]}
       >
         <Animated.View
           renderToHardwareTextureAndroid
@@ -165,14 +169,15 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
       >
         <NavGlassWrapper
           {...(LiquidGlassView ? { variant: "clear", interactive: true, tintColor: glassTint(isDarkMode), borderRadius: 26.5, ...androidGlassPerfProps } : {})}
-          style={{
+          style={[{
             width: 53, height: 53, borderRadius: 26.5,
             backgroundColor: LiquidGlassView ? "transparent" : surface,
             borderWidth: 1, borderColor: border,
             alignItems: "center", justifyContent: "center",
             elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
             shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
-          }}
+          },
+          flatGlass && { elevation: 0, shadowOpacity: 0 }]}
         >
           <Ionicons name="add" size={28} color={activeColor} />
         </NavGlassWrapper>

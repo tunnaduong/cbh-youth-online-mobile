@@ -122,6 +122,21 @@ const CommentBar = React.forwardRef(
       () => makeMentionParser(allowBroadcastMention, enableAiCommands),
       [allowBroadcastMention, enableAiCommands]
     );
+
+    // MarkdownTextInput auto-grows with its content, but on Android it can
+    // report a content height that keeps ratcheting up while typing several
+    // lines and never shrinks back down after text is deleted (or after the
+    // parent clears `value` on submit) - the pill is left visibly taller/
+    // lower than it should be. Driving height explicitly from
+    // onContentSizeChange (and resetting it whenever the value is emptied)
+    // makes the pill track the real content size instead of trusting the
+    // native auto-size to shrink on its own.
+    const baseInputHeight = isAndroid ? 34 : 28;
+    const maxInputHeight = 120;
+    const [measuredInputHeight, setMeasuredInputHeight] = React.useState(baseInputHeight);
+    React.useEffect(() => {
+      if (!value) setMeasuredInputHeight(baseInputHeight);
+    }, [value, baseInputHeight]);
     const useGlass =
       !!LiquidGlassView && !(isAndroid && androidTransparentPill) && !(isAndroid && forceNoGlass);
     // The pill's content must be real React children of <LiquidGlassView> for
@@ -135,7 +150,7 @@ const CommentBar = React.forwardRef(
       fontSize: 14,
       flex: 1,
       color: theme.text,
-      minHeight: isAndroid ? 34 : 28,
+      height: Math.min(maxInputHeight, Math.max(baseInputHeight, measuredInputHeight)),
       paddingTop: isAndroid ? 9 : 5,
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
@@ -306,6 +321,10 @@ const CommentBar = React.forwardRef(
               editable={editable}
               nativeID={nativeID}
               cursorColor={theme.text}
+              onContentSizeChange={(e) => {
+                const height = e?.nativeEvent?.contentSize?.height;
+                if (typeof height === "number") setMeasuredInputHeight(height);
+              }}
             />
           </View>
 

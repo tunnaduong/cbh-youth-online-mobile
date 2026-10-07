@@ -10,13 +10,29 @@ import { Platform } from "react-native";
 // conversation's new-message notification while already inside a chat
 // screen didn't work: there was nothing to tap - no banner ever appeared.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
+  handleNotification: async (notification) => {
+    // Progress of a background upload (services/uploadQueue): the in-app bar
+    // already shows it, so no banner or sound - on Android it only sits in
+    // the notification shade, on iOS it isn't shown at all.
+    if (notification?.request?.content?.data?.type === "upload_progress") {
+      const inShade = Platform.OS === "android";
+      return {
+        shouldShowAlert: inShade,
+        shouldShowBanner: false,
+        shouldShowList: inShade,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      };
+    }
+
+    return {
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    };
+  },
 });
 
 function getExpoProjectId() {

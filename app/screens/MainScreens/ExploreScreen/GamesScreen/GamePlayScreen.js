@@ -1,73 +1,111 @@
-import React, { useEffect, useState } from "react";
-import { View, StyleSheet, StatusBar, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { View, StyleSheet, ActivityIndicator, TouchableOpacity, BackHandler } from "react-native";
 import { WebView } from "react-native-webview";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../../../../contexts/ThemeContext";
-import LiquidButton from "../../../../components/LiquidButton";
+import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
+import WebViewHeader from "../../../../components/WebViewHeader";
+import CustomLoading from "../../../../components/CustomLoading";
+import { parseUrlParts } from "../../../../utils/externalLink";
+import {
+  sessionEntryUrl,
+  appHasAccount,
+  WEB_LOGIN_PAGE_MESSAGE,
+  WEB_SIGNED_OUT_MESSAGE,
+  webViewBootScript,
+  WEBVIEW_USER_AGENT_SUFFIX,
+} from "../../../../utils/webSession";
 
 // The game itself (embed, play session tracking, XP) is entirely the web
-// page's job - this screen just hosts it in a WebView with a floating back
-// button matching EasterEggScreen's pattern. ?app=true tells the web page to
-// hide its own back button so there's only ever one.
+// page's job - this screen just hosts it in a WebView under a plain header
+// (see WebViewHeader). ?app=true tells the web page to hide its own back
+// button so there's only ever one.
 export default function GamePlayScreen({ navigation, route }) {
-  const { slug } = route.params || {};
-  const insets = useSafeAreaInsets();
+  const { slug, name } = route.params || {};
   const { theme, isDarkMode } = useTheme();
+  const { t } = useTranslation();
+  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", theme.background);
 
-  // The website reads its auth token from a cookie (auth_token, see
-  // utils/cookies.js on web), completely separate from the app's own
-  // AsyncStorage-based auth. Without this, the WebView always loads the
-  // game page as a guest, so session tracking (startSession/heartbeat -
-  // what populates "Đang chơi"/leaderboard) silently never fires for
-  // anyone playing through the app. Read the app's token once up front and
-  // set the matching cookie before the page's own scripts run.
-  const [tokenReady, setTokenReady] = useState(false);
-  const [authScript, setAuthScript] = useState("");
+  // Session tracking (startSession/heartbeat - what fills "Đang chơi" and
+  // the leaderboard) only runs for a signed-in player, so the page opens
+  // through the site's login handoff when this WebView isn't signed in as
+  // the current account yet (see sessionEntryUrl). It used to set the app's
+  // own token as a cookie, which made the app's entry in the logged-in
+  // devices list show up as "web" whenever a game was played.
+  const gameUrl = `https://www.chuyenbienhoa.com/explore/games/${slug}?app=true`;
+  const [startUrl, setStartUrl] = useState(null);
 
-  useEffect(() => {
-    AsyncStorage.getItem("auth_token")
-      .then((token) => {
-        setAuthScript(
-          token
-            ? `document.cookie = "auth_token=${token}; path=/"; true;`
-            : "true;"
-        );
-      })
-      .catch(() => setAuthScript("true;"))
-      .finally(() => setTokenReady(true));
+  // The page loaded signed out although the app is signed in: the handoff
+  // did not take (typically right after logging in, when its code came too
+  // late). Hand off again and load the page afresh, once per visit.
+  const [reloadKey, setReloadKey] = useState(0);
+  const forceHandoff = useRef(false);
+  const retriedHandoff = useRef(false);
+  const retryHandoff = useCallback(() => {
+    if (retriedHandoff.current) return;
+    retriedHandoff.current = true;
+    forceHandoff.current = true;
+    setReloadKey((key) => key + 1);
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      StatusBar.setBarStyle("light-content", true);
-      if (StatusBar.setTranslucent) StatusBar.setTranslucent(true);
-      if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor("transparent", true);
+  useEffect(() => {
+    let cancelled = false;
+    const force = forceHandoff.current;
+    forceHandoff.current = false;
+    setStartUrl(null);
+    sessionEntryUrl(gameUrl, parseUrlParts(gameUrl), "webview", { force }).then((url) => {
+      if (!cancelled) setStartUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [gameUrl, reloadKey]);
 
-      return () => {
-        StatusBar.setBarStyle(isDarkMode ? "light-content" : "dark-content", true);
-        if (StatusBar.setTranslucent) StatusBar.setTranslucent(false);
-        if (StatusBar.setBackgroundColor) StatusBar.setBackgroundColor(theme.background, true);
-      };
-    }, [isDarkMode, theme.background])
+  // Same header as the gift shop / admin screens (WebAppScreen): back walks
+  // back through the page first, X leaves, and there is a reload button.
+  const webViewRef = useRef(null);
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  const handleBack = useCallback(() => {
+    if (canGoBack && webViewRef.current) {
+      webViewRef.current.goBack();
+      return true;
+    }
+    return false;
+  }, [canGoBack]);
+
+  // Android's back button does the same before leaving the screen.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener("hardwareBackPress", handleBack);
+      return () => sub.remove();
+    }, [handleBack])
   );
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        pointerEvents="box-none"
-        style={{ position: "absolute", top: insets.top + 8, left: 16, zIndex: 10 }}
-      >
-        <LiquidButton size={44} providerId="GamePlayScreen" onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
-      </View>
+      <WebViewHeader
+        title={name || t("games.title")}
+        onBack={() => {
+          if (!handleBack()) navigation.goBack();
+        }}
+        onClose={() => navigation.goBack()}
+        right={
+          <TouchableOpacity hitSlop={8} onPress={() => webViewRef.current?.reload()}>
+            <Ionicons name="refresh" size={22} color={theme.primary} />
+          </TouchableOpacity>
+        }
+      />
 
-      {tokenReady ? (
+      {startUrl ? (
         <WebView
-          source={{ uri: `https://www.chuyenbienhoa.com/explore/games/${slug}?app=true` }}
+          key={reloadKey}
+          ref={webViewRef}
+          source={{ uri: startUrl }}
+          onNavigationStateChange={(state) => setCanGoBack(state.canGoBack)}
+          applicationNameForUserAgent={WEBVIEW_USER_AGENT_SUFFIX}
           style={styles.webview}
           containerStyle={styles.webviewContainer}
           javaScriptEnabled
@@ -78,21 +116,27 @@ export default function GamePlayScreen({ navigation, route }) {
           incognito={false}
           sharedCookiesEnabled
           thirdPartyCookiesEnabled
-          // Signs the WebView into the same account as the app before the
-          // page's own scripts run, so session tracking works from the app.
-          injectedJavaScriptBeforeContentLoaded={authScript}
+          injectedJavaScriptBeforeContentLoaded={webViewBootScript({
+            theme: isDarkMode ? "dark" : "light",
+          })}
+          onMessage={(event) => {
+            const data = event.nativeEvent?.data;
+            if (data !== WEB_LOGIN_PAGE_MESSAGE && data !== WEB_SIGNED_OUT_MESSAGE) return;
+            // A guest plays signed out; only a signed-in app retries.
+            appHasAccount().then((signedIn) => signedIn && retryHandoff());
+          }}
           allowsInlineMediaPlayback
           mediaPlaybackRequiresUserAction={false}
           startInLoadingState
           renderLoading={() => (
             <View style={[styles.loading, { backgroundColor: theme.background }]}>
-              <ActivityIndicator size="large" color={theme.primary} />
+              <CustomLoading size={56} />
             </View>
           )}
         />
       ) : (
         <View style={[styles.loading, { backgroundColor: theme.background }]}>
-          <ActivityIndicator size="large" color={theme.primary} />
+          <CustomLoading size={56} />
         </View>
       )}
     </View>

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Switch, StyleSheet } from "react-native";
+import { ScrollView, View, Text, Switch, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,6 +7,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 import LiquidButton from "../../components/LiquidButton";
 import AuthBackground from "../../components/AuthBackground";
 import { AndroidGlassBackdrop } from "../../components/GlassModules";
+import { finishOnboardingSettings } from "../../utils/onboarding";
 
 // Shown once, right after LanguageSelectScreen, for a signed-out user who's
 // never been through onboarding - lets them pick autoplay/liquid-glass up
@@ -16,20 +17,47 @@ import { AndroidGlassBackdrop } from "../../components/GlassModules";
 // useTheme()'s setAutoplayVideos/setLiquidGlassEnabled (MMKV), same as
 // toggling them from Settings - nothing new to wire up for that.
 const FirstLaunchSettingsScreen = ({ navigation }) => {
-  const { theme, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled } = useTheme();
+  const {
+    theme,
+    autoplayVideos,
+    setAutoplayVideos,
+    liquidGlassEnabled,
+    setLiquidGlassEnabled,
+    shakeToReportEnabled,
+    setShakeToReportEnabled,
+  } = useTheme();
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
 
   const handleContinue = () => {
+    // Setup is complete: the next launch starts on the welcome screen.
+    finishOnboardingSettings();
     navigation.replace("Welcome");
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       <AuthBackground />
+
+      {/* Back to the language screen. replace(), like the way here: these
+          setup screens replace each other, so there is nothing to pop - and
+          on a launch that resumed here this screen is the only one. */}
+      <View style={[styles.backRow, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
+        <LiquidButton
+          providerId="FirstLaunchSettingsScreen"
+          size={44}
+          onPress={() => navigation.replace("LanguageSelect")}
+        >
+          <Ionicons name="chevron-back" size={24} color={theme.primary} />
+        </LiquidButton>
+      </View>
+
       <AndroidGlassBackdrop providerId="FirstLaunchSettingsScreen" style={{ flex: 1 }}>
-        <View
-          style={[
+        {/* Scrolls when the content is taller than the screen (small iPhones,
+            larger text); otherwise the spacer keeps the button at the bottom. */}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
             styles.content,
             { paddingTop: Math.max(insets.top + 60, 96), paddingBottom: insets.bottom + 32 },
           ]}
@@ -78,7 +106,7 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            <View style={styles.optionRow}>
+            <View style={[styles.optionRow, { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border }]}>
               <View style={styles.optionHeaderRow}>
                 <View style={[styles.optionIcon, { backgroundColor: theme.iconBackground }]}>
                   <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
@@ -94,6 +122,25 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
               </View>
               <Text style={[styles.optionDescription, { color: theme.subText }]}>
                 {t("firstLaunchSettings.liquidGlassDescription")}
+              </Text>
+            </View>
+
+            <View style={styles.optionRow}>
+              <View style={styles.optionHeaderRow}>
+                <View style={[styles.optionIcon, { backgroundColor: theme.iconBackground }]}>
+                  <Ionicons name="bug-outline" size={20} color={theme.primary} />
+                </View>
+                <Text style={[styles.optionLabel, { color: theme.text }]}>
+                  {t("settings.shakeToReport")}
+                </Text>
+                <Switch
+                  value={shakeToReportEnabled}
+                  onValueChange={setShakeToReportEnabled}
+                  trackColor={{ true: theme.primary }}
+                />
+              </View>
+              <Text style={[styles.optionDescription, { color: theme.subText }]}>
+                {t("firstLaunchSettings.shakeDescription")}
               </Text>
             </View>
           </View>
@@ -113,15 +160,22 @@ const FirstLaunchSettingsScreen = ({ navigation }) => {
             <Text style={styles.continueButtonText}>{t("firstLaunchSettings.continue")}</Text>
             <Ionicons name="arrow-forward" size={18} color="#fff" style={{ marginLeft: 8 }} />
           </LiquidButton>
-        </View>
+        </ScrollView>
       </AndroidGlassBackdrop>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  backRow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    zIndex: 10,
+    paddingHorizontal: 16,
+  },
   content: {
-    flex: 1,
+    flexGrow: 1,
     paddingHorizontal: 24,
   },
   headerText: {

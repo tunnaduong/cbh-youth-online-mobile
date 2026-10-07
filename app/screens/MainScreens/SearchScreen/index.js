@@ -21,6 +21,9 @@ import { AndroidGlassBackdrop, LiquidGlassView, glassTint, androidGlassPerfProps
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+import UserNameRow from "../../../components/profile/UserNameRow";
+import StyledUsername from "../../../components/profile/StyledUsername";
+import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 
 const SearchPillWrapper = LiquidGlassView ?? View;
 
@@ -103,20 +106,30 @@ export default function SearchScreen({ navigation, route }) {
         navigation.push("ProfileScreen", { username: user.username })
       }
     >
-      <FastImage
-        source={{
-          uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
-          priority: FastImage.priority.normal,
-        }}
-        style={styles.userAvatar}
-      />
+      {/* profile_theme is shown when the API sends it for this list. */}
+      <AvatarFrameWrap theme={user.profile_theme} size={50}>
+        <FastImage
+          source={{
+            uri: `https://api.chuyenbienhoa.com/v1.0/users/${user.username}/avatar`,
+            priority: FastImage.priority.normal,
+          }}
+          style={styles.userAvatar}
+        />
+      </AvatarFrameWrap>
       <View style={styles.userInfo}>
-        <Text style={[styles.userName, { color: theme.text }]} numberOfLines={1}>
-          {user.profile_name}
-        </Text>
-        <Text style={[styles.userUsername, { color: theme.subText }]} numberOfLines={1}>
-          @{user.username}
-        </Text>
+        <UserNameRow
+          name={user.profile_name}
+          theme={user.profile_theme}
+          verified={!!user.verified}
+          verifiedColor={theme.primary}
+          style={[styles.userName, { color: theme.text }]}
+        />
+        <StyledUsername
+          theme={user.profile_theme}
+          username={user.username}
+          style={[styles.userUsername, { color: theme.subText }]}
+          numberOfLines={1}
+        />
         {user.bio && (
           <Text style={[styles.userBio, { color: theme.subText }]} numberOfLines={1}>
             {user.bio}
@@ -145,9 +158,15 @@ export default function SearchScreen({ navigation, route }) {
           {post.title}
         </Text>
         <View style={styles.postMeta}>
-          <Text style={[styles.postAuthor, { color: theme.subText }]}>
-            {post.author.profile_name} • {post.created_at ? formatTime(post.created_at) : ""}{post.is_edited ? ` (${t('post.edited')})` : ""}
-          </Text>
+          <UserNameRow
+            name={post.author?.profile_name}
+            theme={post.author?.profile_theme}
+            style={[styles.postAuthor, { color: theme.subText }]}
+          >
+            <Text style={[styles.postAuthor, { color: theme.subText, flexShrink: 0 }]} numberOfLines={1}>
+              {" • "}{post.created_at ? formatTime(post.created_at) : ""}{post.is_edited ? ` (${t('post.edited')})` : ""}
+            </Text>
+          </UserNameRow>
         </View>
       </View>
     </TouchableOpacity>

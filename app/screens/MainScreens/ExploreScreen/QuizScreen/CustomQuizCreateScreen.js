@@ -21,6 +21,7 @@ import { useTheme } from "../../../../contexts/ThemeContext";
 import { AndroidGlassBackdrop } from "../../../../components/GlassModules";
 import LiquidButton from "../../../../components/LiquidButton";
 import { createCustomQuiz } from "../../../../services/api/Api";
+import { apiErrorMessage } from "../../../../utils/apiMessage";
 
 const DIFFICULTIES = ["easy", "medium", "hard"];
 const MAX_TITLE_LENGTH = 150;
@@ -184,8 +185,7 @@ const CustomQuizCreateScreen = ({ navigation }) => {
       Toast.show({
         type: "error",
         text1:
-          error?.response?.data?.message ||
-          t("customQuiz.createError", "Không thể tạo bộ đề tùy chỉnh, vui lòng thử lại."),
+          apiErrorMessage(error, t("customQuiz.createError", "Không thể tạo bộ đề tùy chỉnh, vui lòng thử lại.")),
       });
     } finally {
       setSubmitting(false);
@@ -422,12 +422,11 @@ const CustomQuizCreateScreen = ({ navigation }) => {
                 <Text style={[styles.resultMeta, { color: theme.subText }]}>
                   {t("customQuiz.questionCountResult", "{{count}} câu hỏi · Độ khó: {{difficulty}}", {
                     count: createdQuiz.question_count,
-                    difficulty:
-                      createdQuiz.difficulty === "easy"
-                        ? "Dễ"
-                        : createdQuiz.difficulty === "hard"
-                        ? "Khó"
-                        : "Trung bình",
+                    difficulty: t(
+                      `quiz.difficulty_${
+                        ["easy", "hard"].includes(createdQuiz.difficulty) ? createdQuiz.difficulty : "medium"
+                      }`
+                    ),
                   })}
                 </Text>
 

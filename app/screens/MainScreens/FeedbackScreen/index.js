@@ -1,11 +1,11 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useRef, useState } from "react";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
+  Animated,
   Platform,
   Alert,
   ActivityIndicator,
@@ -18,6 +18,8 @@ import * as Application from "expo-application";
 import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
 import FastImage from "../../../components/FastImage";
+import LiquidButton from "../../../components/LiquidButton";
+import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
@@ -59,6 +61,14 @@ function toApiStorageUrl(path) {
 
 export default function FeedbackScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
+  // Presented as a modal: on iOS the sheet already sits below the status bar.
+  const topInset = Platform.OS === "android" ? insets.top : 0;
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const { userInfo } = useContext(AuthContext);
@@ -169,25 +179,43 @@ export default function FeedbackScreen({ navigation, route }) {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View style={[styles.header, { paddingTop: Platform.OS === "android" ? insets.top + 8 : 14, borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={close} hitSlop={10} disabled={submitting}>
-          <Ionicons name="close" size={26} color={theme.text} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.text }]} numberOfLines={1}>
-          {t("feedback.title")}
-        </Text>
-        <TouchableOpacity onPress={handleSubmit} disabled={submitting} hitSlop={10}>
-          {submitting ? (
-            <ActivityIndicator color={theme.primary} />
-          ) : (
-            <Text style={[styles.headerAction, { color: theme.primary }]}>{t("feedback.submit")}</Text>
-          )}
-        </TouchableOpacity>
+      {/* Floating header: glass buttons appear once content scrolls under it */}
+      <View pointerEvents="box-none" style={styles.headerWrap}>
+        <View style={[styles.header, { paddingTop: topInset, height: 64 + topInset }]}>
+          <LiquidButton size={44} scrollY={scrollY} providerId="FeedbackScreen" onPress={close} disabled={submitting}>
+            <Ionicons name="close" size={24} color={theme.primary} />
+          </LiquidButton>
+          <Animated.Text
+            style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
+            numberOfLines={1}
+          >
+            {t("feedback.title")}
+          </Animated.Text>
+          <LiquidButton
+            size={44}
+            scrollY={scrollY}
+            providerId="FeedbackScreen"
+            onPress={handleSubmit}
+            disabled={submitting}
+            style={styles.headerActionButton}
+          >
+            {submitting ? (
+              <ActivityIndicator color={theme.primary} />
+            ) : (
+              <Text style={[styles.headerAction, { color: theme.primary }]}>{t("feedback.submit")}</Text>
+            )}
+          </LiquidButton>
+        </View>
       </View>
 
+      <AndroidGlassBackdrop providerId="FeedbackScreen" style={{ flex: 1 }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 32 }}
+        <Animated.ScrollView
+          scrollEventThrottle={16}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: false,
+          })}
+          contentContainerStyle={{ padding: 16, paddingTop: 64 + topInset, paddingBottom: insets.bottom + 32 }}
           keyboardShouldPersistTaps="handled"
         >
           <Text style={[styles.subtitle, { color: theme.subText }]}>{t("feedback.subtitle")}</Text>
@@ -297,24 +325,26 @@ export default function FeedbackScreen({ navigation, route }) {
               <Text style={styles.submitText}>{t("feedback.submit")}</Text>
             )}
           </TouchableOpacity>
-        </ScrollView>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
+      </AndroidGlassBackdrop>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  headerWrap: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingBottom: 8,
   },
-  headerTitle: { flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", marginHorizontal: 12 },
-  headerAction: { fontSize: 16, fontWeight: "700" },
+  headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "600", marginHorizontal: 12 },
+  headerActionButton: { width: "auto", minWidth: 64, paddingHorizontal: 14 },
+  headerAction: { fontSize: 15, fontWeight: "700" },
   subtitle: { fontSize: 14, marginBottom: 8 },
   shakeBanner: {
     flexDirection: "row",
