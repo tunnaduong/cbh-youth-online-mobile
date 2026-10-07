@@ -353,6 +353,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Chat conversation: fewer whole-list re-renders** (not run on a device; same behaviour): `ConversationScreen` gave every message row the id of the video that is playing inline, so a video starting or stopping while scrolling re-rendered every message - each row now gets the id only if it is that video (null otherwise; a row only compares it with its own id). The group "seen by" list keeps its array when nothing changed (it was replaced on every message-count change and by every 15-second poll, which made the list walk all messages again).
+
 - **Forum section picture visible across the card; Android glass without the lens** (not run on a device):
   - `ForumScreen`'s section card: the veil over the picture is now the card's background colour at 94% / 70% / 45% from left to right (`sectionVeil`), covering exactly the card. The first fix only made the old, nearly opaque veil fit the card - which hid the picture almost completely.
   - Android liquid glass: `thickness: 0` for every glass view (`ANDROID_NO_REFRACTION` in `GlassModules.js`, applied last in `GatedLiquidGlassView`, and in `androidGlassPerfProps`). The lens effect pulled the content around a glass surface into it (the row above the tab bar, the photos above the gallery's bar, text beside a button). It now only blurs and tints what is behind it. Covers the custom tab bar, `LiquidButton`, headers and the media gallery bar, since they all render through that one component. **Design system:** no refraction on Android glass; do not pass `thickness` at a call site.

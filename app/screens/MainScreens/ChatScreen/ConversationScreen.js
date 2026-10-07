@@ -480,7 +480,14 @@ const MessagesListContent = React.memo(({
             handlersRef={messageHandlersRef}
             onImageError={onImageError}
             seenAvatars={value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined}
-            activeInlineVideoId={activeInlineVideoId}
+            // Only the row that IS the active video is given the id; every
+            // other row gets null. A row only ever compares the id with its
+            // own, so nothing changes for it - but with the raw id as a prop,
+            // one video starting or stopping mid-scroll changed a prop of
+            // every message and re-rendered the whole list.
+            activeInlineVideoId={
+              String(value.id) === String(activeInlineVideoId) ? activeInlineVideoId : null
+            }
             autoplayVideos={autoplayVideos}
           />
         )}
@@ -2227,7 +2234,9 @@ const ConversationScreen = ({ navigation, route }) => {
   useEffect(() => {
     const activeId = currentConversationId || conversationId;
     if (isNewConversation || !activeId || !isGroupConversation) {
-      setSeenParticipants([]);
+      // Keep the same (already empty) array: a new [] on every run is a new
+      // prop for the message list, which then walks every message again.
+      setSeenParticipants((prev) => (prev.length ? [] : prev));
       return undefined;
     }
 
@@ -2235,7 +2244,13 @@ const ConversationScreen = ({ navigation, route }) => {
     const fetchSeen = () => {
       getGroupSeenReceipts(activeId)
         .then((res) => {
-          if (!cancelled) setSeenParticipants(res.data?.participants || []);
+          if (cancelled) return;
+          const next = res.data?.participants || [];
+          // The 15-second poll usually returns what is already shown; keep
+          // the array we have then, so the message list is left alone.
+          setSeenParticipants((prev) =>
+            JSON.stringify(prev) === JSON.stringify(next) ? prev : next
+          );
         })
         .catch(() => {});
     };
