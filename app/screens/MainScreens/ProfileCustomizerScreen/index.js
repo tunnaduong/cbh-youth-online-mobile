@@ -18,7 +18,8 @@ import { apiErrorMessage } from "../../../utils/apiMessage";
 import { useTranslation } from "react-i18next";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
-import { getProfile, updateProfile } from "../../../services/api/Api";
+import * as ImagePicker from "expo-image-picker";
+import { deleteCustomFrame, getProfile, updateProfile, uploadCustomFrame } from "../../../services/api/Api";
 import { setOwnProfileTheme } from "../../../utils/ownProfileTheme";
 import TierIcon from "../../../components/profile/TierIcon";
 import FastImage from "../../../components/FastImage";
@@ -148,6 +149,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [picker, setPicker] = useState(null);
+  const [uploadingFrame, setUploadingFrame] = useState(null);
   const shake = useRef(new Animated.Value(0)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerTitleOpacity = scrollY.interpolate({
@@ -253,6 +255,9 @@ export default function ProfileCustomizerScreen({ navigation }) {
         next
           ? {
               ...next,
+              // The uploaded frames' addresses, which the theme itself never holds.
+              avatar_frame_url: editor?.custom_frames?.avatar_url || null,
+              profile_frame_url: editor?.custom_frames?.profile_url || null,
               name_icon_emoji:
                 (editor?.options?.name_icon || []).find((o) => o.key === next.name_icon)?.icon || null,
               name_icon_tier:
@@ -278,6 +283,71 @@ export default function ProfileCustomizerScreen({ navigation }) {
       setSaving(false);
     }
   };
+
+  // Pro Plus: the member's own frame images (absent on an older API).
+  const customFrames = editor?.custom_frames || null;
+
+  const uploadFrame = async (kind) => {
+    const rules = customFrames?.rules || {};
+    const maxBytes = rules.max_bytes || 5 * 1024 * 1024;
+    // No cropping and no compression: both would re-encode the picture and
+    // lose its transparent background.
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 1 });
+    const asset = result.canceled ? null : result.assets?.[0];
+    if (!asset) return;
+
+    const name = (asset.fileName || asset.uri || "").toLowerCase();
+    const type = asset.mimeType || (name.endsWith(".webp") ? "image/webp" : name.endsWith(".png") ? "image/png" : "");
+    if (type !== "image/png" && type !== "image/webp") {
+      Toast.show({ type: "error", text1: t("profileTheme.customFrameFormat") });
+      return;
+    }
+    if (asset.fileSize && asset.fileSize > maxBytes) {
+      Toast.show({ type: "error", text1: t("profileTheme.customFrameTooBig", { mb: Math.round(maxBytes / 1024 / 1024) }) });
+      return;
+    }
+
+    try {
+      setUploadingFrame(kind);
+      const formData = new FormData();
+      formData.append("kind", kind);
+      formData.append("image", { uri: asset.uri, type, name: type === "image/webp" ? "frame.webp" : "frame.png" });
+      await uploadCustomFrame(username, formData);
+      await load();
+      // Chosen in the draft; others see it once the theme is saved.
+      update({ [`${kind}_frame`]: "custom" });
+      Toast.show({ type: "success", text1: t("profileTheme.customFrameUploaded") });
+    } catch (error) {
+      console.error("Error uploading custom frame:", error?.response?.data || error);
+      Toast.show({ type: "error", text1: apiErrorMessage(error, t("profileTheme.customFrameUploadError")) });
+    } finally {
+      setUploadingFrame(null);
+    }
+  };
+
+  const removeFrame = (kind) =>
+    Alert.alert(t("profileTheme.customFrameDeleteTitle"), undefined, [
+      { text: t("profileTheme.customFrameCancel"), style: "cancel" },
+      {
+        text: t("profileTheme.customFrameDelete"),
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteCustomFrame(username, kind);
+            await load();
+            // The API also took "custom" out of the saved theme.
+            const field = `${kind}_frame`;
+            const clear = (current) => (current[field] === "custom" ? { ...current, [field]: "none" } : current);
+            setSaved(clear);
+            setDraft(clear);
+            Toast.show({ type: "success", text1: t("profileTheme.customFrameDeleted") });
+          } catch (error) {
+            console.error("Error deleting custom frame:", error?.response?.data || error);
+            Toast.show({ type: "error", text1: apiErrorMessage(error, t("profileTheme.customFrameDeleteError")) });
+          }
+        },
+      },
+    ]);
 
   const header = (
     <View pointerEvents="box-none" style={styles.headerWrap}>
@@ -388,8 +458,15 @@ export default function ProfileCustomizerScreen({ navigation }) {
   const nameIconGlyph = optionOf("name_icon", draft.name_icon)?.icon || null;
   // What the previews draw: the draft plus the glyph, which the API derives
   // for display and never stores (so it must not be in the draft itself).
+  // The uploaded frames' addresses come from the API and are never saved
+  // with the theme: the draft only says "custom".
+  const frameUrls = {
+    avatar_frame_url: customFrames?.avatar_url || null,
+    profile_frame_url: customFrames?.profile_url || null,
+  };
+  const themed = { ...draft, ...frameUrls };
   const previewTheme = {
-    ...draft,
+    ...themed,
     name_icon_emoji: nameIconGlyph,
     name_icon_tier: optionOf("name_icon", draft.name_icon)?.tier || null,
   };
@@ -405,12 +482,62 @@ export default function ProfileCustomizerScreen({ navigation }) {
     </AvatarFrameWrap>
   );
 
+  // Upload row under a frame slot: the buttons, the rule the image has to
+  // meet, and the points needed while locked.
+  const customFrameRow = (kind) => {
+    if (!customFrames) return null;
+    const rules = customFrames.rules || {};
+    const url = kind === "avatar" ? customFrames.avatar_url : customFrames.profile_url;
+    const busy = uploadingFrame === kind;
+
+    return (
+      <View style={styles.customFrame}>
+        <View style={styles.hintRow}>
+          {!customFrames.unlocked ? <Ionicons name="lock-closed" size={11} color={theme.subText} /> : null}
+          <Text style={[styles.hint, { color: theme.text, fontWeight: "600" }]}>
+            {t("profileTheme.customFrameTitle")}
+            {!customFrames.unlocked ? ` · ${customFrames.required_points} ${t("profileTheme.milestones.pointsUnit", "điểm")}` : ""}
+          </Text>
+        </View>
+        <View style={styles.customFrameActions}>
+          <TouchableOpacity
+            disabled={!customFrames.unlocked || busy}
+            onPress={() => uploadFrame(kind)}
+            style={[styles.customFrameButton, { borderColor: theme.border, opacity: customFrames.unlocked ? 1 : 0.5 }]}
+          >
+            {busy ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <Text style={[styles.link, { color: theme.primary }]}>
+                {url ? t("profileTheme.customFrameReplace") : t("profileTheme.customFrameUpload")}
+              </Text>
+            )}
+          </TouchableOpacity>
+          {url ? (
+            <TouchableOpacity onPress={() => removeFrame(kind)} style={styles.customFrameDelete}>
+              <Text style={[styles.link, { color: "#dc2626" }]}>{t("profileTheme.customFrameDelete")}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        <Text style={[styles.hint, { color: theme.subText, marginTop: 6 }]}>
+          {t("profileTheme.customFrameLimits", {
+            size: rules.min_size || 256,
+            mb: Math.round((rules.max_bytes || 5242880) / 1024 / 1024),
+          })}{" "}
+          {kind === "avatar"
+            ? t("profileTheme.customFrameAvatarRule", { percent: Math.round((rules.avatar?.hole || 0.64) * 100) })
+            : t("profileTheme.customFrameProfileRule", { percent: Math.round((rules.profile?.slice || 0.25) * 100) })}
+        </Text>
+      </View>
+    );
+  };
+
   const pickers = {
     avatar_frame: {
       title: t("profileTheme.groups.avatar_frame", "Khung ảnh đại diện"),
       render: (key) => (
         <>
-          <View style={{ marginVertical: 4 }}>{avatar(52, { ...draft, avatar_frame: key })}</View>
+          <View style={{ marginVertical: 4 }}>{avatar(52, { ...themed, avatar_frame: key })}</View>
           <Text style={[styles.tileLabel, { color: theme.text }]}>{optionLabel("avatar_frame", key)}</Text>
         </>
       ),
@@ -432,7 +559,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
       render: (key) => (
         <>
           <View style={[styles.tileSample, { backgroundColor: isDarkMode ? "#404040" : "#e5e7eb" }]}>
-            <ProfileFrame theme={{ ...draft, profile_frame: key }} radius={10} />
+            <ProfileFrame theme={{ ...themed, profile_frame: key }} radius={10} />
           </View>
           <Text style={[styles.tileLabel, { color: theme.text }]}>{optionLabel("profile_frame", key)}</Text>
         </>
@@ -519,7 +646,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
                 <FastImage source={{ uri: avatarUrl }} style={styles.slotAvatar} />
               </Slot>
               <Slot label={t("profileTheme.groups.avatar_frame", "Khung ảnh đại diện")} onPress={() => setPicker("avatar_frame")}>
-                {draft.avatar_frame === "none" ? <AddIcon /> : avatar(56, draft)}
+                {draft.avatar_frame === "none" ? <AddIcon /> : avatar(56, themed)}
               </Slot>
             </View>
             <View style={styles.hintRow}>
@@ -528,6 +655,7 @@ export default function ProfileCustomizerScreen({ navigation }) {
                 {t("profileTheme.gifHint", "GIF động · {{points}} điểm", { points: editor.animated_avatar.required_points })}
               </Text>
             </View>
+            {customFrameRow("avatar")}
           </Section>
 
           <Section title={t("profileTheme.sections.banner", "Ảnh bìa")}>
@@ -581,12 +709,13 @@ export default function ProfileCustomizerScreen({ navigation }) {
                   <AddIcon />
                 ) : (
                   <>
-                    <ProfileFrame theme={draft} radius={14} />
+                    <ProfileFrame theme={themed} radius={14} />
                     <Text style={[styles.slotCaption, { color: theme.text }]}>{optionLabel("profile_frame", draft.profile_frame)}</Text>
                   </>
                 )}
               </Slot>
             </View>
+            {customFrameRow("profile")}
           </Section>
 
           <Section title={t("profileTheme.sections.name", "Kiểu tên")}>
@@ -1016,6 +1145,10 @@ const styles = StyleSheet.create({
   slotName: { fontSize: 20, fontWeight: "bold" },
   hintRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
   hint: { fontSize: 12 },
+  customFrame: { marginTop: 10 },
+  customFrameActions: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 6 },
+  customFrameButton: { minHeight: 34, minWidth: 110, paddingHorizontal: 12, borderWidth: 1, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  customFrameDelete: { minHeight: 34, justifyContent: "center" },
   colorRow: { flexDirection: "row", gap: 8 },
   gradientHint: { fontSize: 12, marginTop: 10, marginBottom: 6 },
   gradientChip: {

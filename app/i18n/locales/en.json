@@ -2066,6 +2066,21 @@
     "lockedNotice": "You need {{points}} points to customize your profile. You can still preview.",
     "changeAvatar": "Change avatar",
     "changeCover": "Change cover photo",
+    "customFrameTitle": "Your own frame",
+    "customFrameUpload": "Upload a frame",
+    "customFrameReplace": "Replace the frame",
+    "customFrameDelete": "Delete",
+    "customFrameCancel": "Cancel",
+    "customFrameDeleteTitle": "Delete this frame image?",
+    "customFrameLimits": "PNG/WebP with a transparent background, square, at least {{size}}px, up to {{mb}}MB.",
+    "customFrameAvatarRule": "Leave the circle in the middle ({{percent}}% of the width) clear for your avatar.",
+    "customFrameProfileRule": "Only the outer {{percent}}% of each side is drawn as the border; the middle is ignored.",
+    "customFrameUploaded": "Frame uploaded.",
+    "customFrameDeleted": "Frame deleted.",
+    "customFrameFormat": "The frame has to be a PNG or WebP with a transparent background.",
+    "customFrameTooBig": "The frame can be up to {{mb}}MB.",
+    "customFrameUploadError": "Could not upload the frame.",
+    "customFrameDeleteError": "Could not delete the frame.",
     "gifHint": "Animated GIF · {{points}} points",
     "bannerColor": "Banner color",
     "clearBanner": "Remove banner color",
@@ -2128,10 +2143,10 @@
       "grotesk": "Space Grotesk"
     },
     "options": {
-      "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow" },
+      "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow", "custom": "Your own" },
       "name_effect": { "none": "None", "solid": "Solid", "gradient": "Gradient", "pop": "Pop", "toon": "Toon", "neon": "Neon", "rainbow": "Rainbow", "outline": "Outline" },
       "profile_effect": { "none": "None", "sparkles": "Sparkles", "hearts": "Hearts", "snow": "Snowfall", "aurora": "Aurora" },
-      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon" },
+      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon", "custom": "Your own" },
       "name_icon": { "none": "None" }
     }
   },
@@ -2149,7 +2164,8 @@
     "distinguished": "Distinguished member",
     "veteran": "Veteran member",
     "premium": "Premium member",
-    "pro": "Pro member"
+    "pro": "Pro member",
+    "pro_plus": "Pro Plus member"
   },
   "memberTierPerks": {
     "trainee": "Theme colours, banner colour and the basic avatar frames",
@@ -2157,7 +2173,8 @@
     "distinguished": "More fonts and name effects, the gold frame and snow",
     "veteran": "Rainbow frame, aurora, spinning neon and an animated GIF avatar",
     "premium": "Rainbow and outlined names, premium fonts, gradient colours",
-    "pro": "An icon next to your name, a username styled like your name, emoji and special characters in your name"
+    "pro": "An icon next to your name, a username styled like your name, emoji and special characters in your name",
+    "pro_plus": "Your own image as the avatar frame and the profile frame"
   },
   "twoFactor": {
     "methodDevice": "Approve on a logged-in device",

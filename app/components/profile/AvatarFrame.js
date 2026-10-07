@@ -10,12 +10,17 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
+import { Image } from "expo-image";
 import { getAvatarFrame } from "../../utils/profileTheme";
 
 // The ring overflows the avatar by 4% on each side and is 12% of its radius
 // thick - same proportions as the web's AvatarFrame.
 const OVERFLOW = 0.04;
 const THICKNESS = 0.12;
+
+// An uploaded frame is drawn at this multiple of the avatar's size: the
+// avatar fills the middle 80% of the image (same as the web).
+const IMAGE_SCALE = 1.25;
 
 /**
  * Khung trang trí quanh avatar. Đặt trong một View `position: relative` có
@@ -29,7 +34,25 @@ const THICKNESS = 0.12;
 export default function AvatarFrame({ theme, size }) {
   const frame = getAvatarFrame(theme);
   if (!frame || !size) return null;
+  if (frame.image) return <ImageFrame uri={frame.image} size={size} />;
   return <Ring frame={frame} size={size} />;
+}
+
+function ImageFrame({ uri, size }) {
+  const outer = size * IMAGE_SCALE;
+  const offset = (size - outer) / 2;
+
+  return (
+    <View pointerEvents="none" style={{ position: "absolute", left: offset, top: offset, width: outer, height: outer }}>
+      <Image
+        source={{ uri }}
+        style={{ width: outer, height: outer }}
+        contentFit="contain"
+        // Decoration: a screen reader reads the name next to it.
+        accessible={false}
+      />
+    </View>
+  );
 }
 
 function Ring({ frame, size }) {

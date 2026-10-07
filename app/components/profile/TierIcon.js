@@ -10,6 +10,7 @@ export const TIER_COLORS = {
   veteran: "#a855f7",
   premium: "#f43f5e",
   pro: "#f97316",
+  pro_plus: "#db2777",
 };
 
 export const TIER_ICONS = {
@@ -19,6 +20,7 @@ export const TIER_ICONS = {
   veteran: "shield-check",
   premium: "diamond-stone",
   pro: "crown",
+  pro_plus: "crown-circle",
 };
 
 /**
@@ -27,7 +29,7 @@ export const TIER_ICONS = {
  * row or be nested inside another <Text>.
  *
  * Props:
- *   tierId - "trainee" | "active" | "distinguished" | "veteran" | "premium" | "pro"
+ *   tierId - "trainee" | "active" | "distinguished" | "veteran" | "premium" | "pro" | "pro_plus"
  *   size   - icon size (default 14)
  *   color  - override the tier colour
  *   style  - extra layout style

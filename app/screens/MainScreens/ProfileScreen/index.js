@@ -1291,6 +1291,7 @@ const ProfileScreen = ({ route, navigation }) => {
                   { id: "veteran", name: "Kỳ cựu", min_points: 1000, color: "#a855f7" },
                   { id: "premium", name: "Cao cấp", min_points: 1500, color: "#f43f5e" },
                   { id: "pro", name: "Pro", min_points: 2000, color: "#f97316" },
+                  { id: "pro_plus", name: "Pro Plus", min_points: 2250, color: "#db2777" },
                 ];
                 // The API sends an array of {id, name, min_points, achieved_at}
                 // (achieved_at already formatted as d/m/Y), not an id-keyed map.
