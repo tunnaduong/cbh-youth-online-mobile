@@ -176,6 +176,28 @@ jobs:
           cd ios
           pod install || (pod update hermes-engine --no-repo-update && pod install)
 
+      # With ccache on, React Native's Podfile points the whole project's
+      # compiler and linker at $(REACT_NATIVE_PATH)/scripts/xcode/ccache-clang.sh,
+      # and REACT_NATIVE_PATH is built from PODS_ROOT. A target that links no
+      # pods (the share extension) has no PODS_ROOT, so for it the path came
+      # out as "/../../node_modules/react-native/..." and the build stopped
+      # with "unable to spawn process". Give every target both values.
+      - name: Point every target at the ccache wrappers
+        run: |
+          cd ios
+          gem list -i xcodeproj > /dev/null || gem install xcodeproj --no-document
+          ruby -rxcodeproj -e '
+            project = Xcodeproj::Project.open(Dir["*.xcodeproj"].first)
+            project.targets.each do |target|
+              target.build_configurations.each do |config|
+                config.build_settings["PODS_ROOT"] ||= "$(SRCROOT)/Pods"
+                config.build_settings["REACT_NATIVE_PATH"] ||= "$(SRCROOT)/../node_modules/react-native"
+              end
+            end
+            project.save
+          '
+          test -f ../node_modules/react-native/scripts/xcode/ccache-clang.sh
+
       - name: Detect iOS Project Name
         run: |
           cd ios
