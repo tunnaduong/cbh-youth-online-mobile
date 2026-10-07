@@ -179,7 +179,8 @@ const BlurGlassView = ({ tintColor, style, borderRadius, children }) => {
 // thickness the glass only blurs and tints what is directly behind it. Put
 // last on the view so no call site can switch the lens back on. iOS is not
 // touched (its glass is the system's).
-const ANDROID_NO_REFRACTION = Platform.OS === "android" ? { thickness: 0 } : null;
+// A hair above zero rather than zero itself, in case the shader divides by it.
+const ANDROID_NO_REFRACTION = Platform.OS === "android" ? { thickness: 0.001 } : null;
 
 const GatedLiquidGlassView = ({
   tintColor,
@@ -287,7 +288,7 @@ const flatSurface = (isDarkMode) =>
 // blurRadius/rim/specular/edgeReflectionStrength don't exist on this version
 // at all, so they're removed here rather than passed as dead props.
 const androidGlassPerfProps =
-  Platform.OS === "android" ? { intensity: 7, thickness: 0 } : {};
+  Platform.OS === "android" ? { intensity: 7, thickness: 0.001 } : {};
 
 export {
   LiquidGlassView,
