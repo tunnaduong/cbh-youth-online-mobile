@@ -33,8 +33,15 @@ import FastImage from "../../../components/FastImage";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import AvatarFrame from "../../../components/profile/AvatarFrame";
 
+// Time of a conversation's last message, short enough for the row: the hour
+// for today, the date otherwise. (It was an empty placeholder that returned
+// nothing, so the list showed no time at all.)
 const formatMessageTime = (timestamp) => {
-  // ... same formatMessageTime function ...
+  const time = dayjs(timestamp);
+  if (!time.isValid()) return "";
+  const now = dayjs();
+  if (time.isSame(now, "day")) return time.format("HH:mm");
+  return time.isSame(now, "year") ? time.format("DD/MM") : time.format("DD/MM/YY");
 };
 
 export default function ChatScreen({ navigation, scrollTriggerRef }) {

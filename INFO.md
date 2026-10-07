@@ -353,6 +353,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Chat: fixes from a read-through of the conversation code** (not run on a device):
+  - A text message just sent, and the "sending" bubble of an attachment, were kept in the list with the API's type (`text` / `image`...) instead of the list's `type: "message"` + `content_type`. Until the next refetch, reactions on the new message did not show and it disappeared when another message arrived (the handlers keep `type === "message"` only). Both are normalised like every fetched message now.
+  - Sending: the "already sending" guards were inside `try`, so a blocked second tap ran `finally { setSending(false) }` and re-enabled sending mid-request; and the text guard read state, so two quick taps sent twice. Guards are before `try`, the text path uses a ref (`sendingRef`). A failed send puts the text back in the input (unless something new was typed).
+  - The conversation list shows the time of the last message (`formatMessageTime` in `ChatScreen/index.js` was an empty placeholder): `HH:mm` today, else `DD/MM` (`DD/MM/YY` for other years).
+  - Highlighting a message opened from a notification compares ids as strings; the input bar's keyboard offset is `min(20, insets.bottom)` (it sat below the keyboard's edge for bottom insets between 1 and 19).
+  - Known, not fixed here (need more than a small change): jump-to-replied-message refetches the same page (stale `page` in its loop); mark-as-read is sent while the screen is not focused; the scroll can jump after a load-more that returned nothing.
+
 - **Chat conversation: fewer whole-list re-renders** (not run on a device; same behaviour): `ConversationScreen` gave every message row the id of the video that is playing inline, so a video starting or stopping while scrolling re-rendered every message - each row now gets the id only if it is that video (null otherwise; a row only compares it with its own id). The group "seen by" list keeps its array when nothing changed (it was replaced on every message-count change and by every 15-second poll, which made the list walk all messages again).
 
 - **Forum section picture visible across the card; Android glass without the lens** (not run on a device):

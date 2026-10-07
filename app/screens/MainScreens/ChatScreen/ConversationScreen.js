@@ -405,13 +405,14 @@ const MessagesListContent = React.memo(({
               y: e.nativeEvent.layout.y,
               height: e.nativeEvent.layout.height,
             };
-            if (pendingHighlightMessageIdRef.current === value.id) {
+            if (String(pendingHighlightMessageIdRef.current) === String(value.id)) {
               attemptScrollToHighlightRef.current();
             }
           }
         }}
         style={
-          value.id === highlightedMessageId
+          // String(): an id that came with a notification is a string.
+          highlightedMessageId != null && String(value.id) === String(highlightedMessageId)
             ? {
                 backgroundColor: isDarkMode
                   ? "rgba(250,204,21,0.15)"
@@ -3120,9 +3121,10 @@ const ConversationScreen = ({ navigation, route }) => {
     // catch block can restore it on failure.
     const replySnapshot = replyingTo;
     let upload = givenUpload || null;
+    // Outside `try`: its `finally` clears the sending flag, which must not
+    // happen for a send that never started.
+    if (sending) return;
     try {
-      if (sending) return;
-
       setSending(true);
       upload = upload || beginUpload({ kind: "message" });
       upload.report(type === "video" ? "uploadingVideo" : "uploading", { progress: 0 });
@@ -3165,7 +3167,10 @@ const ConversationScreen = ({ navigation, route }) => {
       const optimisticMessage = {
         id: tempId,
         content: type === "image" ? "" : primary.fileName,
-        type,
+        // Same reason as the text message above: without type "message" the
+        // sending bubble vanished whenever another message arrived mid-upload.
+        type: "message",
+        content_type: type,
         file_url: primary.uri, // Use local URI temporarily
         // Optimistic multi-attachment preview: local file:// URIs so the
         // sending bubble's grid shows every picked asset immediately, same
@@ -3433,6 +3438,9 @@ const ConversationScreen = ({ navigation, route }) => {
     }
   };
 
+  // True from the tap until the request settles (see handleSendNewMessage).
+  const sendingRef = useRef(false);
+
   const handleSendNewMessage = async () => {
     scrollToLatestMessageAnimated();
     const tempId = Date.now().toString();
@@ -3440,11 +3448,15 @@ const ConversationScreen = ({ navigation, route }) => {
     // still in scope if something throws before it would otherwise be set -
     // catch needs it to restore the reply state on failure.
     const replySnapshot = replyingTo;
+    // Guards outside `try` (its `finally` clears the sending flag), and on a
+    // ref: `sending` is state, so two quick taps both saw it false and sent
+    // the message twice.
+    if (sendingRef.current || sending) return;
+    const rawMessage = latestMessageRef.current || message;
+    if (!rawMessage.trim()) return;
+    const trimmedMessage = rawMessage.trim();
+    sendingRef.current = true;
     try {
-      const rawMessage = latestMessageRef.current || message;
-      if (!rawMessage.trim() || sending) return;
-
-      const trimmedMessage = rawMessage.trim();
       latestMessageRef.current = "";
       const now = new Date().toISOString();
 
@@ -3632,7 +3644,17 @@ const ConversationScreen = ({ navigation, route }) => {
           }
         }
 
-        messagesToAdd.push(response.data);
+        // The same shape every other message in the list has (see
+        // injectTimeHeaders): type "message" + content_type. Pushed raw it
+        // kept the API's type ("text"), and everything that looks for
+        // type === "message" skipped it until the next refetch - reactions
+        // on it did not show, and it dropped out of the list when the next
+        // message arrived.
+        messagesToAdd.push({
+          ...response.data,
+          type: "message",
+          content_type: response.data.content_type ?? response.data.type,
+        });
         return [...baseMessages, ...messagesToAdd];
       });
 
@@ -3675,12 +3697,20 @@ const ConversationScreen = ({ navigation, route }) => {
       // re-selecting what to reply to.
       if (replySnapshot) setReplyingTo(replySnapshot);
 
+      // And the text: it was cleared from the input when the send started.
+      // Only if nothing new was typed meanwhile.
+      if (!latestMessageRef.current) {
+        latestMessageRef.current = trimmedMessage;
+        setMessage((current) => current || trimmedMessage);
+      }
+
       Toast.show({
         type: "error",
         text1: t("common.error"),
         text2: t("chatConversation.sendMessageError"),
       });
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   };
@@ -4686,7 +4716,7 @@ const ConversationScreen = ({ navigation, route }) => {
           // absorbs it, so the bar renders 20px below the keyboard's top
           // edge. Drop the offset to 0 there so it lifts exactly to the
           // keyboard's edge instead.
-          offset={{ opened: insets.bottom > 0 ? 20 : 0 }}
+          offset={{ opened: Math.min(20, Math.max(0, insets.bottom)) }}
         >
           {showScrollButton && (
             <TouchableOpacity
