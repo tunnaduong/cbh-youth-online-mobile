@@ -96,6 +96,7 @@ app/
   utils/
     externalLink.js        URL parsing, trusted hosts, in-app routes, openInAppBrowser, link-safety tokens
     webSession.js          App→web login handoff (withWebSession) + webViewBootScript
+    orientation.js         Portrait lock held from JS (lockPortrait / allowRotation for the game screen)
     responsive.js          Tablet/large-screen layout helpers
     deviceInfo.js          Device headers sent to the API + remembered two-factor device token
     ...                    formatting, mentions, media download, chat helpers, saved accounts
@@ -352,6 +353,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 ---
 
 ## 6. Recent work (newest first, as of 2026-10)
+
+- **Games rotate to landscape** (not run on a device; **new native dep `expo-screen-orientation` → needs a new native build**, lockfile updated): `app.json` `orientation` is now `"default"` (every orientation allowed natively) and the portrait lock is held from JS - `app/utils/orientation.js`: `lockPortrait()` runs at launch (`index.js`), and `GamePlayScreen` calls `allowRotation()` while it is focused and locks portrait again when it loses focus. The plugin's `initialOrientation: "PORTRAIT_UP"` keeps iOS portrait at launch; on Android the app can show landscape for a moment if it is started with the phone held sideways, until `index.js` runs. The module is required optionally, so a JS update on an older build (no native module) stays portrait instead of crashing. Any other screen that should rotate uses the same two calls. On iPad the lock is only honoured with `ios.requireFullScreen`, which is not set.
 
 - **Home feed: "Tin tức Đoàn" tab** (not run on a device; **needs the API's `GET /topics/feed?mode=youth-news`**, pushed to its `main`): a fourth chip beside For you / Latest / Following (`home.youthNews`, vi/en/ru) shows the youth union news subforum, newest first, with the same post cards, load-more and pull-to-refresh as the other tabs (`getNewsFeed`, `feedMode === "youth-news"`, its own `newsPage`). Works for guests. Against an API without that mode (it would answer with the ordinary feed) the tab stays empty instead of showing the wrong posts - it checks `mode: "youth-news"` in the first answer.
 

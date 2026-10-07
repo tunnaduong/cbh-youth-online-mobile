@@ -3,6 +3,11 @@ import { registerRootComponent } from "expo";
 import * as SplashScreen from "expo-splash-screen";
 import { LogBox } from "react-native";
 import StartupErrorScreen from "./app/components/StartupErrorScreen";
+import { lockPortrait } from "./app/utils/orientation";
+
+// Portrait everywhere; a screen that wants to rotate unlocks itself (see
+// app/utils/orientation.js).
+lockPortrait();
 
 // Prevent the native splash screen from hiding automatically
 SplashScreen.preventAutoHideAsync().catch(() => {});

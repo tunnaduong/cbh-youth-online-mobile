@@ -4,7 +4,7 @@
     "slug": "cbh-youth-online-mobile",
     "version": "6.0.1",
     "projectId": "172eec8c-8c58-453c-a375-258412496e09",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -162,6 +162,12 @@
         }
       ],
       "expo-web-browser",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
       "expo-apple-authentication",
       "expo-localization",
       [

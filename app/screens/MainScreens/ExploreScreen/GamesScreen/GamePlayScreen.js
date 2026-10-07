@@ -9,6 +9,7 @@ import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import WebViewHeader from "../../../../components/WebViewHeader";
 import CustomLoading from "../../../../components/CustomLoading";
 import { parseUrlParts } from "../../../../utils/externalLink";
+import { allowRotation, lockPortrait } from "../../../../utils/orientation";
 import {
   sessionEntryUrl,
   appHasAccount,
@@ -75,6 +76,15 @@ export default function GamePlayScreen({ navigation, route }) {
     }
     return false;
   }, [canGoBack]);
+
+  // Many games are made for landscape: this is the one screen that follows
+  // the device's rotation. Back to portrait as soon as it loses focus.
+  useFocusEffect(
+    useCallback(() => {
+      allowRotation();
+      return () => lockPortrait();
+    }, [])
+  );
 
   // Android's back button does the same before leaving the screen.
   useFocusEffect(
