@@ -25,6 +25,13 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
+// The Vietnamese strings themselves, not through t(): what is sent to the
+// server is Vietnamese whatever language the app is shown in.
+import vi from "../../../i18n/locales/vi.json";
+
+// How many violation types one report can carry (the API keeps them in one
+// 255-character field).
+const MAX_VIOLATION_TYPES = 8;
 
 const STEPS = [
   { id: 1, titleKey: "report.step1" },
@@ -138,7 +145,9 @@ export default function Step2({ navigation, route }) {
   const [studentName, setStudentName] = useState("");
   const [reportDate, setReportDate] = useState(new Date());
   const [openDatePicker, setOpenDatePicker] = useState(false);
-  const [violationType, setViolationType] = useState("");
+  // Preset types picked from the chips (several allowed), in the app's
+  // language; the ones typed or picked under "Other" are in selectedTags.
+  const [selectedTypes, setSelectedTypes] = useState([]);
   const [notes, setNotes] = useState("");
   const [absences, setAbsences] = useState("");
   const [cleanliness, setCleanliness] = useState("");
@@ -193,17 +202,58 @@ export default function Step2({ navigation, route }) {
     setSuggestions(mockSuggestions);
   };
 
-  const handleAddTag = (tag) => {
-    setSelectedTags([tag]);
-    setTagInput("");
-    setViolationType(tag);
-    setSuggestions([]);
-    bottomSheetRef.current?.close();
+  const presetTypes =
+    (selectedViolationType === "class" ? CLASS_VIOLATION_TYPES : STUDENT_VIOLATION_TYPES) || [];
+  const totalSelected = selectedTypes.length + selectedTags.length;
+
+  const toggleType = (type) => {
+    setSelectedTypes((current) => {
+      if (current.includes(type)) return current.filter((item) => item !== type);
+      if (current.length + selectedTags.length >= MAX_VIOLATION_TYPES) return current;
+      return [...current, type];
+    });
   };
 
-  const handleRemoveTag = () => {
-    setSelectedTags([]);
-    setViolationType("");
+  const handleAddTag = (rawTag) => {
+    const tag = (rawTag || "").trim();
+    setTagInput("");
+    setSuggestions([]);
+    bottomSheetRef.current?.close();
+    if (!tag) return;
+    // Typed the name of a preset: select that chip instead of a duplicate.
+    if (presetTypes.includes(tag) && tag !== t("common.other")) {
+      if (!selectedTypes.includes(tag)) toggleType(tag);
+      return;
+    }
+    setSelectedTags((current) =>
+      current.includes(tag) || current.length + selectedTypes.length >= MAX_VIOLATION_TYPES
+        ? current
+        : [...current, tag]
+    );
+  };
+
+  const handleRemoveTag = (tag) => {
+    setSelectedTags((current) => current.filter((item) => item !== tag));
+  };
+
+  // Chosen types in the order of the list, then the "Other" ones.
+  const chosenTypes = [
+    ...presetTypes.filter((type) => selectedTypes.includes(type)),
+    ...selectedTags,
+  ];
+
+  // The same choices in Vietnamese: a preset or a suggestion is found by its
+  // position in the translated list; text the reporter typed stays as typed.
+  const toVietnamese = (label) => {
+    const lists = [
+      [presetTypes, selectedViolationType === "class" ? vi.report.classViolationTypes : vi.report.studentViolationTypes],
+      [t("report.mockViolations", { returnObjects: true }), vi.report.mockViolations],
+    ];
+    for (const [shown, vietnamese] of lists) {
+      const index = Array.isArray(shown) ? shown.indexOf(label) : -1;
+      if (index >= 0 && Array.isArray(vietnamese) && vietnamese[index]) return vietnamese[index];
+    }
+    return label;
   };
 
   const handleShowTagInput = () => {
@@ -225,7 +275,9 @@ export default function Step2({ navigation, route }) {
       // turn the (translated) choice into the API's yes/no.
       cleanlinessIndex: Array.isArray(CLEANLINESS_STATUS) ? CLEANLINESS_STATUS.indexOf(cleanliness) : -1,
       uniformIndex: Array.isArray(UNIFORM_STATUS) ? UNIFORM_STATUS.indexOf(uniform) : -1,
-      violationType: selectedTags[0] || violationType,
+      // Shown on the review step (app's language) / sent to the API (Vietnamese).
+      violationType: chosenTypes.join(", "),
+      violationTypeVi: chosenTypes.map(toVietnamese).join(", "),
       notes,
       absences: absences || "0",
       cleanliness,
@@ -235,9 +287,9 @@ export default function Step2({ navigation, route }) {
 
   const isFormValid = () => {
     if (selectedViolationType === "class") {
-      return Boolean(className && violationType && cleanliness && uniform);
+      return Boolean(className && totalSelected > 0 && cleanliness && uniform);
     }
-    return Boolean(studentName && violationType);
+    return Boolean(studentName && totalSelected > 0);
   };
 
   const renderViolationTypes = () => (
@@ -246,13 +298,10 @@ export default function Step2({ navigation, route }) {
         {t("report.violationType")}
       </Text>
       <View style={styles.chipsRow}>
-        {(selectedViolationType === "class"
-          ? CLASS_VIOLATION_TYPES
-          : STUDENT_VIOLATION_TYPES
-        ).map((type) => {
+        {presetTypes.map((type) => {
           const isOtherSelected =
             type === t("common.other") && selectedTags.length > 0;
-          const isSelected = isOtherSelected || violationType === type;
+          const isSelected = isOtherSelected || selectedTypes.includes(type);
           return (
             <TouchableOpacity
               key={type}
@@ -273,8 +322,7 @@ export default function Step2({ navigation, route }) {
                 if (type === t("common.other")) {
                   handleShowTagInput();
                 } else {
-                  setViolationType(type);
-                  setSelectedTags([]);
+                  toggleType(type);
                 }
               }}
             >
@@ -293,12 +341,15 @@ export default function Step2({ navigation, route }) {
       </View>
       {selectedTags.length > 0 && (
         <View style={styles.selectedTagsPreview}>
-          <SelectedTag
-            tag={selectedTags[0]}
-            onRemove={handleRemoveTag}
-            theme={theme}
-            isDarkMode={isDarkMode}
-          />
+          {selectedTags.map((tag) => (
+            <SelectedTag
+              key={tag}
+              tag={tag}
+              onRemove={handleRemoveTag}
+              theme={theme}
+              isDarkMode={isDarkMode}
+            />
+          ))}
         </View>
       )}
     </View>
@@ -740,10 +791,10 @@ export default function Step2({ navigation, route }) {
                 styles.addCustomButton,
                 {
                   backgroundColor: theme.primary,
-                  opacity: tagInput.length > 0 ? 1 : 0.5,
+                  opacity: tagInput.trim().length > 0 ? 1 : 0.5,
                 },
               ]}
-              disabled={tagInput.length === 0}
+              disabled={tagInput.trim().length === 0}
               onPress={() => handleAddTag(tagInput)}
             >
               <Text style={styles.addCustomButtonText}>

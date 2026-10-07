@@ -117,6 +117,7 @@ export default function Step3({ navigation, route }) {
     studentName,
     reportDate,
     violationType,
+    violationTypeVi,
     notes,
     absences,
     cleanliness,
@@ -156,7 +157,11 @@ export default function Step3({ navigation, route }) {
       type: isClassViolation ? "class" : "student",
       subject_name: (studentName || "").trim(),
     };
-    if (violationType) payload.violation_type = violationType;
+    // Always the Vietnamese names (violationTypeVi), whatever language the
+    // app is in - staff read these. Several types are one comma-separated
+    // field, cut at the API's 255 characters.
+    const violationForServer = violationTypeVi || violationType;
+    if (violationForServer) payload.violation_type = violationForServer.slice(0, 255);
     if (reportDateIso) payload.report_date = reportDateIso;
     if (notes && notes.trim()) payload.notes = notes.trim().slice(0, 2000);
     if (isClassViolation) {
