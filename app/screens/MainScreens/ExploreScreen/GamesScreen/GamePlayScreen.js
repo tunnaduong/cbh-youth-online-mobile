@@ -9,6 +9,7 @@ import { useStatusBarStyle } from "../../../../hooks/useStatusBarUpdate";
 import WebViewHeader from "../../../../components/WebViewHeader";
 import CustomLoading from "../../../../components/CustomLoading";
 import { parseUrlParts } from "../../../../utils/externalLink";
+import { allowRotation, lockPortrait } from "../../../../utils/orientation";
 import {
   sessionEntryUrl,
   appHasAccount,
@@ -76,6 +77,32 @@ export default function GamePlayScreen({ navigation, route }) {
     return false;
   }, [canGoBack]);
 
+  // Many games are made for landscape: this is the one screen that follows
+  // the device's rotation. Back to portrait as soon as it loses focus.
+  useFocusEffect(
+    useCallback(() => {
+      allowRotation();
+      return () => lockPortrait();
+    }, [])
+  );
+
+  // The game runs in an <iframe> of the site's page. Its ads and "More games"
+  // buttons open other sites in a new window or in place of the page; here
+  // that would replace the game (or, on Android, leave for the browser).
+  // The page itself stays on chuyenbienhoa.com - anything else is dropped.
+  // Frames inside the page (the game, its ads) load what they like.
+  const onShouldStartLoadWithRequest = useCallback((request) => {
+    if (request.isTopFrame === false) return true;
+    const url = request.url || "";
+    if (url.startsWith("about:")) return true;
+    const parts = parseUrlParts(url);
+    return (
+      !!parts &&
+      parts.scheme === "https" &&
+      (parts.hostname === "chuyenbienhoa.com" || parts.hostname.endsWith(".chuyenbienhoa.com"))
+    );
+  }, []);
+
   // Android's back button does the same before leaving the screen.
   useFocusEffect(
     useCallback(() => {
@@ -105,6 +132,10 @@ export default function GamePlayScreen({ navigation, route }) {
           ref={webViewRef}
           source={{ uri: startUrl }}
           onNavigationStateChange={(state) => setCanGoBack(state.canGoBack)}
+          onShouldStartLoadWithRequest={onShouldStartLoadWithRequest}
+          // Android: target="_blank" / window.open load here instead of a new
+          // window (the browser), so they go through the check above too.
+          setSupportMultipleWindows={false}
           applicationNameForUserAgent={WEBVIEW_USER_AGENT_SUFFIX}
           style={styles.webview}
           containerStyle={styles.webviewContainer}

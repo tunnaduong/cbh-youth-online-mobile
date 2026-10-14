@@ -38,6 +38,10 @@ export const AVATAR_FRAMES = {
   },
 };
 
+// Address of an uploaded frame image: only ever one the API sent.
+const imageUrl = (value) =>
+  typeof value === "string" && /^https?:\/\//.test(value) ? value : null;
+
 const color = (value, fallback) =>
   typeof value === "string" && HEX_COLOR.test(value) ? value : fallback;
 
@@ -64,6 +68,10 @@ export function normalizeTheme(theme) {
     avatar_frame: theme.avatar_frame || "none",
     profile_effect: theme.profile_effect || "none",
     profile_frame: theme.profile_frame || "none",
+    // Pro Plus (2250 points): the member's own image, used when the frame
+    // above is "custom". Sent by the API, never saved with the theme.
+    avatar_frame_url: imageUrl(theme.avatar_frame_url),
+    profile_frame_url: imageUrl(theme.profile_frame_url),
     // Pro (2000 points). Older API responses have none of the three.
     // name_icon_emoji is the glyph of name_icon, sent by the API so the app
     // keeps no table of its own.
@@ -222,6 +230,12 @@ export function getNameEffect(theme, fontSize = 16) {
 export function getAvatarFrame(theme) {
   const normalized = normalizeTheme(theme);
   if (!normalized) return null;
+
+  // The member's own image: { image } instead of a ring (the API checks
+  // its centre is transparent, so it never covers the face).
+  if (normalized.avatar_frame === "custom") {
+    return normalized.avatar_frame_url ? { image: normalized.avatar_frame_url } : null;
+  }
 
   const frame = AVATAR_FRAMES[normalized.avatar_frame];
   if (!frame) return null;

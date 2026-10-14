@@ -518,12 +518,28 @@ const PostEditScreen = ({ navigation, route }) => {
           cdn_video_id: allVideoIds.length > 0 ? allVideoIds.join(",") : null,
         });
 
-        const updatedPostData = response.data?.post || response.data;
-        setFeed((prevPosts) =>
-          prevPosts?.map((post) =>
-            post.id === postId ? { ...post, ...updatedPostData, is_mine: true, is_author: true, author: { ...post.author, ...author, ...updatedPostData?.author }, anonymous: updatedPostData?.anonymous ?? draft.anonymous } : post
-          ) ?? prevPosts
-        );
+        const isPendingModeration = response.data?.moderation?.status === "pending";
+
+        if (isPendingModeration) {
+          Toast.show({
+            type: "info",
+            text1: t("editPost.pendingModeration"),
+            text2:
+              response.data?.moderation?.message ||
+              t("editPost.pendingModerationDesc"),
+            autoHide: true,
+            visibilityTime: 5000,
+            topOffset: 60,
+          });
+        } else {
+          // response.data.data is the topic object (API returns {message, data, moderation})
+          const updatedPostData = response.data?.data || response.data;
+          setFeed((prevPosts) =>
+            prevPosts?.map((post) =>
+              post.id === postId ? { ...post, ...updatedPostData, is_mine: true, is_author: true, author: { ...post.author, ...author, ...updatedPostData?.author }, anonymous: updatedPostData?.anonymous ?? draft.anonymous } : post
+            ) ?? prevPosts
+          );
+        }
 
         return response;
       },

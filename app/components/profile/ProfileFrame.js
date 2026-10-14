@@ -4,11 +4,13 @@ import {
   BlurMask,
   Canvas,
   Group,
+  Image as SkiaImage,
   LinearGradient,
   RoundedRect,
   SweepGradient,
   rrect,
   rect,
+  useImage,
   vec,
 } from "@shopify/react-native-skia";
 import {
@@ -31,6 +33,7 @@ const GOLD = ["#b45309", "#fde68a", "#d97706", "#fef3c7", "#b45309"];
  *   glow - viền màu chính, phát sáng vào trong
  *   gold - viền vàng chuyển sắc, 4 góc có hoa văn
  *   neon - viền gradient màu theme xoay vòng
+ *   custom - ảnh người dùng tự tải lên (profile_frame_url), vẽ kiểu nine-slice
  */
 export default function ProfileFrame({ theme, radius = 0 }) {
   const normalized = normalizeTheme(theme);
@@ -38,6 +41,8 @@ export default function ProfileFrame({ theme, radius = 0 }) {
   const [size, setSize] = useState(null);
 
   if (frame === "none") return null;
+  // No image (removed, or an API that sends none): no frame.
+  if (frame === "custom" && !normalized.profile_frame_url) return null;
 
   return (
     <View
@@ -48,7 +53,9 @@ export default function ProfileFrame({ theme, radius = 0 }) {
         setSize((prev) => (prev && prev.width === width && prev.height === height ? prev : { width, height }));
       }}
     >
-      {size ? (
+      {!size ? null : frame === "custom" ? (
+        <CustomFrame size={size} uri={normalized.profile_frame_url} />
+      ) : (
         <Canvas style={{ width: size.width, height: size.height }}>
           {frame === "glow" ? (
             <Glow size={size} radius={radius} colors={themeColors(normalized)} />
@@ -58,8 +65,66 @@ export default function ProfileFrame({ theme, radius = 0 }) {
             <Neon size={size} radius={radius} colors={themeColors(normalized)} />
           )}
         </Canvas>
-      ) : null}
+      )}
     </View>
+  );
+}
+
+// Part of each side of an uploaded frame that is border art (the API's
+// CustomFrameService uses the same number), and the border's thickness on
+// screen as a part of the box's smaller side - same as the web.
+const SLICE = 0.25;
+const THICKNESS = 0.14;
+
+/**
+ * The member's own image as a nine-slice border: the four corners keep
+ * their shape, the four edges stretch, and the middle of the image is never
+ * drawn - so it fits a cover of any shape without covering it.
+ */
+function CustomFrame({ size, uri }) {
+  const image = useImage(uri);
+  if (!image) return null;
+
+  const { width, height } = size;
+  const iw = image.width();
+  const ih = image.height();
+  const sw = iw * SLICE;
+  const sh = ih * SLICE;
+  const t = Math.min(Math.max(Math.min(width, height) * THICKNESS, 6), 40, width / 2, height / 2);
+
+  // [source x, y, width, height] -> [destination x, y, width, height]
+  const pieces = [
+    [0, 0, sw, sh, 0, 0, t, t],
+    [iw - sw, 0, sw, sh, width - t, 0, t, t],
+    [0, ih - sh, sw, sh, 0, height - t, t, t],
+    [iw - sw, ih - sh, sw, sh, width - t, height - t, t, t],
+    [sw, 0, iw - 2 * sw, sh, t, 0, width - 2 * t, t],
+    [sw, ih - sh, iw - 2 * sw, sh, t, height - t, width - 2 * t, t],
+    [0, sh, sw, ih - 2 * sh, 0, t, t, height - 2 * t],
+    [iw - sw, sh, sw, ih - 2 * sh, width - t, t, t, height - 2 * t],
+  ].filter((piece) => piece[6] > 0 && piece[7] > 0);
+
+  return (
+    <Canvas style={{ width, height }}>
+      {pieces.map(([sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight], index) => {
+        // The whole image, scaled so this piece lands on its destination,
+        // and clipped to it.
+        const scaleX = dWidth / sWidth;
+        const scaleY = dHeight / sHeight;
+        return (
+          <Group key={index} clip={rect(dx, dy, dWidth, dHeight)}>
+            <SkiaImage
+              image={image}
+              x={dx - sx * scaleX}
+              y={dy - sy * scaleY}
+              width={iw * scaleX}
+              height={ih * scaleY}
+              fit="fill"
+            />
+          </Group>
+        );
+      })}
+    </Canvas>
   );
 }
 

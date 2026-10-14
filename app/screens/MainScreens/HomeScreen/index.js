@@ -998,7 +998,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   }, [refreshing]);
   const [hasMore, setHasMore] = React.useState(true);
   const [currentPage, setCurrentPage] = React.useState(2);
-  const [feedMode, setFeedMode] = React.useState("personalized");
   const [latestPage, setLatestPage] = React.useState(1);
   const [followingPage, setFollowingPage] = React.useState(1);
   const [newsPage, setNewsPage] = React.useState(1);
@@ -1007,7 +1006,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   const [activePostId, setActivePostId] = React.useState(null);
   const isFocused = useIsFocused();
   const flatListRef = React.useRef(null);
-  const { feed, setFeed } = useContext(FeedContext);
+  // feedMode lives in the context so it survives this screen being mounted
+  // again (see FeedContext).
+  const { feed, setFeed, feedMode, setFeedMode } = useContext(FeedContext);
+  // Bumped by every full load of a tab: an answer that arrives after the
+  // user moved to another tab is dropped instead of replacing its posts.
+  const feedLoadIdRef = useRef(0);
   const storyRef = useRef(null);
   const actionSheetRef = useRef(null);
   const [userStories, setUserStories] = useState([]);
@@ -1099,8 +1103,13 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     };
   }, [isStoryVisible]);
 
+  const wasLoggedInRef = useRef(isLoggedIn);
   React.useEffect(() => {
-    if (!isLoggedIn) {
+    const signedOut = wasLoggedInRef.current && !isLoggedIn;
+    wasLoggedInRef.current = isLoggedIn;
+    // Only on the sign-out itself: on mount this would send a guest back to
+    // "For you" while the tab kept in FeedContext is being loaded.
+    if (signedOut) {
       // Reset feed state when the user signs out
       setFeed(null);
       setRefreshing(false);
@@ -1190,6 +1199,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const handleFetchFeed = async (page = 1) => {
+    const loadId = ++feedLoadIdRef.current;
     try {
       if (page === 1) {
         const cachedStr = storage.getString("cached_feed");
@@ -1205,6 +1215,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       }
 
       const response = await getPersonalizedFeed(page);
+      if (loadId !== feedLoadIdRef.current) return;
       const posts = response?.data?.data;
       const validPosts = Array.isArray(posts) ? posts : [];
       setFeed(validPosts);
@@ -1215,6 +1226,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
       }
     } catch (error) {
       console.log("Error fetching newsfeed:", error);
+      if (loadId !== feedLoadIdRef.current) return;
       setFeed((prev) => prev ?? []);
       Toast.show({
         type: "error",
@@ -1233,8 +1245,46 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
   };
 
+  // First page of a tab other than "For you" (which is handleFetchFeed).
+  const loadModeFeed = (mode) => {
+    const loadId = ++feedLoadIdRef.current;
+    deliveredIdsRef.current = new Set();
+    setHasMore(true);
+    if (mode === "latest") {
+      setLatestPage(2);
+    } else if (mode === "youth-news") {
+      setNewsPage(2);
+    } else {
+      setFollowingPage(2);
+    }
+    const request =
+      mode === "latest" ? getLatestFeed(1) : mode === "youth-news" ? getNewsFeed(1) : getFollowingFeed(1);
+    request
+      .then((response) => {
+        if (loadId !== feedLoadIdRef.current) return;
+        // An API older than the youth-news tab ignores the mode and answers
+        // with the ordinary feed: show nothing rather than the wrong posts.
+        const posts =
+          mode === "youth-news" && response?.data?.mode !== "youth-news" ? [] : response?.data?.data;
+        const validPosts = Array.isArray(posts) ? posts : [];
+        validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
+        setFeed(validPosts);
+        if (mode === "youth-news" && validPosts.length === 0) setHasMore(false);
+      })
+      .catch(() => {
+        if (loadId !== feedLoadIdRef.current) return;
+        setFeed([]);
+      });
+  };
+
+  // On mount: the tab kept in FeedContext, which is not "For you" when this
+  // screen is mounted again after the stack was reset.
   React.useEffect(() => {
-    handleFetchFeed();
+    if (feedMode === "personalized") {
+      handleFetchFeed();
+    } else {
+      loadModeFeed(feedMode);
+    }
   }, []);
 
   // Manual tab switch: reset feed state and reload from the chosen mode.
@@ -1243,46 +1293,12 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     setFeed(null);
     setHasMore(true);
     deliveredIdsRef.current = new Set();
-    if (mode === "latest") {
-      setFeedMode("latest");
-      setLatestPage(2);
-      getLatestFeed(1)
-        .then((response) => {
-          const posts = response?.data?.data;
-          const validPosts = Array.isArray(posts) ? posts : [];
-          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
-          setFeed(validPosts);
-        })
-        .catch(() => setFeed([]));
-    } else if (mode === "following") {
-      setFeedMode("following");
-      setFollowingPage(2);
-      getFollowingFeed(1)
-        .then((response) => {
-          const posts = response?.data?.data;
-          const validPosts = Array.isArray(posts) ? posts : [];
-          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
-          setFeed(validPosts);
-        })
-        .catch(() => setFeed([]));
-    } else if (mode === "youth-news") {
-      setFeedMode("youth-news");
-      setNewsPage(2);
-      getNewsFeed(1)
-        .then((response) => {
-          // An API older than this tab ignores the mode and answers with the
-          // ordinary feed: show nothing rather than the wrong posts.
-          const posts = response?.data?.mode === "youth-news" ? response?.data?.data : [];
-          const validPosts = Array.isArray(posts) ? posts : [];
-          validPosts.forEach((p) => p?.id != null && deliveredIdsRef.current.add(p.id));
-          setFeed(validPosts);
-          if (validPosts.length === 0) setHasMore(false);
-        })
-        .catch(() => setFeed([]));
-    } else {
-      setFeedMode("personalized");
+    setFeedMode(mode);
+    if (mode === "personalized") {
       setCurrentPage(2);
       handleFetchFeed(1);
+    } else {
+      loadModeFeed(mode);
     }
   }, [feedMode]);
 
