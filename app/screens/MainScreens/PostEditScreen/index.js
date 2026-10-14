@@ -532,7 +532,8 @@ const PostEditScreen = ({ navigation, route }) => {
             topOffset: 60,
           });
         } else {
-          const updatedPostData = response.data?.post || response.data;
+          // response.data.data is the topic object (API returns {message, data, moderation})
+          const updatedPostData = response.data?.data || response.data;
           setFeed((prevPosts) =>
             prevPosts?.map((post) =>
               post.id === postId ? { ...post, ...updatedPostData, is_mine: true, is_author: true, author: { ...post.author, ...author, ...updatedPostData?.author }, anonymous: updatedPostData?.anonymous ?? draft.anonymous } : post
