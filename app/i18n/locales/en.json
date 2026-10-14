@@ -1003,7 +1003,9 @@
     "addVideo": "Add video",
     "uploadingVideo": "Uploading video {{current}}/{{total}}...",
     "videoTypeUnsupported": "Some videos have an unsupported format and were skipped (allowed: mp4, mov, avi, webm, mkv)",
-    "videoTooLarge": "Some videos are over 100MB and were skipped"
+    "videoTooLarge": "Some videos are over 100MB and were skipped",
+    "pendingModeration": "Post is awaiting review",
+    "pendingModerationDesc": "Your edited post will appear once it has been approved."
   },
   "profile": {
     "title": "Profile Information",

@@ -992,7 +992,9 @@
     "addVideo": "Thêm video",
     "uploadingVideo": "Đang tải video {{current}}/{{total}}...",
     "videoTypeUnsupported": "Một số video có định dạng không được hỗ trợ và đã bị bỏ qua (chỉ chấp nhận: mp4, mov, avi, webm, mkv)",
-    "videoTooLarge": "Một số video vượt quá 100MB và đã bị bỏ qua"
+    "videoTooLarge": "Một số video vượt quá 100MB và đã bị bỏ qua",
+    "pendingModeration": "Bài viết đang chờ kiểm duyệt",
+    "pendingModerationDesc": "Bài viết đã chỉnh sửa của bạn sẽ hiển thị sau khi được duyệt."
   },
   "profile": {
     "title": "Thông tin cá nhân",
