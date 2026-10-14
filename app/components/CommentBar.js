@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { MarkdownTextInput } from "@expensify/react-native-live-markdown";
+import { PasteInputComponent, imageFilesFromPaste } from "../utils/pastedImages";
 import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
 
 const isIOS = Platform.OS === "ios";
@@ -100,6 +101,9 @@ const CommentBar = React.forwardRef(
       onPickImage,
       selectedImages,
       onClearImage,
+      // Called with the images the keyboard (stickers, GIFs) or the paste menu
+      // put into the input: [{ uri, type, fileName, fileSize }].
+      onPasteImages,
       nativeID,
       // When the parent already renders its own single glass layer behind
       // this whole bar (e.g. ConversationScreen's floating input block), the
@@ -314,6 +318,15 @@ const CommentBar = React.forwardRef(
               placeholder={placeholderText}
               placeholderTextColor={theme.subText}
               multiline={true}
+              inputComponent={PasteInputComponent || undefined}
+              onPaste={
+                PasteInputComponent && onPasteImages
+                  ? (error, files) => {
+                      const images = imageFilesFromPaste(error, files);
+                      if (images.length > 0) onPasteImages(images);
+                    }
+                  : undefined
+              }
               ref={ref}
               onChangeText={onChangeText}
               value={value}

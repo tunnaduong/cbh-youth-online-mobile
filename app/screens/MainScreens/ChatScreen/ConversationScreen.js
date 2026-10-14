@@ -3034,7 +3034,10 @@ const ConversationScreen = ({ navigation, route }) => {
   // (multi-select from the library picker, up to 10) - the single-URI path
   // is unchanged, the array path just repeats the same normalize step per
   // asset and hands the whole batch to sendAttachmentMessage as `attachments`.
-  const sendImageMessage = async (imageUriOrUris) => {
+  // `originals` (optional, same order as the URIs): the pasted files, so a PNG /
+  // GIF / WebP (keyboard stickers) is sent as it is instead of being flattened
+  // into a JPEG (transparency and animation would be lost).
+  const sendImageMessage = async (imageUriOrUris, originals) => {
     const uris = Array.isArray(imageUriOrUris) ? imageUriOrUris : [imageUriOrUris];
     const attachments = [];
     // Shown in the upload bar / notification, so the user sees it even after
@@ -3045,6 +3048,16 @@ const ConversationScreen = ({ navigation, route }) => {
       // The picker can hand back non-JPEG originals (HEIC on iOS, PNG, etc.)
       // while we always declare image/jpeg - re-encode so the upload always
       // matches what it claims to be and passes the backend's mimes validation.
+      const keepType = String(originals?.[i]?.type || "").toLowerCase();
+      if (/^image\/(png|gif|webp)$/.test(keepType)) {
+        attachments.push({
+          uri: uris[i],
+          fileName: `${Date.now()}_${i}.${keepType.split("/")[1]}`,
+          fileType: keepType,
+          fileSize: originals[i].fileSize,
+        });
+        continue;
+      }
       let normalizedUri = uris[i];
       try {
         const result = await manipulateAsync(uris[i], [], {
@@ -3994,12 +4007,30 @@ const ConversationScreen = ({ navigation, route }) => {
     setMessage("");
   };
 
+  const MAX_PASTED_IMAGES = 10;
+  const [pendingImages, setPendingImages] = useState([]);
+  const handlePasteImages = React.useCallback((images) => {
+    setPendingImages((prev) => [...prev, ...images].slice(0, MAX_PASTED_IMAGES));
+  }, []);
+
   const handleSendMessage = async () => {
     if (editingMessage) {
       await handleSubmitEdit();
       return;
     }
-    await handleSendNewMessage();
+    // Pasted images (keyboard stickers / GIFs, paste menu) wait in the bar
+    // for Send; they go first, then the text.
+    if (pendingImages.length > 0) {
+      const images = pendingImages;
+      setPendingImages([]);
+      await sendImageMessage(
+        images.map((file) => file.uri),
+        images
+      );
+    }
+    if ((latestMessageRef.current || message).trim()) {
+      await handleSendNewMessage();
+    }
   };
 
   const handleSubmitEdit = async () => {
@@ -4866,8 +4897,15 @@ const ConversationScreen = ({ navigation, route }) => {
                 sendTyping(currentConversationId || conversationId);
               }}
               value={message}
-              disabled={!message.trim() || sending}
+              disabled={(!message.trim() && pendingImages.length === 0) || sending}
               isSubmitting={sending}
+              onPasteImages={editingMessage ? undefined : handlePasteImages}
+              selectedImages={editingMessage ? undefined : pendingImages.map((file) => file.uri)}
+              onClearImage={
+                editingMessage
+                  ? undefined
+                  : (index) => setPendingImages((prev) => prev.filter((_, i) => i !== index))
+              }
               allowBroadcastMention={currentConversation?.type === "group"}
               enableAiCommands
               style={{

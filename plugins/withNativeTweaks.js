@@ -121,7 +121,30 @@ const withImageModuleClasses = (config) =>
     return cfg;
   });
 
+// react-native-paste-input (keyboard stickers / GIFs / pasted images) needs
+// PasteInputModule.setup(...) after React Native starts, so it can find the
+// native text inputs by tag.
+const withPasteInputSetup = (config) =>
+  withAppDelegate(config, (cfg) => {
+    const delegate = cfg.modResults;
+    if (delegate.language !== "swift" || delegate.contents.includes("PasteInputModule.setup")) return cfg;
+
+    let next = delegate.contents.replace(
+      /(factory\.startReactNative\([^)]*\)\n)/,
+      "$1    PasteInputModule.setup(factory.rootViewFactory)\n"
+    );
+    next = next.replace(/(import ReactAppDependencyProvider\n)/, "$1import react_native_paste_input\n");
+    if (!next.includes("PasteInputModule.setup") || !next.includes("import react_native_paste_input")) {
+      console.warn("[withNativeTweaks] startReactNative not found in AppDelegate.swift; paste input setup not added");
+      return cfg;
+    }
+    delegate.contents = next;
+    return cfg;
+  });
+
 module.exports = (config) =>
-  withImageModuleClasses(
-    withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+  withPasteInputSetup(
+    withImageModuleClasses(
+      withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+    )
   );
