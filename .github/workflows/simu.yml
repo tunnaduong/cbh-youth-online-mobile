@@ -19,6 +19,11 @@ jobs:
   build-ios-simulator:
     name: Build iOS Simulator App
     runs-on: macos-latest
+    # The app runs on the New Architecture (app.json newArchEnabled), but
+    # CocoaPods only sees it through this variable: react-native-paste-input's
+    # podspec refuses to install without it.
+    env:
+      RCT_NEW_ARCH_ENABLED: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
