@@ -1286,57 +1286,57 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     }
   }, [feedMode]);
 
+  // One load-more at a time, and keep paging until something new shows up:
+  // a page whose posts were all delivered already used to add nothing, so the
+  // list did not grow, FlatList never fired onEndReached again and the footer
+  // spinner stayed forever.
+  const loadingMoreRef = React.useRef(false);
+  const MAX_EMPTY_PAGES = 5;
+
+  const loadMorePages = async (fetchPage, startPage, advancePage) => {
+    let page = startPage;
+    try {
+      for (let i = 0; i < MAX_EMPTY_PAGES; i++) {
+        const response = await fetchPage(page);
+        const newPosts = response?.data?.data;
+        if (!Array.isArray(newPosts) || newPosts.length === 0) {
+          setHasMore(false);
+          return;
+        }
+        page += 1;
+        advancePage(page);
+        const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
+        freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
+        if (freshPosts.length > 0) {
+          setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error loading more posts:", error);
+    }
+  };
+
   const onEndReached = () => {
-    if (!hasMore) return;
+    if (!hasMore || loadingMoreRef.current) return;
 
-    if (feedMode === "latest") {
-      getLatestFeed(latestPage)
-        .then((response) => {
-          const newPosts = response?.data?.data;
-          if (!Array.isArray(newPosts) || newPosts.length === 0) {
-            setHasMore(false);
-            return;
-          }
-          const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
-          freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
-          if (freshPosts.length > 0) {
-            setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
-          }
-          setLatestPage((prevPage) => prevPage + 1);
-        })
-        .catch((error) => {
-          console.error("Error loading more posts:", error);
-        });
+    if (feedMode === "latest" || feedMode === "following" || feedMode === "youth-news") {
+      const [fetchPage, startPage, advancePage] =
+        feedMode === "latest"
+          ? [getLatestFeed, latestPage, setLatestPage]
+          : feedMode === "youth-news"
+          ? [getNewsFeed, newsPage, setNewsPage]
+          : [getFollowingFeed, followingPage, setFollowingPage];
+      loadingMoreRef.current = true;
+      loadMorePages(fetchPage, startPage, advancePage).finally(() => {
+        loadingMoreRef.current = false;
+      });
       return;
     }
 
-    if (feedMode === "following" || feedMode === "youth-news") {
-      (feedMode === "youth-news" ? getNewsFeed(newsPage) : getFollowingFeed(followingPage))
-        .then((response) => {
-          const newPosts = response?.data?.data;
-          if (!Array.isArray(newPosts) || newPosts.length === 0) {
-            setHasMore(false);
-            return;
-          }
-          const freshPosts = newPosts.filter((post) => post?.id == null || !deliveredIdsRef.current.has(post.id));
-          freshPosts.forEach((post) => post?.id != null && deliveredIdsRef.current.add(post.id));
-          if (freshPosts.length > 0) {
-            setFeed((prevData) => (Array.isArray(prevData) ? [...prevData, ...freshPosts] : freshPosts));
-          }
-          if (feedMode === "youth-news") {
-            setNewsPage((prevPage) => prevPage + 1);
-          } else {
-            setFollowingPage((prevPage) => prevPage + 1);
-          }
-        })
-        .catch((error) => {
-          console.error("Error loading more posts:", error);
-        });
-      return;
-    }
-
+    loadingMoreRef.current = true;
     getPersonalizedFeed(currentPage)
-      .then((response) => {
+      .then(async (response) => {
         const newPosts = response?.data?.data;
         const exhausted = response?.data?.exhausted || !Array.isArray(newPosts) || newPosts.length === 0;
 
@@ -1360,10 +1360,16 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             };
             return Array.isArray(prevData) ? [...prevData, divider] : [divider];
           });
+          // The divider alone does not make the list fire onEndReached again,
+          // so start the latest posts here.
+          await loadMorePages(getLatestFeed, 1, setLatestPage);
         }
       })
       .catch((error) => {
         console.error("Error loading more posts:", error);
+      })
+      .finally(() => {
+        loadingMoreRef.current = false;
       });
   };
 

@@ -353,6 +353,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
+
 - **Home feed: "Tin tức Đoàn" tab** (not run on a device; **needs the API's `GET /topics/feed?mode=youth-news`**, pushed to its `main`): a fourth chip beside For you / Latest / Following (`home.youthNews`, vi/en/ru) shows the youth union news subforum, newest first, with the same post cards, load-more and pull-to-refresh as the other tabs (`getNewsFeed`, `feedMode === "youth-news"`, its own `newsPage`). Works for guests. Against an API without that mode (it would answer with the ordinary feed) the tab stays empty instead of showing the wrong posts - it checks `mode: "youth-news"` in the first answer.
 
 - **Violation reports: several violation types; always sent in Vietnamese** (not run on a device; no API change):
