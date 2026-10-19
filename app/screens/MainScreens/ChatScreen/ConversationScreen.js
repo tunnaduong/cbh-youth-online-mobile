@@ -83,6 +83,7 @@ import {
   formatBytesForToast,
   formatMessageTime,
   injectTimeHeaders,
+  reuseUnchanged,
 } from "./conversation/chatUtils";
 import { VideoViewerModal } from "./conversation/VideoViewerModal";
 import { styles } from "./conversation/styles";
@@ -103,7 +104,17 @@ const ConversationScreen = ({ navigation, route }) => {
   const composerRef = useRef(null);
   // Measured height of the composer bar, for the list's bottom padding.
   const [composerHeight, setComposerHeight] = useState(CHAT_COMPOSER_DEFAULT_HEIGHT + insets.bottom);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessagesRaw] = useState([]);
+  // Every update of the list goes through reuseUnchanged: entries whose
+  // content did not change keep the object already on screen (and the whole
+  // array is kept when nothing changed), so the memoized rows skip
+  // themselves. Refetches otherwise replaced every message with a fresh copy
+  // and re-rendered every bubble after each incoming message or read receipt.
+  const setMessages = React.useCallback((update) => {
+    setMessagesRaw((prev) =>
+      reuseUnchanged(prev, typeof update === "function" ? update(prev) : update)
+    );
+  }, []);
   // Reacting to a message that's still using its optimistic temp id (send
   // API hasn't resolved yet) sent the reaction to the server keyed to an id
   // it doesn't recognize, so it silently failed/dropped until the next full
@@ -1205,10 +1216,18 @@ const ConversationScreen = ({ navigation, route }) => {
         return;
       }
 
-      setTypingUsers((prev) => ({
-        ...prev,
-        [data.user_id]: { userId: data.user_id, isAi: !!data.isAi, avatarUrl: data.avatar_url },
-      }));
+      setTypingUsers((prev) => {
+        const current = prev[data.user_id];
+        // Already shown the same way: keep the state as it is (a new object
+        // on every whisper re-rendered the whole screen while someone typed).
+        if (current && current.isAi === !!data.isAi && current.avatarUrl === data.avatar_url) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [data.user_id]: { userId: data.user_id, isAi: !!data.isAi, avatarUrl: data.avatar_url },
+        };
+      });
       clearTimeout(typingTimeoutsRef.current[data.user_id]);
       typingTimeoutsRef.current[data.user_id] = setTimeout(() => {
         clearTypingUser(data.user_id);

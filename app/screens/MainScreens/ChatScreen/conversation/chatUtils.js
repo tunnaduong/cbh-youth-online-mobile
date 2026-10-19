@@ -58,29 +58,49 @@ const formatMessageTime = (timestamp, t) => {
   return `${messageTime.format("hh:mm")} ${period}`;
 };
 
+// dayjs work per created_at string, done once: injectTimeHeaders runs over the
+// whole list on every new message, refetch and page load, and parsing and
+// formatting every message's date each time was most of its cost. The
+// formats used are the same in every language.
+const timeInfoCache = new Map();
+const getTimeInfo = (createdAt) => {
+  const cached = createdAt != null ? timeInfoCache.get(createdAt) : undefined;
+  if (cached) return cached;
+  const time = dayjs(createdAt);
+  const day = time.startOf("day");
+  const info = {
+    ms: time.valueOf(),
+    dayMs: day.valueOf(),
+    hhmm: time.format("HH:mm"),
+    dayText: day.format("DD/MM/YYYY"),
+  };
+  if (createdAt != null) {
+    if (timeInfoCache.size > 5000) timeInfoCache.clear();
+    timeInfoCache.set(createdAt, info);
+  }
+  return info;
+};
+
 const injectTimeHeaders = (messages, t) => {
   const result = [];
-  let currentDate = null;
+  let currentDayMs = null;
+  const todayMs = dayjs().startOf("day").valueOf();
+  const yesterdayMs = dayjs().startOf("day").subtract(1, "day").valueOf();
+  let prevInfo = null;
 
-  messages.forEach((msg, index) => {
-    const prev = messages[index - 1];
-    const currTime = dayjs(msg.created_at);
-    const currDate = currTime.startOf("day");
+  messages.forEach((msg) => {
+    const info = getTimeInfo(msg.created_at);
 
     // Check if we need to add a date header
-    if (!currentDate || !currDate.isSame(currentDate)) {
-      currentDate = currDate;
-      const today = dayjs().startOf("day");
-      const isToday = currDate.isSame(today);
-      const isYesterday = currDate.isSame(today.subtract(1, "day"));
-
+    if (currentDayMs === null || info.dayMs !== currentDayMs) {
+      currentDayMs = info.dayMs;
       let dateText;
-      if (isToday) {
+      if (info.dayMs === todayMs) {
         dateText = t("chatConversation.today");
-      } else if (isYesterday) {
+      } else if (info.dayMs === yesterdayMs) {
         dateText = t("chatConversation.yesterday");
       } else {
-        dateText = currDate.format("DD/MM/YYYY");
+        dateText = info.dayText;
       }
 
       result.push({
@@ -90,24 +110,16 @@ const injectTimeHeaders = (messages, t) => {
       });
     }
 
-    // Check if we need to add a time header (for messages more than 5 minutes apart)
-    let showTimeHeader = false;
-    if (!prev) {
-      showTimeHeader = true;
-    } else {
-      const prevTime = dayjs(prev.created_at);
-      if (currTime.diff(prevTime, "minute") > 5) {
-        showTimeHeader = true;
-      }
-    }
-
-    if (showTimeHeader) {
+    // Check if we need to add a time header (for messages more than 5
+    // minutes apart; whole minutes, as dayjs's diff(..., "minute") counts).
+    if (!prevInfo || Math.trunc((info.ms - prevInfo.ms) / 60000) > 5) {
       result.push({
         id: `time-${msg.id}`,
         type: "time",
-        time: currTime.format("HH:mm"),
+        time: info.hhmm,
       });
     }
+    prevInfo = info;
 
     // `type` doubles as the list-envelope discriminator ("message" vs "date"/"time"
     // headers) elsewhere in this screen, which would otherwise clobber the backend's
@@ -133,4 +145,42 @@ const injectTimeHeaders = (messages, t) => {
   return result;
 };
 
-export { resolveMediaUrl, CONVERSATION_CACHE_KEY, CONVERSATION_TIMESTAMP_KEY, CACHE_EXPIRY, ATTACHMENT_UPLOAD_TIMEOUT_MS, ATTACHMENT_UPLOAD_CONFIG, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_FILE_BYTES, formatBytesForToast, formatMessageTime, injectTimeHeaders };
+const deepEqual = (a, b) => {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const keysA = Object.keys(a);
+  if (keysA.length !== Object.keys(b).length) return false;
+  for (const key of keysA) {
+    if (!Object.prototype.hasOwnProperty.call(b, key) || !deepEqual(a[key], b[key])) return false;
+  }
+  return true;
+};
+
+// Gives the new list back with every entry that did not really change
+// replaced by the object already on screen, and the old array itself when
+// nothing changed at all. A refetch (after every incoming message, read
+// receipt or return to the app) builds fresh objects for the whole page from
+// JSON; rows are memoized on their object, so without this every bubble on
+// screen re-rendered after each one.
+const reuseUnchanged = (prevList, nextList) => {
+  if (prevList === nextList || !Array.isArray(prevList) || !Array.isArray(nextList)) return nextList;
+  const byKey = new Map();
+  for (const item of prevList) {
+    if (item && item.id != null) byKey.set(`${item.type}-${item.id}`, item);
+  }
+  let changed = prevList.length !== nextList.length;
+  const merged = nextList.map((item, i) => {
+    if (!item || item.id == null) {
+      changed = true;
+      return item;
+    }
+    const old = byKey.get(`${item.type}-${item.id}`);
+    const kept = old && (old === item || deepEqual(old, item)) ? old : item;
+    if (kept !== prevList[i]) changed = true;
+    return kept;
+  });
+  return changed ? merged : prevList;
+};
+
+export { resolveMediaUrl, CONVERSATION_CACHE_KEY, CONVERSATION_TIMESTAMP_KEY, CACHE_EXPIRY, ATTACHMENT_UPLOAD_TIMEOUT_MS, ATTACHMENT_UPLOAD_CONFIG, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, MAX_FILE_BYTES, formatBytesForToast, formatMessageTime, injectTimeHeaders, reuseUnchanged };

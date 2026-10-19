@@ -18,7 +18,6 @@ import LinkPreviewCard from "../../../../components/LinkPreviewCard";
 import { findPreviewableUrl } from "../../../../utils/linkPreview";
 import ReplyPreviewBubble from "../../../../components/ReplyPreviewBubble";
 import Toast from "react-native-toast-message";
-import { useResponsiveLayout } from "../../../../utils/responsive";
 import { resolveMediaUrl, formatMessageTime } from "./chatUtils";
 import { styles } from "./styles";
 import { SwipeableMessage } from "./SwipeableMessage";
@@ -49,7 +48,6 @@ const MessageRow = React.memo(({
   item,
   prevMessage,
   nextMessage,
-  index,
   isGroupChat,
   theme,
   isDarkMode,
@@ -63,12 +61,9 @@ const MessageRow = React.memo(({
   activeInlineVideoId,
   autoplayVideos,
   seenAvatars,
+  // Worked out once by MessagesListContent from the window width.
+  bubbleMaxWidth,
 }) => {
-  // A flat "75%" bubble width reads fine on a phone, but on a tablet 75% of
-  // the screen is still a very wide line of text - cap it in absolute
-  // pixels too so bubbles stay a comfortable reading width there.
-  const { width: screenWidth } = useResponsiveLayout();
-  const bubbleMaxWidth = Math.min(screenWidth * 0.75, 420);
 
   // For group chats, check if sender changed from previous message. Also
   // true for the AI in a private chat (isGroupChat is false there, but its
@@ -715,7 +710,8 @@ const MessageRow = React.memo(({
     prev.autoplayVideos === next.autoplayVideos &&
     prev.handlersRef === next.handlersRef &&
     prev.onImageError === next.onImageError &&
-    prev.seenAvatars === next.seenAvatars
+    prev.seenAvatars === next.seenAvatars &&
+    prev.bubbleMaxWidth === next.bubbleMaxWidth
   );
 });
 
