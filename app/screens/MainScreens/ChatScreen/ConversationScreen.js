@@ -1110,7 +1110,7 @@ const ConversationScreen = ({ navigation, route }) => {
         const shouldScroll = backgroundRefreshWantsScrollRef.current;
         backgroundRefreshWantsScrollRef.current = false;
         fetchMessagesRef.current(true, true).then(() => {
-          if (shouldScroll) scrollToLatestMessageAnimated();
+          if (shouldScroll) scrollToLatestAndStick();
         });
       }, 400);
     };
@@ -1184,7 +1184,7 @@ const ConversationScreen = ({ navigation, route }) => {
       const isNearBottom = distanceFromBottom <= 150;
 
       if (tryAppendPushedMessage(e)) {
-        if (isNearBottom) scrollToLatestMessageAnimated();
+        if (isNearBottom) scrollToLatestAndStick();
       }
 
       // Reconciles the optimistic append above with the server's copy -
@@ -1355,6 +1355,24 @@ const ConversationScreen = ({ navigation, route }) => {
     });
   };
 
+  // A scroll to the end issued right when a message is added runs before
+  // the new row (or the images above it) has been laid out, so the list
+  // stopped short and the new message sat half under the composer. For a
+  // moment after asking, every growth of the content scrolls to the end
+  // again (see onContentSizeChange). Touching the list cancels it.
+  const stickToLatestUntilRef = useRef(0);
+  const stickToLatestAnimatedRef = useRef(true);
+  const scrollToLatestAndStick = (animated = true, ms = 1000) => {
+    stickToLatestUntilRef.current = Date.now() + ms;
+    stickToLatestAnimatedRef.current = animated;
+    if (animated) scrollToLatestMessageAnimated();
+    else scrollToLatestMessage();
+  };
+  // Waits for the first page before looking further back for a message
+  // opened from a notification (see handleMessagesContentSizeChange).
+  const olderHighlightTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(olderHighlightTimerRef.current), []);
+
   // Scrolls to and briefly highlights a message already present in the
   // currently loaded list, if it's laid out yet. Returns false (without
   // side effects) if it isn't loaded/laid out, so callers can fall back to
@@ -1380,7 +1398,10 @@ const ConversationScreen = ({ navigation, route }) => {
     const targetId = pendingHighlightMessageIdRef.current;
     if (targetId == null) return false;
     const didScroll = scrollToMessageAndHighlight(targetId);
-    if (didScroll) pendingHighlightMessageIdRef.current = null;
+    if (didScroll) {
+      pendingHighlightMessageIdRef.current = null;
+      stickToLatestUntilRef.current = 0;
+    }
     return didScroll;
   };
   // attemptScrollToHighlight is redefined every render (plain closure, not
@@ -1433,7 +1454,23 @@ const ConversationScreen = ({ navigation, route }) => {
     if (!initialScrollDoneRef.current && messages.length > 0) {
       initialScrollDoneRef.current = true;
       if (!attemptScrollToHighlight()) {
-        scrollToLatestMessage();
+        const targetId = pendingHighlightMessageIdRef.current;
+        if (targetId == null) {
+          // Images above load after this, growing the list: keep it at the
+          // newest message while they do.
+          scrollToLatestAndStick(false, 1500);
+        } else {
+          scrollToLatestMessage();
+          // A message from a notification that is older than what loaded:
+          // once the fresh first page has had time to arrive, load older
+          // pages until it turns up, the way jump-to-reply does.
+          clearTimeout(olderHighlightTimerRef.current);
+          olderHighlightTimerRef.current = setTimeout(() => {
+            if (String(pendingHighlightMessageIdRef.current) !== String(targetId)) return;
+            pendingHighlightMessageIdRef.current = null;
+            messageHandlersRef.current.handleJumpToRepliedMessage?.(targetId);
+          }, 1500);
+        }
       }
       return;
     }
@@ -1904,7 +1941,8 @@ const ConversationScreen = ({ navigation, route }) => {
 
       setReplyingTo(null);
 
-      // Add optimistic message to UI
+      // Add optimistic message to UI, and show it.
+      scrollToLatestAndStick();
       setMessages((prev) => {
         const lastMessage = prev[prev.length - 1];
         const messagesToAdd = [];
@@ -2150,7 +2188,7 @@ const ConversationScreen = ({ navigation, route }) => {
   const sendingRef = useRef(false);
 
   const handleSendNewMessage = async () => {
-    scrollToLatestMessageAnimated();
+    scrollToLatestAndStick();
     const tempId = Date.now().toString();
     // Declared outside the try block (not just above the catch) so it's
     // still in scope if something throws before it would otherwise be set -
@@ -3210,6 +3248,9 @@ const ConversationScreen = ({ navigation, route }) => {
           ]}
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
+          onScrollBeginDrag={() => {
+            stickToLatestUntilRef.current = 0;
+          }}
           scrollEventThrottle={16}
           // Was Platform.OS === "android" for native-level view recycling
           // (real measured clipping instead of the old JS-estimated mount/
@@ -3248,6 +3289,8 @@ const ConversationScreen = ({ navigation, route }) => {
               pendingLoadMoreAdjustTimeoutRef.current = setTimeout(() => {
                 pendingLoadMoreAdjustRef.current = null;
               }, 500);
+            } else if (!pendingLoadMoreAdjustRef.current && Date.now() < stickToLatestUntilRef.current) {
+              messagesScrollRef.current?.scrollToEnd({ animated: stickToLatestAnimatedRef.current });
             }
             scrollContentHeightRef.current = h;
             handleMessagesContentSizeChange(w, h);
