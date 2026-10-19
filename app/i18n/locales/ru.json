@@ -806,6 +806,8 @@
     "forward": "Переслать",
     "searchToForward": "Найти, кому переслать...",
     "send": "Отправить",
+    "back": "Назад",
+    "scrollToLatest": "К последним сообщениям",
     "forwarded": "Сообщение переслано",
     "forwardFailed": "Не удалось переслать сообщение",
     "loadConversationsFailed": "Не удалось загрузить список бесед",

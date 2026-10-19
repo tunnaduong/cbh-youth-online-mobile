@@ -117,9 +117,15 @@ const CommentBar = React.forwardRef(
       // always-mounted composer. Falls back to the same opaque tinted pill
       // Android used before the glass migration; iOS is untouched.
       forceNoGlass = false,
+      // "pill" (default): the floating glass pill used under posts.
+      // "flat": Messenger-style row for a bar the parent docks to the screen
+      // edge (the chat composer draws the glass bar itself) - no pill, no
+      // shadow, `leftAccessory` sits outside a rounded text field.
+      variant = "pill",
     },
     ref
   ) => {
+    const flat = variant === "flat";
     const { theme, isDarkMode } = useTheme();
     const { t } = useTranslation();
     const mentionParser = React.useMemo(
@@ -159,6 +165,131 @@ const CommentBar = React.forwardRef(
       paddingBottom: isAndroid ? 9 : 5,
       paddingHorizontal: 2,
     };
+
+    const textInput = (
+      <MarkdownTextInput
+        style={inputTextStyle}
+        parser={mentionParser}
+        markdownStyle={{
+          mentionUser: { color: "#22c55e", backgroundColor: "transparent" },
+          // Blue, distinct from the green @mention color, so the AI
+          // trigger reads as a different kind of thing while typing.
+          mentionReport: { color: isDarkMode ? "#93c5fd" : "#1d4ed8", backgroundColor: "transparent", borderRadius: 0 },
+        }}
+        placeholder={placeholderText}
+        placeholderTextColor={theme.subText}
+        multiline={true}
+        inputComponent={PasteInputComponent || undefined}
+        onPaste={
+          PasteInputComponent && onPasteImages
+            ? (error, files) => {
+                const images = imageFilesFromPaste(error, files);
+                if (images.length > 0) onPasteImages(images);
+              }
+            : undefined
+        }
+        ref={ref}
+        onChangeText={onChangeText}
+        value={value}
+        onKeyPress={onKeyPress}
+        editable={editable}
+        nativeID={nativeID}
+        cursorColor={theme.text}
+        onContentSizeChange={(e) => {
+          const height = e?.nativeEvent?.contentSize?.height;
+          if (typeof height === "number") setMeasuredInputHeight(height);
+        }}
+      />
+    );
+
+    const handleSendPress = () => {
+      // On Android, blur first to commit any pending IME composition,
+      // then send after one frame so onChangeText fires with the full text.
+      if (isAndroid && ref?.current) {
+        ref.current.blur();
+        setTimeout(onSubmit, 100);
+      } else {
+        onSubmit();
+      }
+    };
+
+    if (flat) {
+      // One line of text in the field; the icons on either side keep this
+      // height and stay at the bottom while the field grows (like Messenger).
+      const rowHeight = baseInputHeight + 8;
+      return (
+        <View style={[{ width: "100%", paddingHorizontal: 8, paddingVertical: 8 }, style]}>
+          {selectedImages?.length > 0 ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 4, paddingTop: 4, marginBottom: 8 }}>
+              {selectedImages.map((uri, index) => (
+                <View key={index}>
+                  <Image
+                    source={{ uri }}
+                    style={{ width: 56, height: 56, borderRadius: 8, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.border }}
+                    resizeMode="cover"
+                  />
+                  {onClearImage ? (
+                    <TouchableOpacity
+                      onPress={() => onClearImage(index)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={t("createPost.removeAttachment")}
+                      style={{
+                        position: "absolute",
+                        top: -6,
+                        right: -6,
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        backgroundColor: "rgba(0,0,0,0.6)",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Ionicons name="close" size={12} color="#fff" />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
+          <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
+            {leftAccessory ? (
+              <View style={{ height: rowHeight, flexDirection: "row", alignItems: "center", marginRight: 4 }}>
+                {leftAccessory}
+              </View>
+            ) : null}
+            <View
+              style={{
+                flex: 1,
+                flexDirection: "row",
+                alignItems: "center",
+                minHeight: rowHeight,
+                borderRadius: 20,
+                paddingHorizontal: 12,
+                paddingVertical: 4,
+                backgroundColor: theme.iconBackground,
+              }}
+            >
+              {textInput}
+            </View>
+            <TouchableOpacity
+              style={{ width: 40, height: rowHeight, alignItems: "center", justifyContent: "center", marginLeft: 4 }}
+              onPress={handleSendPress}
+              disabled={disabled}
+              accessibilityRole="button"
+              accessibilityLabel={t("chatConversation.send")}
+            >
+              {isSubmitting ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <Ionicons name="send" size={22} color={disabled ? theme.subText : theme.primary} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
 
     return (
       <RootView
@@ -306,39 +437,7 @@ const CommentBar = React.forwardRef(
                 {leftAccessory}
               </View>
             ) : null}
-            <MarkdownTextInput
-              style={inputTextStyle}
-              parser={mentionParser}
-              markdownStyle={{
-                mentionUser: { color: "#22c55e", backgroundColor: "transparent" },
-                // Blue, distinct from the green @mention color, so the AI
-                // trigger reads as a different kind of thing while typing.
-                mentionReport: { color: isDarkMode ? "#93c5fd" : "#1d4ed8", backgroundColor: "transparent", borderRadius: 0 },
-              }}
-              placeholder={placeholderText}
-              placeholderTextColor={theme.subText}
-              multiline={true}
-              inputComponent={PasteInputComponent || undefined}
-              onPaste={
-                PasteInputComponent && onPasteImages
-                  ? (error, files) => {
-                      const images = imageFilesFromPaste(error, files);
-                      if (images.length > 0) onPasteImages(images);
-                    }
-                  : undefined
-              }
-              ref={ref}
-              onChangeText={onChangeText}
-              value={value}
-              onKeyPress={onKeyPress}
-              editable={editable}
-              nativeID={nativeID}
-              cursorColor={theme.text}
-              onContentSizeChange={(e) => {
-                const height = e?.nativeEvent?.contentSize?.height;
-                if (typeof height === "number") setMeasuredInputHeight(height);
-              }}
-            />
+            {textInput}
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 5 }}>
@@ -407,16 +506,7 @@ const CommentBar = React.forwardRef(
                 height: 36,
                 borderRadius: 18,
               }}
-              onPress={() => {
-                // On Android, blur first to commit any pending IME composition,
-                // then send after one frame so onChangeText fires with the full text.
-                if (isAndroid && ref?.current) {
-                  ref.current.blur();
-                  setTimeout(onSubmit, 100);
-                } else {
-                  onSubmit();
-                }
-              }}
+              onPress={handleSendPress}
               disabled={disabled}
             >
               {isSubmitting ? (

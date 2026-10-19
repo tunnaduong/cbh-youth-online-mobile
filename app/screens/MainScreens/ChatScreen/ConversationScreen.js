@@ -3,35 +3,19 @@ import {
   View,
   Text,
   StyleSheet,
-  FlatList,
   TouchableOpacity,
-  Pressable,
   Image,
   Platform,
-  ActivityIndicator,
-  Animated,
-  StatusBar,
   Dimensions,
   Modal,
-  PanResponder,
   TouchableWithoutFeedback,
-  Keyboard,
   BackHandler,
   AppState,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  useSafeAreaInsets,
-  SafeAreaView,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect, useIsFocused } from "@react-navigation/native";
-import InlineVideoPlayer from "../../../components/InlineVideoPlayer";
 import ImageView from "react-native-image-viewing";
-import { useVideoPlayer, VideoView } from "expo-video";
-import FastImage from "../../../components/FastImage";
-import UserNameRow from "../../../components/profile/UserNameRow";
-import StyledUsername from "../../../components/profile/StyledUsername";
-import AvatarFrame, { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import {
   getConversationMessages,
   getConversations,
@@ -55,34 +39,20 @@ import {
   removeGroupDeputy,
   removeGroupParticipant,
 } from "../../../services/api/Api";
-import MentionText from "../../../components/MentionText";
-import SharedPostCard from "../../../components/SharedPostCard";
-import LinkPreviewCard from "../../../components/LinkPreviewCard";
-import { findPreviewableUrl } from "../../../utils/linkPreview";
-import MentionSuggestions, { useMentionInput } from "../../../components/MentionSuggestions";
-import SlashCommandSuggestions, { useSlashCommandInput } from "../../../components/SlashCommandSuggestions";
 import ReportModal from "../../../components/ReportModal";
 import ChatBackgroundModal from "../../../components/ChatBackgroundModal";
-import CommentBar from "../../../components/CommentBar";
-import ReplyPreviewBubble from "../../../components/ReplyPreviewBubble";
-import ReplyComposerBar from "../../../components/ReplyComposerBar";
-import MessageReactionPicker, {
-  REACTION_EMOJI_BY_TYPE,
-  REACTION_EMOJIS,
-} from "../../../components/MessageReactionPicker";
+import MessageReactionPicker, { REACTION_EMOJI_BY_TYPE } from "../../../components/MessageReactionPicker";
 import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
 import ForwardMessageModal from "../../../components/ForwardMessageModal";
-import { Alert, ActionSheetIOS, KeyboardAvoidingView, Clipboard } from "react-native";
+import { Alert, ActionSheetIOS, Clipboard } from "react-native";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
-import formatTime from "../../../utils/formatTime";
 import "dayjs/locale/vi";
 import "dayjs/locale/ru";
 import { storage } from "../../../global/storage";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
-import { getSystemMessageText } from "../../../utils/systemMessageText";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { compressVideoForUpload } from "../../../utils/mediaCompression";
@@ -95,1368 +65,44 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import i18n from "../../../i18n";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import LiquidButton from "../../../components/LiquidButton";
-import { useResponsiveLayout } from "../../../utils/responsive";
 import {
   KeyboardChatScrollView,
-  KeyboardStickyView,
   KeyboardGestureArea,
   KeyboardController,
   AndroidSoftInputModes,
 } from "react-native-keyboard-controller";
-import { trackAndroidKeyboardResize } from "../../../utils/keyboardResize";
-
-// Attachment URLs coming from the API are host-relative (e.g. "/storage/...");
-// local optimistic messages use file:// or content:// URIs, and http(s) may
-// already be absolute if the backend ever returns a CDN url. Storage files
-// are served by the API app, not the marketing site - every other screen in
-// this app resolves relative paths against api.chuyenbienhoa.com (see
-// ArchiveScreen/HomeScreen's resolveStoryMediaUrl), so match that instead of
-// the bare domain, which 404s.
-const resolveMediaUrl = (url) => {
-  if (!url) return null;
-  if (
-    url.startsWith("http") ||
-    url.startsWith("file:") ||
-    url.startsWith("content:")
-  ) {
-    return url;
-  }
-  return `https://api.chuyenbienhoa.com${url}`;
-};
-
-dayjs.locale(i18n.language || "vi");
-
-const CONVERSATION_CACHE_KEY = "conversation_";
-const CONVERSATION_TIMESTAMP_KEY = "conversation_timestamp_";
-const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-// axiosInstance's default timeout (10s) is tuned for regular API calls and is
-// far too short for multi-MB attachment uploads (video/file allow up to
-// 100MB on the backend). 120s was still too short on slower mobile uplinks -
-// a ~90MB video comfortably takes several minutes on 3G/weak wifi, and the
-// old timeout made those uploads fail with no clear explanation partway
-// through instead of either succeeding or failing fast. Matches the 10-minute
-// budget used on web.
-const ATTACHMENT_UPLOAD_TIMEOUT_MS = 10 * 60 * 1000;
-const ATTACHMENT_UPLOAD_CONFIG = { timeout: ATTACHMENT_UPLOAD_TIMEOUT_MS };
-
-// Mirrors the backend's per-type validation (ChatController::sendMessage) so
-// we can reject an attachment that's guaranteed to fail instantly, with a
-// clear reason, instead of letting the user watch a spinner for minutes only
-// to hit a generic error once the upload finally reaches the server (or
-// times out before it even gets there).
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100MB
-const MAX_FILE_BYTES = 100 * 1024 * 1024; // 100MB
-
-function formatBytesForToast(bytes) {
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
-}
-
-const formatMessageTime = (timestamp, t) => {
-  const messageTime = dayjs(timestamp);
-  const hours = parseInt(messageTime.format("H"));
-  const period =
-    hours < 12 ? t("chatConversation.am") : t("chatConversation.pm");
-  return `${messageTime.format("hh:mm")} ${period}`;
-};
-
-const injectTimeHeaders = (messages, t) => {
-  const result = [];
-  let currentDate = null;
-
-  messages.forEach((msg, index) => {
-    const prev = messages[index - 1];
-    const currTime = dayjs(msg.created_at);
-    const currDate = currTime.startOf("day");
-
-    // Check if we need to add a date header
-    if (!currentDate || !currDate.isSame(currentDate)) {
-      currentDate = currDate;
-      const today = dayjs().startOf("day");
-      const isToday = currDate.isSame(today);
-      const isYesterday = currDate.isSame(today.subtract(1, "day"));
-
-      let dateText;
-      if (isToday) {
-        dateText = t("chatConversation.today");
-      } else if (isYesterday) {
-        dateText = t("chatConversation.yesterday");
-      } else {
-        dateText = currDate.format("DD/MM/YYYY");
-      }
-
-      result.push({
-        id: `date-${msg.id}`,
-        type: "date",
-        date: dateText,
-      });
-    }
-
-    // Check if we need to add a time header (for messages more than 5 minutes apart)
-    let showTimeHeader = false;
-    if (!prev) {
-      showTimeHeader = true;
-    } else {
-      const prevTime = dayjs(prev.created_at);
-      if (currTime.diff(prevTime, "minute") > 5) {
-        showTimeHeader = true;
-      }
-    }
-
-    if (showTimeHeader) {
-      result.push({
-        id: `time-${msg.id}`,
-        type: "time",
-        time: currTime.format("HH:mm"),
-      });
-    }
-
-    // `type` doubles as the list-envelope discriminator ("message" vs "date"/"time"
-    // headers) elsewhere in this screen, which would otherwise clobber the backend's
-    // content type (text/image/file) - keep that around separately so attachment
-    // bubbles still render correctly after any refetch. Messages that already went
-    // through this function (e.g. re-merged on scroll-up pagination) have `type`
-    // set to "message" already, so fall back to their existing `content_type`
-    // instead of overwriting it.
-    // Already in that shape: keep the very same object. Rows are memoized on
-    // it, and a fresh copy of every message on every call re-rendered the
-    // whole list each time one message arrived.
-    result.push(
-      msg.type === "message" && msg.content_type !== undefined
-        ? msg
-        : {
-            ...msg,
-            type: "message",
-            content_type: msg.content_type ?? msg.type,
-          },
-    );
-  });
-
-  return result;
-};
-
-// Full-screen video player - a separate component so useVideoPlayer only ever
-// mounts (and allocates a native player) while the modal is actually open.
-export const VideoViewerModal = ({ visible, uri, onClose, insetsTop, footer }) => {
-  const { autoplayVideos } = useTheme();
-  const isFocused = useIsFocused();
-  const player = useVideoPlayer(uri || null, (p) => {
-    p.loop = false;
-    if (uri && autoplayVideos) p.play();
-  });
-
-  useEffect(() => {
-    if (!player || typeof player !== "object") return;
-    if (!isFocused) {
-      try {
-        if (typeof player.pause === "function") player.pause();
-      } catch (e) {
-        console.warn("VideoViewerModal: failed to pause player on blur", e);
-      }
-    }
-  }, [isFocused, player]);
-
-  useEffect(() => {
-    console.log("[VideoViewerModal] player mounted/changed", { uri, player });
-    return () => {
-      if (!player) return;
-      try {
-        if (typeof player.playing !== "undefined" ? player.playing === true : false) {
-          if (typeof player.pause === "function") {
-            player.pause();
-            console.log("[VideoViewerModal] paused player during cleanup", { uri });
-          }
-        }
-      } catch (e) {
-        console.warn("[VideoViewerModal] error pausing player during cleanup", e);
-      }
-      try {
-        if (typeof player.release === "function") {
-          player.release();
-          console.log("[VideoViewerModal] released player during cleanup", { uri });
-        }
-      } catch (e) {
-        console.warn("[VideoViewerModal] error releasing player during cleanup", e);
-      }
-    };
-  }, [player, uri]);
-
-  // remount the VideoView if the player reference changes to avoid
-  // referencing a native player that was already released
-  const [playerKey, setPlayerKey] = useState(0);
-  useEffect(() => {
-    setPlayerKey((k) => k + 1);
-  }, [player]);
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.videoViewerBackdrop}>
-        <TouchableOpacity
-          style={[styles.videoViewerClose, { top: insetsTop + 12 }]}
-          onPress={onClose}
-          hitSlop={12}
-        >
-          <Ionicons name="close" size={28} color="#fff" />
-        </TouchableOpacity>
-        {player && typeof player === "object" ? (
-          <VideoView
-            key={playerKey}
-            style={styles.videoViewerPlayer}
-            player={player}
-            allowsFullscreen
-            allowsPictureInPicture
-            nativeControls
-          />
-        ) : null}
-        {/* Optional overlay (currently just the Gallery's sender/time +
-            share/save/jump-to-message bar) - undefined everywhere else, so
-            existing callers are unaffected. */}
-        {footer}
-      </View>
-    </Modal>
-  );
-};
-
-// Renders the whole scrollable list of message rows (date/time headers +
-// MessageRow bubbles). Split out from ConversationScreen's render and
-// wrapped in React.memo for one reason: ConversationScreen re-renders on
-// every keystroke in the composer (`message` state / setMessage), and
-// before this split, building this list was an inline IIFE in that same
-// render - so every keystroke re-iterated and rebuilt a React element for
-// EVERY message in the conversation (this app uses a plain ScrollView here,
-// not a virtualized FlatList, so nothing was windowing that cost either).
-// That's what caused the visible stutter/jank while typing in chats with
-// more than a handful of messages. None of this component's props change
-// when `message`/composer text changes, so React.memo now makes typing a
-// no-op for this subtree - it only re-renders when the messages themselves
-// (or the few other props below) actually change.
-const MessagesListContent = React.memo(({
-  messages,
-  isGroupChat,
-  theme,
-  isDarkMode,
-  t,
-  username,
-  navigation,
-  mediaLoadErrors,
-  downloadingFileId,
-  messageHandlersRef,
-  onImageError,
-  activeInlineVideoId,
-  autoplayVideos,
-  highlightedMessageId,
-  messageLayoutOffsetsRef,
-  pendingHighlightMessageIdRef,
-  attemptScrollToHighlightRef,
-  seenParticipants,
-}) => {
-  // Pre-compute nearest real-message neighbours for each item so
-  // MessageRow doesn't have to O(n)-scan the array itself.
-  const realMessages = [];
-  messages.forEach((m, i) => {
-    // System messages ("X added Y to the group") render as a centered pill, not a
-    // bubble - exclude them here too so they don't get counted as a neighbour when
-    // deciding whether consecutive real messages should visually group together.
-    if (m.type !== "date" && m.type !== "time" && m.content_type !== "system") {
-      realMessages.push({ m, i });
-    }
-  });
-  const realIdxOf = new Map(realMessages.map(({ m, i }, ri) => [i, ri]));
-
-  // "Seen by" read receipts (group chats only). There's no per-message read
-  // table on the backend - each participant just has a single last_read_at
-  // timestamp for the conversation. The inline avatar stack only ever shows
-  // under YOUR OWN truly-last message in the conversation, exactly like
-  // Messenger - never under someone else's message (if they sent the last
-  // message, nothing shows inline at all), and never scattered across
-  // earlier messages of yours (use the "Lượt xem" menu action on those).
-  const lastRealMessage = realMessages.length > 0 ? realMessages[realMessages.length - 1].m : null;
-  let inlineSeenAvatars = [];
-  if (isGroupChat && lastRealMessage?.is_myself && seenParticipants?.length > 0) {
-    const createdAt = new Date(lastRealMessage.created_at).getTime();
-    inlineSeenAvatars = seenParticipants.filter(
-      (p) => p.last_read_at && new Date(p.last_read_at).getTime() >= createdAt
-    );
-  }
-
-  return messages.map((value, index) => {
-    let prev = null;
-    let next = null;
-    const ri = realIdxOf.get(index);
-    if (ri != null) {
-      prev = ri > 0 ? realMessages[ri - 1].m : null;
-      next = ri < realMessages.length - 1 ? realMessages[ri + 1].m : null;
-    } else {
-      // date/time header — walk to find adjacent real messages
-      for (let i = index - 1; i >= 0; i--) {
-        if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { prev = messages[i]; break; }
-      }
-      for (let i = index + 1; i < messages.length; i++) {
-        if (messages[i].type !== "date" && messages[i].type !== "time" && messages[i].content_type !== "system") { next = messages[i]; break; }
-      }
-    }
-
-    return (
-      // type+id alone (no index) - "load more" pagination prepends older
-      // messages, shifting every index. A key that includes index made React
-      // treat every already-rendered row as brand new on each scroll-up load,
-      // remounting (not just re-rendering) the entire message list every
-      // time - by far the biggest source of chat lag once a conversation had
-      // any scroll-back history loaded.
-      <View
-        key={`${value.type}-${value.id}`}
-        onLayout={(e) => {
-          if (value.type === "message" && value.id != null) {
-            messageLayoutOffsetsRef.current[value.id] = {
-              y: e.nativeEvent.layout.y,
-              height: e.nativeEvent.layout.height,
-            };
-            if (String(pendingHighlightMessageIdRef.current) === String(value.id)) {
-              attemptScrollToHighlightRef.current();
-            }
-          }
-        }}
-        style={
-          // String(): an id that came with a notification is a string.
-          highlightedMessageId != null && String(value.id) === String(highlightedMessageId)
-            ? {
-                backgroundColor: isDarkMode
-                  ? "rgba(250,204,21,0.15)"
-                  : "rgba(250,204,21,0.25)",
-                borderRadius: 12,
-              }
-            : undefined
-        }
-      >
-        {value.type === "date" ? (
-          <View
-            style={styles.dateHeaderContainer}
-            key={value.is_myself ? "my" + value.id : "their" + value.id}
-          >
-            <Text
-              style={[
-                styles.dateHeaderText,
-                {
-                  backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                  color: theme.subText,
-                },
-              ]}
-            >
-              {value.date}
-            </Text>
-          </View>
-        ) : value.type === "time" ? (
-          <View style={styles.timeHeaderContainer}>
-            <Text
-              style={[
-                styles.timeHeaderText,
-                {
-                  backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                  color: theme.subText,
-                },
-              ]}
-            >
-              {value.time}
-            </Text>
-          </View>
-        ) : value.content_type === "system" ? (
-          <View style={styles.systemMessageContainer}>
-            <Text
-              style={[
-                styles.systemMessageText,
-                { backgroundColor: isDarkMode ? "#262626" : "#f0f0f0", color: theme.subText },
-              ]}
-            >
-              {getSystemMessageText(value, t)}
-            </Text>
-          </View>
-        ) : (
-          <MessageRow
-            item={value}
-            prevMessage={prev}
-            nextMessage={next}
-            index={index}
-            isGroupChat={isGroupChat}
-            theme={theme}
-            isDarkMode={isDarkMode}
-            t={t}
-            username={username}
-            navigation={navigation}
-            mediaLoadError={mediaLoadErrors[value.id]}
-            isDownloadingThis={downloadingFileId === value.id}
-            handlersRef={messageHandlersRef}
-            onImageError={onImageError}
-            seenAvatars={value.id === lastRealMessage?.id ? inlineSeenAvatars : undefined}
-            // Only the row that IS the active video is given the id; every
-            // other row gets null. A row only ever compares the id with its
-            // own, so nothing changes for it - but with the raw id as a prop,
-            // one video starting or stopping mid-scroll changed a prop of
-            // every message and re-rendered the whole list.
-            activeInlineVideoId={
-              String(value.id) === String(activeInlineVideoId) ? activeInlineVideoId : null
-            }
-            autoplayVideos={autoplayVideos}
-          />
-        )}
-      </View>
-    );
-  });
-});
-
-const SWIPE_THRESHOLD = 55;
-const SWIPE_ICON_OFFSET = 44;
-
-const SwipeableMessage = ({ children, isMyMessage, onSwipe }) => {
-  const translateX = useRef(new Animated.Value(0)).current;
-  const triggeredRef = useRef(false);
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: (_, g) =>
-        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
-      // Capture phase runs top-down BEFORE any nested touchable (e.g. the
-      // video tile's mute button) gets a chance to claim the responder in
-      // the bubble phase - without this, a clear horizontal swipe starting
-      // on top of a nested TouchableOpacity never reached this PanResponder
-      // at all, so swipe-to-reply silently did nothing on video messages.
-      onMoveShouldSetPanResponderCapture: (_, g) =>
-        Math.abs(g.dx) > 6 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
-      onPanResponderGrant: () => {
-        triggeredRef.current = false;
-      },
-      onPanResponderMove: (_, g) => {
-        const clamped = g.dx > 0
-          ? Math.min(SWIPE_THRESHOLD + 10, g.dx)
-          : Math.max(-(SWIPE_THRESHOLD + 10), g.dx);
-        translateX.setValue(clamped);
-        if (Math.abs(clamped) >= SWIPE_THRESHOLD && !triggeredRef.current) {
-          triggeredRef.current = true;
-          onSwipe?.();
-        }
-      },
-      onPanResponderRelease: () => {
-        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, tension: 120, friction: 10 }).start();
-      },
-    })
-  ).current;
-
-  // Left icon: visible when swiping right (positive translateX)
-  const leftIconOpacity = translateX.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-  const leftIconTranslateX = translateX.interpolate({
-    inputRange: [0, SWIPE_THRESHOLD + 10],
-    outputRange: [0, SWIPE_ICON_OFFSET + 10],
-    extrapolate: "clamp",
-  });
-
-  // Right icon: visible when swiping left (negative translateX)
-  const rightIconOpacity = translateX.interpolate({
-    inputRange: [-SWIPE_THRESHOLD, 0],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-  const rightIconTranslateX = translateX.interpolate({
-    inputRange: [-(SWIPE_THRESHOLD + 10), 0],
-    outputRange: [-(SWIPE_ICON_OFFSET + 10), 0],
-    extrapolate: "clamp",
-  });
-
-  const iconStyle = {
-    position: "absolute",
-    top: "50%",
-    marginTop: -14,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(0,0,0,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1,
-  };
-
-  return (
-    <View style={{ overflow: "visible" }}>
-      {/* Left icon — appears when swiping right */}
-      <Animated.View
-        style={[iconStyle, { left: 4, opacity: leftIconOpacity, transform: [{ translateX: leftIconTranslateX }] }]}
-        pointerEvents="none"
-      >
-        <Ionicons name="arrow-undo" size={16} color="#fff" />
-      </Animated.View>
-      {/* Right icon — appears when swiping left */}
-      <Animated.View
-        style={[iconStyle, { right: 4, opacity: rightIconOpacity, transform: [{ translateX: rightIconTranslateX }] }]}
-        pointerEvents="none"
-      >
-        <Ionicons name="arrow-undo" size={16} color="#fff" />
-      </Animated.View>
-      <Animated.View
-        style={{ transform: [{ translateX }] }}
-        {...panResponder.panHandlers}
-      >
-        {children}
-      </Animated.View>
-    </View>
-  );
-};
-
-// Reactions row under a message bubble - split out of MessageRow (below) so
-// a reaction change only re-renders this small badge, not the whole bubble.
-const ReactionBadge = React.memo(({ item, theme, isDarkMode, handlersRef }) => {
-  if (typeof item.id !== "number") return null;
-
-  const reactions = item.reactions;
-  const hasReactions = reactions && reactions.total > 0;
-
-  // For my messages: row anchored at bottom-left → [...] [👍]
-  // For theirs: row anchored at bottom-right → [👍] [...]
-  const rowAnchor = item.is_myself ? { left: -6 } : { right: -6 };
-
-  const bgColor = isDarkMode ? "#262626" : "#ffffff";
-
-  // Top 2 emojis by count for the pill
-  const topTwo = hasReactions
-    ? [...reactions.summary]
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 2)
-        .map((s) => REACTION_EMOJI_BY_TYPE[s.type] || "👍")
-    : [];
-
-  const dotsBtn = (
-    <TouchableOpacity
-      key="dots"
-      onPress={(evt) => handlersRef.current.openReactionPicker(item, evt)}
-      style={[
-        styles.reactionIconBtn,
-        { backgroundColor: bgColor, borderColor: theme.border },
-      ]}
-      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-    >
-      <Ionicons name="happy-outline" size={13} color={theme.subText} />
-    </TouchableOpacity>
-  );
-
-  const pill = hasReactions ? (
-    <TouchableOpacity
-      key="pill"
-      onPress={() => handlersRef.current.setReactionModal({ visible: true, reactions })}
-      style={[
-        styles.reactionPillBadge,
-        { backgroundColor: bgColor, borderColor: theme.border },
-      ]}
-    >
-      <Text style={styles.reactionPillEmoji}>{topTwo.join("")}</Text>
-      <Text style={[styles.reactionPillCount, { color: theme.subText }]}>
-        {reactions.total}
-      </Text>
-    </TouchableOpacity>
-  ) : null;
-
-  // Mine: [...] [pill?]  anchored at left
-  // Theirs: [pill?] [...]  anchored at right
-  const children = item.is_myself ? [dotsBtn, pill] : [pill, dotsBtn];
-
-  return (
-    <View style={[styles.reactionBadgeRow, rowAnchor]}>
-      {children}
-    </View>
-  );
-});
-
-// Renders a compact grid of thumbnails for a multi-attachment message
-// (item.file_urls with 2+ entries). Images show the actual thumbnail;
-// videos don't have a per-item thumbnail from the backend so they fall back
-// to the same placeholder box used for a single video, with a play icon
-// overlay per cell. Tapping a cell hands the tapped index back to the
-// caller so it can open the right viewer (gallery-swipe for images, single
-// video viewer for videos).
-const MultiAttachmentGrid = ({ urls, isVideo, onPressItem }) => {
-  const items = urls.slice(0, 10);
-  const columns = items.length <= 4 ? 2 : 3;
-  const gap = 2;
-  const cellSize = (200 - gap * (columns - 1)) / columns;
-  return (
-    <View style={{ width: 200, flexDirection: "row", flexWrap: "wrap", gap }}>
-      {items.map((url, idx) => (
-        <TouchableOpacity
-          key={idx}
-          activeOpacity={0.85}
-          onPress={() => onPressItem(idx)}
-          style={{ width: cellSize, height: cellSize }}
-        >
-          {isVideo ? (
-            <View style={[styles.videoPlaceholder, { width: "100%", height: "100%", borderRadius: 6 }]} />
-          ) : (
-            <FastImage
-              source={{ uri: resolveMediaUrl(url) }}
-              style={{ width: "100%", height: "100%", borderRadius: 6 }}
-              resizeMode="cover"
-            />
-          )}
-          {isVideo && (
-            <View style={[styles.videoPlayOverlay, { borderRadius: 6 }]}>
-              <Ionicons name="play" size={16} color="#fff" />
-            </View>
-          )}
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-};
-
-// A single message bubble (everything renderMessage used to build inline for
-// item.type === "message"). Split into its own React.memo'd component -
-// previously this was all inline in ConversationScreen's render, so ANY
-// screen state change (typing indicator, a media load error on one message,
-// scroll position) re-rendered and re-diffed EVERY message in the whole
-// conversation, which is the main reason chats with lots of images/videos
-// felt laggy well before you scrolled anywhere near the edge of what's
-// mounted. Handlers are passed via a stable `handlersRef` (see
-// messageHandlersRef in ConversationScreen) instead of directly, so this
-// component's props stay referentially stable across unrelated re-renders
-// and React.memo can actually skip re-rendering a bubble whose own message
-// didn't change.
-// Image.getSize() is a native/network round-trip (fetches remote image
-// headers to learn intrinsic dimensions) - without caching, every mount of
-// an image/video MessageRow re-issued it, so opening or scrolling through a
-// conversation with lots of media fired potentially hundreds of redundant
-// native calls at once. Keyed by URL and shared across all MessageRow
-// instances/remounts for the lifetime of the app.
-const imageAspectRatioCache = new Map();
-
-const MessageRow = React.memo(({
-  item,
-  prevMessage,
-  nextMessage,
-  index,
-  isGroupChat,
-  theme,
-  isDarkMode,
-  t,
-  username,
-  navigation,
-  mediaLoadError,
-  isDownloadingThis,
-  handlersRef,
-  onImageError,
-  activeInlineVideoId,
-  autoplayVideos,
-  seenAvatars,
-}) => {
-  // A flat "75%" bubble width reads fine on a phone, but on a tablet 75% of
-  // the screen is still a very wide line of text - cap it in absolute
-  // pixels too so bubbles stay a comfortable reading width there.
-  const { width: screenWidth } = useResponsiveLayout();
-  const bubbleMaxWidth = Math.min(screenWidth * 0.75, 420);
-
-  // For group chats, check if sender changed from previous message. Also
-  // true for the AI in a private chat (isGroupChat is false there, but its
-  // name should still show above its bubble like it does everywhere else -
-  // see the (isGroupChat || item.sender?.is_ai) check that reads this below).
-  const senderChanged =
-    (isGroupChat || item.sender?.is_ai) &&
-    !item.is_myself &&
-    (!prevMessage ||
-      prevMessage.is_myself !== item.is_myself ||
-      prevMessage.sender?.id !== item.sender?.id ||
-      (prevMessage.sender?.username !== item.sender?.username &&
-        !prevMessage.sender?.id &&
-        !item.sender?.id));
-
-  // Check if this is the last message in a group (same sender and same alignment).
-  // This used to only compare actual sender identity when isGroupChat - fine
-  // as long as a private (non-group) conversation could only ever have ONE
-  // possible "not me" sender. That stopped being true once Yoyo AI can also
-  // post into any conversation (e.g. someone replies to a message with /ai
-  // inside a normal 1-on-1 chat): two consecutive "not me" messages from two
-  // actually-different senders (the other human, then the AI) both have
-  // is_myself === false, so without this check they were treated as one
-  // group and only the last one got an avatar - making it look like a
-  // single shared avatar for two different people. Now checks real sender
-  // identity regardless of conversation type.
-  const isLastInGroup =
-    !nextMessage ||
-    nextMessage.is_myself !== item.is_myself ||
-    (!item.is_myself &&
-      // Different sender IDs (for authenticated users)
-      ((nextMessage.sender?.id &&
-        item.sender?.id &&
-        nextMessage.sender.id !== item.sender.id) ||
-        // Different usernames (for guests or fallback)
-        nextMessage.sender?.username !== item.sender?.username));
-
-  // Check if this is a story reply message
-  const isStoryReply = item.metadata?.story_reply === true;
-  const storyOwnerName = item.metadata?.story_owner_name;
-
-  // `type` is overloaded as the list envelope ("message"/"date"/"time"), so once a
-  // message has gone through a refetch its original content type only survives in
-  // `content_type` (see injectTimeHeaders) - check both so attachments keep
-  // rendering as images/file cards instead of falling back to plain text.
-  // A post shared from the feed: render the preview card instead of the bare
-  // link, and keep whatever note the sender typed above it.
-  const sharedTopic = item.metadata?.shared_topic || null;
-  const sharedTopicNote = sharedTopic
-    ? String(item.content || "").replace(sharedTopic.url || "", "").trim()
-    : "";
-
-  const isImageMessage = item.type === "image" || item.content_type === "image";
-  const isVideoMessage = item.type === "video" || item.content_type === "video";
-  const isFileMessage = item.type === "file" || item.content_type === "file";
-  // Any other link pasted or typed into a text message gets a preview card
-  // under the text, the way a shared post does.
-  const linkPreviewUrl = useMemo(
-    () =>
-      sharedTopic || item.is_recalled || isImageMessage || isVideoMessage || isFileMessage
-        ? null
-        : findPreviewableUrl(item.content),
-    [sharedTopic, item.is_recalled, isImageMessage, isVideoMessage, isFileMessage, item.content]
-  );
-  const resolvedFileUrl = resolveMediaUrl(item.file_url);
-  const resolvedThumbnailUrl = resolveMediaUrl(item.metadata?.thumbnail_url);
-  // Small (480px) muted preview clip for autoplay - see
-  // MediaThumbnailService::videoPreview on the backend. Decoding a full
-  // compressed video (up to 1920x1080) inline in a ~200px bubble burns far
-  // more CPU than that tiny player needs; falls back to the full file for
-  // older messages sent before this existed.
-  const resolvedPreviewUrl = resolveMediaUrl(item.metadata?.preview_url);
-  // Same idea for the static image bubble - a full-resolution original is
-  // wasted decode/network cost at bubble size. Backend generates this
-  // synchronously at send time, but falls back to the full file if it's
-  // ever missing rather than showing nothing.
-  const displayImageUrl = isImageMessage ? (resolvedThumbnailUrl || resolvedFileUrl) : null;
-  const [imageAspectRatio, setImageAspectRatio] = useState(null);
-
-  useEffect(() => {
-    const url = isImageMessage ? displayImageUrl : isVideoMessage ? resolvedThumbnailUrl : null;
-    if (!url) {
-      setImageAspectRatio(null);
-      return undefined;
-    }
-
-    const cached = imageAspectRatioCache.get(url);
-    if (cached != null) {
-      setImageAspectRatio(cached);
-      return undefined;
-    }
-
-    let cancelled = false;
-    setImageAspectRatio(null);
-    // Try to get intrinsic size so we can preserve original ratio instead of 1:1 crop
-    Image.getSize(
-      url,
-      (w, h) => {
-        if (w > 0 && h > 0) imageAspectRatioCache.set(url, w / h);
-        if (!cancelled && w > 0) setImageAspectRatio(w / h);
-      },
-      () => {
-        /* ignore error, keep default square fallback */
-      }
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [displayImageUrl, resolvedThumbnailUrl, isImageMessage, isVideoMessage]);
-
-  const handleSwipeReply = () => {
-    // Still sending: it has no real id to reply to yet.
-    if (item.is_sending) return;
-    const contentType =
-      item.type === "image" || item.type === "video" || item.type === "file"
-        ? item.type
-        : item.content_type === "image" || item.content_type === "video" || item.content_type === "file"
-          ? item.content_type
-          : "text";
-    handlersRef.current.setReplyingTo({
-      id: item.id,
-      content: contentType === "text" ? item.content : null,
-      type: contentType,
-      file_url: item.file_url ?? null,
-      sender: item.sender,
-    });
-    handlersRef.current.focusInput?.();
-  };
-
-  return (
-    <SwipeableMessage isMyMessage={item.is_myself} onSwipe={handleSwipeReply}>
-    <View
-      style={[
-        // Add extra spacing for group chats when sender changes (applies to entire message block)
-        isGroupChat &&
-          !item.is_myself &&
-          senderChanged &&
-          styles.groupMessageWrapper,
-      ]}
-    >
-      {/* Show story reply header */}
-      {isStoryReply && (
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => {
-            const storyId = item.metadata?.story_id ?? item.metadata?.storyId;
-            if (storyId) {
-              // popTo, not navigate: navigate would push a second copy of
-              // the tabs (and of the home feed) on top of this chat.
-              navigation.popTo("MainScreens", {
-                screen: "Home",
-                params: { openStoryId: storyId },
-              });
-            } else {
-              Toast.show({
-                type: "info",
-                text1: t("common.error"),
-                text2: t("chatConversation.storyNotAvailable"),
-              });
-            }
-          }}
-        >
-          <View
-            style={[
-              styles.storyReplyHeader,
-              item.is_myself && styles.storyReplyHeaderRight,
-            ]}
-          >
-            {item.is_myself ? (
-              <>
-                <Text
-                  style={[
-                    styles.storyReplyText,
-                    styles.storyReplyTextRight,
-                    { color: theme.subText },
-                  ]}
-                >
-                  {t("chatConversation.storyReply.you", {
-                    owner: storyOwnerName || t("chatConversation.anonymous"),
-                  })}
-                </Text>
-                <Ionicons
-                  name="arrow-forward"
-                  size={14}
-                  color={theme.subText}
-                />
-              </>
-            ) : (
-              <>
-                <Ionicons name="arrow-back" size={14} color={theme.subText} />
-                <Text
-                  style={[styles.storyReplyText, { color: theme.subText }]}
-                >
-                  {t("chatConversation.storyReply.other", {
-                    sender:
-                      item.sender?.profile_name ||
-                      item.sender?.username ||
-                      t("chatConversation.anonymous"),
-                  })}
-                </Text>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
-      )}
-      {/* Show sender name for group chats when sender changes, and always for Yoyo AI */}
-      {(isGroupChat || item.sender?.is_ai) && !item.is_myself && senderChanged && (
-        <UserNameRow
-          name={
-            item.sender?.profile_name ||
-            item.sender?.username ||
-            t("chatConversation.anonymous")
-          }
-          theme={item.sender?.profile_theme}
-          style={[styles.senderNameText, { color: theme.subText }]}
-          containerStyle={styles.senderName}
-        />
-      )}
-      <View
-        style={[
-          styles.messageContainer,
-          item.is_myself
-            ? styles.myMessageContainer
-            : styles.theirMessageContainer,
-        ]}
-      >
-        {!item.is_myself && isLastInGroup && (
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={() => handlersRef.current.openSenderActions?.(item.sender)}
-          >
-            <AvatarFrameWrap
-              theme={item.sender?.profile_theme}
-              size={32}
-              style={styles.messageAvatarWrap}
-            >
-              <FastImage
-                source={{
-                  uri:
-                    item.sender?.avatar_url ||
-                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                }}
-                style={styles.messageAvatar}
-              />
-            </AvatarFrameWrap>
-          </TouchableOpacity>
-        )}
-        <View
-          style={{
-            position: "relative",
-            maxWidth: bubbleMaxWidth,
-            flexShrink: 1,
-            alignSelf: item.is_myself ? "flex-end" : "flex-start",
-            // The reaction badge hangs off the bottom corner of the bubble
-            // (see reactionAddBadge/reactionPillBadge) - without this the
-            // next message's footer/timestamp sits right underneath it.
-            marginBottom: 16,
-          }}
-        >
-          <Pressable
-            style={[
-              styles.messageBubble,
-              // maxWidth already lives on the wrapper above - a percentage
-              // value here would resolve against this wrapper's own
-              // auto-sized width instead of the row's, collapsing text to
-              // ~1 char per line. Cancel it out.
-              { maxWidth: undefined, flexShrink: 1 },
-              isImageMessage || isVideoMessage
-                ? styles.imageMessageBubble
-                : isFileMessage
-                  ? [
-                      styles.fileMessageBubble,
-                      item.is_myself
-                        ? [styles.myMessageBubble, { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" }]
-                        : [styles.theirMessageBubble, { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" }],
-                    ]
-                  : item.type === "chat" || item.type === "part"
-                  ? [
-                      item.is_myself
-                        ? styles.myMessageBubble
-                        : styles.theirMessageBubble,
-                      styles.chatMessageBubble,
-                      {
-                        borderColor: isDarkMode
-                          ? "rgba(255,255,255,0.12)"
-                          : "rgba(0,0,0,0.08)",
-                      },
-                    ]
-                  : item.is_myself
-                    ? [
-                        styles.myMessageBubble,
-                        { backgroundColor: isDarkMode ? "#064e3b" : "#E8F5E9" },
-                      ]
-                    : [
-                        styles.theirMessageBubble,
-                        { backgroundColor: isDarkMode ? "#1f2937" : "#F5F5F5" },
-                      ],
-              !item.is_myself && !isLastInGroup && { marginLeft: 40 },
-            ]}
-            onLongPress={(evt) => handlersRef.current.openReactionPicker(item, evt)}
-            delayLongPress={350}
-            onPress={
-              item.is_recalled ? undefined : () => {
-                const now = Date.now();
-                const lastTap = handlersRef.current.lastTapRef.current[item.id] || 0;
-                if (now - lastTap < 300) {
-                  handlersRef.current.handleDoubleTapMessage(item);
-                } else {
-                  handlersRef.current.lastTapRef.current[item.id] = now;
-                  if (isImageMessage && resolvedFileUrl) {
-                    handlersRef.current.openImageViewer(resolvedFileUrl);
-                  } else if (isVideoMessage && resolvedFileUrl) {
-                    handlersRef.current.openVideoViewer(resolvedFileUrl);
-                  } else if (isFileMessage && resolvedFileUrl) {
-                    handlersRef.current.handleOpenFile(item);
-                  }
-                }
-              }
-            }
-          >
-            {item.is_recalled ? (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, opacity: 0.55 }}>
-                <Ionicons name="arrow-undo-outline" size={14} color={item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555")} />
-                <Text style={{ fontStyle: "italic", color: item.is_myself ? "#fff" : (isDarkMode ? "#aaa" : "#555"), fontSize: 14 }}>
-                  {t("chatConversation.recalled", "Tin nhắn đã bị thu hồi")}
-                </Text>
-              </View>
-            ) : null}
-            {item.reply_to && !item.is_recalled && (
-              <ReplyPreviewBubble
-                item={item}
-                currentUsername={username}
-                onPress={() => handlersRef.current.handleJumpToRepliedMessage(item.reply_to.id)}
-              />
-            )}
-            {!item.is_recalled &&
-            (isImageMessage || isVideoMessage) &&
-            Array.isArray(item.file_urls) &&
-            item.file_urls.length > 1 ? (
-              <MultiAttachmentGrid
-                urls={item.file_urls}
-                isVideo={isVideoMessage}
-                onPressItem={(idx) => {
-                  if (isImageMessage) {
-                    handlersRef.current.openImageViewerGallery(
-                      item.file_urls.map(resolveMediaUrl),
-                      idx,
-                    );
-                  } else {
-                    handlersRef.current.openVideoViewer(
-                      resolveMediaUrl(item.file_urls[idx]),
-                    );
-                  }
-                }}
-              />
-            ) : !item.is_recalled && isImageMessage && item.file_url ? (
-              <>
-                {mediaLoadError ? (
-                  // Tap to try again (one failure used to be final for the
-                  // whole visit). The native reason stays in the log only.
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => onImageError(item.id, null)}
-                    style={[styles.messageImage, styles.mediaErrorFallback]}
-                  >
-                    <Ionicons name="refresh" size={28} color="#fff" />
-                    <Text style={styles.mediaErrorText} numberOfLines={2}>
-                      {t("chatConversation.loadImageError", "Không tải được ảnh")}
-                    </Text>
-                  </TouchableOpacity>
-                ) : (
-                  <FastImage
-                    source={{ uri: displayImageUrl }}
-                    shimmer
-                    style={
-                      imageAspectRatio
-                        ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
-                        : styles.messageImage
-                    }
-                    resizeMode={"cover"}
-                    onError={(e) => {
-                      const reason = e?.nativeEvent?.error || "unknown error";
-                      console.error("[ChatMedia] image FAILED to load", {
-                        id: item.id,
-                        raw_file_url: item.file_url,
-                        resolved: displayImageUrl,
-                        reason,
-                      });
-                      onImageError(item.id, reason);
-                    }}
-                  />
-                )}
-                {item.is_sending && (
-                  <View style={styles.imageLoadingOverlay}>
-                    <ActivityIndicator size="small" color="#fff" />
-                    {typeof item.upload_progress === "number" && (
-                      <Text style={styles.uploadProgressText}>
-                        {item.upload_progress}%
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </>
-            ) : !item.is_recalled && isVideoMessage ? (
-              <>
-                {autoplayVideos && String(item.id) === String(activeInlineVideoId) ? (
-                  (() => {
-                    const thumbWidth = 200;
-                    const thumbHeight = imageAspectRatio
-                      ? Math.round(thumbWidth / imageAspectRatio)
-                      : 200;
-                    return (
-                      <InlineVideoPlayer
-                        uri={resolvedPreviewUrl || resolvedFileUrl}
-                        width={thumbWidth}
-                        height={thumbHeight}
-                        borderRadius={12}
-                        isActive={true}
-                        interactive={false}
-                      />
-                    );
-                  })()
-                ) : (
-                  resolvedThumbnailUrl ? (
-                    <FastImage
-                      source={{ uri: resolvedThumbnailUrl }}
-                      shimmer
-                      style={
-                        imageAspectRatio
-                          ? [styles.messageImage, { aspectRatio: imageAspectRatio, height: undefined }]
-                          : styles.messageImage
-                      }
-                      resizeMode={"cover"}
-                      onError={undefined}
-                    />
-                  ) : (
-                    <View style={[styles.messageImage, styles.videoPlaceholder]} />
-                  )
-                )}
-                {!(autoplayVideos && String(item.id) === String(activeInlineVideoId)) && (
-                  <View style={styles.videoPlayOverlay}>
-                    <Ionicons name="play" size={22} color="#fff" />
-                  </View>
-                )}
-                {item.is_sending && (
-                  <View style={styles.imageLoadingOverlay}>
-                    <ActivityIndicator size="small" color="#fff" />
-                    {typeof item.upload_progress === "number" && (
-                      <Text style={styles.uploadProgressText}>
-                        {item.upload_progress}%
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </>
-            ) : !item.is_recalled && isFileMessage ? (
-              <View style={styles.fileMessageContent}>
-                <View style={styles.fileIconWrapper}>
-                  {isDownloadingThis ? (
-                    <ActivityIndicator size="small" color={theme.primary} />
-                  ) : (
-                    <Ionicons
-                      name="document-text-outline"
-                      size={22}
-                      color={theme.primary}
-                    />
-                  )}
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text
-                    style={[
-                      styles.fileMessageName,
-                      {
-                        color: item.is_myself
-                          ? isDarkMode
-                            ? "#ecfdf5"
-                            : "#000"
-                          : theme.text,
-                      },
-                    ]}
-                    numberOfLines={1}
-                    ellipsizeMode="middle"
-                  >
-                    {item.content || item.file_name || t("chatConversation.attachment", "Tệp đính kèm")}
-                  </Text>
-                  <Text style={[styles.fileMessageSub, { color: theme.subText }]}>
-                    {item.is_sending
-                      ? typeof item.upload_progress === "number"
-                        ? t("chatConversation.sendingPercent", "Đang gửi... {{percent}}%", {
-                            percent: item.upload_progress,
-                          })
-                        : t("chatConversation.sending", "Đang gửi...")
-                      : isDownloadingThis
-                        ? t("chatConversation.downloading", "Đang tải...")
-                        : t("chatConversation.tapToOpen", "Nhấn để mở")}
-                  </Text>
-                </View>
-              </View>
-            ) : !item.is_recalled && sharedTopic ? (
-              <View style={{ gap: 8 }}>
-                {sharedTopicNote ? (
-                  <MentionText
-                    style={[
-                      styles.messageText,
-                      {
-                        color: item.is_myself
-                          ? isDarkMode
-                            ? "#ecfdf5"
-                            : "#000"
-                          : theme.text,
-                      },
-                    ]}
-                    mentions={item.mentions}
-                    allowBroadcastMention={isGroupChat}
-                    onMentionPress={(username) =>
-                      navigation.navigate("ProfileScreen", { username })
-                    }
-                  >
-                    {sharedTopicNote}
-                  </MentionText>
-                ) : null}
-                <SharedPostCard
-                  topic={sharedTopic}
-                  compact
-                  onPress={() =>
-                    navigation.navigate("PostScreen", { postId: sharedTopic.id })
-                  }
-                />
-              </View>
-            ) : !item.is_recalled ? (
-              <MentionText
-                style={[
-                  styles.messageText,
-                  {
-                    color: item.is_myself
-                      ? isDarkMode
-                        ? "#ecfdf5"
-                        : "#000"
-                      : theme.text,
-                  },
-                ]}
-                mentions={item.mentions}
-                // 1-1 conversations only ever have the two participants -
-                // @all has no meaning there, so it must render as plain
-                // text instead of a highlighted/tappable mention.
-                allowBroadcastMention={isGroupChat}
-                enableAiCommands
-                onMentionPress={(username) =>
-                  navigation.navigate("ProfileScreen", { username })
-                }
-              >
-                {item.content}
-              </MentionText>
-            ) : null}
-            {linkPreviewUrl ? (
-              <LinkPreviewCard url={linkPreviewUrl} compact style={{ marginTop: 8 }} />
-            ) : null}
-          </Pressable>
-          <ReactionBadge item={item} theme={theme} isDarkMode={isDarkMode} handlersRef={handlersRef} />
-        </View>
-      </View>
-      {isLastInGroup && (
-        <View
-          style={[
-            styles.messageFooter,
-            item.is_myself
-              ? styles.myMessageFooter
-              : styles.theirMessageFooter,
-            !item.is_myself && { marginLeft: 40 },
-          ]}
-        >
-          <Text style={[styles.messageTime, { color: theme.subText }]}>
-            {formatMessageTime(item.created_at, t)}
-            {item.is_edited && !item.is_recalled ? (
-              <Text style={{ fontSize: 11, fontStyle: "italic", color: theme.subText }}>
-                {" "}{t("chatConversation.edited", "(Đã sửa)")}
-              </Text>
-            ) : null}
-          </Text>
-          {!isGroupChat && item.is_myself && (
-            <View style={styles.readStatus}>
-              {item.read_at ? (
-                <View style={styles.doubleCheck}>
-                  <Ionicons
-                    name="checkmark"
-                    size={12}
-                    color={theme.primary}
-                    style={styles.checkOverlap}
-                  />
-                  <Ionicons
-                    name="checkmark"
-                    size={12}
-                    color={theme.primary}
-                  />
-                </View>
-              ) : (
-                <Ionicons name="checkmark" size={12} color={theme.subText} />
-              )}
-            </View>
-          )}
-          {isGroupChat && seenAvatars?.length > 0 && (
-            <TouchableOpacity
-              style={styles.seenByRow}
-              onPress={() => handlersRef.current.showSeenBy?.(seenAvatars)}
-              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            >
-              {seenAvatars.slice(0, 3).map((p, i) => (
-                <FastImage
-                  key={p.id}
-                  source={{ uri: p.avatar_url }}
-                  style={[
-                    styles.seenAvatar,
-                    { borderColor: theme.background, marginLeft: i === 0 ? 0 : -6 },
-                  ]}
-                />
-              ))}
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
-    </View>
-    </SwipeableMessage>
-  );
-}, (prev, next) => {
-  // Custom comparator: `mediaLoadError`/`isDownloadingThis` are already
-  // narrowed to this row's own value by the caller, so a plain shallow prop
-  // comparison (React.memo's default) is exactly what we want - no custom
-  // logic needed beyond letting unspecified props fall through to reference
-  // equality. This comparator exists only to document that intent;
-  // functionally it mirrors the default shallow comparison.
-  return (
-    prev.item === next.item &&
-    prev.prevMessage === next.prevMessage &&
-    prev.nextMessage === next.nextMessage &&
-    prev.isGroupChat === next.isGroupChat &&
-    prev.theme === next.theme &&
-    prev.isDarkMode === next.isDarkMode &&
-    prev.t === next.t &&
-    prev.username === next.username &&
-    prev.navigation === next.navigation &&
-    prev.mediaLoadError === next.mediaLoadError &&
-    prev.isDownloadingThis === next.isDownloadingThis &&
-    prev.activeInlineVideoId === next.activeInlineVideoId &&
-    prev.autoplayVideos === next.autoplayVideos &&
-    prev.handlersRef === next.handlersRef &&
-    prev.onImageError === next.onImageError &&
-    prev.seenAvatars === next.seenAvatars
-  );
-});
-
-// Three dots bouncing in a staggered loop, matching web's CSS
-// `typingDotBounce` keyframes (globals.css) so both platforms read as the
-// same design.
-const TypingDots = ({ color }) => {
-  const anims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
-
-  useEffect(() => {
-    const loops = anims.map((anim, i) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(i * 150),
-          Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0, duration: 300, useNativeDriver: true }),
-          Animated.delay((2 - i) * 150),
-        ])
-      )
-    );
-    loops.forEach((l) => l.start());
-    return () => loops.forEach((l) => l.stop());
-  }, [anims]);
-
-  return (
-    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 3 }}>
-      {anims.map((anim, i) => (
-        <Animated.View
-          key={i}
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: color,
-            opacity: anim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
-            transform: [
-              { translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) },
-            ],
-          }}
-        />
-      ))}
-    </View>
-  );
-};
+import {
+  resolveMediaUrl,
+  CONVERSATION_CACHE_KEY,
+  CONVERSATION_TIMESTAMP_KEY,
+  CACHE_EXPIRY,
+  ATTACHMENT_UPLOAD_CONFIG,
+  MAX_IMAGE_BYTES,
+  MAX_VIDEO_BYTES,
+  MAX_FILE_BYTES,
+  formatBytesForToast,
+  formatMessageTime,
+  injectTimeHeaders,
+} from "./conversation/chatUtils";
+import { VideoViewerModal } from "./conversation/VideoViewerModal";
+import { styles } from "./conversation/styles";
+import { MessagesListContent } from "./conversation/MessagesListContent";
+import ConversationHeader, { CHAT_HEADER_BAR_HEIGHT } from "./conversation/ConversationHeader";
+import ChatComposer, { CHAT_COMPOSER_DEFAULT_HEIGHT } from "./conversation/ChatComposer";
+import SeenByModal from "./conversation/SeenByModal";
+import TypingIndicator from "./conversation/TypingIndicator";
 
 const ConversationScreen = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  const BUTTON_SIZE = 47;
-  // Back/3-dot buttons are 3px smaller than the center profile pill's height.
-  const ICON_BUTTON_SIZE = BUTTON_SIZE - 3;
-  const HEADER_HEIGHT = BUTTON_SIZE + 14 + insets.top;
-  const CENTER_MAX_WIDTH = Dimensions.get("window").width - ICON_BUTTON_SIZE * 2 - 32;
-  // Reserve space for avatar + small gap inside the pill so text never pushes avatar out
-  const AVATAR_WRAPPER_SIZE = 40;
-  const CENTER_TEXT_MAX = Math.max(80, CENTER_MAX_WIDTH - (AVATAR_WRAPPER_SIZE + 12));
+  // Flat header bar under the status bar (see ConversationHeader).
+  const HEADER_HEIGHT = CHAT_HEADER_BAR_HEIGHT + insets.top;
   const isAndroid = Platform.OS === "android";
-  const [message, setMessage] = useState("");
+  // The composer's text lives in ChatComposer (typing re-renders only it);
+  // this ref always holds what the input shows, and composerRef changes it.
   const latestMessageRef = React.useRef("");
+  const composerRef = useRef(null);
+  // Measured height of the composer bar, for the list's bottom padding.
+  const [composerHeight, setComposerHeight] = useState(CHAT_COMPOSER_DEFAULT_HEIGHT + insets.bottom);
   const [messages, setMessages] = useState([]);
   // Reacting to a message that's still using its optimistic temp id (send
   // API hasn't resolved yet) sent the reaction to the server keyed to an id
@@ -1506,36 +152,6 @@ const ConversationScreen = ({ navigation, route }) => {
       }
     }
     return getMentionSuggestions(q);
-  }, []);
-
-  const { mentionProps: messageMentionProps, suggestions: messageSuggestions, onSelectMention: onSelectMessageMention, loading: messageSuggestionsLoading } = useMentionInput({
-    value: message,
-    // Tapping a mention suggestion updates `message` through here, not
-    // through CommentBar's onChangeText below - without also updating
-    // latestMessageRef here, handleSendMessage's `latestMessageRef.current
-    // || message` would keep using the stale pre-mention-insert text (e.g.
-    // "@tunna" instead of "@tunnaduong ") since the ref wins when truthy.
-    onChange: (text) => {
-      latestMessageRef.current = text;
-      setMessage(text);
-    },
-    fetchSuggestions: fetchMessageMentionSuggestions,
-  });
-
-  const { slashProps: messageSlashProps, suggestions: slashSuggestions, onSelectCommand: onSelectSlashCommand } = useSlashCommandInput({
-    value: message,
-    onChange: (text) => {
-      latestMessageRef.current = text;
-      setMessage(text);
-    },
-  });
-
-  const [chatKeyboardHeight, setChatKeyboardHeight] = useState(0);
-  useEffect(() => {
-    const show = Keyboard.addListener("keyboardDidShow", (e) => setChatKeyboardHeight(e.endCoordinates.height));
-    const hide = Keyboard.addListener("keyboardDidHide", () => setChatKeyboardHeight(0));
-    const offResize = trackAndroidKeyboardResize(setChatKeyboardHeight);
-    return () => { show.remove(); hide.remove(); offResize(); };
   }, []);
 
   // Android: the message bar is a KeyboardStickyView, moved by
@@ -3525,12 +2141,11 @@ const ConversationScreen = ({ navigation, route }) => {
     // ref: `sending` is state, so two quick taps both saw it false and sent
     // the message twice.
     if (sendingRef.current || sending) return;
-    const rawMessage = latestMessageRef.current || message;
+    const rawMessage = latestMessageRef.current;
     if (!rawMessage.trim()) return;
     const trimmedMessage = rawMessage.trim();
     sendingRef.current = true;
     try {
-      latestMessageRef.current = "";
       const now = new Date().toISOString();
 
       const optimisticMessage = {
@@ -3559,7 +2174,7 @@ const ConversationScreen = ({ navigation, route }) => {
       };
 
       // Clear input immediately
-      setMessage("");
+      composerRef.current?.clear();
       setReplyingTo(null);
 
       // Add time header if needed and optimistic message
@@ -3775,10 +2390,7 @@ const ConversationScreen = ({ navigation, route }) => {
 
       // And the text: it was cleared from the input when the send started.
       // Only if nothing new was typed meanwhile.
-      if (!latestMessageRef.current) {
-        latestMessageRef.current = trimmedMessage;
-        setMessage((current) => current || trimmedMessage);
-      }
+      composerRef.current?.restoreIfEmpty(trimmedMessage);
 
       Toast.show({
         type: "error",
@@ -3998,13 +2610,13 @@ const ConversationScreen = ({ navigation, route }) => {
     closeReactionPicker();
     if (!item || item.is_recalled || item.is_sending) return;
     setEditingMessage({ id: item.id, originalContent: item.content });
-    setMessage(item.content || "");
+    composerRef.current?.setText(item.content || "");
     inputRef.current?.focus?.();
   };
 
   const cancelEdit = () => {
     setEditingMessage(null);
-    setMessage("");
+    composerRef.current?.clear();
   };
 
   const MAX_PASTED_IMAGES = 10;
@@ -4028,20 +2640,20 @@ const ConversationScreen = ({ navigation, route }) => {
         images
       );
     }
-    if ((latestMessageRef.current || message).trim()) {
+    if (latestMessageRef.current.trim()) {
       await handleSendNewMessage();
     }
   };
 
   const handleSubmitEdit = async () => {
-    // The ref first, like sending: on Android the last word being composed
+    // The ref, like sending: on Android the last word being composed
     // reaches it before it reaches state.
-    const trimmed = (latestMessageRef.current || message).trim();
+    const trimmed = latestMessageRef.current.trim();
     if (!trimmed || sending) return;
     const { id, originalContent } = editingMessage;
 
     setEditingMessage(null);
-    setMessage("");
+    composerRef.current?.clear();
     // Optimistic update - also patches any other message's reply_to
     // snapshot of this one (see handleRecallMessage's comment above for why).
     setMessages((prev) =>
@@ -4321,141 +2933,82 @@ const ConversationScreen = ({ navigation, route }) => {
   }, []);
 
 
+  // ConversationHeader / ChatComposer / SeenByModal are memoized; they get
+  // callbacks that never change identity and always run this render's
+  // handlers (the same idea as messageHandlersRef above).
+  const uiHandlersRef = useRef({});
+  uiHandlersRef.current = {
+    goBack: safeGoBack,
+    showOptions,
+    openTitle: () => {
+      if (currentConversation?.type === "group") {
+        if (!isPublicGroupChat(currentConversation)) {
+          navigation.navigate("GroupInfoScreen", {
+            conversationId: currentConversationId || conversationId,
+          });
+        }
+        return;
+      }
+      navigation.navigate("ProfileScreen", { username: otherUser?.username });
+    },
+    typing: () => sendTyping(currentConversationId || conversationId),
+    submit: handleSendMessage,
+    cancelEdit,
+    cancelReply,
+    scrollToLatest: scrollToLatestMessageAnimated,
+    pasteImages: handlePasteImages,
+    removePendingImage: (index) => setPendingImages((prev) => prev.filter((_, i) => i !== index)),
+    pickImage,
+    pickDocument,
+    closeSeenBy: () => setSeenByModalParticipants(null),
+    openSeenByProfile: (profileUsername) => {
+      setSeenByModalParticipants(null);
+      navigation.push("ProfileScreen", { username: profileUsername });
+    },
+  };
+  const uiActions = useMemo(() => {
+    const call = (name) => (...args) => uiHandlersRef.current[name](...args);
+    return Object.fromEntries(Object.keys(uiHandlersRef.current).map((name) => [name, call(name)]));
+  }, []);
+
+  const pendingImageUris = useMemo(() => pendingImages.map((file) => file.uri), [pendingImages]);
+
+  const headerAvatarUrl = getHeaderAvatar();
+  const headerAvatarSource = useMemo(
+    () =>
+      headerAvatarUrl === "local:chat.jpg"
+        ? require("../../../assets/chat.jpg")
+        : { uri: headerAvatarUrl || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg" },
+    [headerAvatarUrl]
+  );
+  const headerTitle = isNewConversation
+    ? selectedUser.profile_name
+    : currentConversation?.type === "group"
+      ? isPublicGroupChat(currentConversation)
+        ? t("chatConversation.casualGroupName")
+        : currentConversation?.name || t("chatConversation.casualGroupName")
+      : currentConversation?.participants[0]?.profile_name;
+  const headerUsername =
+    currentConversation?.type !== "group" && otherUser?.username ? otherUser.username : null;
+  const headerSubtitle =
+    currentConversation?.type === "group"
+      ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
+      : "";
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {(messageSuggestions.length > 0 || messageSuggestionsLoading) && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: (chatKeyboardHeight || insets.bottom) + 72,
-            left: 0,
-            right: 0,
-            zIndex: 50,
-          }}
-          pointerEvents="box-none"
-        >
-          <MentionSuggestions
-            suggestions={messageSuggestions}
-            onSelect={onSelectMessageMention}
-            loading={messageSuggestionsLoading}
-          />
-        </View>
-      )}
-      {slashSuggestions.length > 0 && (
-        <View
-          style={{
-            position: "absolute",
-            bottom: (chatKeyboardHeight || insets.bottom) + 72,
-            left: 0,
-            right: 0,
-            zIndex: 50,
-          }}
-          pointerEvents="box-none"
-        >
-          <SlashCommandSuggestions
-            suggestions={slashSuggestions}
-            onSelect={onSelectSlashCommand}
-          />
-        </View>
-      )}
-      {/* Header */}
-      <View
-        pointerEvents="box-none"
-        style={[
-          styles.headerOverlay,
-          {
-            paddingTop: insets.top,
-            height: HEADER_HEIGHT,
-            backgroundColor: "transparent",
-          },
-        ]}
-      >
-        <View style={styles.headerContent}>
-          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={safeGoBack}>
-            <Ionicons name="chevron-back" size={22} color={theme.primary} />
-          </LiquidButton>
-
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }} pointerEvents="box-none">
-            <LiquidButton
-              onPress={() => {
-                if (currentConversation?.type === "group") {
-                  if (!isPublicGroupChat(currentConversation)) {
-                    navigation.navigate("GroupInfoScreen", {
-                      conversationId: currentConversationId || conversationId,
-                    });
-                  }
-                  return;
-                }
-                navigation.navigate("ProfileScreen", { username: otherUser?.username });
-              }}
-              providerId="ConversationScreen"
-              size={BUTTON_SIZE}
-              style={[
-                styles.headerCenterPill,
-                {
-                  borderColor: theme.border,
-                  height: BUTTON_SIZE,
-                  borderRadius: BUTTON_SIZE / 2,
-                  paddingHorizontal: 12,
-                  maxWidth: CENTER_MAX_WIDTH,
-                },
-              ]}
-            >
-              <View style={styles.headerAvatarOuter}>
-                <View style={styles.headerAvatarWrapper}>
-                  <Image
-                    source={
-                      getHeaderAvatar() === "local:chat.jpg"
-                        ? require("../../../assets/chat.jpg")
-                        : { uri: getHeaderAvatar() || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg" }
-                    }
-                    style={styles.headerAvatarLarge}
-                  />
-                </View>
-                <AvatarFrame theme={otherUser?.profile_theme} size={40} />
-                {currentConversation?.type !== "group" && isOtherUserOnline ? (
-                  <View style={styles.headerOnlineDot} />
-                ) : null}
-              </View>
-              <View style={[styles.headerTextContainer, { flexShrink: 1, minWidth: 0 }]}>
-                <UserNameRow
-                  name={
-                    isNewConversation
-                      ? selectedUser.profile_name
-                      : currentConversation?.type === "group"
-                        ? isPublicGroupChat(currentConversation)
-                          ? t("chatConversation.casualGroupName")
-                          : currentConversation?.name || t("chatConversation.casualGroupName")
-                        : currentConversation?.participants[0]?.profile_name
-                  }
-                  theme={otherUser?.profile_theme}
-                  style={[styles.headerName, { color: theme.text }]}
-                  containerStyle={{ maxWidth: "100%" }}
-                />
-                {currentConversation?.type !== "group" && otherUser?.username ? (
-                  <StyledUsername
-                    theme={otherUser?.profile_theme}
-                    username={otherUser.username}
-                    style={[styles.headerSubtitle, { color: theme.subText }]}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  />
-                ) : (
-                  <Text style={[styles.headerSubtitle, { color: theme.subText }]} numberOfLines={1} ellipsizeMode="tail">
-                    {currentConversation?.type === "group"
-                      ? `${currentConversation?.participants?.length || 0} ${t("chatConversation.members") || "members"}`
-                      : ""}
-                  </Text>
-                )}
-              </View>
-            </LiquidButton>
-          </View>
-
-          <LiquidButton size={ICON_BUTTON_SIZE} providerId="ConversationScreen" onPress={showOptions}>
-            <Ionicons name="ellipsis-vertical" size={22} color={theme.primary} />
-          </LiquidButton>
-        </View>
-      </View>
+      <ConversationHeader
+        insetsTop={insets.top}
+        avatarSource={headerAvatarSource}
+        profileTheme={otherUser?.profile_theme}
+        showOnlineDot={currentConversation?.type !== "group" && isOtherUserOnline}
+        title={headerTitle}
+        username={headerUsername}
+        subtitle={headerSubtitle}
+        onBack={uiActions.goBack}
+        onPressTitle={uiActions.openTitle}
+        onOptions={uiActions.showOptions}
+      />
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
@@ -4479,53 +3032,11 @@ const ConversationScreen = ({ navigation, route }) => {
         }}
       />
 
-      <Modal
-        visible={!!seenByModalParticipants}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setSeenByModalParticipants(null)}
-      >
-        <TouchableWithoutFeedback onPress={() => setSeenByModalParticipants(null)}>
-          <View style={styles.seenByBackdrop}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.seenByBox, { backgroundColor: theme.background }]}>
-                <Text style={[styles.seenByTitle, { color: theme.text }]}>
-                  {t("chatConversation.seenBy", "Đã xem")}
-                </Text>
-                <FlatList
-                  data={seenByModalParticipants || []}
-                  keyExtractor={(item) => String(item.id)}
-                  renderItem={({ item }) => {
-                    const goToProfile = () => {
-                      setSeenByModalParticipants(null);
-                      navigation.push("ProfileScreen", { username: item.username });
-                    };
-                    return (
-                      <View style={styles.seenByParticipantRow}>
-                        <TouchableOpacity activeOpacity={0.6} onPress={goToProfile}>
-                          <AvatarFrameWrap theme={item.profile_theme} size={32}>
-                            <FastImage source={{ uri: item.avatar_url }} style={styles.seenByParticipantAvatar} />
-                          </AvatarFrameWrap>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={{ flex: 1, minWidth: 0 }} activeOpacity={0.6} onPress={goToProfile}>
-                          <UserNameRow
-                            name={item.profile_name || item.username}
-                            theme={item.profile_theme}
-                            style={[styles.seenByParticipantName, { color: theme.text }]}
-                          />
-                          <Text style={[styles.seenByParticipantTime, { color: theme.subText }]}>
-                            {formatTime(item.last_read_at)}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  }}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+      <SeenByModal
+        participants={seenByModalParticipants}
+        onClose={uiActions.closeSeenBy}
+        onOpenProfile={uiActions.openSeenByProfile}
+      />
 
       <ImageView
         images={imageViewerImages}
@@ -4676,7 +3187,7 @@ const ConversationScreen = ({ navigation, route }) => {
           style={styles.messagesList}
           contentContainerStyle={[
             styles.messagesContent,
-            { paddingTop: HEADER_HEIGHT + 12, paddingBottom: 100 },
+            { paddingTop: HEADER_HEIGHT + 12, paddingBottom: composerHeight + 12 },
           ]}
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
@@ -4746,738 +3257,34 @@ const ConversationScreen = ({ navigation, route }) => {
             attemptScrollToHighlightRef={attemptScrollToHighlightRef}
             seenParticipants={seenParticipants}
           />
-          {Object.keys(typingUsers).length > 0 && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                paddingHorizontal: 12,
-                paddingTop: 4,
-              }}
-            >
-              <View style={{ flexDirection: "row" }}>
-                {Object.values(typingUsers).slice(0, 3).map((entry, i) => {
-                  const participant = entry.isAi
-                    ? null
-                    : currentConversation?.participants?.find(
-                        (p) => String(p.id) === String(entry.userId)
-                      );
-                  const avatarUrl = entry.isAi ? entry.avatarUrl : participant?.avatar_url;
-                  return (
-                    <FastImage
-                      key={entry.userId}
-                      source={{ uri: avatarUrl }}
-                      style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        borderWidth: 1,
-                        borderColor: theme.background,
-                        marginLeft: i === 0 ? 0 : -6,
-                        backgroundColor: theme.border,
-                      }}
-                    />
-                  );
-                })}
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  backgroundColor: theme.iconBackground,
-                  borderRadius: 12,
-                  paddingHorizontal: 10,
-                  paddingVertical: 6,
-                }}
-              >
-                <TypingDots color={theme.subText} />
-              </View>
-            </View>
-          )}
+          <TypingIndicator typingUsers={typingUsers} participants={currentConversation?.participants} />
           <View style={{ height: isAndroid ? 82 : 24 }} />
         </KeyboardChatScrollView>
         </KeyboardGestureArea>
         </AndroidGlassBackdrop>
       </View>
 
-        {/* Input Bar - positioned above messages */}
-        <KeyboardStickyView
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "transparent",
-            zIndex: 10,
-            paddingBottom: insets.bottom,
-          }}
-          // The `opened` lift is intentionally 20px short of the keyboard's
-          // real height - that gap is meant to be absorbed by paddingBottom
-          // (insets.bottom) above, which is ~34 on notched iPhones/Android
-          // gesture nav. On devices with no bottom safe area (iPhone
-          // 6s/7/8/SE - physical home button, insets.bottom === 0) nothing
-          // absorbs it, so the bar renders 20px below the keyboard's top
-          // edge. Drop the offset to 0 there so it lifts exactly to the
-          // keyboard's edge instead.
-          offset={{ opened: Math.min(20, Math.max(0, insets.bottom)) }}
-        >
-          {showScrollButton && (
-            <TouchableOpacity
-              onPress={scrollToLatestMessageAnimated}
-              style={{
-                alignSelf: "center",
-                marginBottom: 8,
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
-                alignItems: "center",
-                justifyContent: "center",
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-                elevation: 5,
-                borderWidth: 1,
-                borderColor: isDarkMode ? "#333" : "#e0e0e0",
-              }}
-            >
-              <Ionicons name="chevron-down" size={22} color={isDarkMode ? "#fff" : "#333"} />
-            </TouchableOpacity>
-          )}
-          {editingMessage && (
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0",
-                borderTopWidth: StyleSheet.hairlineWidth,
-                borderTopColor: theme.border,
-              }}
-            >
-              <Ionicons name="pencil-outline" size={16} color={theme.primary} style={{ marginRight: 8 }} />
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 12, fontWeight: "600", color: theme.primary }} numberOfLines={1}>
-                  {t("chatConversation.editingMessage", "Đang chỉnh sửa tin nhắn")}
-                </Text>
-                <Text style={{ fontSize: 13, color: theme.subText }} numberOfLines={1}>
-                  {editingMessage.originalContent}
-                </Text>
-              </View>
-              <TouchableOpacity onPress={cancelEdit} hitSlop={10} style={{ marginLeft: 8, padding: 4 }}>
-                <Ionicons name="close" size={18} color={theme.subText} />
-              </TouchableOpacity>
-            </View>
-          )}
-          <ReplyComposerBar
-            replyingTo={editingMessage ? null : replyingTo}
-            currentUsername={username}
-            onCancel={cancelReply}
-          />
-          <View
-            style={{
-              backgroundColor: "transparent",
-              paddingHorizontal: 12,
-              paddingTop: 0,
-              paddingBottom: 0,
-            }}
-          >
-            <CommentBar
-              ref={inputRef}
-              providerId="ConversationScreen"
-              placeholderText={t("chat.typeMessage")}
-              onSubmit={handleSendMessage}
-              onChangeText={(text) => {
-                latestMessageRef.current = text;
-                messageMentionProps.onChangeText(text);
-                messageSlashProps.onChangeText(text);
-                sendTyping(currentConversationId || conversationId);
-              }}
-              value={message}
-              disabled={(!message.trim() && pendingImages.length === 0) || sending}
-              isSubmitting={sending}
-              onPasteImages={editingMessage ? undefined : handlePasteImages}
-              selectedImages={editingMessage ? undefined : pendingImages.map((file) => file.uri)}
-              onClearImage={
-                editingMessage
-                  ? undefined
-                  : (index) => setPendingImages((prev) => prev.filter((_, i) => i !== index))
-              }
-              allowBroadcastMention={currentConversation?.type === "group"}
-              enableAiCommands
-              style={{
-                paddingHorizontal: 12,
-                paddingBottom: isAndroid ? 14 : 0,
-                paddingTop: isAndroid ? 10 : 0,
-                backgroundColor: "transparent",
-                marginTop: 0,
-              }}
-              leftAccessory={
-                <View style={{ flexDirection: "row" }}>
-                  <TouchableOpacity
-                    style={styles.attachButton}
-                    onPress={pickImage}
-                    disabled={sending}
-                  >
-                    <Ionicons
-                      name="image-outline"
-                      size={20}
-                      color={theme.subText}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.attachButton, { marginLeft: 6 }]}
-                    onPress={pickDocument}
-                    disabled={sending}
-                  >
-                    <Ionicons
-                      name="attach-outline"
-                      size={20}
-                      color={theme.subText}
-                    />
-                  </TouchableOpacity>
-                </View>
-              }
-              nativeID="chat-input"
-            />
-          </View>
-        </KeyboardStickyView>
+      <ChatComposer
+        ref={composerRef}
+        inputRef={inputRef}
+        latestMessageRef={latestMessageRef}
+        actions={uiActions}
+        sending={sending}
+        pendingImageUris={pendingImageUris}
+        editingMessage={editingMessage}
+        replyingTo={replyingTo}
+        currentUsername={username}
+        showScrollButton={showScrollButton}
+        isGroup={currentConversation?.type === "group"}
+        fetchMentionSuggestions={fetchMessageMentionSuggestions}
+        bottomInset={insets.bottom}
+        onHeightChange={setComposerHeight}
+      />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  headerOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  headerBackground: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  headerContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    justifyContent: "space-between",
-    height: "100%",
-  },
-  headerCenterContent: {
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  headerRightAction: {
-    width: 44,
-    alignItems: "flex-end",
-  },
-  headerCenterPill: {
-    width: 'auto',
-    paddingHorizontal: 12,
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 22,
-    flexDirection: 'row',
-    alignItems: 'center',
-    overflow: 'hidden',
-    justifyContent: 'center',
-  },
-  floatingOptions: {
-    position: "absolute",
-    right: 12,
-    top: "40%",
-    zIndex: 11,
-  },
-  floatingOptionsInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "rgba(0,0,0,0.25)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerProfile: {
-    position: "absolute",
-    left: 56,
-    right: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    flexDirection: "row",
-  },
-  headerTitleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    flex: 1,
-  },
-  headerAvatarOuter: {
-    width: 40,
-    height: 40,
-    marginRight: 10,
-  },
-  headerAvatarWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "transparent",
-  },
-  headerOnlineDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 7,
-    height: 7,
-    borderRadius: 999,
-    backgroundColor: "#16a34a",
-  },
-  headerAvatarLarge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-  },
-  headerTextContainer: {
-    alignItems: "flex-start",
-    justifyContent: "center",
-  },
-  headerName: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    marginTop: 1,
-    opacity: 0.75,
-  },
-  messagesList: {
-    flex: 1,
-  },
-  messagesContent: {
-    padding: 16,
-  },
-  messageContainer: {
-    flexDirection: "row",
-    marginBottom: 4,
-    alignItems: "flex-end",
-  },
-  myMessageContainer: {
-    justifyContent: "flex-end",
-  },
-  theirMessageContainer: {
-    justifyContent: "flex-start",
-  },
-  messageAvatarWrap: {
-    marginRight: 8,
-  },
-  messageAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  messageBubble: {
-    maxWidth: "75%",
-    padding: 12,
-    borderRadius: 20,
-    overflow: "hidden",
-  },
-  myMessageBubble: {
-    borderBottomRightRadius: 4,
-  },
-  theirMessageBubble: {
-    borderBottomLeftRadius: 4,
-  },
-  chatMessageBubble: {
-    backgroundColor: "transparent",
-    borderWidth: 1,
-    borderRadius: 20,
-  },
-  imageMessageBubble: {
-    padding: 0,
-    overflow: "hidden",
-  },
-  fileMessageBubble: {
-    padding: 10,
-    minWidth: 180,
-  },
-  fileMessageContent: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  fileIconWrapper: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(49,149,39,0.12)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 10,
-  },
-  fileMessageName: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  fileMessageSub: {
-    fontSize: 11,
-    marginTop: 2,
-  },
-  messageImage: {
-    width: 200,
-    height: 200,
-    borderRadius: 12,
-  },
-  imageLoadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    justifyContent: "center",
-    alignItems: "center",
-    borderRadius: 12,
-  },
-  uploadProgressText: {
-    marginTop: 6,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#fff",
-  },
-  messageText: {
-    fontSize: 16,
-    flexShrink: 1,
-  },
-  messageTime: {
-    fontSize: 12,
-  },
-  myMessageTime: {
-    textAlign: "right",
-    marginRight: 4,
-  },
-  theirMessageTime: {
-    marginLeft: 4,
-  },
-  storyReplyHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    flexWrap: "wrap",
-    marginBottom: 4,
-    paddingHorizontal: 16,
-    marginTop: 8,
-    maxWidth: "100%",
-  },
-  storyReplyHeaderRight: {
-    justifyContent: "flex-end",
-    alignSelf: "flex-end",
-  },
-  storyReplyText: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 12,
-    marginLeft: 4,
-    fontStyle: "italic",
-    flexWrap: "wrap",
-    maxWidth: "100%",
-  },
-  storyReplyTextRight: {
-    textAlign: "right",
-    marginLeft: 0,
-    marginRight: 4,
-  },
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 8,
-    borderTopWidth: 1,
-  },
-  attachButton: {
-    padding: 6,
-    borderRadius: 16,
-    backgroundColor: "rgba(49,149,39,0.12)",
-  },
-  input: {
-    flex: 1,
-    marginHorizontal: 8,
-    padding: 8,
-    borderRadius: 20,
-    maxHeight: 100,
-  },
-  sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  messageDate: {
-    fontSize: 13,
-    textAlign: "center",
-    marginVertical: 16,
-  },
-  timeHeaderContainer: {
-    alignItems: "center",
-    marginVertical: 16,
-    paddingHorizontal: 8,
-  },
-  timeHeaderText: {
-    fontSize: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  dateHeaderContainer: {
-    alignItems: "center",
-    marginVertical: 24,
-    paddingHorizontal: 8,
-  },
-  dateHeaderText: {
-    fontSize: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 16,
-    overflow: "hidden",
-    fontWeight: "600",
-  },
-  systemMessageContainer: {
-    alignItems: "center",
-    marginVertical: 8,
-    paddingHorizontal: 8,
-  },
-  systemMessageText: {
-    fontSize: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  // Row holding the sender's name (and name icon) above their first bubble.
-  senderName: {
-    marginLeft: 48,
-    marginBottom: 4,
-    marginTop: 8,
-    alignSelf: "flex-start",
-    maxWidth: "80%",
-  },
-  senderNameText: {
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  groupMessageWrapper: {
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  messageFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-  },
-  myMessageFooter: {
-    justifyContent: "flex-end",
-    marginRight: 4,
-  },
-  theirMessageFooter: {
-    justifyContent: "flex-start",
-    marginLeft: 4,
-  },
-  readStatus: {
-    marginLeft: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  doubleCheck: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  checkOverlap: {
-    marginRight: -6,
-  },
-  seenByRow: {
-    marginLeft: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  seenAvatar: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1,
-  },
-  videoPlaceholder: {
-    backgroundColor: "#000",
-  },
-  mediaErrorFallback: {
-    backgroundColor: "#3a1a1a",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 8,
-  },
-  mediaErrorText: {
-    color: "#fff",
-    fontSize: 11,
-    textAlign: "center",
-    marginTop: 4,
-  },
-  videoPlayOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
-  videoViewerBackdrop: {
-    flex: 1,
-    backgroundColor: "#000",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  seenByBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  seenByBox: {
-    width: "100%",
-    maxHeight: "60%",
-    borderRadius: 16,
-    padding: 16,
-  },
-  seenByTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    marginBottom: 12,
-  },
-  seenByParticipantRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    gap: 10,
-  },
-  seenByParticipantAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-  },
-  seenByParticipantName: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  seenByParticipantTime: {
-    fontSize: 12,
-    marginTop: 1,
-  },
-  videoViewerClose: {
-    position: "absolute",
-    right: 20,
-    zIndex: 1,
-    padding: 6,
-  },
-  imageViewerCloseButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  videoViewerPlayer: {
-    width: "100%",
-    height: "100%",
-  },
-  reactionBadgeRow: {
-    position: "absolute",
-    bottom: -14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-  },
-  reactionIconBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  reactionPillBadge: {
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 6,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-  },
-  reactionPillEmoji: {
-    fontSize: 12,
-  },
-  reactionPillCount: {
-    fontSize: 11,
-    fontWeight: "600",
-  },
-  reactionModalBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 24,
-  },
-  reactionModalContainer: {
-    width: "100%",
-    maxWidth: 340,
-    borderRadius: 20,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  reactionModalTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 14,
-    textAlign: "center",
-  },
-  reactionModalRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 8,
-    gap: 12,
-  },
-  reactionModalEmoji: {
-    fontSize: 28,
-  },
-  reactionModalUser: {
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  reactionModalCount: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-});
+// MediaGalleryScreen imports the full-screen video player from here.
+export { VideoViewerModal } from "./conversation/VideoViewerModal";
 
 export default ConversationScreen;

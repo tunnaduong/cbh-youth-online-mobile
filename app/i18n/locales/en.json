@@ -797,6 +797,8 @@
     "forward": "Forward",
     "searchToForward": "Search someone to forward to...",
     "send": "Send",
+    "back": "Back",
+    "scrollToLatest": "Jump to the latest messages",
     "forwarded": "Message forwarded",
     "forwardFailed": "Failed to forward message",
     "loadConversationsFailed": "Could not load conversations",

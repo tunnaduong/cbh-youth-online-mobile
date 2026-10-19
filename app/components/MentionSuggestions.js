@@ -102,6 +102,10 @@ const MentionSuggestions = ({ suggestions, onSelect, loading }) => {
 //   });
 //   // Spread mentionProps onto your <CommentBar onChangeText / value / ...>
 //   // Render <SuggestionList /> above the input.
+// Clearing an already-empty list keeps the same array, so it is not a state
+// change - every keystroke cleared it and re-rendered the composer for nothing.
+const keepIfEmpty = (prev) => (prev.length ? [] : prev);
+
 export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -119,20 +123,17 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
       // Find the last @ that is not followed by a space
       const atIndex = text.lastIndexOf("@");
       if (atIndex === -1) {
-        if (__DEV__) console.log("[useMentionInput] no @ found in text:", JSON.stringify(text));
         setMentionQuery(null);
-        setSuggestions([]);
+        setSuggestions(keepIfEmpty);
         return;
       }
       const afterAt = text.slice(atIndex + 1);
       // Stop if there's a space after the @ (mention already completed)
       if (/\s/.test(afterAt)) {
-        if (__DEV__) console.log("[useMentionInput] whitespace after @, clearing:", JSON.stringify(afterAt));
         setMentionQuery(null);
-        setSuggestions([]);
+        setSuggestions(keepIfEmpty);
         return;
       }
-      if (__DEV__) console.log("[useMentionInput] setting mentionQuery:", JSON.stringify(afterAt));
       setMentionQuery(afterAt);
     },
     [onChange]
@@ -141,7 +142,7 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
   useEffect(() => {
     if (__DEV__) console.log("[useMentionInput] effect fired, mentionQuery:", JSON.stringify(mentionQuery));
     if (mentionQuery === null || mentionQuery === "") {
-      setSuggestions([]);
+      setSuggestions(keepIfEmpty);
       setLoading(false);
       return;
     }
@@ -169,7 +170,7 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
         // broken mention lookup shows up in adb logcat / Metro instead of
         // just quietly doing nothing.
         console.warn("[MentionSuggestions] fetchSuggestions failed:", error?.response?.status, error?.response?.data || error?.message);
-        setSuggestions([]);
+        setSuggestions(keepIfEmpty);
       } finally {
         setLoading(false);
       }
@@ -184,7 +185,7 @@ export const useMentionInput = ({ value, onChange, fetchSuggestions }) => {
       const newText = value.slice(0, atIndex) + `@${user.username} `;
       onChange(newText);
       setMentionQuery(null);
-      setSuggestions([]);
+      setSuggestions(keepIfEmpty);
     },
     [value, onChange]
   );

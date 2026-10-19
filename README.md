@@ -69,6 +69,7 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 
 ### 3. Chat & thông báo
 - `ChatScreen` + `ConversationScreen` tiêu thụ API `/chat/*`, nhận tin nhắn thời gian thực qua `ChatSocketContext` (Echo/Reverb); hook `useUnreadCounts` polling mỗi 30s & khi app foreground.
+- Màn hình cuộc trò chuyện có giao diện phẳng kiểu Messenger: thanh tiêu đề và ô soạn tin là hai thanh liquid glass bám mép màn hình; các phần của màn hình nằm trong `ChatScreen/conversation/`.
 - `NotificationContext` đăng ký Expo push token, đồng bộ backend (`/notifications/expo/*`), badge count và listener khi nhận/tap thông báo.
 
 ### 4. Điều hướng & module

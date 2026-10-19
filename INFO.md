@@ -81,6 +81,7 @@ app/
       index.js             Bottom tabs: Home, Forum, Create, Chat, Notifications
       HomeScreen, ForumScreen, PostScreen, CreatePostScreen, PostEditScreen, CreateStoryScreen
       ChatScreen/          Conversation list, ConversationScreen, groups, MediaGalleryScreen
+        conversation/      Pieces of ConversationScreen: ConversationHeader, ChatComposer, ChatGlassBar, MessagesListContent, MessageRow, SeenByModal, TypingIndicator, chatUtils, styles...
       ProfileScreen, ProfileDetailScreen, EditProfileScreen, ProfileCustomizerScreen
       ExploreScreen/       Games, Quiz, University, StudyMaterial*, Upload
       ReportScreen/        Step1-3 + Success (own stack)
@@ -320,6 +321,7 @@ Weights used: `"500"`, `"600"` (default emphasis), `"700"`/`"bold"` (titles, but
 ### Liquid glass
 
 - Glass is for **floating chrome only**: header buttons (`LiquidButton`), the bottom tab bar and its "+" button, the sidebar, the comment bar, floating pills. Never for cards, lists or anything that scrolls with the content, and never over a WebView.
+- **Exception: the chat conversation** (Messenger style). Its header and composer are full-width glass bars docked to the top and bottom edge (`ChatScreen/conversation/ChatGlassBar.js`, hairline on the side facing the messages). Their buttons are `LiquidButton forceNoGlass` with `backgroundColor="transparent"`, never glass on glass. A flat docked composer elsewhere uses `CommentBar variant="flat"` inside such a bar.
 - Use `LiquidGlassView` from `components/GlassModules.js` (never the library directly) with `variant="clear"`, `tintColor={glassTint(isDarkMode)}`, `borderRadius` and `{...androidGlassPerfProps}`; its content must be a real child of the glass view. `LiquidGlassView` is `null` when the native module is missing - fall back to a `View` with a translucent `rgba` surface.
 - **iOS below 26** has no system liquid glass: with the setting on, `LiquidGlassView` draws `BlurGlassView` there (an `expo-blur` system material + tint + top highlight + hairline edge). Call sites stay the same; never use `expo-blur` directly.
 - The **"Liquid glass effect" setting** (off = `liquidGlassEnabled` false) is handled inside `LiquidGlassView`: the default tint becomes `flatSurface(isDarkMode)`, a 90% opaque panel. Call sites must not branch on the setting.
@@ -353,6 +355,17 @@ Every new or changed screen must follow this section. If a screen you touch does
 ---
 
 ## 6. Recent work (newest first, as of 2026-10)
+
+- **Chat conversation: flat Messenger-style header and composer, split into files, typing no longer re-renders the screen** (not run on a device; no API change):
+  - **Header** (`conversation/ConversationHeader.js`): one full-width glass bar (`ChatGlassBar`) under the status bar, `56 + insets.top` tall, with a hairline at the bottom. It holds back, the avatar (frame and online dot) with the name and @username / member count left-aligned, and options. It replaces the floating glass pill with the name in it. Tapping the name works as before (profile; group info unless it is the public chat).
+  - **Composer** (`conversation/ChatComposer.js`): one glass bar docked to the bottom (the safe-area inset is inside it). It holds the edit banner, the reply strip, then `CommentBar variant="flat"`: image / attach icons, a rounded field in `iconBackground`, and the send icon. It replaces the floating pill. `CommentBar`'s default (`"pill"`) is unchanged, so the post comment bar looks as before.
+  - Liquid glass is unchanged; it is now on the two bars. The header buttons are `LiquidButton forceNoGlass` (press spring, no glass of their own), so there are 2 glass views on screen instead of 4.
+  - **Smoother typing:** the composer owns the text, the mention / slash-command hooks, their popups and the keyboard height. A keystroke re-renders only it, not the 3,000-line screen and its modals. The screen reads the text from `latestMessageRef` and changes it through `composerRef` (`setText` / `clear` / `restoreIfEmpty`), for edit, send and a failed send. `useMentionInput` / `useSlashCommandInput` no longer set a new empty suggestion list on every keystroke (`keepIfEmpty`).
+  - Header, composer and the seen-by modal are memoized and get stable callbacks (`uiHandlersRef` / `uiActions`, like `messageHandlersRef`).
+  - The list's bottom padding and the popups' position follow the composer's measured height instead of fixed numbers.
+  - **Split:** list, rows, swipe, reaction badge, attachment grid, typing dots, video viewer, helpers and styles moved verbatim from `ConversationScreen.js` to `ChatScreen/conversation/`. New there: `ConversationHeader`, `ChatComposer`, `ChatGlassBar`, `SeenByModal`, `TypingIndicator`. `MediaGalleryScreen` imports `VideoViewerModal` from there; the screen still re-exports it.
+  - Fetching / paging, the realtime effect, sending and reactions stay in the screen. They read each other's refs and closures throughout, and moving them would change nothing for the user.
+  - New strings `chatConversation.back` and `scrollToLatest` (vi / en / ru).
 
 - **Keyboard stickers / GIFs / pasted images in comments and chat** (issue #18; not run on a device; **new native package `@mattermost/react-native-paste-input` + a `live-markdown` patch: needs a new native build**; the iOS workflows set `RCT_NEW_ARCH_ENABLED=1` because the package's podspec refuses to install without it - set it too for a local `pod install`):
   - `CommentBar` (comment bar and chat input) now draws its input through `PasteInput`, so images from Gboard / iOS keyboard stickers, GIFs and the paste menu arrive in `onPasteImages` (`app/utils/pastedImages.js`: loaded in a `try`, so an older binary keeps the plain input). They show as a preview in the bar (`selectedImages`) and are sent with **Send**: comments through `commentPostWithImages`, chat through `sendImageMessage` before the text. PNG / GIF / WebP are kept as they are (transparent stickers, animation).
