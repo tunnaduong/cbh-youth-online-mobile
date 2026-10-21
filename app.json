@@ -119,7 +119,12 @@
     },
     "runtimeVersion": "7.4.10",
     "updates": {
-      "url": "https://u.expo.dev/172eec8c-8c58-453c-a375-258412496e09"
+      "url": "https://u.expo.dev/172eec8c-8c58-453c-a375-258412496e09",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
     },
     "plugins": [
       "./plugins/withNativeTweaks",

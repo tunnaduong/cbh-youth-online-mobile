@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **OTA Updates (EAS) workflow and channel configuration** (`.github/workflows/ota-update.yml`, `app.json`):
+  - Added `ota-update.yml` workflow with manual trigger (`workflow_dispatch`) to publish JS bundle hotfixes to EAS update channels (`production`, `preview`) via `eas-cli` in ~1-2 minutes without full CI native builds.
+  - Configured `requestHeaders` with `"expo-channel-name": "production"` in `app.json` under `updates` so custom CI builds (`expo prebuild`) embed the update channel into native manifests.
+
+
 - **Chat conversation: flat Messenger-style header and composer, split into files, typing no longer re-renders the screen** (not run on a device; no API change):
   - **Header** (`conversation/ConversationHeader.js`): one full-width glass bar (`ChatGlassBar`) under the status bar, `56 + insets.top` tall, with a hairline at the bottom. It holds back, the avatar (frame and online dot) with the name and @username / member count left-aligned, and options. It replaces the floating glass pill with the name in it. Tapping the name works as before (profile; group info unless it is the public chat).
   - **Composer** (`conversation/ChatComposer.js`): one glass bar docked to the bottom (the safe-area inset is inside it). It holds the edit banner, the reply strip, then `CommentBar variant="flat"`: image / attach icons, a rounded field in `iconBackground`, and the send icon. It replaces the floating pill. `CommentBar`'s default (`"pill"`) is unchanged, so the post comment bar looks as before.
