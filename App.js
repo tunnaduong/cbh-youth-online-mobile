@@ -359,7 +359,9 @@ const App = ({ skipSplash = false }) => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isLoggedIn, isLoading } = useContext(AuthContext);
-  const { shareIntent, resetShareIntent } = useShareIntent();
+  const { shareIntent, resetShareIntent } = useShareIntent({
+    scheme: "com.fatties.youth",
+  });
   // An in-process restart (account switch) skips the branded splash: the
   // native splash already played at launch, replaying the animation would
   // just make switching feel slow.
