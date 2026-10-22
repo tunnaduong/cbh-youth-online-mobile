@@ -74,7 +74,7 @@ jobs:
           fi
 
       - name: Export update bundle with Expo CLI
-        run: npx expo export --output-dir dist
+        run: npx expo export --platform android --platform ios --output-dir dist
 
       - name: Archive dist package
         run: |

@@ -9,6 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "com.fatties.youth",
+    "platforms": ["ios", "android"],
     "ios": {
       "supportsTablet": true,
       "icon": {
