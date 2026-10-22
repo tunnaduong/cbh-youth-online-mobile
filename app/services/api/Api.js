@@ -547,6 +547,16 @@ export const uploadCoverPhoto = (username, formData) => {
   return Api.postFormDataRequest("/v1.0/users/" + username + "/cover", formData);
 };
 
+// Pro Plus: the member's own image as avatar / profile frame.
+// formData: kind ("avatar" | "profile") + image.
+export const uploadCustomFrame = (username, formData) => {
+  return Api.postFormDataRequest("/v1.0/users/" + username + "/custom-frame", formData);
+};
+
+export const deleteCustomFrame = (username, kind) => {
+  return Api.deleteRequest("/v1.0/users/" + username + "/custom-frame/" + kind);
+};
+
 export const changePassword = (params) => {
   return Api.postRequest("/v1.0/password/change", params);
 };

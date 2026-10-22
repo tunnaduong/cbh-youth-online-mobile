@@ -639,6 +639,20 @@
     "feature2Desc": "Отправляйте отчеты о нарушениях в классе и индивидуально прямо с мобильного устройства, без бумажной волокиты.",
     "feature3Title": "И еще много функций...",
     "feature3Desc": "Изучите их сами! Желаем вам приятного опыта.",
+    "updatesTitle": "Обновления приложения",
+    "appVersion": "Версия приложения",
+    "buildNumber": "Номер сборки",
+    "otaUpdate": "OTA-обновление",
+    "embeddedBuild": "Базовая сборка",
+    "checkUpdates": "Проверить обновления",
+    "checking": "Проверка...",
+    "upToDate": "У вас установлена последняя версия.",
+    "devModeNotice": "В режиме разработки OTA-обновления отключены.",
+    "downloadedTitle": "Загружено новое обновление",
+    "downloadedDesc": "Новое обновление готово к установке. Перезапустить приложение сейчас?",
+    "restartNow": "Перезапустить",
+    "later": "Позже",
+    "errorCheck": "Не удалось проверить обновления. Попробуйте позже.",
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Разработано учениками для учеников."
   },
   "chatConversation": {
@@ -806,6 +820,8 @@
     "forward": "Переслать",
     "searchToForward": "Найти, кому переслать...",
     "send": "Отправить",
+    "back": "Назад",
+    "scrollToLatest": "К последним сообщениям",
     "forwarded": "Сообщение переслано",
     "forwardFailed": "Не удалось переслать сообщение",
     "loadConversationsFailed": "Не удалось загрузить список бесед",
@@ -1013,7 +1029,9 @@
     "addVideo": "Добавить видео",
     "uploadingVideo": "Загрузка видео {{current}}/{{total}}...",
     "videoTypeUnsupported": "Некоторые видео имеют неподдерживаемый формат и были пропущены (разрешено: mp4, mov, avi, webm, mkv)",
-    "videoTooLarge": "Некоторые видео превышают 100 МБ и были пропущены"
+    "videoTooLarge": "Некоторые видео превышают 100 МБ и были пропущены",
+    "pendingModeration": "Пост ожидает проверки",
+    "pendingModerationDesc": "Ваш отредактированный пост появится после одобрения."
   },
   "profile": {
     "title": "Профиль",
@@ -1128,6 +1146,7 @@
     "liquidGlassEffect": "Эффект жидкого стекла",
     "shakeToReport": "Встряхнуть телефон, чтобы сообщить о проблеме",
     "blockedUsers": "Заблокированные пользователи",
+    "appUpdates": "Обновления приложения",
     "about": "О приложении",
     "debugConsole": "Консоль отладки",
     "terms": "Условия использования",
@@ -2084,6 +2103,21 @@
     "lockedNotice": "Чтобы настроить профиль, нужно {{points}} очков. Предпросмотр доступен.",
     "changeAvatar": "Сменить аватар",
     "changeCover": "Сменить обложку",
+    "customFrameTitle": "Своя рамка",
+    "customFrameUpload": "Загрузить рамку",
+    "customFrameReplace": "Заменить рамку",
+    "customFrameDelete": "Удалить",
+    "customFrameCancel": "Отмена",
+    "customFrameDeleteTitle": "Удалить эту рамку?",
+    "customFrameLimits": "PNG/WebP с прозрачным фоном, квадрат от {{size}}px, до {{mb}} МБ.",
+    "customFrameAvatarRule": "Оставьте прозрачным круг в центре ({{percent}}% ширины) для аватара.",
+    "customFrameProfileRule": "Рисуются только внешние {{percent}}% каждой стороны, середина не используется.",
+    "customFrameUploaded": "Рамка загружена.",
+    "customFrameDeleted": "Рамка удалена.",
+    "customFrameFormat": "Рамка должна быть PNG или WebP с прозрачным фоном.",
+    "customFrameTooBig": "Рамка не больше {{mb}} МБ.",
+    "customFrameUploadError": "Не удалось загрузить рамку.",
+    "customFrameDeleteError": "Не удалось удалить рамку.",
     "gifHint": "Анимированный GIF · {{points}} очков",
     "bannerColor": "Цвет баннера",
     "clearBanner": "Убрать цвет баннера",
@@ -2146,10 +2180,10 @@
       "grotesk": "Space Grotesk"
     },
     "options": {
-      "avatar_frame": { "none": "Нет", "theme": "Цвет темы", "trainee": "Серебро", "active": "Лёд", "distinguished": "Золото", "veteran": "Радуга" },
+      "avatar_frame": { "none": "Нет", "theme": "Цвет темы", "trainee": "Серебро", "active": "Лёд", "distinguished": "Золото", "veteran": "Радуга", "custom": "Своя" },
       "name_effect": { "none": "Нет", "solid": "Сплошной", "gradient": "Градиент", "pop": "Объём", "toon": "Мультяшный", "neon": "Неон", "rainbow": "Радуга", "outline": "Контур" },
       "profile_effect": { "none": "Нет", "sparkles": "Блёстки", "hearts": "Сердечки", "snow": "Снегопад", "aurora": "Сияние" },
-      "profile_frame": { "none": "Нет", "glow": "Свечение", "gold": "Золотая кайма", "neon": "Вращающийся неон" },
+      "profile_frame": { "none": "Нет", "glow": "Свечение", "gold": "Золотая кайма", "neon": "Вращающийся неон", "custom": "Своя" },
       "name_icon": { "none": "Нет" }
     }
   },
@@ -2167,7 +2201,8 @@
     "distinguished": "Выдающийся участник",
     "veteran": "Участник-ветеран",
     "premium": "Премиум-участник",
-    "pro": "Участник Pro"
+    "pro": "Участник Pro",
+    "pro_plus": "Участник Pro Plus"
   },
   "memberTierPerks": {
     "trainee": "Цвета темы, цвет баннера и базовые рамки аватара",
@@ -2175,7 +2210,8 @@
     "distinguished": "Больше шрифтов и эффектов имени, золотая рамка и снег",
     "veteran": "Радужная рамка, северное сияние, вращающийся неон и анимированный GIF-аватар",
     "premium": "Радужное и обведённое имя, премиум-шрифты, градиентные цвета",
-    "pro": "Значок рядом с именем, имя пользователя в стиле имени, эмодзи и специальные символы в имени"
+    "pro": "Значок рядом с именем, имя пользователя в стиле имени, эмодзи и специальные символы в имени",
+    "pro_plus": "Своя картинка в качестве рамки аватара и рамки профиля"
   },
   "twoFactor": {
     "methodDevice": "Подтверждение на устройстве, где выполнен вход",

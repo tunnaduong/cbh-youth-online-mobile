@@ -629,6 +629,20 @@
     "feature2Desc": "Submit class and individual violation reports easily right from your mobile device, without paper forms.",
     "feature3Title": "And many more features...",
     "feature3Desc": "Explore them yourself. We hope you have a great experience.",
+    "updatesTitle": "App Updates",
+    "appVersion": "App Version",
+    "buildNumber": "Build Number",
+    "otaUpdate": "OTA Update",
+    "embeddedBuild": "Embedded build",
+    "checkUpdates": "Check for updates",
+    "checking": "Checking...",
+    "upToDate": "App is up to date.",
+    "devModeNotice": "In development mode, OTA updates are disabled.",
+    "downloadedTitle": "New update downloaded",
+    "downloadedDesc": "A new update is ready. Would you like to restart the app now to apply it?",
+    "restartNow": "Restart now",
+    "later": "Later",
+    "errorCheck": "Could not check for updates. Please try again later.",
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Built by students, for students."
   },
   "chatConversation": {
@@ -797,6 +811,8 @@
     "forward": "Forward",
     "searchToForward": "Search someone to forward to...",
     "send": "Send",
+    "back": "Back",
+    "scrollToLatest": "Jump to the latest messages",
     "forwarded": "Message forwarded",
     "forwardFailed": "Failed to forward message",
     "loadConversationsFailed": "Could not load conversations",
@@ -1003,7 +1019,9 @@
     "addVideo": "Add video",
     "uploadingVideo": "Uploading video {{current}}/{{total}}...",
     "videoTypeUnsupported": "Some videos have an unsupported format and were skipped (allowed: mp4, mov, avi, webm, mkv)",
-    "videoTooLarge": "Some videos are over 100MB and were skipped"
+    "videoTooLarge": "Some videos are over 100MB and were skipped",
+    "pendingModeration": "Post is awaiting review",
+    "pendingModerationDesc": "Your edited post will appear once it has been approved."
   },
   "profile": {
     "title": "Profile Information",
@@ -1116,6 +1134,7 @@
     "liquidGlassEffect": "Liquid glass effect",
     "shakeToReport": "Shake phone to report a problem",
     "blockedUsers": "Blocked Users",
+    "appUpdates": "App Updates",
     "about": "About",
     "debugConsole": "Debug Console",
     "terms": "Terms of Service",
@@ -2066,6 +2085,21 @@
     "lockedNotice": "You need {{points}} points to customize your profile. You can still preview.",
     "changeAvatar": "Change avatar",
     "changeCover": "Change cover photo",
+    "customFrameTitle": "Your own frame",
+    "customFrameUpload": "Upload a frame",
+    "customFrameReplace": "Replace the frame",
+    "customFrameDelete": "Delete",
+    "customFrameCancel": "Cancel",
+    "customFrameDeleteTitle": "Delete this frame image?",
+    "customFrameLimits": "PNG/WebP with a transparent background, square, at least {{size}}px, up to {{mb}}MB.",
+    "customFrameAvatarRule": "Leave the circle in the middle ({{percent}}% of the width) clear for your avatar.",
+    "customFrameProfileRule": "Only the outer {{percent}}% of each side is drawn as the border; the middle is ignored.",
+    "customFrameUploaded": "Frame uploaded.",
+    "customFrameDeleted": "Frame deleted.",
+    "customFrameFormat": "The frame has to be a PNG or WebP with a transparent background.",
+    "customFrameTooBig": "The frame can be up to {{mb}}MB.",
+    "customFrameUploadError": "Could not upload the frame.",
+    "customFrameDeleteError": "Could not delete the frame.",
     "gifHint": "Animated GIF · {{points}} points",
     "bannerColor": "Banner color",
     "clearBanner": "Remove banner color",
@@ -2128,10 +2162,10 @@
       "grotesk": "Space Grotesk"
     },
     "options": {
-      "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow" },
+      "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow", "custom": "Your own" },
       "name_effect": { "none": "None", "solid": "Solid", "gradient": "Gradient", "pop": "Pop", "toon": "Toon", "neon": "Neon", "rainbow": "Rainbow", "outline": "Outline" },
       "profile_effect": { "none": "None", "sparkles": "Sparkles", "hearts": "Hearts", "snow": "Snowfall", "aurora": "Aurora" },
-      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon" },
+      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon", "custom": "Your own" },
       "name_icon": { "none": "None" }
     }
   },
@@ -2149,7 +2183,8 @@
     "distinguished": "Distinguished member",
     "veteran": "Veteran member",
     "premium": "Premium member",
-    "pro": "Pro member"
+    "pro": "Pro member",
+    "pro_plus": "Pro Plus member"
   },
   "memberTierPerks": {
     "trainee": "Theme colours, banner colour and the basic avatar frames",
@@ -2157,7 +2192,8 @@
     "distinguished": "More fonts and name effects, the gold frame and snow",
     "veteran": "Rainbow frame, aurora, spinning neon and an animated GIF avatar",
     "premium": "Rainbow and outlined names, premium fonts, gradient colours",
-    "pro": "An icon next to your name, a username styled like your name, emoji and special characters in your name"
+    "pro": "An icon next to your name, a username styled like your name, emoji and special characters in your name",
+    "pro_plus": "Your own image as the avatar frame and the profile frame"
   },
   "twoFactor": {
     "methodDevice": "Approve on a logged-in device",

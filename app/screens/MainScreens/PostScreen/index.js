@@ -602,6 +602,27 @@ const PostScreen = ({ route, navigation }) => {
     }
   };
 
+  // Images the keyboard (stickers, GIFs) or the paste menu put into the input:
+  // shown as a preview in the bar, sent with the comment. PNG / GIF / WebP stay
+  // as they are (transparent stickers, animation); the rest is re-encoded.
+  const handlePasteCommentImages = async (images) => {
+    if (editingCommentId) return;
+    const room = MAX_COMMENT_IMAGES - selectedCommentImages.length;
+    if (room <= 0) return;
+    const uris = await Promise.all(
+      images.slice(0, room).map(async (file) => {
+        if (/^image\/(png|gif|webp)$/i.test(file.type || "")) return file.uri;
+        try {
+          const r = await manipulateAsync(file.uri, [], { compress: 0.85, format: SaveFormat.JPEG });
+          return r.uri;
+        } catch (_) {
+          return file.uri;
+        }
+      })
+    );
+    setSelectedCommentImages((prev) => [...prev, ...uris].slice(0, MAX_COMMENT_IMAGES));
+  };
+
   const pickCommentImage = () => {
     const takePhoto = t("chatConversation.takePhoto", "Chụp ảnh");
     const chooseLibrary = t("chatConversation.chooseFromLibrary", "Chọn từ thư viện");
@@ -1512,6 +1533,7 @@ const PostScreen = ({ route, navigation }) => {
               onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
               anonymousDisabled={!!editingCommentId}
               onPickImage={!editingCommentId ? pickCommentImage : undefined}
+              onPasteImages={!editingCommentId ? handlePasteCommentImages : undefined}
               selectedImages={!editingCommentId ? selectedCommentImages : undefined}
               onClearImage={!editingCommentId ? (index) => setSelectedCommentImages((prev) => prev.filter((_, i) => i !== index)) : undefined}
             />
@@ -1564,6 +1586,7 @@ const PostScreen = ({ route, navigation }) => {
               onToggleAnonymous={() => setIsAnonymousComment(!isAnonymousComment)}
               anonymousDisabled={!!editingCommentId}
               onPickImage={!editingCommentId ? pickCommentImage : undefined}
+              onPasteImages={!editingCommentId ? handlePasteCommentImages : undefined}
               selectedImages={!editingCommentId ? selectedCommentImages : undefined}
               onClearImage={!editingCommentId ? (index) => setSelectedCommentImages((prev) => prev.filter((_, i) => i !== index)) : undefined}
             />

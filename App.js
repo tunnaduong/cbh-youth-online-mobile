@@ -62,6 +62,7 @@ import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
 import FeedbackScreen from "./app/screens/MainScreens/FeedbackScreen";
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
+import AppUpdatesScreen from "./app/screens/MainScreens/SettingsScreen/AppUpdatesScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
 import EasterEggScreen from "./app/screens/MainScreens/SettingsScreen/EasterEggScreen";
 import TermsOfServiceScreen from "./app/screens/MainScreens/SettingsScreen/TermsOfServiceScreen";
@@ -132,6 +133,19 @@ const SheetAwareScreen = ({ navigation, route, children }) => {
 };
 
 const Stack = createStackNavigator();
+
+// "fade" on iOS breaks glass for as long as the screen is shown. The JS stack
+// (@react-navigation/stack, Card.tsx) gives a card whose style has an
+// `opacity` - every "fade" card, even after the animation - the prop
+// `needsOffscreenAlphaCompositing`, which on iOS draws the whole card as one
+// offscreen group. UIKit's glass (iOS 26's system tab bar, the glass header
+// buttons) cannot sample what is behind it inside such a group, and once it
+// has been drawn while the card faded in it stays empty: after logging in,
+// or logging out and in again, the tab bar was bare icons over the feed.
+// A cold start was fine because the first screen is not animated. So on iOS
+// these screens appear without an animation (and get no opacity style at
+// all); Android keeps the fade.
+const FADE_ANIMATION = Platform.OS === "ios" ? "none" : "fade";
 
 /**
  * Parse a custom-scheme deep link and return navigation target.
@@ -704,7 +718,7 @@ const App = ({ skipSplash = false }) => {
                   title: "Trang chính",
                   headerShown: false,
                   gestureEnabled: false,
-                  animation: "fade",
+                  animation: FADE_ANIMATION,
                 }}
                 name="MainScreens"
                 component={MainScreens}
@@ -714,7 +728,7 @@ const App = ({ skipSplash = false }) => {
                   title: "Tìm kiếm",
                   headerShown: false,
                   gestureEnabled: false,
-                  animation: "fade",
+                  animation: FADE_ANIMATION,
                 }}
                 name="SearchScreen"
                 component={SearchScreen}
@@ -813,6 +827,13 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="Settings"
                 component={SettingsScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="AppUpdatesScreen"
+                component={AppUpdatesScreen}
                 options={{
                   headerShown: false,
                 }}
@@ -1100,7 +1121,7 @@ const App = ({ skipSplash = false }) => {
                 options={{
                   title: "Chào mừng đến với CYO",
                   headerShown: false,
-                  animation: "fade",
+                  animation: FADE_ANIMATION,
                 }}
                 component={WelcomeScreen}
               />
@@ -1109,7 +1130,7 @@ const App = ({ skipSplash = false }) => {
                 options={{
                   title: "Chọn ngôn ngữ",
                   headerShown: false,
-                  animation: "fade",
+                  animation: FADE_ANIMATION,
                 }}
                 component={LanguageSelectScreen}
               />
@@ -1118,7 +1139,7 @@ const App = ({ skipSplash = false }) => {
                 options={{
                   title: "Tuỳ chỉnh trải nghiệm",
                   headerShown: false,
-                  animation: "fade",
+                  animation: FADE_ANIMATION,
                 }}
                 component={FirstLaunchSettingsScreen}
               />

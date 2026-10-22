@@ -618,6 +618,20 @@
     "feature2Desc": "Gửi báo cáo vi phạm tập thể lớp và cá nhân một cách dễ dàng, ngay trên thiết bị di động mà không cần giấy tờ sổ sách.",
     "feature3Title": "Và còn nhiều tính năng khác...",
     "feature3Desc": "Hãy tự mình khám phá nhé! Chúc bạn có một trải nghiệm thú vị.",
+    "updatesTitle": "Cập nhật ứng dụng",
+    "appVersion": "Phiên bản ứng dụng",
+    "buildNumber": "Mã bản dựng",
+    "otaUpdate": "Bản cập nhật OTA",
+    "embeddedBuild": "Bản cài gốc",
+    "checkUpdates": "Kiểm tra bản cập nhật",
+    "checking": "Đang kiểm tra...",
+    "upToDate": "Ứng dụng đang ở bản mới nhất.",
+    "devModeNotice": "Đang ở chế độ phát triển (Dev), tính năng cập nhật OTA bị tắt.",
+    "downloadedTitle": "Đã tải bản cập nhật mới",
+    "downloadedDesc": "Bản cập nhật mới đã sẵn sàng. Bạn có muốn khởi động lại ứng dụng ngay bây giờ để áp dụng không?",
+    "restartNow": "Khởi động lại ngay",
+    "later": "Để sau",
+    "errorCheck": "Không thể kiểm tra cập nhật. Vui lòng thử lại sau.",
     "copyright": "© Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
   },
   "chatConversation": {
@@ -786,6 +800,8 @@
     "forward": "Chuyển tiếp",
     "searchToForward": "Tìm người để chuyển tiếp...",
     "send": "Gửi",
+    "back": "Quay lại",
+    "scrollToLatest": "Xuống tin nhắn mới nhất",
     "forwarded": "Đã chuyển tiếp tin nhắn",
     "forwardFailed": "Chuyển tiếp thất bại",
     "loadConversationsFailed": "Không thể tải danh sách trò chuyện",
@@ -992,7 +1008,9 @@
     "addVideo": "Thêm video",
     "uploadingVideo": "Đang tải video {{current}}/{{total}}...",
     "videoTypeUnsupported": "Một số video có định dạng không được hỗ trợ và đã bị bỏ qua (chỉ chấp nhận: mp4, mov, avi, webm, mkv)",
-    "videoTooLarge": "Một số video vượt quá 100MB và đã bị bỏ qua"
+    "videoTooLarge": "Một số video vượt quá 100MB và đã bị bỏ qua",
+    "pendingModeration": "Bài viết đang chờ kiểm duyệt",
+    "pendingModerationDesc": "Bài viết đã chỉnh sửa của bạn sẽ hiển thị sau khi được duyệt."
   },
   "profile": {
     "title": "Thông tin cá nhân",
@@ -1104,6 +1122,7 @@
     "liquidGlassEffect": "Hiệu ứng kính lỏng",
     "shakeToReport": "Lắc điện thoại để báo cáo sự cố",
     "blockedUsers": "Người dùng đã chặn",
+    "appUpdates": "Cập nhật ứng dụng",
     "about": "Giới thiệu",
     "debugConsole": "Bảng debug",
     "terms": "Điều khoản dịch vụ",
@@ -2053,6 +2072,21 @@
     "lockedNotice": "Cần {{points}} điểm để tùy chỉnh giao diện. Bạn vẫn có thể xem thử.",
     "changeAvatar": "Đổi ảnh đại diện",
     "changeCover": "Đổi ảnh bìa",
+    "customFrameTitle": "Khung tự tải lên",
+    "customFrameUpload": "Tải ảnh khung",
+    "customFrameReplace": "Đổi ảnh khung",
+    "customFrameDelete": "Xóa",
+    "customFrameCancel": "Hủy",
+    "customFrameDeleteTitle": "Xóa ảnh khung này?",
+    "customFrameLimits": "PNG/WebP nền trong suốt, hình vuông từ {{size}}px, tối đa {{mb}}MB.",
+    "customFrameAvatarRule": "Chừa trống vòng tròn ở giữa ({{percent}}% chiều rộng) cho ảnh đại diện.",
+    "customFrameProfileRule": "Chỉ {{percent}}% ngoài cùng mỗi cạnh được vẽ làm viền, phần giữa bị bỏ qua.",
+    "customFrameUploaded": "Đã tải khung lên.",
+    "customFrameDeleted": "Đã xóa khung.",
+    "customFrameFormat": "Ảnh khung phải là PNG hoặc WebP có nền trong suốt.",
+    "customFrameTooBig": "Ảnh khung tối đa {{mb}}MB.",
+    "customFrameUploadError": "Tải khung lên thất bại.",
+    "customFrameDeleteError": "Không thể xóa khung.",
     "gifHint": "GIF động · {{points}} điểm",
     "bannerColor": "Màu ảnh bìa",
     "clearBanner": "Bỏ màu ảnh bìa",
@@ -2115,10 +2149,10 @@
       "grotesk": "Space Grotesk"
     },
     "options": {
-      "avatar_frame": { "none": "Không", "theme": "Theo màu", "trainee": "Bạc", "active": "Băng", "distinguished": "Vàng", "veteran": "Cầu vồng" },
+      "avatar_frame": { "none": "Không", "theme": "Theo màu", "trainee": "Bạc", "active": "Băng", "distinguished": "Vàng", "veteran": "Cầu vồng", "custom": "Tự tải lên" },
       "name_effect": { "none": "Không", "solid": "Một màu", "gradient": "Chuyển màu", "pop": "Nổi khối", "toon": "Hoạt hình", "neon": "Neon", "rainbow": "Cầu vồng", "outline": "Viền chữ" },
       "profile_effect": { "none": "Không", "sparkles": "Lấp lánh", "hearts": "Trái tim", "snow": "Tuyết rơi", "aurora": "Cực quang" },
-      "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay" },
+      "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay", "custom": "Tự tải lên" },
       "name_icon": { "none": "Không" }
     }
   },
@@ -2136,7 +2170,8 @@
     "distinguished": "Thành viên tiêu biểu",
     "veteran": "Thành viên kỳ cựu",
     "premium": "Thành viên cao cấp",
-    "pro": "Thành viên Pro"
+    "pro": "Thành viên Pro",
+    "pro_plus": "Thành viên Pro Plus"
   },
   "memberTierPerks": {
     "trainee": "Màu giao diện, màu ảnh bìa và khung ảnh đại diện cơ bản",
@@ -2144,7 +2179,8 @@
     "distinguished": "Thêm phông chữ, hiệu ứng tên, khung vàng và tuyết rơi",
     "veteran": "Khung cầu vồng, cực quang, neon xoay và avatar GIF động",
     "premium": "Tên cầu vồng và viền chữ, phông cao cấp, màu chuyển sắc",
-    "pro": "Biểu tượng cạnh tên, tên người dùng theo kiểu tên, biểu tượng cảm xúc và ký tự đặc biệt trong tên"
+    "pro": "Biểu tượng cạnh tên, tên người dùng theo kiểu tên, biểu tượng cảm xúc và ký tự đặc biệt trong tên",
+    "pro_plus": "Khung ảnh đại diện và khung hồ sơ bằng ảnh tự tải lên"
   },
   "twoFactor": {
     "methodDevice": "Xác nhận trên thiết bị đã đăng nhập",

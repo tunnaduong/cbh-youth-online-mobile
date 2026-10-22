@@ -121,7 +121,36 @@ const withImageModuleClasses = (config) =>
     return cfg;
   });
 
+// react-native-paste-input (keyboard stickers / GIFs / pasted images) needs
+// PasteInputModule.setup(...) after React Native starts, so it can find the
+// native text inputs by tag. The call goes through the Objective-C runtime
+// instead of `import react_native_paste_input`: the pod is not built as a
+// Clang module (no modular headers for it), so Swift cannot import it.
+const PASTE_INPUT_SETUP = `    if let pasteInputModule = NSClassFromString("PasteInputModule") as? NSObject.Type {
+      _ = pasteInputModule.perform(NSSelectorFromString("setup:"), with: factory.rootViewFactory)
+    }
+`;
+
+const withPasteInputSetup = (config) =>
+  withAppDelegate(config, (cfg) => {
+    const delegate = cfg.modResults;
+    if (delegate.language !== "swift" || delegate.contents.includes("PasteInputModule")) return cfg;
+
+    const next = delegate.contents.replace(
+      /(factory\.startReactNative\([^)]*\)\n)/,
+      `$1${PASTE_INPUT_SETUP}`
+    );
+    if (next === delegate.contents) {
+      console.warn("[withNativeTweaks] startReactNative not found in AppDelegate.swift; paste input setup not added");
+      return cfg;
+    }
+    delegate.contents = next;
+    return cfg;
+  });
+
 module.exports = (config) =>
-  withImageModuleClasses(
-    withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+  withPasteInputSetup(
+    withImageModuleClasses(
+      withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+    )
   );

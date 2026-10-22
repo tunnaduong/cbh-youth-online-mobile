@@ -34,7 +34,7 @@ import { openExternalLink } from "../../../utils/externalLink";
 import formatTime from "../../../utils/formatTime";
 import { getConversationMedia } from "../../../services/api/Api";
 import { downloadMediaToLibrary } from "../../../utils/mediaDownload";
-import { VideoViewerModal } from "./ConversationScreen";
+import { VideoViewerModal } from "./conversation/VideoViewerModal";
 import ForwardMessageModal from "../../../components/ForwardMessageModal";
 
 // Messenger-style "Gallery": every photo/video, file, or link ever shared in

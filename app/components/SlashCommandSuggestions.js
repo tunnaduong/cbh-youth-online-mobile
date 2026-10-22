@@ -67,6 +67,10 @@ const SlashCommandSuggestions = ({ suggestions, onSelect }) => {
   );
 };
 
+// Clearing an already-empty list keeps the same array, so it is not a state
+// change - every keystroke cleared it and re-rendered the composer for nothing.
+const keepIfEmpty = (prev) => (prev.length ? [] : prev);
+
 // useSlashCommandInput – shows the palette whenever the composer content
 // starts with "/" (and nothing else yet distinguishes a full command),
 // and lets a selection replace the leading token with "<command> ".
@@ -79,7 +83,7 @@ export const useSlashCommandInput = ({ value, onChange }) => {
       onChange(text);
 
       if (!text.startsWith("/") || /\s/.test(text)) {
-        setSuggestions([]);
+        setSuggestions(keepIfEmpty);
         return;
       }
 
@@ -93,7 +97,7 @@ export const useSlashCommandInput = ({ value, onChange }) => {
   const handleSelect = useCallback(
     (item) => {
       onChange(`${item.command} `);
-      setSuggestions([]);
+      setSuggestions(keepIfEmpty);
     },
     [onChange]
   );

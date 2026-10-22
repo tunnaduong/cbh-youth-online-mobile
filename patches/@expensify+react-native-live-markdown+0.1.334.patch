@@ -1,0 +1,33 @@
+diff --git a/node_modules/@expensify/react-native-live-markdown/src/MarkdownTextInput.tsx b/node_modules/@expensify/react-native-live-markdown/src/MarkdownTextInput.tsx
+index 935b055..ee9129e 100644
+--- a/node_modules/@expensify/react-native-live-markdown/src/MarkdownTextInput.tsx
++++ b/node_modules/@expensify/react-native-live-markdown/src/MarkdownTextInput.tsx
+@@ -61,6 +61,8 @@ interface MarkdownTextInputProps extends TextInputProps, InlineImagesInputProps
+   markdownStyle?: PartialMarkdownStyle;
+   formatSelection?: (text: string, selectionStart: number, selectionEnd: number, formatCommand: string) => FormatSelectionResult;
+   parser: (value: string) => MarkdownRange[];
++  /** Input drawn inside the decorator; defaults to React Native's TextInput. */
++  inputComponent?: React.ComponentType<any>;
+ }
+ 
+ type FormatSelectionResult = {
+@@ -112,14 +114,17 @@ const MarkdownTextInput = React.forwardRef<MarkdownTextInput, MarkdownTextInputP
+     return () => unregisterParser(parserId);
+   }, [parserId]);
+ 
++  const {inputComponent, ...inputProps} = props;
++  const Input: React.ComponentType<any> = inputComponent ?? TextInput;
++
+   return (
+     <MarkdownTextInputDecoratorViewNativeComponent
+       style={styles.displayContents}
+       markdownStyle={markdownStyle}
+       parserId={parserId}
+     >
+-      <TextInput
+-        {...props}
++      <Input
++        {...inputProps}
+         ref={ref}
+       />
+     </MarkdownTextInputDecoratorViewNativeComponent>

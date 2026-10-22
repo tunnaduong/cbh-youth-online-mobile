@@ -1,0 +1,105 @@
+name: OTA Update (expo-updates)
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/build-*.yml'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Update Channel (e.g. production, preview)'
+        required: true
+        default: 'production'
+      message:
+        description: 'Update commit / release note (defaults to commit message)'
+        required: false
+        default: ''
+      runtime_version:
+        description: 'Runtime version override (leave empty to use app.json)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ota-update-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish-ota:
+    name: Publish OTA Update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve runtime version
+        id: runtime
+        run: |
+          INPUT_VERSION="${{ github.event.inputs.runtime_version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "version=$INPUT_VERSION" >> $GITHUB_OUTPUT
+          else
+            RESOLVED=$(node -p "require('./app.json').expo.runtimeVersion || '7.4.10'")
+            echo "version=$RESOLVED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Resolve update message and channel
+        id: meta
+        run: |
+          INPUT_CHANNEL="${{ github.event.inputs.channel }}"
+          if [ -n "$INPUT_CHANNEL" ]; then
+            echo "channel=$INPUT_CHANNEL" >> $GITHUB_OUTPUT
+          else
+            echo "channel=production" >> $GITHUB_OUTPUT
+          fi
+
+          INPUT_MSG="${{ github.event.inputs.message }}"
+          if [ -n "$INPUT_MSG" ]; then
+            echo "message=$INPUT_MSG" >> $GITHUB_OUTPUT
+          else
+            SUBJECT=$(git log -1 --pretty=format:"%s")
+            echo "message=$SUBJECT" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Export update bundle with Expo CLI
+        run: npx expo export --output-dir dist
+
+      - name: Archive dist package
+        run: |
+          cd dist
+          zip -r ../dist.zip .
+          cd ..
+
+      - name: Publish update to self-hosted server
+        env:
+          OTA_DEPLOY_TOKEN: ${{ secrets.OTA_DEPLOY_TOKEN }}
+          CHANNEL: ${{ steps.meta.outputs.channel }}
+          RUNTIME_VERSION: ${{ steps.runtime.outputs.version }}
+          MESSAGE: ${{ steps.meta.outputs.message }}
+        run: |
+          if [ -z "$OTA_DEPLOY_TOKEN" ]; then
+            echo "::error::Secret OTA_DEPLOY_TOKEN is not set in repository secrets."
+            exit 1
+          fi
+
+          RESPONSE=$(curl --fail-with-body -s -S -X POST "https://api.chuyenbienhoa.com/v1.0/admin/ota/publish" \
+            -H "Authorization: Bearer ${OTA_DEPLOY_TOKEN}" \
+            -F "archive=@dist.zip" \
+            -F "channel=${CHANNEL}" \
+            -F "runtime_version=${RUNTIME_VERSION}" \
+            -F "message=${MESSAGE}")
+
+          echo "Publish Response:"
+          echo "$RESPONSE"
