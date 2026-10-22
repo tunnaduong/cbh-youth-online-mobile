@@ -1,6 +1,12 @@
 name: OTA Update (expo-updates)
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/build-*.yml'
   workflow_dispatch:
     inputs:
       channel:
@@ -8,9 +14,9 @@ on:
         required: true
         default: 'production'
       message:
-        description: 'Update commit / release note'
+        description: 'Update commit / release note (defaults to commit message)'
         required: false
-        default: 'OTA update via GitHub Actions'
+        default: ''
       runtime_version:
         description: 'Runtime version override (leave empty to use app.json)'
         required: false
@@ -49,6 +55,24 @@ jobs:
             echo "version=$RESOLVED" >> $GITHUB_OUTPUT
           fi
 
+      - name: Resolve update message and channel
+        id: meta
+        run: |
+          INPUT_CHANNEL="${{ github.event.inputs.channel }}"
+          if [ -n "$INPUT_CHANNEL" ]; then
+            echo "channel=$INPUT_CHANNEL" >> $GITHUB_OUTPUT
+          else
+            echo "channel=production" >> $GITHUB_OUTPUT
+          fi
+
+          INPUT_MSG="${{ github.event.inputs.message }}"
+          if [ -n "$INPUT_MSG" ]; then
+            echo "message=$INPUT_MSG" >> $GITHUB_OUTPUT
+          else
+            SUBJECT=$(git log -1 --pretty=format:"%s")
+            echo "message=$SUBJECT" >> $GITHUB_OUTPUT
+          fi
+
       - name: Export update bundle with Expo CLI
         run: npx expo export --output-dir dist
 
@@ -61,9 +85,9 @@ jobs:
       - name: Publish update to self-hosted server
         env:
           OTA_DEPLOY_TOKEN: ${{ secrets.OTA_DEPLOY_TOKEN }}
-          CHANNEL: ${{ github.event.inputs.channel }}
+          CHANNEL: ${{ steps.meta.outputs.channel }}
           RUNTIME_VERSION: ${{ steps.runtime.outputs.version }}
-          MESSAGE: ${{ github.event.inputs.message }}
+          MESSAGE: ${{ steps.meta.outputs.message }}
         run: |
           if [ -z "$OTA_DEPLOY_TOKEN" ]; then
             echo "::error::Secret OTA_DEPLOY_TOKEN is not set in repository secrets."
