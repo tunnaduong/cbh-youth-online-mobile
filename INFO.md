@@ -356,9 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
-- **OTA Updates (EAS) workflow and channel configuration** (`.github/workflows/ota-update.yml`, `app.json`):
-  - Added `ota-update.yml` workflow with manual trigger (`workflow_dispatch`) to publish JS bundle hotfixes to EAS update channels (`production`, `preview`) via `eas-cli` in ~1-2 minutes without full CI native builds.
-  - Configured `requestHeaders` with `"expo-channel-name": "production"` in `app.json` under `updates` so custom CI builds (`expo prebuild`) embed the update channel into native manifests.
+- **Self-hosted OTA Updates via expo-updates** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AboutScreen.js`, `app/i18n/locales/*.json`):
+  - Configured self-hosted Over-The-Air updates server URL in `app.json` (`updates.url: "https://api.chuyenbienhoa.com/v1.0/ota/manifest"`), with `"expo-channel-name": "production"` request header and `checkAutomatically: "ON_LOAD"`.
+  - Added `otaService.js` to manage checking (`checkForUpdateAsync`), downloading (`fetchUpdateAsync`), and reloading (`reloadAsync`) OTA bundles via `expo-updates`.
+  - Added "App Updates" section to `AboutScreen.js` displaying the native version, build number, current OTA update ID or embedded build status, and a manual "Check for updates" button with restart prompts and i18n support.
+  - Added `.github/workflows/ota-update.yml` with manual dispatch to build bundles via `npx expo export`, zip the output, and publish directly to `POST /v1.0/admin/ota/publish` using the `OTA_DEPLOY_TOKEN` secret.
 
 
 - **Chat conversation: flat Messenger-style header and composer, split into files, typing no longer re-renders the screen** (not run on a device; no API change):

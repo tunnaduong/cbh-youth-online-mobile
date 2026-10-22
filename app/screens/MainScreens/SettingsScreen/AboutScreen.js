@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -8,14 +8,19 @@ import {
   Image,
   Animated,
   StatusBar,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
+import * as Application from "expo-application";
+import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
+import { getRunningUpdateInfo, checkAndFetchUpdate, reloadApp } from "../../../services/ota/otaService";
 
 const Section = ({ title, children, theme }) => (
   <View style={[styles.sectionWrapper]}>
@@ -30,6 +35,56 @@ export default function AboutScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
+
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const runningUpdate = getRunningUpdateInfo();
+
+  const handleCheckUpdate = async () => {
+    if (isCheckingUpdate) return;
+    setIsCheckingUpdate(true);
+    try {
+      const result = await checkAndFetchUpdate();
+      if (result.status === "dev_mode") {
+        Toast.show({
+          type: "info",
+          text1: t("about.updatesTitle"),
+          text2: t("about.devModeNotice"),
+        });
+      } else if (result.status === "up_to_date") {
+        Toast.show({
+          type: "success",
+          text1: t("about.updatesTitle"),
+          text2: t("about.upToDate"),
+        });
+      } else if (result.status === "downloaded") {
+        Alert.alert(
+          t("about.downloadedTitle"),
+          t("about.downloadedDesc"),
+          [
+            { text: t("about.later"), style: "cancel" },
+            {
+              text: t("about.restartNow"),
+              onPress: () => reloadApp(),
+            },
+          ]
+        );
+      } else {
+        Toast.show({
+          type: "error",
+          text1: t("about.updatesTitle"),
+          text2: t("about.errorCheck"),
+        });
+      }
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: t("about.updatesTitle"),
+        text2: t("about.errorCheck"),
+      });
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   const scrollY = React.useRef(new Animated.Value(0)).current;
 
@@ -171,6 +226,36 @@ export default function AboutScreen({ navigation }) {
           </Text>
         </Section>
 
+        <Section title={t("about.updatesTitle")} theme={theme}>
+          <View style={styles.updateRow}>
+            <Text style={[styles.updateLabel, { color: theme.subText }]}>{t("about.appVersion")}</Text>
+            <Text style={[styles.updateValue, { color: theme.text }]}>
+              {Application.nativeApplicationVersion || "6.0.1"} ({Application.nativeBuildVersion || "969"})
+            </Text>
+          </View>
+          <View style={[styles.updateRow, { marginTop: 10 }]}>
+            <Text style={[styles.updateLabel, { color: theme.subText }]}>{t("about.otaUpdate")}</Text>
+            <Text style={[styles.updateValue, { color: theme.text }]}>
+              {runningUpdate.updateId ? `${runningUpdate.updateId.slice(0, 8)}...` : t("about.embeddedBuild")}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.checkUpdateButton, { backgroundColor: theme.primary }]}
+            onPress={handleCheckUpdate}
+            disabled={isCheckingUpdate}
+            activeOpacity={0.8}
+          >
+            {isCheckingUpdate ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <View style={styles.buttonInner}>
+                <Ionicons name="cloud-download-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />
+                <Text style={styles.checkUpdateButtonText}>{t("about.checkUpdates")}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </Section>
+
         <Text style={[styles.copyright, { color: theme.subText }]}>
           {t("about.copyright")}
         </Text>
@@ -247,6 +332,36 @@ const styles = StyleSheet.create({
   bulletPoint: {
     fontSize: 14,
     lineHeight: 24,
+  },
+  updateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  updateLabel: {
+    fontSize: 14,
+  },
+  updateValue: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  checkUpdateButton: {
+    marginTop: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buttonInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkUpdateButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
   },
   copyright: {
     fontSize: 12,

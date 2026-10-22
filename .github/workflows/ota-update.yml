@@ -1,23 +1,27 @@
-name: OTA Update (EAS)
+name: OTA Update (expo-updates)
 
 on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'EAS Update Channel (e.g. production, preview)'
+        description: 'Update Channel (e.g. production, preview)'
         required: true
         default: 'production'
       message:
         description: 'Update commit / release note'
         required: false
         default: 'OTA update via GitHub Actions'
+      runtime_version:
+        description: 'Runtime version override (leave empty to use app.json)'
+        required: false
+        default: ''
 
 concurrency:
   group: ota-update-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  update:
+  publish-ota:
     name: Publish OTA Update
     runs-on: ubuntu-latest
 
@@ -34,8 +38,44 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Publish OTA Update with EAS CLI
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Resolve runtime version
+        id: runtime
         run: |
-          npx --yes eas-cli update --channel ${{ github.event.inputs.channel }} --message "${{ github.event.inputs.message }}" --non-interactive
+          INPUT_VERSION="${{ github.event.inputs.runtime_version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "version=$INPUT_VERSION" >> $GITHUB_OUTPUT
+          else
+            RESOLVED=$(node -p "require('./app.json').expo.runtimeVersion || '7.4.10'")
+            echo "version=$RESOLVED" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Export update bundle with Expo CLI
+        run: npx expo export --output-dir dist
+
+      - name: Archive dist package
+        run: |
+          cd dist
+          zip -r ../dist.zip .
+          cd ..
+
+      - name: Publish update to self-hosted server
+        env:
+          OTA_DEPLOY_TOKEN: ${{ secrets.OTA_DEPLOY_TOKEN }}
+          CHANNEL: ${{ github.event.inputs.channel }}
+          RUNTIME_VERSION: ${{ steps.runtime.outputs.version }}
+          MESSAGE: ${{ github.event.inputs.message }}
+        run: |
+          if [ -z "$OTA_DEPLOY_TOKEN" ]; then
+            echo "::error::Secret OTA_DEPLOY_TOKEN is not set in repository secrets."
+            exit 1
+          fi
+
+          RESPONSE=$(curl --fail-with-body -s -S -X POST "https://api.chuyenbienhoa.com/v1.0/admin/ota/publish" \
+            -H "Authorization: Bearer ${OTA_DEPLOY_TOKEN}" \
+            -F "archive=@dist.zip" \
+            -F "channel=${CHANNEL}" \
+            -F "runtime_version=${RUNTIME_VERSION}" \
+            -F "message=${MESSAGE}")
+
+          echo "Publish Response:"
+          echo "$RESPONSE"
