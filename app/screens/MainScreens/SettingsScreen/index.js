@@ -360,6 +360,11 @@ export default function SettingsScreen({ navigation }) {
             onPress={() => navigation.navigate("BlockedUsersScreen")}
           />
           <SettingItem
+            icon="cloud-download-outline"
+            title={t("settings.appUpdates", "Cập nhật ứng dụng")}
+            onPress={() => navigation.navigate("AppUpdatesScreen")}
+          />
+          <SettingItem
             icon="information-circle-outline"
             title={t("settings.about")}
             onPress={() => navigation.navigate("AboutScreen")}

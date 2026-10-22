@@ -62,6 +62,7 @@ import ProfileDetailScreen from "./app/screens/MainScreens/ProfileDetailScreen";
 import ReportNavigator from "./app/screens/MainScreens/ReportScreen/ReportNavigator";
 import FeedbackScreen from "./app/screens/MainScreens/FeedbackScreen";
 import SettingsScreen from "./app/screens/MainScreens/SettingsScreen";
+import AppUpdatesScreen from "./app/screens/MainScreens/SettingsScreen/AppUpdatesScreen";
 import AboutScreen from "./app/screens/MainScreens/SettingsScreen/AboutScreen";
 import EasterEggScreen from "./app/screens/MainScreens/SettingsScreen/EasterEggScreen";
 import TermsOfServiceScreen from "./app/screens/MainScreens/SettingsScreen/TermsOfServiceScreen";
@@ -826,6 +827,13 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="Settings"
                 component={SettingsScreen}
+                options={{
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen
+                name="AppUpdatesScreen"
+                component={AppUpdatesScreen}
                 options={{
                   headerShown: false,
                 }}

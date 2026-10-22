@@ -356,10 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
-- **Self-hosted OTA Updates via expo-updates** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AboutScreen.js`, `app/i18n/locales/*.json`):
+- **Self-hosted OTA Updates via expo-updates** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/i18n/locales/*.json`):
   - Configured self-hosted Over-The-Air updates server URL in `app.json` (`updates.url: "https://api.chuyenbienhoa.com/v1.0/ota/manifest"`), with `"expo-channel-name": "production"` request header and `checkAutomatically: "ON_LOAD"`.
   - Added `otaService.js` to manage checking (`checkForUpdateAsync`), downloading (`fetchUpdateAsync`), and reloading (`reloadAsync`) OTA bundles via `expo-updates`.
-  - Added "App Updates" section to `AboutScreen.js` displaying the native version, build number, current OTA update ID or embedded build status, and a manual "Check for updates" button with restart prompts and i18n support.
+  - Added dedicated "Cập nhật ứng dụng" item in `SettingsScreen` and created `AppUpdatesScreen.js` displaying the native version, build number, OTA update ID or embedded build status, and a manual "Check for updates" button with restart prompts and i18n support.
   - Added `.github/workflows/ota-update.yml` with manual dispatch to build bundles via `npx expo export`, zip the output, and publish directly to `POST /v1.0/admin/ota/publish` using the `OTA_DEPLOY_TOKEN` secret.
 
 
