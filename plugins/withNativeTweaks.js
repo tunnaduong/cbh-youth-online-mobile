@@ -6,6 +6,7 @@ const path = require("path");
 const {
   AndroidConfig,
   withAndroidManifest,
+  withAppBuildGradle,
   withAppDelegate,
   withDangerousMod,
 } = require("expo/config-plugins");
@@ -150,9 +151,30 @@ const withPasteInputSetup = (config) =>
     return cfg;
   });
 
+const BUNDLE_TASK_MARKER = "[withNativeTweaks] force fresh JS bundle";
+const BUNDLE_TASK_BLOCK = `
+// ${BUNDLE_TASK_MARKER}
+// Force React Native's JS bundling tasks to always re-run so that incremental
+// builds never reuse a stale JS bundle without needing a full \`gradlew clean\`.
+afterEvaluate {
+    tasks.matching { it.name.startsWith("createBundle") && it.name.endsWith("JsAndAssets") }.configureEach {
+        outputs.upToDateWhen { false }
+    }
+}
+`;
+
+const withFreshJsBundle = (config) =>
+  withAppBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(BUNDLE_TASK_MARKER)) return cfg;
+    cfg.modResults.contents += BUNDLE_TASK_BLOCK;
+    return cfg;
+  });
+
 module.exports = (config) =>
-  withPasteInputSetup(
-    withImageModuleClasses(
-      withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+  withFreshJsBundle(
+    withPasteInputSetup(
+      withImageModuleClasses(
+        withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+      )
     )
   );

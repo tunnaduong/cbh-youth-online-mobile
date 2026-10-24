@@ -356,6 +356,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Fix chat & comment crash on Android** (`app/utils/pastedImages.js`): `PasteInput` on Android renders `PasteTextInputNativeComponent` whose C++ shadow node is not React Native's `AndroidTextInputShadowNode`. When passed into `MarkdownTextInput` (live-markdown), the C++ decorator's `dynamic_pointer_cast<AndroidTextInputShadowNode>` returned null and caused an immediate SIGSEGV null pointer dereference (`overwriteTextLayoutManager`). Restricted `PasteInputComponent` to iOS only (where it wraps standard `TextInput` via ISA swizzling), restoring standard `TextInput` on Android without crashing.
+
 - **Build fixes after SDK 58** (`patches/`): `@mattermost/react-native-paste-input` patch (iOS: `self.bridge.surfacePresenter` is typed `id<RCTSurfacePresenterStub>` in RN 0.88, no longer the removed `RCTSurfacePresenterBridgeAdapter`) and `react-native-date-picker` patch (Android: `proguard-android-optimize.txt` instead of `proguard-android.txt`, which AGP/Gradle 9 rejects, so R8 now optimizes). Not built yet.
 
 - **Expo SDK 58 upgrade** (not built or run on a device; **needs a new native build**; `package.json`, `app.json`, `patches/`, `.github/workflows/build-ios.yml`, `plugins/withNativeTweaks.js`):
