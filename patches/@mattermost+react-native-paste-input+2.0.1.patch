@@ -1,0 +1,13 @@
+diff --git a/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm b/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm
+index 59ff531..8fb7dd8 100644
+--- a/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm
++++ b/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm
+@@ -180,7 +180,7 @@ RCT_EXPORT_MODULE()
+     // Fallback to bridge mode (Fabric with bridge enabled)
+     else if (self.bridge) {
+         // self.bridge.surfacePresenter returns RCTSurfacePresenterBridgeAdapter
+-        RCTSurfacePresenterBridgeAdapter *adapter = self.bridge.surfacePresenter;
++        id adapter = (id)self.bridge.surfacePresenter;
+         if (adapter && [adapter respondsToSelector:@selector(surfacePresenter)]) {
+             return adapter.surfacePresenter;
+         }

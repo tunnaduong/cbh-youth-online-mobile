@@ -356,6 +356,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Build fixes after SDK 58** (`patches/`): `@mattermost/react-native-paste-input` patch (iOS: `self.bridge.surfacePresenter` is typed `id<RCTSurfacePresenterStub>` in RN 0.88, no longer the removed `RCTSurfacePresenterBridgeAdapter`) and `react-native-date-picker` patch (Android: `proguard-android-optimize.txt` instead of `proguard-android.txt`, which AGP/Gradle 9 rejects, so R8 now optimizes). Not built yet.
+
 - **Expo SDK 58 upgrade** (not built or run on a device; **needs a new native build**; `package.json`, `app.json`, `patches/`, `.github/workflows/build-ios.yml`, `plugins/withNativeTweaks.js`):
   - Every Expo package is at the SDK 58 version (`expo` 58.0.19, RN 0.88.0, React 19.3.0, Reanimated 4.7.1, worklets 0.13.0, Skia 2.14.0, screens ~4.30, gesture-handler ~3.3, keyboard-controller 1.22.7, ...); `expo install --fix` is the reference, and the `expo.install.exclude` list is gone. `expo-share-intent` 9 (needs Expo 58), `react-native-liquid-glassmorphism` 1.2.1, other non-Expo libs bumped within their semver range. `@react-navigation/*` stays on the 8.0.0 alphas (no stable v8 yet; v7 would change behavior).
   - **`expo-build-properties` removed**: its only use was pinning iOS `deploymentTarget` 15.1 and `buildReactNativeFromSource`. iOS now uses the SDK's default target. The pod-target clamp in `withNativeTweaks.js` only runs when `ios.deploymentTarget` is set, so it is idle now.
