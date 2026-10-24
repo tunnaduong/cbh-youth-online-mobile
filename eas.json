@@ -8,7 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "image": "macos-sequoia-15.6-xcode-26.2"
+        "image": "macos-tahoe-26.6-xcode-27.1"
       }
     },
     "preview": {
@@ -16,7 +16,7 @@
         "buildType": "apk"
       },
       "ios": {
-        "image": "macos-sequoia-15.6-xcode-26.2"
+        "image": "macos-tahoe-26.6-xcode-27.1"
       },
       "distribution": "internal",
       "channel": "preview"
@@ -25,7 +25,7 @@
       "autoIncrement": false,
       "channel": "production",
       "ios": {
-        "image": "macos-sequoia-15.6-xcode-26.2"
+        "image": "macos-tahoe-26.6-xcode-27.1"
       },
       "android": {
         "buildType": "app-bundle"

@@ -13,16 +13,18 @@ const {
 const POD_TARGET_MARKER = "# [withNativeTweaks] clamp pod deployment targets";
 
 // react_native_post_install only raises a pod's deployment target up to the
-// app's minimum (15.1) - it never lowers one. A pod whose podspec asks for
+// app's minimum - it never lowers one. A pod whose podspec asks for
 // more (e.g. 16.0) keeps compiling against it, which can weak-link APIs
 // wrongly and crash through dyld at launch on iOS 15. Forcing every pod down
 // to the app's own target turns that into a build-time availability error.
 const POD_TARGET_BLOCK = `
     ${POD_TARGET_MARKER}
-    app_deployment_target = podfile_properties['ios.deploymentTarget'] || '15.1'
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |build_config|
-        build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = app_deployment_target
+    app_deployment_target = podfile_properties['ios.deploymentTarget']
+    if app_deployment_target
+      installer.pods_project.targets.each do |target|
+        target.build_configurations.each do |build_config|
+          build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = app_deployment_target
+        end
       end
     end
 `;

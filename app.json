@@ -2,14 +2,17 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "6.0.1",
+    "version": "6.4.3",
     "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "default",
     "icon": "./app/assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "com.fatties.youth",
-    "platforms": ["ios", "android"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
     "ios": {
       "supportsTablet": true,
       "icon": {
@@ -183,15 +186,6 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "deploymentTarget": "15.1",
-            "buildReactNativeFromSource": true
-          }
-        }
-      ],
       "expo-video",
       "react-native-liquid-glassmorphism",
       [
