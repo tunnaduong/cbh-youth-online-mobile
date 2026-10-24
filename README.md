@@ -86,7 +86,7 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 - Expo CLI dùng qua `npx expo`; EAS CLI có sẵn trong devDependencies (`npx eas`) hoặc cài `npm install -g eas-cli`.
 - Watchman (macOS), Git.
 - Android Studio + SDK/NDK + JDK 17 cho build Android.
-- Xcode 16+ & CocoaPods cho build iOS (chạy trên macOS, iOS deployment target 15.1).
+- Xcode 27+ & CocoaPods cho build iOS (chạy trên macOS, iOS deployment target theo mặc định của Expo SDK 58).
 - Thiết bị thật để thử thông báo đẩy và OAuth sâu.
 
 ### Các bước cài đặt
