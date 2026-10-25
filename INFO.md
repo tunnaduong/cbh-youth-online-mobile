@@ -356,6 +356,20 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Enable PasteInput on Android & iOS and fix native builds** (`app/utils/pastedImages.js`, `patches/`):
+  - Enabled `PasteInputComponent` on both Android and iOS.
+  - Patched `@expensify/react-native-live-markdown` (`patches/@expensify+react-native-live-markdown+0.1.345.patch`): added null-guard to `MarkdownTextInputDecoratorShadowNode::overwriteTextLayoutManager()` on Android so non-`AndroidTextInputShadowNode` inputs (like `PasteTextInput`) do not cause a SIGSEGV null pointer dereference.
+  - Patched `@mattermost/react-native-paste-input` (`patches/@mattermost+react-native-paste-input+2.0.1.patch`): fixed iOS New Arch compile errors in `PasteInputModule.mm` by replacing property dot access on `id adapter` with selector checks and adding `keyWindow` view tag traversal fallback; removed obsolete `RCTSurfacePresenterBridgeAdapter.h` import; forward-declared `RCTRootViewFactory` in `PasteInputModule.h`.
+  - Patched `@react-navigation/native` (`patches/@react-navigation+native+8.0.0-alpha.39.patch`): fixed Android Kotlin compilation error in `MaterialSymbolModule.kt` by invoking `getCurrentActivity()` instead of property access.
+
+- **Build fixes after SDK 58** (`patches/`): `@mattermost/react-native-paste-input` patch (iOS: `self.bridge.surfacePresenter` is typed `id<RCTSurfacePresenterStub>` in RN 0.88, no longer the removed `RCTSurfacePresenterBridgeAdapter`) and `react-native-date-picker` patch (Android: `proguard-android-optimize.txt` instead of `proguard-android.txt`, which AGP/Gradle 9 rejects, so R8 now optimizes). Not built yet.
+
+- **Expo SDK 58 upgrade** (not built or run on a device; **needs a new native build**; `package.json`, `app.json`, `patches/`, `.github/workflows/build-ios.yml`, `plugins/withNativeTweaks.js`):
+  - Every Expo package is at the SDK 58 version (`expo` 58.0.19, RN 0.88.0, React 19.3.0, Reanimated 4.7.1, worklets 0.13.0, Skia 2.14.0, screens ~4.30, gesture-handler ~3.3, keyboard-controller 1.22.7, ...); `expo install --fix` is the reference, and the `expo.install.exclude` list is gone. `expo-share-intent` 9 (needs Expo 58), `react-native-liquid-glassmorphism` 1.2.1, other non-Expo libs bumped within their semver range. `@react-navigation/*` stays on the 8.0.0 alphas (no stable v8 yet; v7 would change behavior).
+  - **`expo-build-properties` removed**: its only use was pinning iOS `deploymentTarget` 15.1 and `buildReactNativeFromSource`. iOS now uses the SDK's default target. The pod-target clamp in `withNativeTweaks.js` only runs when `ios.deploymentTarget` is set, so it is idle now.
+  - **Patches**: `react-native-screens` and `@react-native/gradle-plugin` patches dropped (screens 4.30 no longer has the line it changed; RN 0.88's gradle plugin already ships `foojay-resolver` 1.0.0, a clean install shows no diff); the live-markdown patch (0.1.345, pinned) is regenerated against the new version. **Regenerate it when upgrading live-markdown.**
+  - **CI**: `build-ios.yml` runs on the `xcode-27` runner image with Xcode 27.1 (`macos-latest` only has Xcode 26.x).
+
 - **Self-hosted OTA Updates via expo-updates** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `app/screens/MainScreens/SettingsScreen/index.js`, `app/i18n/locales/*.json`):
   - Configured self-hosted Over-The-Air updates server URL in `app.json` (`updates.url: "https://api.chuyenbienhoa.com/v1.0/ota/manifest"`), with `"expo-channel-name": "production"` request header and `checkAutomatically: "ON_LOAD"`.
   - Added `otaService.js` to manage checking (`checkForUpdateAsync`), downloading (`fetchUpdateAsync`), and reloading (`reloadAsync`) OTA bundles via `expo-updates`.

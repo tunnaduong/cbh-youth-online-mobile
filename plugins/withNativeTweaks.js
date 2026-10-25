@@ -6,6 +6,7 @@ const path = require("path");
 const {
   AndroidConfig,
   withAndroidManifest,
+  withAppBuildGradle,
   withAppDelegate,
   withDangerousMod,
 } = require("expo/config-plugins");
@@ -13,16 +14,18 @@ const {
 const POD_TARGET_MARKER = "# [withNativeTweaks] clamp pod deployment targets";
 
 // react_native_post_install only raises a pod's deployment target up to the
-// app's minimum (15.1) - it never lowers one. A pod whose podspec asks for
+// app's minimum - it never lowers one. A pod whose podspec asks for
 // more (e.g. 16.0) keeps compiling against it, which can weak-link APIs
 // wrongly and crash through dyld at launch on iOS 15. Forcing every pod down
 // to the app's own target turns that into a build-time availability error.
 const POD_TARGET_BLOCK = `
     ${POD_TARGET_MARKER}
-    app_deployment_target = podfile_properties['ios.deploymentTarget'] || '15.1'
-    installer.pods_project.targets.each do |target|
-      target.build_configurations.each do |build_config|
-        build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = app_deployment_target
+    app_deployment_target = podfile_properties['ios.deploymentTarget']
+    if app_deployment_target
+      installer.pods_project.targets.each do |target|
+        target.build_configurations.each do |build_config|
+          build_config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = app_deployment_target
+        end
       end
     end
 `;
@@ -148,9 +151,30 @@ const withPasteInputSetup = (config) =>
     return cfg;
   });
 
+const BUNDLE_TASK_MARKER = "[withNativeTweaks] force fresh JS bundle";
+const BUNDLE_TASK_BLOCK = `
+// ${BUNDLE_TASK_MARKER}
+// Force React Native's JS bundling tasks to always re-run so that incremental
+// builds never reuse a stale JS bundle without needing a full \`gradlew clean\`.
+afterEvaluate {
+    tasks.matching { it.name.startsWith("createBundle") && it.name.endsWith("JsAndAssets") }.configureEach {
+        outputs.upToDateWhen { false }
+    }
+}
+`;
+
+const withFreshJsBundle = (config) =>
+  withAppBuildGradle(config, (cfg) => {
+    if (cfg.modResults.contents.includes(BUNDLE_TASK_MARKER)) return cfg;
+    cfg.modResults.contents += BUNDLE_TASK_BLOCK;
+    return cfg;
+  });
+
 module.exports = (config) =>
-  withPasteInputSetup(
-    withImageModuleClasses(
-      withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+  withFreshJsBundle(
+    withPasteInputSetup(
+      withImageModuleClasses(
+        withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
+      )
     )
   );
