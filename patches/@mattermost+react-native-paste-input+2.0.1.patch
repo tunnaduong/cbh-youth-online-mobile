@@ -1,13 +1,111 @@
+diff --git a/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.h b/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.h
+index 126857f..e43e243 100644
+--- a/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.h
++++ b/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.h
+@@ -8,11 +8,7 @@
+ 
+ #import <React/RCTBridgeModule.h>
+ #import <React/RCTEventEmitter.h>
+-#if __has_include(<React-RCTAppDelegate/RCTRootViewFactory.h>)
+-#import <React-RCTAppDelegate/RCTRootViewFactory.h>
+-#else
+-#import "React_RCTAppDelegate/RCTRootViewFactory.h"
+-#endif
++@class RCTRootViewFactory;
+ 
+ 
+ #ifdef RCT_NEW_ARCH_ENABLED
 diff --git a/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm b/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm
-index 59ff531..8fb7dd8 100644
+index 59ff531..69062f4 100644
 --- a/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm
 +++ b/node_modules/@mattermost/react-native-paste-input/ios/PasteInputModule.mm
-@@ -180,7 +180,7 @@ RCT_EXPORT_MODULE()
+@@ -15,7 +15,6 @@
+ #ifdef RCT_NEW_ARCH_ENABLED
+ #import <PasteTextInputSpecs/PasteTextInputSpecs.h>
+ #import <React/RCTSurfacePresenter.h>
+-#import <React/RCTSurfacePresenterBridgeAdapter.h>
+ #import <React/RCTFabricSurface.h>
+ #import <React/RCTMountingManager.h>
+ #import <React/RCTComponentViewRegistry.h>
+@@ -174,18 +173,18 @@ RCT_EXPORT_MODULE()
+ {
+ #ifdef RCT_NEW_ARCH_ENABLED
+     // Try bridgeless mode first (if reactHost is set)
+-    if (_reactHost) {
++    if (_reactHost && [_reactHost respondsToSelector:@selector(surfacePresenter)]) {
+         return [_reactHost performSelector:@selector(surfacePresenter)];
+     }
      // Fallback to bridge mode (Fabric with bridge enabled)
      else if (self.bridge) {
-         // self.bridge.surfacePresenter returns RCTSurfacePresenterBridgeAdapter
+-        // self.bridge.surfacePresenter returns RCTSurfacePresenterBridgeAdapter
 -        RCTSurfacePresenterBridgeAdapter *adapter = self.bridge.surfacePresenter;
-+        id adapter = (id)self.bridge.surfacePresenter;
-         if (adapter && [adapter respondsToSelector:@selector(surfacePresenter)]) {
-             return adapter.surfacePresenter;
+-        if (adapter && [adapter respondsToSelector:@selector(surfacePresenter)]) {
+-            return adapter.surfacePresenter;
++        if ([self.bridge respondsToSelector:@selector(surfacePresenter)]) {
++            id adapter = [self.bridge performSelector:@selector(surfacePresenter)];
++            if (adapter && [adapter respondsToSelector:@selector(surfacePresenter)]) {
++                return [adapter performSelector:@selector(surfacePresenter)];
++            }
++            return adapter;
          }
+-        // If that fails, the adapter itself might be the surface presenter
+-        return adapter;
+     }
+ #endif
+     return nil;
+@@ -200,17 +199,18 @@ RCT_EXPORT_MODULE()
+ {
+     UIView *view = nil;
+ 
+-
+ #ifdef RCT_NEW_ARCH_ENABLED
+     id surfacePresenter = [self getSurfacePresenter];
+     if (surfacePresenter) {
+ 
+         // Get mountingManager from surfacePresenter
+-        id mountingManager = [surfacePresenter performSelector:@selector(mountingManager)];
++        SEL mmSel = @selector(mountingManager);
++        id mountingManager = [surfacePresenter respondsToSelector:mmSel] ? [surfacePresenter performSelector:mmSel] : nil;
+         if (mountingManager) {
+ 
+             // Get componentViewRegistry from mountingManager
+-            id componentViewRegistry = [mountingManager performSelector:@selector(componentViewRegistry)];
++            SEL cvrSel = @selector(componentViewRegistry);
++            id componentViewRegistry = [mountingManager respondsToSelector:cvrSel] ? [mountingManager performSelector:cvrSel] : nil;
+             if (componentViewRegistry) {
+ 
+                 // Find the view by tag
+@@ -223,6 +223,33 @@ RCT_EXPORT_MODULE()
+     }
+ #endif
+ 
++    // Fallback: search key window hierarchy by tag if surfacePresenter could not locate it
++    if (!view) {
++        NSInteger tag = [viewRef integerValue];
++        UIWindow *targetWindow = nil;
++        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
++            if ([scene isKindOfClass:[UIWindowScene class]] &&
++                (scene.activationState == UISceneActivationStateForegroundActive || scene.activationState == UISceneActivationStateForegroundInactive)) {
++                for (UIWindow *w in ((UIWindowScene *)scene).windows) {
++                    if (w.isKeyWindow) {
++                        targetWindow = w;
++                        break;
++                    }
++                }
++            }
++            if (targetWindow) break;
++        }
++        if (!targetWindow) {
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Wdeprecated-declarations"
++            targetWindow = [UIApplication sharedApplication].keyWindow;
++#pragma clang diagnostic pop
++        }
++        if (targetWindow) {
++            view = [targetWindow viewWithTag:tag];
++        }
++    }
++
+     if (!view) {
+         return nil;
+     }

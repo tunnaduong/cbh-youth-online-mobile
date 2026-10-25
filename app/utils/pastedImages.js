@@ -12,12 +12,10 @@ import { Platform } from "react-native";
 // causes a SIGSEGV null pointer dereference at overwriteTextLayoutManager().
 // On iOS, PasteInput wraps standard TextInput via ISA swizzling, so it works seamlessly.
 let PasteInput = null;
-if (Platform.OS === "ios") {
-  try {
-    PasteInput = require("@mattermost/react-native-paste-input").default;
-  } catch (error) {
-    PasteInput = null;
-  }
+try {
+  PasteInput = require("@mattermost/react-native-paste-input").default;
+} catch (error) {
+  PasteInput = null;
 }
 
 export const PasteInputComponent = PasteInput;

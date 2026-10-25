@@ -1,3 +1,21 @@
+diff --git a/node_modules/@expensify/react-native-live-markdown/android/src/main/new_arch/react/renderer/components/RNLiveMarkdownSpec/MarkdownTextInputDecoratorShadowNode.cpp b/node_modules/@expensify/react-native-live-markdown/android/src/main/new_arch/react/renderer/components/RNLiveMarkdownSpec/MarkdownTextInputDecoratorShadowNode.cpp
+index ae68cb5..3330004 100644
+--- a/node_modules/@expensify/react-native-live-markdown/android/src/main/new_arch/react/renderer/components/RNLiveMarkdownSpec/MarkdownTextInputDecoratorShadowNode.cpp
++++ b/node_modules/@expensify/react-native-live-markdown/android/src/main/new_arch/react/renderer/components/RNLiveMarkdownSpec/MarkdownTextInputDecoratorShadowNode.cpp
+@@ -133,9 +133,10 @@ void MarkdownTextInputDecoratorShadowNode::overwriteTextLayoutManager() {
+   const auto child = std::dynamic_pointer_cast<const AndroidTextInputShadowNode>(
+       children[0]);
+ 
+-  react_native_assert(
+-      child != nullptr &&
+-      "MarkdownTextInputDecoratorView received child other than a TextInput");
++  if (!child) {
++    return;
++  }
++
+   child->ensureUnsealed();
+ 
+   const auto mutableChild = std::const_pointer_cast<AndroidTextInputShadowNode>(child);
 diff --git a/node_modules/@expensify/react-native-live-markdown/src/MarkdownTextInput.tsx b/node_modules/@expensify/react-native-live-markdown/src/MarkdownTextInput.tsx
 index 935b055..ee9129e 100644
 --- a/node_modules/@expensify/react-native-live-markdown/src/MarkdownTextInput.tsx
