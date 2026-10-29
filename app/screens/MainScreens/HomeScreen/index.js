@@ -1034,6 +1034,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     refreshUserInfo,
     blockedUsers,
     blockUser: blockUserInContext,
+    getAvatarUrl,
   } = useContext(AuthContext);
   const { updateStatusBar } = useStatusBar();
   const { theme, isDarkMode, autoplayVideos } = useTheme();
@@ -1992,9 +1993,112 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
   };
 
   const ListHeader = () => {
+    const avatarUri = username
+      ? getAvatarUrl
+        ? getAvatarUrl(username)
+        : `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`
+      : null;
+
     return (
       <>
         {EmailVerificationAlert()}
+        {/* "Bạn đang nghĩ gì?" composer prompt */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 15,
+            paddingTop: 12,
+            paddingBottom: 4,
+            gap: 10,
+            backgroundColor: theme.background,
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={t("navigation.profile")}
+            onPress={() =>
+              username
+                ? navigation.navigate("ProfileScreen", { username })
+                : navigation.navigate("CreatePostScreen")
+            }
+          >
+            {avatarUri ? (
+              <FastImage
+                source={{ uri: avatarUri }}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderColor: theme.border,
+                }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: theme.iconBackground,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Ionicons name="person-outline" size={20} color={theme.subText} />
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t("createPost.title")}
+            onPress={() => navigation.navigate("CreatePostScreen")}
+            style={{
+              flex: 1,
+              height: 40,
+              borderRadius: 999,
+              backgroundColor: theme.surface,
+              borderWidth: 1,
+              borderColor: theme.border,
+              paddingHorizontal: 14,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                fontSize: 14,
+                color: theme.subText,
+              }}
+            >
+              {t("createPost.placeholderContent")}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={t("createPost.addImage")}
+            onPress={() => navigation.navigate("CreatePostScreen")}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: theme.iconBackground,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Ionicons name="images-outline" size={20} color={theme.primary} />
+          </TouchableOpacity>
+        </View>
         {/* Dành cho bạn / Mới nhất / Đang theo dõi tab toggle — sits above stories */}
         <ScrollView
           horizontal

@@ -1,16 +1,18 @@
-import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import React, { useState, useEffect, useRef, memo, useCallback, useContext } from "react";
 import { Dimensions, View, Platform, StyleSheet, Animated, Easing, DeviceEventEmitter, TouchableWithoutFeedback, TouchableOpacity, Text } from "react-native";
 import Sidebar from "../../components/Sidebar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import HomeScreen from "./HomeScreen";
-import CustomTabBarButton from "../../components/CustomTabBarButton";
 import SameHeader from "../../components/SameHeader";
 import MenuScreen from "./ForumScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
+import ProfileScreen from "./ProfileScreen";
+import FastImage from "../../components/FastImage";
+import { AuthContext } from "../../contexts/AuthContext";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
@@ -26,7 +28,6 @@ const ScreenWrapper = ({ children }) => {
 };
 
 const Tab = createBottomTabNavigator();
-const DummyComponent = () => null;
 
 const ANDROID_ICON_MAP = {
   Home: { focused: "home", outline: "home-outline" },
@@ -38,7 +39,7 @@ const ANDROID_ICON_MAP = {
 // Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
 // render prop) and driven directly by MainScreens' own `currentRoute` state
 // and navigation.
-const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, onCreatePress }) => {
+const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl }) => {
   const { theme, isDarkMode, hideTabLabels, liquidGlassEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -70,10 +71,11 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
   const indicator = isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)";
   const activeColor = theme.primary;
   const inactiveColor = isDarkMode ? "#A0A0A0" : "gray";
-  const opacity = activeRouteName === "Create" ? 0 : 1;
+  const isProfileFocused = activeRouteName === "Profile";
+  const opacity = activeLeftIndex >= 0 ? 1 : 0;
 
-  // The pill's real content (sliding indicator + tab buttons, or the "+"
-  // icon) must be actual React children of <LiquidGlassView> - not siblings
+  // The pill's real content (sliding indicator + tab buttons, or the "Tôi"
+  // avatar/icon) must be actual React children of <LiquidGlassView> - not siblings
   // drawn over an absoluteFill glass layer - both so the library composites
   // them crisply on top instead of also sweeping them into its captured-and-
   // blurred backdrop, and so `interactive` (the touch-following specular
@@ -157,10 +159,13 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
         })}
       </NavGlassWrapper>
 
-      {/* Right pill: create button */}
+      {/* Right pill: Me ("Tôi") button */}
       <TouchableOpacity
-        onPress={onCreatePress}
+        onPress={() => onTabPress("Profile")}
         activeOpacity={0.8}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isProfileFocused }}
+        accessibilityLabel={t("navigation.profile")}
         style={[{
           width: 53, height: 53, borderRadius: 26.5,
           overflow: "hidden",
@@ -179,7 +184,50 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
           },
           flatGlass && { elevation: 0, shadowOpacity: 0 }]}
         >
-          <Ionicons name="add" size={28} color={activeColor} />
+          {isProfileFocused && (
+            <View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, { backgroundColor: indicator, borderRadius: 26.5 }]}
+            />
+          )}
+          {avatarUrl ? (
+            <View
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: 12,
+                borderWidth: isProfileFocused ? 2 : 1,
+                borderColor: isProfileFocused ? activeColor : border,
+                overflow: "hidden",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <FastImage
+                source={{ uri: avatarUrl }}
+                style={{ width: 24, height: 24, borderRadius: 12 }}
+              />
+            </View>
+          ) : (
+            <Ionicons
+              name={isProfileFocused ? "person-circle" : "person-circle-outline"}
+              size={24}
+              color={isProfileFocused ? activeColor : inactiveColor}
+            />
+          )}
+          {!hideTabLabels && (
+            <Text
+              numberOfLines={1}
+              style={{
+                fontSize: 9,
+                color: isProfileFocused ? activeColor : inactiveColor,
+                fontWeight: "bold",
+                marginTop: 2,
+              }}
+            >
+              {t("navigation.profile")}
+            </Text>
+          )}
         </NavGlassWrapper>
       </TouchableOpacity>
     </View>
@@ -193,12 +241,6 @@ const tabIcon = (sfFilled, sfOutline, materialName) => ({ focused }) =>
     ios: { type: "sfSymbol", name: focused ? sfFilled : sfOutline },
     android: { type: "materialSymbol", name: materialName },
   });
-
-// Approximate content height of the native bottom tab bar (excludes the
-// safe-area bottom inset, which the OS adds on top of this). Used to anchor
-// the create menu just above the tab bar — react-navigation v8's native
-// bottom tabs don't yet expose a reliable useBottomTabBarHeight() for this.
-const NATIVE_TAB_BAR_CONTENT_HEIGHT = Platform.OS === 'ios' ? 49 : 56;
 
 // Defined outside MainScreens so its identity is stable across re-renders.
 // Re-mounting it would remount the entire Tab.Navigator, causing tab-switch lag.
@@ -267,11 +309,13 @@ export default function MainScreens({ navigation: stackNavigation }) {
   }, [stackNavigation]);
 
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
-  const createMenuRef = useRef(null);
+  const { username, getAvatarUrl } = useContext(AuthContext);
+  const avatarUrl = username && getAvatarUrl ? getAvatarUrl(username) : null;
   const homeScreenScrollTriggerRef = useRef(null);
   const forumScrollTriggerRef = useRef(null);
   const chatScrollTriggerRef = useRef(null);
   const notificationScrollTriggerRef = useRef(null);
+  const profileScrollTriggerRef = useRef(null);
   const { theme, isDarkMode, hideTabLabels } = useTheme();
   const { t } = useTranslation();
 
@@ -299,6 +343,12 @@ export default function MainScreens({ navigation: stackNavigation }) {
     }
   };
 
+  const triggerProfileScrollOrReload = () => {
+    if (profileScrollTriggerRef.current) {
+      profileScrollTriggerRef.current(Date.now());
+    }
+  };
+
   // Re-tapping the already-active tab scrolls/reloads it instead of
   // navigating (mirrors each Tab.Screen's own `listeners.tabPress` above),
   // since this tab bar is a standalone sibling rather than react-navigation's
@@ -308,6 +358,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
     Forum: triggerForumScrollOrReload,
     Chat: triggerChatScrollOrReload,
     Notifications: triggerNotificationScrollOrReload,
+    Profile: triggerProfileScrollOrReload,
   };
   // Long-pressing the Home button (tab bar or header logo) opens the
   // feedback form - a quick way to report a bug from anywhere.
@@ -338,9 +389,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return unsubscribe;
   }, [stackNavigation]);
 
-
-  const createButtonBottomOffset = insets.bottom + NATIVE_TAB_BAR_CONTENT_HEIGHT + 8;
-
   const setHomeScrollTrigger = useCallback((triggerFn) => {
     homeScreenScrollTriggerRef.current = triggerFn;
   }, []);
@@ -352,6 +400,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
   }, []);
   const setNotificationScrollTrigger = useCallback((triggerFn) => {
     notificationScrollTriggerRef.current = triggerFn;
+  }, []);
+  const setProfileScrollTrigger = useCallback((triggerFn) => {
+    profileScrollTriggerRef.current = triggerFn;
   }, []);
 
   const renderHomeScreen = useCallback((props) => (
@@ -379,6 +430,12 @@ export default function MainScreens({ navigation: stackNavigation }) {
       <NotificationScreen {...props} scrollTriggerRef={setNotificationScrollTrigger} />
     </ScreenWrapper>
   ), [setNotificationScrollTrigger]);
+
+  const renderProfileScreen = useCallback((props) => (
+    <ScreenWrapper>
+      <ProfileScreen {...props} isTab scrollTriggerRef={setProfileScrollTrigger} />
+    </ScreenWrapper>
+  ), [setProfileScrollTrigger]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -472,25 +529,6 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
 
           <Tab.Screen
-            name="Create"
-            component={DummyComponent}
-            options={{
-              title: t('navigation.create'),
-              headerShown: false,
-              tabBarIcon: tabIcon("plus", "plus", "add"),
-              // Native tab bars don't allow preventDefault on tabPress; this
-              // stops the tab from ever being selected so tapping just opens
-              // the create menu instead of navigating to the dummy screen.
-              tabBarSelectionEnabled: false,
-            }}
-            listeners={{
-              tabPress: () => {
-                stackNavigation.navigate("CreatePostScreen")
-              },
-            }}
-          />
-
-          <Tab.Screen
             name="Chat"
             options={{
               title: t('navigation.chat'),
@@ -527,6 +565,24 @@ export default function MainScreens({ navigation: stackNavigation }) {
           >
             {renderNotificationScreen}
           </Tab.Screen>
+
+          <Tab.Screen
+            name="Profile"
+            options={{
+              title: t('navigation.profile'),
+              headerShown: false,
+              tabBarIcon: tabIcon("person.crop.circle.fill", "person.crop.circle", "person"),
+            }}
+            listeners={{
+              tabPress: () => {
+                if (currentRoute === "Profile") {
+                  triggerProfileScrollOrReload();
+                }
+              },
+            }}
+          >
+            {renderProfileScreen}
+          </Tab.Screen>
         </Tab.Navigator>
       </View>
       </TabWrapper>
@@ -538,18 +594,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
           notificationUnreadCount={notificationUnreadCount}
           onTabPress={handleAndroidTabPress}
           onHomeLongPress={openFeedback}
-          onCreatePress={() => stackNavigation.navigate("CreatePostScreen")}
+          avatarUrl={avatarUrl}
         />
       )}
-
-      {/* Create menu. The "+" lives in the native center tab ("Tạo"); tapping
-          it opens this glass menu via the ref instead of navigating. */}
-      <CustomTabBarButton
-        ref={createMenuRef}
-        showButton={false}
-        bottomOffset={createButtonBottomOffset}
-        currentRoute={currentRoute}
-      />
 
       {/* Overlay Backdrop */}
       <TouchableWithoutFeedback onPress={() => setSetting(false)}>

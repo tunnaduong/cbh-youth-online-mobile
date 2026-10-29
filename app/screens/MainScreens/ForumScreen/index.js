@@ -276,17 +276,31 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
           <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("ProfileScreen", { username })}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", padding: 2 }}
-          >
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("MemberRankingScreen")}
+              accessibilityRole="button"
+              accessibilityLabel={t("sidebar.memberRanking")}
+              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+            >
+              <Ionicons name="trophy-outline" size={22} color={theme.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("CreatePostScreen")}
+              accessibilityRole="button"
+              accessibilityLabel={t("createPost.title")}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 18,
+                backgroundColor: theme.iconBackground,
+                alignItems: "center",
+                justifyContent: "center",
               }}
-              style={styles.avatar}
-            />
-          </TouchableOpacity>
+            >
+              <Ionicons name="add" size={22} color={theme.primary} />
+            </TouchableOpacity>
+          </View>
         </View>
         <View
           style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background, paddingTop: headerHeight }}
@@ -301,25 +315,31 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Floating header */}
-      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent", backgroundColor: "transparent" }]} pointerEvents="box-none">
+      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]} pointerEvents="box-none">
         <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() => navigation.navigate("MemberRankingScreen")}
+            accessibilityRole="button"
+            accessibilityLabel={t("sidebar.memberRanking")}
             style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
           >
             <Ionicons name="trophy-outline" size={22} color={theme.primary} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={() => navigation.navigate("ProfileScreen", { username })}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center", padding: 2 }}
+            onPress={() => navigation.navigate("CreatePostScreen")}
+            accessibilityRole="button"
+            accessibilityLabel={t("createPost.title")}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              backgroundColor: theme.iconBackground,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={styles.avatar}
-            />
+            <Ionicons name="add" size={22} color={theme.primary} />
           </TouchableOpacity>
         </View>
       </View>

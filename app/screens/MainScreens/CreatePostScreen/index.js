@@ -66,7 +66,7 @@ const CreatePostScreen = ({ navigation, route }) => {
   const [showDraftBanner, setShowDraftBanner] = useState(!!restoredDraft);
   // The draft stores the category by id; the option objects (with translated
   // labels) only exist once the subforum list has loaded.
-  const pendingSubforumRef = useRef(restoredDraft?.subforum ?? null);
+  const pendingSubforumRef = useRef(restoredDraft?.subforum ?? route?.params?.categoryId ?? null);
 
   const [title, setTitle] = useState(restoredDraft?.title ?? prefillTitle);
   const [selected, setSelected] = useState(null);

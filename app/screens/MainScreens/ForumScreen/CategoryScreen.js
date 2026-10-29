@@ -30,7 +30,7 @@ import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 
 import { getCategoryName, getCategoryDescription } from "../../../utils/forumUtils";
 
-const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity, insets }) => (
+const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity, insets, categoryId, createLabel }) => (
   <View pointerEvents="box-none" style={styles.floatingHeader}>
     <View style={{ paddingTop: insets.top, paddingBottom: 8, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, height: 64 + insets.top }}>
       <View style={{ width: 44 }}>
@@ -44,7 +44,17 @@ const SubforumHeader = ({ navigation, title, theme, scrollY, headerTitleOpacity,
       >
         {title}
       </Animated.Text>
-      <View style={{ width: 44 }} />
+      <View style={{ width: 44, alignItems: "flex-end" }}>
+        <LiquidButton
+          providerId="CategoryScreen"
+          size={44}
+          scrollY={scrollY}
+          accessibilityLabel={createLabel}
+          onPress={() => navigation.navigate("CreatePostScreen", { categoryId })}
+        >
+          <Ionicons name="add" size={24} color={theme.primary} />
+        </LiquidButton>
+      </View>
     </View>
   </View>
 );
@@ -168,7 +178,7 @@ const CategoryScreen = ({ navigation, route }) => {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} />
+        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
         <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
           <CustomLoading />
         </View>
@@ -179,7 +189,7 @@ const CategoryScreen = ({ navigation, route }) => {
   if (!forumData) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} />
+        <SubforumHeader navigation={navigation} title={t('forum.title')} theme={theme} scrollY={scrollY} insets={insets} categoryId={categoryId} createLabel={t("createPost.title")} />
         <View style={[styles.loadingContainer, { backgroundColor: theme.background, paddingTop: headerHeight }]}>
           <Image
             source={require("../../../assets/sad_frog.png")}
@@ -260,6 +270,8 @@ const CategoryScreen = ({ navigation, route }) => {
         scrollY={scrollY}
         headerTitleOpacity={headerTitleOpacity}
         insets={insets}
+        categoryId={categoryId}
+        createLabel={t("createPost.title")}
       />
 
       <AndroidGlassBackdrop providerId="CategoryScreen" style={{ flex: 1 }}>
