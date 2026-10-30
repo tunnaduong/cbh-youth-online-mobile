@@ -98,6 +98,7 @@ export default function FeedbackScreen({ navigation, route }) {
   const [email, setEmail] = useState("");
   const [images, setImages] = useState(() => (shakeScreenshot ? [shakeScreenshot] : [])); // local URIs
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState(-1);
 
   const inputBg = isDarkMode ? "#2A2A2A" : "#F3F4F6";
   const activeType = TYPES.find((x) => x.value === type) || TYPES[0];
@@ -152,13 +153,15 @@ export default function FeedbackScreen({ navigation, route }) {
     setSubmitting(true);
     try {
       const imageUrls = [];
-      for (const uri of images) {
+      for (let i = 0; i < images.length; i++) {
+        setUploadingIndex(i);
         try {
-          imageUrls.push(await uploadImage(uri));
+          imageUrls.push(await uploadImage(images[i]));
         } catch (e) {
           throw new Error(t("feedback.uploadError"));
         }
       }
+      setUploadingIndex(-1);
 
       const otaVersion = getOtaVersionString();
       await submitFeedback({
@@ -189,6 +192,7 @@ export default function FeedbackScreen({ navigation, route }) {
       });
     } finally {
       setSubmitting(false);
+      setUploadingIndex(-1);
     }
   };
 
@@ -287,21 +291,46 @@ export default function FeedbackScreen({ navigation, route }) {
           />
           <Text style={[styles.counter, { color: theme.subText }]}>{content.length}/5000</Text>
 
-          <Text style={[styles.label, { color: theme.text }]}>{t("feedback.imagesLabel", { max: MAX_IMAGES })}</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16, marginBottom: 8 }}>
+            <Text style={[styles.label, { color: theme.text, marginTop: 0, marginBottom: 0 }]}>
+              {t("feedback.imagesLabel", { max: MAX_IMAGES })}
+            </Text>
+            {submitting && images.length > 0 && uploadingIndex >= 0 && (
+              <Text style={{ fontSize: 12, color: theme.primary, fontWeight: "500" }}>
+                {t("feedback.uploadingImageProgress", {
+                  current: uploadingIndex + 1,
+                  total: images.length,
+                })}
+              </Text>
+            )}
+          </View>
           <View style={styles.imageRow}>
             {images.map((uri, idx) => (
               <View key={uri} style={styles.imageWrap}>
                 <FastImage source={{ uri }} style={styles.image} />
-                <TouchableOpacity
-                  style={styles.removeImage}
-                  onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
-                  hitSlop={6}
-                >
-                  <Ionicons name="close" size={14} color="#fff" />
-                </TouchableOpacity>
+                {submitting && (
+                  <View style={styles.imageLoadingOverlay}>
+                    {uploadingIndex === idx ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : uploadingIndex > idx ? (
+                      <Ionicons name="checkmark-circle" size={24} color="#22c55e" />
+                    ) : (
+                      <View style={styles.pendingDot} />
+                    )}
+                  </View>
+                )}
+                {!submitting && (
+                  <TouchableOpacity
+                    style={styles.removeImage}
+                    onPress={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                    hitSlop={6}
+                  >
+                    <Ionicons name="close" size={14} color="#fff" />
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
-            {images.length < MAX_IMAGES && (
+            {!submitting && images.length < MAX_IMAGES && (
               <TouchableOpacity
                 onPress={pickImages}
                 style={[styles.addImage, { borderColor: theme.border }]}
@@ -394,6 +423,18 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.6)",
     borderRadius: 10,
     padding: 2,
+  },
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pendingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
   },
   addImage: {
     width: 76,

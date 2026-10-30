@@ -90,11 +90,19 @@ export function getOtaChannel() {
  * with the active "expo-channel-name" header and persists across reboots.
  */
 export function applyChannelOverride(channel = getOtaChannel()) {
+  if (!Updates.isEnabled) {
+    return;
+  }
   try {
     if (typeof Updates.setUpdateRequestHeadersOverride === "function") {
-      Updates.setUpdateRequestHeadersOverride({
+      const res = Updates.setUpdateRequestHeadersOverride({
         "expo-channel-name": channel,
       });
+      if (res && typeof res.catch === "function") {
+        res.catch((err) => {
+          console.warn("[OTA] Could not set update request headers override:", err?.message);
+        });
+      }
     }
   } catch (err) {
     console.warn("[OTA] Could not set update request headers override:", err?.message);

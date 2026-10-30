@@ -420,6 +420,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
 > Only the newest entries are kept here, so this file stays short enough to read in full. When adding one, drop the oldest; `git log -p -- INFO.md` has everything that was removed.
 
+- **Min native build 1014, bug report image upload animations & OTA retry dialog i18n**:
+  - `minNativeBuild` bumped to `1014` in `app.json`, `otaConfig.js`, and `ota-update.yml`.
+  - Added animated upload indicator (`ActivityIndicator` overlay, status text, checkmark completion, and disabled delete while uploading) for bug report / feedback screenshots (`FeedbackScreen/index.js`).
+  - Added `"common.retry"` translation across `vi.json`, `en.json`, and `ru.json` so the update error modal retry button is properly translated.
+  - Guarded `applyChannelOverride` in `otaService.js` to prevent unhandled promise rejection warnings when running in environments where expo-updates is not enabled.
+  - Added explicit `"enabled": true` under `"updates"` in `app.json`.
+
 - **OTA CI build number alignment with Actions run number**:
   - `ota-update.yml` dynamically queries the latest CI workflow run number (`build-android.yml` / `build-ios.yml`, exactly like the native build's `versionCode` / `buildNumber`) via GitHub Actions API.
   - Updates `app.json` with `scripts/set-build-number.js` before exporting the bundle so the bundled JS manifest reflects the active build number.

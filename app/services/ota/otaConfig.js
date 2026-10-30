@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 
 /**
  * Minimum native binary build number required by the current OTA bundles.
- * Configured directly in app.json (`expo.extra.minNativeBuild`), defaults to 1009.
+ * Configured directly in app.json (`expo.extra.minNativeBuild`), defaults to 1014.
  * If the installed APK/IPA versionCode is less than this value, OTA updates
  * are blocked and the user is prompted to install the newer base APK.
  */
@@ -15,7 +15,7 @@ export function getMinNativeBuildRequired() {
       return fromConfig;
     }
   } catch {}
-  return 1009;
+  return 1014;
 }
 
 export const MIN_NATIVE_BUILD_REQUIRED = getMinNativeBuildRequired();

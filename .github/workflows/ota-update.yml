@@ -103,7 +103,7 @@ jobs:
             fi
           fi
 
-          MIN_NATIVE=$(node -p "require('./app.json').expo.extra?.minNativeBuild || 1009")
+          MIN_NATIVE=$(node -p "require('./app.json').expo.extra?.minNativeBuild || 1014")
           echo "build_number=$BUILD_NUM" >> $GITHUB_OUTPUT
           echo "min_native_build=$MIN_NATIVE" >> $GITHUB_OUTPUT
 
