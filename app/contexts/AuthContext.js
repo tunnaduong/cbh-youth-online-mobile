@@ -30,6 +30,7 @@ const clearSessionCaches = () => {
   if (storage.contains("autoplayVideos")) preserved.autoplayVideos = storage.getBoolean("autoplayVideos");
   if (storage.contains("liquidGlassEnabled")) preserved.liquidGlassEnabled = storage.getBoolean("liquidGlassEnabled");
   if (storage.contains("shakeToReportEnabled")) preserved.shakeToReportEnabled = storage.getBoolean("shakeToReportEnabled");
+  if (storage.contains("ota_channel")) preserved.ota_channel = storage.getString("ota_channel");
   // Which login the WebViews / in-app browser were signed in with (see
   // utils/webSession.js). Wiping these made the app forget that they hold a
   // session at all, so after a sign-out they stayed signed in as the old

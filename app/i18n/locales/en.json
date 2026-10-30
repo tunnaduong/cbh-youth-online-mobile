@@ -646,6 +646,18 @@
     "restartNow": "Restart now",
     "later": "Later",
     "errorCheck": "Could not check for updates. Please try again later.",
+    "updateChannel": "Update Channel",
+    "channelProduction": "Production",
+    "channelProductionShort": "Production (main)",
+    "channelProductionDesc": "Most stable release thoroughly tested from the main branch.",
+    "channelPreview": "Preview",
+    "channelPreviewShort": "Preview (dhphuc)",
+    "channelPreviewDesc": "Early access to the latest features built directly from the dhphuc branch.",
+    "channelDefaultBadge": "Default",
+    "channelChanged": "Switched update channel to {{channel}}.",
+    "versionDetails": "Version Details",
+    "lastChecked": "Last checked",
+    "otaExplanation": "OTA (Over-The-Air) updates allow you to quickly receive new features and bug fixes upon launching the app without reinstalling.",
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Built by students, for students."
   },
   "chatConversation": {

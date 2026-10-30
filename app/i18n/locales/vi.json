@@ -635,6 +635,18 @@
     "restartNow": "Khởi động lại ngay",
     "later": "Để sau",
     "errorCheck": "Không thể kiểm tra cập nhật. Vui lòng thử lại sau.",
+    "updateChannel": "Kênh cập nhật",
+    "channelProduction": "Chính thức (Production)",
+    "channelProductionShort": "Production (main)",
+    "channelProductionDesc": "Bản ổn định nhất được kiểm thử kỹ lưỡng từ nhánh chính.",
+    "channelPreview": "Thử nghiệm (Preview)",
+    "channelPreviewShort": "Preview (dhphuc)",
+    "channelPreviewDesc": "Cập nhật sớm các tính năng mới nhất trực tiếp từ nhánh dhphuc.",
+    "channelDefaultBadge": "Mặc định",
+    "channelChanged": "Đã đổi kênh cập nhật sang {{channel}}.",
+    "versionDetails": "Thông tin phiên bản",
+    "lastChecked": "Lần kiểm tra gần nhất",
+    "otaExplanation": "Bản cập nhật OTA (Over-The-Air) cho phép bạn nhanh chóng nhận các tính năng mới và bản sửa lỗi ngay khi khởi động ứng dụng mà không cần cài đặt lại từ đầu.",
     "copyright": "© Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
   },
   "chatConversation": {

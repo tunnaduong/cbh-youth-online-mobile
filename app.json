@@ -125,7 +125,8 @@
       "fallbackToCacheTimeout": 0,
       "requestHeaders": {
         "expo-channel-name": "production"
-      }
+      },
+      "disableAntiBrickingMeasures": true
     },
     "plugins": [
       "./plugins/withNativeTweaks",

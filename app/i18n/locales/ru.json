@@ -656,6 +656,18 @@
     "restartNow": "Перезапустить",
     "later": "Позже",
     "errorCheck": "Не удалось проверить обновления. Попробуйте позже.",
+    "updateChannel": "Канал обновлений",
+    "channelProduction": "Релиз (Production)",
+    "channelProductionShort": "Production (main)",
+    "channelProductionDesc": "Стабильная версия, тщательно протестированная из основной ветки.",
+    "channelPreview": "Предварительный (Preview)",
+    "channelPreviewShort": "Preview (dhphuc)",
+    "channelPreviewDesc": "Ранний доступ к новым функциям, собранным напрямую из ветки dhphuc.",
+    "channelDefaultBadge": "По умолчанию",
+    "channelChanged": "Канал обновлений переключен на {{channel}}.",
+    "versionDetails": "Сведения о версии",
+    "lastChecked": "Последняя проверка",
+    "otaExplanation": "Обновления по воздуху (OTA) позволяют быстро получать новые функции и исправления ошибок при запуске приложения без переустановки.",
     "copyright": "© Fatties Software Education Solutions Co., Ltd. - Разработано учениками для учеников."
   },
   "chatConversation": {

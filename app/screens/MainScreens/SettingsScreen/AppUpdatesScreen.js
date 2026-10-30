@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Animated,
   Alert,
   ActivityIndicator,
@@ -17,7 +16,14 @@ import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
-import { getRunningUpdateInfo, checkAndFetchUpdate, reloadApp } from "../../../services/ota/otaService";
+import {
+  getRunningUpdateInfo,
+  checkAndFetchUpdate,
+  reloadApp,
+  getOtaChannel,
+  setOtaChannel,
+  OTA_CHANNELS,
+} from "../../../services/ota/otaService";
 
 const Section = ({ title, children, theme }) => (
   <View style={styles.sectionWrapper}>
@@ -30,18 +36,36 @@ const Section = ({ title, children, theme }) => (
 
 export default function AppUpdatesScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { theme, isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const { t } = useTranslation();
 
+  const [selectedChannel, setSelectedChannel] = useState(() => getOtaChannel());
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState(null);
   const runningUpdate = getRunningUpdateInfo();
+
+  const handleSelectChannel = (channelKey) => {
+    if (selectedChannel === channelKey) return;
+    const newCh = setOtaChannel(channelKey);
+    setSelectedChannel(newCh);
+
+    const channelName =
+      newCh === OTA_CHANNELS.PREVIEW
+        ? t("about.channelPreviewShort", "Preview (dhphuc)")
+        : t("about.channelProductionShort", "Production (main)");
+
+    Toast.show({
+      type: "info",
+      text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
+      text2: t("about.channelChanged", "Đã đổi kênh cập nhật sang {{channel}}.", { channel: channelName }),
+    });
+  };
 
   const handleCheckUpdate = async () => {
     if (isCheckingUpdate) return;
     setIsCheckingUpdate(true);
     try {
-      const result = await checkAndFetchUpdate();
+      const result = await checkAndFetchUpdate(selectedChannel);
       setLastCheckTime(new Date());
 
       if (result.status === "dev_mode") {
@@ -72,7 +96,7 @@ export default function AppUpdatesScreen({ navigation }) {
         Toast.show({
           type: "error",
           text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
-          text2: t("about.errorCheck", "Không thể kiểm tra cập nhật. Vui lòng thử lại sau."),
+          text2: result.error || t("about.errorCheck", "Không thể kiểm tra cập nhật. Vui lòng thử lại sau."),
         });
       }
     } catch {
@@ -178,18 +202,93 @@ export default function AppUpdatesScreen({ navigation }) {
             </View>
             <Text style={[styles.heroTitle, { color: theme.text }]}>CBH Online</Text>
             <Text style={[styles.heroSubtitle, { color: theme.subText }]}>
-              {t("about.appVersion", "Phiên bản ứng dụng")} {Application.nativeApplicationVersion || "6.0.1"} ({Application.nativeBuildVersion || "969"})
+              {t("about.appVersion", "Phiên bản ứng dụng")} {Application.nativeApplicationVersion || "6.0.1"} ({Application.nativeBuildVersion || "992"})
             </Text>
           </View>
 
+          {/* Update Channel Selector */}
+          <Section title={t("about.updateChannel", "Kênh cập nhật")} theme={theme}>
+            <TouchableOpacity
+              style={styles.channelRow}
+              onPress={() => handleSelectChannel(OTA_CHANNELS.PRODUCTION)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons
+                  name={selectedChannel === OTA_CHANNELS.PRODUCTION ? "checkmark-circle" : "shield-checkmark-outline"}
+                  size={20}
+                  color={selectedChannel === OTA_CHANNELS.PRODUCTION ? theme.primary : theme.subText}
+                />
+              </View>
+              <View style={styles.channelContent}>
+                <View style={styles.channelTitleRow}>
+                  <Text style={[styles.channelTitle, { color: theme.text }]}>
+                    {t("about.channelProduction", "Chính thức (Production)")}
+                  </Text>
+                  <View style={[styles.channelBadge, { backgroundColor: theme.primary + "18" }]}>
+                    <Text style={[styles.channelBadgeText, { color: theme.primary }]}>
+                      {t("about.channelDefaultBadge", "Mặc định")}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.channelDesc, { color: theme.subText }]}>
+                  {t("about.channelProductionDesc", "Bản ổn định nhất được kiểm thử kỹ lưỡng từ nhánh chính.")}
+                </Text>
+              </View>
+              <Ionicons
+                name={selectedChannel === OTA_CHANNELS.PRODUCTION ? "radio-button-on" : "radio-button-off"}
+                size={22}
+                color={selectedChannel === OTA_CHANNELS.PRODUCTION ? theme.primary : theme.border}
+                style={{ marginLeft: 8 }}
+              />
+            </TouchableOpacity>
+
+            <View style={[styles.channelDivider, { backgroundColor: theme.border }]} />
+
+            <TouchableOpacity
+              style={styles.channelRow}
+              onPress={() => handleSelectChannel(OTA_CHANNELS.PREVIEW)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons
+                  name={selectedChannel === OTA_CHANNELS.PREVIEW ? "flask" : "flask-outline"}
+                  size={20}
+                  color={selectedChannel === OTA_CHANNELS.PREVIEW ? theme.primary : theme.subText}
+                />
+              </View>
+              <View style={styles.channelContent}>
+                <View style={styles.channelTitleRow}>
+                  <Text style={[styles.channelTitle, { color: theme.text }]}>
+                    {t("about.channelPreview", "Thử nghiệm (Preview)")}
+                  </Text>
+                  <View style={[styles.channelBadge, { backgroundColor: "#f59e0b20" }]}>
+                    <Text style={[styles.channelBadgeText, { color: "#f59e0b" }]}>
+                      dhphuc
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.channelDesc, { color: theme.subText }]}>
+                  {t("about.channelPreviewDesc", "Cập nhật sớm các tính năng mới nhất trực tiếp từ nhánh dhphuc.")}
+                </Text>
+              </View>
+              <Ionicons
+                name={selectedChannel === OTA_CHANNELS.PREVIEW ? "radio-button-on" : "radio-button-off"}
+                size={22}
+                color={selectedChannel === OTA_CHANNELS.PREVIEW ? theme.primary : theme.border}
+                style={{ marginLeft: 8 }}
+              />
+            </TouchableOpacity>
+          </Section>
+
           {/* Version Info Section */}
-          <Section title={t("about.updatesTitle", "Cập nhật ứng dụng")} theme={theme}>
+          <Section title={t("about.versionDetails", "Thông tin phiên bản")} theme={theme}>
             <View style={styles.updateRow}>
               <Text style={[styles.updateLabel, { color: theme.subText }]}>
                 {t("about.appVersion", "Phiên bản ứng dụng")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
-                {Application.nativeApplicationVersion || "6.0.1"} ({Application.nativeBuildVersion || "969"})
+                {Application.nativeApplicationVersion || "6.0.1"} ({Application.nativeBuildVersion || "992"})
               </Text>
             </View>
 
@@ -204,20 +303,22 @@ export default function AppUpdatesScreen({ navigation }) {
 
             <View style={[styles.updateRow, { marginTop: 14 }]}>
               <Text style={[styles.updateLabel, { color: theme.subText }]}>
-                Kênh cập nhật
+                {t("about.updateChannel", "Kênh cập nhật")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
-                {runningUpdate.channel || "production"}
+                {selectedChannel === OTA_CHANNELS.PREVIEW
+                  ? t("about.channelPreviewShort", "Preview (dhphuc)")
+                  : t("about.channelProductionShort", "Production (main)")}
               </Text>
             </View>
 
             {lastCheckTime ? (
               <View style={[styles.updateRow, { marginTop: 14 }]}>
                 <Text style={[styles.updateLabel, { color: theme.subText }]}>
-                  Lần kiểm tra gần nhất
+                  {t("about.lastChecked", "Lần kiểm tra gần nhất")}
                 </Text>
                 <Text style={[styles.updateValue, { color: theme.subText, fontSize: 13 }]}>
-                  {lastCheckTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {lastCheckTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </Text>
               </View>
             ) : null}
@@ -242,7 +343,7 @@ export default function AppUpdatesScreen({ navigation }) {
           {/* Explanation note */}
           <View style={styles.noteWrapper}>
             <Text style={[styles.noteText, { color: theme.subText }]}>
-              Bản cập nhật OTA (Over-The-Air) cho phép bạn nhanh chóng nhận các tính năng mới và bản sửa lỗi ngay khi khởi động ứng dụng mà không cần cài đặt lại từ đầu.
+              {t("about.otaExplanation", "Bản cập nhật OTA (Over-The-Air) cho phép bạn nhanh chóng nhận các tính năng mới và bản sửa lỗi ngay khi khởi động ứng dụng mà không cần cài đặt lại từ đầu.")}
             </Text>
           </View>
         </Animated.ScrollView>
@@ -296,6 +397,50 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     padding: 18,
+  },
+  channelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  channelIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  channelContent: {
+    flex: 1,
+  },
+  channelTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  channelTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  channelBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  channelBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  channelDesc: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  channelDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 12,
   },
   updateRow: {
     flexDirection: "row",
