@@ -356,6 +356,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Modern Menu / Sidebar design with floating liquid header, scroll fading title, and Design System cards** (`app/components/Sidebar.js`, `app/components/AccountSwitcher.js`, `app/i18n/locales/*.json`):
+  - **Floating header & scroll fade**: Converted the Menu screen to the app's standard native scaffold with an absolute floating header (`64 + insets.top`), `Animated.ScrollView` feeding `scrollY`, fading screen title (`scrollY.interpolate([0, 10, 50], [1, 1, 0])`), and a top-right `LiquidButton` settings action with scroll-triggered glass activation.
+  - **Design system alignment**: Replaced legacy `react-native-paper` lists with design system components: 34x34 circular icon holders in `theme.iconBackground` with `theme.primary` Ionicons, hairline border cards (`theme.surface`), uppercase section headers (13pt, `theme.subText`), and an interactive Facebook-style profile card with `AvatarFrameWrap` and "Xem trang cá nhân" shortcut.
+
 - **Me ("Tôi") tab shows full-screen Facebook-style Menu / Sidebar; full avatar with frame in non-liquid tab bar; fix Chat Conversation crash** (`app/screens/MainScreens/index.js`, `app/components/Sidebar.js`, `app/components/CommentBar.js`, `app/utils/pastedImages.js`, `app/i18n/locales/*.json`):
   - **Me tab -> Facebook-style Sidebar**: Tapping the "Tôi" / Me tab button now shows the options Sidebar across the full screen (`Sidebar.js` rendered full-width as a tab screen with user profile header card, utilities, settings, and support). Tapping the user's profile card in the sidebar navigates to their full `ProfileScreen`. The HomeScreen header menu button also navigates directly to this tab, and the old 75% sliding drawer overlay with background glass was retired.
   - **CustomTabBar Me button**: In non-liquid native glass bars (iOS 18 and lower, Android, iPad), the right circular float button now displays the user's avatar icon across the button with their configured avatar frame (`AvatarFrameWrap` with `useOwnProfileTheme`), with no text label.

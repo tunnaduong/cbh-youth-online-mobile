@@ -1,8 +1,7 @@
+import React, { useEffect, useState, useContext, useRef } from "react";
 import {
   View,
   Text,
-  ScrollView,
-  Image,
   TouchableOpacity,
   Platform,
   ActionSheetIOS,
@@ -10,12 +9,9 @@ import {
   Alert,
   StyleSheet,
 } from "react-native";
-import React, { useEffect, useState, useContext, useRef } from "react";
-import { List } from "react-native-paper";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
-import Collapsible from "react-native-collapsible";
 import { useNavigation } from "@react-navigation/native";
 import FastImage from "./FastImage";
 import AccountSwitcher from "./AccountSwitcher";
@@ -24,79 +20,122 @@ import StyledUsername from "./profile/StyledUsername";
 import { AvatarFrameWrap } from "./profile/AvatarFrame";
 import { useOwnProfileTheme } from "../utils/ownProfileTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Toast from "react-native-toast-message";
 import { useTranslation } from "react-i18next";
-import { LiquidGlassView, glassTint, androidGlassPerfProps } from "./GlassModules";
+import LiquidButton from "./LiquidButton";
+import { AndroidGlassBackdrop } from "./GlassModules";
 import { openInAppBrowser } from "../utils/externalLink";
 
-// Reusable component for collapsible menu items
-const CollapsibleMenuItem = ({
+const MenuRow = ({
+  icon,
   title,
-  iconName,
-  sectionKey,
-  isCollapsed,
-  getChevronRotation,
-  toggleSection,
-  children,
+  subtitle,
+  onPress,
+  onLongPress,
+  delayLongPress,
+  destructive = false,
+  last = false,
   theme,
-}) => {
-  return (
-    <>
-      <List.Item
-        title={title}
-        titleStyle={{ color: theme.text }}
-        onPress={() => toggleSection(sectionKey)}
-        right={() => (
-          <Animated.View
-            style={{
-              transform: [
-                { translateX: 5 },
-                { rotate: getChevronRotation(sectionKey) },
-                { translateX: -5 },
-              ],
-            }}
-          >
-            <Ionicons
-              name="chevron-down-outline"
-              size={20}
-              color={theme.subText}
-              style={{ marginRight: -10, marginTop: 3 }}
-            />
-          </Animated.View>
-        )}
-        left={() => (
-          <Ionicons
-            name={iconName}
-            size={24}
-            color={theme.text}
-            style={{ marginLeft: 14, marginRight: -5 }}
-          />
-        )}
+}) => (
+  <TouchableOpacity
+    style={[
+      styles.menuRow,
+      !last && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border },
+    ]}
+    onPress={onPress}
+    onLongPress={onLongPress}
+    delayLongPress={delayLongPress}
+    activeOpacity={0.7}
+  >
+    <View
+      style={[
+        styles.iconHolder,
+        {
+          backgroundColor: destructive
+            ? theme.isDarkMode
+              ? "rgba(255,59,48,0.15)"
+              : "#FDE8E8"
+            : theme.iconBackground,
+        },
+      ]}
+    >
+      <Ionicons
+        name={icon}
+        size={20}
+        color={destructive ? "#FF3B30" : theme.primary}
       />
-      <Collapsible collapsed={isCollapsed}>
-        <View style={{ paddingLeft: 40, backgroundColor: theme.background }}>
-          {children}
-        </View>
-      </Collapsible>
-    </>
+    </View>
+    <View style={{ flex: 1, marginLeft: 12 }}>
+      <Text
+        style={[
+          styles.rowTitle,
+          { color: destructive ? "#FF3B30" : theme.text },
+        ]}
+        numberOfLines={1}
+      >
+        {title}
+      </Text>
+      {subtitle ? (
+        <Text
+          style={[styles.rowSubtitle, { color: theme.subText }]}
+          numberOfLines={1}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
+    </View>
+    <Ionicons
+      name="chevron-forward"
+      size={18}
+      color={destructive ? "#FF3B30" : theme.subText}
+    />
+  </TouchableOpacity>
+);
+
+const MenuSection = ({ title, children, theme }) => {
+  const childrenArray = React.Children.toArray(children).filter(Boolean);
+  if (childrenArray.length === 0) return null;
+
+  return (
+    <View style={{ marginBottom: 20 }}>
+      {title ? (
+        <Text style={[styles.sectionTitle, { color: theme.subText }]}>
+          {title}
+        </Text>
+      ) : null}
+      <View
+        style={[
+          styles.sectionCard,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        {childrenArray.map((child, index) =>
+          React.cloneElement(child, {
+            last: index === childrenArray.length - 1,
+            theme,
+          })
+        )}
+      </View>
+    </View>
   );
 };
 
-// Content must be a real child of LiquidGlassView, not a sibling drawn over
-// an absoluteFill glass layer - the native view captures "the hierarchy
-// behind it" and skips only its own subtree, so a sibling still gets swept
-// into the captured-and-blurred backdrop *in addition to* being drawn
-// normally on top, ghosting/reflecting the sidebar's own rows back into its
-// glass background. Same fix as LiquidButton's.
-const SidebarGlassWrapper = LiquidGlassView ?? View;
-
-const Sidebar = ({ providerId, isOpen, isTab = false, scrollTriggerRef = null }) => {
+const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTriggerRef = null }) => {
   const { signOut, username, profileName, userInfo } = useContext(AuthContext);
-  // The user's own profile appearance: avatar frame and name style, as on
-  // their profile. Refreshed when the sidebar is opened or active as a tab.
   const ownTheme = useOwnProfileTheme(username, isTab || !!isOpen);
-  const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
+  const { theme, isDarkMode } = useTheme();
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const isCustomTabBar = Platform.OS === "android" || Platform.isPad || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
+
+  const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
+
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   useEffect(() => {
     if (scrollTriggerRef) {
@@ -105,83 +144,6 @@ const Sidebar = ({ providerId, isOpen, isTab = false, scrollTriggerRef = null })
       });
     }
   }, [scrollTriggerRef]);
-  // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
-  // entirely, reading as a flat tinted panel instead of glass. Matches
-  // glassTint's ratio (see GlassModules.js) used everywhere else in the app.
-  const sidebarTint = isDarkMode
-    ? "rgba(0,0,0,0.4)"
-    : "rgba(255,255,255,0.4)";
-  const iosMajorVersion =
-    Platform.OS === "ios" ? parseInt(Platform.Version, 10) : 0;
-  const [collapsedSections, setCollapsedSections] = useState({
-    community: true,
-    reports: true,
-    search: true,
-  });
-  const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-
-  // Animated values for each section
-  const rotationValues = useRef({
-    community: new Animated.Value(0),
-    reports: new Animated.Value(0),
-    search: new Animated.Value(0),
-  }).current;
-
-  const toggleSection = (section) => {
-    const isCollapsed = collapsedSections[section];
-
-    // If opening a section, close all other sections first
-    if (isCollapsed) {
-      // Animate all other open sections to close
-      Object.keys(collapsedSections).forEach((key) => {
-        if (key !== section && !collapsedSections[key]) {
-          Animated.timing(rotationValues[key], {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }).start();
-        }
-      });
-    }
-
-    // Animate the chevron rotation for the clicked section
-    Animated.timing(rotationValues[section], {
-      toValue: isCollapsed ? 1 : 0, // 1 for 180 degrees, 0 for 0 degrees
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    setCollapsedSections((prevState) => {
-      const newState = { ...prevState };
-
-      // If opening a section, close all others
-      if (isCollapsed) {
-        Object.keys(newState).forEach((key) => {
-          if (key !== section) {
-            newState[key] = true; // Collapse all other sections
-          }
-        });
-      }
-
-      // Toggle the clicked section
-      newState[section] = !prevState[section];
-
-      return newState;
-    });
-  };
-
-  const getChevronRotation = (section) => {
-    return rotationValues[section].interpolate({
-      inputRange: [0, 1],
-      outputRange: ["-90deg", "0deg"], // Rotate from 0 to 180 degrees
-    });
-  };
-
-  const goToScreen = () => {
-    signOut();
-  };
 
   const onPressIOS = () => {
     ActionSheetIOS.showActionSheetWithOptions(
@@ -193,14 +155,13 @@ const Sidebar = ({ providerId, isOpen, isTab = false, scrollTriggerRef = null })
         userInterfaceStyle: isDarkMode ? "dark" : "light",
       },
       (buttonIndex) => {
-        if (buttonIndex === 0) {
-          // cancel action
-        } else if (buttonIndex === 1) {
-          goToScreen();
+        if (buttonIndex === 1) {
+          signOut();
         }
-      },
+      }
     );
   };
+
   const onPressAndroid = () =>
     Alert.alert(
       t("settings.logout"),
@@ -208,475 +169,328 @@ const Sidebar = ({ providerId, isOpen, isTab = false, scrollTriggerRef = null })
       [
         {
           text: t("settings.yes"),
-          onPress: () => {
-            goToScreen();
-          },
+          style: "destructive",
+          onPress: signOut,
         },
         {
           text: t("settings.no"),
           style: "cancel",
         },
       ],
-      { cancelable: true },
+      { cancelable: true }
     );
 
-  const content = (
-    <View style={{ flex: 1, paddingTop: insets.top }}>
-      {isTab && (
-        <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 }}>
-          <Text style={{ fontSize: 28, fontWeight: "bold", color: theme.text }}>
+  const handleLogout = () => {
+    Platform.OS === "ios" ? onPressIOS() : onPressAndroid();
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* Floating transparent header with fading title and liquid settings button */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 10,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+            paddingTop: insets.top,
+            height: 64 + insets.top,
+          }}
+        >
+          {/* 44px spacer on left to balance right button */}
+          <View style={{ width: 44 }} />
+
+          {/* Title fades out as content scrolls under header */}
+          <Animated.Text
+            numberOfLines={1}
+            style={{
+              flex: 1,
+              textAlign: "center",
+              fontSize: 18,
+              fontWeight: "600",
+              color: theme.primary,
+              opacity: headerTitleOpacity,
+            }}
+          >
+            {t("sidebar.menu", t("navigation.profile"))}
+          </Animated.Text>
+
+          {/* Quick Settings LiquidButton on top-right */}
+          <LiquidButton
+            size={44}
+            scrollY={scrollY}
+            providerId={providerId}
+            onPress={() => navigation.navigate("Settings")}
+            accessibilityLabel={t("settings.title")}
+          >
+            <Ionicons name="settings-outline" size={22} color={theme.primary} />
+          </LiquidButton>
+        </View>
+      </View>
+
+      <AndroidGlassBackdrop providerId={providerId} style={{ flex: 1 }}>
+        <Animated.ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={{
+            padding: 16,
+            paddingTop: 64 + insets.top,
+            paddingBottom: isCustomTabBar ? 110 : 80 + insets.bottom,
+          }}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: false }
+          )}
+        >
+          {/* Big screen title */}
+          <Text
+            style={{
+              fontSize: 28,
+              fontWeight: "700",
+              color: theme.text,
+              marginBottom: 16,
+              marginHorizontal: 4,
+            }}
+          >
             {t("sidebar.menu", t("navigation.profile"))}
           </Text>
-        </View>
-      )}
-      <ScrollView
-        ref={scrollViewRef}
-        contentContainerStyle={{ paddingBottom: isTab ? 110 + insets.bottom : 40 + insets.bottom }}
-        showsVerticalScrollIndicator={false}
-      >
-        <TouchableOpacity
-          style={
-            isTab
-              ? {
-                  marginHorizontal: 16,
-                  marginBottom: 16,
-                  marginTop: 6,
-                  backgroundColor: theme.surface,
-                  borderColor: theme.border,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderRadius: 16,
-                  padding: 14,
-                  flexDirection: "row",
-                  alignItems: "center",
-                }
-              : {
-                  marginHorizontal: 16,
-                  marginBottom: 16,
-                  marginTop: 16,
-                  gap: 8,
-                }
-          }
-          onPress={() => navigation.navigate("ProfileScreen", { username })}
-          activeOpacity={0.7}
-        >
-          {/* The frame overflows the avatar a little, so the wrap keeps the
-              avatar's own size and isn't clipped. */}
-          <AvatarFrameWrap
-            theme={ownTheme}
-            size={isTab ? 54 : 60}
-            style={isTab ? { alignSelf: "center", marginRight: 14 } : { alignSelf: "flex-start" }}
+
+          {/* Facebook-style Profile Card */}
+          <TouchableOpacity
+            style={[
+              styles.profileCard,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+              },
+            ]}
+            onPress={() => navigation.navigate("ProfileScreen", { username })}
+            activeOpacity={0.7}
           >
-            <FastImage
-              source={{
-                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-              }}
-              style={{ width: isTab ? 54 : 60, height: isTab ? 54 : 60, borderRadius: isTab ? 27 : 30 }}
-            />
-          </AvatarFrameWrap>
-          <View style={isTab ? { flex: 1 } : undefined}>
-            <UserNameRow
-              name={profileName}
+            <AvatarFrameWrap
               theme={ownTheme}
-              variant="full"
-              style={{ fontSize: isTab ? 17 : 18, fontWeight: "bold", color: theme.text }}
-            />
-            <StyledUsername
-              theme={ownTheme}
-              username={username}
-              variant="full"
-              style={{ color: theme.subText, marginTop: isTab ? 2 : 0 }}
-              numberOfLines={1}
-            />
+              size={56}
+              style={{ alignSelf: "center", marginRight: 14 }}
+            >
+              <FastImage
+                source={{
+                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+                }}
+                style={{ width: 56, height: 56, borderRadius: 28 }}
+              />
+            </AvatarFrameWrap>
+            <View style={{ flex: 1 }}>
+              <UserNameRow
+                name={profileName}
+                theme={ownTheme}
+                variant="full"
+                style={{ fontSize: 17, fontWeight: "bold", color: theme.text }}
+              />
+              <StyledUsername
+                theme={ownTheme}
+                username={username}
+                variant="full"
+                style={{ color: theme.subText, marginTop: 2 }}
+                numberOfLines={1}
+              />
+              <Text
+                style={{
+                  fontSize: 13,
+                  color: theme.primary,
+                  marginTop: 4,
+                  fontWeight: "600",
+                }}
+              >
+                {t("sidebar.viewProfile")}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.subText} />
+          </TouchableOpacity>
+
+          {/* Account switcher card */}
+          <View
+            style={[
+              styles.sectionCard,
+              {
+                backgroundColor: theme.surface,
+                borderColor: theme.border,
+                marginBottom: 20,
+              },
+            ]}
+          >
+            <AccountSwitcher />
           </View>
-          {isTab && <Ionicons name="chevron-forward" size={20} color={theme.subText} />}
-        </TouchableOpacity>
-          <AccountSwitcher />
-          <List.Section>
-            <List.Subheader
-              style={{ color: theme.primary, fontWeight: "bold" }}
-            >
-              {t("sidebar.utilities")}
-            </List.Subheader>
-            <CollapsibleMenuItem
-              title={t("sidebar.community")}
-              iconName="people-outline"
-              sectionKey="community"
-              isCollapsed={collapsedSections.community}
-              getChevronRotation={getChevronRotation}
-              toggleSection={toggleSection}
-              theme={theme}
-            >
-              <List.Item
-                title={t("sidebar.feed")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  navigation.navigate("MainScreens", { screen: "Home" })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-              <List.Item
-                title={t("navigation.forum")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  navigation.navigate("MainScreens", { screen: "Forum" })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-              <List.Item
-                title={t("sidebar.loudspeaker")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  Toast.show({
-                    type: "info",
-                    text1: t("sidebar.featureInDevelopment"),
-                  })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-              <List.Item
-                title={t("sidebar.youthUnionNews")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  navigation.navigate("CategoryScreen", { categoryId: 32 })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-              <List.Item
-                title={t("sidebar.saved")}
-                titleStyle={{ color: theme.text }}
-                onPress={() => navigation.navigate("SavedPostsScreen")}
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-            </CollapsibleMenuItem>
-            <CollapsibleMenuItem
-              title={t("sidebar.reports")}
-              iconName="alert-circle-outline"
-              sectionKey="reports"
-              isCollapsed={collapsedSections.reports}
-              getChevronRotation={getChevronRotation}
-              toggleSection={toggleSection}
-              theme={theme}
-            >
-              <List.Item
-                title={t("sidebar.studentViolation")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  navigation.navigate("ReportScreen", { type: "student" })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-              <List.Item
-                title={t("sidebar.classViolation")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  navigation.navigate("ReportScreen", { type: "class" })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-            </CollapsibleMenuItem>
-            <CollapsibleMenuItem
-              title={t("sidebar.lookup")}
-              iconName="search-outline"
-              sectionKey="search"
-              isCollapsed={collapsedSections.search}
-              getChevronRotation={getChevronRotation}
-              toggleSection={toggleSection}
-              theme={theme}
-            >
-              <List.Item
-                title={t("sidebar.timetable")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  Toast.show({
-                    type: "info",
-                    text1: t("sidebar.featureInDevelopment"),
-                  })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-              <List.Item
-                title={t("sidebar.classRanking")}
-                titleStyle={{ color: theme.text }}
-                onPress={() =>
-                  Toast.show({
-                    type: "info",
-                    text1: t("sidebar.featureInDevelopment"),
-                  })
-                }
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-              <List.Item
-                title={t("sidebar.memberRanking")}
-                titleStyle={{ color: theme.text }}
-                onPress={() => navigation.navigate("MemberRankingScreen")}
-                style={{ paddingLeft: 0, marginLeft: 0 }}
-              />
-            </CollapsibleMenuItem>
-            <List.Item
-              title={t("sidebar.explore")}
-              titleStyle={{ color: theme.text }}
-              onPress={() => navigation.navigate("ExploreScreen")}
-              left={() => (
-                <Ionicons
-                  name="telescope-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
-              right={() => (
-                <Ionicons
-                  name="chevron-down-outline"
-                  size={20}
-                  color={theme.subText}
-                  style={{
-                    marginRight: -10,
-                    marginTop: 3,
-                    transform: [{ rotate: "-90deg" }],
-                  }}
-                />
-              )}
+
+          {/* Section: Utilities */}
+          <MenuSection title={t("sidebar.utilities")} theme={theme}>
+            <MenuRow
+              icon="newspaper-outline"
+              title={t("sidebar.feed")}
+              onPress={() => navigation.navigate("MainScreens", { screen: "Home" })}
             />
-            <List.Item
-              title={t("sidebar.pointWallet")}
-              titleStyle={{ color: theme.text }}
-              onPress={() => navigation.navigate("PointWalletScreen")}
-              left={() => (
-                <Ionicons
-                  name="wallet-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
-              right={() => (
-                <Ionicons
-                  name="chevron-down-outline"
-                  size={20}
-                  color={theme.subText}
-                  style={{
-                    marginRight: -10,
-                    marginTop: 3,
-                    transform: [{ rotate: "-90deg" }],
-                  }}
-                />
-              )}
+            <MenuRow
+              icon="people-outline"
+              title={t("navigation.forum")}
+              onPress={() => navigation.navigate("MainScreens", { screen: "Forum" })}
             />
-            <List.Item
+            <MenuRow
+              icon="gift-outline"
               title={t("sidebar.giftShop")}
-              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("GiftShopScreen")}
-              left={() => (
-                <Ionicons
-                  name="gift-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
-              right={() => (
-                <Ionicons
-                  name="chevron-down-outline"
-                  size={20}
-                  color={theme.subText}
-                  style={{
-                    marginRight: -10,
-                    marginTop: 3,
-                    transform: [{ rotate: "-90deg" }],
-                  }}
-                />
-              )}
+            />
+            <MenuRow
+              icon="wallet-outline"
+              title={t("sidebar.pointWallet")}
+              onPress={() => navigation.navigate("PointWalletScreen")}
+            />
+            <MenuRow
+              icon="compass-outline"
+              title={t("sidebar.explore")}
+              onPress={() => navigation.navigate("ExploreScreen")}
+            />
+            <MenuRow
+              icon="bookmark-outline"
+              title={t("sidebar.saved")}
+              onPress={() => navigation.navigate("SavedPostsScreen")}
+            />
+            <MenuRow
+              icon="megaphone-outline"
+              title={t("sidebar.youthUnionNews")}
+              onPress={() => navigation.navigate("CategoryScreen", { categoryId: 32 })}
+            />
+            <MenuRow
+              icon="trophy-outline"
+              title={t("sidebar.memberRanking")}
+              onPress={() => navigation.navigate("MemberRankingScreen")}
             />
             {userInfo?.role === "admin" && (
-              <List.Item
+              <MenuRow
+                icon="shield-checkmark-outline"
                 title={t("sidebar.admin")}
-                titleStyle={{ color: theme.text }}
                 onPress={() => navigation.navigate("AdminWebScreen")}
-                left={() => (
-                  <Ionicons
-                    name="shield-checkmark-outline"
-                    size={24}
-                    color={theme.text}
-                    style={{ marginLeft: 14, marginRight: -5 }}
-                  />
-                )}
-                right={() => (
-                  <Ionicons
-                    name="chevron-down-outline"
-                    size={20}
-                    color={theme.subText}
-                    style={{
-                      marginRight: -10,
-                      marginTop: 3,
-                      transform: [{ rotate: "-90deg" }],
-                    }}
-                  />
-                )}
               />
             )}
-          </List.Section>
-          <List.Section>
-            <List.Subheader
-              style={{ color: theme.primary, fontWeight: "bold" }}
-            >
-              {t("sidebar.settingsGroup")}
-            </List.Subheader>
-            <List.Item
-              title={t("settings.title")}
-              titleStyle={{ color: theme.text }}
-              onPress={() => navigation.navigate("Settings")}
-              left={() => (
-                <Ionicons
-                  name="settings-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
+          </MenuSection>
+
+          {/* Section: Reports */}
+          <MenuSection title={t("sidebar.reports")} theme={theme}>
+            <MenuRow
+              icon="alert-circle-outline"
+              title={t("sidebar.studentViolation")}
+              onPress={() => navigation.navigate("ReportScreen", { type: "student" })}
             />
-            <List.Item
-              title={t("settings.logout")}
-              onPress={() => {
-                Platform.OS === "ios" ? onPressIOS() : onPressAndroid();
-              }}
-              left={() => (
-                <Ionicons
-                  name="log-out-outline"
-                  size={24}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                  color={"#F66566"}
-                />
-              )}
-              titleStyle={{ color: "#F66566" }}
+            <MenuRow
+              icon="warning-outline"
+              title={t("sidebar.classViolation")}
+              onPress={() => navigation.navigate("ReportScreen", { type: "class" })}
             />
-          </List.Section>
-          <List.Section>
-            <List.Subheader
-              style={{ color: theme.primary, fontWeight: "bold" }}
-            >
-              {t("sidebar.support")}
-            </List.Subheader>
-            <List.Item
+          </MenuSection>
+
+          {/* Section: Support */}
+          <MenuSection title={t("sidebar.support")} theme={theme}>
+            <MenuRow
+              icon="information-circle-outline"
               title={t("sidebar.about")}
-              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("AboutScreen")}
               onLongPress={() => navigation.navigate("EasterEggScreen")}
               delayLongPress={500}
-              left={() => (
-                <Ionicons
-                  name="information-circle-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
             />
-            <List.Item
+            <MenuRow
+              icon="help-circle-outline"
               title={t("sidebar.help")}
-              titleStyle={{ color: theme.text }}
-              onPress={() =>
-                openInAppBrowser("https://www.chuyenbienhoa.com/help", theme)
-              }
-              left={() => (
-                <Ionicons
-                  name="help-circle-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
+              onPress={() => openInAppBrowser("https://www.chuyenbienhoa.com/help", theme)}
             />
-            <List.Item
+            <MenuRow
+              icon="bug-outline"
               title={t("sidebar.reportIssue")}
-              titleStyle={{ color: theme.text }}
-              onPress={() =>
-                navigation.navigate("FeedbackScreen", { source: "sidebar" })
-              }
-              left={() => (
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
+              onPress={() => navigation.navigate("FeedbackScreen", { source: "sidebar" })}
             />
-            <List.Item
+            <MenuRow
+              icon="shield-outline"
               title={t("sidebar.privacy")}
-              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("PrivacyPolicyScreen")}
-              left={() => (
-                <Ionicons
-                  name="document-text-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
             />
-            <List.Item
+            <MenuRow
+              icon="document-text-outline"
               title={t("sidebar.terms")}
-              titleStyle={{ color: theme.text }}
               onPress={() => navigation.navigate("TermsOfServiceScreen")}
-              left={() => (
-                <Ionicons
-                  name="document-text-outline"
-                  size={24}
-                  color={theme.text}
-                  style={{ marginLeft: 14, marginRight: -5 }}
-                />
-              )}
             />
-          </List.Section>
-        </ScrollView>
-      </View>
-    );
+          </MenuSection>
 
-    if (isTab) {
-      return (
-        <View style={{ flex: 1, backgroundColor: theme.background }}>
-          {content}
-        </View>
-      );
-    }
+          {/* Section: Settings & Account */}
+          <MenuSection title={t("sidebar.settingsGroup")} theme={theme}>
+            <MenuRow
+              icon="settings-outline"
+              title={t("settings.title")}
+              onPress={() => navigation.navigate("Settings")}
+            />
+            <MenuRow
+              icon="log-out-outline"
+              title={t("settings.logout")}
+              destructive
+              onPress={handleLogout}
+            />
+          </MenuSection>
+        </Animated.ScrollView>
+      </AndroidGlassBackdrop>
+    </View>
+  );
+};
 
-    return (
-      <View style={{ flex: 1 }}>
-        <SidebarGlassWrapper
-          {...(LiquidGlassView
-            ? { variant: "clear", tintColor: glassTint(isDarkMode), ...androidGlassPerfProps }
-            : {})}
-          style={[
-            { flex: 1, borderTopRightRadius: 24, borderBottomRightRadius: 24 },
-            // Glass off: GlassModules paints the near-opaque flat surface; add
-            // the same hairline edge the no-library fallback has.
-            LiquidGlassView && !liquidGlassEnabled && {
-              overflow: "hidden",
-              borderRightWidth: 1,
-              borderColor: isDarkMode
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(0,0,0,0.06)",
-            },
-            !LiquidGlassView && {
-              backgroundColor: sidebarTint,
-              borderRightWidth: Platform.OS === "android" ? 1 : 0,
-              borderColor: isDarkMode
-                ? "rgba(255,255,255,0.08)"
-                : "rgba(0,0,0,0.06)",
-            },
-          ]}
-        >
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: LiquidGlassView && liquidGlassEnabled ? sidebarTint : "transparent",
-            }}
-          >
-            {content}
-          </View>
-        </SidebarGlassWrapper>
-      </View>
-    );
-  };
+const styles = StyleSheet.create({
+  profileCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  sectionCard: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  iconHolder: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  rowSubtitle: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+});
 
 export default Sidebar;

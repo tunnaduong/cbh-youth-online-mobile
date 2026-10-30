@@ -464,6 +464,7 @@
   },
   "sidebar": {
     "menu": "Menu",
+    "viewProfile": "View your profile",
     "utilities": "Utilities",
     "community": "Community",
     "feed": "News Feed",
