@@ -24,6 +24,7 @@ import { AuthContext } from "../../../contexts/AuthContext";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 import { submitFeedback, uploadFile } from "../../../services/api/Api";
+import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 
 const API_HOST = "https://api.chuyenbienhoa.com";
 const MAX_IMAGES = 4;
@@ -35,12 +36,24 @@ const TYPES = [
   { value: "other", icon: "chatbubble-ellipses-outline", labelKey: "feedback.typeOther", descKey: "feedback.typeOtherDesc", placeholderKey: "feedback.placeholderOther" },
 ];
 
+function getOtaVersionString() {
+  try {
+    const info = getRunningUpdateInfo();
+    if (info.isOtaActive && info.activeBuildNumber) {
+      return `Build ${info.activeBuildNumber} (${info.activeChannel || "ota"})`;
+    }
+    return "embedded";
+  } catch {
+    return "embedded";
+  }
+}
+
 // Attached to every report so a bug can be traced to a device/build without
 // asking the reporter follow-up questions.
-function deviceInfo() {
+function deviceInfo(otaVersion) {
   const c = Platform.constants || {};
   const model = Platform.OS === "android" ? [c.Brand, c.Model].filter(Boolean).join(" ") : c.systemName || "iOS";
-  return `${model} | ${Platform.OS} ${Platform.Version} | build ${Application.nativeBuildVersion ?? "?"}`.slice(0, 255);
+  return `${model} | ${Platform.OS} ${Platform.Version} | build ${Application.nativeBuildVersion ?? "?"} | ota ${otaVersion || "none"}`.slice(0, 255);
 }
 
 // Where in the app the report was started from. Kept as a pseudo-URL so the
@@ -147,6 +160,7 @@ export default function FeedbackScreen({ navigation, route }) {
         }
       }
 
+      const otaVersion = getOtaVersionString();
       await submitFeedback({
         type,
         content: content.trim(),
@@ -154,7 +168,8 @@ export default function FeedbackScreen({ navigation, route }) {
         contact_email: email.trim() || undefined,
         platform: Platform.OS === "ios" ? "ios" : "android",
         app_version: Application.nativeApplicationVersion || undefined,
-        device_info: deviceInfo(),
+        ota_version: otaVersion,
+        device_info: deviceInfo(otaVersion),
         // Admin sees this as "where it happened": app://<screen>?via=<source>
         page_url: pageUrl(route?.params?.source, screenName),
       });
