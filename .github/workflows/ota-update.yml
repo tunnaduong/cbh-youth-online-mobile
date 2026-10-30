@@ -22,6 +22,10 @@ on:
         description: 'Runtime version override (leave empty to use app.json)'
         required: false
         default: ''
+      build_number:
+        description: 'Build number override (leave empty to resolve from latest CI action build run number)'
+        required: false
+        default: ''
 
 concurrency:
   group: ota-update-${{ github.ref }}
@@ -31,6 +35,9 @@ jobs:
   publish-ota:
     name: Publish OTA Update
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
 
     steps:
       - name: Checkout repository
@@ -56,8 +63,11 @@ jobs:
             echo "version=$RESOLVED" >> $GITHUB_OUTPUT
           fi
 
-      - name: Resolve update message and channel
+      - name: Resolve update message, channel, and build number
         id: meta
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
         run: |
           INPUT_CHANNEL="${{ github.event.inputs.channel }}"
           if [ -n "$INPUT_CHANNEL" ]; then
@@ -76,14 +86,31 @@ jobs:
             echo "message=$SUBJECT" >> $GITHUB_OUTPUT
           fi
 
-          BUILD_NUM=$(node -p "require('./app.json').expo.android.versionCode || 1008")
-          MIN_NATIVE=$(node -p "require('./app.json').expo.extra?.minNativeBuild || 1008")
+          INPUT_BUILD="${{ github.event.inputs.build_number }}"
+          if [ -n "$INPUT_BUILD" ]; then
+            BUILD_NUM="$INPUT_BUILD"
+          else
+            latest=0
+            for workflow in build-android.yml build-ios.yml; do
+              number=$(gh api "repos/$REPO/actions/workflows/$workflow/runs?per_page=1" --jq '.workflow_runs[0].run_number // 0' 2>/dev/null || echo 0)
+              echo "$workflow: run #$number"
+              if [ "$number" -gt "$latest" ]; then latest=$number; fi
+            done
+            if [ "$latest" -gt 0 ]; then
+              BUILD_NUM="$latest"
+            else
+              BUILD_NUM=$(node -p "require('./app.json').expo.android.versionCode || 1012")
+            fi
+          fi
+
+          MIN_NATIVE=$(node -p "require('./app.json').expo.extra?.minNativeBuild || 1009")
           echo "build_number=$BUILD_NUM" >> $GITHUB_OUTPUT
           echo "min_native_build=$MIN_NATIVE" >> $GITHUB_OUTPUT
 
-      - name: Ensure app.json matches target channel
+      - name: Ensure app.json matches target channel and build number
         run: |
           node scripts/set-ota-channel.js "${{ steps.meta.outputs.channel }}"
+          node scripts/set-build-number.js "${{ steps.meta.outputs.build_number }}"
 
       - name: Export update bundle with Expo CLI
         run: npx expo export --platform android --platform ios --output-dir dist
