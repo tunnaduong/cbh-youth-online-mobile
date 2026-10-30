@@ -293,11 +293,11 @@ export default function FeedbackScreen({ navigation, route }) {
 
           <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 16, marginBottom: 8 }}>
             <Text style={[styles.label, { color: theme.text, marginTop: 0, marginBottom: 0 }]}>
-              {t("feedback.imagesLabel", { max: MAX_IMAGES })}
+              {t("feedback.imagesLabel", "Ảnh chụp màn hình (tùy chọn, tối đa {{max}})", { max: MAX_IMAGES })}
             </Text>
             {submitting && images.length > 0 && uploadingIndex >= 0 && (
-              <Text style={{ fontSize: 12, color: theme.primary, fontWeight: "500" }}>
-                {t("feedback.uploadingImageProgress", {
+              <Text style={{ fontSize: 12, lineHeight: 16, color: theme.primary, fontWeight: "500" }}>
+                {t("feedback.uploadingImageProgress", "Đang tải ảnh ({{current}}/{{total}})...", {
                   current: uploadingIndex + 1,
                   total: images.length,
                 })}

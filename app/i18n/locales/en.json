@@ -673,6 +673,7 @@
     "reloadingDesc": "Update downloaded successfully. Restarting the app...",
     "baseUpdateRequiredTitle": "New App Installation Required",
     "baseUpdateRequiredDesc": "This update requires a newer application build. Please install the new APK/IPA to continue.",
+    "baseUpdateRequiredBuild": "This update requires app version Build {{min}} or higher (you are on Build {{current}}). Please install the latest APK to continue.",
     "updateSuccessTitle": "Update Successful!",
     "updateAppliedNotice": "The update has been applied permanently.",
     "updateFailedTitle": "Update Failed",

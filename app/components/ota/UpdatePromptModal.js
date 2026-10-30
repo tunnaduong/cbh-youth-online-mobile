@@ -208,8 +208,14 @@ export default function UpdatePromptModal({
               {status === STATUS.BASE_OUTDATED && (
                 <View style={styles.errorContainer}>
                   <Text style={[styles.errorDesc, { color: theme.subText }]}>
-                    {updateInfo?.error ||
-                      t("ota.baseUpdateRequiredDesc", "Bản cập nhật này yêu cầu phiên bản ứng dụng mới hơn. Vui lòng cài đặt file APK mới để tiếp tục.")}
+                    {t(
+                      "ota.baseUpdateRequiredBuild",
+                      "Bản cập nhật yêu cầu phiên bản ứng dụng Build {{min}} trở lên (bạn đang ở Build {{current}}). Vui lòng cài đặt file APK mới để tiếp tục.",
+                      {
+                        min: updateInfo?.minNativeBuild || 1014,
+                        current: updateInfo?.currentNativeBuild || 1011,
+                      }
+                    )}
                   </Text>
                 </View>
               )}
@@ -345,6 +351,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 20,
+    lineHeight: 26,
     fontWeight: "700",
     textAlign: "center",
     marginBottom: 8,
@@ -359,6 +366,7 @@ const styles = StyleSheet.create({
   },
   channelBadgeText: {
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
   },
   infoBox: {
@@ -370,6 +378,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
     marginBottom: 4,
   },
@@ -425,6 +434,7 @@ const styles = StyleSheet.create({
   },
   dismissButtonText: {
     fontSize: 15,
+    lineHeight: 20,
     fontWeight: "600",
   },
   updateButton: {
@@ -438,6 +448,7 @@ const styles = StyleSheet.create({
   updateButtonText: {
     color: "#ffffff",
     fontSize: 15,
+    lineHeight: 20,
     fontWeight: "700",
   },
 });

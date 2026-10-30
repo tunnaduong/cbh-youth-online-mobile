@@ -420,6 +420,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
 > Only the newest entries are kept here, so this file stays short enough to read in full. When adding one, drop the oldest; `git log -p -- INFO.md` has everything that was removed.
 
+- **Vietnamese font rendering & lineHeight optimization**:
+  - Added explicit `lineHeight` across modal headers, buttons, labels, and channel cards in `UpdatePromptModal.js`, `AppUpdatesScreen.js`, and `FeedbackScreen/index.js` to prevent Vietnamese diacritics / tone marks from being clipped on Android.
+  - Added `ota.baseUpdateRequiredBuild` across `vi.json`, `en.json`, and `ru.json` and ensured UI fallback strings are provided so text never displays raw translation keys.
+
 - **Min native build 1014, bug report image upload animations & OTA retry dialog i18n**:
   - `minNativeBuild` bumped to `1014` in `app.json`, `otaConfig.js`, and `ota-update.yml`.
   - Added animated upload indicator (`ActivityIndicator` overlay, status text, checkmark completion, and disabled delete while uploading) for bug report / feedback screenshots (`FeedbackScreen/index.js`).

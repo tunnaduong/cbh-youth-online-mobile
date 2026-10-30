@@ -388,11 +388,13 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontSize: 22,
+    lineHeight: 28,
     fontWeight: "700",
     marginBottom: 4,
   },
   heroSubtitle: {
     fontSize: 14,
+    lineHeight: 20,
   },
   sectionWrapper: {
     marginHorizontal: 16,
@@ -400,6 +402,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 13,
+    lineHeight: 18,
     fontWeight: "600",
     letterSpacing: 0.5,
     textTransform: "uppercase",
@@ -435,6 +438,7 @@ const styles = StyleSheet.create({
   },
   channelTitle: {
     fontSize: 15,
+    lineHeight: 20,
     fontWeight: "600",
   },
   channelBadge: {
@@ -445,11 +449,12 @@ const styles = StyleSheet.create({
   },
   channelBadgeText: {
     fontSize: 11,
+    lineHeight: 15,
     fontWeight: "600",
   },
   channelDesc: {
     fontSize: 12,
-    lineHeight: 16,
+    lineHeight: 17,
     marginTop: 2,
   },
   channelDivider: {
@@ -463,9 +468,11 @@ const styles = StyleSheet.create({
   },
   updateLabel: {
     fontSize: 14,
+    lineHeight: 20,
   },
   updateValue: {
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: "500",
   },
   checkUpdateButton: {
@@ -484,6 +491,7 @@ const styles = StyleSheet.create({
   checkUpdateButtonText: {
     color: "#ffffff",
     fontSize: 15,
+    lineHeight: 20,
     fontWeight: "600",
   },
   noteWrapper: {

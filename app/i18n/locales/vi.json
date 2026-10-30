@@ -662,6 +662,7 @@
     "reloadingDesc": "Đã tải xong bản cập nhật. Đang khởi động lại ứng dụng...",
     "baseUpdateRequiredTitle": "Yêu cầu bản cài đặt mới",
     "baseUpdateRequiredDesc": "Bản cập nhật này yêu cầu phiên bản ứng dụng mới hơn. Vui lòng cài đặt file APK mới để tiếp tục.",
+    "baseUpdateRequiredBuild": "Bản cập nhật yêu cầu phiên bản ứng dụng Build {{min}} trở lên (bạn đang ở Build {{current}}). Vui lòng cài đặt file APK mới để tiếp tục.",
     "updateSuccessTitle": "Cập nhật thành công!",
     "updateAppliedNotice": "Bản cập nhật đã được áp dụng vĩnh viễn.",
     "updateFailedTitle": "Cập nhật không thành công",
