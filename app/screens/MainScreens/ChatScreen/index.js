@@ -317,12 +317,12 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
   const getAvatar = (conversation) => {
     if (conversation.type === "private") {
-      return conversation.participants[0]?.avatar_url;
+      return conversation.participants?.[0]?.avatar_url;
     }
     if (isPublicGroupChat(conversation)) {
       return "local:chat.jpg";
     }
-    return conversation.avatar_url || null;
+    return conversation.avatar_url || conversation.participants?.[0]?.avatar_url || null;
   };
 
   // Only 1-1 chats show a person; group names/images stay unstyled.
@@ -391,6 +391,38 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     return content;
   };
 
+  const ConversationAvatar = ({ item }) => {
+    const [loadError, setLoadError] = useState(false);
+    const avatar = getAvatar(item);
+    const name = getChatName(item);
+    const initial = name?.trim()?.[0]?.toUpperCase() || "?";
+    const isLocal = avatar === "local:chat.jpg";
+    const isPlaceholder =
+      !avatar ||
+      (typeof avatar === "string" &&
+        (avatar.includes("placeholder-user.jpg") ||
+          avatar.includes("default-avatar.png") ||
+          avatar.trim() === ""));
+
+    if (loadError || (!isLocal && isPlaceholder)) {
+      return (
+        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.iconBackground }]}>
+          <Text style={[styles.avatarFallbackInitial, { color: theme.primary }]}>
+            {initial}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <FastImage
+        source={isLocal ? require("../../../assets/chat.jpg") : { uri: avatar }}
+        style={[styles.avatar, { backgroundColor: theme.border }]}
+        onError={() => setLoadError(true)}
+      />
+    );
+  };
+
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={[styles.conversation, { backgroundColor: theme.background }]}
@@ -402,30 +434,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       }}
     >
       <View style={styles.avatarWrapper}>
-        {item.type === "group" && getAvatar(item) !== "local:chat.jpg" && !getAvatar(item) ? (
-          // Matches the web app's fallback: a plain circle with the group
-          // name's first letter, instead of the generic person-silhouette
-          // placeholder image (which reads as "no avatar for a person", not
-          // "this group has no avatar").
-          <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.iconBackground }]}>
-            <Text style={[styles.avatarFallbackInitial, { color: theme.primary }]}>
-              {getChatName(item)?.trim()?.[0]?.toUpperCase() || "?"}
-            </Text>
-          </View>
-        ) : (
-          <FastImage
-            source={
-              getAvatar(item) === "local:chat.jpg"
-                ? require("../../../assets/chat.jpg")
-                : {
-                  uri:
-                    getAvatar(item) ||
-                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                }
-            }
-            style={[styles.avatar, { backgroundColor: theme.border }]}
-          />
-        )}
+        <ConversationAvatar item={item} />
         <AvatarFrame theme={getProfileTheme(item)} size={48} />
         {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
           <View style={styles.onlineDot} />

@@ -802,15 +802,15 @@ const ConversationScreen = ({ navigation, route }) => {
       return selectedUser?.avatar_url;
     }
     if (currentConversation?.type === "private") {
-      return currentConversation?.participants[0]?.avatar_url;
+      return currentConversation?.participants?.[0]?.avatar_url;
     }
     if (isPublicGroupChat(currentConversation) || currentConversation?.name === t("chatConversation.casualGroupName")) {
       return "local:chat.jpg";
     }
     if (currentConversation?.type === "group") {
-      return currentConversation?.avatar_url || "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg";
+      return currentConversation?.avatar_url || null;
     }
-    return "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg";
+    return currentConversation?.avatar_url || currentConversation?.participants?.[0]?.avatar_url || null;
   };
 
   // Callers like the notification screen only pass a conversationId (e.g. story
@@ -3057,6 +3057,7 @@ const ConversationScreen = ({ navigation, route }) => {
       <ConversationHeader
         insetsTop={insets.top}
         avatarSource={headerAvatarSource}
+        avatarUrl={headerAvatarUrl}
         profileTheme={otherUser?.profile_theme}
         showOnlineDot={currentConversation?.type !== "group" && isOtherUserOnline}
         title={headerTitle}

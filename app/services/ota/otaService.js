@@ -17,6 +17,8 @@ export const OTA_STORAGE_KEY = "ota_channel";
 export const OTA_ACTIVE_BUILD_KEY = "ota_active_build_number";
 export const OTA_ACTIVE_UPDATE_ID_KEY = "ota_active_update_id";
 export const OTA_ACTIVE_CHANNEL_KEY = "ota_active_channel";
+export const OTA_ENABLED_KEY = "ota_enabled";
+export const OTA_CHECK_STARTUP_KEY = "ota_check_startup";
 
 export const OTA_CHANNELS = {
   PRODUCTION: "production",
@@ -86,11 +88,67 @@ export function getOtaChannel() {
 }
 
 /**
+ * Checks whether OTA updates are enabled by the user in settings.
+ * Defaults to true.
+ */
+export function isOtaEnabled() {
+  try {
+    const val = storage.getBoolean(OTA_ENABLED_KEY);
+    return val !== undefined ? val : true;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Enables or disables OTA updates.
+ */
+export function setOtaEnabled(enabled) {
+  try {
+    storage.set(OTA_ENABLED_KEY, !!enabled);
+  } catch (err) {
+    console.warn("[OTA] Could not save OTA enabled state to storage:", err?.message);
+  }
+  if (enabled) {
+    applyChannelOverride();
+  }
+  return !!enabled;
+}
+
+/**
+ * Checks whether checking for updates automatically at startup is enabled.
+ * Defaults to true.
+ */
+export function isStartupCheckEnabled() {
+  try {
+    const val = storage.getBoolean(OTA_CHECK_STARTUP_KEY);
+    return val !== undefined ? val : true;
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Sets whether to check for updates automatically at startup.
+ */
+export function setStartupCheckEnabled(enabled) {
+  try {
+    storage.set(OTA_CHECK_STARTUP_KEY, !!enabled);
+  } catch (err) {
+    console.warn("[OTA] Could not save startup check state to storage:", err?.message);
+  }
+  return !!enabled;
+}
+
+/**
  * Applies the request headers override so that expo-updates queries the server
  * with the active "expo-channel-name" header and persists across reboots.
  */
 export function applyChannelOverride(channel = getOtaChannel()) {
-  if (!Updates.isEnabled) {
+  if (__DEV__ || !Updates.isEnabled) {
+    return;
+  }
+  if (!isOtaEnabled()) {
     return;
   }
   try {
@@ -100,12 +158,29 @@ export function applyChannelOverride(channel = getOtaChannel()) {
       });
       if (res && typeof res.catch === "function") {
         res.catch((err) => {
-          console.warn("[OTA] Could not set update request headers override:", err?.message);
+          const msg = err?.message || "";
+          if (
+            msg.includes("not enabled") ||
+            msg.includes("ERR_UPDATES_DISABLED") ||
+            err?.code === "ERR_UPDATES_DISABLED"
+          ) {
+            // Silently ignore when expo-updates is disabled natively
+            return;
+          }
+          console.warn("[OTA] Could not set update request headers override:", msg);
         });
       }
     }
   } catch (err) {
-    console.warn("[OTA] Could not set update request headers override:", err?.message);
+    const msg = err?.message || "";
+    if (
+      msg.includes("not enabled") ||
+      msg.includes("ERR_UPDATES_DISABLED") ||
+      err?.code === "ERR_UPDATES_DISABLED"
+    ) {
+      return;
+    }
+    console.warn("[OTA] Could not set update request headers override:", msg);
   }
 }
 
@@ -191,13 +266,22 @@ export function getRunningUpdateInfo() {
  *   error?: string
  * }>}
  */
-export async function checkUpdateAvailable(channelOverride) {
+export async function checkUpdateAvailable(channelOverride, force = false) {
   const channel = channelOverride || getOtaChannel();
   const currentNativeBuild = getNativeBuildNumber();
   const currentActiveBuild = getRunningOtaBuildNumber();
 
   if (__DEV__) {
     return { status: "dev_mode", isAvailable: false, channel };
+  }
+
+  if (!force && !isOtaEnabled()) {
+    return {
+      status: "disabled_by_user",
+      isAvailable: false,
+      channel,
+      error: "Tính năng cập nhật OTA đang bị tắt trong Cài đặt.",
+    };
   }
 
   applyChannelOverride(channel);

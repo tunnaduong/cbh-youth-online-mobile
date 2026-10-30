@@ -7,6 +7,7 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
+  Switch,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +24,10 @@ import {
   getOtaChannel,
   setOtaChannel,
   OTA_CHANNELS,
+  isOtaEnabled,
+  setOtaEnabled,
+  isStartupCheckEnabled,
+  setStartupCheckEnabled,
 } from "../../../services/ota/otaService";
 import UpdatePromptModal from "../../../components/ota/UpdatePromptModal";
 
@@ -41,11 +46,37 @@ export default function AppUpdatesScreen({ navigation }) {
   const { t } = useTranslation();
 
   const [selectedChannel, setSelectedChannel] = useState(() => getOtaChannel());
+  const [otaEnabled, setOtaEnabledState] = useState(() => isOtaEnabled());
+  const [startupCheckEnabled, setStartupCheckEnabledState] = useState(() => isStartupCheckEnabled());
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState(null);
   const [promptUpdateInfo, setPromptUpdateInfo] = useState(null);
   const [showPromptModal, setShowPromptModal] = useState(false);
   const runningUpdate = getRunningUpdateInfo();
+
+  const handleToggleOta = (val) => {
+    setOtaEnabled(val);
+    setOtaEnabledState(val);
+    Toast.show({
+      type: "info",
+      text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
+      text2: val
+        ? t("about.otaEnabledToast", "Đã bật cập nhật OTA.")
+        : t("about.otaDisabledToast", "Đã tắt cập nhật OTA."),
+    });
+  };
+
+  const handleToggleStartupCheck = (val) => {
+    setStartupCheckEnabled(val);
+    setStartupCheckEnabledState(val);
+    Toast.show({
+      type: "info",
+      text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
+      text2: val
+        ? t("about.startupCheckEnabledToast", "Đã bật kiểm tra cập nhật khi khởi động.")
+        : t("about.startupCheckDisabledToast", "Đã tắt kiểm tra cập nhật khi khởi động."),
+    });
+  };
 
   const handleSelectChannel = (channelKey) => {
     if (selectedChannel === channelKey) return;
@@ -66,9 +97,17 @@ export default function AppUpdatesScreen({ navigation }) {
 
   const handleCheckUpdate = async () => {
     if (isCheckingUpdate) return;
+    if (!otaEnabled) {
+      Toast.show({
+        type: "info",
+        text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
+        text2: t("about.otaTurnedOffNotice", "Tính năng cập nhật OTA đang tắt. Vui lòng bật để kiểm tra."),
+      });
+      return;
+    }
     setIsCheckingUpdate(true);
     try {
-      const result = await checkUpdateAvailable(selectedChannel);
+      const result = await checkUpdateAvailable(selectedChannel, true);
       setLastCheckTime(new Date());
 
       if (result.status === "dev_mode") {
@@ -213,8 +252,61 @@ export default function AppUpdatesScreen({ navigation }) {
             </Text>
           </View>
 
+          {/* Update Settings Section */}
+          <Section title={t("about.updateSettings", "Cài đặt cập nhật")} theme={theme}>
+            <View style={styles.toggleRow}>
+              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons
+                  name={otaEnabled ? "cloud-done" : "cloud-offline-outline"}
+                  size={20}
+                  color={otaEnabled ? theme.primary : theme.subText}
+                />
+              </View>
+              <View style={styles.toggleContent}>
+                <Text style={[styles.toggleTitle, { color: theme.text }]}>
+                  {t("about.enableOta", "Bật cập nhật OTA")}
+                </Text>
+                <Text style={[styles.toggleDesc, { color: theme.subText }]}>
+                  {t("about.enableOtaDesc", "Tự động nhận các tính năng mới và bản sửa lỗi nhanh chóng.")}
+                </Text>
+              </View>
+              <Switch
+                value={otaEnabled}
+                onValueChange={handleToggleOta}
+                trackColor={{ false: theme.border, true: theme.primary }}
+              />
+            </View>
+
+            <View style={[styles.channelDivider, { backgroundColor: theme.border }]} />
+
+            <View style={[styles.toggleRow, !otaEnabled && { opacity: 0.5 }]}>
+              <View style={[styles.channelIconWrap, { backgroundColor: theme.iconBackground }]}>
+                <Ionicons
+                  name="play-forward-outline"
+                  size={20}
+                  color={startupCheckEnabled && otaEnabled ? theme.primary : theme.subText}
+                />
+              </View>
+              <View style={styles.toggleContent}>
+                <Text style={[styles.toggleTitle, { color: theme.text }]}>
+                  {t("about.startupCheck", "Kiểm tra khi khởi động")}
+                </Text>
+                <Text style={[styles.toggleDesc, { color: theme.subText }]}>
+                  {t("about.startupCheckDesc", "Tự động kiểm tra bản cập nhật mới mỗi khi mở ứng dụng.")}
+                </Text>
+              </View>
+              <Switch
+                value={startupCheckEnabled}
+                onValueChange={handleToggleStartupCheck}
+                disabled={!otaEnabled}
+                trackColor={{ false: theme.border, true: theme.primary }}
+              />
+            </View>
+          </Section>
+
           {/* Update Channel Selector */}
-          <Section title={t("about.updateChannel", "Kênh cập nhật")} theme={theme}>
+          <View style={!otaEnabled && { opacity: 0.5 }} pointerEvents={otaEnabled ? "auto" : "none"}>
+            <Section title={t("about.updateChannel", "Kênh cập nhật")} theme={theme}>
             <TouchableOpacity
               style={styles.channelRow}
               onPress={() => handleSelectChannel(OTA_CHANNELS.PRODUCTION)}
@@ -287,6 +379,7 @@ export default function AppUpdatesScreen({ navigation }) {
               />
             </TouchableOpacity>
           </Section>
+          </View>
 
           {/* Version Info Section */}
           <Section title={t("about.versionDetails", "Thông tin phiên bản")} theme={theme}>
@@ -414,6 +507,25 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     padding: 18,
+  },
+  toggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 4,
+  },
+  toggleContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  toggleTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  toggleDesc: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
   },
   channelRow: {
     flexDirection: "row",

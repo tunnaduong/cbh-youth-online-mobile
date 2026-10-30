@@ -420,6 +420,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
 > Only the newest entries are kept here, so this file stays short enough to read in full. When adding one, drop the oldest; `git log -p -- INFO.md` has everything that was removed.
 
+- **OTA settings switches, unauthenticated check suppression & chat initial avatar fallbacks**:
+  - `applyChannelOverride` in `otaService.js` now silently returns when in `__DEV__`, when expo-updates is disabled natively, or when `ota_enabled` is false, eliminating noisy warning logs.
+  - Startup OTA update check in `App.js` is now suppressed on unauthenticated screens (welcome/login/signup) by requiring `isLoggedIn`, and respects both `isOtaEnabled()` and `isStartupCheckEnabled()`.
+  - Added toggle switches in `AppUpdatesScreen.js` for "Bật cập nhật OTA" and "Kiểm tra khi khởi động", backed by MMKV storage keys `ota_enabled` and `ota_check_startup`, with full i18n support in `vi.json`, `en.json`, and `ru.json`.
+  - For chats without avatar (such as support chats, bots, or users without profile pictures), the avatar is replaced with a clean circular thumbnail displaying the capitalized first letter on `theme.iconBackground` across `ChatScreen/index.js`, `ConversationHeader.js`, and `MessageRow.js`.
+
 - **Rename Profile tab label to "Cá nhân" ("Profile")**:
   - Updated `navigation.profile` in `app/i18n/locales/vi.json` from `"Tôi"` to `"Cá nhân"`, and in `en.json` to `"Profile"`.
 

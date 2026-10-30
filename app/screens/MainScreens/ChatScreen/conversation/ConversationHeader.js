@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
@@ -18,6 +18,7 @@ export const CHAT_HEADER_BAR_HEIGHT = 56;
 const ConversationHeader = ({
   insetsTop,
   avatarSource,
+  avatarUrl,
   profileTheme,
   showOnlineDot,
   title,
@@ -29,6 +30,16 @@ const ConversationHeader = ({
 }) => {
   const { theme } = useTheme();
   const { t } = useTranslation();
+  const [imgError, setImgError] = useState(false);
+
+  const initial = title?.trim()?.[0]?.toUpperCase() || "?";
+  const isLocal = avatarSource === require("../../../../assets/chat.jpg");
+  const isPlaceholder =
+    !avatarUrl ||
+    (typeof avatarUrl === "string" &&
+      (avatarUrl.includes("placeholder-user.jpg") ||
+        avatarUrl.includes("default-avatar.png") ||
+        avatarUrl.trim() === ""));
 
   return (
     <View pointerEvents="box-none" style={styles.overlay}>
@@ -54,7 +65,19 @@ const ConversationHeader = ({
             accessibilityRole="button"
           >
             <View style={styles.avatarOuter}>
-              <Image source={avatarSource} style={styles.avatar} />
+              {imgError || (!isLocal && isPlaceholder) ? (
+                <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.iconBackground }]}>
+                  <Text style={[styles.avatarFallbackInitial, { color: theme.primary }]}>
+                    {initial}
+                  </Text>
+                </View>
+              ) : (
+                <Image
+                  source={avatarSource}
+                  style={styles.avatar}
+                  onError={() => setImgError(true)}
+                />
+              )}
               <AvatarFrame theme={profileTheme} size={40} />
               {showOnlineDot ? (
                 <View style={[styles.onlineDot, { borderColor: theme.background }]} />
@@ -132,6 +155,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+  },
+  avatarFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarFallbackInitial: {
+    fontSize: 16,
+    fontWeight: "700",
   },
   onlineDot: {
     position: "absolute",

@@ -300,14 +300,37 @@ const MessageRow = React.memo(({
               size={32}
               style={styles.messageAvatarWrap}
             >
-              <FastImage
-                source={{
-                  uri:
-                    item.sender?.avatar_url ||
-                    "https://chuyenbienhoa.com/assets/images/placeholder-user.jpg",
-                }}
-                style={styles.messageAvatar}
-              />
+              {!item.sender?.avatar_url ||
+              item.sender.avatar_url.includes("placeholder-user.jpg") ||
+              item.sender.avatar_url.includes("default-avatar.png") ? (
+                <View
+                  style={[
+                    styles.messageAvatar,
+                    {
+                      backgroundColor: theme.iconBackground,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: theme.primary,
+                      fontSize: 13,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {(item.sender?.profile_name || item.sender?.name || item.sender?.username || "?")
+                      .trim()[0]
+                      ?.toUpperCase() || "?"}
+                  </Text>
+                </View>
+              ) : (
+                <FastImage
+                  source={{ uri: item.sender.avatar_url }}
+                  style={styles.messageAvatar}
+                />
+              )}
             </AvatarFrameWrap>
           </TouchableOpacity>
         )}

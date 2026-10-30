@@ -114,7 +114,7 @@ import { parseYouTubeShare } from "./app/utils/youtubeShare";
 import { initDevConsole } from "./app/utils/devConsole";
 import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
 import ShakeToReport from "./app/components/ShakeToReport";
-import { checkUpdateAvailable } from "./app/services/ota/otaService";
+import { checkUpdateAvailable, isOtaEnabled, isStartupCheckEnabled } from "./app/services/ota/otaService";
 import UpdatePromptModal from "./app/components/ota/UpdatePromptModal";
 
 // Patches console.log/warn/error as early as possible so nothing logged
@@ -417,7 +417,10 @@ const App = ({ skipSplash = false }) => {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   useEffect(() => {
-    if (showSplash || isLoading) return;
+    // Only check for updates when splash/loading has finished, the user is logged in,
+    // and both OTA updates and startup checking are enabled in settings.
+    if (showSplash || isLoading || !isLoggedIn) return;
+    if (!isOtaEnabled() || !isStartupCheckEnabled()) return;
 
     let isMounted = true;
     const checkStartupUpdate = async () => {
@@ -445,7 +448,7 @@ const App = ({ skipSplash = false }) => {
       isMounted = false;
       clearTimeout(timer);
     };
-  }, [showSplash, isLoading]);
+  }, [showSplash, isLoading, isLoggedIn]);
 
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
