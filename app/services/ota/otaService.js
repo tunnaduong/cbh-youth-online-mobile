@@ -1,6 +1,8 @@
 import { Platform } from "react-native";
+import * as Application from "expo-application";
 import * as Updates from "expo-updates";
 import { storage } from "../../global/storage";
+import { MIN_NATIVE_BUILD_REQUIRED, getEmbeddedDefaultChannel } from "./otaConfig";
 
 /**
  * Service for managing Over-The-Air (OTA) updates fetched from the self-hosted
@@ -12,7 +14,9 @@ import { storage } from "../../global/storage";
  */
 
 export const OTA_STORAGE_KEY = "ota_channel";
-export const OTA_DISMISSED_UPDATE_KEY = "ota_dismissed_update_id";
+export const OTA_ACTIVE_BUILD_KEY = "ota_active_build_number";
+export const OTA_ACTIVE_UPDATE_ID_KEY = "ota_active_update_id";
+export const OTA_ACTIVE_CHANNEL_KEY = "ota_active_channel";
 
 export const OTA_CHANNELS = {
   PRODUCTION: "production",
@@ -20,35 +24,74 @@ export const OTA_CHANNELS = {
 };
 
 /**
+ * Returns the base binary build number from the native AndroidManifest (versionCode)
+ * or iOS Info.plist (CFBundleVersion).
+ */
+export function getNativeBuildNumber() {
+  const parsed = parseInt(Application.nativeBuildVersion, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
+ * Returns the build number of the currently running JS bundle.
+ * If running embedded, returns the native binary build number.
+ * If running an OTA update, returns the active OTA build number stored on update.
+ */
+export function getRunningOtaBuildNumber() {
+  const nativeBuild = getNativeBuildNumber();
+  if (Updates.isEmbeddedLaunch) {
+    return nativeBuild;
+  }
+  const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY);
+  return storedBuild && storedBuild > 0 ? storedBuild : nativeBuild;
+}
+
+/**
+ * Synchronizes the native binary APK build number with the stored OTA build number.
+ * If the user upgraded the app via native APK/IPA (e.g. from Google Play Store),
+ * the newly installed base APK has a higher build number than the preinstalled OTA bundle.
+ * In this case, we use the bundled one with the APK and clear stale OTA state.
+ */
+export function syncNativeAndOtaBuild() {
+  try {
+    const nativeBuild = getNativeBuildNumber();
+    const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY) || 0;
+
+    if (nativeBuild > 0 && storedBuild > 0 && nativeBuild >= storedBuild) {
+      storage.delete(OTA_ACTIVE_BUILD_KEY);
+      storage.delete(OTA_ACTIVE_UPDATE_ID_KEY);
+    }
+  } catch (err) {
+    console.warn("[OTA] syncNativeAndOtaBuild error:", err?.message);
+  }
+}
+
+// Perform sync immediately upon module evaluation
+syncNativeAndOtaBuild();
+
+/**
  * Returns the user's selected OTA update channel ("production" | "preview").
- * Defaults to "production".
+ * Defaults to the channel embedded at build time (e.g. "preview" for dhphuc).
  */
 export function getOtaChannel() {
   try {
     const saved = storage.getString(OTA_STORAGE_KEY);
-    if (saved === OTA_CHANNELS.PREVIEW) {
-      return OTA_CHANNELS.PREVIEW;
+    if (saved === OTA_CHANNELS.PREVIEW || saved === OTA_CHANNELS.PRODUCTION) {
+      return saved;
     }
-    return OTA_CHANNELS.PRODUCTION;
+    return getEmbeddedDefaultChannel();
   } catch {
-    return OTA_CHANNELS.PRODUCTION;
+    return getEmbeddedDefaultChannel();
   }
 }
 
 /**
- * Applies the request headers and update URL override so that expo-updates queries
- * the server with the active "expo-channel-name" header.
+ * Applies the request headers override so that expo-updates queries the server
+ * with the active "expo-channel-name" header and persists across reboots.
  */
 export function applyChannelOverride(channel = getOtaChannel()) {
   try {
-    if (typeof Updates.setUpdateURLAndRequestHeadersOverride === "function") {
-      Updates.setUpdateURLAndRequestHeadersOverride({
-        updateUrl: "https://api.chuyenbienhoa.com/v1.0/ota/manifest",
-        requestHeaders: {
-          "expo-channel-name": channel,
-        },
-      });
-    } else if (typeof Updates.setUpdateRequestHeadersOverride === "function") {
+    if (typeof Updates.setUpdateRequestHeadersOverride === "function") {
       Updates.setUpdateRequestHeadersOverride({
         "expo-channel-name": channel,
       });
@@ -72,7 +115,7 @@ export function setOtaChannel(channel) {
   return target;
 }
 
-// Apply the stored channel immediately upon module evaluation
+// Apply the channel override immediately upon module evaluation
 applyChannelOverride();
 
 /**
@@ -80,6 +123,9 @@ applyChannelOverride();
  */
 export function getRunningUpdateInfo() {
   const activeChannel = getOtaChannel();
+  const nativeBuildNumber = getNativeBuildNumber();
+  const activeBuildNumber = getRunningOtaBuildNumber();
+
   try {
     return {
       isEnabled: Updates.isEnabled,
@@ -89,6 +135,9 @@ export function getRunningUpdateInfo() {
       activeChannel,
       runtimeVersion: Updates.runtimeVersion || null,
       createdAt: Updates.createdAt ? new Date(Updates.createdAt) : null,
+      nativeBuildNumber,
+      activeBuildNumber,
+      isOtaActive: !Updates.isEmbeddedLaunch && !!Updates.updateId,
     };
   } catch (err) {
     return {
@@ -99,6 +148,9 @@ export function getRunningUpdateInfo() {
       activeChannel,
       runtimeVersion: null,
       createdAt: null,
+      nativeBuildNumber,
+      activeBuildNumber,
+      isOtaActive: false,
       error: err?.message,
     };
   }
@@ -107,20 +159,34 @@ export function getRunningUpdateInfo() {
 /**
  * Queries the self-hosted manifest or native expo-updates to check if an update is available.
  *
- * Checks HTTP direct manifest first to avoid native configuration NPE/mismatch,
- * falling back to native checkForUpdateAsync().
+ * Implements intelligent checks:
+ * 1. Minimum native build check: blocks OTA if base APK is older than min_native_build (1008).
+ * 2. Build number comparison: only allows upgrade if upstream build > current active build.
+ * 3. Update ID matching: prevents re-downloading current update.
  *
  * @param {string} [channelOverride] Optional channel name to check
  * @returns {Promise<{
- *   status: 'available' | 'up_to_date' | 'dev_mode' | 'disabled' | 'error',
+ *   status: 'available' | 'up_to_date' | 'native_base_outdated' | 'dev_mode' | 'disabled' | 'error',
  *   isAvailable: boolean,
  *   channel: string,
- *   updateInfo?: { id: string, message: string, channel: string, createdAt: Date, manifest: object },
+ *   updateInfo?: {
+ *     id: string,
+ *     buildNumber: number,
+ *     minNativeBuild: number,
+ *     message: string,
+ *     channel: string,
+ *     createdAt: Date,
+ *     manifest: object
+ *   },
+ *   minNativeRequired?: number,
+ *   currentNativeBuild?: number,
  *   error?: string
  * }>}
  */
 export async function checkUpdateAvailable(channelOverride) {
   const channel = channelOverride || getOtaChannel();
+  const currentNativeBuild = getNativeBuildNumber();
+  const currentActiveBuild = getRunningOtaBuildNumber();
 
   if (__DEV__) {
     return { status: "dev_mode", isAvailable: false, channel };
@@ -157,15 +223,49 @@ export async function checkUpdateAvailable(channelOverride) {
         return { status: "up_to_date", isAvailable: false, channel };
       }
       if (data?.id) {
+        const upstreamBuildNumber = parseInt(data.metadata?.build_number, 10) || 0;
+        const minNativeBuild =
+          parseInt(data.metadata?.min_native_build, 10) || MIN_NATIVE_BUILD_REQUIRED;
+
+        // Check if the current native APK/IPA is too old for this OTA bundle
+        if (currentNativeBuild > 0 && currentNativeBuild < minNativeBuild) {
+          return {
+            status: "native_base_outdated",
+            isAvailable: false,
+            channel,
+            minNativeRequired: minNativeBuild,
+            currentNativeBuild,
+            error: `Bản cập nhật yêu cầu phiên bản ứng dụng Build ${minNativeBuild} trở lên (bạn đang ở Build ${currentNativeBuild}). Vui lòng cập nhật hoặc tải file APK mới.`,
+            updateInfo: {
+              id: data.id,
+              buildNumber: upstreamBuildNumber,
+              minNativeBuild,
+              message: data.metadata?.message || "",
+              channel: data.metadata?.channel || channel,
+              createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+              manifest: data,
+            },
+          };
+        }
+
+        // Check if client is already running an equal or newer build
+        if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+        }
+
+        // Check if currently running update ID matches
         if (currentUpdateId && data.id === currentUpdateId) {
           return { status: "up_to_date", isAvailable: false, channel };
         }
+
         return {
           status: "available",
           isAvailable: true,
           channel,
           updateInfo: {
             id: data.id,
+            buildNumber: upstreamBuildNumber,
+            minNativeBuild,
             message: data.metadata?.message || "",
             channel: data.metadata?.channel || channel,
             createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
@@ -178,19 +278,51 @@ export async function checkUpdateAvailable(channelOverride) {
     console.warn("[OTA] Direct manifest check error, checking native:", httpErr?.message);
   }
 
-  // 2. Native expo-updates check
+  // 2. Native expo-updates check as fallback
   if (Updates.isEnabled) {
     try {
       const checkResult = await Updates.checkForUpdateAsync();
       if (!checkResult.isAvailable) {
         return { status: "up_to_date", isAvailable: false, channel };
       }
+
+      const upstreamBuildNumber =
+        parseInt(checkResult.manifest?.metadata?.build_number, 10) || 0;
+      const minNativeBuild =
+        parseInt(checkResult.manifest?.metadata?.min_native_build, 10) || MIN_NATIVE_BUILD_REQUIRED;
+
+      if (currentNativeBuild > 0 && currentNativeBuild < minNativeBuild) {
+        return {
+          status: "native_base_outdated",
+          isAvailable: false,
+          channel,
+          minNativeRequired: minNativeBuild,
+          currentNativeBuild,
+          error: `Bản cập nhật yêu cầu phiên bản ứng dụng Build ${minNativeBuild} trở lên.`,
+          updateInfo: {
+            id: checkResult.manifest?.id || null,
+            buildNumber: upstreamBuildNumber,
+            minNativeBuild,
+            message: checkResult.manifest?.metadata?.message || "",
+            channel: checkResult.manifest?.metadata?.channel || channel,
+            createdAt: checkResult.manifest?.createdAt ? new Date(checkResult.manifest.createdAt) : new Date(),
+            manifest: checkResult.manifest,
+          },
+        };
+      }
+
+      if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
+        return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+      }
+
       return {
         status: "available",
         isAvailable: true,
         channel,
         updateInfo: {
           id: checkResult.manifest?.id || null,
+          buildNumber: upstreamBuildNumber,
+          minNativeBuild,
           message: checkResult.manifest?.metadata?.message || "",
           channel: checkResult.manifest?.metadata?.channel || channel,
           createdAt: checkResult.manifest?.createdAt ? new Date(checkResult.manifest.createdAt) : new Date(),
@@ -212,12 +344,13 @@ export async function checkUpdateAvailable(channelOverride) {
 }
 
 /**
- * Downloads the update bundle using expo-updates native fetch.
+ * Downloads the update bundle and saves update metadata so it persists across reboots.
  *
  * @param {string} [channelOverride] Optional channel name to check/fetch
+ * @param {object} [targetUpdateInfo] Update info metadata
  * @returns {Promise<{ status: 'downloaded' | 'disabled' | 'dev_mode' | 'error', channel?: string, manifest?: object, error?: string }>}
  */
-export async function downloadAndApplyUpdate(channelOverride) {
+export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo = null) {
   if (__DEV__) {
     return { status: "dev_mode" };
   }
@@ -231,6 +364,26 @@ export async function downloadAndApplyUpdate(channelOverride) {
 
   try {
     const fetchResult = await Updates.fetchUpdateAsync();
+
+    // Persist active build number and channel to storage so it survives app reboots
+    const buildToSave =
+      targetUpdateInfo?.buildNumber ||
+      parseInt(fetchResult.manifest?.metadata?.build_number, 10) ||
+      getNativeBuildNumber();
+
+    const updateIdToSave = targetUpdateInfo?.id || fetchResult.manifest?.id || "";
+
+    if (buildToSave > 0) {
+      storage.set(OTA_ACTIVE_BUILD_KEY, buildToSave);
+    }
+    if (updateIdToSave) {
+      storage.set(OTA_ACTIVE_UPDATE_ID_KEY, updateIdToSave);
+    }
+    storage.set(OTA_ACTIVE_CHANNEL_KEY, channel);
+
+    // Also persist header override to SharedPreferences
+    applyChannelOverride(channel);
+
     return {
       status: "downloaded",
       manifest: fetchResult.manifest,
@@ -248,9 +401,6 @@ export async function downloadAndApplyUpdate(channelOverride) {
 
 /**
  * Checks for a new update and downloads it if available (backward-compatible wrapper).
- *
- * @param {string} [channelOverride] Optional channel name to check instead of the stored one
- * @returns {Promise<{ status: 'dev_mode' | 'disabled' | 'up_to_date' | 'downloaded' | 'error', channel?: string, manifest?: object, error?: string, updateInfo?: object }>}
  */
 export async function checkAndFetchUpdate(channelOverride) {
   const check = await checkUpdateAvailable(channelOverride);
@@ -264,12 +414,22 @@ export async function checkAndFetchUpdate(channelOverride) {
   if (check.status === "up_to_date") {
     return { status: "up_to_date", channel: check.channel };
   }
+  if (check.status === "native_base_outdated") {
+    return {
+      status: "native_base_outdated",
+      channel: check.channel,
+      error: check.error,
+      minNativeRequired: check.minNativeRequired,
+      currentNativeBuild: check.currentNativeBuild,
+      updateInfo: check.updateInfo,
+    };
+  }
   if (check.status === "error") {
     return { status: "error", channel: check.channel, error: check.error };
   }
 
   if (check.isAvailable) {
-    const download = await downloadAndApplyUpdate(check.channel);
+    const download = await downloadAndApplyUpdate(check.channel, check.updateInfo);
     if (download.status === "downloaded") {
       return {
         status: "downloaded",
@@ -295,5 +455,9 @@ export async function reloadApp() {
   if (__DEV__ || !Updates.isEnabled) {
     return;
   }
-  await Updates.reloadAsync();
+  try {
+    await Updates.reloadAsync();
+  } catch (err) {
+    console.warn("[OTA] Updates.reloadAsync error:", err?.message);
+  }
 }

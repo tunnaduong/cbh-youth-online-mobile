@@ -76,6 +76,15 @@ jobs:
             echo "message=$SUBJECT" >> $GITHUB_OUTPUT
           fi
 
+          BUILD_NUM=$(node -p "require('./app.json').expo.android.versionCode || 1008")
+          MIN_NATIVE=$(node -p "require('./app.json').expo.extra?.minNativeBuild || 1008")
+          echo "build_number=$BUILD_NUM" >> $GITHUB_OUTPUT
+          echo "min_native_build=$MIN_NATIVE" >> $GITHUB_OUTPUT
+
+      - name: Ensure app.json matches target channel
+        run: |
+          node scripts/set-ota-channel.js "${{ steps.meta.outputs.channel }}"
+
       - name: Export update bundle with Expo CLI
         run: npx expo export --platform android --platform ios --output-dir dist
 
@@ -91,6 +100,8 @@ jobs:
           CHANNEL: ${{ steps.meta.outputs.channel }}
           RUNTIME_VERSION: ${{ steps.runtime.outputs.version }}
           MESSAGE: ${{ steps.meta.outputs.message }}
+          BUILD_NUMBER: ${{ steps.meta.outputs.build_number }}
+          MIN_NATIVE_BUILD: ${{ steps.meta.outputs.min_native_build }}
         run: |
           if [ -z "$OTA_DEPLOY_TOKEN" ]; then
             echo "::error::Secret OTA_DEPLOY_TOKEN is not set in repository secrets."
@@ -102,7 +113,9 @@ jobs:
             -F "archive=@dist.zip" \
             -F "channel=${CHANNEL}" \
             -F "runtime_version=${RUNTIME_VERSION}" \
-            -F "message=${MESSAGE}")
+            -F "message=${MESSAGE}" \
+            -F "build_number=${BUILD_NUMBER}" \
+            -F "min_native_build=${MIN_NATIVE_BUILD}")
 
           echo "Publish Response:"
           echo "$RESPONSE"

@@ -86,6 +86,13 @@ export default function AppUpdatesScreen({ navigation }) {
       } else if (result.status === "available" && result.updateInfo) {
         setPromptUpdateInfo(result.updateInfo);
         setShowPromptModal(true);
+      } else if (result.status === "native_base_outdated" && result.updateInfo) {
+        setPromptUpdateInfo({
+          ...result.updateInfo,
+          isBaseOutdated: true,
+          minNativeBuild: result.minNativeRequired,
+        });
+        setShowPromptModal(true);
       } else if (result.status === "disabled") {
         Toast.show({
           type: "info",
@@ -285,19 +292,21 @@ export default function AppUpdatesScreen({ navigation }) {
           <Section title={t("about.versionDetails", "Thông tin phiên bản")} theme={theme}>
             <View style={styles.updateRow}>
               <Text style={[styles.updateLabel, { color: theme.subText }]}>
-                {t("about.appVersion", "Phiên bản ứng dụng")}
+                {t("about.baseAppVersion", "Phiên bản gốc (Base)")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
-                {Application.nativeApplicationVersion || "6.0.1"} ({Application.nativeBuildVersion || "992"})
+                {Application.nativeApplicationVersion || "6.0.1"} (Build {Application.nativeBuildVersion || "992"})
               </Text>
             </View>
 
             <View style={[styles.updateRow, { marginTop: 14 }]}>
               <Text style={[styles.updateLabel, { color: theme.subText }]}>
-                {t("about.otaUpdate", "Bản cập nhật OTA")}
+                {t("about.realOtaVersion", "Bản cập nhật OTA")}
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
-                {runningUpdate.updateId ? `${runningUpdate.updateId.slice(0, 8)}...` : t("about.embeddedBuild", "Bản cài gốc")}
+                {runningUpdate.isOtaActive && runningUpdate.updateId
+                  ? `Build ${runningUpdate.activeBuildNumber} (${runningUpdate.updateId.slice(0, 8)})`
+                  : t("about.embeddedBuild", "Bản cài gốc (Embedded)")}
               </Text>
             </View>
 

@@ -45,15 +45,16 @@ jobs:
 
       # --if-higher: never takes the committed number backwards. [skip ci]
       # keeps the commit from starting any workflow.
-      - name: Commit the build number
+      - name: Commit the build number and ensure production channel
         run: |
           node scripts/set-build-number.js "$BUILD_NUMBER" --if-higher
+          node scripts/set-ota-channel.js production
           git add app.json
           if git diff --cached --quiet; then
-            echo "app.json already at build $BUILD_NUMBER"
+            echo "app.json already up to date"
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "chore: build number $BUILD_NUMBER [skip ci]"
+            git commit -m "chore: build number $BUILD_NUMBER & production channel [skip ci]"
             git push origin "HEAD:main"
           fi

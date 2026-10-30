@@ -47,6 +47,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const prevRouteRef = useRef(activeRouteName);
   const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 108);
 
   const LEFT_ROUTES = ["Home", "Forum", "Chat", "Notifications"];
@@ -60,13 +61,25 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
   const indicatorTarget = (activeLeftIndex >= 0 ? activeLeftIndex : 0) * buttonWidth;
 
   useEffect(() => {
-    Animated.timing(slideAnim, {
-      toValue: indicatorTarget,
-      duration: 180,
-      easing: Easing.out(Easing.quad),
-      useNativeDriver: true,
-    }).start();
-  }, [indicatorTarget]);
+    const wasProfile = prevRouteRef.current === "Profile";
+    prevRouteRef.current = activeRouteName;
+
+    if (activeLeftIndex >= 0) {
+      if (wasProfile) {
+        // Jumping from Me ("Tôi" - separated circle) to tabs in the float bar:
+        // teleport instantly to the tab without sliding animation.
+        slideAnim.setValue(indicatorTarget);
+      } else {
+        // Switching between tabs inside the float bar: smooth slide animation.
+        Animated.timing(slideAnim, {
+          toValue: indicatorTarget,
+          duration: 180,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }).start();
+      }
+    }
+  }, [indicatorTarget, activeLeftIndex, activeRouteName]);
 
   const bottomOffset = insets.bottom > 0 ? insets.bottom + 8 : 16;
   const surface = isDarkMode ? "rgba(18, 18, 18, 0.72)" : "rgba(255, 255, 255, 0.72)";

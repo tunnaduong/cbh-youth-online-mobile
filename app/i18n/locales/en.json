@@ -70,6 +70,7 @@
     }
   },
   "common": {
+    "understand": "Got it",
     "error": "An error occurred",
     "ok": "OK",
     "cancel": "Cancel",
@@ -656,6 +657,8 @@
     "channelDefaultBadge": "Default",
     "channelChanged": "Switched update channel to {{channel}}.",
     "versionDetails": "Version Details",
+    "baseAppVersion": "Base App Version",
+    "realOtaVersion": "OTA Update",
     "lastChecked": "Last checked",
     "otaExplanation": "OTA (Over-The-Air) updates allow you to quickly receive new features and bug fixes upon launching the app without reinstalling.",
     "updatesDisabledNotice": "This installation build does not support automatic OTA updates.",
@@ -667,13 +670,17 @@
     "downloadingDesc": "Downloading update package. Please keep the app open for a moment...",
     "reloadingTitle": "Restarting...",
     "reloadingDesc": "Update downloaded successfully. Restarting the app...",
+    "baseUpdateRequiredTitle": "New App Installation Required",
+    "baseUpdateRequiredDesc": "This update requires a newer application build. Please install the new APK/IPA to continue.",
+    "updateSuccessTitle": "Update Successful!",
+    "updateAppliedNotice": "The update has been applied permanently.",
     "updateFailedTitle": "Update Failed",
     "updateFailed": "Unable to download the update package.",
     "genericError": "An error occurred while downloading the update.",
     "changelogTitle": "Update Details",
     "defaultUpdateMessage": "New update with improvements and bug fixes.",
     "publishedAt": "Published at",
-    "smoothUpdateNotice": "The update will be downloaded automatically and the app will restart to apply changes.",
+    "smoothUpdateNotice": "The update will be persisted permanently and applied even across app restarts.",
     "updateNow": "Update Now"
   },
   "chatConversation": {

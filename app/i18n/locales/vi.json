@@ -63,6 +63,7 @@
     }
   },
   "common": {
+    "understand": "Đã hiểu",
     "error": "Đã có lỗi xảy ra",
     "ok": "OK",
     "cancel": "Hủy",
@@ -645,6 +646,8 @@
     "channelDefaultBadge": "Mặc định",
     "channelChanged": "Đã đổi kênh cập nhật sang {{channel}}.",
     "versionDetails": "Thông tin phiên bản",
+    "baseAppVersion": "Phiên bản gốc (Base)",
+    "realOtaVersion": "Bản cập nhật OTA",
     "lastChecked": "Lần kiểm tra gần nhất",
     "otaExplanation": "Bản cập nhật OTA (Over-The-Air) cho phép bạn nhanh chóng nhận các tính năng mới và bản sửa lỗi ngay khi khởi động ứng dụng mà không cần cài đặt lại từ đầu.",
     "updatesDisabledNotice": "Bản cài đặt này không hỗ trợ cập nhật OTA tự động.",
@@ -656,13 +659,17 @@
     "downloadingDesc": "Đang tải dữ liệu bản cập nhật mới. Vui lòng giữ ứng dụng mở trong giây lát...",
     "reloadingTitle": "Đang khởi động lại...",
     "reloadingDesc": "Đã tải xong bản cập nhật. Đang khởi động lại ứng dụng...",
+    "baseUpdateRequiredTitle": "Yêu cầu bản cài đặt mới",
+    "baseUpdateRequiredDesc": "Bản cập nhật này yêu cầu phiên bản ứng dụng mới hơn. Vui lòng cài đặt file APK mới để tiếp tục.",
+    "updateSuccessTitle": "Cập nhật thành công!",
+    "updateAppliedNotice": "Bản cập nhật đã được áp dụng vĩnh viễn.",
     "updateFailedTitle": "Cập nhật không thành công",
     "updateFailed": "Không thể tải bản cập nhật.",
     "genericError": "Đã xảy ra sự cố khi tải bản cập nhật.",
     "changelogTitle": "Thông tin bản cập nhật",
     "defaultUpdateMessage": "Bản cập nhật mới với nhiều cải tiến và sửa lỗi.",
     "publishedAt": "Phát hành lúc",
-    "smoothUpdateNotice": "Bản cập nhật sẽ được tải về tự động và ứng dụng sẽ khởi động lại để áp dụng thay đổi.",
+    "smoothUpdateNotice": "Bản cập nhật sẽ được lưu vĩnh viễn và áp dụng ngay cả khi khởi động lại ứng dụng.",
     "updateNow": "Cập nhật ngay"
   },
   "chatConversation": {

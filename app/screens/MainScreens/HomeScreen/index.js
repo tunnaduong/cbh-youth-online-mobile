@@ -71,6 +71,7 @@ import FastImage from "../../../components/FastImage";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { getAvatarFrame } from "../../../utils/profileTheme";
+import { useOwnProfileTheme } from "../../../utils/ownProfileTheme";
 import InstagramStories from "@birdwingo/react-native-instagram-stories";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import ActionSheet from "react-native-actions-sheet";
@@ -1036,6 +1037,7 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
     blockUser: blockUserInContext,
     getAvatarUrl,
   } = useContext(AuthContext);
+  const ownTheme = useOwnProfileTheme(username);
   const { updateStatusBar } = useStatusBar();
   const { theme, isDarkMode, autoplayVideos } = useTheme();
   const insets = useSafeAreaInsets();
@@ -2025,16 +2027,27 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
             }
           >
             {avatarUri ? (
-              <FastImage
-                source={{ uri: avatarUri }}
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
-                  borderWidth: StyleSheet.hairlineWidth,
-                  borderColor: theme.border,
-                }}
-              />
+              <AvatarFrameWrap theme={ownTheme} size={38}>
+                <View
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 19,
+                    overflow: "hidden",
+                  }}
+                >
+                  <FastImage
+                    source={{ uri: avatarUri }}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 19,
+                      borderWidth: StyleSheet.hairlineWidth,
+                      borderColor: theme.border,
+                    }}
+                  />
+                </View>
+              </AvatarFrameWrap>
             ) : (
               <View
                 style={{

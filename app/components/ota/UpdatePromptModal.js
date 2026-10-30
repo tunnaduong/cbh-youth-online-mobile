@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -6,11 +6,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Animated,
   TouchableWithoutFeedback,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTranslation } from "react-i18next";
+import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
 import { useTheme } from "../../contexts/ThemeContext";
 import { downloadAndApplyUpdate, reloadApp, OTA_CHANNELS } from "../../services/ota/otaService";
@@ -19,6 +19,7 @@ const STATUS = {
   PROMPT: "prompt",
   DOWNLOADING: "downloading",
   RESTARTING: "restarting",
+  BASE_OUTDATED: "base_outdated",
   ERROR: "error",
 };
 
@@ -33,19 +34,46 @@ export default function UpdatePromptModal({
   const [status, setStatus] = useState(STATUS.PROMPT);
   const [errorMessage, setErrorMessage] = useState("");
 
+  useEffect(() => {
+    if (visible) {
+      if (updateInfo?.isBaseOutdated) {
+        setStatus(STATUS.BASE_OUTDATED);
+      } else {
+        setStatus(STATUS.PROMPT);
+      }
+      setErrorMessage("");
+    }
+  }, [visible, updateInfo]);
+
   const handleUpdateNow = async () => {
     setStatus(STATUS.DOWNLOADING);
     setErrorMessage("");
 
     try {
       const channel = updateInfo?.channel;
-      const res = await downloadAndApplyUpdate(channel);
+      const res = await downloadAndApplyUpdate(channel, updateInfo);
 
       if (res.status === "downloaded") {
         setStatus(STATUS.RESTARTING);
+
+        // Allow UI to render the restarting state before invoking native reload
         setTimeout(async () => {
-          await reloadApp();
-        }, 600);
+          try {
+            await reloadApp();
+          } catch (e) {
+            console.warn("[OTA Modal] reloadApp error:", e?.message);
+          }
+        }, 800);
+
+        // Safety fallback: if app does not terminate within 3s, dismiss modal safely
+        setTimeout(() => {
+          onDismiss?.();
+          Toast.show({
+            type: "success",
+            text1: t("ota.updateSuccessTitle", "Cập nhật thành công!"),
+            text2: t("ota.updateAppliedNotice", "Bản cập nhật đã được áp dụng vĩnh viễn."),
+          });
+        }, 3200);
       } else {
         setStatus(STATUS.ERROR);
         setErrorMessage(res.error || t("ota.updateFailed", "Không thể tải bản cập nhật."));
@@ -54,10 +82,6 @@ export default function UpdatePromptModal({
       setStatus(STATUS.ERROR);
       setErrorMessage(err?.message || t("ota.updateFailed", "Không thể tải bản cập nhật."));
     }
-  };
-
-  const handleRetry = () => {
-    handleUpdateNow();
   };
 
   const handleClose = () => {
@@ -83,6 +107,10 @@ export default function UpdatePromptModal({
   const formattedDate = updateInfo?.createdAt
     ? dayjs(updateInfo.createdAt).format("DD/MM/YYYY HH:mm")
     : null;
+
+  const buildNumberDisplay = updateInfo?.buildNumber
+    ? ` · Build ${updateInfo.buildNumber}`
+    : "";
 
   return (
     <Modal
@@ -110,7 +138,7 @@ export default function UpdatePromptModal({
                     styles.iconCircle,
                     {
                       backgroundColor:
-                        status === STATUS.ERROR
+                        status === STATUS.ERROR || status === STATUS.BASE_OUTDATED
                           ? isDarkMode ? "rgba(239, 68, 68, 0.2)" : "rgba(239, 68, 68, 0.12)"
                           : theme.iconBackground,
                     },
@@ -118,14 +146,14 @@ export default function UpdatePromptModal({
                 >
                   <Ionicons
                     name={
-                      status === STATUS.ERROR
+                      status === STATUS.ERROR || status === STATUS.BASE_OUTDATED
                         ? "alert-circle"
                         : status === STATUS.RESTARTING
                         ? "refresh-circle"
                         : "cloud-download"
                     }
                     size={32}
-                    color={status === STATUS.ERROR ? "#ef4444" : theme.primary}
+                    color={status === STATUS.ERROR || status === STATUS.BASE_OUTDATED ? "#ef4444" : theme.primary}
                   />
                 </View>
               </View>
@@ -136,6 +164,8 @@ export default function UpdatePromptModal({
                   ? t("ota.downloadingTitle", "Đang cập nhật...")
                   : status === STATUS.RESTARTING
                   ? t("ota.reloadingTitle", "Đang khởi động lại...")
+                  : status === STATUS.BASE_OUTDATED
+                  ? t("ota.baseUpdateRequiredTitle", "Yêu cầu bản cài đặt mới")
                   : status === STATUS.ERROR
                   ? t("ota.updateFailedTitle", "Cập nhật không thành công")
                   : t("ota.updateAvailableTitle", "Có bản cập nhật mới!")}
@@ -149,7 +179,7 @@ export default function UpdatePromptModal({
                   style={{ marginRight: 4 }}
                 />
                 <Text style={[styles.channelBadgeText, { color: channelBadgeText }]}>
-                  {channelBadgeLabel}
+                  {channelBadgeLabel}{buildNumberDisplay}
                 </Text>
               </View>
 
@@ -170,9 +200,18 @@ export default function UpdatePromptModal({
                     ) : null}
                   </View>
                   <Text style={[styles.subNotice, { color: theme.subText }]}>
-                    {t("ota.smoothUpdateNotice", "Bản cập nhật sẽ được tải về tự động và ứng dụng sẽ khởi động lại để áp dụng thay đổi.")}
+                    {t("ota.smoothUpdateNotice", "Bản cập nhật sẽ được lưu vĩnh viễn và áp dụng ngay cả khi khởi động lại ứng dụng.")}
                   </Text>
                 </>
+              )}
+
+              {status === STATUS.BASE_OUTDATED && (
+                <View style={styles.errorContainer}>
+                  <Text style={[styles.errorDesc, { color: theme.subText }]}>
+                    {updateInfo?.error ||
+                      t("ota.baseUpdateRequiredDesc", "Bản cập nhật này yêu cầu phiên bản ứng dụng mới hơn. Vui lòng cài đặt file APK mới để tiếp tục.")}
+                  </Text>
+                </View>
               )}
 
               {status === STATUS.DOWNLOADING && (
@@ -188,7 +227,7 @@ export default function UpdatePromptModal({
                 <View style={styles.loadingContainer}>
                   <ActivityIndicator size="large" color={theme.primary} style={{ marginVertical: 16 }} />
                   <Text style={[styles.loadingDesc, { color: theme.subText }]}>
-                    {t("ota.reloadingDesc", "Đã tải xong bản cập nhật. Đang khởi động lại ứng dụng...")}
+                    {t("ota.reloadingDesc", "Đã lưu bản cập nhật. Đang khởi động lại ứng dụng...")}
                   </Text>
                 </View>
               )}
@@ -228,6 +267,18 @@ export default function UpdatePromptModal({
                   </>
                 )}
 
+                {status === STATUS.BASE_OUTDATED && (
+                  <TouchableOpacity
+                    style={[styles.updateButton, { backgroundColor: theme.primary, flex: 1 }]}
+                    onPress={handleClose}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.updateButtonText}>
+                      {t("common.understand", "Đã hiểu")}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
                 {status === STATUS.ERROR && (
                   <>
                     <TouchableOpacity
@@ -242,7 +293,7 @@ export default function UpdatePromptModal({
 
                     <TouchableOpacity
                       style={[styles.updateButton, { backgroundColor: theme.primary }]}
-                      onPress={handleRetry}
+                      onPress={handleUpdateNow}
                       activeOpacity={0.8}
                     >
                       <Ionicons name="reload-outline" size={18} color="#ffffff" style={{ marginRight: 6 }} />

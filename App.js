@@ -426,6 +426,13 @@ const App = ({ skipSplash = false }) => {
         if (res.isAvailable && res.updateInfo) {
           setStartupUpdateInfo(res.updateInfo);
           setShowUpdateModal(true);
+        } else if (res.status === "native_base_outdated" && res.updateInfo) {
+          setStartupUpdateInfo({
+            ...res.updateInfo,
+            isBaseOutdated: true,
+            minNativeBuild: res.minNativeRequired,
+          });
+          setShowUpdateModal(true);
         }
       } catch (e) {
         console.warn("[App] Startup OTA check error:", e?.message);
