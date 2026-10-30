@@ -21,7 +21,6 @@ import { AvatarFrameWrap } from "./profile/AvatarFrame";
 import { useOwnProfileTheme } from "../utils/ownProfileTheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import LiquidButton from "./LiquidButton";
 import { AndroidGlassBackdrop } from "./GlassModules";
 import { openInAppBrowser } from "../utils/externalLink";
 
@@ -186,7 +185,7 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
-      {/* Floating transparent header with fading title and liquid settings button */}
+      {/* Floating transparent header with fading title */}
       <View
         pointerEvents="box-none"
         style={{
@@ -201,20 +200,17 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
           style={{
             flexDirection: "row",
             alignItems: "center",
+            justifyContent: "center",
             paddingHorizontal: 16,
             paddingBottom: 8,
             paddingTop: insets.top,
             height: 64 + insets.top,
           }}
         >
-          {/* 44px spacer on left to balance right button */}
-          <View style={{ width: 44 }} />
-
           {/* Title fades out as content scrolls under header */}
           <Animated.Text
             numberOfLines={1}
             style={{
-              flex: 1,
               textAlign: "center",
               fontSize: 18,
               fontWeight: "600",
@@ -224,17 +220,6 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
           >
             {t("sidebar.menu", t("navigation.profile"))}
           </Animated.Text>
-
-          {/* Quick Settings LiquidButton on top-right */}
-          <LiquidButton
-            size={44}
-            scrollY={scrollY}
-            providerId={providerId}
-            onPress={() => navigation.navigate("Settings")}
-            accessibilityLabel={t("settings.title")}
-          >
-            <Ionicons name="settings-outline" size={22} color={theme.primary} />
-          </LiquidButton>
         </View>
       </View>
 

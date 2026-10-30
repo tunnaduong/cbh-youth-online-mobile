@@ -2080,24 +2080,6 @@ const HomeScreen = ({ navigation, route, scrollTriggerRef }) => {
               {t("createPost.placeholderContent")}
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={0.7}
-            accessibilityRole="button"
-            accessibilityLabel={t("createPost.addImage")}
-            onPress={() => navigation.navigate("CreatePostScreen")}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 19,
-              backgroundColor: theme.iconBackground,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ionicons name="images-outline" size={20} color={theme.primary} />
-          </TouchableOpacity>
         </View>
         {/* Dành cho bạn / Mới nhất / Đang theo dõi tab toggle — sits above stories */}
         <ScrollView
