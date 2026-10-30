@@ -647,7 +647,23 @@
     "versionDetails": "Thông tin phiên bản",
     "lastChecked": "Lần kiểm tra gần nhất",
     "otaExplanation": "Bản cập nhật OTA (Over-The-Air) cho phép bạn nhanh chóng nhận các tính năng mới và bản sửa lỗi ngay khi khởi động ứng dụng mà không cần cài đặt lại từ đầu.",
+    "updatesDisabledNotice": "Bản cài đặt này không hỗ trợ cập nhật OTA tự động.",
     "copyright": "© Công ty TNHH Giải pháp Giáo dục Fatties Software - Được phát triển bởi học sinh, dành cho học sinh."
+  },
+  "ota": {
+    "updateAvailableTitle": "Có bản cập nhật mới!",
+    "downloadingTitle": "Đang cập nhật...",
+    "downloadingDesc": "Đang tải dữ liệu bản cập nhật mới. Vui lòng giữ ứng dụng mở trong giây lát...",
+    "reloadingTitle": "Đang khởi động lại...",
+    "reloadingDesc": "Đã tải xong bản cập nhật. Đang khởi động lại ứng dụng...",
+    "updateFailedTitle": "Cập nhật không thành công",
+    "updateFailed": "Không thể tải bản cập nhật.",
+    "genericError": "Đã xảy ra sự cố khi tải bản cập nhật.",
+    "changelogTitle": "Thông tin bản cập nhật",
+    "defaultUpdateMessage": "Bản cập nhật mới với nhiều cải tiến và sửa lỗi.",
+    "publishedAt": "Phát hành lúc",
+    "smoothUpdateNotice": "Bản cập nhật sẽ được tải về tự động và ứng dụng sẽ khởi động lại để áp dụng thay đổi.",
+    "updateNow": "Cập nhật ngay"
   },
   "chatConversation": {
     "you": "Bạn",

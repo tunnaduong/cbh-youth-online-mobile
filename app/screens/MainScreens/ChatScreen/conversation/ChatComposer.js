@@ -151,8 +151,8 @@ const ChatComposer = React.forwardRef(
               <Ionicons name="chevron-down" size={22} color={theme.text} />
             </TouchableOpacity>
           )}
-          <View onLayout={handleBarLayout}>
-            <ChatGlassBar edge="bottom" style={{ paddingBottom: bottomInset }}>
+          <View onLayout={handleBarLayout} style={styles.barContainer}>
+            <ChatGlassBar edge="bottom" style={{ width: "100%", paddingBottom: bottomInset }}>
               {editingMessage && (
                 <View style={[styles.editBanner, { backgroundColor: isDarkMode ? "#1a1a1a" : "#f0f0f0" }]}>
                   <Ionicons name="pencil-outline" size={16} color={theme.primary} style={{ marginRight: 8 }} />
@@ -241,7 +241,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    width: "100%",
     zIndex: 10,
+  },
+  barContainer: {
+    width: "100%",
+    alignSelf: "stretch",
   },
   scrollButton: {
     alignSelf: "center",

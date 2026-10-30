@@ -18,12 +18,13 @@ import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import {
   getRunningUpdateInfo,
-  checkAndFetchUpdate,
+  checkUpdateAvailable,
   reloadApp,
   getOtaChannel,
   setOtaChannel,
   OTA_CHANNELS,
 } from "../../../services/ota/otaService";
+import UpdatePromptModal from "../../../components/ota/UpdatePromptModal";
 
 const Section = ({ title, children, theme }) => (
   <View style={styles.sectionWrapper}>
@@ -42,6 +43,8 @@ export default function AppUpdatesScreen({ navigation }) {
   const [selectedChannel, setSelectedChannel] = useState(() => getOtaChannel());
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [lastCheckTime, setLastCheckTime] = useState(null);
+  const [promptUpdateInfo, setPromptUpdateInfo] = useState(null);
+  const [showPromptModal, setShowPromptModal] = useState(false);
   const runningUpdate = getRunningUpdateInfo();
 
   const handleSelectChannel = (channelKey) => {
@@ -65,7 +68,7 @@ export default function AppUpdatesScreen({ navigation }) {
     if (isCheckingUpdate) return;
     setIsCheckingUpdate(true);
     try {
-      const result = await checkAndFetchUpdate(selectedChannel);
+      const result = await checkUpdateAvailable(selectedChannel);
       setLastCheckTime(new Date());
 
       if (result.status === "dev_mode") {
@@ -80,18 +83,15 @@ export default function AppUpdatesScreen({ navigation }) {
           text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
           text2: t("about.upToDate", "Ứng dụng đang ở bản mới nhất."),
         });
-      } else if (result.status === "downloaded") {
-        Alert.alert(
-          t("about.downloadedTitle", "Đã tải bản cập nhật mới"),
-          t("about.downloadedDesc", "Bản cập nhật mới đã sẵn sàng. Bạn có muốn khởi động lại ứng dụng ngay bây giờ để áp dụng không?"),
-          [
-            { text: t("about.later", "Để sau"), style: "cancel" },
-            {
-              text: t("about.restartNow", "Khởi động lại ngay"),
-              onPress: () => reloadApp(),
-            },
-          ]
-        );
+      } else if (result.status === "available" && result.updateInfo) {
+        setPromptUpdateInfo(result.updateInfo);
+        setShowPromptModal(true);
+      } else if (result.status === "disabled") {
+        Toast.show({
+          type: "info",
+          text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
+          text2: t("about.updatesDisabledNotice", "Bản cài đặt này không hỗ trợ cập nhật OTA tự động."),
+        });
       } else {
         Toast.show({
           type: "error",
@@ -348,6 +348,11 @@ export default function AppUpdatesScreen({ navigation }) {
           </View>
         </Animated.ScrollView>
       </AndroidGlassBackdrop>
+      <UpdatePromptModal
+        visible={showPromptModal}
+        updateInfo={promptUpdateInfo}
+        onDismiss={() => setShowPromptModal(false)}
+      />
     </View>
   );
 }

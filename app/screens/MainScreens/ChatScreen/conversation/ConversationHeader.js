@@ -34,7 +34,7 @@ const ConversationHeader = ({
     <View pointerEvents="box-none" style={styles.overlay}>
       <ChatGlassBar
         edge="top"
-        style={{ paddingTop: insetsTop, height: CHAT_HEADER_BAR_HEIGHT + insetsTop }}
+        style={{ width: "100%", paddingTop: insetsTop, height: CHAT_HEADER_BAR_HEIGHT + insetsTop }}
       >
         <View style={styles.row}>
           <LiquidButton
@@ -104,6 +104,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    width: "100%",
     zIndex: 10,
   },
   row: {

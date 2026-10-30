@@ -113,6 +113,8 @@ import { parseYouTubeShare } from "./app/utils/youtubeShare";
 import { initDevConsole } from "./app/utils/devConsole";
 import DevConsoleScreen from "./app/screens/MainScreens/SettingsScreen/DevConsoleScreen";
 import ShakeToReport from "./app/components/ShakeToReport";
+import { checkUpdateAvailable } from "./app/services/ota/otaService";
+import UpdatePromptModal from "./app/components/ota/UpdatePromptModal";
 
 // Patches console.log/warn/error as early as possible so nothing logged
 // during app startup is missed if dev mode is already enabled from a
@@ -408,6 +410,35 @@ const App = ({ skipSplash = false }) => {
   useEffect(() => {
     getSavedAccounts().then((list) => setHasSavedAccounts(list.length > 0));
   }, [isLoggedIn]);
+
+  // Background OTA update check at startup
+  const [startupUpdateInfo, setStartupUpdateInfo] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+
+  useEffect(() => {
+    if (showSplash || isLoading) return;
+
+    let isMounted = true;
+    const checkStartupUpdate = async () => {
+      try {
+        const res = await checkUpdateAvailable();
+        if (!isMounted) return;
+        if (res.isAvailable && res.updateInfo) {
+          setStartupUpdateInfo(res.updateInfo);
+          setShowUpdateModal(true);
+        }
+      } catch (e) {
+        console.warn("[App] Startup OTA check error:", e?.message);
+      }
+    };
+
+    const timer = setTimeout(checkStartupUpdate, 2000);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [showSplash, isLoading]);
+
   const navigationRef = useRef(null);
   const pendingDeepLinkQueue = useRef([]);
 
@@ -1197,6 +1228,11 @@ const App = ({ skipSplash = false }) => {
       {/* A login on another device waiting to be approved here (2FA) */}
       <LoginApprovalPrompt />
       <CustomAlertProvider />
+      <UpdatePromptModal
+        visible={showUpdateModal}
+        updateInfo={startupUpdateInfo}
+        onDismiss={() => setShowUpdateModal(false)}
+      />
     </>
   );
 };

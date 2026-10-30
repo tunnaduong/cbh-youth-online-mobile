@@ -9,12 +9,11 @@ import {
 } from "../../../../components/GlassModules";
 
 // Full-width liquid-glass bar docked to the top or bottom edge of the chat
-// (the header and the composer), Messenger style: flat, square, with a
-// hairline on the side that faces the messages. The content must be a real
-// child of the glass view (a sibling over an absolute glass layer gets swept
-// into the captured backdrop and shows up doubled). Without the native module
-// it falls back to the same nearly opaque panel the glass uses when the
-// "Liquid glass" setting is off.
+// (the header and the composer), Messenger style: flat, square across the
+// entire screen width, with a hairline on the side that faces the messages.
+// The content must be a real child of the glass view (a sibling over an
+// absolute glass layer gets swept into the captured backdrop and shows up
+// doubled). Without the native module it falls back to the flat opaque panel.
 const ChatGlassBar = ({ edge, style, children }) => {
   const { theme, isDarkMode } = useTheme();
   const hairline = (
@@ -28,13 +27,19 @@ const ChatGlassBar = ({ edge, style, children }) => {
     />
   );
 
+  const containerStyle = [
+    styles.bar,
+    style,
+  ];
+
   if (LiquidGlassView) {
     return (
       <LiquidGlassView
         variant="clear"
         tintColor={glassTint(isDarkMode)}
+        borderRadius={0}
         {...androidGlassPerfProps}
-        style={style}
+        style={containerStyle}
       >
         {children}
         {hairline}
@@ -43,7 +48,7 @@ const ChatGlassBar = ({ edge, style, children }) => {
   }
 
   return (
-    <View style={[style, { backgroundColor: flatSurface(isDarkMode) }]}>
+    <View style={[containerStyle, { backgroundColor: flatSurface(isDarkMode) }]}>
       {children}
       {hairline}
     </View>
@@ -51,6 +56,12 @@ const ChatGlassBar = ({ edge, style, children }) => {
 };
 
 const styles = StyleSheet.create({
+  bar: {
+    width: "100%",
+    alignSelf: "stretch",
+    borderRadius: 0,
+    overflow: "hidden",
+  },
   hairline: {
     position: "absolute",
     left: 0,
@@ -59,4 +70,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChatGlassBar;
+export default React.memo(ChatGlassBar);

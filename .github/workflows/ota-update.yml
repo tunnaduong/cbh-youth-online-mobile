@@ -11,9 +11,9 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: 'Update Channel (e.g. production, preview)'
-        required: true
-        default: 'production'
+        description: 'Update Channel (leave empty to auto-detect from branch: dhphuc->preview, main->production)'
+        required: false
+        default: ''
       message:
         description: 'Update commit / release note (defaults to commit message)'
         required: false
