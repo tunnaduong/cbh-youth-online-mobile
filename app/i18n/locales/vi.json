@@ -452,6 +452,7 @@
     }
   },
   "sidebar": {
+    "menu": "Menu",
     "utilities": "Tiện ích",
     "community": "Cộng đồng",
     "feed": "Bảng tin",

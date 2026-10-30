@@ -12,6 +12,8 @@ import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
 import ProfileScreen from "./ProfileScreen";
 import FastImage from "../../components/FastImage";
+import { AvatarFrameWrap } from "../../components/profile/AvatarFrame";
+import { useOwnProfileTheme } from "../../utils/ownProfileTheme";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
@@ -39,8 +41,9 @@ const ANDROID_ICON_MAP = {
 // Rendered as its own top-level component (not via Tab.Navigator's `tabBar`
 // render prop) and driven directly by MainScreens' own `currentRoute` state
 // and navigation.
-const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl }) => {
+const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatUnreadCount, notificationUnreadCount, avatarUrl, username }) => {
   const { theme, isDarkMode, hideTabLabels, liquidGlassEnabled } = useTheme();
+  const ownTheme = useOwnProfileTheme(username);
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const slideAnim = useRef(new Animated.Value(0)).current;
@@ -168,7 +171,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
         accessibilityLabel={t("navigation.profile")}
         style={[{
           width: 53, height: 53, borderRadius: 26.5,
-          overflow: "hidden",
+          overflow: "visible",
         },
         isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
       >
@@ -181,6 +184,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
             alignItems: "center", justifyContent: "center",
             elevation: 8, shadowColor: "#000", shadowOpacity: 0.12,
             shadowOffset: { width: 0, height: 4 }, shadowRadius: 12,
+            overflow: "visible",
           },
           flatGlass && { elevation: 0, shadowOpacity: 0 }]}
         >
@@ -191,42 +195,36 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
             />
           )}
           {avatarUrl ? (
-            <View
-              style={{
-                width: 24,
-                height: 24,
-                borderRadius: 12,
-                borderWidth: isProfileFocused ? 2 : 1,
-                borderColor: isProfileFocused ? activeColor : border,
-                overflow: "hidden",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+            <AvatarFrameWrap
+              theme={ownTheme}
+              size={42}
+              style={{ alignItems: "center", justifyContent: "center" }}
             >
-              <FastImage
-                source={{ uri: avatarUrl }}
-                style={{ width: 24, height: 24, borderRadius: 12 }}
-              />
-            </View>
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 21,
+                  borderWidth: isProfileFocused ? 2 : 1,
+                  borderColor: isProfileFocused ? activeColor : border,
+                  overflow: "hidden",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: surface,
+                }}
+              >
+                <FastImage
+                  source={{ uri: avatarUrl }}
+                  style={{ width: 42, height: 42, borderRadius: 21 }}
+                />
+              </View>
+            </AvatarFrameWrap>
           ) : (
             <Ionicons
               name={isProfileFocused ? "person-circle" : "person-circle-outline"}
-              size={24}
+              size={42}
               color={isProfileFocused ? activeColor : inactiveColor}
             />
-          )}
-          {!hideTabLabels && (
-            <Text
-              numberOfLines={1}
-              style={{
-                fontSize: 9,
-                color: isProfileFocused ? activeColor : inactiveColor,
-                fontWeight: "bold",
-                marginTop: 2,
-              }}
-            >
-              {t("navigation.profile")}
-            </Text>
           )}
         </NavGlassWrapper>
       </TouchableOpacity>
@@ -249,7 +247,6 @@ const tabIcon = (sfFilled, sfOutline, materialName) => ({ focused }) =>
 const TabWrapper = ({ children }) => children;
 
 export default function MainScreens({ navigation: stackNavigation }) {
-  const [setting, setSetting] = useState(false);
   const insets = useSafeAreaInsets();
   // iOS 26+ keeps react-navigation's native system tab bar (real native
   // UIGlassEffect with the OS's own scroll-collapse behavior, which
@@ -263,49 +260,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
   // like Android and iPhone.
   const isCustomTabBar = Platform.OS === "android" || Platform.isPad || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
   const [currentRoute, setCurrentRoute] = useState("Home");
-  const drawerTranslateX = useRef(new Animated.Value(-Dimensions.get('window').width)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
-  // Sidebar used to stay mounted permanently (just slid off-screen via
-  // transform), which on Android means its LiquidGlassView keeps running a
-  // full-screen-height AGSL shader pass every frame the whole time the app
-  // is open, not just while the drawer is actually visible - real, sustained
-  // GPU/perf cost for a screen most sessions never open. Mount it only while
-  // opening/open, and keep it mounted through the close animation so it
-  // doesn't just vanish mid-slide - unmount once that finishes.
-  const [shouldRenderSidebar, setShouldRenderSidebar] = useState(false);
 
-  useEffect(() => {
-    if (setting) setShouldRenderSidebar(true);
-
-    Animated.timing(drawerTranslateX, {
-      toValue: setting ? 0 : -Dimensions.get('window').width,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (!setting && finished) setShouldRenderSidebar(false);
-    });
-
-    Animated.timing(backdropOpacity, {
-      toValue: setting ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [setting, drawerTranslateX, backdropOpacity]);
-
-  // None of the sidebar's ~9 menu items (Profile, Settings, etc.) ever
-  // closed the drawer themselves before navigating - each just called
-  // navigation.navigate() directly. The drawer stayed fully open/mounted
-  // (including its own LiquidGlassView, if glass is on) behind whatever
-  // screen you navigated to, indefinitely, until manually dismissed - not
-  // just a visual glitch, a real extra glass surface + mounted subtree
-  // still costing GPU/JS time the entire time you're on that screen. Fixed
-  // centrally here instead of touching every menu item: close the drawer
-  // automatically on any navigation state change while it's open.
-  useEffect(() => {
-    const unsubscribe = stackNavigation.addListener("state", () => {
-      setSetting((prev) => (prev ? false : prev));
-    });
-    return unsubscribe;
+  // Opens the full-screen sidebar ("Tôi" / Menu tab) like Facebook
+  const openSidebar = useCallback(() => {
+    stackNavigation.navigate("MainScreens", { screen: "Profile" });
   }, [stackNavigation]);
 
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
@@ -433,7 +391,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
 
   const renderProfileScreen = useCallback((props) => (
     <ScreenWrapper>
-      <ProfileScreen {...props} isTab scrollTriggerRef={setProfileScrollTrigger} />
+      <AndroidGlassBackdrop providerId="Profile" style={{ flex: 1 }}>
+        <Sidebar {...props} isTab scrollTriggerRef={setProfileScrollTrigger} />
+      </AndroidGlassBackdrop>
     </ScreenWrapper>
   ), [setProfileScrollTrigger]);
 
@@ -489,7 +449,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
                     icon="search"
                     action={() => stackNavigation.navigate("SearchScreen")}
                     havingIcon
-                    setSetting={setSetting}
+                    setSetting={openSidebar}
                     onLogoPress={triggerHomeScrollOrReload}
                     onLogoLongPress={openFeedback}
                     providerId="Home"
@@ -595,24 +555,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
           onTabPress={handleAndroidTabPress}
           onHomeLongPress={openFeedback}
           avatarUrl={avatarUrl}
+          username={username}
         />
       )}
-
-      {/* Overlay Backdrop */}
-      <TouchableWithoutFeedback onPress={() => setSetting(false)}>
-        <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, opacity: backdropOpacity }]} pointerEvents={setting ? "auto" : "none"} />
-      </TouchableWithoutFeedback>
-
-      {/* Floating Sidebar Content */}
-      <Animated.View style={{
-        position: 'absolute',
-        top: 0, bottom: 0, left: 0,
-        width: Dimensions.get('window').width * 0.75,
-        zIndex: 101,
-        transform: [{ translateX: drawerTranslateX }]
-      }}>
-        {shouldRenderSidebar && <Sidebar providerId={currentRoute} isOpen={setting} />}
-      </Animated.View>
     </View>
   );
 }

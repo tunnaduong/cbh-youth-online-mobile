@@ -73,7 +73,7 @@ CBH Youth Online (CYO) là ứng dụng di động dành cho học sinh THPT Chu
 - `NotificationContext` đăng ký Expo push token, đồng bộ backend (`/notifications/expo/*`), badge count và listener khi nhận/tap thông báo.
 
 ### 4. Điều hướng & module
-- `MainScreens` gộp tab Home / Forum / Create / Chat / Notifications, hỗ trợ Side Menu để mở `Sidebar`.
+- `MainScreens` gộp tab Home / Forum / Chat / Notifications / Tôi (Menu toàn màn hình kiểu Facebook, chứa các tùy chọn tiện ích, cài đặt và liên kết tới trang cá nhân).
 - Stack bổ sung: tạo/sửa bài, chỉnh sửa hồ sơ, cài đặt, báo cáo nhiều bước (`ReportNavigator`), Story viewers, Explore, Archive, ví điểm.
 
 ### 5. Web trong ứng dụng

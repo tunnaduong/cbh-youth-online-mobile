@@ -8,6 +8,7 @@ import {
   ActionSheetIOS,
   Animated,
   Alert,
+  StyleSheet,
 } from "react-native";
 import React, { useEffect, useState, useContext, useRef } from "react";
 import { List } from "react-native-paper";
@@ -89,12 +90,21 @@ const CollapsibleMenuItem = ({
 // glass background. Same fix as LiquidButton's.
 const SidebarGlassWrapper = LiquidGlassView ?? View;
 
-const Sidebar = ({ providerId, isOpen }) => {
+const Sidebar = ({ providerId, isOpen, isTab = false, scrollTriggerRef = null }) => {
   const { signOut, username, profileName, userInfo } = useContext(AuthContext);
   // The user's own profile appearance: avatar frame and name style, as on
-  // their profile. Refreshed when the sidebar is opened.
-  const ownTheme = useOwnProfileTheme(username, !!isOpen);
+  // their profile. Refreshed when the sidebar is opened or active as a tab.
+  const ownTheme = useOwnProfileTheme(username, isTab || !!isOpen);
   const { theme, isDarkMode, liquidGlassEnabled } = useTheme();
+  const scrollViewRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      });
+    }
+  }, [scrollTriggerRef]);
   // Was 0.72/0.92 - opaque enough to hide the glass underneath almost
   // entirely, reading as a flat tinted panel instead of glass. Matches
   // glassTint's ratio (see GlassModules.js) used everywhere else in the app.
@@ -210,83 +220,76 @@ const Sidebar = ({ providerId, isOpen }) => {
       { cancelable: true },
     );
 
-  return (
-    <View style={{ flex: 1 }}>
-      <SidebarGlassWrapper
-        {...(LiquidGlassView
-          ? { variant: "clear", tintColor: glassTint(isDarkMode), ...androidGlassPerfProps }
-          : {})}
-        style={[
-          { flex: 1, borderTopRightRadius: 24, borderBottomRightRadius: 24 },
-          // Glass off: GlassModules paints the near-opaque flat surface; add
-          // the same hairline edge the no-library fallback has.
-          LiquidGlassView && !liquidGlassEnabled && {
-            overflow: "hidden",
-            borderRightWidth: 1,
-            borderColor: isDarkMode
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(0,0,0,0.06)",
-          },
-          !LiquidGlassView && {
-            backgroundColor: sidebarTint,
-            borderRightWidth: Platform.OS === "android" ? 1 : 0,
-            borderColor: isDarkMode
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(0,0,0,0.06)",
-          },
-        ]}
+  const content = (
+    <View style={{ flex: 1, paddingTop: insets.top }}>
+      {isTab && (
+        <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 }}>
+          <Text style={{ fontSize: 28, fontWeight: "bold", color: theme.text }}>
+            {t("sidebar.menu", t("navigation.profile"))}
+          </Text>
+        </View>
+      )}
+      <ScrollView
+        ref={scrollViewRef}
+        contentContainerStyle={{ paddingBottom: isTab ? 110 + insets.bottom : 40 + insets.bottom }}
+        showsVerticalScrollIndicator={false}
       >
-      <View
-        style={{
-          flex: 1,
-          // Same sidebarTint that used to be a separate absoluteFill overlay
-          // sibling over the glass - now just this content wrapper's own
-          // background, which composites correctly since it's a real child.
-          // Only over real glass - in glass-off mode it would stack a second
-          // see-through layer on the flat surface.
-          backgroundColor: LiquidGlassView && liquidGlassEnabled ? sidebarTint : "transparent",
-          paddingTop: insets.top,
-        }}
-      >
-        <ScrollView
-          contentContainerStyle={{ paddingBottom: 40 + insets.bottom }}
-          showsVerticalScrollIndicator={false}
+        <TouchableOpacity
+          style={
+            isTab
+              ? {
+                  marginHorizontal: 16,
+                  marginBottom: 16,
+                  marginTop: 6,
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border,
+                  borderWidth: StyleSheet.hairlineWidth,
+                  borderRadius: 16,
+                  padding: 14,
+                  flexDirection: "row",
+                  alignItems: "center",
+                }
+              : {
+                  marginHorizontal: 16,
+                  marginBottom: 16,
+                  marginTop: 16,
+                  gap: 8,
+                }
+          }
+          onPress={() => navigation.navigate("ProfileScreen", { username })}
+          activeOpacity={0.7}
         >
-          <TouchableOpacity
-            style={{
-              marginHorizontal: 16,
-              marginBottom: 16,
-              marginTop: 16,
-              gap: 8,
-            }}
-            onPress={() => navigation.navigate("ProfileScreen", { username })}
+          {/* The frame overflows the avatar a little, so the wrap keeps the
+              avatar's own size and isn't clipped. */}
+          <AvatarFrameWrap
+            theme={ownTheme}
+            size={isTab ? 54 : 60}
+            style={isTab ? { alignSelf: "center", marginRight: 14 } : { alignSelf: "flex-start" }}
           >
-            {/* The frame overflows the avatar a little, so the wrap keeps the
-                avatar's own size and isn't clipped. */}
-            <AvatarFrameWrap theme={ownTheme} size={60} style={{ alignSelf: "flex-start" }}>
-              <FastImage
-                source={{
-                  uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
-                }}
-                style={{ width: 60, height: 60, borderRadius: 30 }}
-              />
-            </AvatarFrameWrap>
-            <View>
-              <UserNameRow
-                name={profileName}
-                theme={ownTheme}
-                variant="full"
-                style={{ fontSize: 18, fontWeight: "bold", color: theme.text }}
-              />
-              <StyledUsername
-                theme={ownTheme}
-                username={username}
-                variant="full"
-                style={{ color: theme.subText }}
-                numberOfLines={1}
-              />
-            </View>
-          </TouchableOpacity>
+            <FastImage
+              source={{
+                uri: `https://api.chuyenbienhoa.com/v1.0/users/${username}/avatar`,
+              }}
+              style={{ width: isTab ? 54 : 60, height: isTab ? 54 : 60, borderRadius: isTab ? 27 : 30 }}
+            />
+          </AvatarFrameWrap>
+          <View style={isTab ? { flex: 1 } : undefined}>
+            <UserNameRow
+              name={profileName}
+              theme={ownTheme}
+              variant="full"
+              style={{ fontSize: isTab ? 17 : 18, fontWeight: "bold", color: theme.text }}
+            />
+            <StyledUsername
+              theme={ownTheme}
+              username={username}
+              variant="full"
+              style={{ color: theme.subText, marginTop: isTab ? 2 : 0 }}
+              numberOfLines={1}
+            />
+          </View>
+          {isTab && <Ionicons name="chevron-forward" size={20} color={theme.subText} />}
+        </TouchableOpacity>
           <AccountSwitcher />
           <List.Section>
             <List.Subheader
@@ -627,9 +630,53 @@ const Sidebar = ({ providerId, isOpen }) => {
           </List.Section>
         </ScrollView>
       </View>
-      </SidebarGlassWrapper>
-    </View>
-  );
-};
+    );
+
+    if (isTab) {
+      return (
+        <View style={{ flex: 1, backgroundColor: theme.background }}>
+          {content}
+        </View>
+      );
+    }
+
+    return (
+      <View style={{ flex: 1 }}>
+        <SidebarGlassWrapper
+          {...(LiquidGlassView
+            ? { variant: "clear", tintColor: glassTint(isDarkMode), ...androidGlassPerfProps }
+            : {})}
+          style={[
+            { flex: 1, borderTopRightRadius: 24, borderBottomRightRadius: 24 },
+            // Glass off: GlassModules paints the near-opaque flat surface; add
+            // the same hairline edge the no-library fallback has.
+            LiquidGlassView && !liquidGlassEnabled && {
+              overflow: "hidden",
+              borderRightWidth: 1,
+              borderColor: isDarkMode
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.06)",
+            },
+            !LiquidGlassView && {
+              backgroundColor: sidebarTint,
+              borderRightWidth: Platform.OS === "android" ? 1 : 0,
+              borderColor: isDarkMode
+                ? "rgba(255,255,255,0.08)"
+                : "rgba(0,0,0,0.06)",
+            },
+          ]}
+        >
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: LiquidGlassView && liquidGlassEnabled ? sidebarTint : "transparent",
+            }}
+          >
+            {content}
+          </View>
+        </SidebarGlassWrapper>
+      </View>
+    );
+  };
 
 export default Sidebar;

@@ -179,7 +179,6 @@ const CommentBar = React.forwardRef(
         placeholder={placeholderText}
         placeholderTextColor={theme.subText}
         multiline={true}
-        inputComponent={PasteInputComponent || undefined}
         onPaste={
           PasteInputComponent && onPasteImages
             ? (error, files) => {

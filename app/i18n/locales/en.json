@@ -463,6 +463,7 @@
     }
   },
   "sidebar": {
+    "menu": "Menu",
     "utilities": "Utilities",
     "community": "Community",
     "feed": "News Feed",
