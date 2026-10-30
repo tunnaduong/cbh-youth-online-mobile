@@ -78,7 +78,7 @@ app/
   screens/
     WelcomeScreen, LanguageSelectScreen, FirstLaunchSettingsScreen, LoginScreen, SignupScreen, ForgotPasswordScreen, TwoFactorChallengeScreen
     MainScreens/
-      index.js             Bottom tabs: Home, Explore ("Khám phá"), Chat, Notifications, Profile ("Tôi")
+      index.js             Bottom tabs: Home, Explore ("Khám phá"), Chat, Notifications, Profile ("Cá nhân")
       HomeScreen, ForumScreen, PostScreen, CreatePostScreen, PostEditScreen, CreateStoryScreen
       ChatScreen/          Conversation list, ConversationScreen, groups, MediaGalleryScreen
         conversation/      Pieces of ConversationScreen: ConversationHeader, ChatComposer, ChatGlassBar, MessagesListContent, MessageRow, SeenByModal, TypingIndicator, chatUtils, styles...
@@ -419,6 +419,9 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 - **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
 > Only the newest entries are kept here, so this file stays short enough to read in full. When adding one, drop the oldest; `git log -p -- INFO.md` has everything that was removed.
+
+- **Rename Profile tab label to "Cá nhân" ("Profile")**:
+  - Updated `navigation.profile` in `app/i18n/locales/vi.json` from `"Tôi"` to `"Cá nhân"`, and in `en.json` to `"Profile"`.
 
 - **Replace Forum ("Diễn đàn") tab with Explore ("Khám phá") tab**:
   - Main tab navigator in `MainScreens/index.js` now features `Explore` (`ExploreScreen`) as the 2nd tab instead of `Forum` (`ForumScreen`), with compass icons on iOS (`safari.fill`/`safari`) and Android (`compass`/`compass-outline`).
