@@ -2,7 +2,7 @@
   "expo": {
     "name": "CBH Online",
     "slug": "cbh-youth-online-mobile",
-    "version": "6.0.1",
+    "version": "6.4.3",
     "projectId": "172eec8c-8c58-453c-a375-258412496e09",
     "orientation": "default",
     "icon": "./app/assets/icon.png",

@@ -420,6 +420,10 @@ Every new or changed screen must follow this section. If a screen you touch does
 - **Home feed: no more endless spinner under "you have seen all suggested posts"** (not run on a device): after the personalized feed ran out, `HomeScreen` switched to the latest feed and added the divider, but nothing asked for the first page of it - the divider alone does not make FlatList fire `onEndReached` again. Also, a page whose posts were all delivered already added nothing, so the list did not grow and the spinner stayed. `loadMorePages` (one load at a time via `loadingMoreRef`) now pages until something new arrives (at most 5 empty pages, then it stops when a page is empty), and the exhausted branch calls it for latest page 1 straight away. Used by latest / following / youth-news too.
 > Only the newest entries are kept here, so this file stays short enough to read in full. When adding one, drop the oldest; `git log -p -- INFO.md` has everything that was removed.
 
+- **Version 6.4.3 bump**:
+  - `app.json` and `package.json` version bumped to `6.4.3`.
+  - UI fallbacks in `AppUpdatesScreen.js` updated to `6.4.3`.
+
 - **Intelligent OTA updates, dynamic channel branching, instant tab teleport & composer avatar frame**:
   - **OTA build & minimum versioning in `app.json`**: `minNativeBuild` is configured in `app.json` (`expo.extra.minNativeBuild`), easily editable (updated to `1009`). `otaConfig.js` and `otaService.js` read this dynamically to block OTA updates and warn the user when their installed APK is below the required base build (`native_base_outdated`). Upstream builds higher than active build upgrade cleanly, while equal/lower builds (and upstream builds $\le$ current native build) are marked `up_to_date` to prevent downgrade loops when switching to production from a newer preview APK.
   - **Runtime header override & reboot persistence**: `"disableAntiBrickingMeasures": true` in `app.json` ensures `UpdatesConfigurationOverride`'s request headers are accepted natively across cold boots and app restarts.
