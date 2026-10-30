@@ -34,7 +34,10 @@ const MenuRow = ({
   destructive = false,
   last = false,
   theme,
-}) => (
+  isDarkMode = false,
+}) => {
+  const isDark = isDarkMode || theme?.isDark || theme?.background === "#121212";
+  return (
   <TouchableOpacity
     style={[
       styles.menuRow,
@@ -50,8 +53,8 @@ const MenuRow = ({
         styles.iconHolder,
         {
           backgroundColor: destructive
-            ? theme.isDarkMode
-              ? "rgba(255,59,48,0.15)"
+            ? isDark
+              ? "rgba(255,59,48,0.2)"
               : "#FDE8E8"
             : theme.iconBackground,
         },
@@ -89,8 +92,9 @@ const MenuRow = ({
     />
   </TouchableOpacity>
 );
+};
 
-const MenuSection = ({ title, children, theme }) => {
+const MenuSection = ({ title, children, theme, isDarkMode }) => {
   const childrenArray = React.Children.toArray(children).filter(Boolean);
   if (childrenArray.length === 0) return null;
 
@@ -111,6 +115,7 @@ const MenuSection = ({ title, children, theme }) => {
           React.cloneElement(child, {
             last: index === childrenArray.length - 1,
             theme,
+            isDarkMode,
           })
         )}
       </View>
@@ -305,7 +310,7 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
           </View>
 
           {/* Section: Utilities */}
-          <MenuSection title={t("sidebar.utilities")} theme={theme}>
+          <MenuSection title={t("sidebar.utilities")} theme={theme} isDarkMode={isDarkMode}>
             <MenuRow
               icon="newspaper-outline"
               title={t("sidebar.feed")}
@@ -356,7 +361,7 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
           </MenuSection>
 
           {/* Section: Reports */}
-          <MenuSection title={t("sidebar.reports")} theme={theme}>
+          <MenuSection title={t("sidebar.reports")} theme={theme} isDarkMode={isDarkMode}>
             <MenuRow
               icon="alert-circle-outline"
               title={t("sidebar.studentViolation")}
@@ -370,7 +375,7 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
           </MenuSection>
 
           {/* Section: Support */}
-          <MenuSection title={t("sidebar.support")} theme={theme}>
+          <MenuSection title={t("sidebar.support")} theme={theme} isDarkMode={isDarkMode}>
             <MenuRow
               icon="information-circle-outline"
               title={t("sidebar.about")}
@@ -401,7 +406,7 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
           </MenuSection>
 
           {/* Section: Settings & Account */}
-          <MenuSection title={t("sidebar.settingsGroup")} theme={theme}>
+          <MenuSection title={t("sidebar.settingsGroup")} theme={theme} isDarkMode={isDarkMode}>
             <MenuRow
               icon="settings-outline"
               title={t("settings.title")}

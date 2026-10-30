@@ -117,13 +117,14 @@
       "eas": {
         "projectId": "172eec8c-8c58-453c-a375-258412496e09"
       },
-      "minNativeBuild": 1008
+      "minNativeBuild": 1009
     },
     "runtimeVersion": "7.4.10",
     "updates": {
       "url": "https://api.chuyenbienhoa.com/v1.0/ota/manifest",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 0,
+      "disableAntiBrickingMeasures": true,
       "requestHeaders": {
         "expo-channel-name": "preview"
       }

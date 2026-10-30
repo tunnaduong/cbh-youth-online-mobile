@@ -30,6 +30,7 @@ import UserNameRow from "../../../components/profile/UserNameRow";
 import StyledUsername from "../../../components/profile/StyledUsername";
 import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
 import { useOwnProfileTheme } from "../../../utils/ownProfileTheme";
+import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 
 const SettingItem = ({
   icon,
@@ -99,6 +100,7 @@ export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
   // The signed-in user's own appearance (cached; same source as the sidebar).
   const ownTheme = useOwnProfileTheme(userInfo?.username);
+  const runningUpdate = getRunningUpdateInfo();
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
   const { t, i18n } = useTranslation();
@@ -362,6 +364,11 @@ export default function SettingsScreen({ navigation }) {
           <SettingItem
             icon="cloud-download-outline"
             title={t("settings.appUpdates", "Cập nhật ứng dụng")}
+            value={
+              runningUpdate.isOtaActive && runningUpdate.activeBuildNumber
+                ? `(OTA Version: Build ${runningUpdate.activeBuildNumber})`
+                : undefined
+            }
             onPress={() => navigation.navigate("AppUpdatesScreen")}
           />
           <SettingItem
@@ -416,6 +423,9 @@ export default function SettingsScreen({ navigation }) {
               appVersion: Application.nativeApplicationVersion,
               buildVersion: Application.nativeBuildVersion,
             })}
+            {runningUpdate.isOtaActive && runningUpdate.activeBuildNumber
+              ? ` (OTA Version: Build ${runningUpdate.activeBuildNumber})`
+              : ""}
           </Text>
         </TouchableOpacity>
 

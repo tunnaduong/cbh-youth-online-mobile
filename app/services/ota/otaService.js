@@ -253,6 +253,17 @@ export async function checkUpdateAvailable(channelOverride) {
           return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
 
+        // Check if upstream build is older than or equal to the installed base APK
+        // (prevents offering older production builds to clients on a newer preview APK)
+        if (currentNativeBuild > 0) {
+          if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentNativeBuild) {
+            return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
+          }
+          if (upstreamBuildNumber <= 0 && currentNativeBuild >= 1000) {
+            return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
+          }
+        }
+
         // Check if currently running update ID matches
         if (currentUpdateId && data.id === currentUpdateId) {
           return { status: "up_to_date", isAvailable: false, channel };
@@ -313,6 +324,15 @@ export async function checkUpdateAvailable(channelOverride) {
 
       if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
         return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+      }
+
+      if (currentNativeBuild > 0) {
+        if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentNativeBuild) {
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
+        }
+        if (upstreamBuildNumber <= 0 && currentNativeBuild >= 1000) {
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
+        }
       }
 
       return {
