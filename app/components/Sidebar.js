@@ -253,19 +253,6 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
             { useNativeDriver: false }
           )}
         >
-          {/* Big screen title */}
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: "700",
-              color: theme.text,
-              marginBottom: 16,
-              marginHorizontal: 4,
-            }}
-          >
-            {t("sidebar.menu", t("navigation.profile"))}
-          </Text>
-
           {/* Facebook-style Profile Card */}
           <TouchableOpacity
             style={[
