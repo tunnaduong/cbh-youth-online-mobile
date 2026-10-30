@@ -317,9 +317,14 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
               onPress={() => navigation.navigate("MainScreens", { screen: "Home" })}
             />
             <MenuRow
+              icon="compass-outline"
+              title={t("sidebar.explore")}
+              onPress={() => navigation.navigate("MainScreens", { screen: "Explore" })}
+            />
+            <MenuRow
               icon="people-outline"
               title={t("navigation.forum")}
-              onPress={() => navigation.navigate("MainScreens", { screen: "Forum" })}
+              onPress={() => navigation.navigate("ForumScreen")}
             />
             <MenuRow
               icon="gift-outline"
@@ -330,11 +335,6 @@ const Sidebar = ({ providerId = "Profile", isOpen = true, isTab = true, scrollTr
               icon="wallet-outline"
               title={t("sidebar.pointWallet")}
               onPress={() => navigation.navigate("PointWalletScreen")}
-            />
-            <MenuRow
-              icon="compass-outline"
-              title={t("sidebar.explore")}
-              onPress={() => navigation.navigate("ExploreScreen")}
             />
             <MenuRow
               icon="bookmark-outline"

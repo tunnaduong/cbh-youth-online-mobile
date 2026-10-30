@@ -72,6 +72,7 @@ import SavedPostsScreen from "./app/screens/MainScreens/SavedPostsScreen";
 import ActivityScreen from "./app/screens/MainScreens/ActivityScreen";
 import LikedPostsScreen from "./app/screens/MainScreens/LikedPostsScreen";
 import CreateStoryScreen from "./app/screens/MainScreens/CreateStoryScreen";
+import ForumScreen from "./app/screens/MainScreens/ForumScreen";
 import CategoryScreen from "./app/screens/MainScreens/ForumScreen/CategoryScreen";
 import ConversationScreen from "./app/screens/MainScreens/ChatScreen/ConversationScreen";
 import NewConversationScreen from "./app/screens/MainScreens/ChatScreen/NewConversationScreen";
@@ -1090,6 +1091,11 @@ const App = ({ skipSplash = false }) => {
               <Stack.Screen
                 name="ExploreScreen"
                 component={ExploreScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="ForumScreen"
+                component={ForumScreen}
                 options={{ headerShown: false }}
               />
               <Stack.Screen

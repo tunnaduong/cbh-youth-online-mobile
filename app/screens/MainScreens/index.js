@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import HomeScreen from "./HomeScreen";
 import SameHeader from "../../components/SameHeader";
-import MenuScreen from "./ForumScreen";
+import ExploreScreen from "./ExploreScreen";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatScreen from "./ChatScreen";
 import NotificationScreen from "./NotificationScreen";
@@ -33,7 +33,7 @@ const Tab = createBottomTabNavigator();
 
 const ANDROID_ICON_MAP = {
   Home: { focused: "home", outline: "home-outline" },
-  Forum: { focused: "people", outline: "people-outline" },
+  Explore: { focused: "compass", outline: "compass-outline" },
   Chat: { focused: "chatbubble", outline: "chatbubble-outline" },
   Notifications: { focused: "notifications", outline: "notifications-outline" },
 };
@@ -50,7 +50,7 @@ const CustomTabBar = memo(({ activeRouteName, onTabPress, onHomeLongPress, chatU
   const prevRouteRef = useRef(activeRouteName);
   const [pillWidth, setPillWidth] = useState(Dimensions.get("window").width - 108);
 
-  const LEFT_ROUTES = ["Home", "Forum", "Chat", "Notifications"];
+  const LEFT_ROUTES = ["Home", "Explore", "Chat", "Notifications"];
   const leftRoutes = LEFT_ROUTES.map((name) => ({
     name,
     label: t(`navigation.${name.toLowerCase()}`),
@@ -283,7 +283,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const { username, getAvatarUrl } = useContext(AuthContext);
   const avatarUrl = username && getAvatarUrl ? getAvatarUrl(username) : null;
   const homeScreenScrollTriggerRef = useRef(null);
-  const forumScrollTriggerRef = useRef(null);
+  const exploreScrollTriggerRef = useRef(null);
   const chatScrollTriggerRef = useRef(null);
   const notificationScrollTriggerRef = useRef(null);
   const profileScrollTriggerRef = useRef(null);
@@ -296,9 +296,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
     }
   };
 
-  const triggerForumScrollOrReload = () => {
-    if (forumScrollTriggerRef.current) {
-      forumScrollTriggerRef.current(Date.now());
+  const triggerExploreScrollOrReload = () => {
+    if (exploreScrollTriggerRef.current) {
+      exploreScrollTriggerRef.current(Date.now());
     }
   };
 
@@ -326,7 +326,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
   // tabBar render prop and so no longer emits its tabPress events.
   const TAB_RELOAD_TRIGGERS = {
     Home: triggerHomeScrollOrReload,
-    Forum: triggerForumScrollOrReload,
+    Explore: triggerExploreScrollOrReload,
     Chat: triggerChatScrollOrReload,
     Notifications: triggerNotificationScrollOrReload,
     Profile: triggerProfileScrollOrReload,
@@ -360,11 +360,11 @@ export default function MainScreens({ navigation: stackNavigation }) {
     return unsubscribe;
   }, [stackNavigation]);
 
-  const setHomeScrollTrigger = useCallback((triggerFn) => {
+  const setHomeScreenScrollTrigger = useCallback((triggerFn) => {
     homeScreenScrollTriggerRef.current = triggerFn;
   }, []);
-  const setForumScrollTrigger = useCallback((triggerFn) => {
-    forumScrollTriggerRef.current = triggerFn;
+  const setExploreScrollTrigger = useCallback((triggerFn) => {
+    exploreScrollTriggerRef.current = triggerFn;
   }, []);
   const setChatScrollTrigger = useCallback((triggerFn) => {
     chatScrollTriggerRef.current = triggerFn;
@@ -379,16 +379,16 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const renderHomeScreen = useCallback((props) => (
     <ScreenWrapper>
       <AndroidGlassBackdrop providerId="Home" style={{ flex: 1 }}>
-        <HomeScreen {...props} scrollTriggerRef={setHomeScrollTrigger} />
+        <HomeScreen {...props} scrollTriggerRef={setHomeScreenScrollTrigger} />
       </AndroidGlassBackdrop>
     </ScreenWrapper>
-  ), [setHomeScrollTrigger]);
+  ), [setHomeScreenScrollTrigger]);
 
-  const renderForumScreen = useCallback((props) => (
+  const renderExploreScreen = useCallback((props) => (
     <ScreenWrapper>
-      <MenuScreen {...props} scrollTriggerRef={setForumScrollTrigger} />
+      <ExploreScreen {...props} isTab={true} scrollTriggerRef={setExploreScrollTrigger} />
     </ScreenWrapper>
-  ), [setForumScrollTrigger]);
+  ), [setExploreScrollTrigger]);
 
   const renderChatScreen = useCallback((props) => (
     <ScreenWrapper>
@@ -484,21 +484,21 @@ export default function MainScreens({ navigation: stackNavigation }) {
           </Tab.Screen>
 
           <Tab.Screen
-            name="Forum"
+            name="Explore"
             options={{
-              title: t('navigation.forum'),
+              title: t('navigation.explore', 'Khám phá'),
               headerShown: false,
-              tabBarIcon: tabIcon("person.2.fill", "person.2", "group"),
+              tabBarIcon: tabIcon("safari.fill", "safari", "explore"),
             }}
             listeners={{
               tabPress: () => {
-                if (currentRoute === "Forum") {
-                  triggerForumScrollOrReload();
+                if (currentRoute === "Explore") {
+                  triggerExploreScrollOrReload();
                 }
               },
             }}
           >
-            {renderForumScreen}
+            {renderExploreScreen}
           </Tab.Screen>
 
           <Tab.Screen

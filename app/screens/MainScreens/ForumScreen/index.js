@@ -316,7 +316,20 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Floating header */}
       <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]} pointerEvents="box-none">
-        <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          {navigation?.canGoBack?.() && (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={{ marginRight: 8, padding: 4 }}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Back"
+            >
+              <Ionicons name="chevron-back" size={26} color={theme.primary} />
+            </TouchableOpacity>
+          )}
+          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
+        </View>
         <View style={styles.headerActions}>
           <TouchableOpacity
             onPress={() => navigation.navigate("MemberRankingScreen")}

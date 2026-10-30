@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Animated,
   View,
@@ -53,13 +53,22 @@ const featureCards = [
   },
 ];
 
-const ExploreScreen = ({ navigation }) => {
+const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
   useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef(null);
   const headerHeight = insets.top + 64;
+
+  useEffect(() => {
+    if (scrollTriggerRef) {
+      scrollTriggerRef(() => {
+        scrollViewRef.current?.scrollTo?.({ y: 0, animated: true });
+      });
+    }
+  }, [scrollTriggerRef]);
 
   const handleCardPress = (card) => {
     if (card.key === "examDocuments") {
@@ -91,9 +100,13 @@ const ExploreScreen = ({ navigation }) => {
         style={[styles.header, { paddingTop: insets.top + 6, height: headerHeight }]}
         pointerEvents="box-none"
       >
-        <LiquidButton providerId="ExploreScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-          <Ionicons name="chevron-back" size={24} color={theme.primary} />
-        </LiquidButton>
+        {!isTab ? (
+          <LiquidButton providerId="ExploreScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
+            <Ionicons name="chevron-back" size={24} color={theme.primary} />
+          </LiquidButton>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
         <Animated.Text
           style={[
             styles.headerTitle,
@@ -103,15 +116,16 @@ const ExploreScreen = ({ navigation }) => {
             },
           ]}
         >
-          {t("sidebar.explore")}
+          {t("sidebar.explore", "Khám phá")}
         </Animated.Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <AndroidGlassBackdrop providerId="ExploreScreen" style={{ flex: 1 }}>
       <Animated.ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight, paddingBottom: isTab ? 110 : 40 + insets.bottom }]}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
