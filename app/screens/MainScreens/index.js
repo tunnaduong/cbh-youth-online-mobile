@@ -274,9 +274,9 @@ export default function MainScreens({ navigation: stackNavigation }) {
   const isCustomTabBar = Platform.OS === "android" || Platform.isPad || (Platform.OS === "ios" && parseInt(Platform.Version, 10) < 26);
   const [currentRoute, setCurrentRoute] = useState("Home");
 
-  // Opens the full-screen sidebar ("Tôi" / Menu tab) like Facebook
-  const openSidebar = useCallback(() => {
-    stackNavigation.navigate("MainScreens", { screen: "Profile" });
+  // Opens the forum screen from the HomeScreen top-left button
+  const openForum = useCallback(() => {
+    stackNavigation.navigate("ForumScreen");
   }, [stackNavigation]);
 
   const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
@@ -462,7 +462,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
                     icon="search"
                     action={() => stackNavigation.navigate("SearchScreen")}
                     havingIcon
-                    setSetting={openSidebar}
+                    leftIcon="people-outline"
+                    onLeftPress={openForum}
                     onLogoPress={triggerHomeScrollOrReload}
                     onLogoLongPress={openFeedback}
                     providerId="Home"

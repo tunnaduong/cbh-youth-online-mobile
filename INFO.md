@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **HomeScreen top-left Forum shortcut, Forum header redesign, and remove profile card in Settings** (`app/components/SameHeader.js`, `app/screens/MainScreens/index.js`, `app/screens/MainScreens/ForumScreen/index.js`, `app/screens/MainScreens/SettingsScreen/index.js`):
+  - **HomeScreen Forum button**: Updated the top-left button in `HomeScreen` (`SameHeader.js`, `MainScreens/index.js`) from opening the sidebar drawer/tab with a menu icon to directly navigating to `ForumScreen` using the community icon (`people-outline`).
+  - **Forum top bar redesign**: Aligned `ForumScreen`'s top bar with the Design System header standards: centered 18pt font-weight 600 title (`t("forum.title")`) with scroll fading, and standardized 44x44 `LiquidButton` components for back, member rankings (`trophy-outline`), and create post (`add`), resolving button misalignment and disproportionate text sizing across both loading and active states.
+  - **Settings profile card removal**: Removed the redundant profile summary card from `SettingsScreen/index.js` (now prominently accessible via the full-screen Me/Menu sidebar tab), cleaning up unused profile imports and styles.
+
 - **OTA Updates: Dual-channel support (Production & Preview) and automated CI build from `dhphuc`** (`.github/workflows/ota-update.yml`, `app.json`, `app/services/ota/otaService.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `app/contexts/AuthContext.js`, `app/i18n/locales/*.json`):
   - **Automated CI publishing**: Updated `.github/workflows/ota-update.yml` to trigger on push to both `main` and `dhphuc` branches. Pushes to `dhphuc` automatically build and publish to channel `preview`, while pushes to `main` publish to channel `production`. Manual `workflow_dispatch` allows specifying an arbitrary channel.
   - **Dynamic channel selection**: Enabled `"disableAntiBrickingMeasures": true` in `app.json` `updates` configuration. `otaService.js` manages getting, setting, and persisting `ota_channel` in MMKV (`storage`), defaulting to `"production"`. Dynamically overrides update request headers at runtime using `Updates.setUpdateRequestHeadersOverride({ "expo-channel-name": channel })`.

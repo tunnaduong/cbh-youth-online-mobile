@@ -15,7 +15,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { useTheme } from "../../../contexts/ThemeContext";
-import FastImage from "../../../components/FastImage";
 import { ScrollView } from "react-native";
 import Dropdown from "../../../components/Dropdown";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -26,10 +25,6 @@ import { changeLanguage } from "../../../i18n";
 import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isDevModeEnabled, setDevModeEnabled } from "../../../utils/devConsole";
-import UserNameRow from "../../../components/profile/UserNameRow";
-import StyledUsername from "../../../components/profile/StyledUsername";
-import { AvatarFrameWrap } from "../../../components/profile/AvatarFrame";
-import { useOwnProfileTheme } from "../../../utils/ownProfileTheme";
 import { getRunningUpdateInfo } from "../../../services/ota/otaService";
 
 const SettingItem = ({
@@ -98,8 +93,6 @@ const SettingSection = ({ title, children, theme }) => {
 
 export default function SettingsScreen({ navigation }) {
   const { userInfo } = useContext(AuthContext);
-  // The signed-in user's own appearance (cached; same source as the sidebar).
-  const ownTheme = useOwnProfileTheme(userInfo?.username);
   const runningUpdate = getRunningUpdateInfo();
   const { isDarkMode, theme, setThemeMode, useSystemTheme, hideTabLabels, setHideTabLabels, autoplayVideos, setAutoplayVideos, liquidGlassEnabled, setLiquidGlassEnabled, shakeToReportEnabled, setShakeToReportEnabled } = useTheme();
   const insets = useSafeAreaInsets();
@@ -215,39 +208,6 @@ export default function SettingsScreen({ navigation }) {
             <Ionicons name="settings" size={26} color="#FFFFFF" />
           </View>
         </LinearGradient>
-
-        {/* Profile Card */}
-        <TouchableOpacity
-          style={[styles.profileCard, { backgroundColor: theme.surface, borderColor: theme.border }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
-          onPress={() => navigation.navigate("ProfileScreen", { username: userInfo.username })}
-          activeOpacity={0.8}
-        >
-          <AvatarFrameWrap theme={ownTheme} size={56}>
-            <FastImage
-              source={{ uri: `https://api.chuyenbienhoa.com/v1.0/users/${userInfo.username}/avatar` }}
-              style={styles.avatar}
-            />
-          </AvatarFrameWrap>
-          <View style={styles.profileInfo}>
-            <UserNameRow
-              name={userInfo.profile_name}
-              theme={ownTheme}
-              variant="full"
-              style={[styles.profileName, { color: theme.text, marginBottom: 0 }]}
-              containerStyle={{ marginBottom: 3 }}
-            />
-            <StyledUsername
-              theme={ownTheme}
-              username={userInfo.username}
-              variant="full"
-              style={[styles.profileUsername, { color: theme.subText }]}
-              numberOfLines={1}
-            />
-          </View>
-          <View style={[styles.profileChevronWrap, { backgroundColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)" }]}>
-            <Ionicons name="chevron-forward" size={18} color={theme.subText} />
-          </View>
-        </TouchableOpacity>
 
         {/* Account Section */}
         <SettingSection title={t("settings.account")} theme={theme}>
@@ -554,45 +514,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.2)",
-  },
-  // Profile card
-  profileCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 16,
-    marginBottom: 24,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  profileInfo: {
-    flex: 1,
-    marginLeft: 14,
-  },
-  profileName: {
-    fontSize: 17,
-    fontWeight: "700",
-    marginBottom: 3,
-  },
-  profileUsername: {
-    fontSize: 14,
-  },
-  profileChevronWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
   },
   // Section
   sectionWrapper: {

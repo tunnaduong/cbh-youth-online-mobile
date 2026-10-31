@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import Ionicons from "react-native-vector-icons/Ionicons";
+import { useTranslation } from "react-i18next";
 import { useTheme } from "../contexts/ThemeContext";
 import LiquidButton from "./LiquidButton";
 
@@ -24,6 +25,9 @@ const FeatureHeader = ({
   title,
   icon,
   action,
+  leftIcon = "people-outline",
+  onLeftPress,
+  leftAccessibilityLabel,
   havingBorder = false,
   havingIcon = false,
   setSetting,
@@ -33,6 +37,7 @@ const FeatureHeader = ({
   isDarkMode,
   providerId,
 }) => {
+  const { t } = useTranslation();
   const scrollAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -80,8 +85,15 @@ const FeatureHeader = ({
         paddingBottom: 8,
       }
     ]}>
-      <LiquidButton size={44} scrollY={scrollAnim} onPress={() => setSetting((setting) => !setting)} providerId={providerId}>
-        <Ionicons name={"menu-outline"} size={22} color={theme.text} />
+      <LiquidButton
+        size={44}
+        scrollY={scrollAnim}
+        onPress={onLeftPress || (() => setSetting?.((setting) => !setting))}
+        providerId={providerId}
+        accessibilityRole="button"
+        accessibilityLabel={leftAccessibilityLabel || t("navigation.forum")}
+      >
+        <Ionicons name={leftIcon} size={22} color={theme.text} />
       </LiquidButton>
       {havingIcon ? (
         <Animated.View style={{ 

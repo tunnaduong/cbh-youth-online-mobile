@@ -24,6 +24,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import formatTime from "../../../utils/formatTime";
+import LiquidButton from "../../../components/LiquidButton";
 import { getCategoryName } from "../../../utils/forumUtils";
 import { storage } from "../../../global/storage";
 import { useResponsiveLayout, CONTENT_MAX_WIDTH } from "../../../utils/responsive";
@@ -132,7 +133,12 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const insets = useSafeAreaInsets();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = 58 + insets.top;
+  const headerHeight = 64 + insets.top;
+  const headerTitleOpacity = scrollY.interpolate({
+    inputRange: [0, 10, 50],
+    outputRange: [1, 1, 0],
+    extrapolate: "clamp",
+  });
 
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener(
@@ -274,36 +280,55 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: theme.background }}>
-        <View style={[styles.header, { paddingTop: insets.top, height: headerHeight }]} pointerEvents="box-none">
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("MemberRankingScreen")}
+        <View
+          style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, height: headerHeight, backgroundColor: "transparent" }]}
+          pointerEvents="box-none"
+        >
+          <View style={styles.headerSide}>
+            {navigation?.canGoBack?.() ? (
+              <LiquidButton
+                size={44}
+                scrollY={scrollY}
+                providerId="ForumScreen"
+                accessibilityRole="button"
+                accessibilityLabel={t("common.back", "Back")}
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="chevron-back" size={24} color={theme.primary} />
+              </LiquidButton>
+            ) : (
+              <View style={{ width: 44 }} />
+            )}
+            <View style={{ width: 44 }} />
+          </View>
+          <Text style={[styles.headerTitle, { color: theme.primary }]} numberOfLines={1}>
+            {t('forum.title')}
+          </Text>
+          <View style={[styles.headerSide, { justifyContent: "flex-end" }]}>
+            <LiquidButton
+              size={44}
+              scrollY={scrollY}
+              providerId="ForumScreen"
               accessibilityRole="button"
               accessibilityLabel={t("sidebar.memberRanking")}
-              style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+              onPress={() => navigation.navigate("MemberRankingScreen")}
             >
               <Ionicons name="trophy-outline" size={22} color={theme.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("CreatePostScreen")}
+            </LiquidButton>
+            <LiquidButton
+              size={44}
+              scrollY={scrollY}
+              providerId="ForumScreen"
               accessibilityRole="button"
               accessibilityLabel={t("createPost.title")}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: theme.iconBackground,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              onPress={() => navigation.navigate("CreatePostScreen")}
             >
-              <Ionicons name="add" size={22} color={theme.primary} />
-            </TouchableOpacity>
+              <Ionicons name="add" size={24} color={theme.primary} />
+            </LiquidButton>
           </View>
         </View>
         <View
-          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background, paddingTop: headerHeight }}
+          style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.background }}
         >
           <CustomLoading />
           <Text style={{ marginTop: 15, color: theme.text }}>{t('forum.loading')}</Text>
@@ -315,45 +340,54 @@ export default function ForumScreen({ navigation, scrollTriggerRef }) {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
       {/* Floating header */}
-      <View style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]} pointerEvents="box-none">
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          {navigation?.canGoBack?.() && (
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{ marginRight: 8, padding: 4 }}
-              hitSlop={8}
+      <View
+        style={[styles.header, { paddingTop: insets.top, paddingBottom: 8, height: headerHeight, backgroundColor: "transparent" }]}
+        pointerEvents="box-none"
+      >
+        <View style={styles.headerSide}>
+          {navigation?.canGoBack?.() ? (
+            <LiquidButton
+              size={44}
+              scrollY={scrollY}
+              providerId="ForumScreen"
               accessibilityRole="button"
-              accessibilityLabel="Back"
+              accessibilityLabel={t("common.back", "Back")}
+              onPress={() => navigation.goBack()}
             >
-              <Ionicons name="chevron-back" size={26} color={theme.primary} />
-            </TouchableOpacity>
+              <Ionicons name="chevron-back" size={24} color={theme.primary} />
+            </LiquidButton>
+          ) : (
+            <View style={{ width: 44 }} />
           )}
-          <Text style={[styles.headerTitle, { color: theme.primary }]}>{t('forum.title')}</Text>
+          <View style={{ width: 44 }} />
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("MemberRankingScreen")}
+        <Animated.Text
+          style={[styles.headerTitle, { color: theme.primary, opacity: headerTitleOpacity }]}
+          numberOfLines={1}
+        >
+          {t('forum.title')}
+        </Animated.Text>
+        <View style={[styles.headerSide, { justifyContent: "flex-end" }]}>
+          <LiquidButton
+            size={44}
+            scrollY={scrollY}
+            providerId="ForumScreen"
             accessibilityRole="button"
             accessibilityLabel={t("sidebar.memberRanking")}
-            style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+            onPress={() => navigation.navigate("MemberRankingScreen")}
           >
             <Ionicons name="trophy-outline" size={22} color={theme.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("CreatePostScreen")}
+          </LiquidButton>
+          <LiquidButton
+            size={44}
+            scrollY={scrollY}
+            providerId="ForumScreen"
             accessibilityRole="button"
             accessibilityLabel={t("createPost.title")}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
-              backgroundColor: theme.iconBackground,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            onPress={() => navigation.navigate("CreatePostScreen")}
           >
-            <Ionicons name="add" size={22} color={theme.primary} />
-          </TouchableOpacity>
+            <Ionicons name="add" size={24} color={theme.primary} />
+          </LiquidButton>
         </View>
       </View>
 
@@ -500,18 +534,19 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
     paddingHorizontal: 16,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    flex: 1,
-  },
-  headerActions: {
+  headerSide: {
+    width: 96,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    flex: 1,
+    textAlign: "center",
   },
   avatar: {
     width: 36,
