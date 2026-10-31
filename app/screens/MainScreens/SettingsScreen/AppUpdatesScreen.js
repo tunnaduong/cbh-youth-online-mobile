@@ -82,6 +82,7 @@ export default function AppUpdatesScreen({ navigation }) {
     if (selectedChannel === channelKey) return;
     const newCh = setOtaChannel(channelKey);
     setSelectedChannel(newCh);
+    console.log(`[OTA Screen] Switched channel to "${newCh}"`);
 
     const channelName =
       newCh === OTA_CHANNELS.PREVIEW
@@ -98,6 +99,7 @@ export default function AppUpdatesScreen({ navigation }) {
   const handleCheckUpdate = async () => {
     if (isCheckingUpdate) return;
     if (!otaEnabled) {
+      console.log("[OTA Screen] Check aborted: OTA is disabled in settings.");
       Toast.show({
         type: "info",
         text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
@@ -106,9 +108,11 @@ export default function AppUpdatesScreen({ navigation }) {
       return;
     }
     setIsCheckingUpdate(true);
+    console.log(`[OTA Screen] Manual check triggered for channel "${selectedChannel}"`);
     try {
       const result = await checkUpdateAvailable(selectedChannel, true);
       setLastCheckTime(new Date());
+      console.log(`[OTA Screen] Check completed: status="${result.status}", isAvailable=${result.isAvailable}`);
 
       if (result.status === "dev_mode") {
         Toast.show({
@@ -140,13 +144,15 @@ export default function AppUpdatesScreen({ navigation }) {
           text2: t("about.updatesDisabledNotice", "Bản cài đặt này không hỗ trợ cập nhật OTA tự động."),
         });
       } else {
+        console.error("[OTA Screen] Check returned error status:", result.error);
         Toast.show({
           type: "error",
           text1: t("about.updatesTitle", "Cập nhật ứng dụng"),
           text2: result.error || t("about.errorCheck", "Không thể kiểm tra cập nhật. Vui lòng thử lại sau."),
         });
       }
-    } catch {
+    } catch (checkErr) {
+      console.error("[OTA Screen] Exception during manual check:", checkErr?.message || checkErr);
       Toast.show({
         type: "error",
         text1: t("about.updatesTitle", "Cập nhật ứng dụng"),

@@ -610,6 +610,7 @@
     "filter_warning": "Предупреждения",
     "filter_error": "Ошибки",
     "filter_glass": "Glass",
+    "filter_ota": "OTA",
     "noLogs": "Пока нет логов",
     "clear": "Очистить",
     "clearLogsTitle": "Очистить логи?",

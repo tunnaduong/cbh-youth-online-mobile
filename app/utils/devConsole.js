@@ -15,6 +15,8 @@ const MAX_LOGS = 500;
 
 let devModeEnabled = false;
 let logs = [];
+let otaRingBuffer = [];
+const MAX_OTA_BUFFER = 100;
 let listeners = [];
 let idCounter = 0;
 let initialized = false;
@@ -46,13 +48,23 @@ const stringifyArg = (arg) => {
 };
 
 const addLog = (level, args) => {
-  if (!devModeEnabled) return;
+  const isOta = args.some(
+    (a) => typeof a === "string" && (a.includes("[OTA]") || a.includes("[OTA Modal]") || a.includes("[OTA Screen]") || a.includes("[OTA Startup]"))
+  );
+
   const entry = {
     id: `${Date.now()}_${idCounter++}`,
     level,
     message: args.map(stringifyArg).join(" "),
     timestamp: Date.now(),
   };
+
+  if (isOta) {
+    otaRingBuffer = [entry, ...otaRingBuffer].slice(0, MAX_OTA_BUFFER);
+  }
+
+  if (!devModeEnabled) return;
+
   logs = [entry, ...logs].slice(0, MAX_LOGS);
   notifyListeners();
   persistLogs();
@@ -71,9 +83,12 @@ const patchConsole = () => {
   console.log = (...args) => {
     // In a release build with dev mode off nobody reads plain logs, yet each
     // call still formats its arguments (whole API responses in places) and
-    // sends them to the native logger. Skipped there; warnings and errors
-    // below always go through, and dev mode on restores everything.
-    if (!__DEV__ && !devModeEnabled) return;
+    // sends them to the native logger.
+    // OTA logs are always captured into otaRingBuffer so diagnostics are never lost.
+    const isOta = args.some(
+      (a) => typeof a === "string" && (a.includes("[OTA]") || a.includes("[OTA Modal]") || a.includes("[OTA Screen]") || a.includes("[OTA Startup]"))
+    );
+    if (!__DEV__ && !devModeEnabled && !isOta) return;
     originalConsole.log(...args);
     addLog("log", args);
   };
@@ -97,6 +112,13 @@ export const initDevConsole = async () => {
     if (devModeEnabled) {
       const storedLogs = await AsyncStorage.getItem(LOGS_KEY);
       logs = storedLogs ? JSON.parse(storedLogs) : [];
+      if (otaRingBuffer.length > 0) {
+        const existingIds = new Set(logs.map((l) => l.id));
+        const newOta = otaRingBuffer.filter((l) => !existingIds.has(l.id));
+        if (newOta.length > 0) {
+          logs = [...newOta, ...logs].slice(0, MAX_LOGS);
+        }
+      }
     } else {
       // Dev mode isn't on - make sure nothing lingers from a previous
       // session where it was.
@@ -112,13 +134,22 @@ export const initDevConsole = async () => {
 export const isDevModeEnabled = () => devModeEnabled;
 
 export const setDevModeEnabled = async (enabled) => {
-  devModeEnabled = enabled;
+  devModeEnabled = !!enabled;
   await AsyncStorage.setItem(DEV_MODE_KEY, enabled ? "true" : "false");
   if (!enabled) {
     logs = [];
     await AsyncStorage.removeItem(LOGS_KEY);
+  } else {
+    // When enabled, prepopulate with recent OTA logs so the user immediately
+    // sees what happened during OTA checks even if dev mode was off at startup!
+    if (otaRingBuffer.length > 0) {
+      const existingIds = new Set(logs.map((l) => l.id));
+      const newOta = otaRingBuffer.filter((l) => !existingIds.has(l.id));
+      logs = [...newOta, ...logs].slice(0, MAX_LOGS);
+    }
   }
   notifyListeners();
+  persistLogs();
 };
 
 export const getLogs = () => logs;

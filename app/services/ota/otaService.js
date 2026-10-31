@@ -157,10 +157,16 @@ export function setStartupCheckEnabled(enabled) {
  * with the active "expo-channel-name" header and persists across reboots.
  */
 export function applyChannelOverride(channel = getOtaChannel()) {
-  if (__DEV__ || !Updates.isEnabled) {
+  if (__DEV__) {
+    console.log(`[OTA] applyChannelOverride: Skipped (__DEV__ is true)`);
+    return;
+  }
+  if (!Updates.isEnabled) {
+    console.log(`[OTA] applyChannelOverride: Skipped (Updates.isEnabled is false)`);
     return;
   }
   if (!isOtaEnabled()) {
+    console.log(`[OTA] applyChannelOverride: Skipped (OTA disabled by user)`);
     return;
   }
   try {
@@ -176,12 +182,14 @@ export function applyChannelOverride(channel = getOtaChannel()) {
             msg.includes("ERR_UPDATES_DISABLED") ||
             err?.code === "ERR_UPDATES_DISABLED"
           ) {
-            // Silently ignore when expo-updates is disabled natively
             return;
           }
-          console.warn("[OTA] Could not set update request headers override:", msg);
+          console.warn("[OTA] setUpdateRequestHeadersOverride promise rejected:", msg);
         });
       }
+      console.log(`[OTA] Applied channel request header: expo-channel-name="${channel}"`);
+    } else {
+      console.warn("[OTA] Updates.setUpdateRequestHeadersOverride is not available on this platform.");
     }
   } catch (err) {
     const msg = err?.message || "";
@@ -192,7 +200,7 @@ export function applyChannelOverride(channel = getOtaChannel()) {
     ) {
       return;
     }
-    console.warn("[OTA] Could not set update request headers override:", msg);
+    console.error("[OTA] Could not set update request headers override:", msg);
   }
 }
 
@@ -283,11 +291,17 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
   const currentNativeBuild = getNativeBuildNumber();
   const currentActiveBuild = getRunningOtaBuildNumber();
 
+  console.log(
+    `[OTA] checkUpdateAvailable started (channel: "${channel}", force: ${force}, nativeBuild: ${currentNativeBuild}, activeOtaBuild: ${currentActiveBuild})`
+  );
+
   if (__DEV__) {
+    console.log("[OTA] App is in __DEV__ mode. Skipping OTA check.");
     return { status: "dev_mode", isAvailable: false, channel };
   }
 
   if (!force && !isOtaEnabled()) {
+    console.log("[OTA] OTA updates disabled by user in Settings.");
     return {
       status: "disabled_by_user",
       isAvailable: false,
@@ -312,6 +326,8 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
       currentUpdateId
     )}`;
 
+    console.log(`[OTA] Querying direct HTTP manifest: ${url}`);
+
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
 
@@ -324,9 +340,15 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
     });
     clearTimeout(timer);
 
+    console.log(`[OTA] HTTP manifest response status: ${res.status}`);
+
     if (res.ok) {
       const data = await res.json();
+      console.log(
+        `[OTA] HTTP manifest content: id=${data?.id || "none"}, build=${data?.metadata?.build_number || "none"}, minNative=${data?.metadata?.min_native_build || "none"}, directive=${data?.directive?.type || "none"}`
+      );
       if (data?.directive?.type === "noUpdateAvailable") {
+        console.log("[OTA] Server returned directive: noUpdateAvailable. App is up to date.");
         return { status: "up_to_date", isAvailable: false, channel };
       }
       if (data?.id) {
@@ -336,6 +358,9 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
 
         // Check if the current native APK/IPA is too old for this OTA bundle
         if (currentNativeBuild > 0 && currentNativeBuild < minNativeBuild) {
+          console.warn(
+            `[OTA] Native base build outdated! current=${currentNativeBuild}, required=${minNativeBuild}`
+          );
           return {
             status: "native_base_outdated",
             isAvailable: false,
@@ -359,9 +384,13 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         // Check if currently running update ID matches
         const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
         if (runningUpdateId && data.id === runningUpdateId) {
+          console.log(`[OTA] Upstream update ID matches running update (${runningUpdateId}). Up to date.`);
           return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
 
+        console.log(
+          `[OTA] Update is available: ID=${data.id}, Build=${upstreamBuildNumber}, Channel="${data.metadata?.channel || channel}"`
+        );
         return {
           status: "available",
           isAvailable: true,
@@ -378,16 +407,23 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           },
         };
       }
+    } else {
+      console.warn(`[OTA] HTTP manifest returned status ${res.status}`);
     }
   } catch (httpErr) {
-    console.warn("[OTA] Direct manifest check error, checking native:", httpErr?.message);
+    console.warn("[OTA] Direct manifest check error, checking native:", httpErr?.message || httpErr);
   }
 
   // 2. Native expo-updates check as fallback
   if (Updates.isEnabled) {
     try {
+      console.log("[OTA] Running native Updates.checkForUpdateAsync()...");
       const checkResult = await Updates.checkForUpdateAsync();
+      console.log(
+        `[OTA] Native checkForUpdateAsync result: isAvailable=${checkResult?.isAvailable}, id=${checkResult?.manifest?.id || "none"}`
+      );
       if (!checkResult.isAvailable) {
+        console.log("[OTA] Native checkResult.isAvailable is false. Up to date.");
         return { status: "up_to_date", isAvailable: false, channel };
       }
 
@@ -397,6 +433,9 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         parseInt(checkResult.manifest?.metadata?.min_native_build, 10) || MIN_NATIVE_BUILD_REQUIRED;
 
       if (currentNativeBuild > 0 && currentNativeBuild < minNativeBuild) {
+        console.warn(
+          `[OTA Native] Native base build outdated! current=${currentNativeBuild}, required=${minNativeBuild}`
+        );
         return {
           status: "native_base_outdated",
           isAvailable: false,
@@ -419,9 +458,11 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
 
       const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
       if (runningUpdateId && checkResult.manifest?.id === runningUpdateId) {
+        console.log(`[OTA Native] Running update matches manifest ID (${runningUpdateId}). Up to date.`);
         return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
       }
 
+      console.log(`[OTA Native] New update available: ID=${checkResult.manifest?.id}, Build=${upstreamBuildNumber}`);
       return {
         status: "available",
         isAvailable: true,
@@ -438,7 +479,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         },
       };
     } catch (nativeErr) {
-      console.warn("[OTA] Native checkForUpdateAsync error:", nativeErr?.message);
+      console.error("[OTA] Native checkForUpdateAsync error:", nativeErr?.message || nativeErr);
       return {
         status: "error",
         isAvailable: false,
@@ -448,6 +489,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
     }
   }
 
+  console.log("[OTA] Updates.isEnabled is false. Returning disabled status.");
   return { status: "disabled", isAvailable: false, channel };
 }
 
@@ -460,26 +502,41 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
  */
 export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo = null) {
   if (__DEV__) {
+    console.log("[OTA] downloadAndApplyUpdate: Skipped (__DEV__ is true)");
     return { status: "dev_mode" };
   }
 
   const channel = channelOverride || getOtaChannel();
+  console.log(
+    `[OTA] downloadAndApplyUpdate initiated: channel="${channel}", targetId=${targetUpdateInfo?.id || "none"}, targetBuild=${targetUpdateInfo?.buildNumber || "none"}`
+  );
   applyChannelOverride(channel);
 
   if (!Updates.isEnabled) {
+    console.error("[OTA] Updates.isEnabled is false! Updates cannot be downloaded natively.");
     return { status: "disabled", error: "Tính năng cập nhật không khả dụng trong bản build này." };
   }
 
   try {
+    console.log("[OTA] Invoking native Updates.fetchUpdateAsync()...");
     const fetchResult = await Updates.fetchUpdateAsync();
+    console.log(
+      `[OTA] fetchUpdateAsync result: isNew=${fetchResult?.isNew}, isRollBack=${fetchResult?.isRollBackToEmbedded}, manifestId=${fetchResult?.manifest?.id || targetUpdateInfo?.id || "none"}`
+    );
+
+    if (fetchResult?.isNew === false && !fetchResult?.manifest) {
+      console.warn(
+        "[OTA] fetchUpdateAsync returned isNew=false. The update may already be cached locally or held by native policy. Proceeding with reload."
+      );
+    }
 
     // Persist active build number and channel to storage so it survives app reboots
     const buildToSave =
       targetUpdateInfo?.buildNumber ||
-      parseInt(fetchResult.manifest?.metadata?.build_number, 10) ||
+      parseInt(fetchResult?.manifest?.metadata?.build_number, 10) ||
       getNativeBuildNumber();
 
-    const updateIdToSave = targetUpdateInfo?.id || fetchResult.manifest?.id || "";
+    const updateIdToSave = targetUpdateInfo?.id || fetchResult?.manifest?.id || "";
 
     if (buildToSave > 0) {
       storage.set(OTA_ACTIVE_BUILD_KEY, buildToSave);
@@ -489,16 +546,25 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
     }
     storage.set(OTA_ACTIVE_CHANNEL_KEY, channel);
 
+    console.log(
+      `[OTA] Persisted active build to storage: buildNumber=${buildToSave}, updateId=${updateIdToSave}, channel=${channel}`
+    );
+
     // Also persist header override to SharedPreferences
     applyChannelOverride(channel);
 
     return {
       status: "downloaded",
-      manifest: fetchResult.manifest,
+      manifest: fetchResult?.manifest || targetUpdateInfo?.manifest,
       channel,
     };
   } catch (error) {
-    console.warn("[OTA] Updates.fetchUpdateAsync error:", error?.message);
+    console.error(
+      `[OTA] Updates.fetchUpdateAsync failed: ${error?.message || error} (code: ${error?.code || "none"})`
+    );
+    if (error?.stack) {
+      console.error(`[OTA] Error stack: ${error.stack}`);
+    }
     return {
       status: "error",
       channel,
@@ -561,11 +627,14 @@ export async function checkAndFetchUpdate(channelOverride) {
  */
 export async function reloadApp() {
   if (__DEV__ || !Updates.isEnabled) {
+    console.log(`[OTA] reloadApp skipped (__DEV__: ${__DEV__}, Updates.isEnabled: ${Updates.isEnabled})`);
     return;
   }
   try {
+    console.log("[OTA] Calling Updates.reloadAsync()...");
     await Updates.reloadAsync();
+    console.log("[OTA] Updates.reloadAsync call returned.");
   } catch (err) {
-    console.warn("[OTA] Updates.reloadAsync error:", err?.message);
+    console.error("[OTA] Updates.reloadAsync error:", err?.message || err);
   }
 }

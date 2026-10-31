@@ -46,22 +46,27 @@ export default function UpdatePromptModal({
   }, [visible, updateInfo]);
 
   const handleUpdateNow = async () => {
+    console.log(
+      `[OTA Modal] User triggered "Cập nhật ngay" for Build ${updateInfo?.buildNumber || "unknown"} (ID: ${updateInfo?.id || "unknown"}) on channel "${updateInfo?.channel || "default"}"`
+    );
     setStatus(STATUS.DOWNLOADING);
     setErrorMessage("");
 
     try {
       const channel = updateInfo?.channel;
       const res = await downloadAndApplyUpdate(channel, updateInfo);
+      console.log(`[OTA Modal] downloadAndApplyUpdate result: status="${res.status}"`);
 
       if (res.status === "downloaded") {
         setStatus(STATUS.RESTARTING);
+        console.log("[OTA Modal] State transitioned to RESTARTING. Triggering app reload in 800ms...");
 
         // Allow UI to render the restarting state before invoking native reload
         setTimeout(async () => {
           try {
             await reloadApp();
           } catch (e) {
-            console.warn("[OTA Modal] reloadApp error:", e?.message);
+            console.error("[OTA Modal] reloadApp error:", e?.message || e);
           }
         }, 800);
 
@@ -75,10 +80,12 @@ export default function UpdatePromptModal({
           });
         }, 3200);
       } else {
+        console.error(`[OTA Modal] Update download failed with status "${res.status}":`, res.error);
         setStatus(STATUS.ERROR);
         setErrorMessage(res.error || t("ota.updateFailed", "Không thể tải bản cập nhật."));
       }
     } catch (err) {
+      console.error("[OTA Modal] Unexpected error in handleUpdateNow:", err?.message || err);
       setStatus(STATUS.ERROR);
       setErrorMessage(err?.message || t("ota.updateFailed", "Không thể tải bản cập nhật."));
     }

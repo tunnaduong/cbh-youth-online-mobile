@@ -600,6 +600,7 @@
     "filter_warning": "Warning",
     "filter_error": "Error",
     "filter_glass": "Glass",
+    "filter_ota": "OTA",
     "noLogs": "No logs yet",
     "clear": "Clear",
     "clearLogsTitle": "Clear logs?",

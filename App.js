@@ -425,8 +425,10 @@ const App = ({ skipSplash = false }) => {
     let isMounted = true;
     const checkStartupUpdate = async () => {
       try {
+        console.log("[OTA Startup] Running background startup update check...");
         const res = await checkUpdateAvailable();
         if (!isMounted) return;
+        console.log(`[OTA Startup] Startup check finished: status="${res.status}", isAvailable=${res.isAvailable}`);
         if (res.isAvailable && res.updateInfo) {
           setStartupUpdateInfo(res.updateInfo);
           setShowUpdateModal(true);
@@ -440,7 +442,7 @@ const App = ({ skipSplash = false }) => {
           setShowUpdateModal(true);
         }
       } catch (e) {
-        console.warn("[App] Startup OTA check error:", e?.message);
+        console.error("[OTA Startup] Startup OTA check error:", e?.message || e);
       }
     };
 

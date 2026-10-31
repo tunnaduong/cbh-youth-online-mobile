@@ -356,6 +356,13 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **OTA Updates: Diagnostics logging for Debug Console and native applying fix** (`app.json`, `app/utils/devConsole.js`, `app/screens/MainScreens/SettingsScreen/DevConsoleScreen.js`, `app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `App.js`, `app/i18n/locales/*.json`):
+  - **Debug Console OTA logging**: Added an in-memory `otaRingBuffer` in `devConsole.js` capturing all `[OTA]` console outputs even before dev mode is actively toggled, preventing loss of startup diagnostics. Added an `"OTA"` filter chip and blue badge styling in `DevConsoleScreen.js` with full vi/en/ru localization.
+  - **Detailed lifecycle logging**: Added granular `[OTA]` logs with timestamps, channel, native/active build numbers, runtime version, HTTP manifest URL/status/directive, native `fetchUpdateAsync()` result (`isNew`, `isRollBackToEmbedded`), local persistence, and app reload invocations across `otaService.js`, `UpdatePromptModal.js`, `AppUpdatesScreen.js`, and `App.js`.
+  - **Removed `disableAntiBrickingMeasures`**: Removed `"disableAntiBrickingMeasures": true` from `app.json` which caused Kotlin NullPointerException in `UpdatesConfiguration.kt` whenever headers were updated with null URL.
+  - **Resilient bundle apply & reload**: Updated `downloadAndApplyUpdate` to gracefully handle cached/existing bundles (`isNew === false`) and log full stack traces and error codes on failure.
+
+
 - **OTA Updates: Fix update eligibility, base build threshold, build comparison, and active update persistence** (`app.json`, `app/services/ota/otaConfig.js`, `app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `App.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `.github/workflows/ota-update.yml`):
   - **Eligibility threshold (`minNativeBuild`)**: Lowered `minNativeBuild` from `1014` to `1008` in `app.json`, `otaConfig.js`, and `.github/workflows/ota-update.yml`. Build 1008+ shares the exact same runtime version (`7.4.10`) and native binary modules, allowing installed builds (such as build 1018) to be fully eligible for OTA updates instead of erroneously blocked.
   - **Accurate client build detection**: Updated `getNativeBuildNumber()` in `otaService.js` to inspect `Application.nativeBuildVersion`, falling back to `Constants.expoConfig?.android?.versionCode` and `1018` for resilient numeric resolution.
