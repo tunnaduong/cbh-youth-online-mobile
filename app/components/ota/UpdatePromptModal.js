@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import Toast from "react-native-toast-message";
 import dayjs from "dayjs";
 import { useTheme } from "../../contexts/ThemeContext";
-import { downloadAndApplyUpdate, reloadApp, OTA_CHANNELS } from "../../services/ota/otaService";
+import { downloadAndApplyUpdate, reloadApp, OTA_CHANNELS, getNativeBuildNumber } from "../../services/ota/otaService";
 
 const STATUS = {
   PROMPT: "prompt",
@@ -212,8 +212,8 @@ export default function UpdatePromptModal({
                       "ota.baseUpdateRequiredBuild",
                       "Bản cập nhật yêu cầu phiên bản ứng dụng Build {{min}} trở lên (bạn đang ở Build {{current}}). Vui lòng cài đặt file APK mới để tiếp tục.",
                       {
-                        min: updateInfo?.minNativeBuild || 1014,
-                        current: updateInfo?.currentNativeBuild || 1011,
+                        min: updateInfo?.minNativeBuild || 1008,
+                        current: updateInfo?.currentNativeBuild || getNativeBuildNumber() || 1018,
                       }
                     )}
                   </Text>

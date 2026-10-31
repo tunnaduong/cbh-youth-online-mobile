@@ -435,6 +435,7 @@ const App = ({ skipSplash = false }) => {
             ...res.updateInfo,
             isBaseOutdated: true,
             minNativeBuild: res.minNativeRequired,
+            currentNativeBuild: res.currentNativeBuild,
           });
           setShowUpdateModal(true);
         }

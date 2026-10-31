@@ -130,6 +130,7 @@ export default function AppUpdatesScreen({ navigation }) {
           ...result.updateInfo,
           isBaseOutdated: true,
           minNativeBuild: result.minNativeRequired,
+          currentNativeBuild: result.currentNativeBuild,
         });
         setShowPromptModal(true);
       } else if (result.status === "disabled") {

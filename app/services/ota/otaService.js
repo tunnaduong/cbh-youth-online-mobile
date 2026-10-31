@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as Application from "expo-application";
 import * as Updates from "expo-updates";
+import Constants from "expo-constants";
 import { storage } from "../../global/storage";
 import { MIN_NATIVE_BUILD_REQUIRED, getEmbeddedDefaultChannel } from "./otaConfig";
 
@@ -31,7 +32,18 @@ export const OTA_CHANNELS = {
  */
 export function getNativeBuildNumber() {
   const parsed = parseInt(Application.nativeBuildVersion, 10);
-  return Number.isFinite(parsed) ? parsed : 0;
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed;
+  }
+  try {
+    const fromConfig =
+      Constants.expoConfig?.android?.versionCode ??
+      parseInt(Constants.expoConfig?.ios?.buildNumber, 10);
+    if (Number.isFinite(fromConfig) && fromConfig > 0) {
+      return fromConfig;
+    }
+  } catch {}
+  return 1018;
 }
 
 /**
@@ -51,7 +63,7 @@ export function getRunningOtaBuildNumber() {
 /**
  * Synchronizes the native binary APK build number with the stored OTA build number.
  * If the user upgraded the app via native APK/IPA (e.g. from Google Play Store),
- * the newly installed base APK has a higher build number than the preinstalled OTA bundle.
+ * the newly installed base APK has a strictly higher build number than the preinstalled OTA bundle.
  * In this case, we use the bundled one with the APK and clear stale OTA state.
  */
 export function syncNativeAndOtaBuild() {
@@ -59,7 +71,7 @@ export function syncNativeAndOtaBuild() {
     const nativeBuild = getNativeBuildNumber();
     const storedBuild = storage.getNumber(OTA_ACTIVE_BUILD_KEY) || 0;
 
-    if (nativeBuild > 0 && storedBuild > 0 && nativeBuild >= storedBuild) {
+    if (nativeBuild > 0 && storedBuild > 0 && nativeBuild > storedBuild) {
       storage.delete(OTA_ACTIVE_BUILD_KEY);
       storage.delete(OTA_ACTIVE_UPDATE_ID_KEY);
     }
@@ -289,8 +301,11 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
   // 1. Direct manifest check via HTTP JSON endpoint
   try {
     const platform = Platform.OS === "ios" ? "ios" : "android";
-    const runtimeVersion = Updates.runtimeVersion || "7.4.10";
-    const currentUpdateId = Updates.updateId || "";
+    const runtimeVersion =
+      Updates.runtimeVersion ||
+      Constants.expoConfig?.runtimeVersion ||
+      "7.4.10";
+    const currentUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
     const url = `https://api.chuyenbienhoa.com/v1.0/ota/manifest?channel=${encodeURIComponent(
       channel
     )}&runtime-version=${encodeURIComponent(runtimeVersion)}&platform=${platform}&current_update_id=${encodeURIComponent(
@@ -332,6 +347,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
               id: data.id,
               buildNumber: upstreamBuildNumber,
               minNativeBuild,
+              currentNativeBuild,
               message: data.metadata?.message || "",
               channel: data.metadata?.channel || channel,
               createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
@@ -340,25 +356,10 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           };
         }
 
-        // Check if client is already running an equal or newer build
-        if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
-          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
-        }
-
-        // Check if upstream build is older than or equal to the installed base APK
-        // (prevents offering older production builds to clients on a newer preview APK)
-        if (currentNativeBuild > 0) {
-          if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentNativeBuild) {
-            return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
-          }
-          if (upstreamBuildNumber <= 0 && currentNativeBuild >= 1000) {
-            return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
-          }
-        }
-
         // Check if currently running update ID matches
-        if (currentUpdateId && data.id === currentUpdateId) {
-          return { status: "up_to_date", isAvailable: false, channel };
+        const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
+        if (runningUpdateId && data.id === runningUpdateId) {
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
         }
 
         return {
@@ -369,6 +370,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
             id: data.id,
             buildNumber: upstreamBuildNumber,
             minNativeBuild,
+            currentNativeBuild,
             message: data.metadata?.message || "",
             channel: data.metadata?.channel || channel,
             createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
@@ -406,6 +408,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
             id: checkResult.manifest?.id || null,
             buildNumber: upstreamBuildNumber,
             minNativeBuild,
+            currentNativeBuild,
             message: checkResult.manifest?.metadata?.message || "",
             channel: checkResult.manifest?.metadata?.channel || channel,
             createdAt: checkResult.manifest?.createdAt ? new Date(checkResult.manifest.createdAt) : new Date(),
@@ -414,17 +417,9 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         };
       }
 
-      if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentActiveBuild) {
+      const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
+      if (runningUpdateId && checkResult.manifest?.id === runningUpdateId) {
         return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
-      }
-
-      if (currentNativeBuild > 0) {
-        if (upstreamBuildNumber > 0 && upstreamBuildNumber <= currentNativeBuild) {
-          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
-        }
-        if (upstreamBuildNumber <= 0 && currentNativeBuild >= 1000) {
-          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
-        }
       }
 
       return {
@@ -435,6 +430,7 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           id: checkResult.manifest?.id || null,
           buildNumber: upstreamBuildNumber,
           minNativeBuild,
+          currentNativeBuild,
           message: checkResult.manifest?.metadata?.message || "",
           channel: checkResult.manifest?.metadata?.channel || channel,
           createdAt: checkResult.manifest?.createdAt ? new Date(checkResult.manifest.createdAt) : new Date(),
