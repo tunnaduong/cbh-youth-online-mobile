@@ -381,6 +381,22 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
           };
         }
 
+        // Check if client is already running an equal or newer build
+        if (upstreamBuildNumber > 0) {
+          if (currentActiveBuild > 0 && upstreamBuildNumber <= currentActiveBuild) {
+            console.log(
+              `[OTA] Upstream build (${upstreamBuildNumber}) <= current active build (${currentActiveBuild}). Up to date.`
+            );
+            return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+          }
+          if (currentNativeBuild > 0 && upstreamBuildNumber <= currentNativeBuild) {
+            console.log(
+              `[OTA] Upstream build (${upstreamBuildNumber}) <= installed base APK build (${currentNativeBuild}). Up to date.`
+            );
+            return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
+          }
+        }
+
         // Check if currently running update ID matches
         const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
         if (runningUpdateId && data.id === runningUpdateId) {
@@ -456,6 +472,21 @@ export async function checkUpdateAvailable(channelOverride, force = false) {
         };
       }
 
+      if (upstreamBuildNumber > 0) {
+        if (currentActiveBuild > 0 && upstreamBuildNumber <= currentActiveBuild) {
+          console.log(
+            `[OTA Native] Upstream build (${upstreamBuildNumber}) <= current active build (${currentActiveBuild}). Up to date.`
+          );
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentActiveBuild };
+        }
+        if (currentNativeBuild > 0 && upstreamBuildNumber <= currentNativeBuild) {
+          console.log(
+            `[OTA Native] Upstream build (${upstreamBuildNumber}) <= installed base APK build (${currentNativeBuild}). Up to date.`
+          );
+          return { status: "up_to_date", isAvailable: false, channel, buildNumber: currentNativeBuild };
+        }
+      }
+
       const runningUpdateId = Updates.updateId || storage.getString(OTA_ACTIVE_UPDATE_ID_KEY) || "";
       if (runningUpdateId && checkResult.manifest?.id === runningUpdateId) {
         console.log(`[OTA Native] Running update matches manifest ID (${runningUpdateId}). Up to date.`);
@@ -525,9 +556,13 @@ export async function downloadAndApplyUpdate(channelOverride, targetUpdateInfo =
     );
 
     if (fetchResult?.isNew === false && !fetchResult?.manifest) {
-      console.warn(
-        "[OTA] fetchUpdateAsync returned isNew=false. The update may already be cached locally or held by native policy. Proceeding with reload."
+      console.log(
+        "[OTA] fetchUpdateAsync returned isNew=false. The app is already running the latest code. No update needed."
       );
+      return {
+        status: "up_to_date",
+        channel,
+      };
     }
 
     // Persist active build number and channel to storage so it survives app reboots

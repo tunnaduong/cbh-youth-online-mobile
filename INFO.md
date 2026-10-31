@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **OTA Updates: Prevent redundant prompt loop when running latest build, handle `isNew=false` gracefully** (`app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/i18n/locales/*.json`):
+  - **Upstream vs native/active build check**: Re-introduced `upstreamBuildNumber <= currentNativeBuild` and `upstreamBuildNumber <= currentActiveBuild` in both direct manifest check and native fallback in `otaService.js`. When a user installs the latest APK (e.g. Build 1021), they already have the latest code embedded; the app correctly identifies it as `up_to_date` instead of prompting for an identical OTA bundle.
+  - **Graceful `isNew=false` handling**: In `downloadAndApplyUpdate`, when `Updates.fetchUpdateAsync()` returns `isNew=false` with no manifest, return `status: "up_to_date"` rather than falsely reporting "downloaded". In `UpdatePromptModal`, cleanly dismiss with "Bạn đã đang sử dụng phiên bản mới nhất" toast instead of reloading into an infinite prompt loop.
+
+
 - **OTA Updates: Diagnostics logging for Debug Console and native applying fix** (`app.json`, `app/utils/devConsole.js`, `app/screens/MainScreens/SettingsScreen/DevConsoleScreen.js`, `app/services/ota/otaService.js`, `app/components/ota/UpdatePromptModal.js`, `app/screens/MainScreens/SettingsScreen/AppUpdatesScreen.js`, `App.js`, `app/i18n/locales/*.json`):
   - **Debug Console OTA logging**: Added an in-memory `otaRingBuffer` in `devConsole.js` capturing all `[OTA]` console outputs even before dev mode is actively toggled, preventing loss of startup diagnostics. Added an `"OTA"` filter chip and blue badge styling in `DevConsoleScreen.js` with full vi/en/ru localization.
   - **Detailed lifecycle logging**: Added granular `[OTA]` logs with timestamps, channel, native/active build numbers, runtime version, HTTP manifest URL/status/directive, native `fetchUpdateAsync()` result (`isNew`, `isRollBackToEmbedded`), local persistence, and app reload invocations across `otaService.js`, `UpdatePromptModal.js`, `AppUpdatesScreen.js`, and `App.js`.

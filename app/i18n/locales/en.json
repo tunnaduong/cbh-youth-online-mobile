@@ -688,6 +688,7 @@
     "baseUpdateRequiredBuild": "This update requires app version Build {{min}} or higher (you are on Build {{current}}). Please install the latest APK to continue.",
     "updateSuccessTitle": "Update Successful!",
     "updateAppliedNotice": "The update has been applied permanently.",
+    "alreadyLatestDesc": "You are already using the latest version.",
     "updateFailedTitle": "Update Failed",
     "updateFailed": "Unable to download the update package.",
     "genericError": "An error occurred while downloading the update.",

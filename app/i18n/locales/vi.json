@@ -677,6 +677,7 @@
     "baseUpdateRequiredBuild": "Bản cập nhật yêu cầu phiên bản ứng dụng Build {{min}} trở lên (bạn đang ở Build {{current}}). Vui lòng cài đặt file APK mới để tiếp tục.",
     "updateSuccessTitle": "Cập nhật thành công!",
     "updateAppliedNotice": "Bản cập nhật đã được áp dụng vĩnh viễn.",
+    "alreadyLatestDesc": "Bạn đã đang sử dụng phiên bản mới nhất.",
     "updateFailedTitle": "Cập nhật không thành công",
     "updateFailed": "Không thể tải bản cập nhật.",
     "genericError": "Đã xảy ra sự cố khi tải bản cập nhật.",

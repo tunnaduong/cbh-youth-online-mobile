@@ -79,6 +79,14 @@ export default function UpdatePromptModal({
             text2: t("ota.updateAppliedNotice", "Bản cập nhật đã được áp dụng vĩnh viễn."),
           });
         }, 3200);
+      } else if (res.status === "up_to_date") {
+        console.log("[OTA Modal] Client is already at latest version. Closing modal cleanly.");
+        onDismiss?.();
+        Toast.show({
+          type: "success",
+          text1: t("about.upToDate", "Ứng dụng đang ở bản mới nhất."),
+          text2: t("ota.alreadyLatestDesc", "Bạn đã đang sử dụng phiên bản mới nhất."),
+        });
       } else {
         console.error(`[OTA Modal] Update download failed with status "${res.status}":`, res.error);
         setStatus(STATUS.ERROR);

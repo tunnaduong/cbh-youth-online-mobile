@@ -698,6 +698,7 @@
     "baseUpdateRequiredBuild": "Для обновления требуется сборка Build {{min}} или выше (у вас Build {{current}}). Пожалуйста, установите новый APK для продолжения.",
     "updateSuccessTitle": "Обновление успешно!",
     "updateAppliedNotice": "Обновление было применено навсегда.",
+    "alreadyLatestDesc": "Вы уже используете самую последнюю версию.",
     "updateFailedTitle": "Сбой обновления",
     "updateFailed": "Не удалось загрузить пакет обновления.",
     "genericError": "Произошла ошибка при загрузке обновления.",
