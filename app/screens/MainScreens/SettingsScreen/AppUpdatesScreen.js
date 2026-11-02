@@ -405,7 +405,7 @@ export default function AppUpdatesScreen({ navigation }) {
               </Text>
               <Text style={[styles.updateValue, { color: theme.text }]}>
                 {runningUpdate.isOtaActive && runningUpdate.activeBuildNumber
-                  ? `Build ${runningUpdate.activeBuildNumber}`
+                  ? `Build ${runningUpdate.activeBuildNumber} (OTA)`
                   : t("about.embeddedBuild", "Bản cài gốc (Embedded)")}
               </Text>
             </View>
