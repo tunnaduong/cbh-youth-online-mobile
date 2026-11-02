@@ -434,6 +434,7 @@
     "pasteImage": "Dán ảnh từ clipboard",
     "chooseFromLibrary": "Chọn từ thư viện",
     "categoryShort": "Chọn chuyên mục",
+    "chooseCategory": "Chọn danh mục",
     "sectionSettings": "Thiết lập bài viết",
     "categoryLabel": "Chuyên mục",
     "privacyLabel": "Ai có thể xem",
@@ -1293,7 +1294,8 @@
     "viewersCount": "{{count}} người xem"
   },
   "dropdown": {
-    "selectOption": "Chọn một tùy chọn"
+    "selectOption": "Chọn một tùy chọn",
+    "select": "Chọn"
   },
   "auth": {
     "continueWithPasskey": "Đăng nhập bằng passkey",
@@ -2203,11 +2205,42 @@
       "grotesk": "Space Grotesk"
     },
     "options": {
-      "avatar_frame": { "none": "Không", "theme": "Theo màu", "trainee": "Bạc", "active": "Băng", "distinguished": "Vàng", "veteran": "Cầu vồng", "custom": "Tự tải lên" },
-      "name_effect": { "none": "Không", "solid": "Một màu", "gradient": "Chuyển màu", "pop": "Nổi khối", "toon": "Hoạt hình", "neon": "Neon", "rainbow": "Cầu vồng", "outline": "Viền chữ" },
-      "profile_effect": { "none": "Không", "sparkles": "Lấp lánh", "hearts": "Trái tim", "snow": "Tuyết rơi", "aurora": "Cực quang" },
-      "profile_frame": { "none": "Không", "glow": "Phát sáng", "gold": "Viền vàng", "neon": "Neon xoay", "custom": "Tự tải lên" },
-      "name_icon": { "none": "Không" }
+      "avatar_frame": {
+        "none": "Không",
+        "theme": "Theo màu",
+        "trainee": "Bạc",
+        "active": "Băng",
+        "distinguished": "Vàng",
+        "veteran": "Cầu vồng",
+        "custom": "Tự tải lên"
+      },
+      "name_effect": {
+        "none": "Không",
+        "solid": "Một màu",
+        "gradient": "Chuyển màu",
+        "pop": "Nổi khối",
+        "toon": "Hoạt hình",
+        "neon": "Neon",
+        "rainbow": "Cầu vồng",
+        "outline": "Viền chữ"
+      },
+      "profile_effect": {
+        "none": "Không",
+        "sparkles": "Lấp lánh",
+        "hearts": "Trái tim",
+        "snow": "Tuyết rơi",
+        "aurora": "Cực quang"
+      },
+      "profile_frame": {
+        "none": "Không",
+        "glow": "Phát sáng",
+        "gold": "Viền vàng",
+        "neon": "Neon xoay",
+        "custom": "Tự tải lên"
+      },
+      "name_icon": {
+        "none": "Không"
+      }
     }
   },
   "webApp": {

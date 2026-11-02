@@ -271,6 +271,8 @@ export default function PostComposerLayout({
                   style={styles.rowDropdown}
                   textStyle={styles.rowDropdownText}
                   arrowSize={16}
+                  modalTitle={t("createPost.chooseCategory")}
+                  headerIcon="clover"
                 />
               </SettingRow>
               <SettingRow icon={privacy?.icon || "earth"} title={t("createPost.privacyLabel")} theme={theme}>
@@ -283,6 +285,8 @@ export default function PostComposerLayout({
                   style={styles.rowDropdown}
                   textStyle={styles.rowDropdownText}
                   arrowSize={16}
+                  modalTitle={t("createPost.privacyLabel")}
+                  headerIcon={privacy?.icon || "earth"}
                 />
               </SettingRow>
               <SettingRow

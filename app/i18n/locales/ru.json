@@ -473,7 +473,8 @@
       "code": "Код",
       "codeBlock": "Блок кода",
       "undo": "Отменить"
-    }
+    },
+    "chooseCategory": "Выбрать категорию"
   },
   "sidebar": {
     "menu": "Меню",
@@ -1320,7 +1321,8 @@
     "viewersCount_2": "{{count}} просмотров"
   },
   "dropdown": {
-    "selectOption": "Выберите опцию"
+    "selectOption": "Выберите опцию",
+    "select": "Выбрать"
   },
   "auth": {
     "continueWithPasskey": "Войти с помощью passkey",
@@ -2234,11 +2236,42 @@
       "grotesk": "Space Grotesk"
     },
     "options": {
-      "avatar_frame": { "none": "Нет", "theme": "Цвет темы", "trainee": "Серебро", "active": "Лёд", "distinguished": "Золото", "veteran": "Радуга", "custom": "Своя" },
-      "name_effect": { "none": "Нет", "solid": "Сплошной", "gradient": "Градиент", "pop": "Объём", "toon": "Мультяшный", "neon": "Неон", "rainbow": "Радуга", "outline": "Контур" },
-      "profile_effect": { "none": "Нет", "sparkles": "Блёстки", "hearts": "Сердечки", "snow": "Снегопад", "aurora": "Сияние" },
-      "profile_frame": { "none": "Нет", "glow": "Свечение", "gold": "Золотая кайма", "neon": "Вращающийся неон", "custom": "Своя" },
-      "name_icon": { "none": "Нет" }
+      "avatar_frame": {
+        "none": "Нет",
+        "theme": "Цвет темы",
+        "trainee": "Серебро",
+        "active": "Лёд",
+        "distinguished": "Золото",
+        "veteran": "Радуга",
+        "custom": "Своя"
+      },
+      "name_effect": {
+        "none": "Нет",
+        "solid": "Сплошной",
+        "gradient": "Градиент",
+        "pop": "Объём",
+        "toon": "Мультяшный",
+        "neon": "Неон",
+        "rainbow": "Радуга",
+        "outline": "Контур"
+      },
+      "profile_effect": {
+        "none": "Нет",
+        "sparkles": "Блёстки",
+        "hearts": "Сердечки",
+        "snow": "Снегопад",
+        "aurora": "Сияние"
+      },
+      "profile_frame": {
+        "none": "Нет",
+        "glow": "Свечение",
+        "gold": "Золотая кайма",
+        "neon": "Вращающийся неон",
+        "custom": "Своя"
+      },
+      "name_icon": {
+        "none": "Нет"
+      }
     }
   },
   "webApp": {

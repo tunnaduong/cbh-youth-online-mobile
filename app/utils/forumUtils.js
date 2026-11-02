@@ -1,83 +1,180 @@
+export const CATEGORY_KEY_MAP = {
+  "thông báo": "announcements",
+  "thông báo chung": "generalAnnouncements",
+  "chung": "general",
+  "đoàn - hội": "unionAssociation",
+  "đoàn-hội": "unionAssociation",
+  "học tập": "academics",
+  "sự kiện": "events",
+  "câu lạc bộ": "clubs",
+  "góc chia sẻ": "sharingCorner",
+  "tán gẫu": "casual",
+  "tán gẫu linh tinh": "casual",
+  "hỏi đáp": "qa",
+  "góp ý": "feedback",
+  "ý kiến & đóng góp": "feedback",
+  "ý kiến đóng góp": "feedback",
+  "thảo luận": "discussion",
+  "báo cáo": "reports",
+  "phản hồi về diễn đàn": "forumFeedback",
+  "phản hồi diễn đàn": "forumFeedback",
+  "nội quy": "rules",
+  "nội quy diễn đàn": "forumRules",
+  "tin tức": "news",
+  "giải trí": "entertainment",
+  "tài liệu": "documents",
+  "tài liệu học tập": "academicDocuments",
+  "tâm sự": "confessions",
+  "chuyện của trường": "schoolStories",
+  "hoạt động ngoại khóa": "extracurricular",
+  "hỗ trợ kỹ thuật": "technicalSupport",
+  "giải trí - xã hội": "entertainmentSocial",
+  "giải trí xã hội": "entertainmentSocial",
+  "góc kỹ năng sống": "lifeSkillsCorner",
+  "giao lưu": "socialExchange",
+  "mua bán và trao đổi": "tradeExchange",
+  "mua bán & trao đổi": "tradeExchange",
+  "góp ý và báo lỗi": "feedbackBugReport",
+  "góp ý & báo lỗi": "feedbackBugReport",
+  "tin tức trên quản trị": "adminNews",
+  "kỹ năng sống": "lifeSkills",
+  "giao lưu kết bạn": "socializing",
+  "mua bán": "buySell",
+  "báo cáo lỗi": "bugReports",
+  "đóng góp ý kiến": "suggestions",
+  "tin tức từ ban quản trị": "newsFromAdmin",
+  "quy định và hướng dẫn": "regulationsGuidelines",
+  "tin tức đoàn": "unionNews",
+  "trung học phổ thông": "highSchool",
+  "trung học cơ sở": "middleSchool",
+  "tiếng anh": "english",
+  "ebook - giáo trình": "ebookTextbooks",
+  "học ngoại ngữ": "learnLanguages",
+  "văn học - nghệ thuật": "literatureArts",
+  "âm nhạc": "music",
+  "hình ảnh đẹp": "beautifulImages",
+  "thư giãn - đố vui": "relaxationPuzzles",
+  "thế giới game": "gamingWorld",
+  "kiến thức thú vị": "interestingKnowledge",
+  "chuyện showbiz": "showbizStories",
+  "sự kiện trường tổ chức": "schoolEvents",
+  "tình nguyện và cộng đồng": "volunteerCommunity",
+  "thể thao và sức khỏe": "sportsHealth",
+  "kỹ năng mềm": "softSkills",
+  "hướng nghiệp": "careerOrientation",
+  "sức khỏe và tâm lý": "healthPsychology",
+  "ký túc xá & đời sống học sinh": "dormLife",
+  "ký túc xá và đời sống học sinh": "dormLife",
+  "kết nối cựu học sinh": "alumniConnection",
+  "góc tâm sự": "confessionsCorner",
+  "tìm đồ thất lạc": "lostAndFound",
+  "mua bán sách cũ": "oldBooksTrade",
+  "đồ dùng học tập": "schoolSupplies",
+  "trao đổi vật dụng cá nhân": "personalItemsExchange",
+  "báo lỗi kỹ thuật": "technicalBugReport",
+  "góc yêu bếp": "kitchenCorner"
+};
+
+export const SECTION_ICON_MAP = {
+  announcements: "information-circle",
+  generalAnnouncements: "information-circle",
+  general: "information-circle",
+  academics: "school",
+  entertainmentSocial: "game-controller",
+  entertainment: "game-controller",
+  unionAssociation: "flag",
+  events: "calendar",
+  clubs: "people",
+  sharingCorner: "heart",
+  casual: "chatbubbles",
+  qa: "help-circle",
+  feedback: "chatbox-ellipses",
+  reports: "alert-circle",
+  rules: "shield-checkmark",
+  forumRules: "shield-checkmark",
+  news: "newspaper",
+  documents: "document-text",
+  academicDocuments: "document-text",
+  confessions: "heart",
+  technicalSupport: "build",
+  socialExchange: "people",
+  tradeExchange: "cart",
+};
+
+export const SUBFORUM_ICON_MAP = {
+  newsFromAdmin: "megaphone-outline",
+  regulationsGuidelines: "calendar-outline",
+  unionNews: "newspaper-outline",
+  highSchool: "trophy-outline",
+  middleSchool: "book-outline",
+  english: "star-outline",
+  ebookTextbooks: "book-outline",
+  learnLanguages: "globe-outline",
+  literatureArts: "film-outline",
+  music: "happy-outline",
+  beautifulImages: "film-outline",
+  relaxationPuzzles: "bulb-outline",
+  gamingWorld: "game-controller-outline",
+  interestingKnowledge: "sparkles-outline",
+  showbizStories: "sparkles-outline",
+  schoolEvents: "calendar-outline",
+  clubs: "people-outline",
+  volunteerCommunity: "heart-outline",
+  sportsHealth: "fitness-outline",
+  softSkills: "bulb-outline",
+  careerOrientation: "briefcase-outline",
+  healthPsychology: "medkit-outline",
+  dormLife: "home-outline",
+  alumniConnection: "people-outline",
+  confessionsCorner: "chatbubble-ellipses-outline",
+  confessions: "chatbubble-ellipses-outline",
+  lostAndFound: "search-outline",
+  oldBooksTrade: "library-outline",
+  schoolSupplies: "pencil-outline",
+  personalItemsExchange: "swap-horizontal-outline",
+  technicalBugReport: "bug-outline",
+  kitchenCorner: "restaurant-outline",
+  announcements: "megaphone-outline",
+  generalAnnouncements: "megaphone-outline",
+  qa: "help-circle-outline",
+  discussion: "chatbubbles-outline",
+  feedback: "chatbox-ellipses-outline",
+  forumFeedback: "chatbox-ellipses-outline",
+};
+
+export const getCategoryKey = (name) => {
+  if (!name || typeof name !== "string") return null;
+  const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
+  if (CATEGORY_KEY_MAP[normalized]) return CATEGORY_KEY_MAP[normalized];
+  if (Object.values(CATEGORY_KEY_MAP).includes(normalized)) return normalized;
+  if (normalized.includes("thông báo") || normalized.includes("announce")) return "announcements";
+  if (normalized.includes("học tập") || normalized.includes("academic") || normalized.includes("học sinh")) return "academics";
+  if (normalized.includes("giải trí") || normalized.includes("entertain")) return "entertainmentSocial";
+  if (normalized.includes("đoàn") || normalized.includes("union")) return "unionNews";
+  if (normalized.includes("tin tức") || normalized.includes("news")) return "newsFromAdmin";
+  if (normalized.includes("quy định") || normalized.includes("hướng dẫn") || normalized.includes("rule")) return "regulationsGuidelines";
+  if (normalized.includes("tiếng anh") || normalized.includes("english")) return "english";
+  if (normalized.includes("ngoại ngữ") || normalized.includes("language")) return "learnLanguages";
+  if (normalized.includes("văn học") || normalized.includes("nghệ thuật") || normalized.includes("art")) return "literatureArts";
+  if (normalized.includes("âm nhạc") || normalized.includes("music")) return "music";
+  if (normalized.includes("hình ảnh") || normalized.includes("image")) return "beautifulImages";
+  return null;
+};
+
+export const getSectionIcon = (categoryName) => {
+  const key = getCategoryKey(categoryName);
+  return (key && SECTION_ICON_MAP[key]) || "information-circle";
+};
+
+export const getSubforumIcon = (subforumName, rawName) => {
+  const key = getCategoryKey(rawName) || getCategoryKey(subforumName);
+  return (key && SUBFORUM_ICON_MAP[key]) || "chatbubble-outline";
+};
+
 export const getCategoryName = (name, t) => {
   if (!name) return name;
   const normalized = name.trim().toLowerCase().replace(/\s+/g, " ");
-  const keyMap = {
-    "thông báo": "announcements",
-    "thông báo chung": "generalAnnouncements",
-    "chung": "general",
-    "đoàn - hội": "unionAssociation",
-    "đoàn-hội": "unionAssociation",
-    "học tập": "academics",
-    "sự kiện": "events",
-    "câu lạc bộ": "clubs",
-    "góc chia sẻ": "sharingCorner",
-    "tán gẫu": "casual",
-    "tán gẫu linh tinh": "casual",
-    "hỏi đáp": "qa",
-    "góp ý": "feedback",
-    "ý kiến & đóng góp": "feedback",
-    "ý kiến đóng góp": "feedback",
-    "thảo luận": "discussion",
-    "báo cáo": "reports",
-    "phản hồi về diễn đàn": "forumFeedback",
-    "phản hồi diễn đàn": "forumFeedback",
-    "nội quy": "rules",
-    "nội quy diễn đàn": "forumRules",
-    "tin tức": "news",
-    "giải trí": "entertainment",
-    "tài liệu": "documents",
-    "tài liệu học tập": "academicDocuments",
-    "tâm sự": "confessions",
-    "chuyện của trường": "schoolStories",
-    "hoạt động ngoại khóa": "extracurricular",
-    "hỗ trợ kỹ thuật": "technicalSupport",
-    "giải trí - xã hội": "entertainmentSocial",
-    "giải trí xã hội": "entertainmentSocial",
-    "góc kỹ năng sống": "lifeSkillsCorner",
-    "giao lưu": "socialExchange",
-    "mua bán và trao đổi": "tradeExchange",
-    "mua bán & trao đổi": "tradeExchange",
-    "góp ý và báo lỗi": "feedbackBugReport",
-    "góp ý & báo lỗi": "feedbackBugReport",
-    "tin tức trên quản trị": "adminNews",
-    "kỹ năng sống": "lifeSkills",
-    "giao lưu kết bạn": "socializing",
-    "mua bán": "buySell",
-    "báo cáo lỗi": "bugReports",
-    "đóng góp ý kiến": "suggestions",
-    "tin tức từ ban quản trị": "newsFromAdmin",
-    "quy định và hướng dẫn": "regulationsGuidelines",
-    "tin tức đoàn": "unionNews",
-    "trung học phổ thông": "highSchool",
-    "trung học cơ sở": "middleSchool",
-    "tiếng anh": "english",
-    "ebook - giáo trình": "ebookTextbooks",
-    "học ngoại ngữ": "learnLanguages",
-    "văn học - nghệ thuật": "literatureArts",
-    "âm nhạc": "music",
-    "hình ảnh đẹp": "beautifulImages",
-    "thư giãn - đố vui": "relaxationPuzzles",
-    "thế giới game": "gamingWorld",
-    "kiến thức thú vị": "interestingKnowledge",
-    "chuyện showbiz": "showbizStories",
-    "sự kiện trường tổ chức": "schoolEvents",
-    "tình nguyện và cộng đồng": "volunteerCommunity",
-    "thể thao và sức khỏe": "sportsHealth",
-    "kỹ năng mềm": "softSkills",
-    "hướng nghiệp": "careerOrientation",
-    "sức khỏe và tâm lý": "healthPsychology",
-    "ký túc xá & đời sống học sinh": "dormLife",
-    "ký túc xá và đời sống học sinh": "dormLife",
-    "kết nối cựu học sinh": "alumniConnection",
-    "góc tâm sự": "confessionsCorner",
-    "tìm đồ thất lạc": "lostAndFound",
-    "mua bán sách cũ": "oldBooksTrade",
-    "đồ dùng học tập": "schoolSupplies",
-    "trao đổi vật dụng cá nhân": "personalItemsExchange",
-    "báo lỗi kỹ thuật": "technicalBugReport",
-    "góc yêu bếp": "kitchenCorner"
-  };
-  const key = keyMap[normalized];
+  const key = CATEGORY_KEY_MAP[normalized];
   if (key) {
     const translated = t(`forumCategories.${key}`);
     if (translated !== `forumCategories.${key}`) {

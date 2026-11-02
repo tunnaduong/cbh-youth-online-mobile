@@ -463,7 +463,8 @@
       "code": "Code",
       "codeBlock": "Code block",
       "undo": "Undo"
-    }
+    },
+    "chooseCategory": "Choose category"
   },
   "sidebar": {
     "menu": "Menu",
@@ -1305,7 +1306,8 @@
     "viewersCount": "{{count}} viewers"
   },
   "dropdown": {
-    "selectOption": "Select an option"
+    "selectOption": "Select an option",
+    "select": "Select"
   },
   "auth": {
     "continueWithPasskey": "Sign in with a passkey",
@@ -2216,11 +2218,42 @@
       "grotesk": "Space Grotesk"
     },
     "options": {
-      "avatar_frame": { "none": "None", "theme": "Theme", "trainee": "Silver", "active": "Ice", "distinguished": "Gold", "veteran": "Rainbow", "custom": "Your own" },
-      "name_effect": { "none": "None", "solid": "Solid", "gradient": "Gradient", "pop": "Pop", "toon": "Toon", "neon": "Neon", "rainbow": "Rainbow", "outline": "Outline" },
-      "profile_effect": { "none": "None", "sparkles": "Sparkles", "hearts": "Hearts", "snow": "Snowfall", "aurora": "Aurora" },
-      "profile_frame": { "none": "None", "glow": "Glow", "gold": "Gold trim", "neon": "Spinning neon", "custom": "Your own" },
-      "name_icon": { "none": "None" }
+      "avatar_frame": {
+        "none": "None",
+        "theme": "Theme",
+        "trainee": "Silver",
+        "active": "Ice",
+        "distinguished": "Gold",
+        "veteran": "Rainbow",
+        "custom": "Your own"
+      },
+      "name_effect": {
+        "none": "None",
+        "solid": "Solid",
+        "gradient": "Gradient",
+        "pop": "Pop",
+        "toon": "Toon",
+        "neon": "Neon",
+        "rainbow": "Rainbow",
+        "outline": "Outline"
+      },
+      "profile_effect": {
+        "none": "None",
+        "sparkles": "Sparkles",
+        "hearts": "Hearts",
+        "snow": "Snowfall",
+        "aurora": "Aurora"
+      },
+      "profile_frame": {
+        "none": "None",
+        "glow": "Glow",
+        "gold": "Gold trim",
+        "neon": "Spinning neon",
+        "custom": "Your own"
+      },
+      "name_icon": {
+        "none": "None"
+      }
     }
   },
   "webApp": {

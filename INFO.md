@@ -460,6 +460,15 @@ Every new or changed screen must follow this section. If a screen you touch does
   - `ForumScreen` is registered as a stack screen in `App.js` with back button support and accessible directly from `Sidebar.js`.
   - Added `navigation.explore` across `vi.json` ("Khám phá"), `en.json` ("Explore"), and `ru.json` ("Обзор").
 
+- **Liquid glass category & subforum selection bottom sheet modal**:
+  - Upgraded `Dropdown.js` from a plain centered modal dialog into a modern liquid-glass bottom sheet modal matching iOS/Android design standards.
+  - Features a translucent frosted glass surface (`LiquidGlassView` with `glassTint` and `androidGlassPerfProps`), top pill drag indicator, clover header icon (`MaterialCommunityIcons` "clover"), modal title, and circular close button (✕).
+  - Grouped SectionList support with category-themed header icons (`getSectionIcon` in `forumUtils.js`, mapping sections such as "Thông báo", "Học tập", "Giải trí - Xã hội", "Đoàn - Hội", etc.) and outline icons for all subforums (`getSubforumIcon` mapping "Tin tức từ Ban quản trị", "Quy định và hướng dẫn", "Tin tức Đoàn", "THPT", "THCS", "Tiếng Anh", "Ebook", "Học ngoại ngữ", "Văn học", "Âm nhạc", "Hình ảnh đẹp", etc.).
+  - Selected state feedback: highlighted active green border (`theme.primary`, 1.5px), primary green tint background, and circular checkmark (`Ionicons` "checkmark-circle").
+  - Tactile bottom action confirmation button with `Ionicons` "checkmark" and label `t("dropdown.select", "Chọn")` positioned above home indicators via `useSafeAreaInsets()`.
+  - Added `createPost.chooseCategory` and `dropdown.select` across `vi.json`, `en.json`, and `ru.json`.
+  - Integrated into `PostComposerLayout.js` for category and privacy selection during post creation & editing.
+
 - **Vietnamese font rendering & lineHeight optimization**:
   - Added explicit `lineHeight` across modal headers, buttons, labels, and channel cards in `UpdatePromptModal.js`, `AppUpdatesScreen.js`, and `FeedbackScreen/index.js` to prevent Vietnamese diacritics / tone marks from being clipped on Android.
   - Added `ota.baseUpdateRequiredBuild` across `vi.json`, `en.json`, and `ru.json` and ensured UI fallback strings are provided so text never displays raw translation keys.
