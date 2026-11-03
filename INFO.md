@@ -356,8 +356,8 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
-- **Explore Screen Redesign (Khám phá)** (`app/screens/MainScreens/ExploreScreen/index.js`, `app/i18n/locales/*.json`):
-  - **School Header & Search Bar**: Integrated a dark green gradient header with subtle school silhouette and an embedded pill search bar ("Tìm kiếm trên diễn đàn...") routing to `SearchScreen`.
+- **Explore Screen Redesign & Sticky Search Header (Khám phá)** (`app/screens/MainScreens/ExploreScreen/index.js`, `App.js`, `app/i18n/locales/*.json`):
+  - **Sticky Search Header on Scroll**: Pinned the green header (`LinearGradient` with school watermark) at the top using native driver scroll interpolation. When the user scrolls down, the large "Khám phá" title smoothly slides up and fades out, while the pill search bar ("Tìm kiếm trên diễn đàn...") remains pinned and sticky directly below the safe area with drop shadow and rounded bottom corners.
   - **Welcome Hero Card**: Redesigned greeting banner featuring "Chào bạn, hôm nay bạn muốn làm gì...?" with decorative underline doodles, student illustration (`student_girl.png`), halo glow, and floating sparkle accents.
   - **3-Column Feature Cards Grid**: Redesigned 6 feature cards (Chợ tài liệu, Tra cứu điểm thi, Tìm trường ĐH-CĐ, In ấn tài liệu, Đố vui, Game) with pastel color themes, subtle background watermark illustrations, solid squircle icon badges, and circular forward buttons.
 

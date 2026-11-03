@@ -294,6 +294,9 @@ const parseDeepLink = (url) => {
         const slug = pathSegment.slice(5).split("?")[0];
         if (slug) return { screen: "GamePlayScreen", params: { slug } };
       }
+      if (host === "explore" || pathSegment === "explore") {
+        return { screen: "ExploreScreen", params: {} };
+      }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;
         return routeToStory(storyId);

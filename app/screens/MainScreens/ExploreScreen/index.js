@@ -147,32 +147,52 @@ const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
     ? ["#0F2D1B", "#15472A"]
     : ["#14532D", "#15803D"];
 
+  const COLLAPSE_DISTANCE = 42;
+  const EXTRA_TOP = 120;
+  const headerInitialHeight = insets.top + (isTab ? 112 : 108);
+
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, COLLAPSE_DISTANCE],
+    outputRange: [0, -COLLAPSE_DISTANCE],
+    extrapolate: "clamp",
+  });
+
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, COLLAPSE_DISTANCE * 0.75],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const titleTranslateY = scrollY.interpolate({
+    inputRange: [0, COLLAPSE_DISTANCE],
+    outputRange: [0, -10],
+    extrapolate: "clamp",
+  });
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <AndroidGlassBackdrop providerId="ExploreScreen" style={{ flex: 1 }}>
-        <Animated.ScrollView
-          ref={scrollViewRef}
-          style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: isTab ? 110 : 40 + insets.bottom },
+        {/* Sticky Header with School Silhouette & Search Bar */}
+        <Animated.View
+          style={[
+            styles.stickyHeaderContainer,
+            {
+              top: -EXTRA_TOP,
+              transform: [{ translateY: headerTranslateY }],
+            },
           ]}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-          )}
-          scrollEventThrottle={16}
-          showsVerticalScrollIndicator={false}
-          bounces={true}
+          pointerEvents="box-none"
         >
-          {/* Top Green Header with School Silhouette & Search Bar */}
           <LinearGradient
             colors={headerBgColors}
             start={{ x: 0, y: 0 }}
             end={{ x: 0, y: 1 }}
             style={[
               styles.headerGradient,
-              { paddingTop: insets.top + (isTab ? 12 : 8) },
+              {
+                paddingTop: EXTRA_TOP + insets.top + (isTab ? 10 : 6),
+                paddingBottom: 14,
+              },
             ]}
           >
             {/* Background school architectural watermark */}
@@ -182,53 +202,84 @@ const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
               resizeMode="cover"
             />
 
-            {/* Header Title Row */}
-            <View style={styles.headerTitleRow}>
-              {!isTab && (
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  style={styles.backButton}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
-                </TouchableOpacity>
-              )}
-              <Text style={styles.headerTitleText}>
-                {t("sidebar.explore", "Khám phá")}
-              </Text>
-            </View>
-
-            {/* Search Bar matching screenshot */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              onPress={() => navigation.navigate("SearchScreen")}
+            {/* Header Title Row - smoothly collapses on scroll */}
+            <Animated.View
               style={[
-                styles.searchBar,
+                styles.headerTitleRow,
                 {
-                  backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
+                  opacity: titleOpacity,
+                  transform: [{ translateY: titleTranslateY }],
                 },
               ]}
             >
-              <Ionicons
-                name="search"
-                size={19}
-                color={isDarkMode ? "#9CA3AF" : "#6B7280"}
-                style={styles.searchIcon}
-              />
-              <Text
-                style={[
-                  styles.searchPlaceholder,
-                  { color: isDarkMode ? "#9CA3AF" : "#9CA3AF" },
-                ]}
-                numberOfLines={1}
-              >
-                {t(
-                  "exploreScreen.searchPlaceholder",
-                  "Tìm kiếm trên diễn đàn..."
-                )}
+              <Text style={styles.headerTitleText}>
+                {t("sidebar.explore", "Khám phá")}
               </Text>
-            </TouchableOpacity>
+            </Animated.View>
+
+            {/* Search Bar - remains sticky at the top when scrolling */}
+            <View style={styles.searchRow}>
+              {!isTab && (
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.stickyBackButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate("SearchScreen")}
+                style={[
+                  styles.searchBar,
+                  {
+                    backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
+                    flex: 1,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name="search"
+                  size={19}
+                  color={isDarkMode ? "#9CA3AF" : "#6B7280"}
+                  style={styles.searchIcon}
+                />
+                <Text
+                  style={[
+                    styles.searchPlaceholder,
+                    { color: isDarkMode ? "#9CA3AF" : "#9CA3AF" },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {t(
+                    "exploreScreen.searchPlaceholder",
+                    "Tìm kiếm trên diễn đàn..."
+                  )}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </LinearGradient>
+        </Animated.View>
+
+        <Animated.ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: headerInitialHeight,
+              paddingBottom: isTab ? 140 : 60 + insets.bottom,
+            },
+          ]}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
 
           {/* Welcome / Hero Banner */}
           <View style={styles.heroOuterContainer}>
@@ -418,11 +469,21 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
+  stickyHeaderContainer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
   headerGradient: {
     paddingHorizontal: 16,
-    paddingBottom: 18,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
     position: "relative",
     overflow: "hidden",
   },
@@ -437,16 +498,27 @@ const styles = StyleSheet.create({
   headerTitleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
-  },
-  backButton: {
-    marginRight: 8,
+    marginBottom: 8,
+    height: 34,
   },
   headerTitleText: {
     fontSize: 26,
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 0.3,
+  },
+  searchRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  stickyBackButton: {
+    marginRight: 10,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(255, 255, 255, 0.18)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   searchBar: {
     flexDirection: "row",
