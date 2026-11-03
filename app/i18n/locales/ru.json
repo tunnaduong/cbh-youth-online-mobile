@@ -1631,14 +1631,22 @@
   },
   "exploreScreen": {
     "examDocuments": "Материалы для экзаменов",
+    "examDocumentsDesc": "Учебные материалы, тесты, книги и др.",
     "scoreLookup": "Результаты экзаменов",
+    "scoreLookupDesc": "Быстрый и точный поиск результатов",
     "findUniversities": "Поиск вузов",
+    "findUniversitiesDesc": "Университеты и колледжи",
     "printing": "Печать документов",
+    "printingDesc": "Печать документов, заданий и проектов",
     "trivia": "Викторина",
+    "triviaDesc": "Проверьте знания и получайте призы",
     "game": "Игра",
+    "gameDesc": "Развлечения и отдых после занятий",
     "underDevelopment": "Функция находится в разработке",
     "greeting": "Привет, что ты хочешь ",
-    "question": "делать сегодня...?"
+    "question": "делать сегодня...?",
+    "searchPlaceholder": "Поиск на форуме...",
+    "heroSubtitle": "Исследуйте функции, общайтесь с сообществом и наслаждайтесь CBH Online!"
   },
   "games": {
     "title": "Игры",

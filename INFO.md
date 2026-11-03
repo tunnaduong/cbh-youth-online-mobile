@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Explore Screen Redesign (Khám phá)** (`app/screens/MainScreens/ExploreScreen/index.js`, `app/i18n/locales/*.json`):
+  - **School Header & Search Bar**: Integrated a dark green gradient header with subtle school silhouette and an embedded pill search bar ("Tìm kiếm trên diễn đàn...") routing to `SearchScreen`.
+  - **Welcome Hero Card**: Redesigned greeting banner featuring "Chào bạn, hôm nay bạn muốn làm gì...?" with decorative underline doodles, student illustration (`student_girl.png`), halo glow, and floating sparkle accents.
+  - **3-Column Feature Cards Grid**: Redesigned 6 feature cards (Chợ tài liệu, Tra cứu điểm thi, Tìm trường ĐH-CĐ, In ấn tài liệu, Đố vui, Game) with pastel color themes, subtle background watermark illustrations, solid squircle icon badges, and circular forward buttons.
+
 - **Post copy gesture & highlight like Facebook** (`app/components/PostItem.js`, `app/utils/postCopy.js`, `app/contexts/BottomSheetContext.js`, `app/i18n/locales/*.json`):
   - **Long-press text selection highlight**: Long-pressing either the post title or caption triggers a shaded selection highlight (`rgba(0, 0, 0, 0.08)` / `rgba(255, 255, 255, 0.14)`) covering both the title and caption together, matching Facebook's long-press UX.
   - **Facebook-style bottom sheet**: Opens an action bottom sheet with "Sao chép văn bản" (copies full title + content plain text to clipboard with `expo-clipboard` and `expo-haptics`) and "Sao chép liên kết bài viết". Highlight dismisses cleanly when copying or closing.

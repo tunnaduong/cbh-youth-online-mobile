@@ -10,57 +10,118 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { useStatusBarStyle } from "../../../hooks/useStatusBarUpdate";
 
 const { width } = Dimensions.get("window");
-const cardSize = (width - 48) / 3; // 4 columns with padding
+// 3 columns: paddingHorizontal 16 on each side (32), plus 8px gap between each card (8 * 2 = 16)
+const CARD_GAP = 8;
+const cardWidth = Math.floor((width - 32 - CARD_GAP * 2) / 3);
 
-const featureCards = [
+const FEATURE_CARDS = [
   {
-    id: 1,
-    key: "examDocuments",
-    icon: "book-outline",
+    id: "examDocuments",
+    titleKey: "exploreScreen.examDocuments",
+    descKey: "exploreScreen.examDocumentsDesc",
+    defaultTitle: "Chợ tài liệu",
+    defaultDesc: "Tài liệu học tập, đề thi, sách và nhiều hơn nữa",
+    icon: "book",
+    watermarkIcon: "book-outline",
+    color: "#22C55E",
+    lightBg: "#F0FAF2",
+    lightBorder: "#D8F3DC",
+    darkBg: "#12251A",
+    darkBorder: "#1B3C29",
+    route: "StudyMaterialScreen",
   },
   {
-    id: 2,
-    key: "scoreLookup",
-    icon: "search-outline",
+    id: "scoreLookup",
+    titleKey: "exploreScreen.scoreLookup",
+    descKey: "exploreScreen.scoreLookupDesc",
+    defaultTitle: "Tra cứu điểm thi",
+    defaultDesc: "Tra cứu điểm thi nhanh chóng, chính xác",
+    icon: "search",
+    watermarkIcon: "document-text-outline",
+    color: "#3B82F6",
+    lightBg: "#EFF6FF",
+    lightBorder: "#DBEAFE",
+    darkBg: "#112038",
+    darkBorder: "#193155",
+    route: null,
   },
   {
-    id: 3,
-    key: "findUniversities",
-    icon: "location-outline",
+    id: "findUniversities",
+    titleKey: "exploreScreen.findUniversities",
+    descKey: "exploreScreen.findUniversitiesDesc",
+    defaultTitle: "Tìm trường ĐH-CĐ",
+    defaultDesc: "Khám phá các trường Đại học, Cao đẳng",
+    icon: "location",
+    watermarkIcon: "business-outline",
+    color: "#F59E0B",
+    lightBg: "#FFFBEB",
+    lightBorder: "#FEF3C7",
+    darkBg: "#282011",
+    darkBorder: "#3E3117",
+    route: "UniversityScreen",
   },
   {
-    id: 4,
-    key: "printing",
-    icon: "print-outline",
+    id: "printing",
+    titleKey: "exploreScreen.printing",
+    descKey: "exploreScreen.printingDesc",
+    defaultTitle: "In ấn tài liệu",
+    defaultDesc: "In tài liệu, bài tập, đồ án... tiện lợi",
+    icon: "print",
+    watermarkIcon: "print-outline",
+    color: "#8B5CF6",
+    lightBg: "#F5F3FF",
+    lightBorder: "#EDE9FE",
+    darkBg: "#201833",
+    darkBorder: "#332552",
+    route: null,
   },
   {
-    id: 5,
-    key: "trivia",
-    icon: "help-circle-outline",
+    id: "trivia",
+    titleKey: "exploreScreen.trivia",
+    descKey: "exploreScreen.triviaDesc",
+    defaultTitle: "Đố vui",
+    defaultDesc: "Thử thách kiến thức, nhận quà hấp dẫn",
+    icon: "help",
+    watermarkIcon: "bulb-outline",
+    color: "#EC4899",
+    lightBg: "#FDF2F8",
+    lightBorder: "#FCE7F3",
+    darkBg: "#291522",
+    darkBorder: "#411D35",
+    route: "QuizScreen",
   },
   {
-    id: 6,
-    key: "game",
-    icon: "game-controller-outline",
+    id: "game",
+    titleKey: "exploreScreen.game",
+    descKey: "exploreScreen.gameDesc",
+    defaultTitle: "Game",
+    defaultDesc: "Giải trí, thư giãn sau giờ học",
+    icon: "game-controller",
+    watermarkIcon: "game-controller-outline",
+    color: "#10B981",
+    lightBg: "#ECFDF5",
+    lightBorder: "#D1FAE5",
+    darkBg: "#10261E",
+    darkBorder: "#173D2F",
+    route: "GamesScreen",
   },
 ];
 
 const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
   const insets = useSafeAreaInsets();
   const { theme, isDarkMode } = useTheme();
-  useStatusBarStyle(isDarkMode ? "light-content" : "dark-content", "transparent");
+  useStatusBarStyle("light-content", "transparent");
   const { t } = useTranslation();
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef(null);
-  const headerHeight = insets.top + 64;
 
   useEffect(() => {
     if (scrollTriggerRef) {
@@ -71,109 +132,277 @@ const ExploreScreen = ({ navigation, isTab = false, scrollTriggerRef }) => {
   }, [scrollTriggerRef]);
 
   const handleCardPress = (card) => {
-    if (card.key === "examDocuments") {
-      navigation.navigate("StudyMaterialScreen");
-      return;
-    }
-    if (card.key === "game") {
-      navigation.navigate("GamesScreen");
-      return;
-    }
-    if (card.key === "trivia") {
-      navigation.navigate("QuizScreen");
-      return;
-    }
-    if (card.key === "findUniversities") {
-      navigation.navigate("UniversityScreen");
+    if (card.route) {
+      navigation.navigate(card.route);
       return;
     }
 
     Toast.show({
       type: "info",
-      text1: t("exploreScreen.underDevelopment"),
+      text1: t("exploreScreen.underDevelopment", "Tính năng đang được phát triển"),
     });
   };
 
+  const headerBgColors = isDarkMode
+    ? ["#0F2D1B", "#15472A"]
+    : ["#14532D", "#15803D"];
+
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <View
-        style={[styles.header, { paddingTop: insets.top + 6, height: headerHeight }]}
-        pointerEvents="box-none"
-      >
-        {!isTab ? (
-          <LiquidButton providerId="ExploreScreen" size={44} scrollY={scrollY} onPress={() => navigation.goBack()}>
-            <Ionicons name="chevron-back" size={24} color={theme.primary} />
-          </LiquidButton>
-        ) : (
-          <View style={styles.headerSpacer} />
-        )}
-        <Animated.Text
-          style={[
-            styles.headerTitle,
-            {
-              color: theme.text,
-              opacity: scrollY.interpolate({ inputRange: [0, 50], outputRange: [1, 0], extrapolate: "clamp" }),
-            },
-          ]}
-        >
-          {t("sidebar.explore", "Khám phá")}
-        </Animated.Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
       <AndroidGlassBackdrop providerId="ExploreScreen" style={{ flex: 1 }}>
-      <Animated.ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollView}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: headerHeight, paddingBottom: isTab ? 110 : 40 + insets.bottom }]}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Top Section with Greeting and Image */}
-        <View style={styles.topSection}>
-          <View style={styles.greetingContainer}>
-            <Text style={[styles.greetingText, { color: theme.text }]}>{t("exploreScreen.greeting")}</Text>
-            <Text style={styles.highlightText}>{t("exploreScreen.question")}</Text>
-          </View>
-          <View style={styles.imageContainer}>
+        <Animated.ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: isTab ? 110 : 40 + insets.bottom },
+          ]}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          bounces={true}
+        >
+          {/* Top Green Header with School Silhouette & Search Bar */}
+          <LinearGradient
+            colors={headerBgColors}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={[
+              styles.headerGradient,
+              { paddingTop: insets.top + (isTab ? 12 : 8) },
+            ]}
+          >
+            {/* Background school architectural watermark */}
             <Image
-              source={require("../../../assets/student_girl.png")}
-              style={styles.girlImage}
-              resizeMode="contain"
+              source={require("../../../assets/school-logo.jpg")}
+              style={styles.headerWatermark}
+              resizeMode="cover"
             />
-          </View>
-        </View>
 
-        {/* Bottom Section with Feature Grid */}
-        <View style={[styles.bottomSection, { paddingBottom: 40 + insets.bottom }]}>
-          <View style={styles.gridContainer}>
-            {featureCards.map((card) => (
-              <TouchableOpacity
-                key={card.id}
-                style={[styles.card, { backgroundColor: theme.cardBackground }, isDarkMode && { elevation: 0, shadowOpacity: 0 }]}
-                onPress={() => handleCardPress(card)}
-                activeOpacity={0.7}
+            {/* Header Title Row */}
+            <View style={styles.headerTitleRow}>
+              {!isTab && (
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.backButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+                </TouchableOpacity>
+              )}
+              <Text style={styles.headerTitleText}>
+                {t("sidebar.explore", "Khám phá")}
+              </Text>
+            </View>
+
+            {/* Search Bar matching screenshot */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => navigation.navigate("SearchScreen")}
+              style={[
+                styles.searchBar,
+                {
+                  backgroundColor: isDarkMode ? "#1F2937" : "#FFFFFF",
+                },
+              ]}
+            >
+              <Ionicons
+                name="search"
+                size={19}
+                color={isDarkMode ? "#9CA3AF" : "#6B7280"}
+                style={styles.searchIcon}
+              />
+              <Text
+                style={[
+                  styles.searchPlaceholder,
+                  { color: isDarkMode ? "#9CA3AF" : "#9CA3AF" },
+                ]}
+                numberOfLines={1}
               >
-                <View style={styles.cardIconContainer}>
-                  <Ionicons
-                    name={card.icon}
-                    size={32}
-                    color={theme.primary}
-                    style={styles.cardIcon}
-                  />
-                </View>
-                <Text style={[styles.cardText, { color: theme.text }]} numberOfLines={2}>
-                  {t(`exploreScreen.${card.key}`)}
+                {t(
+                  "exploreScreen.searchPlaceholder",
+                  "Tìm kiếm trên diễn đàn..."
+                )}
+              </Text>
+            </TouchableOpacity>
+          </LinearGradient>
+
+          {/* Welcome / Hero Banner */}
+          <View style={styles.heroOuterContainer}>
+            <LinearGradient
+              colors={
+                isDarkMode
+                  ? ["#133321", "#0E2418"]
+                  : ["#EAF8EC", "#E0F5E3"]
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[
+                styles.heroCard,
+                {
+                  borderColor: isDarkMode ? "#1B472C" : "#D5EBD7",
+                },
+              ]}
+            >
+              {/* Left Column: Greeting + Highlighted Text */}
+              <View style={styles.heroTextColumn}>
+                <Text
+                  style={[
+                    styles.heroGreetingText,
+                    { color: isDarkMode ? "#F3F4F6" : "#0F2E1E" },
+                  ]}
+                >
+                  {t("exploreScreen.greeting", "Chào bạn, hôm nay\nbạn muốn ")}
                 </Text>
-              </TouchableOpacity>
-            ))}
+
+                <View style={styles.heroQuestionContainer}>
+                  <Text style={styles.heroQuestionText}>
+                    {t("exploreScreen.question", "làm gì...?")}
+                  </Text>
+                  {/* Decorative underline doodles */}
+                  <View style={styles.doodleRow}>
+                    <View
+                      style={[
+                        styles.doodleLine,
+                        { backgroundColor: "#F59E0B", width: 56 },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.doodleLine,
+                        { backgroundColor: "#22C55E", width: 34, marginLeft: 3 },
+                      ]}
+                    />
+                  </View>
+                </View>
+
+                <Text
+                  style={[
+                    styles.heroSubtitleText,
+                    { color: isDarkMode ? "#9CA3AF" : "#4B5563" },
+                  ]}
+                >
+                  {t(
+                    "exploreScreen.heroSubtitle",
+                    "Khám phá các tính năng, kết nối với cộng đồng và tận hưởng trải nghiệm tuyệt vời trên CBH Online!"
+                  )}
+                </Text>
+              </View>
+
+              {/* Right Column: Girl Illustration with Decorative Accents */}
+              <View style={styles.heroImageColumn}>
+                {/* Soft glow halo behind the student */}
+                <View
+                  style={[
+                    styles.heroHalo,
+                    {
+                      backgroundColor: isDarkMode
+                        ? "rgba(34, 197, 94, 0.12)"
+                        : "#DCFCE7",
+                    },
+                  ]}
+                />
+                {/* Floating crown & sparkle doodles */}
+                <Text style={styles.sparkleDoodle}>✦</Text>
+                <Text style={styles.plusDoodle}>+</Text>
+                <Ionicons
+                  name="sparkles"
+                  size={16}
+                  color="#22C55E"
+                  style={styles.crownDoodle}
+                />
+                <Image
+                  source={require("../../../assets/student_girl.png")}
+                  style={styles.heroGirlImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </LinearGradient>
           </View>
-        </View>
-      </Animated.ScrollView>
+
+          {/* 6 Feature Cards Grid */}
+          <View style={styles.gridContainer}>
+            {FEATURE_CARDS.map((card) => {
+              const bg = isDarkMode ? card.darkBg : card.lightBg;
+              const border = isDarkMode ? card.darkBorder : card.lightBorder;
+
+              return (
+                <TouchableOpacity
+                  key={card.id}
+                  style={[
+                    styles.featureCard,
+                    {
+                      width: cardWidth,
+                      backgroundColor: bg,
+                      borderColor: border,
+                    },
+                  ]}
+                  onPress={() => handleCardPress(card)}
+                  activeOpacity={0.75}
+                >
+                  {/* Faint Background Watermark Illustration */}
+                  <View style={styles.cardWatermarkWrapper}>
+                    <Ionicons
+                      name={card.watermarkIcon}
+                      size={54}
+                      color={card.color}
+                      style={{ opacity: isDarkMode ? 0.07 : 0.09 }}
+                    />
+                  </View>
+
+                  {/* Top Colored Icon Badge */}
+                  <View
+                    style={[
+                      styles.cardIconBadge,
+                      { backgroundColor: card.color },
+                    ]}
+                  >
+                    <Ionicons name={card.icon} size={22} color="#FFFFFF" />
+                  </View>
+
+                  {/* Title & Description */}
+                  <View style={styles.cardContent}>
+                    <Text
+                      style={[
+                        styles.cardTitle,
+                        { color: isDarkMode ? "#F9FAFB" : "#111827" },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {t(card.titleKey, card.defaultTitle)}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.cardDesc,
+                        { color: isDarkMode ? "#9CA3AF" : "#6B7280" },
+                      ]}
+                      numberOfLines={3}
+                    >
+                      {t(card.descKey, card.defaultDesc)}
+                    </Text>
+                  </View>
+
+                  {/* Bottom Circular Forward Button */}
+                  <View
+                    style={[
+                      styles.cardArrowCircle,
+                      { backgroundColor: card.color },
+                    ]}
+                  >
+                    <Ionicons
+                      name="arrow-forward"
+                      size={12}
+                      color="#FFFFFF"
+                    />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Animated.ScrollView>
       </AndroidGlassBackdrop>
     </View>
   );
@@ -183,102 +412,208 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 2,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  headerSpacer: {
-    width: 44,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
   },
-  topSection: {
-    flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 30,
-    minHeight: 200,
-  },
-  greetingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    paddingRight: 10,
-  },
-  greetingText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    lineHeight: 32,
-  },
-  highlightText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#FF6B35",
-  },
-  imageContainer: {
-    width: 150,
-    height: 180,
+  headerGradient: {
+    paddingHorizontal: 16,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     position: "relative",
-    justifyContent: "center",
+    overflow: "hidden",
+  },
+  headerWatermark: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.1,
+  },
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  backButton: {
+    marginRight: 8,
+  },
+  headerTitleText: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.3,
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 46,
+    borderRadius: 23,
+    paddingHorizontal: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchPlaceholder: {
+    fontSize: 14.5,
+    flex: 1,
+  },
+  heroOuterContainer: {
+    paddingHorizontal: 16,
+    marginTop: 14,
+  },
+  heroCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+    overflow: "hidden",
+  },
+  heroTextColumn: {
+    flex: 1,
+    paddingRight: 8,
+    zIndex: 2,
+  },
+  heroGreetingText: {
+    fontSize: 19,
+    fontWeight: "800",
+    lineHeight: 25,
+  },
+  heroQuestionContainer: {
+    marginTop: 2,
+    marginBottom: 6,
+    alignSelf: "flex-start",
+  },
+  heroQuestionText: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#16A34A",
+  },
+  doodleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  doodleLine: {
+    height: 3.5,
+    borderRadius: 2,
+  },
+  heroSubtitleText: {
+    fontSize: 11.5,
+    lineHeight: 15.5,
+    marginTop: 4,
+  },
+  heroImageColumn: {
+    width: 125,
+    height: 165,
+    position: "relative",
+    justifyContent: "flex-end",
     alignItems: "center",
   },
-  girlImage: {
+  heroHalo: {
+    position: "absolute",
+    width: 125,
+    height: 125,
+    borderRadius: 62.5,
+    bottom: 5,
+    right: 0,
+    opacity: 0.85,
+  },
+  heroGirlImage: {
     width: "100%",
     height: "100%",
     zIndex: 1,
   },
-  bottomSection: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 40,
+  sparkleDoodle: {
+    position: "absolute",
+    top: 32,
+    left: 2,
+    fontSize: 15,
+    color: "#22C55E",
+    fontWeight: "800",
+  },
+  plusDoodle: {
+    position: "absolute",
+    bottom: 24,
+    left: 8,
+    fontSize: 18,
+    color: "#22C55E",
+    fontWeight: "900",
+  },
+  crownDoodle: {
+    position: "absolute",
+    top: 6,
+    left: 46,
+    zIndex: 2,
   },
   gridContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    paddingHorizontal: 16,
+    marginTop: 14,
   },
-  card: {
-    width: cardSize,
-    height: cardSize,
-    borderRadius: 12,
-    marginBottom: 16,
-    padding: 12,
+  featureCard: {
+    height: 180,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 10,
+    marginBottom: 10,
+    justifyContent: "space-between",
+    position: "relative",
+    overflow: "hidden",
+  },
+  cardWatermarkWrapper: {
+    position: "absolute",
+    right: -8,
+    bottom: -6,
+    pointerEvents: "none",
+  },
+  cardIconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 2,
   },
-  cardIconContainer: {
+  cardContent: {
+    marginTop: 6,
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
   },
-  cardIcon: {},
-  cardText: {
-    fontSize: 12,
-    fontWeight: "500",
-    textAlign: "center",
+  cardTitle: {
+    fontSize: 12.8,
+    fontWeight: "700",
+    lineHeight: 16,
+    marginBottom: 3,
+  },
+  cardDesc: {
+    fontSize: 9.8,
+    lineHeight: 13.5,
+  },
+  cardArrowCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 4,
   },
 });

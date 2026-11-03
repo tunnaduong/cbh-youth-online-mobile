@@ -1615,14 +1615,22 @@
   },
   "exploreScreen": {
     "examDocuments": "Docs Market",
+    "examDocumentsDesc": "Study docs, exam tests, books & more",
     "scoreLookup": "Score Lookup",
+    "scoreLookupDesc": "Fast and accurate exam score lookup",
     "findUniversities": "Find Uni-College",
+    "findUniversitiesDesc": "Discover Universities and Colleges",
     "printing": "Print Docs",
+    "printingDesc": "Print documents, assignments, projects",
     "trivia": "Trivia Quiz",
+    "triviaDesc": "Challenge knowledge & win exciting rewards",
     "game": "Game",
+    "gameDesc": "Relax and have fun after classes",
     "underDevelopment": "Feature under development",
     "greeting": "Hello, what do you want to ",
-    "question": "do today...?"
+    "question": "do today...?",
+    "searchPlaceholder": "Search on forum...",
+    "heroSubtitle": "Explore features, connect with the community and enjoy great experiences on CBH Online!"
   },
   "games": {
     "title": "Games",

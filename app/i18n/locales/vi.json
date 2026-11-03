@@ -1603,14 +1603,22 @@
   },
   "exploreScreen": {
     "examDocuments": "Chợ tài liệu",
+    "examDocumentsDesc": "Tài liệu học tập, đề thi, sách và nhiều hơn nữa",
     "scoreLookup": "Tra cứu điểm thi",
+    "scoreLookupDesc": "Tra cứu điểm thi nhanh chóng, chính xác",
     "findUniversities": "Tìm trường ĐH-CĐ",
+    "findUniversitiesDesc": "Khám phá các trường Đại học, Cao đẳng",
     "printing": "In ấn tài liệu",
+    "printingDesc": "In tài liệu, bài tập, đồ án... tiện lợi",
     "trivia": "Đố vui",
+    "triviaDesc": "Thử thách kiến thức, nhận quà hấp dẫn",
     "game": "Game",
+    "gameDesc": "Giải trí, thư giãn sau giờ học",
     "underDevelopment": "Tính năng đang được phát triển",
-    "greeting": "Chào bạn, hôm nay bạn muốn ",
-    "question": "làm gì...?"
+    "greeting": "Chào bạn, hôm nay\nbạn muốn ",
+    "question": "làm gì...?",
+    "searchPlaceholder": "Tìm kiếm trên diễn đàn...",
+    "heroSubtitle": "Khám phá các tính năng, kết nối với cộng đồng và tận hưởng trải nghiệm tuyệt vời trên CBH Online!"
   },
   "games": {
     "title": "Game",
