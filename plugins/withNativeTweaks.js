@@ -11,6 +11,7 @@ const {
 } = require("expo/config-plugins");
 
 const POD_TARGET_MARKER = "# [withNativeTweaks] clamp pod deployment targets";
+const POD_ARCH_MARKER = "# [withNativeTweaks] ensure new arch env for podspecs";
 
 // react_native_post_install only raises a pod's deployment target up to the
 // app's minimum (15.1) - it never lowers one. A pod whose podspec asks for
@@ -27,26 +28,38 @@ const POD_TARGET_BLOCK = `
     end
 `;
 
-const withPodDeploymentTarget = (config) =>
+const withPodfileTweaks = (config) =>
   withDangerousMod(config, [
     "ios",
     (cfg) => {
       const podfile = path.join(cfg.modRequest.platformProjectRoot, "Podfile");
       if (!fs.existsSync(podfile)) return cfg;
 
-      const contents = fs.readFileSync(podfile, "utf8");
-      if (contents.includes(POD_TARGET_MARKER)) return cfg;
+      let contents = fs.readFileSync(podfile, "utf8");
 
-      // Right after the react_native_post_install(...) call, inside post_install.
-      const next = contents.replace(
-        /(react_native_post_install\([\s\S]*?\n\s*\)\n)/,
-        `$1${POD_TARGET_BLOCK}`
-      );
-      if (next === contents) {
-        console.warn("[withNativeTweaks] react_native_post_install not found in Podfile; deployment targets not clamped");
-        return cfg;
+      // Set RCT_NEW_ARCH_ENABLED at the top so any podspecs requiring it
+      // during use_native_modules! will find it set.
+      if (!contents.includes(POD_ARCH_MARKER)) {
+        contents = contents.replace(
+          /(platform :ios[^\n]*\n)/,
+          `$1${POD_ARCH_MARKER}\nENV['RCT_NEW_ARCH_ENABLED'] ||= '1'\n`
+        );
       }
-      fs.writeFileSync(podfile, next);
+
+      if (!contents.includes(POD_TARGET_MARKER)) {
+        // Right after the react_native_post_install(...) call, inside post_install.
+        const next = contents.replace(
+          /(react_native_post_install\([\s\S]*?\n\s*\)\n)/,
+          `$1${POD_TARGET_BLOCK}`
+        );
+        if (next === contents) {
+          console.warn("[withNativeTweaks] react_native_post_install not found in Podfile; deployment targets not clamped");
+        } else {
+          contents = next;
+        }
+      }
+
+      fs.writeFileSync(podfile, contents);
       return cfg;
     },
   ]);
@@ -121,36 +134,7 @@ const withImageModuleClasses = (config) =>
     return cfg;
   });
 
-// react-native-paste-input (keyboard stickers / GIFs / pasted images) needs
-// PasteInputModule.setup(...) after React Native starts, so it can find the
-// native text inputs by tag. The call goes through the Objective-C runtime
-// instead of `import react_native_paste_input`: the pod is not built as a
-// Clang module (no modular headers for it), so Swift cannot import it.
-const PASTE_INPUT_SETUP = `    if let pasteInputModule = NSClassFromString("PasteInputModule") as? NSObject.Type {
-      _ = pasteInputModule.perform(NSSelectorFromString("setup:"), with: factory.rootViewFactory)
-    }
-`;
-
-const withPasteInputSetup = (config) =>
-  withAppDelegate(config, (cfg) => {
-    const delegate = cfg.modResults;
-    if (delegate.language !== "swift" || delegate.contents.includes("PasteInputModule")) return cfg;
-
-    const next = delegate.contents.replace(
-      /(factory\.startReactNative\([^)]*\)\n)/,
-      `$1${PASTE_INPUT_SETUP}`
-    );
-    if (next === delegate.contents) {
-      console.warn("[withNativeTweaks] startReactNative not found in AppDelegate.swift; paste input setup not added");
-      return cfg;
-    }
-    delegate.contents = next;
-    return cfg;
-  });
-
 module.exports = (config) =>
-  withPasteInputSetup(
-    withImageModuleClasses(
-      withStableDebugKeystore(withResizeableActivity(withPodDeploymentTarget(config)))
-    )
+  withImageModuleClasses(
+    withStableDebugKeystore(withResizeableActivity(withPodfileTweaks(config)))
   );
