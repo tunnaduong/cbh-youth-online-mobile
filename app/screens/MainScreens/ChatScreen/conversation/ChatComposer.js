@@ -189,7 +189,7 @@ const ChatComposer = React.forwardRef(
                 allowBroadcastMention={isGroup}
                 enableAiCommands
                 leftAccessory={
-                  <View style={{ flexDirection: "row" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
                     <TouchableOpacity
                       style={styles.accessoryButton}
                       onPress={actions.pickImage}
@@ -197,7 +197,11 @@ const ChatComposer = React.forwardRef(
                       accessibilityRole="button"
                       accessibilityLabel={t("chatConversation.attachMedia")}
                     >
-                      <Ionicons name="image" size={22} color={theme.primary} />
+                      <Ionicons
+                        name="images-outline"
+                        size={23}
+                        color={isDarkMode ? "#22C55E" : "#16A34A"}
+                      />
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.accessoryButton}
@@ -206,7 +210,11 @@ const ChatComposer = React.forwardRef(
                       accessibilityRole="button"
                       accessibilityLabel={t("chatConversation.attachment")}
                     >
-                      <Ionicons name="attach" size={24} color={theme.primary} />
+                      <Ionicons
+                        name="attach-outline"
+                        size={25}
+                        color={isDarkMode ? "#22C55E" : "#16A34A"}
+                      />
                     </TouchableOpacity>
                   </View>
                 }

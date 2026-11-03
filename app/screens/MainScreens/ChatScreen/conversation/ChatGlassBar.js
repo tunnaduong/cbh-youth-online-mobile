@@ -14,7 +14,7 @@ import {
 // The content must be a real child of the glass view (a sibling over an
 // absolute glass layer gets swept into the captured backdrop and shows up
 // doubled). Without the native module it falls back to the flat opaque panel.
-const ChatGlassBar = ({ edge, style, children }) => {
+const ChatGlassBar = ({ edge, style, tintColor, children }) => {
   const { theme, isDarkMode } = useTheme();
   const hairline = (
     <View
@@ -32,11 +32,16 @@ const ChatGlassBar = ({ edge, style, children }) => {
     style,
   ];
 
+  const defaultTint = isDarkMode
+    ? "rgba(15, 20, 18, 0.94)"
+    : "rgba(255, 255, 255, 0.94)";
+  const effectiveTint = tintColor ?? defaultTint;
+
   if (LiquidGlassView) {
     return (
       <LiquidGlassView
         variant="clear"
-        tintColor={glassTint(isDarkMode)}
+        tintColor={effectiveTint}
         borderRadius={0}
         {...androidGlassPerfProps}
         style={containerStyle}
@@ -48,7 +53,7 @@ const ChatGlassBar = ({ edge, style, children }) => {
   }
 
   return (
-    <View style={[containerStyle, { backgroundColor: flatSurface(isDarkMode) }]}>
+    <View style={[containerStyle, { backgroundColor: effectiveTint }]}>
       {children}
       {hairline}
     </View>

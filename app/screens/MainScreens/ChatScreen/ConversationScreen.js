@@ -89,6 +89,7 @@ import { VideoViewerModal } from "./conversation/VideoViewerModal";
 import { styles } from "./conversation/styles";
 import { MessagesListContent } from "./conversation/MessagesListContent";
 import ConversationHeader, { CHAT_HEADER_BAR_HEIGHT } from "./conversation/ConversationHeader";
+import ChatMascotBackground from "./conversation/ChatMascotBackground";
 import ChatComposer, { CHAT_COMPOSER_DEFAULT_HEIGHT } from "./conversation/ChatComposer";
 import SeenByModal from "./conversation/SeenByModal";
 import TypingIndicator from "./conversation/TypingIndicator";
@@ -3054,19 +3055,6 @@ const ConversationScreen = ({ navigation, route }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <ConversationHeader
-        insetsTop={insets.top}
-        avatarSource={headerAvatarSource}
-        avatarUrl={headerAvatarUrl}
-        profileTheme={otherUser?.profile_theme}
-        showOnlineDot={currentConversation?.type !== "group" && isOtherUserOnline}
-        title={headerTitle}
-        username={headerUsername}
-        subtitle={headerSubtitle}
-        onBack={uiActions.goBack}
-        onPressTitle={uiActions.openTitle}
-        onOptions={uiActions.showOptions}
-      />
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
@@ -3222,6 +3210,12 @@ const ConversationScreen = ({ navigation, route }) => {
           inside CommentBar) be siblings of their AndroidGlassBackdrop, not
           descendants. */}
       <View style={{ flex: 1 }}>
+        {!chatBackgroundUrl ? (
+          <ChatMascotBackground
+            composerHeight={composerHeight}
+            insetsTop={insets.top}
+          />
+        ) : null}
         {chatBackgroundUrl ? (
           <Image source={{ uri: chatBackgroundUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" />
         ) : null}
@@ -3245,7 +3239,13 @@ const ConversationScreen = ({ navigation, route }) => {
           style={styles.messagesList}
           contentContainerStyle={[
             styles.messagesContent,
-            { paddingTop: HEADER_HEIGHT + 12, paddingBottom: composerHeight + 12 },
+            {
+              paddingTop:
+                (chatBackgroundUrl ? 56 : CHAT_HEADER_BAR_HEIGHT) +
+                insets.top +
+                (chatBackgroundUrl ? 12 : 24),
+              paddingBottom: composerHeight + 12,
+            },
           ]}
           keyboardDismissMode="interactive"
           onScroll={handleMessagesScroll}
@@ -3326,6 +3326,21 @@ const ConversationScreen = ({ navigation, route }) => {
         </KeyboardGestureArea>
         </AndroidGlassBackdrop>
       </View>
+
+      <ConversationHeader
+        insetsTop={insets.top}
+        avatarSource={headerAvatarSource}
+        avatarUrl={headerAvatarUrl}
+        profileTheme={otherUser?.profile_theme}
+        showOnlineDot={currentConversation?.type !== "group" && isOtherUserOnline}
+        title={headerTitle}
+        username={headerUsername}
+        subtitle={headerSubtitle}
+        onBack={uiActions.goBack}
+        onPressTitle={uiActions.openTitle}
+        onOptions={uiActions.showOptions}
+        hasCustomBackground={Boolean(chatBackgroundUrl)}
+      />
 
       <ChatComposer
         ref={composerRef}

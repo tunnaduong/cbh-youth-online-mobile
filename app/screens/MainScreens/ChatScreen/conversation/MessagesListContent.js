@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, useWindowDimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { getSystemMessageText } from "../../../../utils/systemMessageText";
 import { styles } from "./styles";
 import { MessageRow } from "./MessageRow";
@@ -62,31 +63,51 @@ const MessageListItem = React.memo(({
     >
       {value.type === "date" ? (
         <View style={styles.dateHeaderContainer}>
-          <Text
+          <View
             style={[
-              styles.dateHeaderText,
+              styles.dateHeaderPill,
               {
-                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                color: theme.subText,
+                backgroundColor: isDarkMode ? "rgba(30, 37, 43, 0.85)" : "rgba(230, 238, 234, 0.9)",
+                borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
               },
             ]}
           >
-            {value.date}
-          </Text>
+            <Ionicons
+              name="calendar-outline"
+              size={13}
+              color={isDarkMode ? "#9CA3AF" : "#4B5563"}
+              style={{ marginRight: 6 }}
+            />
+            <Text
+              style={[
+                styles.dateHeaderText,
+                { color: isDarkMode ? "#D1D5DB" : "#374151" },
+              ]}
+            >
+              {value.date}
+            </Text>
+          </View>
         </View>
       ) : value.type === "time" ? (
         <View style={styles.timeHeaderContainer}>
-          <Text
+          <View
             style={[
-              styles.timeHeaderText,
+              styles.timeHeaderPill,
               {
-                backgroundColor: isDarkMode ? "#374151" : "#f0f0f0",
-                color: theme.subText,
+                backgroundColor: isDarkMode ? "rgba(30, 37, 43, 0.75)" : "rgba(230, 238, 234, 0.85)",
+                borderColor: isDarkMode ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
               },
             ]}
           >
-            {value.time}
-          </Text>
+            <Text
+              style={[
+                styles.timeHeaderText,
+                { color: isDarkMode ? "#9CA3AF" : "#4B5563" },
+              ]}
+            >
+              {value.time}
+            </Text>
+          </View>
         </View>
       ) : value.content_type === "system" ? (
         <View style={styles.systemMessageContainer}>

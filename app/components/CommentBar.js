@@ -264,25 +264,48 @@ const CommentBar = React.forwardRef(
                 flexDirection: "row",
                 alignItems: "center",
                 minHeight: rowHeight,
-                borderRadius: 20,
-                paddingHorizontal: 12,
+                borderRadius: 22,
+                paddingHorizontal: 14,
                 paddingVertical: 4,
-                backgroundColor: theme.iconBackground,
+                backgroundColor: isDarkMode ? "#1A2228" : "#F1F5F9",
+                borderWidth: StyleSheet.hairlineWidth,
+                borderColor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
               }}
             >
               {textInput}
+              <View style={{ marginLeft: 4 }}>
+                <Ionicons
+                  name="happy-outline"
+                  size={20}
+                  color={isDarkMode ? "#9CA3AF" : "#64748B"}
+                />
+              </View>
             </View>
             <TouchableOpacity
-              style={{ width: 40, height: rowHeight, alignItems: "center", justifyContent: "center", marginLeft: 4 }}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                alignItems: "center",
+                justifyContent: "center",
+                marginLeft: 6,
+                backgroundColor: isDarkMode ? "#22C55E" : "#16A34A",
+                opacity: disabled ? 0.7 : 1.0,
+              }}
               onPress={handleSendPress}
               disabled={disabled}
               accessibilityRole="button"
               accessibilityLabel={t("chatConversation.send")}
             >
               {isSubmitting ? (
-                <ActivityIndicator size="small" color={theme.primary} />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Ionicons name="send" size={22} color={disabled ? theme.subText : theme.primary} />
+                <Ionicons
+                  name="paper-plane"
+                  size={18}
+                  color="#FFFFFF"
+                  style={{ marginLeft: 2 }}
+                />
               )}
             </TouchableOpacity>
           </View>

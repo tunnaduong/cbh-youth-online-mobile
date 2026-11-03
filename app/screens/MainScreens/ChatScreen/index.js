@@ -473,19 +473,29 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
                 </Text>
               </View>
             ) : isMyself ? (
-              <View style={styles.doubleCheckRow}>
+              (item.latest_message?.is_read || item.latest_message?.read_at) ? (
+                // Tin nhắn đã được đọc → 2 tick xanh
+                <View style={styles.doubleCheckRow}>
+                  <Ionicons
+                    name="checkmark"
+                    size={14}
+                    color="#22C55E"
+                    style={styles.checkOverlap}
+                  />
+                  <Ionicons
+                    name="checkmark"
+                    size={14}
+                    color="#22C55E"
+                  />
+                </View>
+              ) : (
+                // Chưa được đọc → 1 tick xám
                 <Ionicons
                   name="checkmark"
                   size={14}
-                  color="#22C55E"
-                  style={styles.checkOverlap}
+                  color={theme.subText}
                 />
-                <Ionicons
-                  name="checkmark"
-                  size={14}
-                  color="#22C55E"
-                />
-              </View>
+              )
             ) : (isPublicGroupChat(item) || item.is_muted) ? (
               <Ionicons
                 name="notifications-off-outline"
