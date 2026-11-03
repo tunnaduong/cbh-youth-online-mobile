@@ -361,10 +361,13 @@ Every new or changed screen must follow this section. If a screen you touch does
   - **Welcome Hero Card**: Redesigned greeting banner featuring "Chào bạn, hôm nay bạn muốn làm gì...?" with decorative underline doodles, student illustration (`student_girl.png`), halo glow, and floating sparkle accents.
   - **3-Column Feature Cards Grid**: Redesigned 6 feature cards (Chợ tài liệu, Tra cứu điểm thi, Tìm trường ĐH-CĐ, In ấn tài liệu, Đố vui, Game) with pastel color themes, subtle background watermark illustrations, solid squircle icon badges, and circular forward buttons.
 
-- **Post copy gesture & highlight like Facebook** (`app/components/PostItem.js`, `app/utils/postCopy.js`, `app/contexts/BottomSheetContext.js`, `app/i18n/locales/*.json`):
-  - **Long-press text selection highlight**: Long-pressing either the post title or caption triggers a shaded selection highlight (`rgba(0, 0, 0, 0.08)` / `rgba(255, 255, 255, 0.14)`) covering both the title and caption together, matching Facebook's long-press UX.
-  - **Facebook-style bottom sheet**: Opens an action bottom sheet with "Sao chép văn bản" (copies full title + content plain text to clipboard with `expo-clipboard` and `expo-haptics`) and "Sao chép liên kết bài viết". Highlight dismisses cleanly when copying or closing.
-  - **BottomSheetContext options**: Added `snapPoints` and `onDismiss` options support to `showBottomSheet`, allowing custom snap heights (e.g. 36%) and dismiss cleanup callbacks.
+- **iOS-style Callout Bubble for Post Copy (Title & Caption)** (`app/components/PostItem.js`, `app/utils/postCopy.js`, `app/i18n/locales/*.json`, `INFO.md`):
+  - **Independent Long-press Selection Targets**: Long-pressing either the post title or caption activates an independent text selection highlight for that specific element (`backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.18)" : "rgba(50, 110, 240, 0.16)"`, `borderRadius: 6`).
+  - **Native iOS Callout Menu**: A floating callout capsule (`#1F2024`, rounded pill with downward pointing caret and subtle drop shadow) appears directly above the highlighted target, mimicking the system `UIMenuController` copy bubble.
+  - **Target-Specific Actions**:
+    - **Title long-press**: Displays `[ 📋 Sao chép ]`. Tapping copies the post title to clipboard with success haptics and toast.
+    - **Caption long-press**: Displays `[ 📋 Sao chép ]` (copies cleaned plain-text caption) and, if a title exists, `[ Tất cả ]` (copies both title and caption formatted together).
+  - **Seamless Outside Dismiss**: Tapping anywhere outside the callout button immediately dismisses the bubble and clears the selection highlight. Long-pressing the other target seamlessly switches selection.
 
 - **iOS Build / CocoaPods: Fix New Architecture environment and remove unused `@mattermost/react-native-paste-input`** (`package.json`, `package-lock.json`, `plugins/withNativeTweaks.js`, `INFO.md`):
   - **Removed unused `@mattermost/react-native-paste-input`**: The package was previously disabled in `app/utils/pastedImages.js` (`PasteInputComponent = null`) due to fatal SIGSEGV crashes caused by Fabric shadow node casting conflicts with `react-native-live-markdown`. Removing this unused package eliminated redundant native code and resolved invalid podspec errors during local `npx expo run:ios`.
