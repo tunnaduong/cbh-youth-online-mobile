@@ -297,6 +297,9 @@ const parseDeepLink = (url) => {
       if (host === "explore" || pathSegment === "explore") {
         return { screen: "ExploreScreen", params: {} };
       }
+      if (host === "notifications" || pathSegment === "notifications") {
+        return { screen: "MainScreens", params: { screen: "Notifications" } };
+      }
       if (pathSegment && !pathSegment.includes("/")) {
         const storyId = pathSegment;
         return routeToStory(storyId);

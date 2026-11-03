@@ -356,6 +356,12 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Notification Screen Redesign & Auto-Read on Bell Tap** (`app/screens/MainScreens/NotificationScreen/index.js`, `app/screens/MainScreens/index.js`, `App.js`, `app/i18n/locales/*.json`):
+  - **Auto-Read on Tab Tap**: The instant the user taps the notification bell in the bottom bar or enters the Notification screen, all notifications are immediately marked as read (`markAllNotificationsAsRead()`), and the unread count badge is cleared to 0 without requiring the user to press any "mark all as read" button in the top corner.
+  - **Redesigned Mascot & Ambient Header**: Integrated a soft ambient light-green glow behind the status bar, featuring the CYO frog mascot with radiating action doodle marks, "Thông báo" bold title, subtitle ("Theo dõi các hoạt động mới nhất từ CYO"), green star sparkle doodle, and a circular equalizer filter/settings button (`options-outline`) routing to `NotificationSettingsScreen`.
+  - **4-Category Filter Pills**: Added a horizontal scroll row with active green pill `[ 🔔 Tất cả ]`, and inactive pills `[ 💬 Bài viết ]`, `[ ❤️ Tương tác ]`, and `[ 👥 Hệ thống ]` allowing instant filtering by notification category.
+  - **Card-Based Notification Items**: Redesigned each notification into an elegant rounded card with subtle border and elevation, left green vertical accent border on unread items, custom icon/badge indicator on avatar based on notification type (warning, like, comment, story react, points gifted, system reply), author verified badges, admin note display, clock icon with relative timestamp, post thumbnail, and chevron.
+
 - **Explore Screen Redesign & Sticky Search Header (Khám phá)** (`app/screens/MainScreens/ExploreScreen/index.js`, `App.js`, `app/i18n/locales/*.json`):
   - **Sticky Search Header on Scroll**: Pinned the green header (`LinearGradient` with school watermark) at the top using native driver scroll interpolation. When the user scrolls down, the large "Khám phá" title smoothly slides up and fades out, while the pill search bar ("Tìm kiếm trên diễn đàn...") remains pinned and sticky directly below the safe area with drop shadow and rounded bottom corners.
   - **Welcome Hero Card**: Redesigned greeting banner featuring "Chào bạn, hôm nay bạn muốn làm gì...?" with decorative underline doodles, student illustration (`student_girl.png`), halo glow, and floating sparkle accents.

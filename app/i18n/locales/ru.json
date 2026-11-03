@@ -907,6 +907,11 @@
     "unblockError": "Не удалось разблокировать пользователя"
   },
   "notifications": {
+    "subtitle": "Следите за последними событиями в CYO",
+    "filterAll": "Все",
+    "filterPosts": "Публикации",
+    "filterInteractions": "Взаимодействия",
+    "filterSystem": "Система",
     "newNotification": "Новое уведомление",
     "giftedPoints": "подарил вам {{amount}} баллов",
     "pinnedPost": "закрепил ваш пост",

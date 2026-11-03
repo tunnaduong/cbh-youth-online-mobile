@@ -886,6 +886,11 @@
     "unblockError": "Không thể bỏ chặn"
   },
   "notifications": {
+    "subtitle": "Theo dõi các hoạt động mới nhất từ CYO",
+    "filterAll": "Tất cả",
+    "filterPosts": "Bài viết",
+    "filterInteractions": "Tương tác",
+    "filterSystem": "Hệ thống",
     "newNotification": "Thông báo mới",
     "giftedPoints": "đã tặng bạn {{amount}} điểm",
     "pinnedPost": "đã ghim bài đăng",

@@ -897,6 +897,11 @@
     "unblockError": "Cannot unblock user"
   },
   "notifications": {
+    "subtitle": "Follow the latest activities from CYO",
+    "filterAll": "All",
+    "filterPosts": "Posts",
+    "filterInteractions": "Interactions",
+    "filterSystem": "System",
     "newNotification": "New notification",
     "giftedPoints": "gifted you {{amount}} points",
     "pinnedPost": "pinned your post",

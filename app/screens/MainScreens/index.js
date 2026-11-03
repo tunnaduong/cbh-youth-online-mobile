@@ -19,6 +19,7 @@ import { useUnreadCountsContext } from "../../contexts/UnreadCountsContext";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
 import { LiquidGlassView, AndroidGlassBackdrop, glassTint, androidGlassPerfProps } from "../../components/GlassModules";
+import { markAllNotificationsAsRead } from "../../services/api/Api";
 
 const ScreenWrapper = ({ children }) => {
   const { theme } = useTheme();
@@ -279,7 +280,7 @@ export default function MainScreens({ navigation: stackNavigation }) {
     stackNavigation.navigate("ForumScreen");
   }, [stackNavigation]);
 
-  const { chatUnreadCount, notificationUnreadCount } = useUnreadCountsContext();
+  const { chatUnreadCount, notificationUnreadCount, setNotificationUnreadCount } = useUnreadCountsContext();
   const { username, getAvatarUrl } = useContext(AuthContext);
   const avatarUrl = username && getAvatarUrl ? getAvatarUrl(username) : null;
   const homeScreenScrollTriggerRef = useRef(null);
@@ -339,6 +340,10 @@ export default function MainScreens({ navigation: stackNavigation }) {
   }, [stackNavigation]);
 
   const handleAndroidTabPress = (routeName) => {
+    if (routeName === "Notifications") {
+      setNotificationUnreadCount(0);
+      markAllNotificationsAsRead().catch(() => {});
+    }
     if (currentRoute === routeName) {
       TAB_RELOAD_TRIGGERS[routeName]?.();
     } else {
@@ -531,6 +536,8 @@ export default function MainScreens({ navigation: stackNavigation }) {
             }}
             listeners={{
               tabPress: () => {
+                setNotificationUnreadCount(0);
+                markAllNotificationsAsRead().catch(() => {});
                 if (currentRoute === "Notifications") {
                   triggerNotificationScrollOrReload();
                 }
