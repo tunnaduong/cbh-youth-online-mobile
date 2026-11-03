@@ -21,12 +21,19 @@ export const BottomSheetProvider = ({ children }) => {
   const [isOpen, setIsOpen] = useState(false);
   const { theme } = useTheme();
 
-  const snapPoints = ["90%"];
+  const [snapPoints, setSnapPoints] = useState(["90%"]);
+  const onDismissRef = useRef(null);
 
   // Both only touch a ref and state setters, so they can be stable - and the
   // value with them: opening or closing the sheet re-renders this provider,
   // which used to re-render every screen that calls useBottomSheet().
-  const showBottomSheet = useCallback((sheetContent) => {
+  const showBottomSheet = useCallback((sheetContent, options = {}) => {
+    onDismissRef.current = options?.onDismiss || null;
+    if (options?.snapPoints && Array.isArray(options.snapPoints)) {
+      setSnapPoints(options.snapPoints);
+    } else {
+      setSnapPoints(["90%"]);
+    }
     setContent(sheetContent);
     setIsOpen(true);
     bottomSheetRef.current?.snapToIndex(0);
@@ -34,6 +41,27 @@ export const BottomSheetProvider = ({ children }) => {
 
   const hideBottomSheet = useCallback(() => {
     bottomSheetRef.current?.close();
+    if (onDismissRef.current) {
+      onDismissRef.current();
+      onDismissRef.current = null;
+    }
+  }, []);
+
+  const handleSheetChange = useCallback((index) => {
+    const open = index >= 0;
+    setIsOpen(open);
+    if (!open && onDismissRef.current) {
+      onDismissRef.current();
+      onDismissRef.current = null;
+    }
+  }, []);
+
+  const handleSheetClose = useCallback(() => {
+    setIsOpen(false);
+    if (onDismissRef.current) {
+      onDismissRef.current();
+      onDismissRef.current = null;
+    }
   }, []);
 
   const value = useMemo(() => ({ showBottomSheet, hideBottomSheet }), [showBottomSheet, hideBottomSheet]);
@@ -48,8 +76,8 @@ export const BottomSheetProvider = ({ children }) => {
         snapPoints={snapPoints}
         index={-1}
         enablePanDownToClose
-        onChange={(index) => setIsOpen(index >= 0)}
-        onClose={() => setIsOpen(false)}
+        onChange={handleSheetChange}
+        onClose={handleSheetClose}
         backgroundStyle={{ backgroundColor: theme.cardBackground }}
         handleIndicatorStyle={{ backgroundColor: theme.border }}
         backdropComponent={

@@ -356,6 +356,11 @@ Every new or changed screen must follow this section. If a screen you touch does
 
 ## 6. Recent work (newest first, as of 2026-10)
 
+- **Post copy gesture & highlight like Facebook** (`app/components/PostItem.js`, `app/utils/postCopy.js`, `app/contexts/BottomSheetContext.js`, `app/i18n/locales/*.json`):
+  - **Long-press text selection highlight**: Long-pressing either the post title or caption triggers a shaded selection highlight (`rgba(0, 0, 0, 0.08)` / `rgba(255, 255, 255, 0.14)`) covering both the title and caption together, matching Facebook's long-press UX.
+  - **Facebook-style bottom sheet**: Opens an action bottom sheet with "Sao chép văn bản" (copies full title + content plain text to clipboard with `expo-clipboard` and `expo-haptics`) and "Sao chép liên kết bài viết". Highlight dismisses cleanly when copying or closing.
+  - **BottomSheetContext options**: Added `snapPoints` and `onDismiss` options support to `showBottomSheet`, allowing custom snap heights (e.g. 36%) and dismiss cleanup callbacks.
+
 - **iOS Build / CocoaPods: Fix New Architecture environment and remove unused `@mattermost/react-native-paste-input`** (`package.json`, `package-lock.json`, `plugins/withNativeTweaks.js`, `INFO.md`):
   - **Removed unused `@mattermost/react-native-paste-input`**: The package was previously disabled in `app/utils/pastedImages.js` (`PasteInputComponent = null`) due to fatal SIGSEGV crashes caused by Fabric shadow node casting conflicts with `react-native-live-markdown`. Removing this unused package eliminated redundant native code and resolved invalid podspec errors during local `npx expo run:ios`.
   - **Injected `RCT_NEW_ARCH_ENABLED` in `Podfile` via `withPodfileTweaks`**: `plugins/withNativeTweaks.js` now automatically injects `ENV['RCT_NEW_ARCH_ENABLED'] ||= '1'` into `Podfile` during `expo prebuild`. This ensures any podspec checking this environment variable during `use_native_modules!` passes seamlessly without requiring manual terminal environment exports.

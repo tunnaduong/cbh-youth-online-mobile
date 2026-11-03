@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useRef, useState } from "react";
+import React, { useContext, useMemo, useRef, useState, useCallback } from "react";
 import {
   View,
   Pressable,
@@ -7,7 +7,11 @@ import {
   Alert,
   ScrollView,
   Platform,
+  StyleSheet,
 } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import * as Haptics from "expo-haptics";
+import { getPostCopyableText, cleanHtmlToPlainText } from "../utils/postCopy";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import FastImage from "./FastImage";
 import MediaShimmer from "./MediaShimmer";
@@ -341,6 +345,7 @@ const PostItem = ({
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [giftModalVisible, setGiftModalVisible] = useState(false);
   const { showBottomSheet, hideBottomSheet } = useBottomSheet();
+  const [isTextHighlighted, setIsTextHighlighted] = useState(false);
   const { theme, isDarkMode } = useTheme();
   const { t } = useTranslation();
   const authorTheme = item?.anonymous ? null : item?.author?.profile_theme;
@@ -704,6 +709,159 @@ const PostItem = ({
   // Always the latest menu (it closes over this render's state).
   if (optionsOpenerRef) optionsOpenerRef.current = handleMoreOptions;
 
+  const handleCopyText = useCallback(async () => {
+    try {
+      const text = getPostCopyableText(item);
+      if (text) {
+        await Clipboard.setStringAsync(text);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Toast.show({
+          type: "success",
+          text1: t("post.copyTextSuccess", "Đã sao chép văn bản vào bộ nhớ tạm"),
+          position: "bottom",
+          visibilityTime: 2500,
+        });
+      }
+    } catch (err) {
+      console.error("Copy post text failed:", err);
+    } finally {
+      setIsTextHighlighted(false);
+      hideBottomSheet();
+    }
+  }, [item, t, hideBottomSheet]);
+
+  const handleCopyPostLink = useCallback(async () => {
+    try {
+      const author = item?.anonymous ? "anonymous" : item?.author?.username;
+      const url = `https://chuyenbienhoa.com/${author}/posts/${generatePostSlug(
+        item?.id,
+        item?.title
+      )}?source=share`;
+      await Clipboard.setStringAsync(url);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Toast.show({
+        type: "success",
+        text1: t("post.copyLinkSuccess", "Đã sao chép liên kết vào bộ nhớ tạm"),
+        position: "bottom",
+        visibilityTime: 2500,
+      });
+    } catch (err) {
+      console.error("Copy post link failed:", err);
+    } finally {
+      setIsTextHighlighted(false);
+      hideBottomSheet();
+    }
+  }, [item, t, hideBottomSheet]);
+
+  const handleTextLongPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsTextHighlighted(true);
+
+    const previewText = item?.title || cleanHtmlToPlainText(item?.content);
+
+    showBottomSheet(
+      <View style={{ backgroundColor: theme.cardBackground }}>
+        {/* Header with preview */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 12,
+            paddingBottom: 12,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: theme.border,
+          }}
+        >
+          <View
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: isDarkMode ? "#333333" : "#E4E6EB",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 12,
+            }}
+          >
+            <Ionicons name="copy-outline" size={20} color={theme.text} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>
+              {t("post.copyOptionsTitle", "Tùy chọn sao chép")}
+            </Text>
+            {previewText ? (
+              <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }} numberOfLines={1}>
+                {previewText}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        {/* Option 1: Sao chép văn bản */}
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12 }}
+          onPress={handleCopyText}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: isDarkMode ? "#2C2C2C" : "#F0F2F5",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 14,
+            }}
+          >
+            <Ionicons name="document-text-outline" size={22} color={theme.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>
+              {t("post.copyText", "Sao chép văn bản")}
+            </Text>
+            <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+              {item?.title && item?.content
+                ? t("post.copyAllSubtitle", "Sao chép cả tiêu đề và nội dung bài viết")
+                : t("post.copyTextSubtitle", "Sao chép nội dung bài viết vào bộ nhớ tạm")}
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Option 2: Sao chép liên kết */}
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12 }}
+          onPress={handleCopyPostLink}
+        >
+          <View
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: isDarkMode ? "#2C2C2C" : "#F0F2F5",
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 14,
+            }}
+          >
+            <Ionicons name="link-outline" size={22} color={theme.text} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: "600", color: theme.text }}>
+              {t("post.copyLink", "Sao chép liên kết bài viết")}
+            </Text>
+            <Text style={{ fontSize: 13, color: theme.subText, marginTop: 2 }}>
+              {t("post.copyLinkSubtitle", "Lưu liên kết để chia sẻ ở nơi khác")}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      </View>,
+      {
+        snapPoints: ["36%"],
+        onDismiss: () => setIsTextHighlighted(false),
+      }
+    );
+  }, [item, theme, isDarkMode, t, showBottomSheet, handleCopyText, handleCopyPostLink]);
+
   const handleVote = async (voteValue) => {
     const existingVote = currentVotes.find(
       (vote) => vote?.username === username
@@ -1011,69 +1169,112 @@ const PostItem = ({
           </Text>
         </View>
       )}
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        {single ? (
-          // Single view: no navigation, just show title
-          <Text style={{
-            fontWeight: "bold",
-            fontSize: 28,
-            paddingHorizontal: 15,
-            marginTop: 0,
-            marginBottom: 10,
-            flex: 1,
-            color: theme.text
-          }}>
-            {item.title}
-          </Text>
-        ) : (
-          // Feed view: clickable title that navigates to detail
-          <>
+      <View style={{ position: "relative" }}>
+        <View
+          style={[
+            {
+              marginHorizontal: 8,
+              paddingHorizontal: 7,
+              paddingTop: single ? 0 : 4,
+              paddingBottom: 4,
+              borderRadius: 10,
+            },
+            isTextHighlighted && {
+              backgroundColor: isDarkMode
+                ? "rgba(255, 255, 255, 0.14)"
+                : "rgba(0, 0, 0, 0.08)",
+            },
+          ]}
+        >
+          {item.title ? (
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              {single ? (
+                // Single view: long press to copy
+                <Pressable
+                  onLongPress={handleTextLongPress}
+                  delayLongPress={350}
+                  style={{ flex: 1 }}
+                >
+                  <Text
+                    style={{
+                      fontWeight: "bold",
+                      fontSize: 28,
+                      marginTop: 0,
+                      marginBottom: 10,
+                      color: theme.text,
+                    }}
+                  >
+                    {item.title}
+                  </Text>
+                </Pressable>
+              ) : (
+                // Feed view: clickable title that navigates to detail, long press to copy
+                <Pressable
+                  onPress={() =>
+                    navigation?.navigate("PostScreen", {
+                      postId: item.id,
+                      item,
+                      screenName,
+                    })
+                  }
+                  onLongPress={handleTextLongPress}
+                  delayLongPress={350}
+                  style={{ flex: 1, paddingRight: 36 }}
+                >
+                  <Text
+                    style={{
+                      fontWeight: "bold",
+                      fontSize: 21,
+                      marginTop: 10,
+                      marginBottom: 6,
+                      color: theme.text,
+                    }}
+                  >
+                    {item.title}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          ) : null}
+
+          {item.content ? (
             <Pressable
-              onPress={() =>
-                navigation?.navigate("PostScreen", {
-                  postId: item.id,
-                  item,
-                  screenName,
-                })
-              }
-              style={{ flex: 1 }}
+              onPress={handleExpandPost}
+              onLongPress={handleTextLongPress}
+              delayLongPress={350}
             >
-              <Text style={{
-                fontWeight: "bold",
-                fontSize: 21,
-                paddingHorizontal: 15,
-                marginTop: 15,
-                flex: 1,
-                color: theme.text
-              }}>
-                {item.title}
-              </Text>
+              <RenderHTML
+                contentWidth={contentWidth - 30}
+                customHTMLElementModels={customHTMLElementModels}
+                renderers={postRenderers}
+                renderersProps={{
+                  a: { onPress: (event, href) => handleContentLinkPress(event, href) },
+                }}
+                source={postHtmlSource}
+                baseStyle={postBaseStyle}
+                classesStyles={POST_HTML_CLASSES_STYLES}
+                tagsStyles={postTagsStyles}
+              />
             </Pressable>
-            <TouchableOpacity
-              style={{ marginRight: 12, marginTop: 12 }}
-              onPress={handleMoreOptions}
-            >
-              <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
-            </TouchableOpacity>
-          </>
+          ) : null}
+        </View>
+
+        {!single && (
+          <TouchableOpacity
+            style={{
+              position: "absolute",
+              right: 12,
+              top: 10,
+              padding: 6,
+              zIndex: 10,
+            }}
+            onPress={handleMoreOptions}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={theme.subText} />
+          </TouchableOpacity>
         )}
       </View>
-      <Pressable onPress={handleExpandPost}>
-        <View style={{ paddingHorizontal: 15 }}>
-          <RenderHTML
-            contentWidth={contentWidth - 30}
-            customHTMLElementModels={customHTMLElementModels}
-            renderers={postRenderers}
-            renderersProps={{
-              a: { onPress: (event, href) => handleContentLinkPress(event, href) },
-            }}
-            source={postHtmlSource}
-            baseStyle={postBaseStyle}
-            classesStyles={POST_HTML_CLASSES_STYLES}
-            tagsStyles={postTagsStyles}
-          />
-        </View>
-      </Pressable>
       {((item.image_urls && item.image_urls.length > 0) || (videoUrls && videoUrls.length > 0)) && (
         <View style={{ backgroundColor: isDarkMode ? "#1e1e1e" : "#E4EEE3", marginTop: 8 }}>
           <MediaShimmer />
