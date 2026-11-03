@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext, useRef, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,12 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
-  DeviceEventEmitter,
   RefreshControl,
-  ActivityIndicator,
-  Animated,
+  Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets, SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
 import { getConversations, getOnlineStatus } from "../../../services/api/Api";
 import Toast from "react-native-toast-message";
 import { storage } from "../../../global/storage";
@@ -24,7 +23,6 @@ import { useChatSocket } from "../../../contexts/ChatSocketContext";
 import dayjs from "dayjs";
 import { useTheme } from "../../../contexts/ThemeContext";
 import { useTranslation } from "react-i18next";
-import LiquidButton from "../../../components/LiquidButton";
 import { AndroidGlassBackdrop } from "../../../components/GlassModules";
 import { isPublicGroupChat } from "../../../utils/chatHelpers";
 import { getSystemMessageText } from "../../../utils/systemMessageText";
@@ -33,14 +31,13 @@ import FastImage from "../../../components/FastImage";
 import UserNameRow from "../../../components/profile/UserNameRow";
 import AvatarFrame from "../../../components/profile/AvatarFrame";
 
-// Time of a conversation's last message, short enough for the row: the hour
-// for today, the date otherwise. (It was an empty placeholder that returned
-// nothing, so the list showed no time at all.)
-const formatMessageTime = (timestamp) => {
+// Time of a conversation's last message
+const formatMessageTime = (timestamp, yesterdayText = "Hôm qua") => {
   const time = dayjs(timestamp);
   if (!time.isValid()) return "";
   const now = dayjs();
   if (time.isSame(now, "day")) return time.format("HH:mm");
+  if (time.isSame(now.subtract(1, "day"), "day")) return yesterdayText;
   return time.isSame(now, "year") ? time.format("DD/MM") : time.format("DD/MM/YY");
 };
 
@@ -49,57 +46,30 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
   const [conversations, setConversations] = useState([]);
   const [onlineStatuses, setOnlineStatuses] = useState({});
   const [refreshing, setRefreshing] = useState(false);
-  // `refreshing` also drives the custom CustomLoading overlay and gets set
-  // true for every reload, gesture or not (mount, focus, re-tapping the
-  // active tab). RefreshControl's own `refreshing` prop needs to stay
-  // separate: on iOS, setting it true from something other than an actual
-  // pull gesture makes UIKit reserve the native control's layout space
-  // immediately (no pull distance to size it from), pushing the list down -
-  // exactly the "big empty gap under the search bar" seen only on iOS.
-  // Android doesn't have this quirk. Keeping this true only while a real
-  // pull-to-refresh is in flight avoids it entirely.
   const [pullRefreshing, setPullRefreshing] = useState(false);
   const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all"); // 'all' | 'unread' | 'group'
+  const [showFilterPills, setShowFilterPills] = useState(false);
   const { t } = useTranslation();
-  // One object per real change: a new one on every render made the list
-  // re-render all of its rows each time anything on this screen changed.
-  const listExtraData = React.useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
+
+  const listExtraData = useMemo(() => ({ t, theme, isDarkMode }), [t, theme, isDarkMode]);
   const insets = useSafeAreaInsets();
   const { refreshChatCount } = useUnreadCountsContext();
   const { blockedUsers, username } = useContext(AuthContext);
-  // Per account: a request still in flight during an account switch could
-  // otherwise write the previous account's list into the next one's cache.
+
   const conversationsCacheKey = `conversations_${username}`;
   const { onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited } = useChatSocket();
   const flatListRef = useRef(null);
   const scrollPositionRef = useRef(0);
   const isProcessingRef = useRef(false);
   const lastTriggerTimeRef = useRef(0);
-  const lastScrollYRef = useRef(0);
-
-  const scrollY = useRef(new Animated.Value(0)).current;
-
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [1, 0],
-    extrapolate: "clamp",
-  });
-
-  const titleTranslateY = scrollY.interpolate({
-    inputRange: [0, 40],
-    outputRange: [0, -10],
-    extrapolate: "clamp",
-  });
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
     scrollPositionRef.current = Math.max(0, offsetY);
-    scrollY.setValue(offsetY);
-
-    lastScrollYRef.current = offsetY;
   };
 
-  const scrollToTopOrReload = React.useCallback(() => {
+  const scrollToTopOrReload = useCallback(() => {
     const now = Date.now();
     if (now - lastTriggerTimeRef.current < 300) return;
     lastTriggerTimeRef.current = now;
@@ -130,10 +100,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     }
   }, []);
 
-  const onRefresh = React.useCallback(() => {
-    // The only place `pullRefreshing` is ever set - this is the actual
-    // native pull-to-refresh gesture, so it's safe for RefreshControl to
-    // reserve/animate its space here.
+  const onRefresh = useCallback(() => {
     setPullRefreshing(true);
     setRefreshing(true);
     fetchConversations().finally(() => {
@@ -144,16 +111,14 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     });
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (scrollTriggerRef) {
       scrollTriggerRef(scrollToTopOrReload);
     }
   }, [scrollTriggerRef, scrollToTopOrReload]);
 
   useFocusEffect(
-    React.useCallback(() => {
-      // fetchConversations refreshes the unread count itself when it
-      // succeeds; asking again here fetched the whole list a second time.
+    useCallback(() => {
       fetchConversations();
     }, [refreshChatCount])
   );
@@ -186,7 +151,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     }
   };
 
-  // Fetch the online status of every private-chat partner shown in the list.
   const fetchOnlineStatuses = async (convos) => {
     const usernames = [
       ...new Set(
@@ -198,42 +162,36 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     if (usernames.length === 0) return;
 
     const results = await Promise.all(
-      usernames.map((username) =>
-        getOnlineStatus(username)
-          .then((res) => [username, !!res.data?.is_online])
-          .catch(() => [username, undefined])
+      usernames.map((u) =>
+        getOnlineStatus(u)
+          .then((res) => [u, !!res.data?.is_online])
+          .catch(() => [u, undefined])
       )
     );
 
     setOnlineStatuses((prev) => {
       const next = { ...prev };
-      results.forEach(([username, isOnline]) => {
-        if (isOnline !== undefined) next[username] = isOnline;
+      results.forEach(([u, isOnline]) => {
+        if (isOnline !== undefined) next[u] = isOnline;
       });
       return next;
     });
   };
 
-  // Keep the latest fetchConversations closure available to the realtime listeners
-  // below without re-subscribing to the socket on every render.
   const fetchConversationsRef = useRef(null);
   useEffect(() => {
     fetchConversationsRef.current = fetchConversations;
   });
 
-  const conversationIdsKey = React.useMemo(
+  const conversationIdsKey = useMemo(
     () => conversations.map((c) => c.id).join(","),
     [conversations]
   );
 
-  // Realtime: refresh the conversation list (unread badges, last message, ordering)
-  // the instant any of these conversations gets a chat event.
   useEffect(() => {
     const ids = conversationIdsKey ? conversationIdsKey.split(",") : [];
     if (ids.length === 0) return undefined;
 
-    // Debounced: a burst of events (a busy group, several chats at once) is
-    // one list fetch 400 ms after the last one, not one fetch per event.
     let refreshTimer = null;
     const refresh = () => {
       clearTimeout(refreshTimer);
@@ -276,41 +234,50 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     };
   }, [conversationIdsKey, onMessageSent, onMessageRead, onMessageDeleted, onMessageRecalled, onMessageEdited]);
 
-  // One component for the list's separators: defined inline it was a new
-  // component type on every render, so every separator was rebuilt with each
-  // keystroke in the search box.
-  const renderSeparator = React.useCallback(
-    () => <View style={{ height: 1, backgroundColor: theme.border, marginLeft: 80 }} />,
-    [theme.border]
+  const unreadTotalCount = useMemo(
+    () => conversations.reduce((acc, c) => acc + (c.unread_count > 0 ? 1 : 0), 0),
+    [conversations]
   );
 
-  const filteredConversations = conversations.filter((item) => {
-    if (
-      item.type === "private" &&
-      item.participants[0]?.username &&
-      blockedUsers &&
-      blockedUsers.includes(item.participants[0].username)
-    ) {
-      return false;
-    }
+  const filteredConversations = useMemo(() => {
+    return conversations.filter((item) => {
+      if (
+        item.type === "private" &&
+        item.participants[0]?.username &&
+        blockedUsers &&
+        blockedUsers.includes(item.participants[0].username)
+      ) {
+        return false;
+      }
 
-    const participantName =
-      item.type === "private" ? item.participants[0]?.profile_name : item.name;
-    const messageContent = item.latest_message?.content || "";
+      if (activeFilter === "unread" && !(item.unread_count > 0)) {
+        return false;
+      }
 
-    const searchLower = search.toLowerCase();
-    return (
-      participantName?.toLowerCase().includes(searchLower) ||
-      messageContent.toLowerCase().includes(searchLower)
-    );
-  });
+      if (activeFilter === "group" && !(item.type === "group" || isPublicGroupChat(item))) {
+        return false;
+      }
+
+      const participantName =
+        item.type === "private" ? item.participants[0]?.profile_name : item.name;
+      const messageContent = item.latest_message?.content || "";
+
+      if (!search.trim()) return true;
+
+      const searchLower = search.toLowerCase();
+      return (
+        participantName?.toLowerCase().includes(searchLower) ||
+        messageContent.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [conversations, blockedUsers, activeFilter, search]);
 
   const getChatName = (conversation) => {
     if (conversation.type === "private") {
       return conversation.participants[0]?.profile_name || "Unknown User";
     }
     if (isPublicGroupChat(conversation)) {
-      return t("chatConversation.casualGroupName");
+      return t("chatConversation.casualGroupName", "Tán gẫu linh tinh");
     }
     return conversation.name || "Unnamed Group";
   };
@@ -325,12 +292,11 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     return conversation.avatar_url || conversation.participants?.[0]?.avatar_url || null;
   };
 
-  // Only 1-1 chats show a person; group names/images stay unstyled.
   const getProfileTheme = (conversation) =>
     conversation.type === "private" ? conversation.participants[0]?.profile_theme : null;
 
   const renderLastMessagePreview = (latestMessage) => {
-    if (!latestMessage) return t("chat.noMessages");
+    if (!latestMessage) return t("chat.noMessages", "Chưa có tin nhắn");
 
     if (latestMessage.is_recalled) {
       return (
@@ -351,7 +317,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       return (
         <>
           <Ionicons name="image-outline" size={14} color={theme.subText} />{" "}
-          {t("chat.photo")}
+          {t("chat.photo", "[Hình ảnh]")}
         </>
       );
     }
@@ -359,7 +325,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       return (
         <>
           <Ionicons name="videocam-outline" size={14} color={theme.subText} />{" "}
-          {t("chat.video")}
+          {t("chat.video", "[Video]")}
         </>
       );
     }
@@ -372,8 +338,6 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       );
     }
 
-    // A shared post's content is "note + link" - the raw url reads as noise in
-    // a one-line preview, so show the post's title instead.
     const sharedTopic = latestMessage.metadata?.shared_topic;
     if (sharedTopic) {
       return (
@@ -384,7 +348,7 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
       );
     }
 
-    const content = latestMessage.content || t("chat.noMessages");
+    const content = latestMessage.content || t("chat.noMessages", "Chưa có tin nhắn");
     if (latestMessage.is_edited) {
       return `${content} ${t("chatConversation.edited", "(Đã sửa)")}`;
     }
@@ -406,8 +370,8 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
 
     if (loadError || (!isLocal && isPlaceholder)) {
       return (
-        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: theme.iconBackground }]}>
-          <Text style={[styles.avatarFallbackInitial, { color: theme.primary }]}>
+        <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: isDarkMode ? "#27272A" : "#DCFCE7" }]}>
+          <Text style={[styles.avatarFallbackInitial, { color: isDarkMode ? "#4ADE80" : "#15803D" }]}>
             {initial}
           </Text>
         </View>
@@ -423,158 +387,346 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
     );
   };
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity
-      style={[styles.conversation, { backgroundColor: theme.background }]}
-      onPress={() => {
-        navigation.navigate("ConversationScreen", {
-          conversationId: item.id,
-          conversation: item,
-        });
-      }}
-    >
-      <View style={styles.avatarWrapper}>
-        <ConversationAvatar item={item} />
-        <AvatarFrame theme={getProfileTheme(item)} size={48} />
-        {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
-          <View style={styles.onlineDot} />
-        ) : null}
-      </View>
-      <View style={styles.info}>
-        <UserNameRow
-          name={getChatName(item)}
-          theme={getProfileTheme(item)}
-          style={[styles.name, { color: theme.text }]}
-        />
-        <Text style={[styles.lastMessage, { color: theme.subText }]} numberOfLines={1}>
-          {item.latest_message?.is_myself ? t('chat.you') : ""}
-          {renderLastMessagePreview(item.latest_message)}
-        </Text>
-      </View>
-      <View style={styles.meta}>
-        <Text style={[styles.time, { color: theme.subText }]}>
-          {item.latest_message?.created_at
-            ? formatMessageTime(item.latest_message.created_at)
-            : ""}
-        </Text>
-        <View style={styles.unreadContainer}>
-          {isPublicGroupChat(item) && (
-            <Ionicons
-              name="notifications-off"
-              size={18}
-              color={theme.subText}
-              style={styles.muteIcon}
-            />
-          )}
-          {item.unread_count > 0 && (
-            <View style={[styles.unreadBadge, { backgroundColor: theme.primary }]}>
-              <Text style={styles.unreadText}>{item.unread_count}</Text>
-            </View>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }) => {
+    const unread = (item.unread_count || 0) > 0;
+    const isMyself = item.latest_message?.is_myself;
+    const isGroup = item.type === "group" || isPublicGroupChat(item);
+    const chatName = getChatName(item);
 
-  const headerHeight = 58 + insets.top;
+    let senderPrefix = "";
+    if (isMyself) {
+      const you = t('chat.you', 'Bạn');
+      senderPrefix = you.includes(":") ? (you.endsWith(" ") ? you : `${you} `) : `${you}: `;
+    } else if (isGroup && item.latest_message?.sender_profile_name) {
+      senderPrefix = `${item.latest_message.sender_profile_name}: `;
+    }
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.card,
+          {
+            backgroundColor: isDarkMode ? "#1C1E24" : "#FFFFFF",
+            borderColor: isDarkMode ? "#272A34" : "#F1F5F9",
+          },
+        ]}
+        activeOpacity={0.75}
+        onPress={() => {
+          navigation.navigate("ConversationScreen", {
+            conversationId: item.id,
+            conversation: item,
+          });
+        }}
+      >
+        {/* Left: Avatar with Online indicator */}
+        <View style={styles.avatarWrapper}>
+          <ConversationAvatar item={item} />
+          <AvatarFrame theme={getProfileTheme(item)} size={50} />
+          {item.type === "private" && onlineStatuses[item.participants[0]?.username] ? (
+            <View style={[styles.onlineDot, { borderColor: isDarkMode ? "#1C1E24" : "#FFFFFF" }]} />
+          ) : null}
+        </View>
+
+        {/* Center: Name & Last Message */}
+        <View style={styles.info}>
+          <UserNameRow
+            name={chatName}
+            theme={getProfileTheme(item)}
+            style={[styles.name, { color: theme.text }]}
+          />
+          <Text
+            style={[
+              styles.lastMessage,
+              {
+                color: unread ? (isDarkMode ? "#F3F4F6" : "#0F172A") : theme.subText,
+                fontWeight: unread ? "600" : "400",
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {senderPrefix}
+            {renderLastMessagePreview(item.latest_message)}
+          </Text>
+        </View>
+
+        {/* Right: Meta (Time + Status indicator) */}
+        <View style={styles.meta}>
+          <Text
+            style={[
+              styles.time,
+              {
+                color: unread ? (isDarkMode ? "#4ADE80" : "#16A34A") : theme.subText,
+                fontWeight: unread ? "600" : "400",
+              },
+            ]}
+          >
+            {item.latest_message?.created_at
+              ? formatMessageTime(item.latest_message.created_at, t('chat.yesterday', 'Hôm qua'))
+              : ""}
+          </Text>
+
+          <View style={styles.statusContainer}>
+            {unread ? (
+              <View style={styles.unreadBadge}>
+                <Text style={styles.unreadBadgeText}>
+                  {item.unread_count > 99 ? "99+" : item.unread_count}
+                </Text>
+              </View>
+            ) : isMyself ? (
+              <View style={styles.doubleCheckRow}>
+                <Ionicons
+                  name="checkmark"
+                  size={14}
+                  color="#22C55E"
+                  style={styles.checkOverlap}
+                />
+                <Ionicons
+                  name="checkmark"
+                  size={14}
+                  color="#22C55E"
+                />
+              </View>
+            ) : (isPublicGroupChat(item) || item.is_muted) ? (
+              <Ionicons
+                name="notifications-off-outline"
+                size={16}
+                color={theme.subText}
+              />
+            ) : null}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const screenBg = isDarkMode ? "#121316" : "#F8FAF9";
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Floating header */}
-      <View
-        style={[styles.header, { paddingTop: insets.top, height: headerHeight, backgroundColor: "transparent" }]}
-        pointerEvents="box-none"
-      >
-        <Animated.Text
-          style={[
-            styles.headerTitleText,
-            { color: theme.primary, opacity: titleOpacity, transform: [{ translateY: titleTranslateY }] },
-          ]}
-        >
-          {t('chat.title')}
-        </Animated.Text>
-        <View style={styles.headerActions}>
-          <LiquidButton
-            providerId="Chat"
+    <View style={[styles.container, { backgroundColor: screenBg }]}>
+      {/* Top Ambient Green Gradient */}
+      <LinearGradient
+        colors={
+          isDarkMode
+            ? ["rgba(34, 197, 94, 0.12)", "rgba(34, 197, 94, 0.02)", "transparent"]
+            : ["#DCFCE7", "#EBF9F0", "rgba(248, 250, 249, 0)"]
+        }
+        style={styles.ambientGlow}
+        pointerEvents="none"
+      />
+
+      {/* Header Container */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + (Platform.OS === "ios" ? 4 : 8) }]}>
+        {/* Left: Frog Mascot + Radiating Doodles + "Tin nhắn" Title */}
+        <View style={styles.headerLeft}>
+          <View style={styles.mascotWrapper}>
+            <View style={styles.actionLinesWrapper}>
+              <View style={[styles.actionLine, styles.actionLine1]} />
+              <View style={[styles.actionLine, styles.actionLine2]} />
+              <View style={[styles.actionLine, styles.actionLine3]} />
+            </View>
+            <FastImage
+              source={require("../../../assets/logo.png")}
+              style={styles.mascotLogo}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.titleWrapper}>
+            <Text style={[styles.headerTitle, { color: isDarkMode ? "#4ADE80" : "#15803D" }]}>
+              {t('chat.title', 'Tin nhắn')}
+            </Text>
+            <Text style={styles.sparkleStar}>✦</Text>
+          </View>
+        </View>
+
+        {/* Right: Action Buttons (Group, Add) */}
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={[
+              styles.headerBtn,
+              { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.18)" : "rgba(34, 197, 94, 0.12)" },
+            ]}
+            activeOpacity={0.7}
             onPress={() => navigation.navigate("CreateGroupScreen")}
-            scrollY={scrollY}
-            size={40}
           >
-            <Ionicons name="people-outline" size={19} color={theme.text} />
-          </LiquidButton>
-          <LiquidButton
-            providerId="Chat"
+            <Ionicons name="people-outline" size={20} color={isDarkMode ? "#4ADE80" : "#15803D"} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.headerBtn,
+              { backgroundColor: isDarkMode ? "rgba(34, 197, 94, 0.18)" : "rgba(34, 197, 94, 0.12)" },
+            ]}
+            activeOpacity={0.7}
             onPress={() => navigation.navigate("NewConversationScreen")}
-            scrollY={scrollY}
-            size={40}
           >
-            <Ionicons name="add" size={22} color={theme.text} />
-          </LiquidButton>
+            <Ionicons name="add" size={24} color={isDarkMode ? "#4ADE80" : "#15803D"} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {refreshing && (
+      {/* Search & Filter Bar */}
+      <View style={styles.searchRow}>
         <View
-          style={{
-            position: "absolute",
-            top: headerHeight + 15,
-            left: 0,
-            right: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
+          style={[
+            styles.searchContainer,
+            {
+              backgroundColor: isDarkMode ? "#1B1E24" : "#FFFFFF",
+              borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+            },
+          ]}
         >
+          <Ionicons name="search-outline" size={18} color={theme.subText} style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.text }]}
+            placeholder={t('chat.search', 'Tìm kiếm cuộc trò chuyện...')}
+            placeholderTextColor={theme.placeholder || "#9CA3AF"}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={theme.subText} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[
+            styles.filterBtn,
+            {
+              backgroundColor:
+                showFilterPills || activeFilter !== "all"
+                  ? isDarkMode
+                    ? "#15803D"
+                    : "#16A34A"
+                  : isDarkMode
+                  ? "rgba(34, 197, 94, 0.18)"
+                  : "rgba(34, 197, 94, 0.12)",
+            },
+          ]}
+          activeOpacity={0.7}
+          onPress={() => setShowFilterPills((prev) => !prev)}
+        >
+          <Ionicons
+            name="options-outline"
+            size={20}
+            color={
+              showFilterPills || activeFilter !== "all"
+                ? "#FFFFFF"
+                : isDarkMode
+                ? "#4ADE80"
+                : "#15803D"
+            }
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Filter Pills (Tất cả, Chưa đọc, Nhóm) */}
+      {showFilterPills && (
+        <View style={styles.filterPillsRow}>
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              activeFilter === "all"
+                ? styles.filterPillActive
+                : {
+                    backgroundColor: isDarkMode ? "#1B1E24" : "#FFFFFF",
+                    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+                  },
+            ]}
+            onPress={() => setActiveFilter("all")}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                activeFilter === "all" ? styles.filterPillTextActive : { color: theme.subText },
+              ]}
+            >
+              Tất cả
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              activeFilter === "unread"
+                ? styles.filterPillActive
+                : {
+                    backgroundColor: isDarkMode ? "#1B1E24" : "#FFFFFF",
+                    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+                  },
+            ]}
+            onPress={() => setActiveFilter("unread")}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                activeFilter === "unread" ? styles.filterPillTextActive : { color: theme.subText },
+              ]}
+            >
+              Chưa đọc {unreadTotalCount > 0 ? `(${unreadTotalCount})` : ""}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              activeFilter === "group"
+                ? styles.filterPillActive
+                : {
+                    backgroundColor: isDarkMode ? "#1B1E24" : "#FFFFFF",
+                    borderColor: isDarkMode ? "#282B34" : "#E2E8F0",
+                  },
+            ]}
+            onPress={() => setActiveFilter("group")}
+          >
+            <Text
+              style={[
+                styles.filterPillText,
+                activeFilter === "group" ? styles.filterPillTextActive : { color: theme.subText },
+              ]}
+            >
+              Nhóm
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Loading indicator */}
+      {refreshing && (
+        <View style={styles.loadingContainer}>
           <CustomLoading size={44} showBackdrop />
         </View>
       )}
+
+      {/* Conversations List */}
       <AndroidGlassBackdrop providerId="Chat" style={{ flex: 1 }}>
-      <FlatList
-        ref={flatListRef}
-        data={filteredConversations}
-        extraData={listExtraData}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={pullRefreshing}
-            onRefresh={onRefresh}
-            tintColor="transparent"
-            colors={["transparent"]}
-            progressBackgroundColor="transparent"
-            style={{ backgroundColor: "transparent" }}
-            progressViewOffset={-1000}
-          />
-        }
-        contentContainerStyle={{
-          paddingTop: headerHeight + 8,
-          paddingBottom: 110 + insets.bottom,
-          flex: filteredConversations.length === 0 ? 1 : undefined,
-        }}
-        ListHeaderComponent={
-          <>
-            <View style={[styles.searchContainer, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-              <Ionicons
-                name="search"
-                size={18}
-                color={theme.subText}
-                style={{ marginLeft: 12 }}
-              />
-              <TextInput
-                style={[styles.searchInput, { color: theme.text }]}
-                placeholder={t('chat.search')}
-                placeholderTextColor={theme.placeholder}
-                value={search}
-                onChangeText={setSearch}
-              />
-            </View>
-          </>
-        }
-        ItemSeparatorComponent={renderSeparator}
-        ListEmptyComponent={
-          <View style={{ flex: 1, marginTop: 44 }}>
+        <FlatList
+          ref={flatListRef}
+          data={filteredConversations}
+          extraData={listExtraData}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={pullRefreshing}
+              onRefresh={onRefresh}
+              tintColor="transparent"
+              colors={["transparent"]}
+              progressBackgroundColor="transparent"
+              style={{ backgroundColor: "transparent" }}
+              progressViewOffset={-1000}
+            />
+          }
+          contentContainerStyle={{
+            paddingTop: 10,
+            paddingBottom: 110 + insets.bottom,
+            flexGrow: filteredConversations.length === 0 ? 1 : undefined,
+          }}
+          ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Image
                 source={require("../../../assets/sad_frog.png")}
@@ -582,70 +734,207 @@ export default function ChatScreen({ navigation, scrollTriggerRef }) {
               />
               <Text style={[styles.emptyText, { color: theme.subText }]}>
                 {search
-                  ? t('chat.noConversations')
-                  : t('chat.noMessages')}
+                  ? t('chat.noConversations', 'Không tìm thấy cuộc trò chuyện')
+                  : t('chat.noMessages', 'Chưa có tin nhắn')}
               </Text>
             </View>
-          </View>
-        }
-      />
+          }
+        />
       </AndroidGlassBackdrop>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
+  container: {
+    flex: 1,
+  },
+  ambientGlow: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 20,
+    height: 220,
+    zIndex: 0,
+  },
+  headerContainer: {
+    zIndex: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  mascotWrapper: {
+    position: "relative",
+    width: 44,
+    height: 44,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mascotLogo: {
+    width: 40,
+    height: 40,
+  },
+  actionLinesWrapper: {
+    position: "absolute",
+    top: -7,
+    left: 11,
+    width: 22,
+    height: 14,
+  },
+  actionLine: {
+    position: "absolute",
+    width: 2.5,
+    height: 6,
+    borderRadius: 1.5,
+    backgroundColor: "#EAB308",
+  },
+  actionLine1: {
+    top: 6,
+    left: 1,
+    transform: [{ rotate: "-40deg" }],
+  },
+  actionLine2: {
+    top: 0,
+    left: 8,
+    transform: [{ rotate: "0deg" }],
+  },
+  actionLine3: {
+    top: 5,
+    left: 15,
+    transform: [{ rotate: "35deg" }],
+  },
+  titleWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 27,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  sparkleStar: {
+    fontSize: 16,
+    color: "#EAB308",
+    marginLeft: 4,
+    marginTop: -14,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  headerBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    justifyContent: "space-between",
-    gap: 8,
-  },
-  headerTitleText: {
-    fontSize: 24,
-    fontWeight: "700",
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    marginBottom: 8,
+    gap: 10,
+    zIndex: 10,
   },
   searchContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 14,
+    height: 46,
+    borderRadius: 23,
     borderWidth: 1,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    height: 44,
+    paddingHorizontal: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  searchIcon: {
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
-    paddingHorizontal: 10,
+    fontSize: 14.5,
+    paddingVertical: 0,
     backgroundColor: "transparent",
   },
-  conversation: {
+  filterBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  filterPillsRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    marginBottom: 8,
+    gap: 8,
+    zIndex: 10,
+  },
+  filterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterPillActive: {
+    backgroundColor: "#22C55E",
+    borderColor: "#22C55E",
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  filterPillTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  loadingContainer: {
+    position: "absolute",
+    top: 140,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 1000,
+  },
+  card: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+    elevation: 1,
   },
   avatarWrapper: {
-    marginRight: 14,
+    position: "relative",
+    width: 50,
+    height: 50,
+    marginRight: 13,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   avatarFallback: {
     justifyContent: "center",
@@ -657,40 +946,47 @@ const styles = StyleSheet.create({
   },
   onlineDot: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 9,
-    height: 9,
-    borderRadius: 999,
-    backgroundColor: "#16a34a",
+    bottom: -1,
+    right: -1,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: "#22C55E",
+    borderWidth: 2.5,
   },
   info: {
     flex: 1,
     justifyContent: "center",
+    marginRight: 8,
   },
   name: {
     fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 2,
+    fontWeight: "700",
+    marginBottom: 3,
   },
   lastMessage: {
-    fontSize: 14,
+    fontSize: 13.5,
   },
   meta: {
     alignItems: "flex-end",
-    justifyContent: "center",
-    minWidth: 40,
+    justifyContent: "space-between",
+    height: 44,
+    minWidth: 42,
   },
   time: {
     fontSize: 12,
-    marginBottom: 4,
   },
-  unreadContainer: {
+  statusContainer: {
+    minHeight: 20,
+    justifyContent: "center",
+    alignItems: "flex-end",
+  },
+  doubleCheckRow: {
     flexDirection: "row",
     alignItems: "center",
   },
-  muteIcon: {
-    marginRight: 2,
+  checkOverlap: {
+    marginRight: -7,
   },
   unreadBadge: {
     borderRadius: 10,
@@ -699,16 +995,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 6,
+    backgroundColor: "#22C55E",
   },
-  unreadText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 12,
+  unreadBadgeText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 11,
   },
   emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 60,
   },
   emptyImage: {
     height: 90,
